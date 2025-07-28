@@ -348,7 +348,9 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         raise NotImplementedError
 
 
-def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+def get_detector(
+    uptime_subscription: UptimeSubscription, prefetch_workflow_data=False
+) -> Detector | None:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
@@ -358,9 +360,15 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             source_id=str(uptime_subscription.id),
         )
-        return Detector.objects.select_related("project", "project__organization").get(
+        qs = Detector.objects_for_deletion.filter(
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
         )
+        select_related = ["project", "project__organization"]
+        if prefetch_workflow_data:
+            select_related.append("workflow_condition_group")
+            qs = qs.prefetch_related("workflow_condition_group__conditions")
+        qs = qs.select_related(*select_related)
+        return qs.get()
     except Detector.DoesNotExist:
         return None
 

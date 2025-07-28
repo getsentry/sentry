@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class ProjectPluginDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-project-plugin-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -23,7 +23,7 @@ class ProjectPluginDetailsTestBase(APITestCase):
 
 
 class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, "webhooks"
         )
@@ -45,7 +45,7 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
             }
         ]
 
-    def test_auth_url_absolute(self):
+    def test_auth_url_absolute(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, "asana"
         )
@@ -57,7 +57,7 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
 class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "put"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with outbox_runner():
             self.get_success_response(
                 self.project.organization.slug,
@@ -114,11 +114,11 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
             assert config.get("value") is None
 
     @with_feature("organizations:data-forwarding")
-    def test_allow_plugin_with_feature_enabled(self):
+    def test_allow_plugin_with_feature_enabled(self) -> None:
         self.get_success_response(self.organization.slug, self.project.slug, "amazon-sqs")
 
     @with_feature({"organizations:data-forwarding": False})
-    def test_disallow_plugin_with_feature_disabled(self):
+    def test_disallow_plugin_with_feature_disabled(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, "amazon-sqs", status_code=403
         )
@@ -127,7 +127,7 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
 class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "delete"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         plugins.get("webhooks").enable(self.project)
 
         with outbox_runner():

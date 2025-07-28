@@ -25,7 +25,7 @@ urlpatterns = [re_path(r"^/$", RateLimitedEndpoint.as_view(), name="sentry-test"
 class TestRateLimited(APITestCase):
     endpoint = "sentry-test"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(self.user)
         resp = self.get_response()
         assert resp.status_code == 429

@@ -20,7 +20,7 @@ export default function Section({children, title, description}: SectionProps) {
 
 const SectionContainer = styled(Flex)`
   > p {
-    margin-bottom: ${p => p.theme.space.none};
+    margin-bottom: ${p => p.theme.space['0']};
   }
 
   p + p {

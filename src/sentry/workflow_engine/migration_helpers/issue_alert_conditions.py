@@ -29,7 +29,7 @@ def create_every_event_data_condition(
     )
 
 
-def create_reappeared_event_data_condition(
+def create_escalating_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
     return DataConditionKwargs(
@@ -360,7 +360,7 @@ data_condition_translator_mapping: dict[
     str, Callable[[dict[str, Any], Any], DataConditionKwargs]
 ] = {
     "sentry.rules.conditions.every_event.EveryEventCondition": create_every_event_data_condition,
-    "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": create_reappeared_event_data_condition,
+    "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": create_escalating_event_data_condition,
     "sentry.rules.conditions.regression_event.RegressionEventCondition": create_regression_event_data_condition,
     "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition": create_existing_high_priority_issue_data_condition,
     "sentry.rules.conditions.event_attribute.EventAttributeCondition": create_event_attribute_data_condition,

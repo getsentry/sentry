@@ -41,15 +41,15 @@ class BindRecordsTestCase(TestCase):
     def rule_mapping(self) -> dict[int, Rule]:
         return {self.rule.id: self.rule}
 
-    def test_success(self):
+    def test_success(self) -> None:
         (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
         assert record == self.record.with_rules([self.rule])
 
-    def test_without_group(self):
+    def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped
         assert not _bind_records([self.record], {}, self.rule_mapping)
 
-    def test_filters_invalid_rules(self):
+    def test_filters_invalid_rules(self) -> None:
         # If the record can't be associated with a rule, the rule should be dropped
         (record,) = _bind_records([self.record], self.group_mapping, {})
         assert record == self.record.with_rules([])
@@ -62,7 +62,7 @@ class GroupRecordsTestCase(TestCase):
     def rule(self):
         return self.project.rule_set.all()[0]
 
-    def test_success(self):
+    def test_success(self) -> None:
         events = [
             self.store_event(data={"fingerprint": ["group-1"]}, project_id=self.project.id)
             for i in range(3)
@@ -82,7 +82,7 @@ class GroupRecordsTestCase(TestCase):
 
 
 class SortDigestTestCase(TestCase):
-    def test_success(self):
+    def test_success(self) -> None:
         Rule.objects.create(
             project=self.project,
             label="Send a notification for regressions",
@@ -117,7 +117,7 @@ class SortDigestTestCase(TestCase):
 
 
 class SplitKeyTestCase(TestCase):
-    def test_old_style_key(self):
+    def test_old_style_key(self) -> None:
         assert split_key(f"mail:p:{self.project.id}") == (
             self.project,
             ActionTargetType.ISSUE_OWNERS,
@@ -125,7 +125,7 @@ class SplitKeyTestCase(TestCase):
             None,
         )
 
-    def test_new_style_key_no_identifier(self):
+    def test_new_style_key_no_identifier(self) -> None:
         assert split_key(f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:") == (
             self.project,
             ActionTargetType.ISSUE_OWNERS,
@@ -133,20 +133,20 @@ class SplitKeyTestCase(TestCase):
             None,
         )
 
-    def test_new_style_key_identifier(self):
+    def test_new_style_key_identifier(self) -> None:
         identifier = "123"
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
-    def test_fallthrough_choice(self):
+    def test_fallthrough_choice(self) -> None:
         identifier = "123"
         fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:{fallthrough_choice.value}"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, fallthrough_choice)
 
-    def test_no_fallthrough_choice(self):
+    def test_no_fallthrough_choice(self) -> None:
         identifier = "123"
         assert split_key(
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
@@ -154,20 +154,20 @@ class SplitKeyTestCase(TestCase):
 
 
 class UnsplitKeyTestCase(TestCase):
-    def test_no_identifier(self):
+    def test_no_identifier(self) -> None:
         assert (
             unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, None, None)
             == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}::"
         )
 
-    def test_no_fallthrough(self):
+    def test_no_fallthrough(self) -> None:
         identifier = "123"
         assert (
             unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
             == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
         )
 
-    def test_identifier(self):
+    def test_identifier(self) -> None:
         identifier = "123"
         fallthrough_choice = FallthroughChoiceType.ALL_MEMBERS
         assert (

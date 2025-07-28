@@ -135,7 +135,7 @@ def test_validator_should_not_filter_empty_message_without_option(set_sentry_opt
 
 
 @django_db_all
-def test_validator_should_not_filter_empty_email():
+def test_validator_should_not_filter_empty_email() -> None:
     should_filter, tag, reason = validate_user_report(
         {
             "name": "",
@@ -151,7 +151,7 @@ def test_validator_should_not_filter_empty_email():
 
 
 @django_db_all
-def test_validator_should_filter_invalid_event_id():
+def test_validator_should_filter_invalid_event_id() -> None:
     should_filter, tag, reason = validate_user_report(
         {
             "name": "",
@@ -167,7 +167,7 @@ def test_validator_should_filter_invalid_event_id():
 
 
 @django_db_all
-def test_validator_strips_event_id_dashes():
+def test_validator_strips_event_id_dashes() -> None:
     report: UserReportDict = {
         "name": "",
         "email": "andrew@example.com",
@@ -180,7 +180,7 @@ def test_validator_strips_event_id_dashes():
 
 
 @django_db_all
-def test_validator_strips_comments_whitespace():
+def test_validator_strips_comments_whitespace() -> None:
     report: UserReportDict = {
         "name": "",
         "email": "andrew@example.com",

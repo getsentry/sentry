@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 @patch.dict(NotificationAction._registry, {})
 class NotificationActionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="night city")
         self.projects = [
             self.create_project(name="netrunner", organization=self.organization),

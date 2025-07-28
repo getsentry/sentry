@@ -14,7 +14,7 @@ from sentry.types.actor import Actor
 class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project1 = self.create_project(
             teams=[self.team], slug="foo"
         )  # This project will return counts for this team
@@ -86,7 +86,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
                 == 1
             )
 
-    def test_not_as_simple(self):
+    def test_not_as_simple(self) -> None:
         team_with_user = self.create_team(
             organization=self.organization, name="Lonely Team", members=[self.user]
         )
@@ -168,7 +168,7 @@ class TeamAlertsTriggeredTotalsEndpointTest(APITestCase):
 class TeamAlertsTriggeredIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-alerts-triggered-index"
 
-    def test(self):
+    def test(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         user_owned_rule = self.create_alert_rule(
             organization=self.organization,

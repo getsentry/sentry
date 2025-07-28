@@ -16,7 +16,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class DocIntegrationAvatarTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-avatar"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="peter@marvel.com", is_superuser=True)
         self.superuser = self.create_user(email="gwen@marvel.com", is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
@@ -36,7 +36,7 @@ class DocIntegrationAvatarTest(APITestCase):
 class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "GET"
 
-    def test_user_view_avatar(self):
+    def test_user_view_avatar(self) -> None:
         """
         Tests that regular users can see only published doc integration avatars
         """
@@ -51,7 +51,7 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         )
 
     # TODO(schew2381): Change test to check that superusers can only see published doc integration avatars
-    def test_superuser_view_avatar(self):
+    def test_superuser_view_avatar(self) -> None:
         """
         Tests that superusers can see all doc integration avatars
         """
@@ -61,7 +61,7 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
             assert serialize(doc) == response.data
             assert serialize(doc.avatar.get()) == response.data["avatar"]
 
-    def test_staff_view_avatar(self):
+    def test_staff_view_avatar(self) -> None:
         """
         Tests that staff can see all doc integration avatars
         """
@@ -76,7 +76,7 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
 class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "PUT"
 
-    def test_user_upload_avatar(self):
+    def test_user_upload_avatar(self) -> None:
         """
         Tests that regular users cannot upload doc integration avatars
         """
@@ -85,7 +85,7 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         self.get_error_response(self.draft_doc.slug, status_code=status.HTTP_403_FORBIDDEN)
 
     # TODO(schew2381): Change test to check that superusers cannot upload doc integration avatars
-    def test_superuser_upload_avatar(self):
+    def test_superuser_upload_avatar(self) -> None:
         """
         Tests that superusers can upload avatars
         """
@@ -111,7 +111,7 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
                     assert serialize(prev_avatar) != response.data["avatar"]
                     assert prev_avatar.control_file_id != doc.avatar.get().control_file_id
 
-    def test_staff_upload_avatar(self):
+    def test_staff_upload_avatar(self) -> None:
         """
         Tests that superusers can upload avatars
         """
@@ -137,7 +137,7 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
                     assert serialize(prev_avatar) != response.data["avatar"]
                     assert prev_avatar.control_file_id != doc.avatar.get().control_file_id
 
-    def test_upload_avatar_payload_structure(self):
+    def test_upload_avatar_payload_structure(self) -> None:
         """
         Tests that errors are thrown on malformed upload payloads
         """

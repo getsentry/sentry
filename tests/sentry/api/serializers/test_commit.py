@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CommitSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -44,7 +44,7 @@ class CommitSerializerTest(TestCase):
         assert result["repository"]["name"] == "test/test"
         assert result["author"] == {"name": "stebe", "email": "stebe@sentry.io"}
 
-    def test_no_author(self):
+    def test_no_author(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -72,7 +72,7 @@ class CommitSerializerTest(TestCase):
 
         assert result["author"] == {}
 
-    def test_pull_requests(self):
+    def test_pull_requests(self) -> None:
         """Test we can correctly match pull requests to commits."""
         user = self.create_user()
         project = self.create_project()

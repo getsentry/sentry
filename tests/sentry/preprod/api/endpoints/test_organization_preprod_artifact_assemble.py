@@ -25,7 +25,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class ValidatePreprodArtifactSchemaTest(TestCase):
     """Unit tests for schema validation function - no database required."""
 
-    def test_valid_minimal_schema(self):
+    def test_valid_minimal_schema(self) -> None:
         """Test valid minimal schema passes validation."""
         data = {"checksum": "a" * 40, "chunks": []}
         body = orjson.dumps(data)
@@ -33,7 +33,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert error is None
         assert result == data
 
-    def test_valid_full_schema(self):
+    def test_valid_full_schema(self) -> None:
         """Test valid schema with all optional fields passes validation."""
         data = {
             "checksum": "a" * 40,
@@ -46,14 +46,14 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert error is None
         assert result == data
 
-    def test_invalid_json(self):
+    def test_invalid_json(self) -> None:
         """Test invalid JSON returns error."""
         body = b'{"invalid": json}'
         result, error = validate_preprod_artifact_schema(body)
         assert error == "Invalid json body"
         assert result == {}
 
-    def test_missing_checksum(self):
+    def test_missing_checksum(self) -> None:
         """Test missing checksum field returns error."""
         body = orjson.dumps({"chunks": []})
         result, error = validate_preprod_artifact_schema(body)
@@ -61,7 +61,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "checksum" in error
         assert result == {}
 
-    def test_invalid_checksum_format(self):
+    def test_invalid_checksum_format(self) -> None:
         """Test invalid checksum format returns error."""
         body = orjson.dumps({"checksum": "invalid", "chunks": []})
         result, error = validate_preprod_artifact_schema(body)
@@ -69,14 +69,14 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "checksum" in error
         assert result == {}
 
-    def test_checksum_wrong_type(self):
+    def test_checksum_wrong_type(self) -> None:
         """Test non-string checksum returns error."""
         body = orjson.dumps({"checksum": 123, "chunks": []})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
 
-    def test_missing_chunks(self):
+    def test_missing_chunks(self) -> None:
         """Test missing chunks field returns error."""
         body = orjson.dumps({"checksum": "a" * 40})
         result, error = validate_preprod_artifact_schema(body)
@@ -84,35 +84,35 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "chunks" in error
         assert result == {}
 
-    def test_chunks_wrong_type(self):
+    def test_chunks_wrong_type(self) -> None:
         """Test non-array chunks returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": "not_array"})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
 
-    def test_chunks_invalid_item_format(self):
+    def test_chunks_invalid_item_format(self) -> None:
         """Test invalid chunk format returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": ["invalid"]})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
 
-    def test_chunks_invalid_item_type(self):
+    def test_chunks_invalid_item_type(self) -> None:
         """Test non-string chunk returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [123]})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
 
-    def test_git_sha_wrong_type(self):
+    def test_git_sha_wrong_type(self) -> None:
         """Test non-string git_sha returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": 123})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
 
-    def test_git_sha_invalid_format(self):
+    def test_git_sha_invalid_format(self) -> None:
         """Test invalid git_sha format returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "git_sha": "invalid"})
         result, error = validate_preprod_artifact_schema(body)
@@ -120,14 +120,14 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "git_sha" in error
         assert result == {}
 
-    def test_build_configuration_wrong_type(self):
+    def test_build_configuration_wrong_type(self) -> None:
         """Test non-string build_configuration returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "build_configuration": 123})
         result, error = validate_preprod_artifact_schema(body)
         assert error is not None
         assert result == {}
 
-    def test_additional_properties_rejected(self):
+    def test_additional_properties_rejected(self) -> None:
         """Test additional properties are rejected."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "extra_field": "value"})
         result, error = validate_preprod_artifact_schema(body)
@@ -138,7 +138,7 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
 class ProjectPreprodArtifactAssembleTest(APITestCase):
     """Integration tests for the full endpoint - requires database."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
@@ -156,7 +156,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
-    def test_feature_flag_disabled_returns_403(self):
+    def test_feature_flag_disabled_returns_403(self) -> None:
         """Test that endpoint returns 404 when feature flag is disabled."""
         self.feature_context.__exit__(None, None, None)
 
@@ -177,7 +177,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             self.feature_context = Feature("organizations:preprod-artifact-assemble")
             self.feature_context.__enter__()
 
-    def test_assemble_json_schema_integration(self):
+    def test_assemble_json_schema_integration(self) -> None:
         """Integration test for schema validation through the endpoint."""
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
@@ -193,21 +193,21 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
-    def test_assemble_json_schema_invalid_structure(self):
+    def test_assemble_json_schema_invalid_structure(self) -> None:
         """Test that invalid JSON structure is rejected."""
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_missing_checksum(self):
+    def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""
         response = self.client.post(
             self.url, data={"chunks": []}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_invalid_checksum_format(self):
+    def test_assemble_json_schema_invalid_checksum_format(self) -> None:
         """Test that invalid checksum format is rejected."""
         response = self.client.post(
             self.url,
@@ -216,7 +216,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_checksum_wrong_type(self):
+    def test_assemble_json_schema_checksum_wrong_type(self) -> None:
         """Test that non-string checksum is rejected."""
         response = self.client.post(
             self.url,
@@ -225,7 +225,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_missing_chunks(self):
+    def test_assemble_json_schema_missing_chunks(self) -> None:
         """Test that missing chunks field is rejected."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -235,7 +235,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_chunks_wrong_type(self):
+    def test_assemble_json_schema_chunks_wrong_type(self) -> None:
         """Test that non-array chunks field is rejected."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -245,7 +245,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_chunks_invalid_item_type(self):
+    def test_assemble_json_schema_chunks_invalid_item_type(self) -> None:
         """Test that non-string items in chunks array are rejected."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -255,7 +255,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_git_sha_wrong_type(self):
+    def test_assemble_json_schema_git_sha_wrong_type(self) -> None:
         """Test that non-string git_sha is rejected."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -265,7 +265,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_git_sha_invalid_format(self):
+    def test_assemble_json_schema_git_sha_invalid_format(self) -> None:
         """Test that invalid git_sha format is rejected."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -275,7 +275,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_build_configuration_wrong_type(self):
+    def test_assemble_json_schema_build_configuration_wrong_type(self) -> None:
         """Test that non-string build_configuration is rejected."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -285,7 +285,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_assemble_json_schema_valid_minimal(self):
+    def test_assemble_json_schema_valid_minimal(self) -> None:
         """Test that valid minimal schema is accepted."""
         checksum = sha1(b"1").hexdigest()
         response = self.client.post(
@@ -296,7 +296,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
-    def test_assemble_json_schema_optional_fields(self):
+    def test_assemble_json_schema_optional_fields(self) -> None:
         checksum = sha1(b"test content").hexdigest()
 
         response = self.client.post(
@@ -379,7 +379,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             }
         )
 
-    def test_assemble_with_missing_chunks(self):
+    def test_assemble_with_missing_chunks(self) -> None:
         content = b"test content for missing chunks"
         total_checksum = sha1(content).hexdigest()
 
@@ -411,7 +411,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
 
-    def test_assemble_response(self):
+    def test_assemble_response(self) -> None:
         content = b"test response content"
         total_checksum = sha1(content).hexdigest()
         blob = FileBlob.from_file(ContentFile(content))
@@ -429,7 +429,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
 
-    def test_assemble_with_pending_deletion_project(self):
+    def test_assemble_with_pending_deletion_project(self) -> None:
         self.project.status = ObjectStatus.PENDING_DELETION
         self.project.save()
 
@@ -449,7 +449,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_assemble_org_auth_token(self):
+    def test_assemble_org_auth_token(self) -> None:
         org2 = self.create_organization(owner=self.user)
 
         content = b"test org auth token content"
@@ -524,7 +524,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert org_token.date_last_used is not None
         assert org_token.project_last_used_id == self.project.id
 
-    def test_poll_request(self):
+    def test_poll_request(self) -> None:
         checksum = sha1(b"test poll").hexdigest()
 
         response = self.client.post(
@@ -540,7 +540,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
         assert response.data["missingChunks"] == []
 
-    def test_check_existing_assembly_status(self):
+    def test_check_existing_assembly_status(self) -> None:
         checksum = sha1(b"test existing status").hexdigest()
 
         set_assemble_status(
@@ -560,7 +560,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
 
-    def test_integration_task_sets_status_api_can_read_it(self):
+    def test_integration_task_sets_status_api_can_read_it(self) -> None:
         """
         Integration test that verifies the task and API endpoint use consistent scope.
 
@@ -593,7 +593,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.OK
         assert response.data["missingChunks"] == []
 
-    def test_permission_required(self):
+    def test_permission_required(self) -> None:
         content = b"test permission content"
         total_checksum = sha1(content).hexdigest()
 

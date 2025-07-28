@@ -17,7 +17,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-project-uptime-alert-checks"
     features: dict[str, bool] = {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.subscription_id = uuid.uuid4().hex
         self.subscription = self.create_uptime_subscription(
@@ -66,7 +66,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
         """Store a single uptime data row. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement store_uptime_data")
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
@@ -101,7 +101,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert any(v for v in response.data if v["checkStatusReason"] is None)
             assert any(v for v in response.data if v["httpStatusCode"] is None)
 
-    def test_datetime_range(self):
+    def test_datetime_range(self) -> None:
         with self.feature(self.features):
             # all of our checks are stored in the last 5 minutes, so query for 10 days ago and expect 0 results
             response = self.get_success_response(
@@ -127,7 +127,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert len(response.data) == 6
 
     # TODO: fix this test once snuba is fixed
-    def test_get_paginated(self):
+    def test_get_paginated(self) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
@@ -168,7 +168,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
     @override_options(
         {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
     )
-    def test_get_with_date_cutoff(self):
+    def test_get_with_date_cutoff(self) -> None:
         with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
@@ -178,7 +178,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data is not None
             assert len(response.data) == 0
 
-    def test_get_with_none_subscription_id(self):
+    def test_get_with_none_subscription_id(self) -> None:
         with self.feature(self.features):
             # Create a subscription with None subscription_id
             subscription = self.create_uptime_subscription(
@@ -235,7 +235,7 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
 ):
     __test__ = True
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.features = {
             "organizations:uptime-eap-enabled": True,
             "organizations:uptime-eap-uptime-results-query": True,

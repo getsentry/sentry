@@ -18,7 +18,7 @@ def raise_update_comment_exception(*args, **kwargs):
 
 
 class TestUpdateComment(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",

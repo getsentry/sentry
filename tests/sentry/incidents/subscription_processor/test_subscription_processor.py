@@ -83,7 +83,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
         self.email_action_handler = Mock()
@@ -284,7 +284,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             processor.process_update(message)
         return processor
 
-    def test_removed_alert_rule(self):
+    def test_removed_alert_rule(self) -> None:
         """
         Test that when an alert rule has been removed
         the related QuerySubscription is also removed
@@ -305,7 +305,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
         # we still have a subscription for self.other_project so we don't delete the snubaquery
 
-    def test_removed_alert_rule_one_project(self):
+    def test_removed_alert_rule_one_project(self) -> None:
         """
         Test that if an alert rule that only has one project is removed
         the related QuerySubscription and SnubaQuery rows are cleaned up
@@ -329,28 +329,28 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert not QuerySubscription.objects.filter(id=subscription_id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
-    def test_removed_project(self):
+    def test_removed_project(self) -> None:
         message = self.build_subscription_update(self.sub)
         self.project.delete()
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
 
-    def test_pending_deletion_project(self):
+    def test_pending_deletion_project(self) -> None:
         message = self.build_subscription_update(self.sub)
         self.project.update(status=ObjectStatus.DELETION_IN_PROGRESS)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         message = self.build_subscription_update(self.sub)
         SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.ignore_update_missing_incidents"
         )
 
-    def test_no_feature_performance(self):
+    def test_no_feature_performance(self) -> None:
         self.sub.snuba_query.dataset = "transactions"
         message = self.build_subscription_update(self.sub)
         with self.feature("organizations:incidents"):
@@ -359,7 +359,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             "incidents.alert_rules.ignore_update_missing_incidents_performance"
         )
 
-    def test_skip_already_processed_update(self):
+    def test_skip_already_processed_update(self) -> None:
         self.send_update(self.rule, self.trigger.alert_threshold)
         self.metrics.incr.reset_mock()
         self.send_update(self.rule, self.trigger.alert_threshold)
@@ -375,7 +375,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.send_update(self.rule, self.trigger.alert_threshold, timedelta(hours=1))
         assert self.metrics.incr.call_count == 0
 
-    def test_no_alert(self):
+    def test_no_alert(self) -> None:
         rule = self.rule
         trigger = self.trigger
         processor = self.send_update(rule, trigger.alert_threshold)
@@ -384,7 +384,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_does_not_exist(self.trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
-    def test_alert_dedupe(self):
+    def test_alert_dedupe(self) -> None:
         """
         Verify that an alert rule that only expects a single update to be over the
         alert threshold triggers correctly
@@ -429,7 +429,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_alert_nullable(self):
+    def test_alert_nullable(self) -> None:
         """
         Verify that an alert rule that only expects a single update to be over the
         alert threshold triggers correctly
@@ -440,7 +440,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule)
 
-    def test_alert_multiple_threshold_periods(self):
+    def test_alert_multiple_threshold_periods(self) -> None:
         """
         Verify that a rule that expects two consecutive updates to be over the
         alert threshold triggers correctly
@@ -473,7 +473,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             ],
         )
 
-    def test_no_new_incidents_within_ten_minutes(self):
+    def test_no_new_incidents_within_ten_minutes(self) -> None:
         """
         Verify that a new incident is not made for the same rule, trigger, and
         subscription if an incident was already made within the last 10 minutes.
@@ -513,7 +513,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             any_order=True,
         )
 
-    def test_incident_made_after_ten_minutes(self):
+    def test_incident_made_after_ten_minutes(self) -> None:
         """
         Verify that a new incident will be made for the same rule, trigger, and
         subscription if the last incident made for those was made more tha 10 minutes
@@ -543,7 +543,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
 
 class ProcessUpdateResolveTest(ProcessUpdateTest):
-    def test_no_active_incident_resolve(self):
+    def test_no_active_incident_resolve(self) -> None:
         """
         Test that we don't track stats for resolving if there are no active incidents
         related to the alert rule.
@@ -556,7 +556,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
-    def test_resolve_multiple_threshold_periods(self):
+    def test_resolve_multiple_threshold_periods(self) -> None:
         """
         Verify that a rule that expects two consecutive updates to be under the
         resolve threshold triggers correctly
@@ -609,7 +609,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_resolve_multiple_threshold_periods_non_consecutive(self):
+    def test_resolve_multiple_threshold_periods_non_consecutive(self) -> None:
         """
         Verify that a rule that expects two consecutive updates to be under the
         resolve threshold doesn't trigger if there's two updates that are below with
@@ -656,7 +656,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    def test_auto_resolve(self):
+    def test_auto_resolve(self) -> None:
         """
         Verify that we resolve an alert rule automatically even if no resolve
         threshold is set
@@ -702,7 +702,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_auto_resolve_percent_boundary(self):
+    def test_auto_resolve_percent_boundary(self) -> None:
         """
         Verify that we resolve an alert rule automatically even if no resolve
         threshold is set
@@ -749,7 +749,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_auto_resolve_boundary(self):
+    def test_auto_resolve_boundary(self) -> None:
         """
         Verify that we resolve an alert rule automatically if the value hits the
         original alert trigger value
@@ -795,7 +795,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_auto_resolve_reversed(self):
+    def test_auto_resolve_reversed(self) -> None:
         """
         Test auto resolving works correctly when threshold is reversed
         """
@@ -840,7 +840,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_reversed_threshold_alert(self):
+    def test_reversed_threshold_alert(self) -> None:
         """
         Test that inverting thresholds correctly alerts
         """
@@ -873,7 +873,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_reversed_threshold_resolve(self):
+    def test_reversed_threshold_resolve(self) -> None:
         """
         Test that inverting thresholds correctly resolves
         """
@@ -926,7 +926,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
             ],
         )
 
-    def test_multiple_subscriptions_do_not_conflict(self):
+    def test_multiple_subscriptions_do_not_conflict(self) -> None:
         """
         Verify that multiple subscriptions associated with a rule don't conflict with
         each other
@@ -1085,7 +1085,7 @@ class ProcessUpdateResolveTest(ProcessUpdateTest):
 
 
 class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
-    def test_multiple_triggers(self):
+    def test_multiple_triggers(self) -> None:
         rule = self.rule
         rule.update(threshold_period=1)
         trigger = self.trigger
@@ -1190,7 +1190,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
             ],
         )
 
-    def test_alert_multiple_triggers_non_consecutive(self):
+    def test_alert_multiple_triggers_non_consecutive(self) -> None:
         """
         Verify that a rule that expects two consecutive updates to be over the
         alert threshold doesn't trigger if there are two updates that are above with
@@ -1217,7 +1217,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
         self.assert_trigger_does_not_exist(self.trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
-    def test_multiple_triggers_no_warning_action(self):
+    def test_multiple_triggers_no_warning_action(self) -> None:
         rule = self.rule
         rule.update(threshold_period=1)
         trigger = self.trigger
@@ -1303,7 +1303,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
             ],
         )
 
-    def test_multiple_triggers_threshold_period(self):
+    def test_multiple_triggers_threshold_period(self) -> None:
         rule = self.rule
         rule.update(threshold_period=2)
         trigger = self.trigger
@@ -1422,7 +1422,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
             ],
         )
 
-    def test_multiple_triggers_at_same_time(self):
+    def test_multiple_triggers_at_same_time(self) -> None:
         """
         Check that both triggers fire if an update comes through that exceeds both of
         their thresholds
@@ -1501,7 +1501,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
             ],
         )
 
-    def test_multiple_triggers_with_identical_actions_at_same_time(self):
+    def test_multiple_triggers_with_identical_actions_at_same_time(self) -> None:
         """
         Check that both triggers fire if an update comes through that exceeds both of
         their thresholds
@@ -1566,7 +1566,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
             ],
         )
 
-    def test_auto_resolve_multiple_trigger(self):
+    def test_auto_resolve_multiple_trigger(self) -> None:
         """
         Test auto resolving works correctly when multiple triggers are present.
         """
@@ -1635,7 +1635,7 @@ class ProcessUpdateMultipleTriggersTest(ProcessUpdateTest):
             ],
         )
 
-    def test_multiple_triggers_resolve_separately(self):
+    def test_multiple_triggers_resolve_separately(self) -> None:
         """
         Check that resolve triggers fire separately
         """
@@ -2303,7 +2303,7 @@ class ProcessUpdateDistinctActionsTest(ProcessUpdateTest):
             warning_action,
         )
 
-    def test_distinct_actions_warning_to_resolved(self):
+    def test_distinct_actions_warning_to_resolved(self) -> None:
         """Tests distinct action behavior when alert status goes from Warning -> Resolved"""
         rule = self.rule
         (
@@ -2354,7 +2354,7 @@ class ProcessUpdateDistinctActionsTest(ProcessUpdateTest):
             ],
         )
 
-    def test_distinct_actions_critical_to_resolved(self):
+    def test_distinct_actions_critical_to_resolved(self) -> None:
         """Tests distinct action behavior when alert status goes from Critical -> Resolved"""
         rule = self.rule
         (
@@ -2424,7 +2424,7 @@ class ProcessUpdateDistinctActionsTest(ProcessUpdateTest):
             ],
         )
 
-    def test_distinct_actions_warning_to_critical_to_resolved(self):
+    def test_distinct_actions_warning_to_critical_to_resolved(self) -> None:
         """Tests distinct action behavior when alert status goes from Warning -> Critical -> Resolved"""
         rule = self.rule
         (
@@ -2515,7 +2515,7 @@ class ProcessUpdateDistinctActionsTest(ProcessUpdateTest):
             ],
         )
 
-    def test_distinct_actions_critical_to_warning_to_resolved(self):
+    def test_distinct_actions_critical_to_warning_to_resolved(self) -> None:
         """Tests distinct action behavior when alert status goes from Critical -> Warning -> Resolved"""
         rule = self.rule
         (
@@ -2642,7 +2642,7 @@ class ProcessUpdateDuplicateActionsTest(ProcessUpdateTest):
             warning_action,
         )
 
-    def test_duplicate_actions_warning_to_resolved(self):
+    def test_duplicate_actions_warning_to_resolved(self) -> None:
         """Tests duplicate action behavior when alert status goes from Warning -> Resolved"""
         rule = self.rule
         (
@@ -2693,7 +2693,7 @@ class ProcessUpdateDuplicateActionsTest(ProcessUpdateTest):
             ],
         )
 
-    def test_duplicate_actions_critical_to_resolved(self):
+    def test_duplicate_actions_critical_to_resolved(self) -> None:
         """Tests duplicate action behavior when alert status goes from Critical -> Resolved"""
         rule = self.rule
         (
@@ -2747,7 +2747,7 @@ class ProcessUpdateDuplicateActionsTest(ProcessUpdateTest):
             ],
         )
 
-    def test_duplicate_actions_warning_to_critical_to_resolved(self):
+    def test_duplicate_actions_warning_to_critical_to_resolved(self) -> None:
         """Tests duplicate action behavior when alert status goes from Warning -> Critical -> Resolved"""
         rule = self.rule
         (
@@ -2822,7 +2822,7 @@ class ProcessUpdateDuplicateActionsTest(ProcessUpdateTest):
             ],
         )
 
-    def test_duplicate_actions_critical_to_warning_to_resolved(self):
+    def test_duplicate_actions_critical_to_warning_to_resolved(self) -> None:
         """Tests duplicate action behavior when alert status goes from Critical -> Warning -> Resolved"""
         rule = self.rule
         (
@@ -2921,7 +2921,7 @@ class ProcessUpdateSlackTest(ProcessUpdateTest):
             assert len(attachments) > 0
         self.slack_client.reset_mock()
 
-    def test_slack_multiple_triggers_critical_before_warning(self):
+    def test_slack_multiple_triggers_critical_before_warning(self) -> None:
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
         the warning update is not swallowed and an alert is triggered as a warning alert granted
@@ -3050,7 +3050,7 @@ class ProcessUpdateSlackTest(ProcessUpdateTest):
         series_data = chart_data["timeseriesData"][0]["data"]
         assert len(series_data) > 0
 
-    def test_slack_multiple_triggers_critical_fired_twice_before_warning(self):
+    def test_slack_multiple_triggers_critical_fired_twice_before_warning(self) -> None:
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
         the warning update is not swallowed and an alert is triggered as a warning alert granted
@@ -3417,7 +3417,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
             ],
         )
 
-    def test_has_anomaly(self):
+    def test_has_anomaly(self) -> None:
         rule = self.dynamic_rule
         # test alert ABOVE
         anomaly1: TimeSeriesPoint = {
@@ -3731,7 +3731,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
     format = "v2"  # TODO: remove once subscriptions migrated
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         for status in ["exited", "crashed"]:
             self.store_session(
@@ -3832,7 +3832,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             )
         return processor
 
-    def test_crash_rate_alert_for_sessions_with_auto_resolve_critical(self):
+    def test_crash_rate_alert_for_sessions_with_auto_resolve_critical(self) -> None:
         """
         Test that ensures that a Critical alert is triggered when `crash_free_percentage` falls
         below the Critical threshold and then is Resolved once `crash_free_percentage` goes above
@@ -3997,7 +3997,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             ],
         )
 
-    def test_crash_rate_alert_for_sessions_with_auto_resolve_warning(self):
+    def test_crash_rate_alert_for_sessions_with_auto_resolve_warning(self) -> None:
         """
         Test that ensures that a Warning alert is triggered when `crash_free_percentage` falls
         below the Warning threshold and then is Resolved once `crash_free_percentage` goes above
@@ -4056,7 +4056,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_no_active_incident(rule)
 
-    def test_crash_rate_alert_for_sessions_with_critical_warning_then_resolved(self):
+    def test_crash_rate_alert_for_sessions_with_critical_warning_then_resolved(self) -> None:
         """
         Test that tests the behavior of going from Critical status to Warning status to Resolved
         for Crash Rate Alerts
@@ -4142,7 +4142,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_no_active_incident(rule)
 
-    def test_crash_rate_alert_for_sessions_with_triggers_lower_than_resolve_threshold(self):
+    def test_crash_rate_alert_for_sessions_with_triggers_lower_than_resolve_threshold(self) -> None:
         """
         Test that ensures that when `crash_rate_percentage` goes above the warning threshold but
         lower than the resolve threshold, incident is not resolved
@@ -4271,7 +4271,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    def test_crash_rate_alert_when_session_count_is_higher_than_minimum_threshold(self):
+    def test_crash_rate_alert_when_session_count_is_higher_than_minimum_threshold(self) -> None:
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
         action_critical = self.crash_rate_alert_critical_action
@@ -4538,7 +4538,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         stat_keys = build_alert_rule_stat_keys(AlertRule(id=1), QuerySubscription(project_id=2))
         assert stat_keys == [
             "{alert_rule:1:project:2}:last_update",
@@ -4546,7 +4546,7 @@ class TestBuildAlertRuleStatKeys(unittest.TestCase):
 
 
 class TestBuildTriggerStatKeys(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         stat_keys = build_trigger_stat_keys(
             AlertRule(id=1),
             QuerySubscription(project_id=2),
@@ -4561,7 +4561,7 @@ class TestBuildTriggerStatKeys(unittest.TestCase):
 
 
 class TestBuildAlertRuleTriggerStatKey(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         stat_key = build_alert_rule_trigger_stat_key(
             alert_rule_id=1, project_id=2, trigger_id=3, stat_key="hello"
         )
@@ -4569,13 +4569,13 @@ class TestBuildAlertRuleTriggerStatKey(unittest.TestCase):
 
 
 class TestPartition(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         assert list(partition(range(8), 2)) == [(0, 1), (2, 3), (4, 5), (6, 7)]
         assert list(partition(range(9), 3)) == [(0, 1, 2), (3, 4, 5), (6, 7, 8)]
 
 
 class TestGetAlertRuleStats(TestCase):
-    def test(self):
+    def test(self) -> None:
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
@@ -4600,7 +4600,7 @@ class TestGetAlertRuleStats(TestCase):
 
 
 class TestUpdateAlertRuleStats(TestCase):
-    def test(self):
+    def test(self) -> None:
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
         date = timezone.now()

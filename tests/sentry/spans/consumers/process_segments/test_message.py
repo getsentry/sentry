@@ -16,7 +16,7 @@ from tests.sentry.spans.consumers.process import build_mock_span
 
 @exclude_experimental_detectors
 class TestSpansTask(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
 
     def generate_basic_spans(self):
@@ -83,7 +83,7 @@ class TestSpansTask(TestCase):
 
         return spans
 
-    def test_enrich_spans(self):
+    def test_enrich_spans(self) -> None:
         spans = self.generate_basic_spans()
         processed_spans = process_segment(spans)
 
@@ -97,7 +97,7 @@ class TestSpansTask(TestCase):
         assert child_tags["transaction.op"] == segment_tags["transaction.op"]
         assert child_tags["user"] == segment_tags["user"]
 
-    def test_enrich_spans_no_segment(self):
+    def test_enrich_spans_no_segment(self) -> None:
         spans = self.generate_basic_spans()
         for span in spans:
             span["is_segment"] = False
@@ -110,7 +110,7 @@ class TestSpansTask(TestCase):
             assert span["op"]
             assert span["hash"]
 
-    def test_create_models(self):
+    def test_create_models(self) -> None:
         spans = self.generate_basic_spans()
         assert process_segment(spans)
 

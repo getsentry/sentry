@@ -32,7 +32,7 @@ EVENTS_MSG = json.dumps(
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_unhealthy_profiles():
+def test_backpressure_unhealthy_profiles() -> None:
     record_consumer_health(
         {
             "celery": Exception("Couldn't check celery"),
@@ -55,7 +55,7 @@ def test_backpressure_unhealthy_profiles():
         "backpressure.status_ttl": 60,
     }
 )
-def test_bad_config():
+def test_bad_config() -> None:
     with raises(MessageRejected):
         process_one_message(consumer_type="profiles", topic="profiles", payload=PROFILES_MSG)
 
@@ -93,7 +93,7 @@ def test_backpressure_healthy_profiles(process_profile_task):
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_unhealthy_events():
+def test_backpressure_unhealthy_events() -> None:
     record_consumer_health(
         {
             "celery": Exception("Couldn't check celery"),

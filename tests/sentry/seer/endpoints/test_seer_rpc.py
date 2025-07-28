@@ -41,12 +41,12 @@ class TestSeerRpc(APITestCase):
 
         return f"rpcsignature {signature}"
 
-    def test_invalid_endpoint(self):
+    def test_invalid_endpoint(self) -> None:
         path = self._get_path("not_a_method")
         response = self.client.post(path)
         assert response.status_code == 403
 
-    def test_404(self):
+    def test_404(self) -> None:
         path = self._get_path("get_organization_slug")
         data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
         response = self.client.post(
@@ -58,7 +58,7 @@ class TestSeerRpc(APITestCase):
 class TestSeerRpcMethods(APITestCase):
     """Test individual RPC methods"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 
@@ -66,7 +66,7 @@ class TestSeerRpcMethods(APITestCase):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    def test_get_organization_seer_consent_by_org_name_no_integrations(self):
+    def test_get_organization_seer_consent_by_org_name_no_integrations(self) -> None:
         """Test when no organization integrations are found"""
         # Test with a non-existent organization name
         result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
@@ -384,7 +384,17 @@ class TestSeerRpcMethods(APITestCase):
         responses.add(
             responses.POST,
             f"https://github.example.org/api/v3/app/installations/{installation_id}/access_tokens",
-            json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
+            json={
+                "token": access_token,
+                "expires_at": "3000-01-01T00:00:00Z",
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+            },
         )
 
         # Create a GitHub Enterprise integration
@@ -412,6 +422,13 @@ class TestSeerRpcMethods(APITestCase):
         assert result["base_url"] == "https://github.example.org/api/v3"
         assert result["verify_ssl"]
         assert result["encrypted_access_token"]
+        assert result["permissions"] == {
+            "administration": "read",
+            "contents": "read",
+            "issues": "write",
+            "metadata": "read",
+            "pull_requests": "read",
+        }
 
         # Test that the access token is encrypted correctly
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
@@ -425,7 +442,7 @@ class TestSeerRpcMethods(APITestCase):
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_get_github_enterprise_integration_config_invalid_integration_id(self):
+    def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
         # Test with invalid integration_id
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -438,7 +455,7 @@ class TestSeerRpcMethods(APITestCase):
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_get_github_enterprise_integration_config_invalid_organization_id(self):
+    def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 
@@ -470,7 +487,7 @@ class TestSeerRpcMethods(APITestCase):
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_get_github_enterprise_integration_config_disabled_integration(self):
+    def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 

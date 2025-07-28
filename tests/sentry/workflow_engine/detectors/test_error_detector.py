@@ -10,7 +10,7 @@ from sentry.workflow_engine.models.detector import Detector
 
 
 class TestErrorDetectorValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(
@@ -55,7 +55,7 @@ class TestErrorDetectorValidator(TestCase):
             data=detector.get_audit_log_data(),
         )
 
-    def test_invalid_detector_type(self):
+    def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "metric_issue"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
@@ -63,7 +63,7 @@ class TestErrorDetectorValidator(TestCase):
             ErrorDetail(string="Detector type must be error", code="invalid")
         ]
 
-    def test_invalid_fingerprinting_rules(self):
+    def test_invalid_fingerprinting_rules(self) -> None:
         data = {**self.valid_data, "fingerprinting_rules": "hello"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
@@ -71,7 +71,7 @@ class TestErrorDetectorValidator(TestCase):
             ErrorDetail(string="""Invalid syntax near "hello" (line 1, column 1)""", code="invalid")
         ]
 
-    def test_invalid_resolve_duration(self):
+    def test_invalid_resolve_duration(self) -> None:
         data = {**self.valid_data, "resolve_age": "-1"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()

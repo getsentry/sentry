@@ -417,9 +417,9 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def get_mock_uuid(self):
+    def get_mock_uuid(self, hex_value="abc123"):
         class uuid:
-            hex = "abc123"
+            hex = hex_value
             bytes = b"\x00\x01\x02"
 
         return uuid
@@ -831,8 +831,7 @@ class DRFPermissionTestCase(TestCase):
         Override the return type of make_request b/c DRF permission classes
         expect a DRF request (go figure)
         """
-        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore[assignment]
-        return drf_request
+        return super().make_request(*arg, **kwargs)  # type: ignore[return-value]
 
     def setUp(self):
         self.superuser = self.create_user(is_superuser=True, is_staff=False)

@@ -19,7 +19,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     def factory(self):
         return RequestFactory()
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Allows changing the get_response mock for each test.
         self.middleware.get_response = MagicMock(return_value=HttpResponse(status=200))
 
@@ -148,7 +148,7 @@ TEST_MIDDLEWARE = (
 
 
 class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.origin = "https://third-party.site.com"
@@ -193,7 +193,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             user_id=self.user.id,
         )
 
-    def test_organization_replays(self):
+    def test_organization_replays(self) -> None:
         self._test_endpoint(
             f"/api/0/organizations/{self.organization.slug}/replays/",
             "?field=id&queryReferrer=devtoolbar",
@@ -211,7 +211,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             expected_org_id=self.organization.id,
         )
 
-    def test_group_details(self):
+    def test_group_details(self) -> None:
         group = self.create_group(substatus=GroupSubStatus.NEW)
         self._test_endpoint(
             f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
@@ -222,7 +222,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             expected_org_slug=self.organization.slug,
         )
 
-    def test_project_user_feedback(self):
+    def test_project_user_feedback(self) -> None:
         # Should return 400 (no POST data)
         self._test_endpoint(
             f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/",
