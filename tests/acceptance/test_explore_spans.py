@@ -37,7 +37,7 @@ class ExploreSpansTest(AcceptanceTestCase, SpanTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_opening_log_row_shows_attributes(self, mock_now):
+    def test_spans_table_loads_all_events(self, mock_now):
         mock_now.return_value = self.start
 
         assert (
