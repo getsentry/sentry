@@ -271,7 +271,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RAGE_CLICK:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
-            case EventType.NAVIGATION:
+            case EventType.NAVIGATION_SPAN:
                 to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"
             case EventType.CONSOLE:
@@ -342,6 +342,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RESOURCE_SCRIPT:
                 return None
             case EventType.CLS:
+                return None
+            case EventType.NAVIGATION:
                 return None
     except (KeyError, ValueError):
         logger.exception(

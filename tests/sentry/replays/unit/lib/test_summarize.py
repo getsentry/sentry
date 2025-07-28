@@ -125,6 +125,16 @@ def test_as_log_message() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"category": "navigation", "data": {"to": "/"}},
+        },
+    }
+    assert as_log_message(event) is None
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "t"}},
     }
     assert as_log_message(event) is not None

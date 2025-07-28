@@ -629,6 +629,13 @@ def test_which():
             },
         },
     }
+    assert which(event) == EventType.NAVIGATION_SPAN
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
+    }
     assert which(event) == EventType.NAVIGATION
 
     event = {

@@ -111,6 +111,7 @@ class EventType(Enum):
     UI_FOCUS = 19
     UNKNOWN = 20
     CLS = 21
+    NAVIGATION_SPAN = 22
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -158,6 +159,8 @@ def which(event: dict[str, Any]) -> EventType:
                             return EventType.DEAD_CLICK
                     else:
                         return EventType.SLOW_CLICK
+                elif category == "navigation":
+                    return EventType.NAVIGATION
                 elif category == "console":
                     return EventType.CONSOLE
                 elif category == "ui.blur":
@@ -176,7 +179,7 @@ def which(event: dict[str, Any]) -> EventType:
                 payload = event["data"]["payload"]
                 op = payload["op"]
                 if op.startswith("navigation"):
-                    return EventType.NAVIGATION
+                    return EventType.NAVIGATION_SPAN
                 if op == "resource.fetch":
                     return EventType.RESOURCE_FETCH
                 elif op == "resource.xhr":
