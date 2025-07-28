@@ -16,7 +16,7 @@ from sentry.utils.cursors import Cursor
 class ProjectReplayDeletionJobsIndexTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-deletion-jobs-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)
@@ -347,7 +347,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 class ProjectReplayDeletionJobDetailTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-deletion-job-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)

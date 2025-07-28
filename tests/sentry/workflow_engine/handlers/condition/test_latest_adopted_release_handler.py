@@ -33,7 +33,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         group_event = self.event.for_group(group)
         return group, group_event
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = datetime.now(UTC)
         self.prod_env = self.create_environment(name="prod")

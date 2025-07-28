@@ -5,6 +5,7 @@ import difference from 'lodash/difference';
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -208,14 +209,14 @@ export class RenderField extends Component<RenderProps, State> {
               t('Deleted')
             )}
           </MappedProjectWrapper>
-          <DeleteButtonWrapper>
+          <Container area="manage-project">
             <Button
               onClick={() => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
               size="sm"
               aria-label={t('Delete')}
             />
-          </DeleteButtonWrapper>
+          </Container>
         </Item>
       );
     };
@@ -260,7 +261,7 @@ export class RenderField extends Component<RenderProps, State> {
             onChange={handleSelectProject}
             value={selectedSentryProjectId}
           />
-          <AddProjectWrapper>
+          <Container area="manage-project">
             <Button
               disabled={!selectedSentryProjectId || !selectedMappedValue}
               size="sm"
@@ -269,7 +270,7 @@ export class RenderField extends Component<RenderProps, State> {
               icon={<IconAdd />}
               aria-label={t('Add project')}
             />
-          </AddProjectWrapper>
+          </Container>
           <FieldControlWrapper>
             {formElementId && (
               <FormFieldControlState model={model} name={formElementId} />
@@ -354,17 +355,9 @@ const RightArrow = styled(IconArrow)`
   grid-area: arrow;
 `;
 
-const DeleteButtonWrapper = styled('div')`
-  grid-area: manage-project;
-`;
-
 const IntegrationIconWrapper = styled('span')`
   display: flex;
   align-items: center;
-`;
-
-const AddProjectWrapper = styled('div')`
-  grid-area: manage-project;
 `;
 
 const StyledFormField = styled(FormField)`

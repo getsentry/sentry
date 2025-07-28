@@ -27,7 +27,7 @@ MIN_SPAN_DURATION = 900  # ms
 
 @pytest.mark.django_db
 class ConsecutiveHTTPSpansDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

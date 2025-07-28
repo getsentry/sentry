@@ -188,7 +188,7 @@ def test_match_link(url, expected):
 
 
 class UnfurlTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # We're redefining project to ensure that the individual tests have unique project ids.
         # Sharing project ids across tests could result in some race conditions

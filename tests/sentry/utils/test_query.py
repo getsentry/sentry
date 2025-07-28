@@ -85,7 +85,7 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
 
 
 class BulkDeleteObjectsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         UserReport.objects.all().delete()
 

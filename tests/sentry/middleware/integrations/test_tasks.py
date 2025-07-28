@@ -26,7 +26,7 @@ class AsyncSlackResponseTest(TestCase):
     eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (us, eu)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         slack_payload = {"team_id": "TXXXXXXX1", "response_url": self.response_url}
@@ -153,7 +153,7 @@ class AsyncDiscordResponseTest(TestCase):
     eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (us, eu)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         application_id = "some-app-id"
         token = "some-token"

@@ -53,7 +53,7 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
         self.timestamp = floor_to_utc_day(self.now).timestamp()

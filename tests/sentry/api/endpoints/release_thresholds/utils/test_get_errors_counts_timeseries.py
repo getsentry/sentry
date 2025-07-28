@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GetErrorCountTimeseriesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project = self.create_project(name="foo", organization=self.org)

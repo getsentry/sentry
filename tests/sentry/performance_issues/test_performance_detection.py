@@ -83,7 +83,7 @@ def assert_n_plus_one_db_problem(perf_problems):
 @pytest.mark.django_db
 @exclude_experimental_detectors
 class PerformanceDetectionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()

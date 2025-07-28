@@ -25,7 +25,7 @@ from sentry_plugins.trello.plugin import TrelloPlugin
 class OrganizationAvailableActionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-available-action-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

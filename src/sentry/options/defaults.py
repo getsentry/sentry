@@ -506,9 +506,9 @@ register(
 )
 # Enables trace-item ingestion.
 register(
-    "replay.recording.ingest-trace-items.allow-list",
-    type=Sequence,
-    default=[],
+    "replay.recording.ingest-trace-items.rollout",
+    type=Float,
+    default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -856,12 +856,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "deletions.groups.use-new-task",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
@@ -3473,6 +3468,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.errors.postprocess.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3487,6 +3487,12 @@ register(
 register(
     "taskworker.scheduler.rollout",
     default=["sync_options_trial"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.postprocess.namespace.rollout",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3533,15 +3539,5 @@ register(
     "sentry:infer_project_platform",
     type=Float,
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables the new project option set_value implementation that only reloads the cache if the
-# value has changed. This is a temporary option to allow for a smooth transition to the new
-# implementation, and acts as a killswitch.
-register(
-    "sentry.project_option.reload_cache_only_on_value_change",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

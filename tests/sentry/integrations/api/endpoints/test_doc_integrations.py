@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class DocIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-doc-integrations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="jinx@lol.com")
         self.superuser = self.create_user(email="vi@lol.com", is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
@@ -117,7 +117,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
     }
     ignored_keys = ["is_draft", "metadata"]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.staff_user, staff=True)
 

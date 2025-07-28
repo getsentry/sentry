@@ -56,7 +56,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("rick@onehundredyears.com")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")
         self.auth_provider_inst = AuthProvider.objects.create(

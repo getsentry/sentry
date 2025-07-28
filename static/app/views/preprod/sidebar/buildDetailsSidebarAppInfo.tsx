@@ -6,7 +6,10 @@ import {IconClock, IconFile, IconJson, IconLink} from 'sentry/icons';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
-import {type BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  type BuildDetailsAppInfo,
+  type BuildDetailsSizeInfo,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
@@ -16,11 +19,8 @@ import {
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
-  // TODO: Optional
-  downloadSizeBytes: number;
-  // TODO: Optional
-  installSizeBytes: number;
   projectId: string;
+  sizeInfo?: BuildDetailsSizeInfo;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
@@ -37,19 +37,24 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         <Heading as="h3">{props.appInfo.name}</Heading>
       </AppNameHeader>
 
-      {/* TODO: Optional */}
-      <SizeSection>
-        <SizeRow>
-          <SizeItem>
-            <Heading as="h4">Install Size</Heading>
-            <SizeValue>{formatBytesBase10(props.installSizeBytes)}</SizeValue>
-          </SizeItem>
-          <SizeItem>
-            <Heading as="h4">Download Size</Heading>
-            <SizeValue>{formatBytesBase10(props.downloadSizeBytes)}</SizeValue>
-          </SizeItem>
-        </SizeRow>
-      </SizeSection>
+      {props.sizeInfo && (
+        <SizeSection>
+          <SizeRow>
+            <SizeItem>
+              <Heading as="h4">Install Size</Heading>
+              <SizeValue>
+                {formatBytesBase10(props.sizeInfo.install_size_bytes)}
+              </SizeValue>
+            </SizeItem>
+            <SizeItem>
+              <Heading as="h4">Download Size</Heading>
+              <SizeValue>
+                {formatBytesBase10(props.sizeInfo.download_size_bytes)}
+              </SizeValue>
+            </SizeItem>
+          </SizeRow>
+        </SizeSection>
+      )}
 
       <InfoSection>
         <InfoItem>

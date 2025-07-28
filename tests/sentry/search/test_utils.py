@@ -31,7 +31,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 
 
-def test_get_numeric_field_value():
+def test_get_numeric_field_value() -> None:
     assert get_numeric_field_value("foo", "10") == {"foo": 10}
 
     assert get_numeric_field_value("foo", ">10") == {"foo_lower": 10, "foo_lower_inclusive": False}
@@ -135,7 +135,7 @@ class TestParseDuration(TestCase):
             assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 * 1000 + 1), "ms")
 
 
-def test_tokenize_query_only_keyed_fields():
+def test_tokenize_query_only_keyed_fields() -> None:
     tests = [
         ("a:a", {"a": ["a"]}),
         ("(a:a AND b:b)", {"a": ["a"], "b": ["b"]}),
@@ -164,7 +164,7 @@ def test_tokenize_query_only_keyed_fields():
         assert tokenize_query(test[0]) == test[1], test[0]
 
 
-def test_get_numeric_field_value_invalid():
+def test_get_numeric_field_value_invalid() -> None:
     with pytest.raises(InvalidQuery):
         get_numeric_field_value("foo", ">=1k")
 
@@ -910,7 +910,7 @@ class ConvertUserTagTest(TestCase):
         assert convert_user_tag_to_query("user", 'fake:123"456') is None
 
 
-def test_valid_device_class_mapping():
+def test_valid_device_class_mapping() -> None:
     assert set(DEVICE_CLASS.keys()) == {"low", "medium", "high"}, "Only 3 possible classes"
 
     # should all be integers
