@@ -36,7 +36,7 @@ def freeze_option(factories, default_team):
         assert project.get_option("sentry:option-epoch", defaults.LATEST_EPOCH)
 
 
-def test_epoch_defaults():
+def test_epoch_defaults() -> None:
     option = WellKnownProjectOption(
         key="__sentry_test:test-option",
         epoch_defaults={1: "whatever", 10: "new-value", 42: "latest-value"},

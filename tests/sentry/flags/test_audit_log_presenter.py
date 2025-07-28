@@ -3,7 +3,7 @@ from sentry.runner.commands.presenters.audit_log_presenter import AuditLogPresen
 from sentry.testutils.cases import APITestCase
 
 
-def test_audit_log_item_generation():
+def test_audit_log_item_generation() -> None:
     presenter = AuditLogPresenter("", True)
     presenter.set("a", True)
     presenter.unset("b")

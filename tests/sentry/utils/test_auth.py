@@ -165,18 +165,18 @@ class LoginTest(TestCase):
         assert request.session["_nonce"] == self.user.session_nonce
 
 
-def test_sso_expiry_default():
+def test_sso_expiry_default() -> None:
     value = sentry.utils.auth._sso_expiry_from_env(None)
     # make sure no accidental changes affect sso timeout
     assert value == timedelta(days=7)
 
 
-def test_sso_expiry_from_env():
+def test_sso_expiry_from_env() -> None:
     value = sentry.utils.auth._sso_expiry_from_env("20")
     assert value == timedelta(seconds=20)
 
 
-def test_construct_link_with_query():
+def test_construct_link_with_query() -> None:
     # testing basic query param construction
     path = "foobar"
     query_params = {"biz": "baz"}
