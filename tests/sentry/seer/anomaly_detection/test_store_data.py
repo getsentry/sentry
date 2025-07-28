@@ -35,7 +35,7 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
 class AnomalyDetectionStoreDataTest(
     AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.now = datetime.now(UTC)

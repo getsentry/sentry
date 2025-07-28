@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 class BuiltinSymbolSourcesNoSlugTest(APITestCase):
     endpoint = "sentry-api-0-builtin-symbol-sources"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
@@ -24,7 +24,7 @@ class BuiltinSymbolSourcesNoSlugTest(APITestCase):
 class BuiltinSymbolSourcesWithSlugTest(APITestCase):
     endpoint = "sentry-api-0-organization-builtin-symbol-sources"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)

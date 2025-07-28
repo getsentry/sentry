@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ErrorCountThresholdCheckTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # 3 projects
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.project2 = self.create_project(name="bar", organization=self.organization)

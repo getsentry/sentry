@@ -52,7 +52,7 @@ _TEST_REGIONS = (
 
 @control_silo_test(regions=_TEST_REGIONS)
 class UserHybridCloudDeletionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.user_id = self.user.id

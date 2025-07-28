@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 class TestResultsAggregatesEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-test-results-aggregates"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.organization = self.create_organization(owner=self.user)

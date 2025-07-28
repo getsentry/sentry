@@ -242,7 +242,6 @@ class RPCBase:
         sampling_mode: SAMPLING_MODES | None = None,
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
-        debug: bool = False,
     ) -> EAPResponse:
         raise NotImplementedError()
 
@@ -652,6 +651,10 @@ class RPCBase:
             fields={},
             full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
         )
+
+        if params.debug:
+            final_meta["query"] = json.loads(MessageToJson(rpc_request))
+
         for resolved_field in aggregates + groupbys:
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 

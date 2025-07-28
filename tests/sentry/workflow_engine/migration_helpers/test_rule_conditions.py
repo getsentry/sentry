@@ -10,7 +10,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 
 class RuleConditionTranslationTest(ConditionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.dcg = self.create_data_condition_group()
 
     def assert_basic_condition_translated(self, payload):

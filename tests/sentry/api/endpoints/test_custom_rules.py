@@ -22,7 +22,7 @@ class CustomRulesGetEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         second_project = self.create_project(organization=self.organization)
@@ -190,7 +190,7 @@ class CustomRulesEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.second_project = self.create_project(organization=self.organization)

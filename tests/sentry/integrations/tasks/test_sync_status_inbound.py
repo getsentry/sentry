@@ -35,7 +35,7 @@ fake_activity_data = {
 
 
 class TestSyncStatusInbound(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.create_user())
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(

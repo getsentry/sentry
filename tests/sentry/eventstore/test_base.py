@@ -9,7 +9,7 @@ pytestmark = [requires_snuba]
 
 
 class EventStorageTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.eventstorage = EventStorage()
 
     def test_minimal_columns(self) -> None:

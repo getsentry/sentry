@@ -28,7 +28,7 @@ from sentry.users.models.useremail import UserEmail
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()

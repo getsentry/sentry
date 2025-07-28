@@ -24,7 +24,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
 ):
     endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.replay_id = uuid.uuid4().hex

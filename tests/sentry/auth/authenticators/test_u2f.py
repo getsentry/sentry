@@ -14,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class U2FInterfaceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
         rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")

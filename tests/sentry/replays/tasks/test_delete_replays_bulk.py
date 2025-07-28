@@ -12,7 +12,7 @@ from sentry.testutils.helpers import TaskRunner
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(name="test_project")
         self.range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)

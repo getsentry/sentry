@@ -152,7 +152,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
 
 
 class FetchAIModelCostsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Clear cache before each test
         cache.delete(AI_MODEL_COSTS_CACHE_KEY)

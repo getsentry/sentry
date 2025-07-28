@@ -9,7 +9,7 @@ from sentry.testutils.helpers.options import override_options
 
 
 class TestTaskworkerRollout(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.registry = TaskRegistry()
         self.namespace = self.registry.create_namespace(name="test_namespace")

@@ -8,7 +8,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 
 
 class ProjectPermissionBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission_cls = ProjectPermission
 
@@ -226,7 +226,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
 
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -394,7 +394,7 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
 
 
 class ProjectAndStaffPermissionTest(ProjectPermissionBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission_cls = ProjectAndStaffPermission
 

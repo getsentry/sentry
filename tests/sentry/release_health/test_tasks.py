@@ -33,7 +33,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         backend = self.backend_class()
         self.backend = mock.patch("sentry.release_health.tasks.release_monitor", backend)
