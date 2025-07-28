@@ -504,6 +504,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables trace-item ingestion.
+register(
+    "replay.recording.ingest-trace-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -848,6 +855,7 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
@@ -3460,6 +3468,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.errors.postprocess.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3474,6 +3487,12 @@ register(
 register(
     "taskworker.scheduler.rollout",
     default=["sync_options_trial"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.postprocess.namespace.rollout",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

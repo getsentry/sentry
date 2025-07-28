@@ -20,7 +20,7 @@ class TestSentryInstallationTokenDeletionTask(TestCase):
             install=self.sentry_app_installation, user=self.user
         )
 
-    def test_delete_token_without_audit(self):
+    def test_delete_token_without_audit(self) -> None:
         deletions.exec_sync(SentryAppInstallationToken.objects.get(api_token=self.api_token))
 
         assert not ApiToken.objects.filter(id=self.api_token.id).exists()

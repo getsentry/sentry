@@ -15,7 +15,7 @@ class AppPlatformEventSerializerTest(TestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-    def test_no_actor(self):
+    def test_no_actor(self) -> None:
         data = {"time": datetime.datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=datetime.UTC)}
         result = AppPlatformEvent(
             resource="event_alert", action="triggered", install=self.install, data=data
@@ -40,7 +40,7 @@ class AppPlatformEventSerializerTest(TestCase):
         assert result.headers["Sentry-Hook-Resource"] == "event_alert"
         assert result.headers["Sentry-Hook-Signature"] == signature
 
-    def test_sentry_app_actor(self):
+    def test_sentry_app_actor(self) -> None:
         result = AppPlatformEvent(
             resource="issue",
             action="assigned",
@@ -61,7 +61,7 @@ class AppPlatformEventSerializerTest(TestCase):
         assert result.headers["Sentry-Hook-Resource"] == "issue"
         assert result.headers["Sentry-Hook-Signature"] == signature
 
-    def test_user_actor(self):
+    def test_user_actor(self) -> None:
         result = AppPlatformEvent(
             resource="installation",
             action="created",

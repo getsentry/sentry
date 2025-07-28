@@ -11,17 +11,17 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrgAuthTokenTest(TestCase):
-    def test_get_scopes(self):
+    def test_get_scopes(self) -> None:
         token = OrgAuthToken(scope_list=["project:read", "project:releases"])
         assert token.get_scopes() == ["project:read", "project:releases"]
 
-    def test_has_scope(self):
+    def test_has_scope(self) -> None:
         token = OrgAuthToken(scope_list=["project:read", "project:releases"])
         assert token.has_scope("project:read")
         assert token.has_scope("project:releases")
         assert not token.has_scope("project:write")
 
-    def test_validate_scope(self):
+    def test_validate_scope(self) -> None:
         org = Organization(name="Test org", slug="test-org")
         token = OrgAuthToken(
             organization_id=org.id,
@@ -38,7 +38,7 @@ class OrgAuthTokenTest(TestCase):
 
 
 class UpdateOrgAuthTokenLastUsed(TestCase):
-    def test_creates_outboxes(self):
+    def test_creates_outboxes(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = OrgAuthToken.objects.create(
                 organization_id=self.organization.id,
@@ -57,7 +57,7 @@ class UpdateOrgAuthTokenLastUsed(TestCase):
         assert "date_last_used" in outbox.payload
         assert "project_last_used_id" in outbox.payload
 
-    def test_create_outbox_debounce(self):
+    def test_create_outbox_debounce(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = OrgAuthToken.objects.create(
                 organization_id=self.organization.id,

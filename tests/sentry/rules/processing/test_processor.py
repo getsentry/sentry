@@ -36,6 +36,9 @@ EMAIL_ACTION_DATA = {
 }
 
 EVERY_EVENT_COND_DATA = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+ESCALATING_EVENT_COND_DATA = {
+    "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
+}
 
 
 class MockConditionTrue(EventCondition):
@@ -70,7 +73,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         }
 
     # this test relies on a few other tests passing
-    def test_integrated(self):
+    def test_integrated(self) -> None:
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
@@ -112,7 +115,105 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         for rule_fire_history in rule_fire_histories:
             assert getattr(rule_fire_history, "notification_uuid", None) is not None
 
-    def test_delayed_rule_match_any_slow_conditions(self):
+    def test_escalating_event_condition_with_reappeared(self) -> None:
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=True,
+            has_escalated=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 0
+        )
+
+    def test_escalating_event_condition_with_escalated(self) -> None:
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_escalated=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
+
+    def test_escalating_event_condition_with_escalated_and_reappeared(self) -> None:
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=True,
+            has_escalated=True,
+        )
+
+        results = list(rp.apply())
+        assert len(results) == 1
+        callback, futures = results[0]
+        assert len(futures) == 1
+        assert futures[0].rule == self.rule
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 1
+        )
+
+    def test_escalating_event_condition_not_escalated_or_reappeared(self) -> None:
+        self.rule.update(
+            data={
+                "conditions": [ESCALATING_EVENT_COND_DATA],
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=False,
+            has_escalated=False,
+        )
+        results = list(rp.apply())
+
+        assert len(results) == 0
+        assert (
+            RuleFireHistory.objects.filter(rule=self.rule, group=self.group_event.group).count()
+            == 0
+        )
+
+    def test_delayed_rule_match_any_slow_conditions(self) -> None:
         """
         Test that a rule with only 'slow' conditions and action match of 'any' for a performance issue gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
@@ -155,7 +256,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             )
         }
 
-    def test_delayed_rule_match_any_slow_fast_conditions(self):
+    def test_delayed_rule_match_any_slow_fast_conditions(self) -> None:
         """
         Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
@@ -192,7 +293,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             )
         }
 
-    def test_delayed_rule_match_error_slow_fast_conditions(self):
+    def test_delayed_rule_match_error_slow_fast_conditions(self) -> None:
         """
         Test that a rule with a 'slow' condition, a 'fast' condition, and action match of 'garbage' errors and does not fire or get added to the Redis queue
         """
@@ -216,7 +317,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
 
-    def test_rule_match_any_slow_fast_conditions_fast_passes(self):
+    def test_rule_match_any_slow_fast_conditions_fast_passes(self) -> None:
         """
         Test that a rule with both 'slow' and 'fast' conditions and action match of 'any' where a fast condition passes fires and doesn't get enqueued
         """
@@ -237,7 +338,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 1
 
-    def test_delayed_rule_match_all(self):
+    def test_delayed_rule_match_all(self) -> None:
         """
         Test that a rule with a 'slow' condition and action match of 'all' gets added to the Redis buffer and does not immediately fire
         """
@@ -278,7 +379,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             )
         }
 
-    def test_ignored_issue(self):
+    def test_ignored_issue(self) -> None:
         self.group_event.group.status = GroupStatus.IGNORED
         self.group_event.group.substatus = None
         self.group_event.group.save()
@@ -292,7 +393,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
 
-    def test_resolved_issue(self):
+    def test_resolved_issue(self) -> None:
         self.group_event.group.status = GroupStatus.RESOLVED
         self.group_event.group.substatus = None
         self.group_event.group.save()
@@ -306,7 +407,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         results = list(rp.apply())
         assert len(results) == 0
 
-    def test_disabled_rule(self):
+    def test_disabled_rule(self) -> None:
         self.rule.status = ObjectStatus.DISABLED
         self.rule.save()
         rp = RuleProcessor(
@@ -323,7 +424,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             == 0
         )
 
-    def test_muted_slack_rule(self):
+    def test_muted_slack_rule(self) -> None:
         """Test that we don't sent a notification for a muted Slack rule"""
         integration = install_slack(self.organization)
         action_data = [
@@ -376,7 +477,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         assert rule_fire_history.count() == 1
         assert getattr(rule_fire_history[0], "notification_uuid", None) is not None
 
-    def test_muted_msteams_rule(self):
+    def test_muted_msteams_rule(self) -> None:
         """Test that we don't sent a notification for a muted MSTeams rule"""
         tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         integration = self.create_integration(
@@ -459,7 +560,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert len(results) == 2
 
-    def test_multiple_rules(self):
+    def test_multiple_rules(self) -> None:
         rule_2 = Rule.objects.create(
             project=self.group_event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
@@ -523,7 +624,7 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             "tests.sentry.rules.processing.test_processor.MockConditionTrue",
         ],
     )
-    def test_slow_conditions_evaluate_last(self):
+    def test_slow_conditions_evaluate_last(self) -> None:
         # Make sure slow/expensive conditions are evaluated last, so that we can skip evaluating
         # them if cheaper conditions satisfy the rule.
         self.rule.update(
@@ -585,7 +686,7 @@ class RuleProcessorTestFilters(TestCase):
         self.group_event = event.for_group(cast(Group, event.group))
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
-    def test_filter_passes(self):
+    def test_filter_passes(self) -> None:
         # setup a simple alert rule with 1 condition and 1 filter that always pass
         filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
@@ -615,7 +716,7 @@ class RuleProcessorTestFilters(TestCase):
             assert futures[0].kwargs == {}
 
     @patch("sentry.constants._SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
-    def test_filter_fails(self):
+    def test_filter_fails(self) -> None:
         # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
         filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterFalse"}
 
@@ -639,7 +740,7 @@ class RuleProcessorTestFilters(TestCase):
             results = list(rp.apply())
             assert len(results) == 0
 
-    def test_no_filters(self):
+    def test_no_filters(self) -> None:
         # setup an alert rule with 1 condition and no filters that passes
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -666,7 +767,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
-    def test_no_conditions(self):
+    def test_no_conditions(self) -> None:
         # if a rule has no conditions/triggers it should still pass
         Rule.objects.filter(project=self.group_event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -689,7 +790,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
-    def test_environment_mismatch(self):
+    def test_environment_mismatch(self) -> None:
         Rule.objects.filter(project=self.group_event.project).delete()
         env = self.create_environment(project=self.project)
         self.store_event(
@@ -712,7 +813,7 @@ class RuleProcessorTestFilters(TestCase):
         results = list(rp.apply())
         assert len(results) == 0
 
-    def test_last_active_too_recent(self):
+    def test_last_active_too_recent(self) -> None:
         Rule.objects.filter(project=self.group_event.project).delete()
         self.rule = Rule.objects.create(
             project=self.group_event.project,
@@ -766,7 +867,7 @@ class RuleProcessorTestFilters(TestCase):
             assert len(results) == 0
             mock_logger.error.assert_called_once()
 
-    def test_latest_release(self):
+    def test_latest_release(self) -> None:
         # setup an alert rule with 1 conditions and no filters that passes
         self.create_release(project=self.project, version="2021-02.newRelease")
 
@@ -803,7 +904,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
-    def test_latest_release_environment(self):
+    def test_latest_release_environment(self) -> None:
         # setup an alert rule with 1 conditions and no filters that passes
         release = self.create_release(
             project=self.project,

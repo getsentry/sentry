@@ -243,7 +243,7 @@ function UsageAlert({subscription, usage}: Props) {
     }
 
     return (
-      <ButtonWrapper gap="none">
+      <ButtonWrapper gap="0">
         <AddEventsCTA
           {...{
             organization,

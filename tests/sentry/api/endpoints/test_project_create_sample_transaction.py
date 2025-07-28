@@ -12,7 +12,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         self.login_as(user=self.user)
         self.team = self.create_team()
 
-    def test_no_platform(self):
+    def test_no_platform(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform=None)
 
         url = reverse(
@@ -29,7 +29,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         project.refresh_from_db()
         assert not project.flags.has_transactions
 
-    def test_react(self):
+    def test_react(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="javascript-react")
 
         url = reverse(
@@ -44,7 +44,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         assert response.status_code == 200
         assert response.data["title"] == "/productstore"
 
-    def test_django(self):
+    def test_django(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="python-django")
 
         url = reverse(
@@ -59,7 +59,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         assert response.status_code == 200
         assert response.data["title"] == "getProductList"
 
-    def test_ios(self):
+    def test_ios(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="apple-ios")
 
         url = reverse(
@@ -74,7 +74,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         assert response.status_code == 200
         assert response.data["title"] == "iOS_Swift.ViewController"
 
-    def test_other_platform(self):
+    def test_other_platform(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="other")
 
         url = reverse(
@@ -89,7 +89,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         assert response.status_code == 200
         assert response.data["title"] == "/productstore"
 
-    def test_path_traversal_attempt(self):
+    def test_path_traversal_attempt(self) -> None:
 
         project = self.create_project(teams=[self.team], name="foo", platform="../../../etc/passwd")
 

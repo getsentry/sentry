@@ -17,25 +17,25 @@ class GroupResolutionTest(TestCase):
         self.old_semver_release = self.create_release(version="foo_package@1.0")
         self.new_semver_release = self.create_release(version="foo_package@2.0")
 
-    def test_in_next_release_with_new_release(self):
+    def test_in_next_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_release, group=self.group, type=GroupResolution.Type.in_next_release
         )
         assert not GroupResolution.has_resolution(self.group, self.new_release)
 
-    def test_in_next_release_with_same_release(self):
+    def test_in_next_release_with_same_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_release, group=self.group, type=GroupResolution.Type.in_next_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
 
-    def test_in_next_release_with_old_release(self):
+    def test_in_next_release_with_old_release(self) -> None:
         GroupResolution.objects.create(
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_next_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
 
-    def test_for_semver_when_current_release_version_is_set_with_new_semver_release(self):
+    def test_for_semver_when_current_release_version_is_set_with_new_semver_release(self) -> None:
         # Behaviour should be the same in both `in_release` and `in_next_release` because if
         # `current_release_version` is set then comparison will be > current_release_version
         # should not have a resolution
@@ -50,7 +50,7 @@ class GroupResolutionTest(TestCase):
 
             grp_resolution.delete()
 
-    def test_for_semver_when_current_release_version_is_set_with_same_release(self):
+    def test_for_semver_when_current_release_version_is_set_with_same_release(self) -> None:
         for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
             grp_resolution = GroupResolution.objects.create(
                 release=self.old_semver_release,
@@ -62,7 +62,7 @@ class GroupResolutionTest(TestCase):
 
             grp_resolution.delete()
 
-    def test_for_semver_when_current_release_version_is_set_with_old_semver_release(self):
+    def test_for_semver_when_current_release_version_is_set_with_old_semver_release(self) -> None:
         for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
             grp_resolution = GroupResolution.objects.create(
                 release=self.new_semver_release,
@@ -73,7 +73,7 @@ class GroupResolutionTest(TestCase):
             assert GroupResolution.has_resolution(self.group, self.old_semver_release)
             grp_resolution.delete()
 
-    def test_when_current_release_version_is_set_with_new_release(self):
+    def test_when_current_release_version_is_set_with_new_release(self) -> None:
         for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
             grp_resolution = GroupResolution.objects.create(
                 release=self.old_release,
@@ -85,7 +85,7 @@ class GroupResolutionTest(TestCase):
 
             grp_resolution.delete()
 
-    def test_when_current_release_version_is_set_with_same_release(self):
+    def test_when_current_release_version_is_set_with_same_release(self) -> None:
         for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
             grp_resolution = GroupResolution.objects.create(
                 release=self.old_release,
@@ -97,7 +97,7 @@ class GroupResolutionTest(TestCase):
 
             grp_resolution.delete()
 
-    def test_when_current_release_version_is_set_with_old_release(self):
+    def test_when_current_release_version_is_set_with_old_release(self) -> None:
         for grp_res_type in [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release]:
             grp_resolution = GroupResolution.objects.create(
                 release=self.new_release,
@@ -109,7 +109,9 @@ class GroupResolutionTest(TestCase):
 
             grp_resolution.delete()
 
-    def test_when_current_release_version_is_set_incorrect_inputs_fallback_to_older_model(self):
+    def test_when_current_release_version_is_set_incorrect_inputs_fallback_to_older_model(
+        self,
+    ) -> None:
         """
         Test that ensures in a project that follows semver and where current_release_version is
         set, wrong release input (non semver) comparison does not break the method, but rather
@@ -134,7 +136,9 @@ class GroupResolutionTest(TestCase):
         ]:
             assert not GroupResolution.has_resolution(self.group, release)
 
-    def test_when_current_release_version_is_set_but_does_not_exist_fallback_to_older_model(self):
+    def test_when_current_release_version_is_set_but_does_not_exist_fallback_to_older_model(
+        self,
+    ) -> None:
         """
         Test that ensures in a project that does not follows semver, and current_release_version
         is set but no corresponding Release instance exists for that release version then
@@ -150,52 +154,52 @@ class GroupResolutionTest(TestCase):
         for release in [self.new_release, self.old_semver_release, self.new_semver_release]:
             assert not GroupResolution.has_resolution(self.group, release)
 
-    def test_in_release_with_new_release(self):
+    def test_in_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert not GroupResolution.has_resolution(self.group, self.new_release)
 
-    def test_in_release_with_current_release(self):
+    def test_in_release_with_current_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert not GroupResolution.has_resolution(self.group, self.old_release)
 
-    def test_in_release_with_old_release(self):
+    def test_in_release_with_old_release(self) -> None:
         GroupResolution.objects.create(
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
 
-    def test_for_semver_in_release_with_new_release(self):
+    def test_for_semver_in_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_semver_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert not GroupResolution.has_resolution(self.group, self.new_semver_release)
 
-    def test_for_semver_in_release_with_current_release(self):
+    def test_for_semver_in_release_with_current_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_semver_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert not GroupResolution.has_resolution(self.group, self.old_semver_release)
 
-    def test_for_semver_in_release_with_old_release(self):
+    def test_for_semver_in_release_with_old_release(self) -> None:
         GroupResolution.objects.create(
             release=self.new_semver_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_semver_release)
 
-    def test_no_release_with_resolution(self):
+    def test_no_release_with_resolution(self) -> None:
         GroupResolution.objects.create(
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert GroupResolution.has_resolution(self.group, None)
 
-    def test_no_release_with_no_resolution(self):
+    def test_no_release_with_no_resolution(self) -> None:
         assert not GroupResolution.has_resolution(self.group, None)
 
-    def test_all_resolutions_are_implemented(self):
+    def test_all_resolutions_are_implemented(self) -> None:
         resolution_types = [
             attr for attr in vars(GroupResolution.Type) if not attr.startswith("__")
         ]

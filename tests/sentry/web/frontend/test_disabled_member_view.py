@@ -22,18 +22,18 @@ class DisabledMemberViewTest(TestCase):
     def create_one_member(self, flags=None):
         self.create_member(user=self.user, organization=self.org, role="member", flags=flags)
 
-    def test_member_missing(self):
+    def test_member_missing(self) -> None:
         resp = self.client.get("/disabled-member/")
         assert resp.status_code == 302
 
-    def test_member_disabled_can_load(self):
+    def test_member_disabled_can_load(self) -> None:
         self.create_one_member(
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
         resp = self.client.get(self.path)
         assert resp.status_code == 200
 
-    def test_member_active_member_redirect(self):
+    def test_member_active_member_redirect(self) -> None:
         self.create_one_member()
         resp = self.client.get(self.path)
         assert resp.status_code == 302

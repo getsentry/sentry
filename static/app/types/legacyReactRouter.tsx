@@ -54,7 +54,7 @@ type RouteHook = (nextLocation?: Location) => any;
 type ComponentCallback = (err: any, component: RouteComponent) => any;
 type ComponentsCallback = (err: any, components: RouteComponents) => any;
 
-export interface IndexRouteProps<Props = any> {
+interface IndexRouteProps<Props = any> {
   component?: RouteComponent | undefined;
   components?: RouteComponents | undefined;
   getComponent?(nextState: RouterState, callback: ComponentCallback): void;
@@ -128,15 +128,4 @@ export interface RouteContextInterface<P = Record<string, string | undefined>, Q
   params: P;
   router: InjectedRouter<P, Q>;
   routes: PlainRoute[];
-}
-
-export type Route = React.ComponentClass<RouteProps>;
-
-export interface IndexRedirectProps {
-  to: RoutePattern;
-  query?: Query | undefined;
-}
-
-export interface RedirectProps extends IndexRedirectProps {
-  from: RoutePattern;
 }

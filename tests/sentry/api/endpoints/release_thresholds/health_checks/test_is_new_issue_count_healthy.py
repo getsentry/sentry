@@ -16,7 +16,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.release1 = Release.objects.create(version="v1", organization=self.organization)
 
-    def test_success(self):
+    def test_success(self) -> None:
         now = timezone.now()
         mock_threshold: EnrichedThreshold = {
             "id": "1",
@@ -44,7 +44,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         assert is_healthy
         assert metric_value == 0
 
-    def test_multiple_thresholds(self):
+    def test_multiple_thresholds(self) -> None:
         now = timezone.now()
         threshold: EnrichedThreshold = {
             "id": "1",
@@ -120,7 +120,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         assert not is_healthy
         assert metric_value == 100
 
-    def test_success_under(self):
+    def test_success_under(self) -> None:
         now = timezone.now()
         mock_threshold: EnrichedThreshold = {
             "id": "1",
@@ -148,7 +148,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         assert not is_healthy
         assert metric_value == 0
 
-    def test_no_new_issues(self):
+    def test_no_new_issues(self) -> None:
         now = timezone.now()
         mock_threshold: EnrichedThreshold = {
             "id": "1",

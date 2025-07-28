@@ -63,7 +63,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
             r.event_id for r in userreports
         )
 
-    def test_specified_environment(self):
+    def test_specified_environment(self) -> None:
         self.login_as(user=self.user)
 
         response = self.client.get(self.path + "?environment=" + self.env1.name)
@@ -76,13 +76,13 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         assert len(response.data) == len(self.env2_events)
         self.assert_same_userreports(response.data, self.env2_userreports)
 
-    def test_no_environment_does_not_exists(self):
+    def test_no_environment_does_not_exists(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.path + "?environment=")
         assert response.status_code == 200
         assert response.data == []
 
-    def test_no_environment(self):
+    def test_no_environment(self) -> None:
         self.login_as(user=self.user)
 
         empty_env = self.create_environment(self.project, name="")
@@ -96,7 +96,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         assert len(response.data) == len(userreports)
         self.assert_same_userreports(response.data, userreports)
 
-    def test_all_environments(self):
+    def test_all_environments(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.path)
         userreports = self.env1_userreports + self.env2_userreports
@@ -105,7 +105,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         assert len(response.data) == len(userreports)
         self.assert_same_userreports(response.data, userreports)
 
-    def test_invalid_environment(self):
+    def test_invalid_environment(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.path + "?environment=invalid_env")
         assert response.status_code == 200

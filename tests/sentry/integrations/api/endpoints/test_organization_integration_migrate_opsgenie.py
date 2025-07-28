@@ -12,12 +12,12 @@ class OrganizationIntegrationMigrateOpsgenieTest(APITestCase):
     def get_path(self, integration_id):
         return f"/api/0/organizations/{self.organization.slug}/integrations/{integration_id}/migrate-opsgenie/"
 
-    def test_no_integration(self):
+    def test_no_integration(self) -> None:
         path = self.get_path(integration_id=-1)
         response = self.client.put(path, format="json")
         assert response.status_code == 404
 
-    def test_not_opsgenie_integration(self):
+    def test_not_opsgenie_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="jira", external_id="jira:1"
         )
