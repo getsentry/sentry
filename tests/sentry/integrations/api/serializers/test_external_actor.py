@@ -26,7 +26,7 @@ class ExternalActorSerializerTest(TestCase):
             },
         )
 
-    def test_user(self):
+    def test_user(self) -> None:
         external_actor, _ = ExternalActor.objects.get_or_create(
             user_id=self.user.id,
             organization=self.organization,
@@ -44,7 +44,7 @@ class ExternalActorSerializerTest(TestCase):
         assert result["externalId"] == "Gaeta"
         assert result["userId"] == str(self.user.id)
 
-    def test_team(self):
+    def test_team(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
 
         external_actor, _ = ExternalActor.objects.get_or_create(
@@ -64,7 +64,7 @@ class ExternalActorSerializerTest(TestCase):
         assert result["externalId"] == "Gaeta"
         assert result["teamId"] == str(team.id)
 
-    def test_strict_external_user_name(self):
+    def test_strict_external_user_name(self) -> None:
         # Ensure user names must start with @
         external_actor_user_data = {
             "provider": get_provider_name(ExternalProviders.GITHUB.value),
@@ -96,7 +96,7 @@ class ExternalActorSerializerTest(TestCase):
         )
         assert serializer.is_valid() is True
 
-    def test_strict_external_team_name(self):
+    def test_strict_external_team_name(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
 
         # Ensure team names must start with @
@@ -130,7 +130,7 @@ class ExternalActorSerializerTest(TestCase):
         )
         assert serializer.is_valid() is True
 
-    def test_avoid_strict_external_name(self):
+    def test_avoid_strict_external_name(self) -> None:
         # Strict rules should only run for strict providers
         provider = get_provider_name(ExternalProviders.SLACK.value)
         assert provider not in STRICT_NAME_PROVIDERS

@@ -48,13 +48,13 @@ class TestInit(BaseDetectorHandlerTest):
         )
         cache.clear()
 
-    def test_no_caching(self):
+    def test_no_caching(self) -> None:
         # Refetch without `.select_related` to make sure that the object isn't cached
         self.detector = Detector.objects.get(id=self.detector.id)
         with self.assertNumQueries(1):
             self.detector.detector_handler
 
-    def test_caching(self):
+    def test_caching(self) -> None:
         # Refetch with `.select_related` to make sure that the object iscached
         self.detector = Detector.objects.select_related("workflow_condition_group").get(
             id=self.detector.id
@@ -74,7 +74,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             source_id, {"source_id": source_id, "group_vals": {"group_1": 6}, **kwargs}
         )
 
-    def test(self):
+    def test(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
         data_packet = self.build_data_packet()
         results = process_detectors(data_packet, [detector])
@@ -199,7 +199,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             any_order=True,
         )
 
-    def test_no_issue_type(self):
+    def test_no_issue_type(self) -> None:
         detector = self.create_detector(type=self.handler_state_type.slug)
         data_packet = self.build_data_packet()
         with (
@@ -214,7 +214,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             assert mock_logger.error.call_args[0][0] == "No registered grouptype for detector"
         assert results == []
 
-    def test_no_handler(self):
+    def test_no_handler(self) -> None:
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
         with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
@@ -225,7 +225,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             )
         assert results == []
 
-    def test_sending_metric_before_evaluating(self):
+    def test_sending_metric_before_evaluating(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
         data_packet = self.build_data_packet()
 
@@ -330,7 +330,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         assert mock_logger.info.call_count == 2
         assert mock_logger.info.call_args[0][0] == "detector_resolved"
 
-    def test_doesnt_send_metric(self):
+    def test_doesnt_send_metric(self) -> None:
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
 
@@ -345,7 +345,7 @@ class TestKeyBuilders(unittest.TestCase):
             detector = Detector(id=123)
         return MockDetectorStateHandler(detector)
 
-    def test(self):
+    def test(self) -> None:
         assert (
             self.build_handler().state_manager.build_key("test", "dedupe_value")
             == "detector:123:test:dedupe_value"
@@ -355,7 +355,7 @@ class TestKeyBuilders(unittest.TestCase):
             == "detector:123:test:name_1"
         )
 
-    def test_different_dedupe_keys(self):
+    def test_different_dedupe_keys(self) -> None:
         handler = self.build_handler()
         handler_2 = self.build_handler(Detector(id=456))
         assert handler.state_manager.build_key(
@@ -371,7 +371,7 @@ class TestKeyBuilders(unittest.TestCase):
             "test", "dedupe_value"
         ) != handler.state_manager.build_key("test_2", "dedupe_value")
 
-    def test_different_counter_value_keys(self):
+    def test_different_counter_value_keys(self) -> None:
         handler = self.build_handler()
         handler_2 = self.build_handler(Detector(id=456))
         assert handler.state_manager.build_key(
@@ -392,7 +392,7 @@ class TestKeyBuilders(unittest.TestCase):
 
 
 class TestGetStateData(BaseDetectorHandlerTest):
-    def test_new(self):
+    def test_new(self) -> None:
         handler = self.build_handler()
         key = "test_key"
         assert handler.state_manager.get_state_data([key]) == {
@@ -405,7 +405,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
             )
         }
 
-    def test_existing(self):
+    def test_existing(self) -> None:
         handler = self.build_handler()
         key = "test_key"
         state_data = DetectorStateData(
@@ -428,7 +428,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
         handler.state_manager.commit_state_updates()
         assert handler.state_manager.get_state_data([key]) == {key: state_data}
 
-    def test_multi(self):
+    def test_multi(self) -> None:
         handler = self.build_handler()
         key_1 = "test_key_1"
         state_data_1 = DetectorStateData(
@@ -481,7 +481,7 @@ class TestGetStateData(BaseDetectorHandlerTest):
 
 
 class TestCommitStateUpdateData(BaseDetectorHandlerTest):
-    def test(self):
+    def test(self) -> None:
         handler = self.build_handler()
         redis = get_redis_client()
         group_key = None
@@ -530,7 +530,7 @@ class TestCommitStateUpdateData(BaseDetectorHandlerTest):
 
 @freeze_time()
 class TestEvaluate(BaseDetectorHandlerTest):
-    def test(self):
+    def test(self) -> None:
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1})) == {}
 
@@ -571,7 +571,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             DetectorPriorityLevel.HIGH,
         )
 
-    def test_above_below_threshold(self):
+    def test_above_below_threshold(self) -> None:
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
 
@@ -614,7 +614,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             )
         }
 
-    def test_no_condition_group(self):
+    def test_no_condition_group(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
@@ -628,7 +628,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
             )
             self.assert_updates(handler, "val1", 2, None, None, None)
 
-    def test_results_on_change(self):
+    def test_results_on_change(self) -> None:
         handler = self.build_handler()
 
         detector_occurrence, _ = build_mock_occurrence_and_event(
@@ -671,7 +671,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
         # This detector is already triggered, so no status change occurred. Should be no result
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == {}
 
-    def test_dedupe(self):
+    def test_dedupe(self) -> None:
         handler = self.build_handler()
 
         detector_occurrence, _ = build_mock_occurrence_and_event(
@@ -733,7 +733,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
 
 @freeze_time()
 class TestEvaluateGroupValue(BaseDetectorHandlerTest):
-    def test_dedupe(self):
+    def test_dedupe(self) -> None:
         handler = self.build_handler()
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"
@@ -780,7 +780,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
             assert result["group_key"] == expected_result
             assert not mock_metrics.incr.called
 
-    def test_dedupe__already_processed(self):
+    def test_dedupe__already_processed(self) -> None:
         handler = self.build_handler()
 
         with mock.patch(
@@ -805,7 +805,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                 "workflow_engine.detector.skipping_already_processed_update"
             )
 
-    def test_status_change(self):
+    def test_status_change(self) -> None:
         handler = self.build_handler()
         data_packet = DataPacket[dict](
             source_id="1234", packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100}
@@ -860,7 +860,7 @@ class TestGetDetectorByEvent(TestCase):
             culprit="",
         )
 
-    def test_with_occurrence(self):
+    def test_with_occurrence(self) -> None:
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = self.occurrence
 
@@ -870,7 +870,7 @@ class TestGetDetectorByEvent(TestCase):
 
         assert result == self.detector
 
-    def test_without_occurrence(self):
+    def test_without_occurrence(self) -> None:
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = None
 
@@ -880,7 +880,7 @@ class TestGetDetectorByEvent(TestCase):
 
         assert result == self.error_detector
 
-    def test_activity_not_supported(self):
+    def test_activity_not_supported(self) -> None:
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -893,7 +893,7 @@ class TestGetDetectorByEvent(TestCase):
         with pytest.raises(TypeError):
             get_detector_by_event(event_data)
 
-    def test_no_detector_id(self):
+    def test_no_detector_id(self) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,
@@ -934,11 +934,11 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
         self.event1 = self.store_event(project_id=self.project1.id, data={})
         self.event2 = self.store_event(project_id=self.project2.id, data={})
 
-    def test_empty_list(self):
+    def test_empty_list(self) -> None:
         result = get_detectors_by_groupevents_bulk([])
         assert result == {}
 
-    def test_mixed_occurrences(self):
+    def test_mixed_occurrences(self) -> None:
         """Test bulk fetch with mixed events (some with occurrences, some without)"""
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
@@ -969,7 +969,7 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
         assert result[group_event2.event_id] == self.detector2
         assert len(result) == 2
 
-    def test_mixed_occurrences_missing_detectors(self):
+    def test_mixed_occurrences_missing_detectors(self) -> None:
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,

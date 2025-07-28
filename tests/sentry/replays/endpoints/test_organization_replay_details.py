@@ -18,21 +18,21 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.replay_id = uuid4().hex
         self.url = reverse(self.endpoint, args=(self.organization.slug, self.replay_id))
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_replay_found(self):
+    def test_no_replay_found(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 404
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 404
 
-    def test_project_no_permissions(self):
+    def test_project_no_permissions(self) -> None:
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
@@ -50,7 +50,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url)
             assert response.status_code == 404
 
-    def test_get_one_replay(self):
+    def test_get_one_replay(self) -> None:
         """Test only one replay returned."""
         replay1_id = self.replay_id
         replay2_id = uuid4().hex
@@ -81,7 +81,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"]["id"] == replay2_id
 
-    def test_get_replay_schema(self):
+    def test_get_replay_schema(self) -> None:
         """Test replay schema is well-formed."""
         replay1_id = self.replay_id
         replay2_id = uuid4().hex
@@ -164,7 +164,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_get_replay_varying_projects(self):
+    def test_get_replay_varying_projects(self) -> None:
         """Test replay with varying project-ids returns its whole self."""
         project2 = self.create_project()
 

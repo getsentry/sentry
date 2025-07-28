@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.urls import reverse
 
-from sentry.codecov.endpoints.Repositories.serializers import (
+from sentry.codecov.endpoints.repositories.serializers import (
     RepositoryNodeSerializer as NodeSerializer,
 )
 from sentry.constants import ObjectStatus
@@ -54,7 +54,7 @@ mock_graphql_response_empty: dict[str, Any] = {
 
 
 class RepositoriesEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-repositories"
+    endpoint_name = "sentry-api-0-repositories"
 
     def setUp(self):
         super().setUp()
@@ -71,14 +71,14 @@ class RepositoriesEndpointTest(APITestCase):
     def reverse_url(self, owner="testowner"):
         """Custom reverse URL method to handle required URL parameters"""
         return reverse(
-            self.endpoint,
+            self.endpoint_name,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "owner": self.integration.id,
             },
         )
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.repositories.repositories.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -124,7 +124,7 @@ class RepositoriesEndpointTest(APITestCase):
             response_keys == serializer_fields
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.repositories.repositories.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -157,7 +157,7 @@ class RepositoriesEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.repositories.repositories.CodecovApiClient")
     def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -186,7 +186,7 @@ class RepositoriesEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    def test_get_with_negative_limit_returns_bad_request(self):
+    def test_get_with_negative_limit_returns_bad_request(self) -> None:
         url = self.reverse_url()
         query_params = {"limit": "-5"}
         response = self.client.get(url, query_params)
@@ -194,7 +194,7 @@ class RepositoriesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"details": "provided `limit` parameter must be a positive integer"}
 
-    def test_get_with_limit_as_string_returns_bad_request(self):
+    def test_get_with_limit_as_string_returns_bad_request(self) -> None:
         url = self.reverse_url()
         query_params = {"limit": "asdf"}
         response = self.client.get(url, query_params)

@@ -28,7 +28,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
             environment=self.canary_environment,
         )
 
-    def test_invalid_threshold_id(self):
+    def test_invalid_threshold_id(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -41,7 +41,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -54,7 +54,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_valid(self):
+    def test_valid(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -95,7 +95,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
             environment=self.canary_environment,
         )
 
-    def test_invalid_threshold_id(self):
+    def test_invalid_threshold_id(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -108,7 +108,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -121,7 +121,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_valid(self):
+    def test_valid(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -157,7 +157,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
             environment=self.canary_environment,
         )
 
-    def test_invalid_threshold_id(self):
+    def test_invalid_threshold_id(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -170,7 +170,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_invalid_missing_data(self):
+    def test_invalid_missing_data(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -188,7 +188,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data)
         assert response.status_code == 400
 
-    def test_invalid_trigger_type(self):
+    def test_invalid_trigger_type(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -210,7 +210,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data)
         assert response.status_code == 400
 
-    def test_invalid_threshold_type(self):
+    def test_invalid_threshold_type(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -232,7 +232,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data)
         assert response.status_code == 400
 
-    def test_invalid_window(self):
+    def test_invalid_window(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -254,7 +254,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         response = self.client.put(url, data)
         assert response.status_code == 400
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         url = reverse(
             "sentry-api-0-project-release-thresholds-details",
             kwargs={
@@ -267,7 +267,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_valid(self):
+    def test_valid(self) -> None:
         assert self.basic_threshold.environment is not None
         updated_data = {
             "project": self.basic_threshold.project.id,
@@ -297,7 +297,7 @@ class ReleaseThresholdDetailsPUTTest(APITestCase):
         assert response.data["window_in_seconds"] == updated_data["window_in_seconds"]
         assert response.data["environment"]["name"] == "canary"
 
-    def test_valid_with_extra_data(self):
+    def test_valid_with_extra_data(self) -> None:
         updated_data = {
             "project": self.basic_threshold.project.id,
             "environment": "foobar",

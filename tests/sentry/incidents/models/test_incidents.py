@@ -19,19 +19,19 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 class FetchForOrganizationTest(TestCase):
-    def test_empty(self):
+    def test_empty(self) -> None:
         incidents = Incident.objects.fetch_for_organization(self.organization, [self.project])
         assert [] == list(incidents)
         self.create_project()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         incident = self.create_incident()
 
         assert [incident] == list(
             Incident.objects.fetch_for_organization(self.organization, [self.project])
         )
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         project = self.create_project()
         incident = self.create_incident(projects=[project])
 
@@ -42,7 +42,7 @@ class FetchForOrganizationTest(TestCase):
             Incident.objects.fetch_for_organization(self.organization, [project])
         )
 
-    def test_multi_project(self):
+    def test_multi_project(self) -> None:
         project = self.create_project()
         incident = self.create_incident(projects=[project, self.project])
 
@@ -62,7 +62,7 @@ class ActiveIncidentClearCacheTest(TestCase):
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
-    def test_negative_cache(self):
+    def test_negative_cache(self) -> None:
         subscription = self.alert_rule.snuba_query.subscriptions.get()
         assert (
             cache.get(
@@ -97,7 +97,7 @@ class ActiveIncidentClearCacheTest(TestCase):
             )
         ) is False
 
-    def test_cache(self):
+    def test_cache(self) -> None:
         subscription = self.alert_rule.snuba_query.subscriptions.get()
         assert (
             cache.get(
@@ -155,7 +155,7 @@ class IncidentTriggerClearCacheTest(TestCase):
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
         self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
 
-    def test_deleted_incident(self):
+    def test_deleted_incident(self) -> None:
         incident_trigger = IncidentTrigger.objects.create(
             incident=self.incident,
             alert_rule_trigger=self.trigger,
@@ -168,7 +168,7 @@ class IncidentTriggerClearCacheTest(TestCase):
         self.incident.delete()
         assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) is None
 
-    def test_updated_incident_trigger(self):
+    def test_updated_incident_trigger(self) -> None:
         IncidentTrigger.objects.get_for_incident(self.incident)
         assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) == []
         incident_trigger = IncidentTrigger.objects.create(
@@ -181,7 +181,7 @@ class IncidentTriggerClearCacheTest(TestCase):
             incident_trigger
         ]
 
-    def test_deleted_incident_trigger(self):
+    def test_deleted_incident_trigger(self) -> None:
         incident_trigger = IncidentTrigger.objects.create(
             incident=self.incident,
             alert_rule_trigger=self.trigger,
@@ -196,7 +196,7 @@ class IncidentTriggerClearCacheTest(TestCase):
 
 
 class IncidentCreationTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         title = "hello"
         alert_rule = self.create_alert_rule()
         incident = Incident.objects.create(
@@ -217,7 +217,7 @@ class IncidentCreationTest(TestCase):
         )
         assert incident.identifier == 2
 
-    def test_identifier_conflict(self):
+    def test_identifier_conflict(self) -> None:
         create_method = BaseManager.create
         call_count = [0]
         alert_rule = self.create_alert_rule()
@@ -264,7 +264,7 @@ class IncidentCreationTest(TestCase):
 
 @freeze_time()
 class IncidentDurationTest(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         incident = Incident(date_started=timezone.now() - timedelta(minutes=5))
         assert incident.duration == timedelta(minutes=5)
         incident.date_closed = incident.date_started + timedelta(minutes=2)
@@ -273,7 +273,7 @@ class IncidentDurationTest(unittest.TestCase):
 
 @freeze_time()
 class IncidentCurrentEndDateTest(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         incident = Incident()
         assert incident.current_end_date == timezone.now()
         incident.date_closed = timezone.now() - timedelta(minutes=10)

@@ -416,7 +416,7 @@ class EntitySubscriptionTestCase(TestCase):
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         cases = [
             (EventsEntitySubscription, SnubaQuery.Type.ERROR, Dataset.Events, "count()"),
             (
@@ -484,7 +484,7 @@ class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
 
 
 class GetEntityKeyFromSnubaQueryTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         cases = [
             (EntityKey.Events, SnubaQuery.Type.ERROR, Dataset.Events, "count()", "", True, True),
             (

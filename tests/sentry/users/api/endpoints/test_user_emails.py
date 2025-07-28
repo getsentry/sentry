@@ -15,7 +15,7 @@ class UserEmailsTest(APITestCase):
         self.login_as(user=self.user)
         self.url = reverse("sentry-api-0-user-emails", kwargs={"user_id": self.user.id})
 
-    def test_get_emails(self):
+    def test_get_emails(self) -> None:
         UserEmail.objects.create(user=self.user, email="altemail1@example.com")
         UserEmail.objects.create(user=self.user, email="altemail2@example.com")
 
@@ -30,7 +30,7 @@ class UserEmailsTest(APITestCase):
         secondary_emails = [n for n in response.data if not n["isPrimary"]]
         assert len(secondary_emails) == 2
 
-    def test_add_secondary_email(self):
+    def test_add_secondary_email(self) -> None:
         # test invalid email
         response = self.client.post(self.url, data={"email": "invalidemail"})
         assert response.status_code == 400, response.data
@@ -46,14 +46,14 @@ class UserEmailsTest(APITestCase):
         response = self.client.post(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 409, response.data
 
-    def test_cant_have_same_email_with_different_casing(self):
+    def test_cant_have_same_email_with_different_casing(self) -> None:
         user = self.create_user(email="FOOBAR@example.com")
         self.login_as(user=user)
         url = reverse("sentry-api-0-user-emails", kwargs={"user_id": user.id})
         response = self.client.post(url, data={"email": "foobar@example.com"})
         assert response.status_code == 409, response.data
 
-    def test_change_verified_secondary_to_primary(self):
+    def test_change_verified_secondary_to_primary(self) -> None:
         UserEmail.objects.create(user=self.user, email="altemail1@example.com", is_verified=True)
         response = self.client.put(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 200, response.data
@@ -62,7 +62,7 @@ class UserEmailsTest(APITestCase):
         assert user.email == "altemail1@example.com"
         assert user.username == "altemail1@example.com"
 
-    def test_change_unverified_secondary_to_primary(self):
+    def test_change_unverified_secondary_to_primary(self) -> None:
         UserEmail.objects.create(user=self.user, email="altemail1@example.com", is_verified=False)
         response = self.client.put(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 400, response.data
@@ -71,14 +71,14 @@ class UserEmailsTest(APITestCase):
         assert user.email != "altemail1@example.com"
         assert user.username != "altemail1@example.com"
 
-    def test_remove_email(self):
+    def test_remove_email(self) -> None:
         UserEmail.objects.create(user=self.user, email="altemail1@example.com")
 
         response = self.client.delete(self.url, data={"email": "altemail1@example.com"})
         assert response.status_code == 204, response.data
         assert not len(UserEmail.objects.filter(user=self.user, email="altemail1@example.com"))
 
-    def test_remove_email_also_deletes_user_option_with_same_email(self):
+    def test_remove_email_also_deletes_user_option_with_same_email(self) -> None:
         mail_to_del = "altemail1@example.com"
         UserEmail.objects.create(user=self.user, email=mail_to_del)
         UserOption.objects.create(
@@ -92,12 +92,12 @@ class UserEmailsTest(APITestCase):
             UserOption.objects.filter(user=self.user, key="mail:email", value=mail_to_del)
         )
 
-    def test_cant_remove_primary_email(self):
+    def test_cant_remove_primary_email(self) -> None:
         response = self.client.delete(self.url, data={"email": "foo@example.com"})
         assert response.status_code == 400
         assert len(UserEmail.objects.filter(user=self.user, email="foo@example.com"))
 
-    def test_other_user_cant_change(self):
+    def test_other_user_cant_change(self) -> None:
         other_user = self.create_user(email="other@example.com")
         self.login_as(user=other_user)
 

@@ -483,13 +483,13 @@ class SlackIntegrationConfigTest(TestCase):
         )
         self.installation = SlackIntegration(self.integration, self.organization.id)
 
-    def test_config_data_workspace_app(self):
+    def test_config_data_workspace_app(self) -> None:
         assert self.installation.get_config_data()["installationType"] == "workspace_app"
 
-    def test_config_data_user_token(self):
+    def test_config_data_user_token(self) -> None:
         self.integration.metadata["user_access_token"] = "token"
         assert self.installation.get_config_data()["installationType"] == "classic_bot"
 
-    def test_config_data_born_as_bot(self):
+    def test_config_data_born_as_bot(self) -> None:
         self.integration.metadata["installation_type"] = "born_as_bot"
         assert self.installation.get_config_data()["installationType"] == "born_as_bot"

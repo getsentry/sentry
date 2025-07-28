@@ -43,7 +43,7 @@ class SentryAppInstallationsTest(APITestCase):
 class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "get"
 
-    def test_superuser_sees_all_installs(self):
+    def test_superuser_sees_all_installs(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(self.org.slug, status_code=200)
 
@@ -76,7 +76,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_and_write_sees_all_installs(self):
+    def test_superuser_read_and_write_sees_all_installs(self) -> None:
         # test SaaS only
         self.login_as(user=self.superuser, superuser=True)
         self.get_success_response(self.org.slug, status_code=200)
@@ -87,7 +87,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.get_success_response(self.org.slug, status_code=200)
         self.get_success_response(self.super_org.slug, status_code=200)
 
-    def test_users_only_sees_installs_on_their_org(self):
+    def test_users_only_sees_installs_on_their_org(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(self.org.slug, status_code=200)
 
@@ -119,7 +119,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             "code": installation.api_grant.code,
         }
 
-    def test_install_unpublished_app(self):
+    def test_install_unpublished_app(self) -> None:
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org)
         response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
@@ -127,7 +127,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert expected.items() <= response.data.items()
 
-    def test_install_published_app(self):
+    def test_install_published_app(self) -> None:
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
         response = self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
@@ -135,7 +135,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert expected.items() <= response.data.items()
 
-    def test_install_published_app_by_other_org(self):
+    def test_install_published_app_by_other_org(self) -> None:
         user2 = self.create_user("foo@example.com")
         org2 = self.create_organization(owner=user2)
         self.login_as(user=user2)
@@ -147,7 +147,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert expected.items() <= response.data.items()
 
-    def test_install_superuser(self):
+    def test_install_superuser(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="Sample", organization=self.org)
         self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
@@ -156,7 +156,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             app = self.create_sentry_app(name="Sample 2", organization=self.org, published=True)
             self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
 
-    def test_can_install_unpublished_unowned_app_as_superuser(self):
+    def test_can_install_unpublished_unowned_app_as_superuser(self) -> None:
         self.login_as(user=self.user)
         org2 = self.create_organization()
         app2 = self.create_sentry_app(name="Unpublished", organization=org2)
@@ -166,7 +166,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_install_superuser_read(self):
+    def test_install_superuser_read(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         app = self.create_sentry_app(name="Sample", organization=self.org)
@@ -174,21 +174,21 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_install_superuser_write(self):
+    def test_install_superuser_write(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         self.add_user_permission(self.superuser, "superuser.write")
 
         app = self.create_sentry_app(name="Sample", organization=self.org)
         self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
 
-    def test_members_cannot_install_apps(self):
+    def test_members_cannot_install_apps(self) -> None:
         user = self.create_user("bar@example.com")
         self.create_member(organization=self.org, user=user, role="member")
         self.login_as(user)
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
         self.get_error_response(self.org.slug, slug=app.slug, status_code=403)
 
-    def test_install_twice(self):
+    def test_install_twice(self) -> None:
         self.login_as(user=self.user)
         app = self.create_sentry_app(name="Sample", organization=self.org)
         self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
@@ -197,29 +197,29 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert SentryAppInstallation.objects.filter(sentry_app=app).count() == 1
         assert response.status_code == 200
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         self.login_as(user=self.user)
         response = self.get_error_response(self.org.slug, slug="1234", status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_cannot_install_nonexistent_app(self):
+    def test_cannot_install_nonexistent_app(self) -> None:
         self.login_as(user=self.user)
         self.get_error_response(self.org.slug, slug="nonexistent", status_code=404)
 
-    def test_cannot_install_unpublished_unowned_app(self):
+    def test_cannot_install_unpublished_unowned_app(self) -> None:
         self.login_as(user=self.user)
         org2 = self.create_organization()
         app2 = self.create_sentry_app(name="Unpublished", organization=org2)
         self.get_error_response(self.org.slug, slug=app2.slug, status_code=404)
 
-    def test_cannot_install_other_org_internal_app(self):
+    def test_cannot_install_other_org_internal_app(self) -> None:
         self.login_as(user=self.user)
         org2 = self.create_organization()
         internal_app = self.create_internal_integration(name="Internal App", organization=org2)
         self.get_error_response(self.org.slug, slug=internal_app.slug, status_code=404)
 
     @with_feature({"organizations:integrations-alert-rule": False})
-    def test_disallow_app_with_all_features_disabled(self):
+    def test_disallow_app_with_all_features_disabled(self) -> None:
         # prepare an app with paid features
         app = self.unpublished_app
         SentryAppUpdater(sentry_app=app, features=[Feature.ALERTS]).run(user=self.user)
