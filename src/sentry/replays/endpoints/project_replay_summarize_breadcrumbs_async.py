@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 import requests
 from django.conf import settings
@@ -26,15 +26,6 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-class SeerRequest(TypedDict):
-    """Corresponds to SummarizeReplayBreadcrumbsRequest in Seer."""
-
-    logs: list[str]
-    replay_id: str
-    organization_id: int
-    project_id: int
 
 
 MAX_SEGMENTS_TO_SUMMARIZE = 100
