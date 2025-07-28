@@ -73,7 +73,7 @@ describe('DatasetSelector', function () {
     await userEvent.hover(transactionsRadio);
 
     expect(
-      await screen.findByText(/This dataset is is no longer supported./i)
+      await screen.findByText(/This dataset is no longer supported./i)
     ).toBeInTheDocument();
 
     // Click on the "Spans" link in the tooltip
