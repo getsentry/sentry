@@ -100,7 +100,7 @@ export function TestSuiteDropdown() {
         const totalLength =
           (value[0]?.length ?? 0) + (value[1]?.length ?? 0) + (value[1] ? 2 : 0);
         const suitesToShow =
-          totalLength < MAX_SUITE_UI_LENGTH ? value.slice(0, 2) : value.slice(0, 1);
+          totalLength <= MAX_SUITE_UI_LENGTH ? value.slice(0, 2) : value.slice(0, 1);
         const enumeratedLabel = suitesToShow
           .map(env => trimSlug(env, MAX_SUITE_UI_LENGTH))
           .join(', ');
