@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import heroImg from 'sentry-images/debug/notifications/hero.png';
 
 import {Flex} from 'sentry/components/core/layout/flex';
-import {Heading} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 
 export function DebugNotificationsLanding() {
@@ -13,47 +13,41 @@ export function DebugNotificationsLanding() {
     <Fragment>
       <StoryDarkModeProvider>
         <Hero>
-          <Container>
-            <Flex direction="column" gap="2xl">
-              <Flex direction="column" gap="md">
-                <Border />
-                <h1>
-                  Welcome to the <TitleEmphasis>Notification Debugger</TitleEmphasis>
-                </h1>
-                <p>
-                  This tool is in development! Keep an eye out for internal comms for when
-                  this is ready for you to use.
-                </p>
-              </Flex>
-            </Flex>
-            <img
-              alt="A branching integration tree with developers admiring the leaves"
-              width={680}
-              height={320}
-              src={heroImg}
-            />
-          </Container>
+          <Flex direction="column" gap="md">
+            <Squiggle />
+            <HeroHeading as="h1">
+              Welcome to the <em>Notification Debugger</em>
+            </HeroHeading>
+            <Text variant="muted" size="lg">
+              This tool is in development! Keep an eye out for internal comms for when
+              this is ready for you to use.
+            </Text>
+          </Flex>
+          <img
+            alt="A branching integration tree with developers admiring the leaves"
+            width={680}
+            height={320}
+            src={heroImg}
+          />
         </Hero>
       </StoryDarkModeProvider>
-      <Container>
-        <Flex direction="column" gap="md" align="start">
-          <Heading as="h2" variant="success">
-            🚧 Features coming soon
-          </Heading>
-          <ul>
-            <li>Fields to enter custom rendered template data</li>
-            <li>Viewing all registered templates</li>
-            <li>Mobile/Desktop email previews</li>
-            <li>Integration raw payload previews (e.g. BlockKit, Teams Blocks)</li>
-            <li>Custom renderer templates</li>
-          </ul>
-        </Flex>
-      </Container>
+      <FeatureContainer>
+        <Heading as="h2" variant="success">
+          🚧 Features coming soon
+        </Heading>
+        <ul>
+          <li>Fields to enter custom rendered template data</li>
+          <li>Viewing all registered templates</li>
+          <li>Mobile/Desktop email previews</li>
+          <li>Integration raw payload previews (e.g. BlockKit, Teams Blocks)</li>
+          <li>Custom renderer templates</li>
+        </ul>
+      </FeatureContainer>
     </Fragment>
   );
 }
 
-function Border() {
+function Squiggle() {
   const theme = useTheme();
 
   return (
@@ -69,53 +63,32 @@ function Border() {
   );
 }
 
-const TitleEmphasis = styled('em')`
-  font-style: normal;
-  display: inline-block;
-  color: ${p => p.theme.tokens.content.success};
-`;
-
 const Hero = styled('div')`
-  padding: 48px 0;
-  gap: ${p => p.theme.space['3xl']};
+  padding: ${p => `80px ${p.theme.space['2xl']}`};
+  gap: ${p => p.theme.fontSize['2xl']};
   display: flex;
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.primary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  h1 {
-    font-size: 36px;
-    margin-top: ${p => p.theme.space.md};
-  }
-
-  p {
-    font-size: ${p => p.theme.fontSize.lg};
-    text-wrap: balance;
-    color: ${p => p.theme.tokens.content.muted};
-  }
-
   img {
     min-width: 320px;
     height: auto;
   }
 `;
 
-const Container = styled('div')`
-  max-width: 1080px;
-  width: 100%;
-  flex-grow: 1;
-  flex-shrink: 1;
-  margin-inline: auto;
+const HeroHeading = styled(Heading)`
+  font-size: 36px;
+  em {
+    font-style: normal;
+    display: inline-block;
+    color: ${p => p.theme.tokens.content.success};
+  }
+`;
+
+const FeatureContainer = styled('div')`
+  margin: ${p => `${p.theme.space['3xl']} ${p.theme.space.xl}`};
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space['3xl']};
-  padding-inline: ${p => p.theme.space.xl};
-  padding-block: ${p => p.theme.space['3xl']};
-  align-items: center;
-  justify-content: center;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
+  gap: ${p => p.theme.space.md};
 `;

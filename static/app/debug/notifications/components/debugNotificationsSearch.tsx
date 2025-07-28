@@ -82,8 +82,6 @@ function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps
     inputValue,
     onInputChange: setInputValue,
     defaultFilter: filter,
-    shouldCloseOnBlur: false,
-    allowsEmptyCollection: false,
     onSelectionChange: handleSelectionChange,
   });
 
