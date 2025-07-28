@@ -17,7 +17,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-sdk-updates",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",

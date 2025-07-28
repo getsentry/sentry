@@ -13,7 +13,7 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 class GroupTagExportTest(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.url = None
+        self.url: str | None = None
         self.key = "foo"
         self.value = "b\xe4r"
         self.project = self.create_project()

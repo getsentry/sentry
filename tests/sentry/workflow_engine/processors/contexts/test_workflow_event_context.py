@@ -1,3 +1,5 @@
+from contextvars import Token
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -8,7 +10,7 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 class WorkflowEventContextTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.ctx_token = None
+        self.ctx_token: Token[WorkflowEventContextData] | None = None
 
     def tearDown(self):
         if self.ctx_token:
