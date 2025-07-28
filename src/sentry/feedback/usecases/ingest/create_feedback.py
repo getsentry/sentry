@@ -253,6 +253,7 @@ def create_feedback_issue(
                 tags={
                     "entrypoint": "create_feedback_issue",
                     "referrer": source.value,
+                    "platform": project.platform,
                 },
             )
             if random.random() < 0.1:
@@ -264,6 +265,7 @@ def create_feedback_issue(
                         "referrer": source.value,
                         "length": len(feedback_message),
                         "feedback_message": feedback_message[:100],
+                        "platform": project.platform,
                     },
                 )
         else:
@@ -339,7 +341,7 @@ def create_feedback_issue(
         "project_id": project.id,
         "received": now.isoformat(),
         "tags": event.get("tags", {}),
-        **event,  # TODO: should the above fields override the event fields?
+        **event,
     }
     event_fixed = fix_for_issue_platform(event_data)
 
@@ -389,6 +391,7 @@ def create_feedback_issue(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
             "referrer": source.value,
+            "platform": project.platform,
         },
         sample_rate=1.0,
     )
