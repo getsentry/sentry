@@ -215,7 +215,7 @@ export default function Ai() {
       </Summary>
       <StyledTabItemContainer>
         <OverflowBody>
-          <ChapterList summaryData={summaryData} />
+          <ChapterList timeRanges={summaryData.data.time_ranges} />
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>

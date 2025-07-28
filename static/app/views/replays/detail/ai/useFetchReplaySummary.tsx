@@ -50,7 +50,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
         }
         return false;
       },
-      // refetchOnWindowFocus: 'always',
+      refetchOnWindowFocus: 'always',
       ...options,
     } as UseApiQueryOptions<SummaryResponse, RequestError>
   );

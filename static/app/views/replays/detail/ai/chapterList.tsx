@@ -17,15 +17,15 @@ import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurr
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {SummaryResponse} from 'sentry/views/replays/detail/ai/utils';
+import type {TimeRange} from 'sentry/views/replays/detail/ai/utils';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
-  summaryData: SummaryResponse;
+  timeRanges: TimeRange;
 }
 
-export function ChapterList({summaryData}: Props) {
+export function ChapterList({timeRanges}: Props) {
   const replay = useReplayReader();
   const {setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = useCallback(
@@ -38,7 +38,7 @@ export function ChapterList({summaryData}: Props) {
 
   const chapterData = useMemo(
     () =>
-      summaryData?.data?.time_ranges
+      timeRanges
         .map(({period_title, period_start, period_end, error, feedback}) => ({
           title: period_title,
           start: period_start,
@@ -55,7 +55,7 @@ export function ChapterList({summaryData}: Props) {
               ) ?? [],
         }))
         .sort((a, b) => a.start - b.start),
-    [summaryData, replay]
+    [timeRanges, replay]
   );
 
   if (!chapterData?.length) {
