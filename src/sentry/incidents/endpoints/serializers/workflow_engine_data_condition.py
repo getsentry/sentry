@@ -9,10 +9,11 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
-from sentry.incidents.endpoints.utils import translate_data_condition_type
+from sentry.incidents.endpoints.utils import translate_data_condition_type, translate_threshold
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.migration_helpers.utils import get_resolve_threshold
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -95,27 +96,32 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
             detector=detector.id
         )
+        if obj.type == Condition.ANOMALY_DETECTION:
+            threshold_type = obj.comparison["threshold_type"]
+            resolve_threshold = None
+        else:
+            threshold_type = (
+                AlertRuleThresholdType.ABOVE.value
+                if obj.type == Condition.GREATER
+                else AlertRuleThresholdType.BELOW.value
+            )
+            resolve_threshold = translate_threshold(get_resolve_threshold(obj.condition_group))
+
         return {
             "id": str(alert_rule_trigger_id),
             "alertRuleId": str(alert_rule_id),
             "label": (
                 "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
             ),
-            "thresholdType": (
-                AlertRuleThresholdType.ABOVE.value
-                if obj.type == Condition.GREATER
-                else AlertRuleThresholdType.BELOW.value
-            ),
+            "thresholdType": threshold_type,
             "alertThreshold": translate_data_condition_type(
                 detector.config.get("comparison_delta"),
                 obj.type,
-                obj.comparison,
+                (
+                    0 if obj.type == Condition.ANOMALY_DETECTION else obj.comparison
+                ),  # to replicate existing behavior, where anomaly detection triggers have a threshold of 0
             ),
-            "resolveThreshold": (
-                AlertRuleThresholdType.BELOW.value
-                if obj.type == Condition.GREATER
-                else AlertRuleThresholdType.ABOVE.value
-            ),
+            "resolveThreshold": resolve_threshold,
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }
