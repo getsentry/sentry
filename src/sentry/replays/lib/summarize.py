@@ -271,8 +271,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RAGE_CLICK:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
-            case EventType.NAVIGATION:
-                to = event["data"]["payload"]["data"]["to"]
+            case EventType.NAVIGATION_SPAN:
+                to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"
             case EventType.CONSOLE:
                 message = event["data"]["payload"]["message"]
@@ -343,6 +343,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.CLS:
                 return None
+            case EventType.NAVIGATION:
+                return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
     except (KeyError, ValueError):
         logger.exception(
             "Error parsing event in replay AI summary",
