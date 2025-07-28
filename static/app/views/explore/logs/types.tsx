@@ -46,7 +46,7 @@ export enum OurLogKnownFieldKey {
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 
-export type OurLogsKnownFieldResponseMap = Record<
+type OurLogsKnownFieldResponseMap = Record<
   (typeof AlwaysPresentLogFields)[number],
   string | number
 > & {
