@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 
 class RelocationUtilsTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=False, is_active=True

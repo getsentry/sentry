@@ -10,7 +10,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 
 
 class TestIssueLinkCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")

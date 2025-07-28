@@ -12,7 +12,7 @@ from sentry.utils.signing import unsign
 
 @control_silo_test
 class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)

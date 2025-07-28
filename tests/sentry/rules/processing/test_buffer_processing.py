@@ -23,7 +23,7 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 
 
-def test_bucket_num_groups():
+def test_bucket_num_groups() -> None:
     assert bucket_num_groups(1) == "1"
     assert bucket_num_groups(50) == ">10"
     assert bucket_num_groups(101) == ">100"
@@ -31,7 +31,7 @@ def test_bucket_num_groups():
 
 @freeze_time(FROZEN_TIME)
 class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -109,7 +109,7 @@ class ProcessDelayedAlertConditionsTestBase(CreateEventTestCase, PerformanceIssu
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": project_id})
         assert rule_group_data == {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.tag_filter = {
@@ -244,7 +244,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
 
 
 class ProcessInBatchesTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()

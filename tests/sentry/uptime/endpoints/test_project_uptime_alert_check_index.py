@@ -17,7 +17,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-project-uptime-alert-checks"
     features: dict[str, bool] = {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.subscription_id = uuid.uuid4().hex
         self.subscription = self.create_uptime_subscription(
@@ -235,7 +235,7 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
 ):
     __test__ = True
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.features = {
             "organizations:uptime-eap-enabled": True,
             "organizations:uptime-eap-uptime-results-query": True,

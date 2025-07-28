@@ -8,7 +8,7 @@ class DataSecrecyTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization.flags.prevent_superuser_access = True

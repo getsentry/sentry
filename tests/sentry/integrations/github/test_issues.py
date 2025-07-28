@@ -34,7 +34,7 @@ pytestmark = [requires_snuba]
 
 @all_silo_test
 class GitHubIssueBasicAllSiloTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -104,7 +104,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
     def request(self):
         return RequestFactory()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(

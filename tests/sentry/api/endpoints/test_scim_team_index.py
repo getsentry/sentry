@@ -192,7 +192,7 @@ class SCIMIndexCreateTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.post_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],

@@ -30,7 +30,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class BaseWorkflowIntegrationTest(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -201,7 +201,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 @mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,

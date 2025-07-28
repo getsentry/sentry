@@ -22,7 +22,7 @@ BITBUCKET_IP = "34.198.178.64"
 class WebhookBaseTest(APITestCase):
     endpoint = "sentry-extensions-bitbucket-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         project = self.project  # force creation
         self.organization_id = project.organization.id
@@ -199,7 +199,7 @@ class PushEventWebhookTest(WebhookBaseTest):
 class WebhookSignatureTest(WebhookBaseTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         with assume_test_silo_mode(SiloMode.CONTROL):

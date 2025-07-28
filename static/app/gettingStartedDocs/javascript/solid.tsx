@@ -78,6 +78,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
@@ -274,14 +280,31 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'solid-features',
-      name: t('Solid Features'),
-      description: t('Learn about our first class integration with the Solid framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'solid-features',
+        name: t('Solid Features'),
+        description: t(
+          'Learn about our first class integration with the Solid framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/logs/#integrations/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {

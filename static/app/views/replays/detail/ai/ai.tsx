@@ -28,24 +28,33 @@ import {useFetchReplaySummary} from './useFetchReplaySummary';
 
 export default function Ai() {
   const organization = useOrganization();
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {
+    areAiFeaturesAllowed,
+    setupAcknowledgement,
+    isPending: isOrgSeerSetupPending,
+  } = useOrganizationSeerSetup();
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
-  const {summaryData, isPending, isPolling, isError, triggerSummary} =
-    useFetchReplaySummary({
-      staleTime: 0,
-      enabled: Boolean(
-        replayRecord?.id &&
-          project?.slug &&
-          organization.features.includes('replay-ai-summaries') &&
-          areAiFeaturesAllowed &&
-          setupAcknowledgement.orgHasAcknowledged
-      ),
-    });
+  const {
+    summaryData,
+    isPending: isSummaryPending,
+    isPolling,
+    isError,
+    triggerSummary,
+  } = useFetchReplaySummary({
+    staleTime: 0,
+    enabled: Boolean(
+      replayRecord?.id &&
+        project?.slug &&
+        organization.features.includes('replay-ai-summaries') &&
+        areAiFeaturesAllowed &&
+        setupAcknowledgement.orgHasAcknowledged
+    ),
+  });
 
   const segmentsIncreased =
     summaryData?.num_segments && segmentCount > summaryData.num_segments;
@@ -58,7 +67,7 @@ export default function Ai() {
   useEffect(() => {
     if (
       (segmentsIncreased || summaryIsOld || needsInitialGeneration) &&
-      !isPending &&
+      !isSummaryPending &&
       !isPolling &&
       !isError
     ) {
@@ -68,7 +77,7 @@ export default function Ai() {
     segmentsIncreased,
     summaryIsOld,
     needsInitialGeneration,
-    isPending,
+    isSummaryPending,
     isPolling,
     triggerSummary,
     isError,
@@ -86,7 +95,8 @@ export default function Ai() {
     );
   }
 
-  if (isPending || isPolling) {
+  // check for org seer setup first before attempting to fetch summary
+  if (isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -118,6 +128,16 @@ export default function Ai() {
             </div>
           </CallToActionContainer>
         </EmptySummaryContainer>
+      </Wrapper>
+    );
+  }
+
+  if (isSummaryPending || isPolling) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
       </Wrapper>
     );
   }

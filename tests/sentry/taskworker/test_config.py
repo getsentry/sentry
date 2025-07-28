@@ -10,7 +10,7 @@ from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.taskworker.registry import taskregistry
 
 
-def test_import_paths():
+def test_import_paths() -> None:
     for path in settings.TASKWORKER_IMPORTS:
         try:
             __import__(path)

@@ -14,7 +14,7 @@ class AbortRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-abort"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True

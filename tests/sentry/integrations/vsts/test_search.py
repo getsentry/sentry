@@ -20,7 +20,7 @@ class VstsSearchTest(APITestCase):
     provider = "vsts"
     endpoint = "sentry-extensions-vsts-search"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(self.user)

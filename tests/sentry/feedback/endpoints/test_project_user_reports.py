@@ -16,7 +16,7 @@ def _make_url(project: Project):
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.environment = self.create_environment(project=self.project, name="production")
@@ -235,7 +235,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
 
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.hour_ago = before_now(minutes=60).isoformat()

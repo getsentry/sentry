@@ -85,7 +85,7 @@ class AvailableOnTest(TestCase):
         app_config.get_model.assert_called_with("BogusModel")
 
 
-def test_model_index_location():
+def test_model_index_location() -> None:
     """
     Validates that we didn't misconfigure a model such that the index or
     constraints are defined on the model body itself.

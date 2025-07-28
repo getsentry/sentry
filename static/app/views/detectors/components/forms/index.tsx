@@ -4,6 +4,10 @@ import {t} from 'sentry/locale';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
+  EditExistingErrorDetectorForm,
+  NewErrorDetectorForm,
+} from 'sentry/views/detectors/components/forms/error';
+import {
   EditExistingMetricDetectorForm,
   NewMetricDetectorForm,
 } from 'sentry/views/detectors/components/forms/metric/metric';
@@ -31,7 +35,7 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
     case 'uptime_domain_failure':
       return <NewUptimeDetectorForm />;
     case 'error':
-      return <PlaceholderForm />;
+      return <NewErrorDetectorForm />;
     case 'uptime_subscription':
       return <PlaceholderForm />;
     default:
@@ -48,7 +52,7 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
     case 'uptime_domain_failure':
       return <EditExistingUptimeDetectorForm detector={detector} />;
     case 'error':
-      return <PlaceholderForm />;
+      return <EditExistingErrorDetectorForm detector={detector} />;
     case 'uptime_subscription':
       return <PlaceholderForm />;
     default:

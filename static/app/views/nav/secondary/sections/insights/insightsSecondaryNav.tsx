@@ -10,7 +10,7 @@ import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/fea
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AGENTS_LANDING_SUB_PATH,
-  getAgentsSidebarLabel,
+  getAISidebarLabel,
 } from 'sentry/views/insights/pages/agents/settings';
 import {
   AI_LANDING_SUB_PATH,
@@ -92,7 +92,7 @@ export function InsightsSecondaryNav() {
               analyticsItemName="insights_agents"
               trailingItems={<FeatureBadge type="beta" />}
             >
-              {getAgentsSidebarLabel(organization)}
+              {getAISidebarLabel(organization)}
             </SecondaryNav.Item>
           </AIInsightsFeature>
         </SecondaryNav.Section>

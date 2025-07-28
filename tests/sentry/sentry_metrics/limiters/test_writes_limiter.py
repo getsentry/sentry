@@ -42,7 +42,7 @@ MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_no_limits():
+def test_writes_limiter_no_limits() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [],
@@ -82,7 +82,7 @@ def test_writes_limiter_no_limits():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_doesnt_limit():
+def test_writes_limiter_doesnt_limit() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [],
@@ -131,7 +131,7 @@ def test_writes_limiter_doesnt_limit():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_org_limit():
+def test_writes_limiter_org_limit() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [],
@@ -195,7 +195,7 @@ def test_writes_limiter_org_limit():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_global_limit():
+def test_writes_limiter_global_limit() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [
@@ -245,7 +245,7 @@ def test_writes_limiter_global_limit():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_respects_use_case_id():
+def test_writes_limiter_respects_use_case_id() -> None:
     """
     Here we test that a use_case_id currently exceededing quota results in
     dropping all strings for subsequent calls to check_write_limits
