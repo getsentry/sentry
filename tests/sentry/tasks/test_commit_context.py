@@ -222,13 +222,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -247,7 +248,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert created_group_owner
         assert created_group_owner.context == {
             "commitId": existing_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
         assert_any_analytics_event(
@@ -288,13 +289,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -313,19 +315,20 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert created_group_owner
         assert created_group_owner.context == {
             "commitId": existing_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
         with self.tasks():
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
 
@@ -346,7 +349,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         assert updated_group_owner
         assert updated_group_owner.context == {
             "commitId": existing_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
     @patch("sentry.analytics.record")
@@ -363,13 +366,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_commit_author = CommitAuthor.objects.get(
             organization_id=self.organization.id, email="admin2@localhost"
@@ -397,7 +401,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).context == {
             "commitId": created_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
     @patch("sentry.analytics.record")
@@ -419,13 +423,14 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
-            )
+            with self.options({"issues.suspect-commit-strategy": True}):
+                process_commit_context(
+                    event_id=self.event.event_id,
+                    event_platform=self.event.platform,
+                    event_frames=event_frames,
+                    group_id=self.event.group_id,
+                    project_id=self.event.project_id,
+                )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -438,7 +443,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         assert created_group_owner.context == {
             "commitId": created_commit.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
     @patch("sentry.analytics.record")
@@ -1343,7 +1348,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             organization_id=self.project.organization_id,
             context={
                 "commitId": self.commit.id,
-                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
             },
             date_added=timezone.now(),
         )
