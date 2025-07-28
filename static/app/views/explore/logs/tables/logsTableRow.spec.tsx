@@ -152,10 +152,8 @@ describe('logsTableRow', () => {
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
-    expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
-      'severity_number'
-    );
+    expect(screen.getByTestId('tree-key-severity')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-severity')).toHaveTextContent('severity');
 
     // Check that the custom renderer works
     expect(screen.getByTestId('tree-key-trace')).toHaveTextContent('trace');
