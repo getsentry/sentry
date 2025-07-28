@@ -387,14 +387,11 @@ function SpanTabContentSection({
     enabled: isAllowedSelection && queryType === 'traces',
   });
 
-  const {
-    result: timeseriesResult,
-    canUsePreviousResults,
-    samplingMode: timeseriesSamplingMode,
-  } = useExploreTimeseries({
-    query,
-    enabled: isAllowedSelection,
-  });
+  const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
+    useExploreTimeseries({
+      query,
+      enabled: isAllowedSelection,
+    });
 
   const confidences = useMemo(
     () =>
@@ -477,7 +474,6 @@ function SpanTabContentSection({
         margin={-8}
       >
         <ExploreCharts
-          canUsePreviousResults={canUsePreviousResults}
           confidences={confidences}
           query={query}
           timeseriesResult={timeseriesResult}
