@@ -43,7 +43,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray100,
+        textShadowColor: theme.gray500,
         textShadowOffsetY: 0.5,
       },
       upperLabel: {
@@ -57,7 +57,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         fontFamily: 'Rubik',
         padding: 0,
         textShadowBlur: 2,
-        textShadowColor: theme.gray100,
+        textShadowColor: theme.gray500,
         textShadowOffsetY: 0.5,
       },
     };
