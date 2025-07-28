@@ -37,7 +37,7 @@ from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
+    request: Request, project: Project, detector_type_slug: str, instance=None, partial=False
 ):
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -56,6 +56,7 @@ def get_detector_validator(
             "access": request.access,
         },
         data=request.data,
+        partial=partial,
     )
 
 
@@ -145,7 +146,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             raise PermissionDenied
 
         group_type = request.data.get("type") or detector.group_type.slug
-        validator = get_detector_validator(request, detector.project, group_type, detector)
+        validator = get_detector_validator(
+            request, detector.project, group_type, detector, partial=True
+        )
 
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
