@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
+from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.integrations.discord.spec import DiscordMessagingSpec
@@ -24,6 +25,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
     label = "Send a notification to the {server} Discord server in the channel with ID or URL: {channel_id} and show tags {tags} in the notification."
     prompt = "Send a Discord notification"
     provider = IntegrationProviderSlug.DISCORD.value
+    analytics_cls = DiscordIntegrationNotificationSent
     integration_key = "server"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

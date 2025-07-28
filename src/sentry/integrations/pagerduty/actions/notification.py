@@ -7,6 +7,7 @@ from typing import cast
 import sentry_sdk
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
+from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
 from sentry.integrations.pagerduty.client import (
     PAGERDUTY_DEFAULT_SEVERITY,
     PAGERDUTY_SUMMARY_MAX_LENGTH,
@@ -27,6 +28,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
     provider = IntegrationProviderSlug.PAGERDUTY.value
+    analytics_cls = PagerdutyIntegrationNotificationSent
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):

@@ -112,13 +112,14 @@ class IntegrationEventAction(EventAction, abc.ABC):
     ) -> None:
         # Currently these actions can only be triggered by issue alerts
         analytics.record(
-            f"integrations.{self.provider}.notification_sent",
-            category="issue_alert",
-            organization_id=event.organization.id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid if notification_uuid else "",
-            alert_id=rule.id if rule else None,
+            self.analytics_cls(
+                category="issue_alert",
+                organization_id=event.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid if notification_uuid else "",
+                alert_id=rule.id if rule else None,
+            )
         )
         analytics.record(
             "alert.sent",
