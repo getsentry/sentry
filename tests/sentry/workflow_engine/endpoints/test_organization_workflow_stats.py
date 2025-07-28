@@ -28,6 +28,7 @@ class WorkflowStatsEndpointTest(APITestCase):
                         workflow=self.workflow,
                         group=self.group,
                         date_added=before_now(hours=i + 1),
+                        is_single_written=True,
                     )
                 )
 
@@ -37,6 +38,7 @@ class WorkflowStatsEndpointTest(APITestCase):
                     workflow=self.workflow_2,
                     group=self.group,
                     date_added=before_now(hours=i + 1),
+                    is_single_written=True,
                 )
             )
 

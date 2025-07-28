@@ -1,10 +1,10 @@
 import datetime
 from unittest.mock import patch
 
-from sentry.api.endpoints.organization_trace import SerializedSpan
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.seer.models import SpanInsight, SummarizeTraceResponse
 from sentry.seer.trace_summary import get_trace_summary
+from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
