@@ -602,7 +602,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         limit=limit,
                         referrer=referrer,
                         config=config,
-                        debug=debug,
                         sampling_mode=snuba_params.sampling_mode,
                     )
 

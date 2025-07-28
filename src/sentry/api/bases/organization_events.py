@@ -167,6 +167,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
+                debug=request.user.is_superuser and "debug" in request.GET,
             )
 
             if check_global_views:
