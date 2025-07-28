@@ -1,18 +1,24 @@
 from collections.abc import Mapping
+from enum import StrEnum
 from time import time
-from typing import Any, Generic, TypedDict, TypeVar
+from typing import Any, TypedDict
 from uuid import uuid4
 
-from sentry.sentry_apps.models.sentry_app import SentryAppActionType, SentryAppResourceType
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
 
+class AppPlatformEventActorType(StrEnum):
+    USER = "user"
+    APPLICATION = "application"
+
+
 class AppPlatformEventActor(TypedDict):
-    type: str
+    type: AppPlatformEventActorType
     id: str | int
     name: str
 
@@ -21,17 +27,14 @@ class AppPlatformEventInstallation(TypedDict):
     uuid: str
 
 
-T = TypeVar("T", bound=Mapping[str, Any])
-
-
-class AppPlatformEventBody(TypedDict, Generic[T]):
+class AppPlatformEventBody[T: Mapping[str, Any]](TypedDict):
     action: SentryAppActionType
     installation: AppPlatformEventInstallation
     data: T
     actor: AppPlatformEventActor
 
 
-class AppPlatformEvent(Generic[T]):
+class AppPlatformEvent[T: Mapping[str, Any]]():
     """
     This data structure encapsulates the payload sent to a SentryApp's webhook.
 
@@ -57,20 +60,20 @@ class AppPlatformEvent(Generic[T]):
         # or when an alert rule is triggered
         if not self.actor:
             return AppPlatformEventActor(
-                type="application",
+                type=AppPlatformEventActorType.APPLICATION,
                 id="sentry",
                 name="Sentry",
             )
 
         if self.actor.is_sentry_app:
             return AppPlatformEventActor(
-                type="application",
+                type=AppPlatformEventActorType.APPLICATION,
                 id=self.install.sentry_app.uuid,
                 name=self.install.sentry_app.name,
             )
 
         return AppPlatformEventActor(
-            type="user",
+            type=AppPlatformEventActorType.USER,
             id=self.actor.id,
             name=self.actor.name,
         )

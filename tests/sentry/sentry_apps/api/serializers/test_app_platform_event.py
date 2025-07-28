@@ -4,7 +4,12 @@ from typing import Any
 import orjson
 
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
-from sentry.sentry_apps.models.sentry_app import SentryAppActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import (
+    InstallationActionType,
+    IssueActionType,
+    IssueAlertActionType,
+    SentryAppResourceType,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -21,7 +26,7 @@ class AppPlatformEventSerializerTest(TestCase):
         data = {"time": datetime.datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=datetime.UTC)}
         result = AppPlatformEvent(
             resource=SentryAppResourceType.EVENT_ALERT,
-            action=SentryAppActionType.TRIGGERED,
+            action=IssueAlertActionType.TRIGGERED,
             install=self.install,
             data=data,
         )
@@ -48,7 +53,7 @@ class AppPlatformEventSerializerTest(TestCase):
     def test_sentry_app_actor(self) -> None:
         result = AppPlatformEvent[dict[str, Any]](
             resource=SentryAppResourceType.ISSUE,
-            action=SentryAppActionType.ASSIGNED,
+            action=IssueActionType.ASSIGNED,
             install=self.install,
             data={},
             actor=self.sentry_app.proxy_user,
@@ -69,7 +74,7 @@ class AppPlatformEventSerializerTest(TestCase):
     def test_user_actor(self) -> None:
         result = AppPlatformEvent[dict[str, Any]](
             resource=SentryAppResourceType.INSTALLATION,
-            action=SentryAppActionType.CREATED,
+            action=InstallationActionType.CREATED,
             install=self.install,
             data={},
             actor=self.user,

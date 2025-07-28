@@ -33,7 +33,6 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import (
-    EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
@@ -42,6 +41,7 @@ from sentry.sentry_apps.models.sentry_app import (
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps.service_hook_manager import (
@@ -76,7 +76,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
         {
             translated
             for event in rolled_up_events
-            for translated in EVENT_EXPANSION.get(event, [event])
+            for translated in EVENT_EXPANSION.get(SentryAppResourceType(event), [event])
         }
     )
 

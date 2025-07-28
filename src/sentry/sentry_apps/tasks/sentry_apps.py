@@ -33,11 +33,7 @@ from sentry.sentry_apps.metrics import (
     SentryAppWebhookFailureReason,
     SentryAppWebhookHaltReason,
 )
-from sentry.sentry_apps.models.sentry_app import (
-    SentryApp,
-    SentryAppActionType,
-    SentryAppResourceType,
-)
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
@@ -48,6 +44,7 @@ from sentry.sentry_apps.services.app.service import (
     get_installations_for_organization,
 )
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -257,7 +254,7 @@ def send_alert_webhook_v2(
 
         request_data = AppPlatformEvent(
             resource=SentryAppResourceType.EVENT_ALERT,
-            action=SentryAppActionType.TRIGGERED,
+            action=IssueAlertActionType.TRIGGERED,
             install=install,
             data=data,
         )

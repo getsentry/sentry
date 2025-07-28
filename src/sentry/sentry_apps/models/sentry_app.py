@@ -1,9 +1,8 @@
 import hmac
 import itertools
 import uuid
-from enum import StrEnum
 from hashlib import sha256
-from typing import Any, ClassVar, Final, Literal, Union
+from typing import Any, ClassVar
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -32,75 +31,9 @@ from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
 from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
 from sentry.utils import metrics
-
-
-class SentryAppResourceType(StrEnum):
-    ISSUE = "issue"
-    ERROR = "error"
-    COMMENT = "comment"
-    INSTALLATION = "installation"
-    METRIC_ALERT = "metric_alert"
-
-    # Represents an issue alert resource
-    EVENT_ALERT = "event_alert"
-
-
-class SentryAppActionType(StrEnum):
-    # Generic actions
-    CREATED = "created"
-    DELETED = "deleted"
-    UPDATED = "updated"
-
-    # Issue actions
-    ASSIGNED = "assigned"
-    IGNORED = "ignored"
-    RESOLVED = "resolved"
-    UNRESOLVED = "unresolved"
-
-    # Issue alert actions
-    TRIGGERED = "triggered"
-
-    # Metric alert actions
-    OPEN = "open"
-    CRITICAL = "critical"
-    WARNING = "warning"
-
-
-# Define event type unions for each resource
-IssueEventType = Literal[
-    "issue.assigned", "issue.created", "issue.ignored", "issue.resolved", "issue.unresolved"
-]
-ErrorEventType = Literal["error.created"]
-CommentEventType = Literal["comment.created", "comment.deleted", "comment.updated"]
-
-# Union of all event types
-EventType = Union[IssueEventType, ErrorEventType, CommentEventType]
-
-# When a developer selects to receive "<Resource> Webhooks" it really means
-# listening to a list of specific events. This is a mapping of what those
-# specific events are for each resource.
-EVENT_EXPANSION: Final[dict[str, list[EventType]]] = {
-    SentryAppResourceType.ISSUE.value: [
-        "issue.assigned",
-        "issue.created",
-        "issue.ignored",
-        "issue.resolved",
-        "issue.unresolved",
-    ],
-    SentryAppResourceType.ERROR.value: ["error.created"],
-    SentryAppResourceType.COMMENT.value: ["comment.created", "comment.deleted", "comment.updated"],
-}
-
-# We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
-# per-event-type (issue.created, project.deleted, etc.). These are valid
-# resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = (
-    SentryAppResourceType.ISSUE.value,
-    SentryAppResourceType.ERROR.value,
-    SentryAppResourceType.COMMENT.value,
-)
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",

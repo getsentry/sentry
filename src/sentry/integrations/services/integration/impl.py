@@ -46,12 +46,9 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
-from sentry.sentry_apps.models.sentry_app import (
-    SentryApp,
-    SentryAppActionType,
-    SentryAppResourceType,
-)
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
