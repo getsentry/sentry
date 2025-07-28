@@ -13,7 +13,7 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {
   useFindNextTrace,
   useFindPreviousTrace,
-} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindNextTrace';
+} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export type ConnectedTraceConnection = 'previous' | 'next';
