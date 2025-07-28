@@ -13,6 +13,7 @@ from sentry.feedback.usecases.ingest.create_feedback import (
     get_feedback_title,
     validate_issue_platform_event_schema,
 )
+from sentry.feedback.usecases.label_generation import LABEL_TAG_PREFIX
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -976,9 +977,7 @@ def test_create_feedback_adds_ai_labels(
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [
-            value for key, value in tags.items() if key.startswith("ai_categorization.label.")
-        ]
+        ai_labels = [value for key, value in tags.items() if key.startswith(LABEL_TAG_PREFIX)]
         assert len(ai_labels) == 3
         assert set(ai_labels) == {"User Interface", "Authentication", "Performance"}
 
@@ -1017,7 +1016,7 @@ def test_create_feedback_handles_label_generation_errors(
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [tag for tag in tags.keys() if tag.startswith("ai_categorization.label.")]
+        ai_labels = [value for key, value in tags.items() if key.startswith(LABEL_TAG_PREFIX)]
         assert (
             len(ai_labels) == 0
         ), "No AI categorization labels should be present when label generation fails"

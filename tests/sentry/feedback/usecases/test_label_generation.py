@@ -21,7 +21,7 @@ class TestGenerateLabels(TestCase):
     def test_generate_labels_success_response(self):
         mock_seer_response(
             status=200,
-            body=b'{"data": {"labels": ["User Interface", "Navigation", "Right Sidebar"]}}',
+            json={"data": {"labels": ["User Interface", "Navigation", "Right Sidebar"]}},
         )
 
         labels = generate_labels(
@@ -42,7 +42,7 @@ class TestGenerateLabels(TestCase):
     def test_generate_labels_failed_response(self):
         mock_seer_response(
             status=500,
-            body=b'{"error": "Internal Server Error"}',
+            json={"error": "Internal Server Error"},
         )
 
         with pytest.raises(requests.exceptions.HTTPError):

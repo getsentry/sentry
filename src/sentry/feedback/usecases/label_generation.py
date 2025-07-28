@@ -17,6 +17,8 @@ class LabelRequest(TypedDict):
     feedback_message: str
 
 
+LABEL_TAG_PREFIX = "ai_categorization.label"
+
 SEER_GENERATE_LABELS_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/labels"
 
 
@@ -51,7 +53,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
 
     if response.status_code != 200:
         logger.error(
-            "Feedback: Failed to generate labels",
+            "Failed to generate labels",
             extra={
                 "status_code": response.status_code,
                 "response": response.text,
@@ -61,7 +63,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
 
     response.raise_for_status()
 
-    labels = json.loads(response.content.decode("utf-8"))["data"]["labels"]
+    labels = response.json()["data"]["labels"]
 
     # Guaranteed to be a list of strings (validated in Seer)
     return labels

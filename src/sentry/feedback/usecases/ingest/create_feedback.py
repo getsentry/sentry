@@ -11,7 +11,7 @@ import jsonschema
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
-from sentry.feedback.usecases.label_generation import generate_labels
+from sentry.feedback.usecases.label_generation import LABEL_TAG_PREFIX, generate_labels
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -384,7 +384,7 @@ def create_feedback_issue(
                 labels = labels[:15]
 
             for idx, label in enumerate(labels):
-                event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
+                event_fixed["tags"][f"{LABEL_TAG_PREFIX}.{idx}"] = label
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project_id})
 
