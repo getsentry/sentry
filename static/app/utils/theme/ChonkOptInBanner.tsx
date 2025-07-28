@@ -1,3 +1,4 @@
+import {useId} from 'react';
 import type {Theme} from '@emotion/react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -18,6 +19,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
   const chonkPrompt = useChonkPrompt();
   const config = useLegacyStore(ConfigStore);
   const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const id = useId();
 
   if (props.collapsed === true || !chonkPrompt.showbannerPrompt) {
     return null;
@@ -25,9 +27,10 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
 
   return (
     <TranslucentBackgroundPanel
+      role="complementary"
+      aria-labelledby={id}
       isDarkMode={config.theme === 'dark'}
       position={props.collapsed === 'never' ? 'absolute' : 'relative'}
-      data-test-id="chonk-opt-in-banner"
     >
       <Title>{t('Sentry has a new look')}</Title>
       <Description>

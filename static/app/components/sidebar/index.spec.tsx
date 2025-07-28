@@ -596,7 +596,7 @@ describe('Sidebar', function () {
 
       // Find the dismiss button within the chonk UI banner
       await userEvent.click(
-        within(screen.getByTestId('chonk-opt-in-banner')).getByRole('button', {
+        within(screen.getByRole('complementary')).getByRole('button', {
           name: /Dismiss/,
         })
       );
