@@ -23,7 +23,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             status=status,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.monitor1 = self._create_monitor()
@@ -72,7 +72,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         self.add_checkin(self.monitor2, env=self.env_prod_2, offset={"minutes": 1})
         self.add_checkin(self.monitor2, env=self.env_prod_2, offset={"minutes": 2})
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             **{
@@ -146,7 +146,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             },
         ]
 
-    def test_filtered(self):
+    def test_filtered(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             **{
@@ -175,7 +175,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             },
         ]
 
-    def test_custom_resolution(self):
+    def test_custom_resolution(self) -> None:
         two_min_later = self.since + timedelta(minutes=2)
 
         resp = self.get_success_response(
@@ -214,7 +214,7 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             {},
         ]
 
-    def test_disallow_stats_when_no_project_access(self):
+    def test_disallow_stats_when_no_project_access(self) -> None:
         # disable Open Membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()

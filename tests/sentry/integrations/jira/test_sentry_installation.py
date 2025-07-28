@@ -14,7 +14,7 @@ CLICK_TO_FINISH = b"Finish Installation in Sentry"
 
 @control_silo_test
 class JiraSentryInstallationViewTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.path = absolute_uri("extensions/jira/ui-hook/") + "?xdm_e=base_url"
 
@@ -47,7 +47,7 @@ class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
 
 @control_silo_test
 class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

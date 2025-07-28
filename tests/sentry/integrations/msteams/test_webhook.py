@@ -42,7 +42,7 @@ class MsTeamsWebhookTest(APITestCase):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         responses.add(
@@ -83,7 +83,7 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
     @responses.activate
-    def test_post_empty_token(self):
+    def test_post_empty_token(self) -> None:
         resp = self.client.post(
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,

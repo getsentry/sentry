@@ -20,7 +20,7 @@ type AutomationListRowProps = {
 
 export function AutomationListRow({automation}: AutomationListRowProps) {
   const actions = getAutomationActions(automation);
-  const {disabled, lastTriggered, detectorIds = []} = automation;
+  const {enabled, lastTriggered, detectorIds = []} = automation;
   const projectIds = useAutomationProjectIds(automation);
   const projectSlugs = projectIds.map(
     projectId => ProjectsStore.getById(projectId)?.slug
@@ -28,7 +28,7 @@ export function AutomationListRow({automation}: AutomationListRowProps) {
 
   return (
     <AutomationSimpleTableRow
-      variant={disabled ? 'faded' : 'default'}
+      variant={enabled ? 'default' : 'faded'}
       data-test-id="automation-list-row"
     >
       <SimpleTable.RowCell>
@@ -38,7 +38,7 @@ export function AutomationListRow({automation}: AutomationListRowProps) {
         <TimeAgoCell date={lastTriggered} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="action">
-        <ActionCell actions={actions} disabled={disabled} />
+        <ActionCell actions={actions} disabled={!enabled} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="projects">
         <ProjectList projectSlugs={projectSlugs} />

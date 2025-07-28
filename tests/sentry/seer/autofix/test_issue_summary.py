@@ -24,7 +24,7 @@ pytestmark = [requires_snuba]
 
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 class IssueSummaryTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
         self.login_as(user=self.user)
@@ -128,7 +128,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
 
-    def test_get_issue_summary_without_ai_acknowledgement(self):
+    def test_get_issue_summary_without_ai_acknowledgement(self) -> None:
         with patch(
             "sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement"
         ) as mock_get_acknowledgement:
@@ -408,7 +408,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         assert kwargs["referrer"] == "api.group_ai_summary"
         assert kwargs["tenant_ids"] == {"organization_id": 1}
 
-    def test_get_trace_connected_issues_no_trace_id(self):
+    def test_get_trace_connected_issues_no_trace_id(self) -> None:
         event = Mock()
         event.trace_id = None
         result = _get_trace_connected_issues(event)

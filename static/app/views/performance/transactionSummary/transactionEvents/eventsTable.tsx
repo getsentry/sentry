@@ -220,6 +220,7 @@ function EventsTable({
         Actions.EXCLUDE,
         Actions.SHOW_GREATER_THAN,
         Actions.SHOW_LESS_THAN,
+        Actions.OPEN_EXTERNAL_LINK,
       ];
 
       if (['attachments', 'minidump'].includes(field)) {

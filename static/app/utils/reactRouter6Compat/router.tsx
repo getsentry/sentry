@@ -1,4 +1,4 @@
-import {Children, isValidElement, useEffect} from 'react';
+import {useEffect} from 'react';
 import {
   Navigate,
   type NavigateProps,
@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
+import type {SentryRouteObject} from 'sentry/components/route';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -16,12 +17,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
-
-function isValidComponent(
-  element: React.JSX.Element
-): element is React.ReactElement<any, React.NamedExoticComponent<any>> {
-  return typeof element.type !== 'string';
-}
 
 /**
  * Because some of our views use cloneElement to inject route props into the
@@ -66,7 +61,7 @@ function NoOp({children}: {children: React.JSX.Element}) {
 
 interface RedirectProps extends Omit<NavigateProps, 'to'> {
   /**
-   * Our compat redirect only supports string to
+   * Our Redirect only supports string to
    */
   to: string;
 }
@@ -113,87 +108,59 @@ function getElement(Component: React.ComponentType<any> | undefined) {
 }
 
 /**
- * Transforms a react-router 3 style route tree into a valid react-router 6
- * router tree.
+ * Converts a SentryRouteObject tree into a react-router RouteObject tree.
  */
-export function buildReactRouter6Routes(tree: React.JSX.Element) {
-  const routes: RouteObject[] = [];
+export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
+  const {name, path, withOrgPath, redirectTo, customerDomainOnlyRoute, component} = tree;
 
-  Children.forEach(tree, routeNode => {
-    if (!isValidElement(routeNode)) {
-      return;
-    }
-    if (!isValidComponent(routeNode)) {
-      return;
-    }
+  if (customerDomainOnlyRoute && !USING_CUSTOMER_DOMAIN) {
+    return {};
+  }
 
-    const isRoute = routeNode.type.displayName === 'Route';
-    const isIndexRoute = routeNode.type.displayName === 'IndexRoute';
+  if (redirectTo !== undefined) {
+    return {index: tree.index, path, element: <Redirect to={redirectTo} replace />};
+  }
 
-    const isRedirect = routeNode.type.displayName === 'Redirect';
-    const isIndexRedirect = routeNode.type.displayName === 'IndexRedirect';
+  // XXX(epurkhiser)
+  //
+  // - Store the name prop that we use for breadcrumbs in the handle.
+  //
+  // - We also store the unresolved path in the handle, since we'll need that
+  //   to shim the `useRoutes` hook to act like it did n react-router 3,
+  //   where the path was not resolved (looks like /issues/:issueId). Once we
+  //   remove usages of useRoutes we can remove this value from the handle.
+  const handle = {name, path};
 
-    if (isIndexRedirect) {
-      routes.push({index: true, element: <Redirect to={routeNode.props.to} replace />});
-    }
-    if (isRedirect) {
-      routes.push({
-        path: routeNode.props.from,
-        element: <Redirect to={routeNode.props.to} replace />,
-      });
-    }
+  if (tree.index) {
+    return {index: true, element: getElement(component), handle};
+  }
 
-    // Elements that are not Route components are likely fragments, just
-    // traverse into their children in this case.
-    if (!isRoute && !isIndexRoute) {
-      routes.push(...buildReactRouter6Routes(routeNode.props.children));
-      return;
-    }
+  const children = tree.children?.map(translateSentryRoute);
 
-    const {path, component: Component, children, name, withOrgPath} = routeNode.props;
-    const element = getElement(Component);
+  // Witohut the withOrgPath we only need to generate a single route, otherwise
+  // we need to generate multiple routes, one including the
+  // /organizations/:ogId prefix, and one without
+  if (!withOrgPath) {
+    return {path, element: getElement(component), handle, children};
+  }
 
-    // XXX(epurkhiser)
-    //
-    // - Store the name prop that we use for breadcrumbs in the
-    //   handle. This is a react-router 6 concept for where to put arbitrary
-    //   route data
-    //
-    // - We also store the unresolved path in the handle, since we'll need that
-    //   to shim the `useRoutes` hook to act like it did n react-router 3,
-    //   where the path was not resolved (looks like /issues/:issueId).
-    const handle = {name, path};
+  const dualRoutes: RouteObject[] = [];
 
-    if (isIndexRoute) {
-      routes.push({index: true, element, handle});
-      return;
-    }
-
-    if (!withOrgPath) {
-      routes.push({path, element, handle, children: buildReactRouter6Routes(children)});
-      return;
-    }
-
-    // XXX(epurkhiser): This duplicates the customer domain logic in
-    // components/route.tsx. When the route has withOrgPath we create two
-    // route.
-
-    if (USING_CUSTOMER_DOMAIN) {
-      routes.push({
-        path,
-        element: getElement(withDomainRequired(Component ?? NoOp) as any),
-        children: buildReactRouter6Routes(children),
-        handle,
-      });
-    }
-
-    routes.push({
-      path: `/organizations/:orgId${path}`,
-      element: getElement(withDomainRedirect(Component ?? NoOp)),
-      children: buildReactRouter6Routes(children),
+  if (USING_CUSTOMER_DOMAIN) {
+    dualRoutes.push({
+      path,
+      element: getElement(withDomainRequired(component ?? NoOp)),
       handle,
+      children,
     });
+  }
+
+  dualRoutes.push({
+    path: `/organizations/:orgId${path}`,
+    element: getElement(withDomainRedirect(component ?? NoOp)),
+    handle,
+    children,
   });
 
-  return routes;
+  return {children: dualRoutes};
 }

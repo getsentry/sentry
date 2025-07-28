@@ -365,7 +365,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert ("occurrence_id", group_event.occurrence.id.encode()) in headers
         assert body["queue"] == "post_process_issue_platform"
 
-    def test_insert_generic_event_contexts(self):
+    def test_insert_generic_event_contexts(self) -> None:
         create_default_projects()
         es = SnubaProtocolEventStream()
 

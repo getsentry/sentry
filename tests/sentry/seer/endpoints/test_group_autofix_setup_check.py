@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         integration = self.create_integration(organization=self.organization, external_id="1")
@@ -35,7 +35,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             source_root="sentry/",
         )
 
-    def test_successful_setup(self):
+    def test_successful_setup(self) -> None:
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -60,7 +60,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             },
         }
 
-    def test_current_user_acknowledged_setup(self):
+    def test_current_user_acknowledged_setup(self) -> None:
         """
         Test when the current user has acknowledged the setup.
         """
@@ -86,7 +86,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "userHasAcknowledged": True,
         }
 
-    def test_org_acknowledged_not_user(self):
+    def test_org_acknowledged_not_user(self) -> None:
         """
         Test when another user in the org has acknowledged, but not the requesting user.
         """
@@ -164,7 +164,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
-    def test_missing_integration(self):
+    def test_missing_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.organization_integration.delete()
 

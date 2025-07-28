@@ -75,7 +75,7 @@ def assert_response_calls(expected_region_response, expected_non_region_response
 
 
 class VstsIssueBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
                 provider="vsts",
@@ -167,7 +167,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         responses.reset()
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         responses.add(
             responses.PATCH,
             "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
@@ -216,7 +216,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             self.integration.create_issue(form_data)
 
     @responses.activate
-    def test_create_issue_title_too_long(self):
+    def test_create_issue_title_too_long(self) -> None:
         responses.add(
             responses.PATCH,
             "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
@@ -251,7 +251,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         ]
 
     @responses.activate
-    def test_create_issue_failure(self):
+    def test_create_issue_failure(self) -> None:
         form_data = {
             "title": "rip",
             "description": "Goodnight, sweet prince",
@@ -261,7 +261,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             self.integration.create_issue(form_data)
 
     @responses.activate
-    def test_get_issue(self):
+    def test_get_issue(self) -> None:
         responses.add(
             responses.GET,
             f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{self.issue_id}",
@@ -389,7 +389,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[2].response.status_code == 200
 
     @responses.activate
-    def test_sync_status_outbound(self):
+    def test_sync_status_outbound(self) -> None:
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
@@ -471,13 +471,13 @@ class VstsIssueSyncTest(VstsIssueBase):
         with pytest.raises(ApiUnauthorized):
             self.integration.sync_status_outbound(external_issue, True, self.project.id)
 
-    def test_get_issue_url(self):
+    def test_get_issue_url(self) -> None:
         work_id = 345
         url = self.integration.get_issue_url(work_id)
         assert url == "https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345"
 
     @responses.activate
-    def test_should_resolve_active_to_resolved(self):
+    def test_should_resolve_active_to_resolved(self) -> None:
         assert (
             self.integration.get_resolve_sync_action(
                 {
@@ -490,7 +490,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_should_resolve_resolved_to_active(self):
+    def test_should_resolve_resolved_to_active(self) -> None:
         assert (
             self.integration.get_resolve_sync_action(
                 {
@@ -503,7 +503,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_should_resolve_new(self):
+    def test_should_resolve_new(self) -> None:
         assert (
             self.integration.get_resolve_sync_action(
                 {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
@@ -512,7 +512,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_should_resolve_done_status_failure(self):
+    def test_should_resolve_done_status_failure(self) -> None:
         """TODO(mgaeta): Should this be NOOP instead of UNRESOLVE when we lose connection?"""
         responses.reset()
         responses.add(
@@ -536,7 +536,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_should_not_unresolve_resolved_to_closed(self):
+    def test_should_not_unresolve_resolved_to_closed(self) -> None:
         assert (
             self.integration.get_resolve_sync_action(
                 {
@@ -551,7 +551,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
 @region_silo_test(include_monolith_run=True)
 class VstsIssueFormTest(VstsIssueBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         responses.add(
             responses.GET,
@@ -590,7 +590,7 @@ class VstsIssueFormTest(VstsIssueBase):
         assert project_field["choices"] == choices
 
     @responses.activate
-    def test_default_project(self):
+    def test_default_project(self) -> None:
         self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id"})
         fields = self.integration.get_create_issue_config(self.group, self.user)
@@ -600,7 +600,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_default_project_and_category(self):
+    def test_default_project_and_category(self) -> None:
         self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id", "work_item_type": "Task"})
         fields = self.integration.get_create_issue_config(self.group, self.user)
@@ -621,7 +621,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_default_project_default_missing_in_choices(self):
+    def test_default_project_default_missing_in_choices(self) -> None:
         self.mock_categories("project-3-id")
         responses.add(
             responses.GET,
@@ -642,7 +642,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_default_project_error_on_default_project(self):
+    def test_default_project_error_on_default_project(self) -> None:
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id",
@@ -656,7 +656,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
     @responses.activate
-    def test_get_create_issue_config_error_on_get_projects(self):
+    def test_get_create_issue_config_error_on_get_projects(self) -> None:
         responses.reset()
         responses.add(
             responses.GET, "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects", status=503
@@ -666,7 +666,7 @@ class VstsIssueFormTest(VstsIssueBase):
             self.integration.get_create_issue_config(self.group, self.user)
 
     @responses.activate
-    def test_default_project_no_projects(self):
+    def test_default_project_no_projects(self) -> None:
         responses.reset()
         responses.add(
             responses.GET,
@@ -681,7 +681,7 @@ class VstsIssueFormTest(VstsIssueBase):
 @region_silo_test
 class VstsIssueRaiseErrorTest(VstsIssueBase):
     @responses.activate
-    def test_raise_error_api_unauthorized(self):
+    def test_raise_error_api_unauthorized(self) -> None:
         error_message = "According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
         api_error = ApiError(error_message)
         with pytest.raises(ApiUnauthorized):

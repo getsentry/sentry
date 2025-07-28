@@ -16,7 +16,7 @@ class SentryAppPublishRequestTest(APITestCase):
     def upload_issue_link_logo(self):
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=False)
 
-    def setUp(self):
+    def setUp(self) -> None:
         # create user as superuser
         self.user = self.create_user(email="boop@example.com", is_superuser=True)
         self.org = self.create_organization(owner=self.user, name="My Org")
@@ -127,7 +127,7 @@ class SentryAppPublishRequestTest(APITestCase):
         )
         send_mail.asssert_not_called()
 
-    def test_cannot_publish_by_manager(self):
+    def test_cannot_publish_by_manager(self) -> None:
         self.user_manager = self.create_user("manager@example.com", is_superuser=False)
         self.create_member(user=self.user_manager, organization=self.org, role="manager", teams=[])
         self.login_as(self.user_manager)

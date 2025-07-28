@@ -1,7 +1,15 @@
+import styled from '@emotion/styled';
+
+import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Redirect from 'sentry/components/redirect';
+import {tct} from 'sentry/locale';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
-import {usePreferedAiModule} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {
+  usePreferedAiModule,
+  useTogglePreferedAiModule,
+} from 'sentry/views/insights/agentMonitoring/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -17,6 +25,7 @@ import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function LLMMonitoringPage() {
+  const [, togglePreferedModule] = useTogglePreferedAiModule();
   return (
     <Layout.Page>
       <AiHeader module={ModuleName.AI} headerActions={<AiModuleToggleButton />} />
@@ -25,6 +34,14 @@ function LLMMonitoringPage() {
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
+                <DeprecatedModuleLayout type="error">
+                  {tct(
+                    'On 4th August 2025, LLM Monitoring will be sunset and replaced by the new AI Agent Monitoring. [link:Switch to the new experience].',
+                    {
+                      link: <Link onClick={togglePreferedModule} to={''} />,
+                    }
+                  )}
+                </DeprecatedModuleLayout>
                 <ModulePageFilterBar moduleName={ModuleName.AI} />
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.AI}>
@@ -62,5 +79,9 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const DeprecatedModuleLayout = styled(Alert)`
+  margin-bottom: ${p => p.theme.space.xl};
+`;
 
 export default PageWithProviders;

@@ -54,7 +54,10 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
       typeof condition.comparison === 'number'
         ? String(condition.comparison)
         : String(condition.comparison || '0');
-    const thresholdSuffix = getMetricDetectorSuffix(detector);
+    const thresholdSuffix = getMetricDetectorSuffix(
+      detector.config?.detectionType || 'static',
+      detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+    );
 
     return `${typeLabel} ${comparisonValue}${thresholdSuffix}`;
   };
@@ -87,7 +90,10 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const mainCondition = conditions.find(
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
-  const thresholdSuffix = getMetricDetectorSuffix(detector);
+  const thresholdSuffix = getMetricDetectorSuffix(
+    detector.config?.detectionType || 'static',
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
 
   const description = getResolutionDescription({
     detectionType,

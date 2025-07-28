@@ -21,7 +21,7 @@ def raise_sync_assignee_exception(*args, **kwargs):
 
 
 class TestSyncAssigneeOutbound(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",

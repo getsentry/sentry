@@ -1093,7 +1093,7 @@ const iconSizes: Record<Size, string> = {
 } as const;
 
 const space = {
-  none: '0px',
+  '0': '0px',
   /**
    * Equivalent to deprecated `space(0.25)`
    */
@@ -1212,14 +1212,14 @@ const commonTheme = {
   },
 
   borderRadius: '6px',
-
   fontSize: {
-    xs: '11px' as const,
-    sm: '12px' as const,
-    md: '14px' as const,
-    lg: '16px' as const,
-    xl: '18px' as const,
-  },
+    xs: '11px',
+    sm: '12px',
+    md: '14px',
+    lg: '16px',
+    xl: '18px',
+    '2xl': '20px',
+  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
 
   fontWeight: {
     normal: 400 as const,
@@ -1347,7 +1347,7 @@ export const darkTheme: typeof lightTheme = {
 
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
-export type IconSize = Size;
+export type IconSize = keyof typeof iconSizes;
 type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type Theme = typeof lightTheme;
