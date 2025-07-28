@@ -500,7 +500,9 @@ export const APIRoute = createAPIFileRoute("/api/sentry-example-api")({
       {
         id: 'tanstackstart-features',
         name: t('TanStack Start Features'),
-        description: t('Learn about our first class integration with the TanStack Start framework.'),
+        description: t(
+          'Learn about our first class integration with the TanStack Start framework.'
+        ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/',
       },
     ];

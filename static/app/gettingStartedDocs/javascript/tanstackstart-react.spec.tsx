@@ -17,7 +17,9 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
 
     // Includes import statement
     expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/tanstackstart-react"/))
+      screen.getByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/tanstackstart-react"/)
+      )
     ).toBeInTheDocument();
   });
 
