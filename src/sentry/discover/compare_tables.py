@@ -163,6 +163,8 @@ def compare_tables_for_dashboard_widget_queries(
     if query_fields:
         fields.update(query_fields)
 
+    fields = list(fields)
+
     if len(fields) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
