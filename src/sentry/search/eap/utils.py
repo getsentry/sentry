@@ -198,7 +198,7 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
 
 
-def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> EventsMeta:
+def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
     query_info = rpc_meta.query_info
 
     events_meta["query_info"] = {
