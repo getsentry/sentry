@@ -365,7 +365,10 @@ def create_feedback_issue(
     event_fixed = fix_for_issue_platform(event_data)
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
-    if features.has("organizations:user-feedback-ai-categorization", project.organization):
+    if (
+        features.has("organizations:user-feedback-ai-categorization", project.organization)
+        and not is_message_spam
+    ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
             if len(labels) > 15:
