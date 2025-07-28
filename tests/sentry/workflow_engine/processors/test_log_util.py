@@ -116,7 +116,7 @@ class TestBatchPerformanceTracker(unittest.TestCase):
         assert len(call_args["extra"]["durations"]) == _MAX_ITERATIONS_LOGGED
 
 
-def test_top_n_slowest():
+def test_top_n_slowest() -> None:
     durations: dict[str, float] = {"item1": 100, "item2": 50, "item3": 200, "item4": 150}
     assert top_n_slowest(durations, 0) == {}
     assert top_n_slowest(durations, 1) == {"item3": 200}

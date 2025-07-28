@@ -9,7 +9,7 @@ def t(hour: int, minute: int):
     return datetime(2019, 1, 1, hour, minute, 0, tzinfo=timezone.utc)
 
 
-def test_get_next_schedule():
+def test_get_next_schedule() -> None:
     # 00 * * * *: 5:30 -> 6:00
     assert get_next_schedule(t(5, 30), CrontabSchedule("0 * * * *")) == t(6, 00)
 
@@ -23,7 +23,7 @@ def test_get_next_schedule():
     assert get_next_schedule(t(5, 42), IntervalSchedule(interval=2, unit="hour")) == t(7, 42)
 
 
-def test_get_next_schedule_cron_dst():
+def test_get_next_schedule_cron_dst() -> None:
     # Minute rollover during DST start
     assert get_next_schedule(
         datetime(2024, 11, 3, 1, 59, 0, tzinfo=ZoneInfo("America/New_York")),
@@ -37,7 +37,7 @@ def test_get_next_schedule_cron_dst():
     ) == datetime(2024, 3, 10, 3, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
 
-def test_get_next_schedule_cron_dst_bugs():
+def test_get_next_schedule_cron_dst_bugs() -> None:
     """
     XXX(epurkhiser): This is covered by the cronsim library tests, but since
     it's somewhat important for us let's add our own coverage of the DST
@@ -60,7 +60,7 @@ def test_get_next_schedule_cron_dst_bugs():
     ) == datetime(2024, 3, 10, 12, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
 
-def test_get_prev_schedule():
+def test_get_prev_schedule() -> None:
     start_ts = datetime(2019, 1, 1, 1, 30, 0, tzinfo=timezone.utc)
 
     # 00 * * * *: 5:35 -> 5:00

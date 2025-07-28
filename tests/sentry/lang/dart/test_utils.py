@@ -18,7 +18,7 @@ MOCK_DEBUG_MAP = {
 }
 
 
-def test_view_hierarchy_type_regex():
+def test_view_hierarchy_type_regex() -> None:
     matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, "abc")
     assert matcher
     assert matcher.groups() == ("abc", None)
@@ -32,7 +32,7 @@ def test_view_hierarchy_type_regex():
     assert matcher.groups() == ("_abc", "_xyz@1")
 
 
-def test_generate_dart_symbols_map():
+def test_generate_dart_symbols_map() -> None:
     with tempfile.NamedTemporaryFile() as mocked_debug_file:
         mocked_debug_file.write(MOCK_DEBUG_FILE)
         mocked_debug_file.seek(0)
