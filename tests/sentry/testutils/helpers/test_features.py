@@ -57,8 +57,6 @@ class TestTestUtilsFeatureHelper(TestCase):
 
             assert features.has("system:multi-region")
 
-            assert features.has("system:multi-region")
-
 
 class TestWithFeatureClassDecorator(TestCase):
     """Test that with_feature works correctly when used as a class decorator."""

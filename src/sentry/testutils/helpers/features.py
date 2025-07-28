@@ -175,8 +175,10 @@ class FeatureContextManagerOrDecorator:
             for attr_name in dir(func_or_cls):
                 if (
                     attr_name.startswith("test_")
-                    or attr_name.startswith("setup_")
-                    or attr_name.startswith("teardown_")
+                    or attr_name.startswith("setUp")
+                    or attr_name.startswith("tearDown")
+                    or attr_name.startswith("setUpClass")
+                    or attr_name.startswith("tearDownClass")
                 ):
                     original_method = getattr(func_or_cls, attr_name)
                     if callable(original_method):
