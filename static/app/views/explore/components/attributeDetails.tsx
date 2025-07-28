@@ -9,9 +9,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AttributeDetailsProps {
   column: string;
-  kind: FieldKind;
   label: ReactNode;
   traceItemType: TraceItemDataset;
+  kind?: FieldKind;
 }
 
 export function AttributeDetails({

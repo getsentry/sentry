@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {defined} from 'sentry/utils';
 import {ToolbarGroupBy} from 'sentry/views/explore/components/toolbar/toolbarGroupBy';
-import {ToolbarVisualize} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {
   useExploreGroupBys,
   useExploreVisualizes,
@@ -16,6 +15,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
+import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Extras = 'equations';
@@ -55,7 +55,6 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
       <ToolbarVisualize
         visualizes={visualizes}
         setVisualizes={setVisualizes}
-        traceItemType={TraceItemDataset.SPANS}
         allowEquations={extras?.includes('equations') || false}
       />
       <ToolbarGroupBy

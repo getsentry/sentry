@@ -9,11 +9,7 @@ import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {
-  updateVisualizeAggregate,
-  Visualize,
-} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -21,32 +17,27 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 interface VisualizeDropdownProps {
   canDelete: boolean;
   onDelete: () => void;
-  onReplace: (visualize: BaseVisualize) => void;
+  onReplace: (yAxis: string) => void;
   traceItemType: TraceItemDataset;
-  visualize: Visualize;
+  yAxis: string;
 }
 
 export function VisualizeDropdown({
   canDelete,
   onDelete,
   onReplace,
-  visualize,
+  yAxis,
   traceItemType,
 }: VisualizeDropdownProps) {
   const {tags: stringTags} = useTraceItemTags('string');
   const {tags: numberTags} = useTraceItemTags('number');
 
-  const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
+  const aggregateOptions: Array<SelectOption<string>> = useMemo(
+    () => getVisualizeAggregates(traceItemType),
+    [traceItemType]
+  );
 
-  const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-      return {
-        label: aggregate,
-        value: aggregate,
-        textValue: aggregate,
-      };
-    });
-  }, []);
+  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
 
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     numberTags,
@@ -57,10 +48,9 @@ export function VisualizeDropdown({
 
   const setYAxis = useCallback(
     (newYAxis: string) => {
-      const newVisualize = visualize.replace({yAxis: newYAxis});
-      onReplace(newVisualize.toJSON());
+      onReplace(newYAxis);
     },
-    [onReplace, visualize]
+    [onReplace]
   );
 
   const setChartAggregate = useCallback(
@@ -90,7 +80,7 @@ export function VisualizeDropdown({
         value={parsedFunction?.name ?? ''}
         onChange={setChartAggregate}
       />
-      <ColumnCompactSelect
+      <FieldCompactSelect
         searchable
         options={fieldOptions}
         value={parsedFunction?.arguments[0] ?? ''}
@@ -110,6 +100,21 @@ export function VisualizeDropdown({
   );
 }
 
+function getVisualizeAggregates(traceItemType: TraceItemDataset) {
+  switch (traceItemType) {
+    case TraceItemDataset.SPANS:
+      return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
+        return {
+          label: aggregate,
+          value: aggregate,
+          textValue: aggregate,
+        };
+      });
+    default:
+      throw new Error('Cannot determine aggregate options for unknown trace item type');
+  }
+}
+
 const AggregateCompactSelect = styled(CompactSelect)`
   width: 100px;
 
@@ -118,7 +123,7 @@ const AggregateCompactSelect = styled(CompactSelect)`
   }
 `;
 
-const ColumnCompactSelect = styled(CompactSelect)`
+const FieldCompactSelect = styled(CompactSelect)`
   flex: 1 1;
   min-width: 0;
 
