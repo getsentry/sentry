@@ -60,7 +60,7 @@ export default function Ai() {
     summaryData?.num_segments && segmentCount > summaryData.num_segments;
   const summaryIsOld =
     summaryData?.created_at &&
-    new Date(summaryData.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    new Date(summaryData.created_at) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const needsInitialGeneration =
     summaryData?.status === ReplaySummaryStatus.NOT_STARTED || !summaryData?.data;
 
