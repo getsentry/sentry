@@ -1,29 +1,31 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {
+  KeyValueData,
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/sidebar/buildDetailsSidebarAppInfo';
-import {type BuildDetailsApiResponse} from 'sentry/views/preprod/types';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-type BuildDetailsSidebarError = {error: string; status: 'error'};
-type BuildDetailsSidebarLoading = {status: 'loading'};
-type BuildDetailsSidebarSuccess = {
+interface BuildDetailsSidebarContentProps {
   artifactId: string;
-  buildDetails: BuildDetailsApiResponse;
+  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
   projectId: string;
-  status: 'success';
-};
-
-export type BuildDetailsSidebarContentProps =
-  | BuildDetailsSidebarError
-  | BuildDetailsSidebarLoading
-  | BuildDetailsSidebarSuccess;
+}
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {status} = props;
+  const {
+    data: buildDetailsData,
+    isPending: isBuildDetailsPending,
+    isError: isBuildDetailsError,
+    error: buildDetailsError,
+  } = props.buildDetailsQuery;
 
-  if (status === 'loading') {
+  if (isBuildDetailsPending) {
     return (
       <SidebarContainer>
         <LoadingIndicator />
@@ -31,30 +33,79 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
     );
   }
 
-  if (status === 'error') {
+  if (isBuildDetailsError) {
     return (
       <SidebarContainer>
-        <Alert type="error">{props.error}</Alert>
+        <Alert type="error">{buildDetailsError?.message}</Alert>
       </SidebarContainer>
     );
   }
 
-  const {app_info, state} = props.buildDetails;
+  if (!buildDetailsData) {
+    return (
+      <SidebarContainer>
+        <Alert type="error">No build details found</Alert>
+      </SidebarContainer>
+    );
+  }
+
+  const vcsInfoContentItems: KeyValueDataContentProps[] = [
+    {
+      item: {
+        key: 'SHA',
+        subject: 'SHA',
+        value: buildDetailsData.vcs_info?.commit_id ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Base SHA',
+        subject: 'Base SHA',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'Previous SHA',
+        subject: 'Previous SHA',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'PR Number',
+        subject: 'PR Number',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'Branch',
+        subject: 'Branch',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'Repo Name',
+        subject: 'Repo Name',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+  ];
 
   return (
     <SidebarContainer>
       {/* App info */}
       <BuildDetailsSidebarAppInfo
-        appInfo={app_info}
-        state={state}
+        appInfo={buildDetailsData.app_info}
+        sizeInfo={buildDetailsData.size_info}
         projectId={props.projectId}
         artifactId={props.artifactId}
-        // TODO: Get from size data when available
-        installSizeBytes={1000000}
-        downloadSizeBytes={1000000}
       />
 
-      {/* TODO: VCS info */}
+      {/* VCS info */}
+      <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
     </SidebarContainer>
   );
 }
@@ -62,5 +113,5 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 const SidebarContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;

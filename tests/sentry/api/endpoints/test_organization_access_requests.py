@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class UpdateOrganizationAccessRequestTest(APITestCase):
-    def test_owner_can_list_access_requests(self):
+    def test_owner_can_list_access_requests(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -23,7 +23,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         assert len(resp.data) == 1
         assert resp.data[0]["member"]["email"] == "bar@example.com"
 
-    def test_admin_can_list_access_requests(self):
+    def test_admin_can_list_access_requests(self) -> None:
         organization = self.create_organization(
             name="foo", owner=self.user, flags=0  # kill default allow_joinleave
         )
@@ -57,7 +57,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         assert resp.data[0]["member"]["id"] == str(request_1.member_id)
         assert resp.data[0]["team"]["id"] == str(request_1.team_id)
 
-    def test_member_empty_results(self):
+    def test_member_empty_results(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)

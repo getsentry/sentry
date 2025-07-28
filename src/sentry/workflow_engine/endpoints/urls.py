@@ -51,7 +51,7 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-workflow-group-history",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>[^/]+)/stats$",
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>[^/]+)/stats/$",
         OrganizationWorkflowStatsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-stats",
     ),

@@ -21,7 +21,7 @@ class RecordFirstTransactionTest(TestCase):
     def min_ago(self):
         return before_now(minutes=1).isoformat()
 
-    def test_transaction_processed(self):
+    def test_transaction_processed(self) -> None:
         assert not self.project.flags.has_transactions
         event = self.store_event(
             data={
@@ -37,7 +37,7 @@ class RecordFirstTransactionTest(TestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.flags.has_transactions
 
-    def test_transaction_processed_no_platform(self):
+    def test_transaction_processed_no_platform(self) -> None:
         self.project.update(platform=None)
         assert not self.project.platform
         assert not self.project.flags.has_transactions
@@ -56,7 +56,7 @@ class RecordFirstTransactionTest(TestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.flags.has_transactions
 
-    def test_event_processed(self):
+    def test_event_processed(self) -> None:
         assert not self.project.flags.has_transactions
         event = self.store_event(
             data={"type": "default", "timestamp": self.min_ago}, project_id=self.project.id
@@ -93,7 +93,7 @@ class RecordFirstTransactionTest(TestCase):
             ),
         )
 
-    def test_analytics_event_no_owner(self):
+    def test_analytics_event_no_owner(self) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(organization=self.organization, role="owner").delete()
         assert not self.project.flags.has_transactions

@@ -34,6 +34,8 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   const interval = snubaQuery.timeWindow;
   const conditions = detector.conditionGroup?.conditions || [];
   const detectionType = detector.config.detectionType;
+  const comparisonDelta =
+    detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
 
   return (
     <Flex direction="column" gap="xl">
@@ -55,6 +57,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
             conditions={conditions}
             detectionType={detectionType}
             statsPeriod={selectedTimePeriod}
+            comparisonDelta={comparisonDelta}
           />
         </ChartContainerBody>
       </ChartContainer>

@@ -9,7 +9,7 @@ pytestmark = [requires_snuba]
 
 @freeze_time(before_now(days=1).replace(minute=10))
 class TeamStatsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         team = self.create_team(members=[self.user])

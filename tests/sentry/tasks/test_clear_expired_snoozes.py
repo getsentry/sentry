@@ -12,7 +12,7 @@ from sentry.types.group import GroupSubStatus
 
 
 class ClearExpiredSnoozesTest(TestCase):
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert clear_expired_snoozes.name == "sentry.tasks.clear_expired_snoozes"
 
     @patch("sentry.signals.issue_unignored.send_robust")
@@ -79,7 +79,7 @@ class ClearExpiredSnoozesTest(TestCase):
 
         assert send_robust.called
 
-    def test_resolved_group(self):
+    def test_resolved_group(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         snooze1 = GroupSnooze.objects.create(
             group=group1, until=timezone.now() - timedelta(minutes=1)

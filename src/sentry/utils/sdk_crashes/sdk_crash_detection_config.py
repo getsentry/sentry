@@ -289,6 +289,10 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="io.sentry.graphql.SentryInstrumentation",
                     function_pattern="lambda$instrumentExecutionResult$0",
                 ),
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.graphql.SentryGraphqlInstrumentation",
+                    function_pattern="instrumentExecutionResultComplete",
+                ),
             },
         )
         configs.append(java_config)
@@ -379,6 +383,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
                 path_patterns={
+                    # non-obfuscated builds
                     r"package:sentry/**",  # sentry-dart
                     r"package:sentry_flutter/**",  # sentry-dart-flutter
                     # sentry-dart packages
@@ -389,6 +394,10 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     r"package:sentry_drift/**",
                     r"package:sentry_hive/**",
                     r"package:sentry_isar/**",
+                    r"package:sentry_link/**",
+                    r"package:sentry_firebase_remote_config/**",
+                    # obfuscated builds
+                    r"/**/.pub-cache/**/sentry**",
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),

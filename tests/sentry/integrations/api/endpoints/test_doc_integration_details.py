@@ -36,7 +36,7 @@ class DocIntegrationDetailsTest(APITestCase):
 class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "GET"
 
-    def test_staff_read_doc(self):
+    def test_staff_read_doc(self) -> None:
         """
         Tests that any DocIntegration is visible (with all the expected data)
         for those with superuser permissions
@@ -57,7 +57,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert not response.data["avatar"]
 
     # TODO(schew2381): Change test to check that superusers can only fetch non-draft DocIntegrations
-    def test_superuser_read_doc(self):
+    def test_superuser_read_doc(self) -> None:
         """
         Tests that any DocIntegration is visible (with all the expected data)
         for those with superuser permissions
@@ -77,7 +77,7 @@ class GetDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert serialize(self.doc_1) == response.data
         assert not response.data["avatar"]
 
-    def test_public_read_doc(self):
+    def test_public_read_doc(self) -> None:
         """
         Tests that only non-draft DocIntegrations (with all the expected data)
         are visible for those without superuser permissions
@@ -115,7 +115,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         super().setUp()
         self.login_as(user=self.staff_user, staff=True)
 
-    def test_staff_update_doc(self):
+    def test_staff_update_doc(self) -> None:
         """
         Tests that a DocIntegration can be updated by superuser requests
         """
@@ -136,7 +136,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
             assert serialize(feature) in response.data["features"]
 
     # TODO(schew2381): Change test to check that superusers cannot update DocIntegrations
-    def test_superuser_update_doc(self):
+    def test_superuser_update_doc(self) -> None:
         """
         Tests that a DocIntegration can be updated by superuser requests
         """
@@ -157,7 +157,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
             # Ensure they are also serialized in the response
             assert serialize(feature) in response.data["features"]
 
-    def test_update_invalid_auth(self):
+    def test_update_invalid_auth(self) -> None:
         """
         Tests that non-superuser PUT requests to the endpoint are ignored and
         have no side-effects on the database records
@@ -167,7 +167,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
             self.doc_1.slug, status_code=status.HTTP_403_FORBIDDEN, **self.payload
         )
 
-    def test_update_removes_unused_features(self):
+    def test_update_removes_unused_features(self) -> None:
         """
         Tests that DocIntegration updates remove any unused and no longer
         necessary features from the database
@@ -179,7 +179,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         ).exclude(feature__in=self.payload["features"])
         assert not unused_features.exists()
 
-    def test_update_retains_carryover_features(self):
+    def test_update_retains_carryover_features(self) -> None:
         """
         Tests that DocIntegration updates retain any existing features if
         applicable to avoid pointless database transactions
@@ -192,7 +192,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         unaffected_feature.refresh_from_db()
         assert initial_date_added == unaffected_feature.date_added
 
-    def test_update_duplicate_features(self):
+    def test_update_duplicate_features(self) -> None:
         """
         Tests that providing duplicate keys do not result in a server
         error; instead, the excess are ignored.
@@ -205,7 +205,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert features.exists()
         assert len(features) == 3
 
-    def test_update_does_not_change_slug(self):
+    def test_update_does_not_change_slug(self) -> None:
         """
         Tests that a name alteration is permitted and does not have an
         effect on the slug of the DocIntegration
@@ -215,7 +215,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         self.doc_2.refresh_from_db()
         assert self.doc_2.slug == previous_slug
 
-    def test_update_invalid_metadata(self):
+    def test_update_invalid_metadata(self) -> None:
         """
         Tests that incorrectly structured metadata throws an error
         """
@@ -231,7 +231,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
             )
             assert "metadata" in response.data.keys()
 
-    def test_update_empty_metadata(self):
+    def test_update_empty_metadata(self) -> None:
         """
         Tests that sending no metadata keys should erase any existing
         metadata contained on the record
@@ -246,7 +246,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         self.doc_2.refresh_from_db()
         assert self.doc_2.metadata != previous_metadata
 
-    def test_update_ignore_keys(self):
+    def test_update_ignore_keys(self) -> None:
         """
         Tests that certain reserved keys cannot be overridden by the
         request payload. They must be created by the API.
@@ -257,7 +257,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         for key in self.ignored_keys:
             assert getattr(self.doc_2, key) is not payload[key]
 
-    def test_update_simple_without_avatar(self):
+    def test_update_simple_without_avatar(self) -> None:
         """
         Tests that the DocIntegration can be edited without an
         associated DocIntegrationAvatar.
@@ -269,7 +269,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         self.doc_1.refresh_from_db()
         assert serialize(self.doc_1) == response.data
 
-    def test_update_publish_without_avatar(self):
+    def test_update_publish_without_avatar(self) -> None:
         """
         Tests that the DocIntegration cannot be published without an
         associated DocIntegrationAvatar.
@@ -291,7 +291,7 @@ class PutDocIntegrationDetailsTest(DocIntegrationDetailsTest):
 class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
     method = "DELETE"
 
-    def test_staff_delete_valid(self):
+    def test_staff_delete_valid(self) -> None:
         """
         Tests that the delete method works for those with superuser
         permissions, deleting the DocIntegration and associated
@@ -310,7 +310,7 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert not self.doc_delete.avatar.exists()
 
     # TODO(schew2381): Change test to check that superusers cannot delete DocIntegrations
-    def test_superuser_delete_valid(self):
+    def test_superuser_delete_valid(self) -> None:
         """
         Tests that the delete method works for those with superuser
         permissions, deleting the DocIntegration and associated
@@ -328,7 +328,7 @@ class DeleteDocIntegrationDetailsTest(DocIntegrationDetailsTest):
         assert not features.exists()
         assert not self.doc_delete.avatar.exists()
 
-    def test_public_delete_invalid(self):
+    def test_public_delete_invalid(self) -> None:
         """
         Tests that the delete method is not accessible by those with regular member
         permissions, and no changes occur in the database.
