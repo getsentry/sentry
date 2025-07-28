@@ -38,11 +38,7 @@ function LLMMonitoringPage() {
                   {tct(
                     'On 4th August 2025, LLM Monitoring will be sunset and replaced by the new AI Agent Monitoring. [link:Switch to the new experience].',
                     {
-                      link: (
-                        <Link onClick={togglePreferedModule} to={''}>
-                          aa
-                        </Link>
-                      ),
+                      link: <Link onClick={togglePreferedModule} to={''} />,
                     }
                   )}
                 </DeprecatedModuleLayout>
