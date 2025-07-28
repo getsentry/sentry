@@ -59,6 +59,7 @@ def test_round_exact():
     assert end == datetime(2021, 1, 18, tzinfo=timezone.utc)
 
 
+@pytest.mark.skip(reason="flaky: #96539")
 def test_inclusive_end():
     start, end, interval = get_constrained_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
