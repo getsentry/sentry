@@ -4311,78 +4311,55 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": str(uuid4())}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
+    @patch("sentry.eventstream.snuba.SnubaEventStream._send")
+    @patch("sentry.eventstream.snuba.datetime")
+    def test_delete_by_id(self, mock_datetime: MagicMock, mock_send: MagicMock) -> None:
+        fixed_datetime = datetime.now()
+        mock_datetime.now.return_value = fixed_datetime
 
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
-
-        hashes = []
-        for g in group1, group2, group3, group4:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+        groups = self.create_n_groups_with_hashes(2, project=self.project)
+        group_ids = [group.id for group in groups]
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-            )
+        with self.tasks(), self.feature("organizations:global-views"):
+            response = self.get_response(qs_params={"id": group_ids})
+            assert response.status_code == 204
 
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
+        # Extract transaction_id from the first call
+        transaction_id = mock_send.call_args_list[0][1]["extra_data"][0]["transaction_id"]
 
-        assert response.status_code == 204
-
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
-
-        with self.tasks():
-            with self.feature("organizations:global-views"):
-                response = self.get_response(
-                    qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-                )
-
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
+        assert mock_send.call_args_list == [
+            call(
+                self.project.id,
+                "start_delete_groups",
+                extra_data=(
+                    {
+                        "transaction_id": transaction_id,
+                        "project_id": self.project.id,
+                        "group_ids": group_ids,
+                        "datetime": json.datetime_to_str(fixed_datetime),
+                    },
+                ),
+                asynchronous=False,
+            ),
+            call(
+                self.project.id,
+                "end_delete_groups",
+                extra_data=(
+                    {
+                        "transaction_id": transaction_id,
+                        "project_id": self.project.id,
+                        "group_ids": group_ids,
+                        "datetime": json.datetime_to_str(fixed_datetime),
+                    },
+                ),
+                asynchronous=False,
+            ),
         ]
 
-        assert response.status_code == 204
-
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert not Group.objects.filter(id=group2.id).exists()
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.filter(id=group3.id).exists()
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.filter(id=group4.id).exists()
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
@@ -4413,85 +4390,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2
         with self.feature("organizations:global-views"):
-            project_2 = self.create_project(slug="baz", organization=self.organization)
-            groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
-            groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
-
-            with (
-                self.tasks(),
-                patch("sentry.deletions.tasks.groups.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
-                patch("sentry.deletions.tasks.groups.logger") as mock_logger,
-                patch(
-                    "sentry.api.helpers.group_index.delete.uuid4",
-                    side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
-                ),
-            ):
-                self.login_as(user=self.user)
-                response = self.get_success_response(qs_params={"query": ""})
-                assert response.status_code == 204
-                batch_1 = [g.id for g in groups_2[0:2]]
-                batch_2 = [g.id for g in groups_2[2:4]]
-                batch_3 = [g.id for g in groups_2[4:]]
-                assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
-
-                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
-                for log_call in mock_logger.info.call_args_list:
-                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
-
-                assert len(calls_by_project) == 2
-                assert calls_by_project[self.project.id] == [
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids_count": len(groups_1),
-                            "object_ids_current_batch": [g.id for g in groups_1],
-                            "first_id": groups_1[0].id,
-                            "project_id": self.project.id,
-                            "transaction_id": "bar",
-                        },
-                    ),
-                ]
-                assert calls_by_project[project_2.id] == [
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids_count": 5,
-                            "object_ids_current_batch": batch_1,
-                            "first_id": batch_1[0],
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids_count": 3,
-                            "object_ids_current_batch": batch_2,
-                            "first_id": batch_2[0],
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                    call(
-                        "delete_groups.started",
-                        extra={
-                            "object_ids_count": 1,
-                            "object_ids_current_batch": batch_3,
-                            "first_id": batch_3[0],
-                            "project_id": project_2.id,
-                            "transaction_id": "foo",
-                        },
-                    ),
-                ]
-
-            self.assert_deleted_groups(groups_1 + groups_2)
-
-    def test_bulk_delete_for_many_projects_with_option(self) -> None:
-        NEW_CHUNK_SIZE = 2
-        with (
-            self.options({"deletions.groups.use-new-task": True}),
-            self.feature("organizations:global-views"),
-        ):
             project_2 = self.create_project(slug="baz", organization=self.organization)
             groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
             groups_2 = self.create_n_groups_with_hashes(5, project=project_2)

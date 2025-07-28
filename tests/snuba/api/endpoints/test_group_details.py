@@ -326,7 +326,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         with patch(
-            "sentry.api.helpers.group_index.delete.delete_groups_task.apply_async"
+            "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
         ) as mock_apply_async:
             response = self.client.delete(url, format="json")
             mock_apply_async.assert_called_once()
@@ -353,7 +353,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         with patch(
-            "sentry.api.helpers.group_index.delete.delete_groups_task.apply_async"
+            "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
         ) as mock_apply_async:
             response = self.client.delete(url, format="json")
             assert response.status_code == 202
