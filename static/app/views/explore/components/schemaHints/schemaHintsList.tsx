@@ -30,7 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
-  removeHiddenKeys,
+  removeHiddenSchemaHintsKeys,
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -162,7 +162,7 @@ function SchemaHintsList({
 
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
-    const filterTags = removeHiddenKeys({
+    const filterTags = removeHiddenSchemaHintsKeys({
       ...functionTags,
       ...numberTags,
       ...stringTags,

@@ -60,7 +60,7 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.PROJECT_ID]: String(projects[0]!.id),
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     [OurLogKnownFieldKey.MESSAGE]: 'test log body',
-    [OurLogKnownFieldKey.SEVERITY_NUMBER]: 456,
+    [OurLogKnownFieldKey.SEVERITY]: 'error',
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
   });
 
@@ -148,14 +148,12 @@ describe('logsTableRow', () => {
 
     // Check that the attribute values are rendered
     expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();
-    expect(screen.getByText('456')).toBeInTheDocument();
+    expect(screen.getByText('error')).toBeInTheDocument();
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
-    expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
-      'severity_number'
-    );
+    expect(screen.getByTestId('tree-key-severity')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-severity')).toHaveTextContent('severity');
 
     // Check that the custom renderer works
     expect(screen.getByTestId('tree-key-trace')).toHaveTextContent('trace');
