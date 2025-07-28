@@ -1,3 +1,4 @@
+import logging
 from typing import TypedDict
 
 import requests
@@ -5,6 +6,8 @@ from django.conf import settings
 
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json, metrics
+
+logger = logging.getLogger(__name__)
 
 
 class LabelRequest(TypedDict):
@@ -47,7 +50,16 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     )
 
     if response.status_code != 200:
-        response.raise_for_status()
+        logger.error(
+            "Feedback: Failed to generate labels",
+            extra={
+                "status_code": response.status_code,
+                "response": response.text,
+                "content": response.content,
+            },
+        )
+
+    response.raise_for_status()
 
     labels = json.loads(response.content.decode("utf-8"))["data"]["labels"]
 
