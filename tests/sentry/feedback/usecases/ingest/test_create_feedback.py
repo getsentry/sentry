@@ -424,13 +424,13 @@ def test_create_feedback_filters_no_contexts_or_message(
     }
 
     create_feedback_issue(
-        event_no_context, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_no_context, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     create_feedback_issue(
-        event_no_message, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_no_message, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     create_feedback_issue(
-        event_no_feedback, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_no_feedback, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
 
     assert mock_produce_occurrence_to_kafka.call_count == 0
@@ -492,9 +492,7 @@ def test_create_feedback_spam_detection_produce_to_kafka(
         mock_openai().chat.completions.create = create_dummy_openai_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         # Check if the 'is_spam' evidence in the Kafka message matches the expected result
         is_spam_evidence = [
@@ -567,9 +565,7 @@ def test_create_feedback_spam_detection_project_option_false(
         mock_openai().chat.completions.create = create_dummy_openai_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         # Check if the 'is_spam' evidence in the Kafka message matches the expected result
         is_spam_evidence = [
@@ -628,9 +624,7 @@ def test_create_feedback_spam_detection_set_status_ignored(default_project, monk
         mock_openai().chat.completions.create = create_dummy_openai_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         group = Group.objects.get()
         assert group.status == GroupStatus.IGNORED
