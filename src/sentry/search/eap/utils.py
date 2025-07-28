@@ -204,10 +204,13 @@ def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
     events_meta["query_info"] = {
         "downsampled_storage_meta": rpc_meta.downsampled_storage_meta,
     }
-    if query_info[0].stats:
-        events_meta["query_info"]["stats"] = query_info[0].stats
-    if query_info[0].trace_logs:
-        events_meta["query_info"]["trace_logs"] = query_info[0].trace_logs
+
+    # Check if query_info list is not empty before accessing elements
+    if query_info and len(query_info) > 0:
+        if query_info[0].stats:
+            events_meta["query_info"]["stats"] = query_info[0].stats
+        if query_info[0].trace_logs:
+            events_meta["query_info"]["trace_logs"] = query_info[0].trace_logs
 
 
 def is_sentry_convention_replacement_attribute(
