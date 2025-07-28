@@ -74,6 +74,7 @@ class EventsMeta(TypedDict):
     # only returned when debug=True
     query: NotRequired[dict[str, Any] | str]
     full_scan: NotRequired[bool]
+    query_info: NotRequired[dict[str, Any]]
 
 
 class EventsResponse(TypedDict):
