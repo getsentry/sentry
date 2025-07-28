@@ -49,7 +49,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         with self.feature(self.features):
@@ -69,14 +69,14 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(12):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         # 8 feedbacks that were created ~21 days ago, which will not be included in the summary
         for _ in range(8):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(days=21))
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         params = {
@@ -99,13 +99,13 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         for _ in range(12):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
-                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         params = {
@@ -128,13 +128,13 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         for _ in range(12):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
-                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         params = {
@@ -157,13 +157,13 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(10):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         for _ in range(12):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
-                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         with self.feature(self.features):
@@ -185,7 +185,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(9):
             event = mock_feedback_event(self.project2.id)
             create_feedback_issue(
-                event, self.project2.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         with self.feature(self.features):
@@ -207,17 +207,17 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(9):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=2))
         event["contexts"]["feedback"]["message"] = "a" * 2000
-        create_feedback_issue(event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        create_feedback_issue(event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         for _ in range(12):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=1))
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         with self.feature(self.features):
@@ -242,7 +242,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         with self.feature(self.features):
@@ -267,7 +267,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         for _ in range(15):
             event = mock_feedback_event(self.project1.id)
             create_feedback_issue(
-                event, self.project1.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                event, self.project1, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
 
         with self.feature(self.features):
