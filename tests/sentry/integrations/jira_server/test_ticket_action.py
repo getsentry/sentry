@@ -19,7 +19,7 @@ pytestmark = [requires_snuba]
 class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraServerCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, org_integration = self.create_provider_integration_for(
             self.organization,

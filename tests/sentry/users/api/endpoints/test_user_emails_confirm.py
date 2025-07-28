@@ -14,7 +14,7 @@ class UserEmailsConfirmTest(APITestCase):
     endpoint = "sentry-api-0-user-emails-confirm"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

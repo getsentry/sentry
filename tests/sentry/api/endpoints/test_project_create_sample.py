@@ -9,7 +9,7 @@ pytestmark = [requires_snuba]
 
 
 class ProjectCreateSampleTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.team = self.create_team()
 

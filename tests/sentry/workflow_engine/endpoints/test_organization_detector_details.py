@@ -39,7 +39,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 class OrganizationDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.environment = self.create_environment(
@@ -143,7 +143,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "id": self.detector.id,

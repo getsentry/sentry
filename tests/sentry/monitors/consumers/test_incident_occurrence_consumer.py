@@ -47,7 +47,7 @@ def send_incident_occurrence(
 
 
 class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.monitor = self.create_monitor()
         self.monitor_environment = MonitorEnvironment.objects.create(

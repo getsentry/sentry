@@ -51,7 +51,7 @@ class MockConditionTrue(EventCondition):
 
 @mock_redis_buffer()
 class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         self.group_event = event.for_group(cast(Group, event.group))
 
@@ -681,7 +681,7 @@ class RuleProcessorTestFilters(TestCase):
         "tests.sentry.rules.processing.test_processor.MockFilterFalse",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         self.group_event = event.for_group(cast(Group, event.group))
 

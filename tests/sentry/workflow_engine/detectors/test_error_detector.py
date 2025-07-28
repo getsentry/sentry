@@ -10,7 +10,7 @@ from sentry.workflow_engine.models.detector import Detector
 
 
 class TestErrorDetectorValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(

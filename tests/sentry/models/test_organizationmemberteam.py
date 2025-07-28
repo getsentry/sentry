@@ -5,7 +5,7 @@ from sentry.testutils.helpers import with_feature
 
 
 class OrganizationMemberTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.member = self.create_member(organization=self.organization, user=self.create_user())

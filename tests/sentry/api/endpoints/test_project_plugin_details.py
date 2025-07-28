@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class ProjectPluginDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-project-plugin-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

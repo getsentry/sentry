@@ -23,7 +23,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)

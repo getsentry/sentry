@@ -11,7 +11,7 @@ from tests.sentry.workflow_engine.test_base import MockActionHandler
     return_value=MockActionHandler,
 )
 class TestBaseActionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "type": Action.Type.SLACK,

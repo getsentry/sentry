@@ -19,7 +19,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     def factory(self):
         return RequestFactory()
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Allows changing the get_response mock for each test.
         self.middleware.get_response = MagicMock(return_value=HttpResponse(status=200))
 
@@ -148,7 +148,7 @@ TEST_MIDDLEWARE = (
 
 
 class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.origin = "https://third-party.site.com"

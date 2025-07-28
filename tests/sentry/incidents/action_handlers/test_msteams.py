@@ -39,7 +39,7 @@ from . import FireTest
 @freeze_time()
 class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.spec = MsTeamsMessagingSpec()
         self.handler = MessagingActionHandler(self.spec)
 

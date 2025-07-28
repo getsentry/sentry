@@ -12,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 class TestCreatorBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.create_project(organization=self.org)
@@ -20,7 +20,7 @@ class TestCreatorBase(TestCase):
 
 @control_silo_test
 class TestCreatorInternal(TestCreatorBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         # Create the internal integration (NOTE: This no longer creates an initial token as well)
@@ -59,7 +59,7 @@ class TestCreatorInternal(TestCreatorBase):
 
 @control_silo_test
 class TestCreatorExternal(TestCreatorBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.sentry_app = self.create_sentry_app(

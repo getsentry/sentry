@@ -21,7 +21,7 @@ def actor_key(actor):
 
 
 class ProjectOwnershipTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.organization.member_set.create(user_id=self.user2.id)

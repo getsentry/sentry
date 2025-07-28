@@ -19,7 +19,7 @@ from sentry.users.models.user import User
 
 @control_silo_test
 class TestCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="foo@bar.com", username="scuba_steve")
         self.org = self.create_organization(owner=self.user)
         self.creator = SentryAppCreator(
@@ -175,7 +175,7 @@ class TestCreator(TestCase):
 
 @control_silo_test
 class TestInternalCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)

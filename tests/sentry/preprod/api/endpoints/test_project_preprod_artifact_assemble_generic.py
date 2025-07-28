@@ -14,7 +14,7 @@ from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 
 @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
 class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED

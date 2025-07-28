@@ -31,7 +31,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
@@ -2857,7 +2857,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
 
 
 class TransactionsArithmeticTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)

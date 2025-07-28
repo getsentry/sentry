@@ -30,7 +30,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 @control_silo_test
 class TestSentryAppAlertRuleActionRequester(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")

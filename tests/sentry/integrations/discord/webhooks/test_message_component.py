@@ -35,7 +35,7 @@ WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
 class DiscordMessageComponentInteractionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         patcher = mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         )

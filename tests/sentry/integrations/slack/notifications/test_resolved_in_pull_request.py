@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 class SlackResolvedInPullRequestNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pull_request_url = "https://github.com/example/pull/123"
 

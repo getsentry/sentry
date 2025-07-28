@@ -23,7 +23,7 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
 class OrganizationMemberInviteTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -58,7 +58,7 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
 class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.regular_user = self.create_user("member@email.com")
         self.curr_member = self.create_member(

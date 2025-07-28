@@ -581,7 +581,7 @@ class SetCommitsTestCase(TestCase):
 
 
 class SetRefsTest(SetRefsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.release = Release.objects.create(version="abcdabc", organization=self.org)
         self.release.add_project(self.project)
@@ -749,7 +749,7 @@ class SetRefsTest(SetRefsTestCase):
 
 
 class SemverReleaseParseTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
     def test_parse_release_into_semver_cols(self) -> None:
@@ -1074,7 +1074,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
 
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.fake_package = "_fake_package_prj_"
 

@@ -25,7 +25,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
     fingerprint_prefix = "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES_EXPERIMENTAL"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

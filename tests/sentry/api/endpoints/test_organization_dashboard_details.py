@@ -35,7 +35,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -685,7 +685,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
 
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
@@ -2665,7 +2665,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
@@ -3274,7 +3274,7 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Create two additional users
         self.user_1 = self.create_user(email="user1@example.com")
@@ -3345,7 +3345,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
         with self.feature(self.features):
             return super().do_request(*args, **kwargs)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Create two additional users
         self.user_1 = self.create_user(email="user1@example.com")

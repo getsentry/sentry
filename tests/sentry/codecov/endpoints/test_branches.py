@@ -54,7 +54,7 @@ mock_graphql_response_empty: dict[str, Any] = {
 class BranchesEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-repository-branches"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(

@@ -12,7 +12,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 @control_silo_test
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)

@@ -43,7 +43,7 @@ class ExpectNoProcessingError:
 
 
 class MonitorConsumerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
 

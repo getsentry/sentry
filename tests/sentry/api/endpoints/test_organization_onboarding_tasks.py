@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.member_user = self.create_user()
         self.org = self.create_organization(owner=self.user)

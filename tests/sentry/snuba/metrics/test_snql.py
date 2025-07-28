@@ -49,7 +49,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class DerivedMetricSnQLTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 666
         self.metric_ids = []
         for metric_name in [

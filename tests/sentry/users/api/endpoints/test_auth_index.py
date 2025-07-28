@@ -552,7 +552,7 @@ class AuthLogoutEndpointTest(APITestCase):
 class AuthLogoutEndpointDemoUserTest(APITestCase):
     path = "/api/0/auth/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.normal_user = self.create_user("foo@example.com", id=1)
         self.readonly_user = self.create_user("bar@example.com", id=2)
 

@@ -41,7 +41,7 @@ class _Identity(TypedDict):
 
 
 class AuthIdentityHandlerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provider = "dummy"
         self.request = _set_up_request()
 
@@ -449,7 +449,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
 @control_silo_test
 class AuthHelperTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provider = "dummy"
         self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider=self.provider
@@ -502,7 +502,7 @@ class AuthHelperTest(TestCase):
 
 @control_silo_test
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
             member = OrganizationMember.objects.get(

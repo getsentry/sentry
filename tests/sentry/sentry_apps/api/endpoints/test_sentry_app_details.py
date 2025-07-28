@@ -21,7 +21,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class SentryAppDetailsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -754,7 +754,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     method = "DELETE"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.superuser, superuser=True)
 

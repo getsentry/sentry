@@ -43,7 +43,7 @@ FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecon
 
 
 class TestProcessWorkflows(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -300,7 +300,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
 @mock_redis_buffer()
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -421,7 +421,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 class TestEnqueueWorkflow(BaseWorkflowTest):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
 
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -548,7 +548,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
 
 @mock_redis_buffer()
 class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -677,7 +677,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
 
 class TestEnqueueWorkflows(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.workflow = self.create_workflow()
         self.data_condition_group = self.create_data_condition_group()
         self.condition = self.create_data_condition(condition_group=self.data_condition_group)
@@ -755,7 +755,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 @django_db_all
 class TestDeleteWorkflow:
     @pytest.fixture(autouse=True)
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = Factories.create_organization()
         self.project = Factories.create_project(organization=self.organization)
 

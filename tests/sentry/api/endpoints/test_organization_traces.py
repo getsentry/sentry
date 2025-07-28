@@ -21,7 +21,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

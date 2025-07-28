@@ -16,7 +16,7 @@ class SentryAppPublishRequestTest(APITestCase):
     def upload_issue_link_logo(self):
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=False)
 
-    def setUp(self):
+    def setUp(self) -> None:
         # create user as superuser
         self.user = self.create_user(email="boop@example.com", is_superuser=True)
         self.org = self.create_organization(owner=self.user, name="My Org")

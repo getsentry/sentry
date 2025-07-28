@@ -107,7 +107,7 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
 
 
 class PrintAndCaptureHandlerExceptionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.handler_error = Exception("nope")
 
     @patch("sys.stderr.write")

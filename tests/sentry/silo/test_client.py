@@ -31,7 +31,7 @@ class SiloClientTest(TestCase):
     region = Region("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)

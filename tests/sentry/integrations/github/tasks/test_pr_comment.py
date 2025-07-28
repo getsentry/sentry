@@ -47,7 +47,7 @@ class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
@@ -381,7 +381,7 @@ This pull request was deployed and Sentry observed the following issues:
 
 
 class TestCommentWorkflow(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -655,7 +655,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"

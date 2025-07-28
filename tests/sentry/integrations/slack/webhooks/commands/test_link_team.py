@@ -21,7 +21,7 @@ OTHER_SLACK_ID = "UXXXXXXX2"
 
 
 class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.link_user()
         responses.add(
@@ -134,7 +134,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
 
 
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.link_team()
 

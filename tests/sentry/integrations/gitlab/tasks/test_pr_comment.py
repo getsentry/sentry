@@ -29,7 +29,7 @@ from sentry.utils.cache import cache
 
 
 class GitlabCommentTestCase(GitLabTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitlabIntegration, integration=self.integration, org_id=self.organization.id
@@ -340,7 +340,7 @@ This merge request was deployed and Sentry observed the following issues:
 
 
 class TestCommentWorkflow(GitlabCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"

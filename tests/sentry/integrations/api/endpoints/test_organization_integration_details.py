@@ -21,7 +21,7 @@ from sentry.users.models.identity import Identity
 class OrganizationIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -113,7 +113,7 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(

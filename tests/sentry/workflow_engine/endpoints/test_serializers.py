@@ -299,7 +299,7 @@ class TestDataConditionGroupSerializer(TestCase):
 
 
 class TestActionSerializer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             provider="slack",
@@ -526,7 +526,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowGroupsPaginatedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -755,7 +755,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
 @freeze_time()
 class WorkflowHourlyStatsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()

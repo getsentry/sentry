@@ -261,7 +261,7 @@ class TestAccessLogFail(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     def test_org_id_populated(self) -> None:
@@ -285,7 +285,7 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-members"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     def test_org_id_populated(self) -> None:

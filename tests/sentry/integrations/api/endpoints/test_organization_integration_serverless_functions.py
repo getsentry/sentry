@@ -19,7 +19,7 @@ cloudformation_arn = (
 class AbstractServerlessTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-serverless-functions"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration, self.org_integration = self.create_provider_integration_for(

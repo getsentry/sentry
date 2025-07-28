@@ -14,7 +14,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -160,7 +160,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
 @control_silo_test
 class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.unlinking_url = build_unlinking_url(

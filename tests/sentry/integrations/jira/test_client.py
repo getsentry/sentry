@@ -23,7 +23,7 @@ def mock_finalize_request(prepared_request: PreparedRequest):
 
 @control_silo_test
 class JiraClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,

@@ -78,7 +78,7 @@ def dcg_ids_to_str(dcgs: list[DataConditionGroup]) -> str:
 
 
 class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.workflow1, self.workflow1_dcgs = self.create_project_event_freq_workflow(
@@ -291,7 +291,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
 
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         (
             self.workflow,
@@ -608,7 +608,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
 
 
 class TestGetGroupsToFire(TestDelayedWorkflowBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
@@ -800,7 +800,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
 
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         action1 = self.create_action(

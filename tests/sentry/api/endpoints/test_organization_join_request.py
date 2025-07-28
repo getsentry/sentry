@@ -20,7 +20,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super(APITestCase, self).setUp()
         super(SlackActivityNotificationTest, self).setUp()
         self.email = "test@example.com"

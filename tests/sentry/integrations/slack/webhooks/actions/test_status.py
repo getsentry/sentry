@@ -44,7 +44,7 @@ pytestmark = [requires_snuba]
 # Prevent flakiness from timestamp mismatch when building linking URL
 @freeze_time()
 class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification_text = "Identity not found."
         self.event_data = {

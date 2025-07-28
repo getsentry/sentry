@@ -10,7 +10,7 @@ from sentry.workflow_engine.endpoints.validators.base import DataSourceCreator
 
 
 class SnubaQueryValidatorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.valid_data = {
             "queryType": SnubaQuery.Type.ERROR.value,
             "dataset": Dataset.Events.value,

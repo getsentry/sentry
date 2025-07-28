@@ -17,7 +17,7 @@ class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(members=[self.user])
         self.proj1 = self.create_project(teams=[self.team])
@@ -46,7 +46,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(members=[self.user])
         self.data = {"name": "foo", "slug": "bar", "platform": "python"}

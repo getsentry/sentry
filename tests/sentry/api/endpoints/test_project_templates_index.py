@@ -11,7 +11,7 @@ from sentry.testutils.helpers import with_feature
 class ProjectTemplateAPIBase(APITestCase):
     endpoint = "sentry-api-0-organization-project-templates"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)

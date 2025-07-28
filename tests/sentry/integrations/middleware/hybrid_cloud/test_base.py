@@ -38,7 +38,7 @@ class BaseRequestParserTest(TestCase):
     ]
     factory = RequestFactory()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.request = self.factory.get("/extensions/slack/webhook/")
         self.parser = ExampleRequestParser(self.request, self.response_handler)
 

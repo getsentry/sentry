@@ -75,7 +75,7 @@ def assert_response_calls(expected_region_response, expected_non_region_response
 
 
 class VstsIssueBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
                 provider="vsts",
@@ -551,7 +551,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
 @region_silo_test(include_monolith_run=True)
 class VstsIssueFormTest(VstsIssueBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         responses.add(
             responses.GET,

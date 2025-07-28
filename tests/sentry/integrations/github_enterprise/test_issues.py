@@ -21,7 +21,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
 
     _IP_ADDRESS = "35.232.149.196"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):

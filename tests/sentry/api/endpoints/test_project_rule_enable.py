@@ -16,7 +16,7 @@ class ProjectRuleEnableTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-enable"
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.create_project_rule(project=self.project)
         self.login_as(user=self.user)
 

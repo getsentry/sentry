@@ -23,7 +23,7 @@ from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEv
 
 
 class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
 
     def test_simple(self) -> None:
@@ -200,7 +200,7 @@ class TestGetIssues(IntegrationTestCase, CreateEventTestCase):
     # Mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_id = "user_1"
         self.app_id = "app_1"
 

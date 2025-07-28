@@ -23,7 +23,7 @@ MockResponse = namedtuple("MockResponse", ["headers", "content"])
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class OAuth2CallbackViewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
@@ -160,7 +160,7 @@ class OAuth2CallbackViewTest(TestCase):
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")

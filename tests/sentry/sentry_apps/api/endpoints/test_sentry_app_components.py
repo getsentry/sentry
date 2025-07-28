@@ -21,7 +21,7 @@ def get_sentry_app_avatars(sentry_app: SentryApp):
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -58,7 +58,7 @@ class SentryAppComponentsTest(APITestCase):
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)

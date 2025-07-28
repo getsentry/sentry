@@ -26,7 +26,7 @@ from sentry.utils.http import absolute_uri
 
 
 class VstsWebhookWorkItemTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.access_token = "1234567890"
         self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"

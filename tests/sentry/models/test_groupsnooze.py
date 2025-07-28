@@ -22,7 +22,7 @@ class GroupSnoozeTest(
 ):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.group.times_seen_pending = 0

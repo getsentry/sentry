@@ -33,7 +33,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.team1 = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self._create_integration(name="test-app")

@@ -19,7 +19,7 @@ PROFILING_FEATURES = {
 class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-function-trends"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.ten_mins_ago = before_now(minutes=10)

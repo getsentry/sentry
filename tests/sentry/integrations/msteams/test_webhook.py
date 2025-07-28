@@ -42,7 +42,7 @@ class MsTeamsWebhookTest(APITestCase):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         responses.add(

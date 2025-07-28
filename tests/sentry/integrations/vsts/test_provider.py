@@ -172,7 +172,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
 
 @control_silo_test
 class TestAccountConfigView(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.reset()
         account_id = "1234567-8910"
         self.base_url = "http://sentry2.visualstudio.com/"
@@ -287,7 +287,7 @@ class TestAccountConfigView(TestCase):
 class VstsIdentityProviderTest(TestCase):
     client_secret = "12345678"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.identity_provider_model = self.create_identity_provider(type="vsts")
         self.identity = Identity.objects.create(
             idp=self.identity_provider_model,

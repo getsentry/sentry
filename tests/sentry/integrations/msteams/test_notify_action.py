@@ -21,7 +21,7 @@ pytestmark = [requires_snuba]
 class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = MsTeamsNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.get_event()
 
         self.integration, _ = self.create_provider_integration_for(

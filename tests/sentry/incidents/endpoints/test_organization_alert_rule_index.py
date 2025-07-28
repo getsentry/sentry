@@ -164,7 +164,7 @@ class AlertRuleIndexBase(AlertRuleBase):
 
     endpoint = "sentry-api-0-organization-alert-rules"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
@@ -234,7 +234,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.create_member(
@@ -1535,7 +1535,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1663,7 +1663,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
         for tag in [

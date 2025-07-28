@@ -16,7 +16,7 @@ from tests.sentry.spans.consumers.process import build_mock_span
 
 @exclude_experimental_detectors
 class TestSpansTask(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
 
     def generate_basic_spans(self):

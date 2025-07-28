@@ -23,7 +23,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 
 
 class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_models()
         self.action = self.create_action(
             type=Action.Type.EMAIL,

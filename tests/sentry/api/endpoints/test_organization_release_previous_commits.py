@@ -11,7 +11,7 @@ pytestmark = [requires_snuba]
 
 
 class OrganizationReleasePreviousCommitsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(is_staff=False, is_superuser=False)
 
         project = self.create_project(organization=self.organization)

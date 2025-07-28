@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 
 
 class TestDeleteReplay(APITestCase, ReplaysSnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(name="test_project")
         self.replay_id = "test-replay-id"

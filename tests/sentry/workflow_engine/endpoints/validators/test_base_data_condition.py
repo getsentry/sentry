@@ -22,7 +22,7 @@ class MockDataConditionHandler(DataConditionHandler):
     return_value=MockDataConditionHandler,
 )
 class TestBaseDataConditionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "type": Condition.EVENT_ATTRIBUTE,
@@ -85,7 +85,7 @@ class MockComplexDataConditionHandler(DataConditionHandler):
     return_value=MockComplexDataConditionHandler,
 )
 class TestComplexBaseDataConditionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "field1": "test",
@@ -136,7 +136,7 @@ class ExampleConditionValidator(AbstractDataConditionValidator[int, bool]):
 
 
 class TestAbstractConditionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "type": Condition.EQUAL,

@@ -318,7 +318,7 @@ class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
@@ -371,7 +371,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         class _DynamicMetricAlertSettings(TypedDict):
@@ -1873,7 +1873,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         class _DynamicMetricAlertSettings(TypedDict):
@@ -2174,7 +2174,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
@@ -2203,7 +2203,7 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector()
 
         with self.tasks():
@@ -3565,7 +3565,7 @@ class TriggerActionTest(TestCase):
 
 
 class TestDeduplicateTriggerActions(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule()
         self.incident = self.create_incident(alert_rule=self.alert_rule)

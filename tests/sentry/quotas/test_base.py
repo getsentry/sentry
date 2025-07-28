@@ -11,7 +11,7 @@ from sentry.utils.outcomes import Outcome
 
 
 class QuotaTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = Quota()
 
     def test_get_project_quota(self) -> None:

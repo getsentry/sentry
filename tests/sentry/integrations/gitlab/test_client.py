@@ -32,7 +32,7 @@ GITLAB_CODEOWNERS = {
 
 
 class GitLabClientTest(GitLabTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.gitlab_client = self.installation.get_client()
         self.gitlab_client.base_url = "https://example.gitlab.com/"
@@ -55,7 +55,7 @@ class GitLabClientTest(GitLabTestCase):
 class GitlabRefreshAuthTest(GitLabClientTest):
     get_user_should_succeed = True
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def tearDown(self):
@@ -322,7 +322,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
 @control_silo_test
 class GitLabBlameForFilesTest(GitLabClientTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.cache_key = "integration.gitlab.client:90c877e3983404c2ccf5756f578abd5f"
         self.cache_key2 = "integration.gitlab.client:4d9a6af2411001e36cd3b66f50c1bf78"

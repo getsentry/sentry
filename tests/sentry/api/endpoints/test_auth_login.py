@@ -11,7 +11,7 @@ class AuthLoginEndpointTest(APITestCase):
     endpoint = "sentry-api-0-auth-login"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Requests to set the test cookie
         self.client.get(reverse("sentry-api-0-auth-config"))
 

@@ -40,7 +40,7 @@ def raise_integration_installation_configuration_error(*args, **kwargs):
 
 
 class GroupIntegrationDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.event = self.store_event(

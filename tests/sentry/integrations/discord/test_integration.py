@@ -24,7 +24,7 @@ from sentry.testutils.silo import control_silo_test
 class DiscordSetupTestCase(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application_id = "application-id"
         self.public_key = "public-key"
@@ -256,7 +256,7 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
 
 
 class DiscordIntegrationTest(DiscordSetupTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user1234"
         self.guild_id = "12345"

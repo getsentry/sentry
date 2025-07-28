@@ -26,7 +26,7 @@ from sentry.users.models.authenticator import Authenticator
 class OrganizationIndexTest(APITestCase):
     endpoint = "sentry-api-0-organizations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -351,7 +351,7 @@ class OrganizationsCreateInRegionTest(OrganizationIndexTest, HybridCloudTestMixi
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
         self.no_2fa_user = self.create_user()

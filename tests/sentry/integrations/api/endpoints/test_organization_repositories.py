@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationRepositoriesListTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.org = self.create_organization(owner=self.user, name="baz")
@@ -318,7 +318,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
 
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integraiton = self.create_integration(

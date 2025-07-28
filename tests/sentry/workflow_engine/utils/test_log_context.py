@@ -7,7 +7,7 @@ from sentry.workflow_engine.utils import log_context
 
 
 class LogContextTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.logger: log_context._Adapter = log_context.get_logger(__name__)  # type: ignore[assignment]
 

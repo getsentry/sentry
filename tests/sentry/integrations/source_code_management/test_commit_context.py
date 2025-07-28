@@ -32,7 +32,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
 
 
 class TestCommitContextIntegrationSLO(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = MockCommitContextIntegration()
         self.repo = Repository.objects.create(

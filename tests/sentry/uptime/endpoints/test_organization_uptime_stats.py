@@ -17,7 +17,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-uptime-stats"
     features: dict[str, bool] = {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.subscription_id = uuid.uuid4().hex
@@ -315,7 +315,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
 ):
     __test__ = True
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {
             "organizations:uptime-eap-enabled": True,

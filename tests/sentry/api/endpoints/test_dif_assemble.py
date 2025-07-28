@@ -24,7 +24,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class DifAssembleEndpoint(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])

@@ -433,7 +433,7 @@ class GithubProxyClientTest(TestCase):
     jwt = "my_cool_jwt"
     access_token = "access_token"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -773,7 +773,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     Tests that get_blame_for_files builds the correct GraphQL query
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -1147,7 +1147,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     Tests that get_blame_for_files handles the GraphQL response correctly
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.file1 = SourceLineInfo(
@@ -1569,7 +1569,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     Tests that rate limits are handled correctly
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.file = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",

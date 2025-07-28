@@ -38,7 +38,7 @@ from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 class BaseAssembleTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(

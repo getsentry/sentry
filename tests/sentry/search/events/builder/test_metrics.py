@@ -96,7 +96,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc
     ) + datetime.timedelta(minutes=1)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=0, second=0, microsecond=0

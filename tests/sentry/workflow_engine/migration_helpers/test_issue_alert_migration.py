@@ -43,7 +43,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class IssueAlertMigratorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},

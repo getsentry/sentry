@@ -24,7 +24,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 @freeze_time("2024-01-09")
 class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,

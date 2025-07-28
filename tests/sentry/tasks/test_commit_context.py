@@ -49,7 +49,7 @@ pytestmark = [requires_snuba]
 
 
 class TestCommitContextIntegration(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -108,7 +108,7 @@ class TestCommitContextIntegration(TestCase):
 
 
 class TestCommitContextAllFrames(TestCommitContextIntegration):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.blame_recent = FileBlameInfo(
             repo=self.repo,
@@ -859,7 +859,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pull_request = PullRequest.objects.create(
             organization_id=self.commit.organization_id,

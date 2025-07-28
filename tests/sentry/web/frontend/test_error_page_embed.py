@@ -13,7 +13,7 @@ from sentry.types.region import get_local_region
 
 
 class ErrorPageEmbedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
@@ -201,7 +201,7 @@ class ErrorPageEmbedTest(TestCase):
 
 
 class ErrorPageEmbedEnvironmentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)

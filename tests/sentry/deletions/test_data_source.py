@@ -6,7 +6,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteDataSourceTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.snuba_query = self.alert_rule.snuba_query
         self.subscription = QuerySubscription.objects.get(snuba_query_id=self.snuba_query.id)

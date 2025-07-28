@@ -14,14 +14,14 @@ from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHist
 class OrganizationWorkflowAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-workflow-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
 
 @region_silo_test
 class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(
             organization_id=self.organization.id, name="Apple Workflow"
@@ -355,7 +355,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_workflow = {
             "name": "Test Workflow",

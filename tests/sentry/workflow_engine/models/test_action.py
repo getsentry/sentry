@@ -11,7 +11,7 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 
 class TestAction(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         mock_group_event = Mock(spec=GroupEvent)
         self.group = self.create_group()
 

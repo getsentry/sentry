@@ -330,7 +330,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         num_orgs = 3
@@ -549,7 +549,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         self.orgs = []

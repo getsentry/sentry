@@ -46,7 +46,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     default_group_id = 4
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
@@ -525,7 +525,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         "include_subgroups": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 

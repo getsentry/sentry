@@ -22,7 +22,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 
 @apply_feature_flag_on_cls("organizations:issue-open-periods")
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_models()
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,

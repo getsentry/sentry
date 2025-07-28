@@ -31,7 +31,7 @@ region = "us-east-2"
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.projectA = self.create_project(organization=self.organization, slug="projA")
         self.projectB = self.create_project(organization=self.organization, slug="projB")

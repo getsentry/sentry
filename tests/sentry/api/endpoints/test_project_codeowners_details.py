@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
 
         self.login_as(user=self.user)

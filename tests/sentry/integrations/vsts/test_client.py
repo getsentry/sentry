@@ -432,7 +432,7 @@ def assert_proxy_request(request, is_proxy=True):
 
 
 class VstsProxyApiClientTest(VstsIntegrationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, _, _, _ = self.create_identity_integration(
             user=self.user,

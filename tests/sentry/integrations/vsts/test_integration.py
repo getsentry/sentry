@@ -924,7 +924,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
 
 class RegionVstsIntegrationTest(VstsIntegrationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.assert_installation()

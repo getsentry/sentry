@@ -10,7 +10,7 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = True
     view = "sentry-api-0-organization-spans-fields-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

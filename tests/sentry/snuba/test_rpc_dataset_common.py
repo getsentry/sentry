@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestBulkTableQueries(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.snuba_params = SnubaParams()
         self.config = SearchResolverConfig()

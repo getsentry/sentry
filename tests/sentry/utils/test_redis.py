@@ -28,7 +28,7 @@ def _options_manager():
 
 
 class ClusterManagerTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         imports._cache.clear()
 
     def test_get(self) -> None:

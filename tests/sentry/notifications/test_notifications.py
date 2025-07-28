@@ -84,7 +84,7 @@ class ActivityNotificationTest(APITestCase):
     Enable Slack AND email notification settings for a user
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,

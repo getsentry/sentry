@@ -20,7 +20,7 @@ from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 
 class TestWorkflowValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.organization,
             "request": self.make_request(),
@@ -105,7 +105,7 @@ class TestWorkflowValidator(TestCase):
 
 
 class TestWorkflowValidatorCreate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.organization,
             "request": self.make_request(user=self.user),
@@ -322,7 +322,7 @@ class TestWorkflowValidatorCreate(TestCase):
 
 
 class TestWorkflowValidatorUpdate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.organization,
             "request": self.make_request(),

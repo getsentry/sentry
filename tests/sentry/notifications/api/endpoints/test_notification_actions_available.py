@@ -15,7 +15,7 @@ from sentry.testutils.cases import APITestCase
 class NotificationActionsAvailableEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-available-actions"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("chrisredfield@re.com")
         self.organization = self.create_organization(name="bsaa", owner=self.user)
         self.login_as(self.user)

@@ -110,7 +110,7 @@ MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPE
 
 
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
         self.install = self.create_sentry_app_installation(
@@ -531,7 +531,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             organization=self.organization, events=["issue.created"]
         )
@@ -1086,7 +1086,7 @@ class TestProcessResourceChange(TestCase):
 
 
 class TestSendResourceChangeWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
@@ -1328,7 +1328,7 @@ class TestSendResourceChangeWebhook(TestCase):
 
 @control_silo_test
 class TestInstallationWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
         self.rpc_user = user_service.get_user(user_id=self.user.id)
@@ -1406,7 +1406,7 @@ class TestInstallationWebhook(TestCase):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
 
@@ -1509,7 +1509,7 @@ class TestCommentWebhook(TestCase):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
 
@@ -1621,7 +1621,7 @@ class TestWorkflowNotification(TestCase):
 
 
 class TestWebhookRequests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user, id=1)
         self.sentry_app = self.create_sentry_app(
             name="Test App",

@@ -7,7 +7,7 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 @apply_feature_flag_on_cls("organizations:seer-explorer")
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
@@ -161,7 +161,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
     """Test feature flag requirements separately without the decorator"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"

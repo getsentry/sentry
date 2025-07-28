@@ -45,7 +45,7 @@ class SlackActionHandlerTest(FireTest):
             yield
 
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.spec = SlackMessagingSpec()
         self.handler = MessagingActionHandler(self.spec)
 

@@ -24,7 +24,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         integration, _ = self.create_provider_integration_for(
             organization=self.organization,

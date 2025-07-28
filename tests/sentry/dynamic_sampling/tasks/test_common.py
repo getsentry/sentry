@@ -107,7 +107,7 @@ def test_timed_iterator_with_timeout():
 
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
 
         # create 10 orgs each with 10 transactions
         for i in range(10):
@@ -228,7 +228,7 @@ NOW_ISH = timezone.now().replace(second=0, microsecond=0)
 
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.orgs = []
         # create 12 orgs each and some transactions with a 2/1 drop/keep rate
         for i in range(12):

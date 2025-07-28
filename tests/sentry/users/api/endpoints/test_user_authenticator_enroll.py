@@ -29,7 +29,7 @@ from tests.sentry.users.api.endpoints.test_user_authenticator_details import (
 class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="foo")
@@ -353,7 +353,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
 class AcceptOrganizationInviteTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com", is_superuser=False)
         self.login_as(user=self.user)

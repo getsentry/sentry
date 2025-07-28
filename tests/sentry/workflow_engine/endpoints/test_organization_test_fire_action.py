@@ -30,7 +30,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-organization-test-fire-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.project = self.create_project(organization=self.organization)

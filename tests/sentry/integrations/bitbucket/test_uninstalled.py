@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class BitbucketUnistalledEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,

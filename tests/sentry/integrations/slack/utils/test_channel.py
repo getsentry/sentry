@@ -28,7 +28,7 @@ pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = install_slack(self.event.project.organization)
 
         self.response_json = {
@@ -285,7 +285,7 @@ def create_user_error(*, error, status_code: int = 400):
 
 
 class ValidateUserIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="sentry-workspace",
