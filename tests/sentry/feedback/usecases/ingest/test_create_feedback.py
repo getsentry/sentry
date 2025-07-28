@@ -960,9 +960,7 @@ def test_create_feedback_adds_ai_labels(
             mock_generate_labels,
         )
 
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
@@ -997,9 +995,7 @@ def test_create_feedback_handles_label_generation_errors(
         )
 
         # This should not raise an exception and should still create the feedback
-        create_feedback_issue(
-            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        )
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         # Verify that the feedback was still created successfully
         assert mock_produce_occurrence_to_kafka.call_count == 1

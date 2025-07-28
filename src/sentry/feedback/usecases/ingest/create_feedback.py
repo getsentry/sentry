@@ -359,7 +359,7 @@ def create_feedback_issue(
                 logger.info(
                     "Feedback message has more than 15 labels.",
                     extra={
-                        "project_id": project_id,
+                        "project_id": project.id,
                         "entrypoint": "create_feedback_issue",
                         "feedback_message": feedback_message[:100],
                     },
@@ -369,7 +369,7 @@ def create_feedback_issue(
             for idx, label in enumerate(labels):
                 event_fixed["tags"][f"{LABEL_TAG_PREFIX}.{idx}"] = label
         except Exception:
-            logger.exception("Error generating labels", extra={"project_id": project_id})
+            logger.exception("Error generating labels", extra={"project_id": project.id})
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
