@@ -1,0 +1,139 @@
+---
+title: Grid
+description: A flexible layout component that provides CSS grid functionality with responsive props and spacing controls.
+source: 'sentry/components/core/layout/grid'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/grid.tsx
+---
+
+import {Grid, Container} from 'sentry/components/core/layout';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/grid';
+
+export const types = {Grid: APIReference.Grid};
+
+The `Grid` component is a layout component that extends the `Container` component with CSS grid properties.
+
+## Basic Usage
+
+To create a basic grid container, wrap elements in `<Grid>` and define columns using `columns`.
+
+```jsx
+<Grid columns="repeat(3, 1fr)" gap="md">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Grid>
+```
+
+### Grid Areas
+
+<Storybook.Demo>
+  <Grid
+    areas='
+      "header header"
+      "sidebar main"
+      "footer footer"'
+    columns="200px 1fr"
+    rows="60px 1fr 60px"
+    gap="md"
+    padding="md"
+    style={{height: '300px'}}
+  >
+    <Container area="header" border="primary">
+      Header
+    </Container>
+    <Container area="sidebar" border="primary">
+      Sidebar
+    </Container>
+    <Container area="main" border="primary">
+      Main Content
+    </Container>
+    <Container area="footer" border="primary">
+      Footer
+    </Container>
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid
+  areas="
+    header header
+    sidebar main
+    footer footer"
+  columns="200px 1fr"
+  rows="60px 1fr 60px"
+  gap="md"
+>
+  <Container area="header">Header</Container>
+  <Container area="sidebar">Sidebar</Container>
+  <Container area="main">Main Content</Container>
+  <Container area="footer">Footer</Container>
+</Grid>
+```
+
+### Alignment
+
+Grid provides fine-grained control over alignment using `justify`, `align`, `justifyContent`, and `alignContent`.
+
+<Storybook.Demo>
+  <Grid columns="repeat(2, 1fr)" gap="md" padding="md">
+    {[
+      {justifyContent: 'start', align: 'start', label: 'start/start'},
+      {justifyContent: 'center', align: 'center', label: 'center/center'},
+      {justifyContent: 'end', align: 'end', label: 'end/end'},
+      {justifyContent: 'stretch', align: 'stretch', label: 'stretch/stretch'},
+    ].map(({justifyContent, align, label}) => (
+      <Grid
+        key={label}
+        columns="repeat(2, 1fr)"
+        gap="sm"
+        justifyContent={justifyContent}
+        align={align}
+        border="primary"
+      >
+        <div>{label}</div>
+        <div>Item</div>
+      </Grid>
+    ))}
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid columns="repeat(2, 1fr)" justifyContent="center" align="center">
+  <div>Centered Item</div>
+  <div>Another Item</div>
+</Grid>
+```
+
+### Responsive Props
+
+All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+Example of a responsive grid container that changes from single column on small screens to multiple columns on larger screens.
+
+<Storybook.Demo>
+  <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} gap="md" p="md">
+    <div>Responsive</div>
+    <div>Grid</div>
+    <div>Layout</div>
+    <div>Items</div>
+    <div>🔥</div>
+    <div>Awesome</div>
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid
+  // Single column on xs, 2 columns on sm, 3 columns on md+
+  columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}
+  gap="md"
+>
+  <div>Responsive</div>
+  <div>Grid</div>
+  <div>Layout</div>
+  <div>Items</div>
+  <div>🔥</div>
+  <div>Awesome</div>
+</Grid>
+```
+
+If a prop is not specified for a breakpoint, the value will **not** be inherited from the previous breakpoint.
