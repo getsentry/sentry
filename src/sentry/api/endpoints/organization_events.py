@@ -570,7 +570,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
             def fn(offset, limit):
                 if scoped_dataset in RPC_DATASETS:
-                    if scoped_dataset == spans_rpc.Spans:
+                    if scoped_dataset == spans_rpc:
                         config = SearchResolverConfig(
                             auto_fields=True,
                             use_aggregate_conditions=use_aggregate_conditions,
@@ -578,12 +578,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             disable_aggregate_extrapolation="disableAggregateExtrapolation"
                             in request.GET,
                         )
-                    elif scoped_dataset == ourlogs.OurLogs:
+                    elif scoped_dataset == ourlogs:
                         # ourlogs doesn't have use aggregate conditions
                         config = SearchResolverConfig(
                             use_aggregate_conditions=False,
                         )
-                    elif scoped_dataset == uptime_results.UptimeResults:
+                    elif scoped_dataset == uptime_results:
                         config = SearchResolverConfig(
                             use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
                         )
@@ -602,7 +602,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         limit=limit,
                         referrer=referrer,
                         config=config,
-                        debug=debug,
                         sampling_mode=snuba_params.sampling_mode,
                     )
 

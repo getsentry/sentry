@@ -159,7 +159,7 @@ class LogCaptureAPITestCase(APITestCase):
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
     endpoint = "ratelimit-endpoint"
 
-    def test_access_log_rate_limited(self):
+    def test_access_log_rate_limited(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
@@ -175,7 +175,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
     endpoint = "concurrent-ratelimit-endpoint"
 
-    def test_concurrent_request_finishes(self):
+    def test_concurrent_request_finishes(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         for i in range(10):
             self.get_success_response()
@@ -199,7 +199,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 class TestAccessLogSuccess(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
-    def test_access_log_success(self):
+    def test_access_log_success(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
@@ -210,7 +210,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
 
-    def test_with_subdomain_redirect(self):
+    def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
         # meaning if a request is rejected between those then it will not have `auth`
         # set up properly
@@ -226,7 +226,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
-    def test_access_log_success(self):
+    def test_access_log_success(self) -> None:
         token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
@@ -239,7 +239,7 @@ class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
     endpoint = "internal-dummy-endpoint"
 
-    def test_access_log_skipped(self):
+    def test_access_log_skipped(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -253,7 +253,7 @@ class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
 class TestAccessLogFail(LogCaptureAPITestCase):
     endpoint = "dummy-fail-endpoint"
 
-    def test_access_log_fail(self):
+    def test_access_log_fail(self) -> None:
         self.get_error_response(status_code=500)
         self.assert_access_log_recorded()
 
@@ -261,10 +261,10 @@ class TestAccessLogFail(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
-    def test_org_id_populated(self):
+    def test_org_id_populated(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,
@@ -285,10 +285,10 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-members"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
-    def test_org_id_populated(self):
+    def test_org_id_populated(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,

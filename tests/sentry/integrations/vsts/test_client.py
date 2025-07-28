@@ -34,7 +34,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
-    def test_refreshes_expired_token(self):
+    def test_refreshes_expired_token(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
 
@@ -74,7 +74,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["expires"] > int(time())
 
     @with_feature("organizations:migrate-azure-devops-integration")
-    def test_refreshes_expired_token_new_integration(self):
+    def test_refreshes_expired_token_new_integration(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
@@ -112,7 +112,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["expires"] > int(time())
 
     @responses.activate
-    def test_does_not_refresh_valid_tokens(self):
+    def test_does_not_refresh_valid_tokens(self) -> None:
         self.assert_installation()
         responses.reset()
         integration, installation = self._get_integration_and_install()
@@ -142,7 +142,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert identity.data["refresh_token"] == refresh_token != self.refresh_token
         assert identity.data["expires"] == expires
 
-    def test_project_pagination(self):
+    def test_project_pagination(self) -> None:
         def request_callback(request):
             query = parse_qs(request.url.split("?")[1])
             # allow for 220 responses
@@ -167,7 +167,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert len(projects) == 220
 
     @with_feature("organizations:migrate-azure-devops-integration")
-    def test_metadata_is_correct(self):
+    def test_metadata_is_correct(self) -> None:
         self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
         assert integration.metadata["domain_name"] == "https://MyVSTSAccount.visualstudio.com/"
@@ -178,7 +178,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         )
 
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         responses.add(
             responses.GET,
             "https://myvstsaccount.visualstudio.com/_apis/git/repositories/albertos-apples/commits",
@@ -222,7 +222,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
-    def test_check_file(self):
+    def test_check_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -286,7 +286,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert_halt_metric(mock_record_event, ApiUnauthorized("Unauthorized"))
 
     @responses.activate
-    def test_check_no_file(self):
+    def test_check_no_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -315,7 +315,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             client.check_file(repo, path, version)
 
     @responses.activate
-    def test_get_file(self):
+    def test_get_file(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -344,7 +344,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert resp == "Hello, world!"
 
     @responses.activate
-    def test_get_stacktrace_link(self):
+    def test_get_stacktrace_link(self) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -432,7 +432,7 @@ def assert_proxy_request(request, is_proxy=True):
 
 
 class VstsProxyApiClientTest(VstsIntegrationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, _, _, _ = self.create_identity_integration(
             user=self.user,
@@ -453,7 +453,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
         )
 
     @responses.activate
-    def test_integration_proxy_is_active(self):
+    def test_integration_proxy_is_active(self) -> None:
         responses.add(
             responses.GET,
             "https://myvstsaccount.visualstudio.com/_apis/git/repositories/albertos-apples/commits",

@@ -11,7 +11,7 @@ pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.reset()
 
         self.integration, _ = self.create_provider_integration_for(
@@ -80,23 +80,23 @@ class GetChannelIdTest(TestCase):
     def run_invalid_test(self, name):
         assert get_channel_id(self.organization, self.integration.id, name) is None
 
-    def test_general_channel_selected(self):
+    def test_general_channel_selected(self) -> None:
         self.run_valid_test("g_c", "general")
 
-    def test_other_channel_selected(self):
+    def test_other_channel_selected(self) -> None:
         self.run_valid_test("p_o_d", "pit of Despair")
 
-    def test_bad_channel_not_selected(self):
+    def test_bad_channel_not_selected(self) -> None:
         self.run_invalid_test("Cliffs of Insanity")
 
-    def test_user_selected(self):
+    def test_user_selected(self) -> None:
         self.run_valid_test("dread_pirate_roberts", "Wesley")
 
-    def test_other_user_selected(self):
+    def test_other_user_selected(self) -> None:
         self.run_valid_test("princess_bride", "Buttercup")
 
-    def test_other_user_selected_continuation(self):
+    def test_other_user_selected_continuation(self) -> None:
         self.run_valid_test("prepare_to_die", "Inigo")
 
-    def test_bad_user_not_selected(self):
+    def test_bad_user_not_selected(self) -> None:
         self.run_invalid_test("Prince Humperdinck")

@@ -22,7 +22,7 @@ class MockDataConditionHandler(DataConditionHandler):
     return_value=MockDataConditionHandler,
 )
 class TestBaseDataConditionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "type": Condition.EVENT_ATTRIBUTE,
@@ -85,7 +85,7 @@ class MockComplexDataConditionHandler(DataConditionHandler):
     return_value=MockComplexDataConditionHandler,
 )
 class TestComplexBaseDataConditionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "field1": "test",
@@ -136,7 +136,7 @@ class ExampleConditionValidator(AbstractDataConditionValidator[int, bool]):
 
 
 class TestAbstractConditionValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "type": Condition.EQUAL,
@@ -145,20 +145,20 @@ class TestAbstractConditionValidator(TestCase):
             "conditionGroupId": self.condition_group.id,
         }
 
-    def test_validate_comparison(self):
+    def test_validate_comparison(self) -> None:
         validator = ExampleConditionValidator(data=self.valid_data)
         assert validator.is_valid() is True
 
-    def test_validate_condition_result(self):
+    def test_validate_condition_result(self) -> None:
         validator = ExampleConditionValidator(data=self.valid_data)
         assert validator.is_valid() is True
 
-    def test_validate_comparison__invalid(self):
+    def test_validate_comparison__invalid(self) -> None:
         invalid_data = {**self.valid_data, "comparison": "invalid"}
         validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
-    def test_validate_condition_result__invalid(self):
+    def test_validate_condition_result__invalid(self) -> None:
         invalid_data = {**self.valid_data, "conditionResult": "invalid"}
         validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False

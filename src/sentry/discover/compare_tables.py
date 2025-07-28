@@ -22,8 +22,7 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import metrics_enhanced_performance
-from sentry.snuba.spans_rpc import Spans
+from sentry.snuba import metrics_enhanced_performance, spans_rpc
 from sentry.utils.snuba import is_measurement
 
 logger = logging.getLogger(__name__)
@@ -151,7 +150,21 @@ def compare_tables_for_dashboard_widget_queries(
             "query": None,
         }
 
-    fields = widget_query.fields
+    aggregates = widget_query.aggregates
+    columns = widget_query.columns
+    query_fields = widget_query.fields
+
+    fields_set = set()
+
+    if aggregates:
+        fields_set.update(aggregates)
+    if columns:
+        fields_set.update(columns)
+    if query_fields:
+        fields_set.update(query_fields)
+
+    fields = list(fields_set)
+
     if len(fields) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
@@ -227,7 +240,7 @@ def compare_tables_for_dashboard_widget_queries(
     )
 
     try:
-        eap_result = Spans.run_table_query(
+        eap_result = spans_rpc.run_table_query(
             params=snuba_params,
             query_string=eap_query_parts["query"],
             selected_columns=eap_query_parts["selected_columns"],

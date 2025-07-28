@@ -14,7 +14,7 @@ from sentry.replays.usecases.ingest.event_logger import (
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 
 
-def test_gen_rage_clicks():
+def test_gen_rage_clicks() -> None:
     # No clicks.
     meta = ParsedEventMeta([], [], [], [], [], [])
     assert len(list(gen_rage_clicks(meta, 1, "1", {"a": "b"}))) == 0
@@ -40,7 +40,7 @@ def test_gen_rage_clicks():
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
-def test_emit_click_events_environment_handling():
+def test_emit_click_events_environment_handling() -> None:
     click_events = [
         ClickEvent(
             timestamp=1,
@@ -77,11 +77,8 @@ def test_emit_click_events_environment_handling():
         assert producer.call_args.args[1].value is not None
 
 
-@mock.patch("sentry.options.get")
 @mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
-def test_emit_trace_items_to_eap(producer, options_get):
-    options_get.return_value = [1]
-
+def test_emit_trace_items_to_eap(producer):
     timestamp = Timestamp()
     timestamp.FromMilliseconds(1000)
 
@@ -101,41 +98,10 @@ def test_emit_trace_items_to_eap(producer, options_get):
         )
     ]
 
-    emit_trace_items_to_eap(1, trace_items)
+    emit_trace_items_to_eap(trace_items)
 
-    assert options_get.called
     assert producer.called
     assert producer.call_args[0][0].name == Topic.SNUBA_ITEMS.value
     assert producer.call_args[0][1].key is None
     assert producer.call_args[0][1].headers == []
     assert isinstance(producer.call_args[0][1].value, bytes)
-
-
-@mock.patch("sentry.options.get")
-@mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
-def test_emit_trace_items_to_eap_option_blocked(producer, options_get):
-    options_get.return_value = []
-
-    timestamp = Timestamp()
-    timestamp.FromMilliseconds(1000)
-
-    trace_items = [
-        TraceItem(
-            organization_id=1,
-            project_id=2,
-            trace_id=uuid.uuid4().hex,
-            item_id=uuid.uuid4().bytes,
-            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
-            timestamp=timestamp,
-            attributes={},
-            client_sample_rate=1.0,
-            server_sample_rate=1.0,
-            retention_days=90,
-            received=timestamp,
-        )
-    ]
-
-    emit_trace_items_to_eap(1, trace_items)
-
-    assert options_get.called
-    assert not producer.called

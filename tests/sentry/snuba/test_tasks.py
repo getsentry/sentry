@@ -31,6 +31,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
+    SubscriptionError,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -121,7 +122,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             query_extra=query_extra,
         )
 
-    def test_no_subscription(self):
+    def test_no_subscription(self) -> None:
         self.task(12345)
         self.metrics.incr.assert_called_once_with(
             "snuba.subscriptions.{}.subscription_does_not_exist".format(
@@ -129,7 +130,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             )
         )
 
-    def test_invalid_status(self):
+    def test_invalid_status(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.ACTIVE)
         self.task(sub.id)
         self.metrics.incr.assert_called_once_with(
@@ -143,28 +144,28 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.CREATING
     task = create_subscription_in_snuba
 
-    def test_already_created(self):
+    def test_already_created(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, subscription_id=uuid4().hex
         )
         create_subscription_in_snuba(sub.id)
         self.metrics.incr.assert_any_call("snuba.subscriptions.create.already_created_in_snuba")
 
-    def test(self):
+    def test(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_status_join(self):
+    def test_status_join(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_group_id(self):
+    def test_group_id(self) -> None:
         group_id = 1234
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, query=f"issue.id:{group_id}"
@@ -177,7 +178,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_transaction(self):
+    def test_transaction(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, dataset=Dataset.Transactions
         )
@@ -186,14 +187,14 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_subscription_with_query_extra(self):
+    def test_subscription_with_query_extra(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_subscription_with_query_extra_but_no_query(self):
+    def test_subscription_with_query_extra_but_no_query(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
         snuba_query = sub.snuba_query
         snuba_query.update(query="")
@@ -203,7 +204,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
 
     @responses.activate
-    def test_adds_type(self):
+    def test_adds_type(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
         with patch("sentry.snuba.tasks._snuba_pool") as pool:
             resp = Mock()
@@ -216,7 +217,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert "type = 'error'" in request_body["query"]
 
     @responses.activate
-    def test_granularity_on_metrics_crash_rate_alerts(self):
+    def test_granularity_on_metrics_crash_rate_alerts(self) -> None:
         for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.RAW_USER.value, "session.status"]:
             rh_indexer_record(self.organization.id, tag)
         for time_window, expected_granularity in [
@@ -244,7 +245,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     request_body = json.loads(pool.urlopen.call_args[1]["body"])
                     assert request_body["granularity"] == expected_granularity
 
-    def test_insights_query_spm(self):
+    def test_insights_query_spm(self) -> None:
         time_window = 3600
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
@@ -273,7 +274,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert sub.status == QuerySubscription.Status.ACTIVE.value
             assert sub.subscription_id is not None
 
-    def test_eap_rpc_query_count(self):
+    def test_eap_rpc_query_count(self) -> None:
         for eap_items_enabled in [True, False]:
             with override_options(
                 {
@@ -333,7 +334,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
     task = update_subscription_in_snuba
 
-    def test(self):
+    def test(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.UPDATING, subscription_id=subscription_id
@@ -344,7 +345,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
         assert sub.subscription_id != subscription_id
 
-    def test_no_subscription_id(self):
+    def test_no_subscription_id(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.UPDATING)
         assert sub.subscription_id is None
         update_subscription_in_snuba(sub.id)
@@ -352,7 +353,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_insights_query_spm(self):
+    def test_insights_query_spm(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
             query="span.module:db",
@@ -373,7 +374,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_eap_rpc_query_count(self):
+    def test_eap_rpc_query_count(self) -> None:
         for eap_items_enabled, entity_key in [
             (True, EntityKey.EAPItems),
             (False, EntityKey.EAPItemsSpan),
@@ -425,7 +426,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
     task = delete_subscription_from_snuba
 
-    def test(self):
+    def test(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
@@ -433,7 +434,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_insights_query_spm(self):
+    def test_insights_query_spm(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -445,7 +446,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_eap_rpc_query_count(self):
+    def test_eap_rpc_query_count(self) -> None:
         for eap_items_enabled, entity_key in [
             (True, EntityKey.EAPItems),
             (False, EntityKey.EAPItemsSpan),
@@ -476,13 +477,13 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
                         == f"/{Dataset.EventsAnalyticsPlatform.value}/{entity_key.value}/subscriptions/{subscription_id}"
                     )
 
-    def test_no_subscription_id(self):
+    def test_no_subscription_id(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.DELETING)
         assert sub.subscription_id is None
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_invalid_subscription_query(self):
+    def test_invalid_subscription_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -492,7 +493,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_invalid_metrics_subscription_query(self):
+    def test_invalid_metrics_subscription_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -503,6 +504,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_query_that_raises_invalid_search_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        with pytest.raises(SubscriptionError):
+            sub = self.create_subscription(
+                QuerySubscription.Status.DELETING,
+                dataset=Dataset.Metrics,
+                subscription_id=subscription_id,
+                query="project:foo",
+                aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            )
+            delete_subscription_from_snuba(sub.id)
 
 
 class BuildSnqlQueryTest(TestCase):
@@ -843,7 +856,7 @@ class BuildSnqlQueryTest(TestCase):
             key=lambda val: (val.function, val.alias),
         )
 
-    def test_simple_events(self):
+    def test_simple_events(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -856,7 +869,7 @@ class BuildSnqlQueryTest(TestCase):
             ],
         )
 
-    def test_join_status(self):
+    def test_join_status(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         g_entity = Entity("group_attributes", alias="ga")
         self.run_test(
@@ -883,7 +896,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_match=Join([Relationship(entity, "attributes", g_entity)]),
         )
 
-    def test_simple_performance_transactions(self):
+    def test_simple_performance_transactions(self) -> None:
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
             Dataset.Transactions,
@@ -894,7 +907,7 @@ class BuildSnqlQueryTest(TestCase):
             ],
         )
 
-    def test_aliased_query_events(self):
+    def test_aliased_query_events(self) -> None:
         self.create_release(self.project, version="something")
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
@@ -921,7 +934,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_aliased_query_performance_transactions(self):
+    def test_aliased_query_performance_transactions(self) -> None:
         self.create_release(self.project, version="something")
         expected_conditions = [
             Condition(Column("release"), Op.IN, ["something"]),
@@ -935,7 +948,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_user_query(self):
+    def test_user_query(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
@@ -961,7 +974,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_user_query_performance_transactions(self):
+    def test_user_query_performance_transactions(self) -> None:
         expected_conditions = [
             Condition(Column("user"), Op.EQ, "anengineer@work.io"),
             Condition(Column("project_id"), Op.IN, [self.project.id]),
@@ -974,7 +987,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_boolean_query(self):
+    def test_boolean_query(self) -> None:
         self.create_release(self.project, version="something")
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
@@ -1019,7 +1032,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_event_types(self):
+    def test_event_types(self) -> None:
         self.create_release(self.project, version="something")
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
@@ -1075,7 +1088,7 @@ class BuildSnqlQueryTest(TestCase):
             },
         )
 
-    def test_issue_id_snql(self):
+    def test_issue_id_snql(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
@@ -1100,7 +1113,7 @@ class BuildSnqlQueryTest(TestCase):
 
 
 class TestApplyDatasetQueryConditions(TestCase):
-    def test_no_event_types_no_discover(self):
+    def test_no_event_types_no_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, False)
             == "(event.type:error) AND (release:123)"
@@ -1122,7 +1135,7 @@ class TestApplyDatasetQueryConditions(TestCase):
             == "release:123 OR release:456"
         )
 
-    def test_no_event_types_discover(self):
+    def test_no_event_types_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, True)
             == "(event.type:error) AND (release:123)"
@@ -1144,7 +1157,7 @@ class TestApplyDatasetQueryConditions(TestCase):
             == "(event.type:transaction) AND (release:123 OR release:456)"
         )
 
-    def test_event_types_no_discover(self):
+    def test_event_types_no_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(
                 SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], False
@@ -1179,7 +1192,7 @@ class TestApplyDatasetQueryConditions(TestCase):
             == "release:123"
         )
 
-    def test_event_types_discover(self):
+    def test_event_types_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(
                 SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], True
@@ -1233,7 +1246,7 @@ class SubscriptionCheckerTest(TestCase):
             QuerySubscription.objects.filter(id=sub.id).update(date_updated=date_updated)
         return sub
 
-    def test_create_update(self):
+    def test_create_update(self) -> None:
         for status in (
             QuerySubscription.Status.CREATING,
             QuerySubscription.Status.UPDATING,

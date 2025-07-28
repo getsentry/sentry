@@ -15,7 +15,7 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
     condition = Condition.EXISTING_HIGH_PRIORITY_ISSUE
     payload = {"id": ExistingHighPriorityIssueCondition.id}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(
             event=self.group_event,
@@ -38,7 +38,7 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         )
         self.group_event.group.priority = PriorityLevel.HIGH
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -47,7 +47,7 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -65,15 +65,15 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             dc.save()
 
-    def test(self):
+    def test(self) -> None:
         self.assert_passes(self.dc, self.event_data)
 
-    def test_group_state_is_new(self):
+    def test_group_state_is_new(self) -> None:
         assert self.event_data.group_state
         self.event_data.group_state["is_new"] = True
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_is_escalating(self):
+    def test_is_escalating(self) -> None:
         self.event_data = replace(self.event_data, has_reappeared=False, has_escalated=True)
         self.assert_passes(self.dc, self.event_data)
 
@@ -86,7 +86,7 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
         self.event_data = replace(self.event_data, has_reappeared=True, has_escalated=False)
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_priority(self):
+    def test_priority(self) -> None:
         self.group_event.group.priority = PriorityLevel.LOW
         self.assert_does_not_pass(self.dc, self.event_data)
 

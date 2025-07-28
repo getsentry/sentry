@@ -9,6 +9,7 @@ from django.db import router
 from django.db.models import F
 from django.utils import timezone
 
+from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
 from sentry.issues.grouptype import MonitorIncidentType, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
@@ -38,6 +39,7 @@ from sentry.tasks.summaries.weekly_reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -51,7 +53,7 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
         self.timestamp = floor_to_utc_day(self.now).timestamp()
@@ -82,7 +84,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_integration(self):
+    def test_integration(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
         project = self.create_project(
@@ -106,7 +108,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert self.organization.name in message.subject
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_with_empty_string_user_option(self):
+    def test_with_empty_string_user_option(self) -> None:
         project = self.create_project(
             organization=self.organization,
             teams=[self.team],
@@ -129,7 +131,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @with_feature("system:multi-region")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_message_links_customer_domains(self):
+    def test_message_links_customer_domains(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -266,7 +268,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @with_feature("organizations:escalating-issues")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_substatus_summaries(self):
+    def test_organization_project_issue_substatus_summaries(self) -> None:
         self.login_as(user=self.user)
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
         event1 = self.store_event(
@@ -312,7 +314,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         assert project_ctx.total_substatus_count == 2
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_status(self):
+    def test_organization_project_issue_status(self) -> None:
         self.login_as(user=self.user)
         self.project.first_event = self.now - timedelta(days=3)
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
@@ -436,12 +438,15 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.analytics.record")
@@ -514,12 +519,15 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -676,19 +684,25 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user2.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
+        assert_any_analytics_event(
+            record,
+            WeeklyReportSent(
+                user_id=user2.id,
+                organization_id=self.organization.id,
+                notification_uuid="mock.ANY",
+                user_project_count=1,
+            ),
+            exclude_fields=["notification_uuid"],
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -870,7 +884,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "transaction_count": 0,
         }
 
-    def test_group_status_to_color_obj_correct_length(self):
+    def test_group_status_to_color_obj_correct_length(self) -> None:
         # We want to check for the values because GroupHistoryStatus.UNRESOLVED and GroupHistoryStatus.ONGOING have the same value
         enum_values = set()
         for attr_name in dir(GroupHistoryStatus):
@@ -916,12 +930,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
 
         with pytest.raises(AssertionError):
-            record.assert_any_call(
-                "weekly_report.sent",
-                user_id=user.id,
-                organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
-                user_project_count=1,
+            assert_any_analytics_event(
+                record,
+                WeeklyReportSent(
+                    user_id=user.id,
+                    organization_id=self.organization.id,
+                    notification_uuid="mock.ANY",
+                    user_project_count=1,
+                ),
             )
 
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
@@ -985,12 +1001,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert context["user_project_count"] == 3
 
         with pytest.raises(AssertionError):
-            record.assert_any_call(
-                "weekly_report.sent",
-                user_id=None,
-                organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
-                user_project_count=1,
+            assert_any_analytics_event(
+                record,
+                WeeklyReportSent(
+                    user_id=None,
+                    organization_id=self.organization.id,
+                    notification_uuid="mock.ANY",
+                    user_project_count=1,
+                ),
             )
 
             message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
@@ -1042,12 +1060,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
         with pytest.raises(AssertionError):
-            record.assert_any_call(
-                "weekly_report.sent",
-                user_id=None,
-                organization_id=self.organization.id,
-                notification_uuid=mock.ANY,
-                user_project_count=1,
+            assert_any_analytics_event(
+                record,
+                WeeklyReportSent(
+                    user_id=None,
+                    organization_id=self.organization.id,
+                    notification_uuid="mock.ANY",
+                    user_project_count=1,
+                ),
             )
 
         message_builder.return_value.send.assert_not_called()

@@ -30,7 +30,7 @@ from tests.sentry.workflow_engine.test_base import MockModel
 
 
 class BaseValidatorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.data_condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
@@ -39,7 +39,7 @@ class BaseValidatorTest(TestCase):
 
 
 class TestDataSourceCreator(TestCase):
-    def test_create_calls_once(self):
+    def test_create_calls_once(self) -> None:
         mock_instance = MockModel()
         mock_fn = mock.Mock(return_value=mock_instance)
         creator = DataSourceCreator(create_fn=mock_fn)
@@ -70,7 +70,7 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
 
 
 class TestBaseDataSourceValidator(TestCase):
-    def test_validate_adds_creator_and_type(self):
+    def test_validate_adds_creator_and_type(self) -> None:
         validator = MockDataSourceValidator(
             data={
                 "field1": "test",
@@ -107,12 +107,12 @@ class MockDetectorValidator(BaseDetectorTypeValidator):
 
 # TODO - see if we can refactor and mock the grouptype / grouptype.registry
 class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.validator_class = BaseDetectorTypeValidator
 
-    def test_validate_type_valid(self):
+    def test_validate_type_valid(self) -> None:
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -126,7 +126,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             result = validator.validate_type("test_type")
             assert result == mock_get_by_slug.return_value
 
-    def test_validate_type_unknown(self):
+    def test_validate_type_unknown(self) -> None:
         with mock.patch.object(grouptype.registry, "get_by_slug", return_value=None):
             validator = self.validator_class()
             with pytest.raises(
@@ -135,7 +135,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             ):
                 validator.validate_type("unknown_type")
 
-    def test_validate_type_incompatible(self):
+    def test_validate_type_incompatible(self) -> None:
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = GroupType(
                 type_id=1,
@@ -154,7 +154,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
 
 # TODO - Move these tests into a base detector test file
 class DetectorValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.context = {
@@ -230,14 +230,14 @@ class DetectorValidatorTest(BaseValidatorTest):
             data=detector.get_audit_log_data(),
         )
 
-    def test_validate_type_unknown(self):
+    def test_validate_type_unknown(self) -> None:
         validator = MockDetectorValidator(data={**self.valid_data, "type": "unknown_type"})
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(string="Unknown detector type 'unknown_type'", code="invalid")
         ], validator.errors
 
-    def test_validate_type_incompatible(self):
+    def test_validate_type_incompatible(self) -> None:
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_settings=None)
             validator = MockDetectorValidator(data={**self.valid_data, "type": "incompatible_type"})

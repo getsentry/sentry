@@ -15,11 +15,9 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.snuba import discover, errors, transactions
+from sentry.snuba import discover, errors, ourlogs, spans_rpc, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.snuba.ourlogs import OurLogs
-from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -190,7 +188,7 @@ def test_match_link(url, expected):
 
 
 class UnfurlTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # We're redefining project to ensure that the individual tests have unique project ids.
         # Sharing project ids across tests could result in some race conditions
@@ -205,7 +203,7 @@ class UnfurlTest(TestCase):
     def tearDown(self):
         self.frozen_time.stop()
 
-    def test_unfurl_issues(self):
+    def test_unfurl_issues(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
@@ -234,7 +232,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    def test_unfurl_issues_block_kit(self):
+    def test_unfurl_issues_block_kit(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
@@ -263,7 +261,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    def test_escape_issue(self):
+    def test_escape_issue(self) -> None:
         # wraps text in markdown code block
         escape_text = "<https://example.com/|*Click Here*>"
         group = self.create_group(
@@ -281,7 +279,7 @@ class UnfurlTest(TestCase):
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
-    def test_unfurl_metric_alert(self):
+    def test_unfurl_metric_alert(self) -> None:
         alert_rule = self.create_alert_rule()
 
         incident = self.create_incident(
@@ -528,7 +526,7 @@ class UnfurlTest(TestCase):
             link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == Spans
+        assert dataset == spans_rpc
 
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
@@ -577,7 +575,7 @@ class UnfurlTest(TestCase):
             link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
-        assert dataset == OurLogs
+        assert dataset == ourlogs
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):

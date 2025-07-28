@@ -28,7 +28,7 @@ pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = install_slack(self.event.project.organization)
 
         self.response_json = {
@@ -131,7 +131,7 @@ class GetChannelIdTest(TestCase):
             tags={"ok": True, "status": 200},
         )
 
-    def test_valid_member_selected_sdk_client(self):
+    def test_valid_member_selected_sdk_client(self) -> None:
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
             {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
@@ -142,7 +142,7 @@ class GetChannelIdTest(TestCase):
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
-    def test_valid_member_selected_display_name_sdk_client(self):
+    def test_valid_member_selected_display_name_sdk_client(self) -> None:
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
             {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
@@ -153,7 +153,7 @@ class GetChannelIdTest(TestCase):
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
-    def test_invalid_member_selected_display_name_sdk_client(self):
+    def test_invalid_member_selected_display_name_sdk_client(self) -> None:
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
             {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
@@ -165,7 +165,7 @@ class GetChannelIdTest(TestCase):
                 with pytest.raises(DuplicateDisplayNameError):
                     get_channel_id(self.integration, "@Morty")
 
-    def test_invalid_channel_selected_sdk_client(self):
+    def test_invalid_channel_selected_sdk_client(self) -> None:
         with self.patch_msg_response_not_found():
             assert get_channel_id(self.integration, "#fake-channel").channel_id is None
             assert get_channel_id(self.integration, "@fake-user").channel_id is None
@@ -246,7 +246,7 @@ class GetChannelIdTest(TestCase):
 
 
 class IsInputAUserIdTest(TestCase):
-    def test_behavior_for_known_slack_identifiers(self):
+    def test_behavior_for_known_slack_identifiers(self) -> None:
         # User IDs
         assert is_input_a_user_id("U12345678")
         assert is_input_a_user_id("W12345678")
@@ -285,7 +285,7 @@ def create_user_error(*, error, status_code: int = 400):
 
 
 class ValidateUserIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="sentry-workspace",
@@ -369,7 +369,7 @@ class ValidateUserIdTest(TestCase):
             )
         assert mock_client_call.call_count == 1
 
-    def test_no_names_from_slack(self):
+    def test_no_names_from_slack(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user={"id": self.input_id}),
@@ -382,7 +382,7 @@ class ValidateUserIdTest(TestCase):
                 )
             assert mock_client_call.call_count == 1
 
-    def test_no_matches_from_slack(self):
+    def test_no_matches_from_slack(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user=self.slack_user),
@@ -397,7 +397,7 @@ class ValidateUserIdTest(TestCase):
                 )
             assert mock_client_call.call_count == 1
 
-    def test_happy_path_does_not_raise(self):
+    def test_happy_path_does_not_raise(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.users_info",
             return_value=create_user_response(user=self.slack_user),

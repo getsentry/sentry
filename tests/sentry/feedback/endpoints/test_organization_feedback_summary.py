@@ -16,7 +16,7 @@ from tests.sentry.feedback import mock_feedback_event
 class OrganizationFeedbackSummaryTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-summary"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -35,7 +35,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         )
 
     @django_db_all
-    def test_get_feedback_summary_without_feature_flag(self):
+    def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
 

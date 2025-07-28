@@ -13,7 +13,7 @@ from sentry.types.region import get_local_region
 
 
 class ErrorPageEmbedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
@@ -26,17 +26,17 @@ class ErrorPageEmbedTest(TestCase):
             quote(self.key.dsn_public),
         )
 
-    def test_invalid_referer(self):
+    def test_invalid_referer(self) -> None:
         resp = self.client.get(self.path_with_qs, HTTP_REFERER="http://foo.com")
         assert resp.status_code == 403, resp.content
         assert resp["Content-Type"] == "application/json"
 
-    def test_invalid_origin(self):
+    def test_invalid_origin(self) -> None:
         resp = self.client.get(self.path_with_qs, HTTP_ORIGIN="http://foo.com")
         assert resp.status_code == 403, resp.content
         assert resp["Content-Type"] == "application/json"
 
-    def test_invalid_origin_respects_accept(self):
+    def test_invalid_origin_respects_accept(self) -> None:
         resp = self.client.get(
             self.path_with_qs,
             HTTP_ORIGIN="http://foo.com",
@@ -45,7 +45,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp.status_code == 403, resp.content
         assert resp["Content-Type"] == "text/javascript"
 
-    def test_missing_eventId(self):
+    def test_missing_eventId(self) -> None:
         path = f"{self.path}?dsn={quote(self.key.dsn_public)}"
         resp = self.client.get(
             path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"
@@ -55,7 +55,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["X-Sentry-Context"] == '{"eventId":"Missing or invalid parameter."}'
         assert resp.content == b""
 
-    def test_missing_dsn(self):
+    def test_missing_dsn(self) -> None:
         path = f"{self.path}?eventId={quote(self.event_id)}"
         resp = self.client.get(
             path, HTTP_REFERER="http://example.com", HTTP_ACCEPT="text/html, text/javascript"
@@ -65,7 +65,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["X-Sentry-Context"] == '{"dsn":"Missing or invalid parameter."}'
         assert resp.content == b""
 
-    def test_renders(self):
+    def test_renders(self) -> None:
         resp = self.client.get(
             self.path_with_qs,
             HTTP_REFERER="http://example.com",
@@ -75,7 +75,7 @@ class ErrorPageEmbedTest(TestCase):
         assert resp["Access-Control-Allow-Origin"] == "*"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
-    def test_endpoint_reflects_region_url(self):
+    def test_endpoint_reflects_region_url(self) -> None:
         resp = self.client.get(
             self.path_with_qs,
             HTTP_REFERER="http://example.com",
@@ -90,7 +90,7 @@ class ErrorPageEmbedTest(TestCase):
         body = resp.content.decode("utf8")
         assert f'endpoint = /**/"{region_url}";/**/' in body
 
-    def test_uses_locale_from_header(self):
+    def test_uses_locale_from_header(self) -> None:
         resp = self.client.get(
             self.path_with_qs,
             HTTP_REFERER="http://example.com",
@@ -101,7 +101,7 @@ class ErrorPageEmbedTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
         assert b"Fermer" in resp.content  # Close
 
-    def test_xss(self):
+    def test_xss(self) -> None:
         user_feedback_options = {}
 
         option_keys = [
@@ -140,7 +140,7 @@ class ErrorPageEmbedTest(TestCase):
         for xss_payload in user_feedback_options.values():
             assert xss_payload not in resp.content
 
-    def test_submission(self):
+    def test_submission(self) -> None:
         resp = self.client.post(
             self.path_with_qs,
             {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
@@ -173,7 +173,7 @@ class ErrorPageEmbedTest(TestCase):
         assert report.project_id == self.project.id
         assert report.group_id is None
 
-    def test_submission_invalid_event_id(self):
+    def test_submission_invalid_event_id(self) -> None:
         self.event_id = "x" * 100
         path = "{}?eventId={}&dsn={}".format(
             self.path,
@@ -189,7 +189,7 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 400, resp.content
 
-    def test_submission_message_too_large(self):
+    def test_submission_message_too_large(self) -> None:
         resp = self.client.post(
             self.path_with_qs,
             {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "a" * 9001},
@@ -201,7 +201,7 @@ class ErrorPageEmbedTest(TestCase):
 
 
 class ErrorPageEmbedEnvironmentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)
@@ -230,7 +230,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         result.update(kwargs)
         return self.store_event(data=result, project_id=self.project.id, assert_no_errors=False)
 
-    def test_environment_gets_user_report(self):
+    def test_environment_gets_user_report(self) -> None:
         self.make_event(environment=self.environment.name, event_id=self.event_id)
         self.login_as(user=self.user)
         response = self.client.post(

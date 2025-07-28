@@ -10,7 +10,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 
 class RuleConditionTranslationTest(ConditionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.dcg = self.create_data_condition_group()
 
     def assert_basic_condition_translated(self, payload):
@@ -25,21 +25,21 @@ class RuleConditionTranslationTest(ConditionTestCase):
         assert condition == {}
         assert filters == [payload]
 
-    def test_escalating_event(self):
+    def test_escalating_event(self) -> None:
         payload = {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}
         self.assert_basic_condition_translated(payload)
 
-    def test_regression_event(self):
+    def test_regression_event(self) -> None:
         payload = {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
         self.assert_basic_condition_translated(payload)
 
-    def test_existing_high_priority_issue(self):
+    def test_existing_high_priority_issue(self) -> None:
         payload = {
             "id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_event_attribute_condition(self):
+    def test_event_attribute_condition(self) -> None:
         payload = {
             "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
             "attribute": "http.url",
@@ -48,7 +48,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_event_attribute_filter(self):
+    def test_event_attribute_filter(self) -> None:
         payload = {
             "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
             "attribute": "http.url",
@@ -57,17 +57,17 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_first_seen_event(self):
+    def test_first_seen_event(self) -> None:
         payload = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
         self.assert_basic_condition_translated(payload)
 
-    def test_new_high_priority_issue(self):
+    def test_new_high_priority_issue(self) -> None:
         payload = {
             "id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_level_condition(self):
+    def test_level_condition(self) -> None:
         payload = {
             "id": "sentry.rules.conditions.level.LevelCondition",
             "match": "eq",
@@ -75,7 +75,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_level_filter(self):
+    def test_level_filter(self) -> None:
         payload = {
             "id": "sentry.rules.filters.level.LevelFilter",
             "match": "eq",
@@ -83,7 +83,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_tagged_event_condition(self):
+    def test_tagged_event_condition(self) -> None:
         payload = {
             "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
             "key": "level",
@@ -92,7 +92,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_tagged_event_filter(self):
+    def test_tagged_event_filter(self) -> None:
         payload = {
             "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
             "key": "level",
@@ -101,7 +101,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_age_comparison_filter(self):
+    def test_age_comparison_filter(self) -> None:
         payload = {
             "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
             "comparison_type": "older",
@@ -110,7 +110,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_assigned_to_filter(self):
+    def test_assigned_to_filter(self) -> None:
         payload: dict[str, Any] = {
             "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
             "targetType": "Unassigned",
@@ -124,22 +124,22 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_issue_category(self):
+    def test_issue_category(self) -> None:
         payload = {"id": "sentry.rules.filters.issue_category.IssueCategoryFilter", "value": 2}
         self.assert_basic_filter_translated(payload)
 
-    def test_issue_occurrences(self):
+    def test_issue_occurrences(self) -> None:
         payload = {
             "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
             "value": 120,
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_latest_release(self):
+    def test_latest_release(self) -> None:
         payload = {"id": "sentry.rules.filters.latest_release.LatestReleaseFilter"}
         self.assert_basic_filter_translated(payload)
 
-    def test_latest_adopted_release(self):
+    def test_latest_adopted_release(self) -> None:
         payload = {
             "id": "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
             "oldest_or_newest": "oldest",
@@ -148,7 +148,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_filter_translated(payload)
 
-    def test_event_frequency_count(self):
+    def test_event_frequency_count(self) -> None:
         payload = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -157,7 +157,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_event_frequency_percent(self):
+    def test_event_frequency_percent(self) -> None:
         payload = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -167,7 +167,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_event_unique_user_frequency_count(self):
+    def test_event_unique_user_frequency_count(self) -> None:
         payload = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -176,7 +176,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_event_unique_user_frequency_percent(self):
+    def test_event_unique_user_frequency_percent(self) -> None:
         payload = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -186,7 +186,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_percent_sessions_count(self):
+    def test_percent_sessions_count(self) -> None:
         payload = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
@@ -195,7 +195,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_percent_sessions_percent(self):
+    def test_percent_sessions_percent(self) -> None:
         payload = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
@@ -205,7 +205,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         }
         self.assert_basic_condition_translated(payload)
 
-    def test_event_unique_user_frequency_with_conditions(self):
+    def test_event_unique_user_frequency_with_conditions(self) -> None:
         payload: dict[str, str | int | float] = {
             "interval": "1h",
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",

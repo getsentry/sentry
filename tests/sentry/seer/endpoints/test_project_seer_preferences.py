@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 class ProjectSeerPreferencesEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-preferences"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.org = self.create_organization(owner=self.user)

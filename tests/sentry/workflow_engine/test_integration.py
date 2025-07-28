@@ -30,7 +30,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class BaseWorkflowIntegrationTest(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -94,7 +94,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
 
 class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_workflow_engine__data_source__to_metric_issue_workflow(self):
+    def test_workflow_engine__data_source__to_metric_issue_workflow(self) -> None:
         """
         This test ensures that a data_source can create the correct event in Issue Platform
         """
@@ -113,7 +113,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
             mock_producer.assert_called_once()
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_workflow_engine__data_source__different_type(self):
+    def test_workflow_engine__data_source__different_type(self) -> None:
         self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
         with mock.patch(
@@ -127,7 +127,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
             mock_producer.assert_not_called()
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_workflow_engine__data_source__no_detectors(self):
+    def test_workflow_engine__data_source__no_detectors(self) -> None:
         self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
         self.detector.delete()
 
@@ -146,7 +146,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:issue-metric-issue-post-process-group")
     @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
-    def test_workflow_engine__workflows(self):
+    def test_workflow_engine__workflows(self) -> None:
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
         """
@@ -159,7 +159,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_called_once()
 
     @with_feature("organizations:issue-metric-issue-post-process-group")
-    def test_workflow_engine__workflows__other_events(self):
+    def test_workflow_engine__workflows__other_events(self) -> None:
         """
         Ensure that the workflow engine only supports MetricIssue events for now.
         """
@@ -184,7 +184,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
             mock_process_workflow.assert_not_called()
 
-    def test_workflow_engine__workflows__no_flag(self):
+    def test_workflow_engine__workflows__no_flag(self) -> None:
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
         assert self.group
@@ -201,7 +201,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 @mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,

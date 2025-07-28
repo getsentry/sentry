@@ -14,12 +14,12 @@ from sentry.utils.http import absolute_uri
 
 @control_silo_test
 class TwoFactorTest(TestCase):
-    def test_not_pending_2fa(self):
+    def test_not_pending_2fa(self) -> None:
         resp = self.client.get("/auth/2fa/")
         assert resp.status_code == 302
         assert resp["Location"] == "/auth/login/"
 
-    def test_no_2fa_configured(self):
+    def test_no_2fa_configured(self) -> None:
         user = self.create_user()
         self.login_as(user)
 
@@ -32,7 +32,7 @@ class TwoFactorTest(TestCase):
             ("/organizations/new/", 302),
         ]
 
-    def test_otp_challenge(self):
+    def test_otp_challenge(self) -> None:
         user = self.create_user()
         interface = TotpInterface()
         interface.enroll(user)

@@ -12,7 +12,7 @@ from tests.sentry.event_manager.test_event_manager import make_event
 
 
 class ActivityTest(TestCase):
-    def test_get_activities_for_group_none(self):
+    def test_get_activities_for_group_none(self) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
 
@@ -20,7 +20,7 @@ class ActivityTest(TestCase):
         assert len(act_for_group) == 1
         assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
 
-    def test_get_activities_for_group_priority(self):
+    def test_get_activities_for_group_priority(self) -> None:
         manager = EventManager(make_event(level=logging.FATAL))
         project = self.create_project(name="test_activities_group")
         event = manager.save(project.id)
@@ -53,7 +53,7 @@ class ActivityTest(TestCase):
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
         assert act_for_group[-1].data["priority"] == PriorityLevel.HIGH.to_str()
 
-    def test_get_activities_for_group_simple_priority_ff_on_dups(self):
+    def test_get_activities_for_group_simple_priority_ff_on_dups(self) -> None:
         manager = EventManager(make_event(level=logging.FATAL))
         project = self.create_project(name="test_activities_group")
         event = manager.save(project.id)
@@ -94,7 +94,7 @@ class ActivityTest(TestCase):
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
         assert act_for_group[-1].data["priority"] == PriorityLevel.HIGH.to_str()
 
-    def test_get_activities_for_group_simple(self):
+    def test_get_activities_for_group_simple(self) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
         user1 = self.create_user()
@@ -122,7 +122,7 @@ class ActivityTest(TestCase):
         assert act_for_group[1] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
 
-    def test_get_activities_for_group_collapse_same(self):
+    def test_get_activities_for_group_collapse_same(self) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
         user1 = self.create_user()
@@ -219,7 +219,7 @@ class ActivityTest(TestCase):
         assert act_for_group[5] == activities[0]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
 
-    def test_get_activities_for_group_flip_flop(self):
+    def test_get_activities_for_group_flip_flop(self) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
         user1 = self.create_user()

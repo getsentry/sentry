@@ -63,6 +63,7 @@ from sentry.tasks.post_process import (
     feedback_filter_decorator,
     locks,
     post_process_group,
+    post_process_group_shim,
     run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -166,7 +167,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
         assert mock_processor.call_count == 0
 
-    def test_processing_cache_cleared(self):
+    def test_processing_cache_cleared(self) -> None:
         event = self.create_event(data={}, project_id=self.project.id)
 
         cache_key = self.call_post_process_group(
@@ -177,7 +178,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         )
         assert event_processing_store.get(cache_key) is None
 
-    def test_processing_cache_cleared_with_commits(self):
+    def test_processing_cache_cleared_with_commits(self) -> None:
         # Regression test to guard against suspect commit calculations breaking the
         # cache
         event = self.create_event(data={}, project_id=self.project.id)
@@ -210,6 +211,37 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert "tasks.post_process.old_time_to_post_process" not in [
             args[0] for args in logger_mock.warning.call_args_list
         ]
+
+
+class PostProcessGroupShimTest(TestCase, SnubaTestCase, BasePostProgressGroupMixin):
+    def create_event(self, data: dict[str, Any], project_id: int, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        post_process_group_shim(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+            eventstream_type=EventStreamEventType.Error.value,
+        )
+
+    @patch("sentry.signals.event_processed.send_robust")
+    def test_shim_calls_implementation(self, event_processed_signal_mock):
+        event = self.create_event(data={}, project_id=self.project.id)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert event_processed_signal_mock.call_count == 1
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
@@ -380,7 +412,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
 
     @mock_redis_buffer()
-    def test_rule_processor_buffer_values(self):
+    def test_rule_processor_buffer_values(self) -> None:
         # Test that pending buffer values for `times_seen` are applied to the group and that alerts
         # fire as expected
         from sentry.models.rule import Rule
@@ -827,7 +859,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             auto_assignment=True,
         )
 
-    def test_owner_assignment_order_precedence(self):
+    def test_owner_assignment_order_precedence(self) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -862,7 +894,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
         }
 
-    def test_owner_assignment_extra_groups(self):
+    def test_owner_assignment_extra_groups(self) -> None:
         extra_user = self.create_user()
         self.create_team_membership(self.team, user=extra_user)
         self.make_ownership(
@@ -892,7 +924,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             (o.user_id, o.team_id) for o in owners
         }
 
-    def test_owner_assignment_existing_owners(self):
+    def test_owner_assignment_existing_owners(self) -> None:
         extra_team = self.create_team()
         ProjectTeam.objects.create(team=extra_team, project=self.project)
 
@@ -929,7 +961,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             (o.user_id, o.team_id) for o in owners
         }
 
-    def test_owner_assignment_assign_user(self):
+    def test_owner_assignment_assign_user(self) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -949,7 +981,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id == self.user.id
         assert assignee.team is None
 
-    def test_owner_assignment_ownership_no_matching_owners(self):
+    def test_owner_assignment_ownership_no_matching_owners(self) -> None:
         event = self.create_event(
             data={
                 "message": "oh no",
@@ -966,7 +998,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         assert not event.group.assignee_set.exists()
 
-    def test_owner_assignment_existing_assignment(self):
+    def test_owner_assignment_existing_assignment(self) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -987,7 +1019,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id is None
         assert assignee.team == self.team
 
-    def test_only_first_assignment_works(self):
+    def test_only_first_assignment_works(self) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1028,7 +1060,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id == self.user.id
         assert assignee.team is None
 
-    def test_owner_assignment_owner_is_gone(self):
+    def test_owner_assignment_owner_is_gone(self) -> None:
         self.make_ownership()
         # Remove the team so the rule match will fail to resolve
         self.team.delete()
@@ -1050,7 +1082,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee is None
 
-    def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self):
+    def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1087,7 +1119,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id is None
         assert assignee.team == self.team
 
-    def test_owner_assignment_when_owners_have_been_unassigned(self):
+    def test_owner_assignment_when_owners_have_been_unassigned(self) -> None:
         """
         Test that ensures that if certain assignees get unassigned, and project rules are changed
         then the new group assignees should be re-calculated and re-assigned
@@ -1194,7 +1226,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == user_4.id
 
-    def test_auto_assignment_when_owners_have_been_unassigned(self):
+    def test_auto_assignment_when_owners_have_been_unassigned(self) -> None:
         """
         Test that ensures that if assignee gets unassigned and project rules are changed,
         then the new group assignees should be re-calculated and re-assigned
@@ -1255,7 +1287,9 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Group should be re-assigned to the new group owner
         assert assignee.user_id == user_3.id
 
-    def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
+    def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(
+        self,
+    ) -> None:
         self.make_ownership()
         event = self.create_event(
             data={
@@ -1279,7 +1313,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-    def test_auto_assignment_when_owners_are_invalid(self):
+    def test_auto_assignment_when_owners_are_invalid(self) -> None:
         """
         Test that invalid group owners (that exist due to bugs) are deleted and not assigned
         when no valid issue owner exists
@@ -1399,7 +1433,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         "commitAuthorEmail": "admin@localhost",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.created_event = self.create_event(
             data={
                 "message": "Kaboom!",
@@ -1996,7 +2030,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
 
 
 class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
-    def test_user_report_gets_environment(self):
+    def test_user_report_gets_environment(self) -> None:
         project = self.create_project()
         environment = Environment.objects.create(
             organization_id=project.organization_id, name="production"
@@ -2024,7 +2058,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
         )
         assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
-    def test_user_report_gets_environment_with_new_link_features(self):
+    def test_user_report_gets_environment_with_new_link_features(self) -> None:
         project = self.create_project()
         environment = Environment.objects.create(
             organization_id=project.organization_id, name="production"
@@ -2152,7 +2186,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         assert exists == cluster.sismember(key, str(organization.id))
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
-    def test_uptime_detection_feature_url(self):
+    def test_uptime_detection_feature_url(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
             project_id=self.project.id,
@@ -2166,7 +2200,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         self.assert_organization_key(self.organization, True)
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
-    def test_uptime_detection_feature_no_url(self):
+    def test_uptime_detection_feature_no_url(self) -> None:
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -2179,7 +2213,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, False)
 
-    def test_uptime_detection_no_feature(self):
+    def test_uptime_detection_no_feature(self) -> None:
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
             project_id=self.project.id,
@@ -2198,7 +2232,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
 @patch("sentry.utils.metrics.distribution")
 class CheckIfFlagsSentTestMixin(BasePostProgressGroupMixin):
     def test_set_has_flags(self, mock_dist, mock_incr, mock_record):
-        project = self.create_project()
+        project = self.create_project(platform="other")
         event_id = "a" * 32
         event = self.create_event(
             data={
@@ -2900,7 +2934,7 @@ class PostProcessGroupErrorTest(
     ProcessSimilarityTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         clear_replay_publisher()
 
@@ -3125,11 +3159,11 @@ class PostProcessGroupGenericTest(
         )
         return cache_key
 
-    def test_issueless(self):
+    def test_issueless(self) -> None:
         # Skip this test since there's no way to have issueless events in the issue platform
         pass
 
-    def test_no_cache_abort(self):
+    def test_no_cache_abort(self) -> None:
         # We don't use the cache for generic issues, so skip this test
         pass
 
@@ -3196,11 +3230,11 @@ class PostProcessGroupGenericTest(
         assert snuba_raw_query_mock.call_count == 0
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared(self):
+    def test_processing_cache_cleared(self) -> None:
         pass
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared_with_commits(self):
+    def test_processing_cache_cleared_with_commits(self) -> None:
         pass
 
 
@@ -3280,7 +3314,7 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
-    def test_not_ran_if_crash_report_option_disabled(self):
+    def test_not_ran_if_crash_report_option_disabled(self) -> None:
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
             data={},
@@ -3305,7 +3339,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    def test_not_ran_if_spam(self):
+    def test_not_ran_if_spam(self) -> None:
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -3330,7 +3364,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    def test_not_ran_if_crash_report_project_option_enabled(self):
+    def test_not_ran_if_crash_report_project_option_enabled(self) -> None:
         self.project.update_option("sentry:feedback_user_report_notifications", True)
 
         event = self.create_event(
@@ -3356,7 +3390,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
-    def test_not_ran_if_crash_report_setting_option_epoch_0(self):
+    def test_not_ran_if_crash_report_setting_option_epoch_0(self) -> None:
         self.project.update_option("sentry:option-epoch", 1)
         event = self.create_event(
             data={},
@@ -3381,7 +3415,7 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    def test_ran_if_default_on_new_projects(self):
+    def test_ran_if_default_on_new_projects(self) -> None:
         event = self.create_event(
             data={"message": "It Broke!!!"},
             project_id=self.project.id,
@@ -3406,7 +3440,7 @@ class PostProcessGroupFeedbackTest(
         assert mock_process_func.call_count == 1
         assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
-    def test_ran_if_crash_feedback_envelope(self):
+    def test_ran_if_crash_feedback_envelope(self) -> None:
         event = self.create_event(
             data={"message": "It Broke!!!"},
             project_id=self.project.id,
@@ -3431,7 +3465,7 @@ class PostProcessGroupFeedbackTest(
         assert mock_process_func.call_count == 1
         assert event.occurrence.issue_title == "User Feedback: It Broke!!!"
 
-    def test_logs_if_source_missing(self):
+    def test_logs_if_source_missing(self) -> None:
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -3462,36 +3496,36 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
-    def test_issueless(self): ...
+    def test_issueless(self) -> None: ...
 
-    def test_no_cache_abort(self):
+    def test_no_cache_abort(self) -> None:
         # We don't use the cache for generic issues, so skip this test
         pass
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared(self):
+    def test_processing_cache_cleared(self) -> None:
         pass
 
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared_with_commits(self):
+    def test_processing_cache_cleared_with_commits(self) -> None:
         pass
 
     @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
-    def test_invalidates_snooze(self):
+    def test_invalidates_snooze(self) -> None:
         pass
 
     @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
-    def test_invalidates_snooze_with_buffers(self):
+    def test_invalidates_snooze_with_buffers(self) -> None:
         pass
 
     @pytest.mark.skip(reason="auto resolve is disabled for feedback issues")
-    def test_group_inbox_regression(self):
+    def test_group_inbox_regression(self) -> None:
         pass
 
     @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
-    def test_forecast_in_activity(self):
+    def test_forecast_in_activity(self) -> None:
         pass
 
     @pytest.mark.skip(reason="regression is disabled for feedback issues")
-    def test_group_last_seen_buffer(self):
+    def test_group_last_seen_buffer(self) -> None:
         pass
