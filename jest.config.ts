@@ -1,4 +1,5 @@
 import type {Config} from '@jest/types';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
@@ -39,18 +40,23 @@ const babelConfig: TransformOptions = {
 const {
   CI,
   JEST_TEST_BALANCER,
-  CI_NODE_TOTAL,
   CI_NODE_INDEX,
+  CI_NODE_INSTANCES,
   GITHUB_PR_SHA,
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  SHARD_STRATEGY,
 } = process.env;
+
+// If you pass `CI_NODE_INSTANCES`, we will use the length of the array to determine
+// the total number of nodes to run the tests on.
+const CI_NODE_TOTAL = JSON.parse(CI_NODE_INSTANCES || '[0, 1, 2, 3]').length;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
-  balancer?: boolean;
+  balancer: boolean;
   balancer_strategy?: string;
 } = {
   balancer: false,
@@ -100,6 +106,40 @@ ${stderr}
  * be running the tests.
  */
 let testMatch: string[] | undefined;
+
+function getTestForGroupBySlice(
+  nodeIndex: number,
+  nodeTotal: number,
+  allTests: ReadonlyArray<string>
+): string[] {
+  const tests = allTests.toSorted((a, b) => b.localeCompare(a));
+
+  const length = tests.length;
+  const size = Math.floor(length / nodeTotal);
+  const remainder = length % nodeTotal;
+  const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
+  const chunk = size + (nodeIndex < remainder ? 1 : 0);
+
+  return tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+}
+
+function getTestsForGroupByHash(
+  nodeIndex: number,
+  nodeTotal: number,
+  allTests: ReadonlyArray<string>
+): string[] {
+  const tests = new Map<number, string[]>(
+    Array.from({length: nodeTotal}, (_, i) => [i, []])
+  );
+
+  for (const test of allTests) {
+    const hash = crypto.createHash('sha256').update(test).digest('hex');
+    const index = parseInt(hash.slice(0, 2), 16) % nodeTotal;
+    tests.get(index)?.push(`<rootDir>/${test}`);
+  }
+
+  return tests.get(nodeIndex) ?? [];
+}
 
 function getTestsForGroup(
   nodeIndex: number,
@@ -230,20 +270,27 @@ if (
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
-  if (balance) {
-    optionalTags.balancer = true;
-    optionalTags.balancer_strategy = 'by_path';
-    testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
-  } else {
-    const tests = envTestList.sort((a, b) => b.localeCompare(a));
-
-    const length = tests.length;
-    const size = Math.floor(length / nodeTotal);
-    const remainder = length % nodeTotal;
-    const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
-    const chunk = size + (nodeIndex < remainder ? 1 : 0);
-
-    testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+  switch (SHARD_STRATEGY) {
+    case 'hash':
+      optionalTags.balancer = true;
+      optionalTags.balancer_strategy = 'by_hash';
+      testMatch = getTestsForGroupByHash(nodeIndex, nodeTotal, envTestList);
+      break;
+    case 'slice':
+      optionalTags.balancer = true;
+      optionalTags.balancer_strategy = 'by_slice';
+      testMatch = getTestForGroupBySlice(nodeIndex, nodeTotal, envTestList);
+      break;
+    case 'original':
+    default:
+      if (balance) {
+        optionalTags.balancer = true;
+        optionalTags.balancer_strategy = 'by_path';
+        testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+      } else {
+        testMatch = getTestForGroupBySlice(nodeIndex, nodeTotal, envTestList);
+      }
+      break;
   }
 }
 
