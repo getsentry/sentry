@@ -76,7 +76,7 @@ const makeAutomationFireHistoryQueryKey = ({
   automationId,
   cursor,
   limit,
-  query,
+  query = {},
 }: {
   automationId: string;
   orgSlug: string;
