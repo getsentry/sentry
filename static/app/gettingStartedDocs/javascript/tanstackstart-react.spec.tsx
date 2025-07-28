@@ -33,8 +33,37 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('enables performance setting the tracesSampleRate to 1', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(
+      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+    ).toHaveLength(2); // Should appear in both client and server configurations
+  });
+
+  it('enables replay by setting replay samplerates', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+    });
+
     expect(
       screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0\.1/))
     ).toBeInTheDocument();
@@ -49,8 +78,8 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toHaveLength(2); // Should appear in both client and server configurations
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {
