@@ -514,7 +514,7 @@ export const APIRoute = createAPIFileRoute("/api/sentry-example-api")({
         description: t(
           'Add logging integrations to automatically capture logs from your application.'
         ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/logs/#integrations/',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/logs/#integrations',
       });
     }
 
