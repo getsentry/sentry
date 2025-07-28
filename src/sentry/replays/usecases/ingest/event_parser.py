@@ -158,8 +158,6 @@ def which(event: dict[str, Any]) -> EventType:
                             return EventType.DEAD_CLICK
                     else:
                         return EventType.SLOW_CLICK
-                elif category == "navigation":
-                    return EventType.NAVIGATION
                 elif category == "console":
                     return EventType.CONSOLE
                 elif category == "ui.blur":
@@ -177,6 +175,8 @@ def which(event: dict[str, Any]) -> EventType:
             elif event["data"]["tag"] == "performanceSpan":
                 payload = event["data"]["payload"]
                 op = payload["op"]
+                if op.startswith("navigation"):
+                    return EventType.NAVIGATION
                 if op == "resource.fetch":
                     return EventType.RESOURCE_FETCH
                 elif op == "resource.xhr":

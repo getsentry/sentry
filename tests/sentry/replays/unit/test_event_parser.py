@@ -618,7 +618,16 @@ def test_which():
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "navigation.push",
+                "description": "url",
+                "startTimestamp": 1752530070.378,
+                "endTimestamp": 1752530070.378,
+                "data": {},
+            },
+        },
     }
     assert which(event) == EventType.NAVIGATION
 
