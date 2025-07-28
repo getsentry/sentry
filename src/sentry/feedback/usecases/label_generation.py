@@ -30,9 +30,8 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     The possible errors this can throw are:
     - request.exceptions.Timeout, request.exceptions.ConnectionError, etc. while making the request
     - request.exceptions.HTTPError (for raise_for_status)
-    - json.JSONDecodeError if the response is not valid JSON
+    - requests.exceptions.JSONDecodeError or another decode error if the response is not valid JSON
     - KeyError / ValueError if the response JSON doesn't have the expected structure
-    - UnicodeDecodeError, TypeError, etc. if the response is not valid UTF-8
     """
     request = LabelRequest(
         organization_id=organization_id,
