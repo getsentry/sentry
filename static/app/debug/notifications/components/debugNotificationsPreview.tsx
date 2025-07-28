@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Heading} from 'sentry/components/core/text/text';
+
 export function DebugNotificationsPreview({
   title,
   children,
@@ -9,15 +11,12 @@ export function DebugNotificationsPreview({
 }) {
   return (
     <div>
-      <PreviewTitle>{title}</PreviewTitle>
+      <SectionHeading as="h2">{title}</SectionHeading>
       {children}
     </div>
   );
 }
 
-const PreviewTitle = styled('h2')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: bold;
+const SectionHeading = styled(Heading)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;

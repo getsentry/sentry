@@ -72,6 +72,10 @@ function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps
     },
     [navigate]
   );
+  const filter = useCallback((text: string, input: string) => {
+    const match = fzf(text, input.toLowerCase(), false);
+    return match.score > 0;
+  }, []);
 
   const state = useComboBoxState({
     ...props,
@@ -93,14 +97,23 @@ function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps
     state
   );
 
+  const {className: _0, style: _1, size: nativeSize, ...nativeProps} = inputProps;
   return (
     <SearchContainer>
       <label {...labelProps} className="sr-only">
         {props.label}
       </label>
-      <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
+      <InputGroup>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input ref={inputRef} nativeSize={nativeSize} {...nativeProps} />
+        <InputGroup.TrailingItems>
+          <Badge type="internal">/</Badge>
+        </InputGroup.TrailingItems>
+      </InputGroup>
       {state.isOpen && (
-        <StyledOverlay placement="bottom-start" ref={popoverRef}>
+        <SearchOverlay placement="bottom-start" ref={popoverRef}>
           <ListBox
             listState={state}
             hasSearch={!!state.inputValue}
@@ -112,57 +125,31 @@ function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps
           >
             {props.children}
           </ListBox>
-        </StyledOverlay>
+        </SearchOverlay>
       )}
     </SearchContainer>
   );
-}
-
-function SearchInput(
-  props: React.HTMLProps<HTMLInputElement> & React.RefAttributes<HTMLInputElement>
-) {
-  const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
-
-  return (
-    <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
-      <InputGroup.LeadingItems disablePointerEvents>
-        <IconSearch />
-      </InputGroup.LeadingItems>
-      <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
-      <InputGroup.TrailingItems>
-        <Badge type="internal">/</Badge>
-      </InputGroup.TrailingItems>
-    </InputGroup>
-  );
-}
-
-function filter(textValue: string, inputValue: string): boolean {
-  const match = fzf(textValue, inputValue.toLowerCase(), false);
-  return match.score > 0;
 }
 
 const SearchContainer = styled('div')`
   position: relative;
   width: 320px;
   flex-grow: 1;
-  z-index: ${p => p.theme.zIndex.header};
   padding: ${p => p.theme.space.md};
   padding-right: 0;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
+  input:is(input) {
+    height: 32px;
+    min-height: 32px;
+  }
 `;
 
-const StyledOverlay = styled(Overlay)`
+const SearchOverlay = styled(Overlay)`
   position: fixed;
   top: 48px;
-  left: 108px;
   width: 320px;
   max-height: calc(100dvh - 128px);
   overflow-y: auto;
-
-  /* Make section headers darker in this component */
-  p[id][aria-hidden='true'] {
-    color: ${p => p.theme.textColor};
-  }
 `;

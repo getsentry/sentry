@@ -72,11 +72,6 @@ const HeaderGrid = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: sticky;
   top: 0;
-
-  input:is(input) {
-    height: 32px;
-    min-height: 32px;
-  }
 `;
 
 function ThemeSwitcher() {

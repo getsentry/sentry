@@ -1,146 +1,118 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Heading} from 'sentry/components/core/text/text';
 import {notificationCategories} from 'sentry/debug/notifications/data';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export function DebugNotificationsSidebar() {
   const location = useLocation();
   return (
-    <SidebarContainer>
-      <ul>
-        {notificationCategories.map(category => (
-          <li key={category.value}>
-            <h3>{category.label}</h3>
-            <nav>
-              <StoryList>
-                {category.sources.map(source => (
-                  <li key={source.value}>
-                    <NotificationLink
-                      to={
-                        location.query.source === source.value
-                          ? {query: {...location.query, source: undefined}}
-                          : {query: {...location.query, source: source.value}}
-                      }
-                      active={location.query.source === source.value}
-                    >
-                      {source.label}
-                    </NotificationLink>
-                  </li>
-                ))}
-              </StoryList>
-            </nav>
-          </li>
-        ))}
-      </ul>
-    </SidebarContainer>
+    <CategoryContainer>
+      {notificationCategories.map((category, i) => (
+        <Fragment key={category.value}>
+          {i !== 0 && <CategoryDivider />}
+          <CategoryItem>
+            <CategoryHeading as="h3" size="md">
+              {category.label}
+            </CategoryHeading>
+            <SourceList>
+              {category.sources.map(source => (
+                <SourceItem key={source.value}>
+                  <NotificationLinkButton
+                    borderless
+                    active={location.query.source === source.value}
+                    to={
+                      location.query.source === source.value
+                        ? {query: {...location.query, source: undefined}}
+                        : {query: {...location.query, source: source.value}}
+                    }
+                  >
+                    {source.label}
+                  </NotificationLinkButton>
+                </SourceItem>
+              ))}
+            </SourceList>
+          </CategoryItem>
+        </Fragment>
+      ))}
+    </CategoryContainer>
   );
 }
 
-const SidebarContainer = styled('nav')`
-  position: fixed;
-  top: 52px;
-  grid-row: 1;
-  grid-column: 1;
+const CategoryContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
-  min-height: 0;
-  height: calc(100dvh - 52px);
-  z-index: 0;
-  box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
-  width: 256px;
-  background: ${p => p.theme.tokens.background.primary};
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
-  ul,
-  li {
-    list-style: none;
-  }
-  > ul {
-    padding-left: ${p => p.theme.space.md};
-    padding-block: ${p => p.theme.space.xl};
-  }
-  > ul > li::before {
-    display: block;
-    content: '';
-    height: 1px;
-    background: ${p => p.theme.tokens.border.muted};
-    margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
-  }
-  > ul > li:first-child::before {
-    content: none;
-  }
-  h3 {
-    color: ${p => p.theme.tokens.content.primary};
-    font-size: ${p => p.theme.fontSize.md};
-    font-weight: ${p => p.theme.fontWeight.bold};
-    margin: 0;
-    padding: ${p => p.theme.space.md};
-  }
+  padding: ${p => p.theme.space.xl} 0;
 `;
 
-const StoryList = styled('ul')`
-  list-style-type: none;
-  padding-left: 16px;
-
-  &:first-child {
-    padding-left: 0;
-  }
+const CategoryDivider = styled('hr')`
+  margin: 0 auto;
+  border-color: ${p => p.theme.tokens.border.muted};
+  width: calc(100% - ${p => p.theme.space.xl});
 `;
 
-const NotificationLink = styled(Link, {
+const CategoryItem = styled('div')`
+  padding: 0 ${p => p.theme.space.md};
+`;
+
+const CategoryHeading = styled(Heading)`
+  padding: ${p => p.theme.space.md};
+`;
+
+const SourceList = styled('ul')`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const SourceItem = styled('li')`
+  display: block;
+`;
+
+const NotificationLinkButton = styled(LinkButton, {
   shouldForwardProp: prop => prop !== 'active',
 })<{active: boolean}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md};
+  position: relative;
+  display: block;
   color: ${p =>
     p.active ? p.theme.tokens.content.success : p.theme.tokens.content.muted};
-  padding: ${p =>
-    `${p.theme.space.md} ${p.theme.space.md} ${p.theme.space.md} ${p.theme.space.sm}`};
-  position: relative;
-  transition: none;
-
-  &:before {
-    background: ${p =>
-      p.theme.isChonk ? (p.theme as any).colors.green100 : p.theme.green100};
-    content: '';
-    inset: 0 ${p => p.theme.space.md} 0 -${p => p.theme.space['2xs']};
-    position: absolute;
-    z-index: -1;
-    border-radius: ${p => p.theme.borderRadius};
-    opacity: ${p => (p.active ? 1 : 0)};
-    transition: none;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  text-align: left;
+  /* Undo some button styles */
+  height: auto;
+  min-height: auto;
+  > span {
+    justify-content: flex-start;
+    white-space: wrap;
   }
-
+  /* Dark notch beside active sources */
   &:after {
     content: '';
     position: absolute;
-    left: -8px;
+    left: -9px;
     height: 20px;
-    background: ${p => p.theme.tokens.graphics.success};
     width: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: ${p => p.theme.tokens.graphics.success};
     border-radius: ${p => p.theme.borderRadius};
     opacity: ${p => (p.active ? 1 : 0)};
-    transition: none;
   }
-
   &:hover {
     color: ${p =>
       p.active ? p.theme.tokens.content.success : p.theme.tokens.content.primary};
-
     &:before {
       background: ${p => (p.active ? p.theme.green100 : p.theme.gray100)};
       opacity: 1;
     }
   }
-
   &:active {
     color: ${p =>
       p.active ? p.theme.tokens.content.success : p.theme.tokens.content.primary};
-
     &:before {
       background: ${p => (p.active ? p.theme.green200 : p.theme.gray200)};
       opacity: 1;
