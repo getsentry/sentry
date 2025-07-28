@@ -39,7 +39,6 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
   justify?: Responsive<
     'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
   >;
-  order?: Responsive<CSSProperties['order']>;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 };
 

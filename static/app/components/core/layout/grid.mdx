@@ -35,22 +35,47 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
       "header header"
       "sidebar main"
       "footer footer"'
-    columns="200px 1fr"
+    columns="100px 1fr"
     rows="60px 1fr 60px"
     gap="md"
     padding="md"
     style={{height: '300px'}}
   >
-    <Container area="header" border="primary">
+    <Container
+      area="header"
+      border="primary"
+      padding="md"
+      background="primary"
+      radius="md"
+    >
       Header
     </Container>
-    <Container area="sidebar" border="primary">
+    <Container
+      area="sidebar"
+      border="primary"
+      padding="md"
+      background="primary"
+      radius="md"
+    >
       Sidebar
     </Container>
-    <Container area="main" border="primary">
+    <Container
+      area="main"
+      border="primary"
+      padding="md"
+      minWidth="300px"
+      background="primary"
+      radius="md"
+    >
       Main Content
     </Container>
-    <Container area="footer" border="primary">
+    <Container
+      area="footer"
+      border="primary"
+      padding="md"
+      background="primary"
+      radius="md"
+    >
       Footer
     </Container>
   </Grid>
@@ -74,32 +99,31 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
 
 ### Alignment
 
-Grid provides fine-grained control over alignment using `justify`, `align`, `justifyContent`, and `alignContent`.
+Grid provides fine-grained control over alignment using `justify`, `align`, `justifyItems`, and `alignContent`.
 
 <Storybook.Demo>
-  <Grid columns="repeat(2, 1fr)" gap="md" padding="md">
+  <Grid columns="repeat(1, 1fr)" gap="md" padding="md" width="100%">
     {[
-      {justifyContent: 'start', align: 'start', label: 'start/start'},
-      {justifyContent: 'center', align: 'center', label: 'center/center'},
-      {justifyContent: 'end', align: 'end', label: 'end/end'},
-      {justifyContent: 'stretch', align: 'stretch', label: 'stretch/stretch'},
-    ].map(({justifyContent, align, label}) => (
-      <Grid
-        key={label}
-        columns="repeat(2, 1fr)"
-        gap="sm"
-        justifyContent={justifyContent}
-        align={align}
-        border="primary"
-      >
-        <div>{label}</div>
-        <div>Item</div>
+      {justify: 'start', align: 'start', label: 'start'},
+      {justify: 'center', align: 'center', label: 'center'},
+      {justify: 'end', align: 'end', label: 'end'},
+      {justify: 'between', align: 'between', label: 'between'},
+      {justify: 'around', align: 'around', label: 'around'},
+      {justify: 'evenly', align: 'evenly', label: 'evenly'},
+    ].map(({justify, align, label}) => (
+      <Grid key={label} columns="repeat(2, 25%)" gap="sm" justify={justify} align={align}>
+        <Container padding="md" background="primary" radius="md" border="primary">
+          {label}
+        </Container>
+        <Container padding="md" background="primary" radius="md" border="primary">
+          alignment
+        </Container>
       </Grid>
     ))}
   </Grid>
 </Storybook.Demo>
 ```jsx
-<Grid columns="repeat(2, 1fr)" justifyContent="center" align="center">
+<Grid columns="repeat(2, 1fr)" justify="center" align="center">
   <div>Centered Item</div>
   <div>Another Item</div>
 </Grid>
@@ -113,12 +137,60 @@ Example of a responsive grid container that changes from single column on small 
 
 <Storybook.Demo>
   <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} gap="md" p="md">
-    <div>Responsive</div>
-    <div>Grid</div>
-    <div>Layout</div>
-    <div>Items</div>
-    <div>🔥</div>
-    <div>Awesome</div>
+    <Container
+      padding="md"
+      border="primary"
+      border="primary"
+      radius="md"
+      background="primary"
+    >
+      Responsive
+    </Container>
+    <Container
+      padding="md"
+      border="primary"
+      border="primary"
+      radius="md"
+      background="primary"
+    >
+      Grid
+    </Container>
+    <Container
+      padding="md"
+      border="primary"
+      border="primary"
+      radius="md"
+      background="primary"
+    >
+      Layout
+    </Container>
+    <Container
+      padding="md"
+      border="primary"
+      border="primary"
+      radius="md"
+      background="primary"
+    >
+      Items
+    </Container>
+    <Container
+      padding="md"
+      border="primary"
+      border="primary"
+      radius="md"
+      background="primary"
+    >
+      🔥
+    </Container>
+    <Container
+      padding="md"
+      border="primary"
+      border="primary"
+      radius="md"
+      background="primary"
+    >
+      Awesome
+    </Container>
   </Grid>
 </Storybook.Demo>
 ```jsx
@@ -127,12 +199,12 @@ Example of a responsive grid container that changes from single column on small 
   columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}
   gap="md"
 >
-  <div>Responsive</div>
-  <div>Grid</div>
-  <div>Layout</div>
-  <div>Items</div>
-  <div>🔥</div>
-  <div>Awesome</div>
+  <Container>Responsive</Container>
+  <Container>Grid</Container>
+  <Container>Layout</Container>
+  <Container>Items</Container>
+  <Container>🔥</Container>
+  <Container>Awesome</Container>
 </Grid>
 ```
 
