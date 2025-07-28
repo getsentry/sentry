@@ -139,6 +139,7 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    matchKeySuggestions,
     enableAISearch,
     gaveSeerConsent,
   } = useSearchQueryBuilder();
@@ -148,6 +149,9 @@ export function useSortedFilterKeyItems({
   );
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
   );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
@@ -261,6 +265,32 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
+      const shouldShowMatchKeySuggestions =
+        !disallowFreeText &&
+        inputValue &&
+        !isQuoted(inputValue) &&
+        (!keyItems.length || inputValue.trim().includes(' ')) &&
+        !!matchKeySuggestions?.length &&
+        matchKeySuggestions.some(suggestion =>
+          suggestion.valuePattern.test(inputValue)
+        ) &&
+        hasMatchKeySuggestions;
+
+      let matchKeySuggestionsOptions: SearchKeyItem[] = [];
+      if (shouldShowMatchKeySuggestions && matchKeySuggestions) {
+        matchKeySuggestionsOptions = matchKeySuggestions
+          ?.filter(suggestion => suggestion.valuePattern.test(inputValue))
+          .map(suggestion => createFilterValueItem(suggestion.key, inputValue));
+      }
+
+      const matchKeySuggestionsSection: KeySectionItem = {
+        key: 'key-matched-suggestions',
+        value: 'key-matched-suggestions',
+        label: '',
+        options: matchKeySuggestionsOptions,
+        type: 'section',
+      };
+
       const askSeerItem = [];
       if (enableAISearch) {
         askSeerItem.push(
@@ -272,6 +302,7 @@ export function useSortedFilterKeyItems({
         getValueSuggestionsFromSearchResult(searched);
 
       return [
+        ...(shouldShowMatchKeySuggestions ? [matchKeySuggestionsSection] : []),
         ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
         ...(shouldReplaceRawSearch ? [rawSearchReplacements] : []),
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
@@ -291,10 +322,12 @@ export function useSortedFilterKeyItems({
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
+    hasMatchKeySuggestions,
     hasRawSearchReplacement,
     hasWildcardSearch,
     includeSuggestions,
     inputValue,
+    matchKeySuggestions,
     replaceRawSearchKeys,
     search,
   ]);
