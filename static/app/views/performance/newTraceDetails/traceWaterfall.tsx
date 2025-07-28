@@ -142,14 +142,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const {timestamp} = useTraceQueryParams();
 
-  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
-
-  // eslint-disable-next-line no-console
-  console.log('xx showLinkedTraces', showLinkedTraces);
-  // eslint-disable-next-line no-console
-  console.log('xx', props.rootEventResults.data);
-  // eslint-disable-next-line no-console
-  console.log('cc', isTraceItemDetailsResponse(props.rootEventResults.data));
+  const showLinkedTraces =
+    organization?.features.includes('trace-view-linked-traces') &&
+    // Don't show the linked traces buttons when the waterfall is embedded in the replay
+    // detail page, as it already contains all traces of the replay session.
+    props.source !== 'replay';
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {

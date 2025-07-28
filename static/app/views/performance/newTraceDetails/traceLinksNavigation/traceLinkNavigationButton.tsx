@@ -3,10 +3,6 @@ import styled from '@emotion/styled';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {
-  SpanLink,
-  TraceContextType,
-} from 'sentry/components/events/interfaces/spans/types';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -14,56 +10,27 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {isEmptyTrace} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {useFindNextTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindNextTrace';
+import {
+  useFindNextTrace,
+  useFindPreviousTrace,
+} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindNextTrace';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export type ConnectedTraceConnection = 'previous' | 'next';
 
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
-function useIsTraceAvailable(
-  traceID?: string,
-  linkedTraceTimestamp?: number
-): {
-  isAvailable: boolean;
-  isLoading: boolean;
-} {
-  // eslint-disable-next-line no-console
-  console.log('xx useIsTraceAvailable', {traceID, linkedTraceTimestamp});
-  const trace = useTrace({
-    traceSlug: traceID,
-    // timestamp: linkedTraceTimestamp,
-  });
-
-  const isAvailable = useMemo(() => {
-    if (!traceID) {
-      return false;
-    }
-
-    return Boolean(trace.data && !isEmptyTrace(trace.data));
-  }, [traceID, trace]);
-
-  return {
-    isAvailable,
-    isLoading: trace.isLoading,
-  };
-}
-
 type TraceLinkNavigationButtonProps = {
   currentTraceTimestamps: {end?: number; start?: number};
   direction: ConnectedTraceConnection;
   attributes?: TraceItemResponseAttribute[];
   isLoading?: boolean;
-  projectID?: string;
 };
 
 export function TraceLinkNavigationButton({
   direction,
   attributes,
-  isLoading,
-  projectID,
+  isLoading: isWaterfallLoading,
   currentTraceTimestamps,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
@@ -77,38 +44,27 @@ export function TraceLinkNavigationButton({
         ? currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION // Latest end time of next trace (+ 1h)
         : undefined;
 
-  const currentTraceID = attributes?.find(a => a.name === 'trace_id' && a.type === 'str')
-    ?.value as string | undefined;
-
-  const previousTraceAttribute = attributes?.find(
-    a => a.name === 'previous_trace' && a.type === 'str'
-  );
-
-  const [previousTraceID, previousTraceSpanID, previousTraceSampledFlag] =
-    typeof previousTraceAttribute?.value === 'string'
-      ? previousTraceAttribute?.value.split('-') || []
-      : [];
-
-  const previousTraceSampled = previousTraceSampledFlag === '1';
-
-  // eslint-disable-next-line no-console
-  console.log('xx previous trace', {
-    previousTraceSampled,
-    previousTraceID,
-    previousTraceSpanID,
-  });
-
-  const nextTraceData = useFindNextTrace({
+  const {
+    available: isPreviousTraceAvailable,
+    id: previousTraceSpanId,
+    trace: previousTraceId,
+    sampled: previousTraceSampled,
+    isLoading: isPreviousTraceLoading,
+  } = useFindPreviousTrace({
     direction,
-    currentTraceID,
-    linkedTraceStartTimestamp: currentTraceTimestamps.end,
-    linkedTraceEndTimestamp: linkedTraceTimestamp,
-    projectID,
+    linkedTraceTimestamp,
+    attributes,
   });
 
-  // eslint-disable-next-line no-console
-  console.log('xx next trace', {
-    nextTraceData,
+  const {
+    id: nextTraceSpanId,
+    trace: nextTraceId,
+    isLoading: isNextTraceLoading,
+  } = useFindNextTrace({
+    direction,
+    nextTraceEndTimestamp: currentTraceTimestamps.end ?? 0,
+    nextTraceStartTimestamp: linkedTraceTimestamp ?? 0,
+    attributes,
   });
 
   const dateSelection = useMemo(
@@ -116,60 +72,76 @@ export function TraceLinkNavigationButton({
     [location.query]
   );
 
-  const {isAvailable: isLinkedTraceAvailable} = useIsTraceAvailable(
-    direction === 'previous' ? previousTraceID : nextTraceData?.trace_id,
-    linkedTraceTimestamp
-  );
-
-  // eslint-disable-next-line no-console
-  console.log('xx isLinkedTraceAvailable', {
-    isLinkedTraceAvailable,
-  });
-
-  if (isLoading) {
-    // We don't show a placeholder/skeleton here as it would cause layout shifts most of the time.
-    // Most traces don't have a next/previous trace and the hard to avoid layout shift should only occur if the actual button can be shown.
-    return null;
+  if (isWaterfallLoading) {
+    return <PlaceHolder />;
   }
 
-  if (previousTraceID && isLinkedTraceAvailable) {
-    return (
-      <StyledTooltip
-        position="right"
-        delay={400}
-        isHoverable
-        title={tct(
-          `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
-          {
-            link: (
-              <ExternalLink
-                href={
-                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
-                }
-              />
-            ),
-          }
-        )}
-      >
-        <TraceLink
-          color="gray500"
-          to={getTraceDetailsUrl({
-            traceSlug: previousTraceID,
-            spanId: previousTraceSpanID,
-            dateSelection,
-            timestamp: linkedTraceTimestamp,
-            location,
-            organization,
-          })}
+  if (direction === 'previous' && previousTraceId && !isPreviousTraceLoading) {
+    if (isPreviousTraceAvailable) {
+      return (
+        <StyledTooltip
+          position="right"
+          delay={400}
+          isHoverable
+          title={tct(
+            `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
+            {
+              link: (
+                <ExternalLink
+                  href={
+                    'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
+                  }
+                />
+              ),
+            }
+          )}
         >
-          <IconChevron direction="left" />
-          <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
-        </TraceLink>
-      </StyledTooltip>
-    );
+          <TraceLink
+            color="gray500"
+            to={getTraceDetailsUrl({
+              traceSlug: previousTraceId,
+              spanId: previousTraceSpanId,
+              dateSelection,
+              timestamp: linkedTraceTimestamp,
+              location,
+              organization,
+            })}
+          >
+            <IconChevron direction="left" />
+            <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
+          </TraceLink>
+        </StyledTooltip>
+      );
+    }
+
+    if (!previousTraceSampled) {
+      return (
+        <StyledTooltip
+          position="right"
+          title={t(
+            'Trace contains a link to an unsampled trace. Increase traces sample rate in SDK settings to see more connected traces'
+          )}
+        >
+          <TraceLinkText>{t('Previous trace not sampled')}</TraceLinkText>
+        </StyledTooltip>
+      );
+    }
+
+    if (!isPreviousTraceAvailable) {
+      return (
+        <StyledTooltip
+          position="right"
+          title={t(
+            'Trace contains a link to a trace that is not available. This means that the trace was not stored.'
+          )}
+        >
+          <TraceLinkText>{t('Previous trace not available')}</TraceLinkText>
+        </StyledTooltip>
+      );
+    }
   }
 
-  if (nextTraceData?.trace_id && nextTraceData.span_id && isLinkedTraceAvailable) {
+  if (direction === 'next' && !isNextTraceLoading && nextTraceId && nextTraceSpanId) {
     return (
       <StyledTooltip
         position="left"
@@ -191,8 +163,8 @@ export function TraceLinkNavigationButton({
         <TraceLink
           color="gray500"
           to={getTraceDetailsUrl({
-            traceSlug: nextTraceData.trace_id,
-            spanId: nextTraceData.span_id,
+            traceSlug: nextTraceId,
+            spanId: nextTraceSpanId,
             dateSelection,
             timestamp: linkedTraceTimestamp,
             location,
@@ -206,25 +178,23 @@ export function TraceLinkNavigationButton({
     );
   }
 
-  if (previousTraceSampled === false) {
-    return (
-      <StyledTooltip
-        position="right"
-        title={t(
-          'Trace contains a link to unsampled trace. Increase traces sample rate in SDK settings to see more connected traces'
-        )}
-      >
-        <TraceLinkText>{t('Previous trace not available')}</TraceLinkText>
-      </StyledTooltip>
-    );
-  }
-
-  // If there is no linked trace or an undefined sampling decision
-  return null;
+  // If there's no linked trace, let's render a placeholder for now to avoid layout shifts
+  // We should reconsider the place where we render these buttons, to avoid reducing the
+  // waterfall height permanently
+  return <PlaceHolder />;
 }
 
+function PlaceHolder() {
+  return <PlaceHolderText>&nbsp;</PlaceHolderText>;
+}
+
+const PlaceHolderText = styled('span')`
+  padding: ${space(0.5)} ${space(0.5)};
+  visibility: hidden;
+`;
+
 const StyledTooltip = styled(Tooltip)`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.5)} ${space(0.5)};
   text-decoration: underline dotted
     ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
 `;
