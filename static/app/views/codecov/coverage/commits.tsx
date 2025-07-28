@@ -445,24 +445,31 @@ function renderTableBody(
   }
 
   if (key === 'uploads') {
+    // Safely handle cases where uploadCount might be undefined or missing properties
+    const uploadCount = row.uploadCount || {};
+    const total = uploadCount.total ?? 0;
+    const processed = uploadCount.processed ?? 0;
+    const pending = uploadCount.pending ?? 0;
+    const failed = uploadCount.failed ?? 0;
+
     return (
       <UploadCountCell>
-        <UploadNumber>{row.uploadCount.total}</UploadNumber>
+        <UploadNumber>{total}</UploadNumber>
         <UploadBreakdown>
           <UploadStatus>
             <StatusDot color="#2BA185" />
-            <UploadText>{row.uploadCount.processed} Processed</UploadText>
+            <UploadText>{processed} Processed</UploadText>
           </UploadStatus>
-          {row.uploadCount.pending > 0 && (
+          {pending > 0 && (
             <UploadStatus>
               <StatusDot color="#EBC000" />
-              <UploadText>{row.uploadCount.pending} Pending</UploadText>
+              <UploadText>{pending} Pending</UploadText>
             </UploadStatus>
           )}
-          {row.uploadCount.failed > 0 && (
+          {failed > 0 && (
             <UploadStatus>
               <StatusDot color="#CF2126" />
-              <UploadText>{row.uploadCount.failed} Failed</UploadText>
+              <UploadText>{failed} Failed</UploadText>
             </UploadStatus>
           )}
         </UploadBreakdown>
@@ -1040,8 +1047,8 @@ const TooltipTitle = styled('div')`
 `;
 
 const TooltipDescription = styled('div')`
-  font-weight: 400;
-  font-size: 12px;
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   line-height: 1.4;
 `;

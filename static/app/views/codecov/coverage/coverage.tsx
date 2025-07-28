@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {TreeCoverageSunburstChart} from 'sentry/components/charts/treeCoverageSunburstChart';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 const SAMPLE_DATA = {
@@ -91,7 +92,7 @@ const SAMPLE_DATA = {
 export default function CoveragePage() {
   return (
     <LayoutGap>
-      <p>Code Coverage</p>
+      <p>{t('Code Coverage')}</p>
       <TreeCoverageSunburstChart data={SAMPLE_DATA} />
     </LayoutGap>
   );
