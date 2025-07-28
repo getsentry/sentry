@@ -342,11 +342,13 @@ Retrieves a list of 3-4 categories, which comprise of a primary label, along wit
 
 **Attributes**
 
-| Column              | Type             | Description                                                                                    |
-| ------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
-| categories          | optional[object] | Each primary label, its associated labels, and the number of feedbacks in each group of labels |
-| numFeedbacksContext | int              | Number of feedbacks given as context to the LLM                                                |
-| success             | boolean          | -                                                                                              |
+| Column                                       | Type             | Description                                                                                                                                           |
+| -------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| categories                                   | optional[object] | Object with the primary labels as its keys. The values are the primary label's associated labels, and the number of feedbacks in each group of labels |
+| categories.{primary_label}.associated_labels | list[str]        | The list of associated labels for a given primary label                                                                                               |
+| categories.{primary_label}.feedback_count    | int              | Number of feedbacks that have either the primary label or any of the associated labels                                                                |
+| numFeedbacksContext                          | int              | Number of feedbacks given as context to the LLM                                                                                                       |
+| success                                      | boolean          | -                                                                                                                                                     |
 
 - Response 200
   ```json
