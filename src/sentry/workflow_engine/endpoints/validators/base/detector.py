@@ -65,8 +65,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         with transaction.atomic(router.db_for_write(Detector)):
-            instance.name = validated_data.get("name", instance.name)
-            instance.type = validated_data.get("detector_type", instance.group_type).slug
+            if "name" in validated_data:
+                instance.name = validated_data.get("name", instance.name)
+            if "type" in validated_data:
+                instance.type = validated_data.get("detector_type", instance.group_type).slug
 
             # Handle enable/disable detector
             if "enabled" in validated_data:
