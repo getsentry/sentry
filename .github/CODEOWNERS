@@ -317,6 +317,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
 /static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
 /static/app/views/issueDetails/groupTags/                       @getsentry/replay-frontend
+/static/app/views/settings/featureFlags/                        @getsentry/replay-frontend
 ## End of Flags
 
 

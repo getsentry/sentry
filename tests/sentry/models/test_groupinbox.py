@@ -11,7 +11,7 @@ from sentry.types.activity import ActivityType
 
 
 class GroupInboxTestCase(TestCase):
-    def test_add_to_inbox(self):
+    def test_add_to_inbox(self) -> None:
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
@@ -22,7 +22,7 @@ class GroupInboxTestCase(TestCase):
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
 
-    def test_remove_from_inbox(self):
+    def test_remove_from_inbox(self) -> None:
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value

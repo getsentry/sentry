@@ -66,7 +66,7 @@ def test_version_is_semver_invalid(release_version):
 
 class MergeReleasesTest(TestCase):
     @receivers_raise_on_send()
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization()
         commit = Commit.objects.create(organization_id=org.id, repository_id=5)
         commit2 = Commit.objects.create(organization_id=org.id, repository_id=6)
@@ -196,7 +196,7 @@ class MergeReleasesTest(TestCase):
 
 class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
@@ -252,7 +252,7 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @receivers_raise_on_send()
-    def test_backfilling_commits(self):
+    def test_backfilling_commits(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
@@ -341,7 +341,7 @@ class SetCommitsTestCase(TestCase):
 
     @freeze_time()
     @receivers_raise_on_send()
-    def test_using_saved_data(self):
+    def test_using_saved_data(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
@@ -414,7 +414,7 @@ class SetCommitsTestCase(TestCase):
         assert mock_update.call_count == 1
 
     @receivers_raise_on_send()
-    def test_resolution_support_full_featured(self):
+    def test_resolution_support_full_featured(self) -> None:
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
@@ -460,7 +460,7 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @receivers_raise_on_send()
-    def test_resolution_support_without_author(self):
+    def test_resolution_support_without_author(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
@@ -555,7 +555,7 @@ class SetCommitsTestCase(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @receivers_raise_on_send()
-    def test_long_email(self):
+    def test_long_email(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
@@ -691,10 +691,10 @@ class SetRefsTest(SetRefsTestCase):
 
         assert len(mock_fetch_commit.method_calls) == 0
 
-    def test_invalid_version_none_value(self):
+    def test_invalid_version_none_value(self) -> None:
         assert not Release.is_valid_version(None)
 
-    def test_invalid_version(self):
+    def test_invalid_version(self) -> None:
         cases = ["", "latest", ".", "..", "\t", "\n", "  "]
 
         for case in cases:
@@ -705,7 +705,7 @@ class SetRefsTest(SetRefsTestCase):
             Release.objects.create(organization=self.org)
 
     # @staticmethod
-    def test_invalid_chars_in_version(self):
+    def test_invalid_chars_in_version(self) -> None:
         version = (
             "\n> rfrontend@0.1.0 release:version\n> echo "
             "'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
@@ -730,7 +730,7 @@ class SetRefsTest(SetRefsTestCase):
         version = "\\ hello world again"
         assert not Release.is_valid_version(version)
 
-    def test_get_previous_release(self):
+    def test_get_previous_release(self) -> None:
         project = self.create_project()
         release1 = Release.objects.create(version="1", organization=self.org)
         release1.add_project(project)
@@ -752,7 +752,7 @@ class SemverReleaseParseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
 
-    def test_parse_release_into_semver_cols(self):
+    def test_parse_release_into_semver_cols(self) -> None:
         """
         Test that ensures that release version is parsed into the semver cols on Release model
         and that if build code can be parsed as a 64 bit integer then it is stored in build_number
@@ -768,7 +768,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number == 20200101100
         assert release.package == "org.example.FooApp"
 
-    def test_parse_release_into_semver_cols_using_custom_get_or_create(self):
+    def test_parse_release_into_semver_cols_using_custom_get_or_create(self) -> None:
         """
         Test that ensures that release version is parsed into the semver cols on Release model
         when using the custom `Release.get_or_create` method
@@ -785,7 +785,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number == 20200101100
         assert release.package == "org.example.FooApp"
 
-    def test_parse_release_into_semver_cols_with_non_int_build_code(self):
+    def test_parse_release_into_semver_cols_with_non_int_build_code(self) -> None:
         """
         Test that ensures that if the build_code passed as part of the semver version cannot be
         parsed as a 64 bit integer due to non int release then build number is left empty
@@ -801,7 +801,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
-    def test_parse_release_into_semver_cols_with_int_build_code_gt_64_int(self):
+    def test_parse_release_into_semver_cols_with_int_build_code_gt_64_int(self) -> None:
         """
         Test that ensures that if the build_code passed as part of the semver version cannot be
         parsed as a 64 bit integer due to bigger than 64 bit integer then build number is left empty
@@ -817,7 +817,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
-    def test_parse_release_into_semver_cols_with_negative_build_code(self):
+    def test_parse_release_into_semver_cols_with_negative_build_code(self) -> None:
         """
         Test that ensures that if the build_code passed as part of the semver version can be
         parsed as a 64 bit integer but has a negative sign then build number is left
@@ -834,7 +834,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
-    def test_parse_release_into_semver_cols_with_no_prerelease(self):
+    def test_parse_release_into_semver_cols_with_no_prerelease(self) -> None:
         """
         Test that ensures that prerelease is stores as an empty string if not included
         in the version.
@@ -850,7 +850,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
-    def test_parse_non_semver_should_not_fail(self):
+    def test_parse_non_semver_should_not_fail(self) -> None:
         """
         Test that ensures nothing breaks when sending a non semver compatible release
         """
@@ -858,7 +858,7 @@ class SemverReleaseParseTestCase(TestCase):
         release = Release.objects.create(organization=self.org, version=version)
         assert release.version == "hello world"
 
-    def test_parse_release_overflow_bigint(self):
+    def test_parse_release_overflow_bigint(self) -> None:
         """
         Tests that we don't error if we have a version component that is larger than
         a postgres bigint.
@@ -875,7 +875,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package is None
 
-    def test_parse_release_into_semver_cols_with_get_or_create(self):
+    def test_parse_release_into_semver_cols_with_get_or_create(self) -> None:
         """
         Test that ensures get_or_create populates semver fields
         """
@@ -892,7 +892,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
-    def test_parse_release_into_semver_cols_on_pre_save(self):
+    def test_parse_release_into_semver_cols_on_pre_save(self) -> None:
         """
         Test that ensures that calling save on a new Release instance parses version into semver
         columns
@@ -909,7 +909,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
-    def test_does_not_parse_release_into_semver_cols_on_pre_save_for_existing_release(self):
+    def test_does_not_parse_release_into_semver_cols_on_pre_save_for_existing_release(self) -> None:
         """
         Test that ensures that calling save on an existing Release instance does not re-parse
         version into semver columns
@@ -931,7 +931,7 @@ class SemverReleaseParseTestCase(TestCase):
 
 
 class ReleaseFilterBySemverTest(TestCase):
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=INVALID_SEMVER_MESSAGE,
@@ -947,7 +947,7 @@ class ReleaseFilterBySemverTest(TestCase):
             )
         ) == set(expected_releases)
 
-    def test(self):
+    def test(self) -> None:
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         self.run_test(">", "1.2.3", [release_2])
@@ -956,7 +956,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test("<=", "1.2.3", [release])
         self.run_test("!=", "1.2.3", [release_2])
 
-    def test_prerelease(self):
+    def test_prerelease(self) -> None:
         # Prerelease has weird sorting rules, where an empty string is higher priority
         # than a non-empty string. Make sure this sorting works
         release = self.create_release(version="test@1.2.3-alpha")
@@ -972,7 +972,7 @@ class ReleaseFilterBySemverTest(TestCase):
         )
         self.run_test("<", "1.2.3", [release_1, release])
 
-    def test_granularity(self):
+    def test_granularity(self) -> None:
         self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0")
         release_3 = self.create_release(version="test@1.2.3.0")
@@ -988,7 +988,7 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test(">", "1.2.3.4", [release_5])
         self.run_test(">", "2", [])
 
-    def test_wildcard(self):
+    def test_wildcard(self) -> None:
         release_1 = self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0")
         release_3 = self.create_release(version="test@1.2.3.0")
@@ -1005,13 +1005,13 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test("=", "1.2.3.4", [release_4])
         self.run_test("=", "2.*", [release_5])
 
-    def test_package(self):
+    def test_package(self) -> None:
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.3")
         self.run_test(">=", "test@1.2.3", [release])
         self.run_test(">=", "test2@1.2.3", [release_2])
 
-    def test_project(self):
+    def test_project(self) -> None:
         project_2 = self.create_project()
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
@@ -1038,13 +1038,13 @@ class ReleaseFilterBySemverBuildTest(TestCase):
             )
         ) == set(expected_releases)
 
-    def test_no_build(self):
+    def test_no_build(self) -> None:
         self.create_release(version="test@1.2.3")
         self.create_release(version="test@1.2.4")
         self.run_test("gt", "100", [])
         self.run_test("exact", "105aab", [])
 
-    def test_numeric(self):
+    def test_numeric(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test@1.2.4+456")
         self.create_release(version="test@1.2.4+123abc")
@@ -1052,7 +1052,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("lte", "123", [release_1])
         self.run_test("exact", "123", [release_1])
 
-    def test_large_numeric(self):
+    def test_large_numeric(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+9223372036854775808")
         self.create_release(version="test@1.2.3+9223372036854775809")
 
@@ -1060,7 +1060,7 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         # so should fall back to an exact string match instead.
         self.run_test("gt", "9223372036854775808", [release_1])
 
-    def test_text(self):
+    def test_text(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test@1.2.4+1234")
         release_3 = self.create_release(version="test@1.2.4+123abc")
@@ -1083,7 +1083,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         for i in range(10):
             self.create_release(version=f"fake_package-ahmed@1.1.{i}", project=self.proj_1)
 
-    def test_follows_semver_with_all_releases_semver_and_semver_release_version(self):
+    def test_follows_semver_with_all_releases_semver_and_semver_release_version(self) -> None:
         """
         Test that ensures that when the last 10 releases and the release version passed in as an arg
         follow semver versioning, then True should be returned
@@ -1095,7 +1095,9 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is True
         )
 
-    def test_follows_semver_all_releases_semver_and_missing_package_semver_release_version(self):
+    def test_follows_semver_all_releases_semver_and_missing_package_semver_release_version(
+        self,
+    ) -> None:
         """
         Test that ensures that even if a project is following semver, then if the release_version
         supplied lacks a package, then for that specific release we opt the project out of being
@@ -1108,7 +1110,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is False
         )
 
-    def test_follows_semver_with_all_releases_semver_and_no_release_version(self):
+    def test_follows_semver_with_all_releases_semver_and_no_release_version(self) -> None:
         """
         Test that ensures that when the last 10 releases follow semver versioning and no release
         version is passed in as an argument, then True should be returned
@@ -1117,7 +1119,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             follows_semver_versioning_scheme(org_id=self.org.id, project_id=self.proj_1.id) is True
         )
 
-    def test_follows_semver_with_all_releases_semver_and_non_semver_release_version(self):
+    def test_follows_semver_with_all_releases_semver_and_non_semver_release_version(self) -> None:
         """
         Test that ensures that even if the last 10 releases follow semver but the passed in
         release_version doesn't then we should return False because we should not follow semver
@@ -1130,7 +1132,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is False
         )
 
-    def test_follows_semver_user_accidentally_stopped_using_semver_a_few_times(self):
+    def test_follows_semver_user_accidentally_stopped_using_semver_a_few_times(self) -> None:
         """
         Test that ensures that when a user accidentally stops using semver versioning for a few
         times but there exists at least one semver compliant release in the last 3 releases and
@@ -1153,7 +1155,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is True
         )
 
-    def test_follows_semver_user_stops_using_semver(self):
+    def test_follows_semver_user_stops_using_semver(self) -> None:
         """
         Test that ensures that if a user stops using semver and so the last 3 releases in the last
         10 releases are all non-semver releases, then the project does not follow semver anymore
@@ -1175,7 +1177,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is False
         )
 
-    def test_follows_semver_user_accidentally_uses_semver_a_few_times(self):
+    def test_follows_semver_user_accidentally_uses_semver_a_few_times(self) -> None:
         """
         Test that ensures that if user accidentally uses semver compliant versions for a few
         times then the project will not be considered to be using semver
@@ -1195,7 +1197,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is False
         )
 
-    def test_follows_semver_user_starts_using_semver(self):
+    def test_follows_semver_user_starts_using_semver(self) -> None:
         """
         Test that ensures if a user starts using semver by having at least the last 3 releases
         using semver then we consider the project to be using semver
@@ -1215,7 +1217,9 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is True
         )
 
-    def test_follows_semver_user_starts_using_semver_with_less_than_10_recent_releases(self):
+    def test_follows_semver_user_starts_using_semver_with_less_than_10_recent_releases(
+        self,
+    ) -> None:
         """
         Test that ensures that a project with only 5 (<10) releases and at least one semver
         release in the most recent releases is considered to be following semver
@@ -1234,7 +1238,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is True
         )
 
-    def test_follows_semver_check_when_project_only_has_two_releases(self):
+    def test_follows_semver_check_when_project_only_has_two_releases(self) -> None:
         """
         Test that ensures that when a project has only two releases, then we consider project to
         be semver or not based on if the most recent release follows semver or not
@@ -1263,7 +1267,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
             is False
         )
 
-    def test_follows_semver_check_with_archived_non_semver_releases(self):
+    def test_follows_semver_check_with_archived_non_semver_releases(self) -> None:
         """
         Test that ensures that when a project has a mix of archived non-semver releases and active semver releases,
         then we consider the project to be following semver.
@@ -1290,7 +1294,7 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
 
 class ClearCommitsTestCase(TestCase):
     @receivers_raise_on_send()
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)

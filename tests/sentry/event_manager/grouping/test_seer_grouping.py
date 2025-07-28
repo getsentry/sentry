@@ -42,7 +42,7 @@ def get_event_data(dog: str = "Charlie") -> dict[str, Any]:
 class SeerEventManagerGroupingTest(TestCase):
     """Test whether Seer is called during ingest and if so, how the results are used"""
 
-    def test_obeys_seer_similarity_flags(self):
+    def test_obeys_seer_similarity_flags(self) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert existing_event.group_id
         seer_result_data = SeerSimilarIssueData(
@@ -253,7 +253,7 @@ class StoredSeerMetadataTest(TestCase):
                 seer_result_data.stacktrace_distance,
             )
 
-    def test_event_not_sent_to_seer(self):
+    def test_event_not_sent_to_seer(self) -> None:
         with patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=False):
             event = save_new_event({"message": "Sit! Stay! Good dog!"}, self.project)
             event_grouphash = GroupHash.objects.filter(

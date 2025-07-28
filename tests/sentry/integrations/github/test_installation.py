@@ -60,7 +60,7 @@ class InstallationEndpointTest(APITestCase):
             response = self.client.get(installation_url)
             assert response.status_code == 404
 
-    def test_no_installation(self):
+    def test_no_installation(self) -> None:
         installation_url = reverse("sentry-integration-github-installation", args=[888])
         response = self.client.get(installation_url)
         assert response.status_code == 404

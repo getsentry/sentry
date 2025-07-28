@@ -24,7 +24,7 @@ class TeamProjectsListTest(APITestCase):
         self.proj2 = self.create_project(teams=[self.team])
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.team.slug, status_code=200
         )
@@ -33,7 +33,7 @@ class TeamProjectsListTest(APITestCase):
         assert len(response.data) == 2
         assert project_ids == {str(self.proj1.id), str(self.proj2.id)}
 
-    def test_excludes_project(self):
+    def test_excludes_project(self) -> None:
         proj3 = self.create_project()
         response = self.get_success_response(
             self.organization.slug, self.team.slug, status_code=200
@@ -52,7 +52,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         self.data = {"name": "foo", "slug": "bar", "platform": "python"}
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -69,7 +69,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert response.data["teams"] is not None
         assert response.data["teams"][0]["id"] == str(self.team.id)
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             self.team.slug,
@@ -80,7 +80,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_generated_slug_not_entirely_numeric(self):
+    def test_generated_slug_not_entirely_numeric(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -91,7 +91,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
-    def test_invalid_platform(self):
+    def test_invalid_platform(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             self.team.slug,
@@ -101,7 +101,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert response.data["platform"][0] == "Invalid platform"
 
-    def test_invalid_name(self):
+    def test_invalid_name(self) -> None:
 
         invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
         response = self.get_error_response(
@@ -113,7 +113,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert response.data["name"][0] == f'The name "{invalid_name}" is reserved and not allowed.'
 
-    def test_duplicate_slug(self):
+    def test_duplicate_slug(self) -> None:
         self.create_project(slug="bar")
         response = self.get_error_response(
             self.organization.slug,
@@ -123,7 +123,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert response.data["detail"] == "A project with this slug already exists."
 
-    def test_default_rules(self):
+    def test_default_rules(self) -> None:
         signal_handler = Mock()
         alert_rule_created.connect(signal_handler)
 
@@ -147,7 +147,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert signal_handler.call_count == 1
         alert_rule_created.disconnect(signal_handler)
 
-    def test_without_default_rules_disable_member_project_creation(self):
+    def test_without_default_rules_disable_member_project_creation(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -158,7 +158,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
-    def test_disable_member_project_creation(self):
+    def test_disable_member_project_creation(self) -> None:
         test_org = self.create_organization(flags=256)
         test_team = self.create_team(organization=test_org)
 
@@ -222,7 +222,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             platform="python",
         )
 
-    def test_default_inbound_filters(self):
+    def test_default_inbound_filters(self) -> None:
         filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
         python_response = self.get_success_response(
             self.organization.slug,
@@ -273,7 +273,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert javascript_filter_states["filtered-transaction"]
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    def test_similarity_project_option_valid(self):
+    def test_similarity_project_option_valid(self) -> None:
         """
         Test that project option for similarity grouping is created when the project platform is
         Seer-eligible.
@@ -298,7 +298,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             is not None
         )
 
-    def test_similarity_project_option_invalid(self):
+    def test_similarity_project_option_invalid(self) -> None:
         """
         Test that project option for similarity grouping is not created when the project platform
         is not seer eligible.
@@ -325,7 +325,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             is None
         )
 
-    def test_builtin_symbol_sources_electron(self):
+    def test_builtin_symbol_sources_electron(self) -> None:
         """
         Test that project option for builtin symbol sources contains ["electron"] when creating
         an Electron project, but uses defaults for other platforms.
@@ -347,7 +347,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert symbol_sources == ["ios", "microsoft", "electron"]
 
-    def test_builtin_symbol_sources_not_electron(self):
+    def test_builtin_symbol_sources_not_electron(self) -> None:
         # Test non-Electron project (e.g. Python)
         response = self.get_success_response(
             self.organization.slug,
@@ -366,7 +366,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert "electron" not in symbol_sources
 
-    def test_builtin_symbol_sources_unity(self):
+    def test_builtin_symbol_sources_unity(self) -> None:
         """
         Test that project option for builtin symbol sources contains relevant buckets
         when creating a Unity project, but uses defaults for other platforms.
@@ -395,7 +395,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             "ubuntu",
         ]
 
-    def test_builtin_symbol_sources_unreal(self):
+    def test_builtin_symbol_sources_unreal(self) -> None:
         """
         Test that project option for builtin symbol sources contains relevant buckets
         when creating a Unreal project, but uses defaults for other platforms.
@@ -416,7 +416,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert symbol_sources == ["ios", "microsoft", "android", "nvidia", "ubuntu"]
 
-    def test_builtin_symbol_sources_godot(self):
+    def test_builtin_symbol_sources_godot(self) -> None:
         """
         Test that project option for builtin symbol sources contains relevant buckets
         when creating a Godot project, but uses defaults for other platforms.
@@ -471,7 +471,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert signal_handler.call_args[1]["origin"] == "ui"
         project_created.disconnect(signal_handler)
 
-    def test_project_inherits_autofix_tuning_from_org_option_set(self):
+    def test_project_inherits_autofix_tuning_from_org_option_set(self) -> None:
         self.organization.update_option("sentry:default_autofix_automation_tuning", "medium")
         response = self.get_success_response(
             self.organization.slug,
@@ -487,7 +487,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert autofix_tuning == "medium"
 
-    def test_project_autofix_tuning_none_if_org_option_not_set_in_db(self):
+    def test_project_autofix_tuning_none_if_org_option_not_set_in_db(self) -> None:
         # Ensure the option is not set for this specific organization,
         self.organization.delete_option("sentry:default_autofix_automation_tuning")
         response = self.get_success_response(

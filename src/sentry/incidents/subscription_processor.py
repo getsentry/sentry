@@ -63,7 +63,7 @@ from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors.data_packet import process_data_packets
+from sentry.workflow_engine.processors.data_packet import process_data_packet
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -347,9 +347,12 @@ class SubscriptionProcessor:
                     "result": subscription_update,
                 },
             )
-
-        has_metric_alert_processing = features.has(
-            "organizations:workflow-engine-metric-alert-processing", organization
+        has_metric_issue_single_processing = features.has(
+            "organizations:workflow-engine-single-process-metric-issues", organization
+        )
+        has_metric_alert_processing = (
+            features.has("organizations:workflow-engine-metric-alert-processing", organization)
+            or has_metric_issue_single_processing
         )
         has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
@@ -390,8 +393,8 @@ class SubscriptionProcessor:
                     anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
                         source_id=str(self.subscription.id), packet=anomaly_detection_packet
                     )
-                    results = process_data_packets(
-                        [anomaly_detection_data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    results = process_data_packet(
+                        anomaly_detection_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
                     )
                 else:
                     metric_packet = ProcessedSubscriptionUpdate(
@@ -403,8 +406,8 @@ class SubscriptionProcessor:
                     metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
                         source_id=str(self.subscription.id), packet=metric_packet
                     )
-                    results = process_data_packets(
-                        [metric_data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    results = process_data_packet(
+                        metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
                     )
 
                 if features.has(
@@ -420,6 +423,10 @@ class SubscriptionProcessor:
                             "rule_id": self.alert_rule.id,
                         },
                     )
+
+        if has_metric_issue_single_processing:
+            # don't go through the legacy system
+            return
 
         potential_anomalies = None
         if (

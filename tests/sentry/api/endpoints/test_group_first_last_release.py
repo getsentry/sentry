@@ -2,7 +2,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
 class GroupFirstLastTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/first-last-release/"

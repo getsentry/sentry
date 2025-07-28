@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 import pytest
 
@@ -34,9 +35,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         self.store_ourlogs(logs)
         response = self.do_request(
             {
-                "field": ["log.body"],
+                "field": ["id", "log.body"],
                 "query": "",
-                "orderby": "log.body",
+                "orderby": "-log.body",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -46,8 +47,14 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         meta = response.data["meta"]
         assert len(data) == 2
         assert data == [
-            {"log.body": "bar"},
-            {"log.body": "foo"},
+            {
+                "id": UUID(bytes=bytes(reversed(logs[0].item_id))).hex,
+                "log.body": "foo",
+            },
+            {
+                "id": UUID(bytes=bytes(reversed(logs[1].item_id))).hex,
+                "log.body": "bar",
+            },
         ]
         assert meta["dataset"] == self.dataset
 
@@ -268,3 +275,58 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"message": "bar"}]
+
+    def test_count_meta_type_is_integer(self):
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+
+        log1 = self.create_ourlog(
+            {"body": "foo"},
+            timestamp=one_day_ago,
+        )
+        self.store_ourlogs([log1])
+
+        request = {
+            "field": ["message", "count()"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "timestamp:-2d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo", "count()": 1}]
+        assert response.data["meta"]["fields"]["count()"] == "integer"
+
+    def test_pagelimit(self):
+        log = self.create_ourlog(
+            {"body": "test"},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_ourlogs([log])
+
+        response = self.do_request(
+            {
+                "field": ["message"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 9999,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "test"
+
+        response = self.do_request(
+            {
+                "field": ["message"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "per_page": 10000,
+            }
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."

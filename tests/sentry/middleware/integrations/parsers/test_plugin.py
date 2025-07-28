@@ -19,7 +19,7 @@ class PluginRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    def test_routing_webhooks_no_region(self):
+    def test_routing_webhooks_no_region(self) -> None:
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
@@ -39,7 +39,7 @@ class PluginRequestParserTest(TestCase):
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
 
-    def test_routing_webhooks_with_region(self):
+    def test_routing_webhooks_with_region(self) -> None:
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]),
@@ -59,7 +59,7 @@ class PluginRequestParserTest(TestCase):
             # Purge outboxes after checking each route
             WebhookPayload.objects.all().delete()
 
-    def test_routing_for_missing_organization(self):
+    def test_routing_for_missing_organization(self) -> None:
         # Delete the mapping to simulate an org being deleted.
         OrganizationMapping.objects.filter(organization_id=self.organization.id).delete()
         routes = {
@@ -72,7 +72,7 @@ class PluginRequestParserTest(TestCase):
             response = parser.get_response()
             assert response.status_code == 400
 
-    def test_invalid_webhooks(self):
+    def test_invalid_webhooks(self) -> None:
         routes = {
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]): True,
             reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]): True,

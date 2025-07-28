@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -45,6 +45,7 @@ import {
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsAggregate,
@@ -66,7 +67,10 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
+import {
+  HiddenColumnEditorLogFields,
+  HiddenLogSearchFields,
+} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -85,6 +89,11 @@ import {
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  getIngestDelayFilterValue,
+  getMaxIngestDelayTimestamp,
+} from 'sentry/views/explore/logs/useLogsQuery';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
@@ -112,6 +121,10 @@ export function LogsTabContent({
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+    getMaxIngestDelayTimestamp()
+  );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   const oldLogsSearch = usePrevious(logsSearch);
@@ -136,9 +149,25 @@ export function LogsTabContent({
     !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
   );
 
+  useEffect(() => {
+    if (autorefreshEnabled) {
+      setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
+    }
+  }, [autorefreshEnabled]);
+
+  const search = useMemo(() => {
+    const newSearch = logsSearch.copy();
+    // We need to add the delay filter to ensure the table data and the graph data are as close as possible when merging buckets.
+    newSearch.addFilterValue(
+      OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+      getIngestDelayFilterValue(timeseriesIngestDelay)
+    );
+    return newSearch;
+  }, [logsSearch, timeseriesIngestDelay]);
+
   const _timeseriesResult = useSortedTimeSeries(
     {
-      search: logsSearch,
+      search,
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
@@ -148,12 +177,22 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
-  const timeseriesResult = useStreamingTimeseriesResult(tableData, _timeseriesResult);
+  const timeseriesResult = useStreamingTimeseriesResult(
+    tableData,
+    _timeseriesResult,
+    timeseriesIngestDelay
+  );
 
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemAttributes('string');
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemAttributes('number');
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemAttributes('string', HiddenLogSearchFields);
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemAttributes('number', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -188,6 +227,8 @@ export function LogsTabContent({
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
   };
 
   const supportedAggregates = useMemo(() => {
