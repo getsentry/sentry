@@ -312,25 +312,19 @@ function MultiSelectDropdown({
   };
 
   return (
-    <CompactSelect
-      options={uploadFilterOptions}
-      value={selectedValues}
-      onChange={() => {}} // Controlled by our custom logic
-      multiple
-      trigger={(triggerProps, isOpenTrigger) => (
-        <DropdownButton
-          isOpen={isOpenTrigger}
-          data-test-id="page-filter-upload-selector"
-          onMouseDown={() => setIsOpen(!isOpen)}
-          {...triggerProps}
-        >
-          <TriggerLabelWrap>
-            <TriggerLabel>{getDisplayText()}</TriggerLabel>
-          </TriggerLabelWrap>
-        </DropdownButton>
-      )}
-      menuBody={
-        <DropdownMenuContent ref={dropdownRef}>
+    <CustomDropdownContainer ref={dropdownRef}>
+      <DropdownButton
+        isOpen={isOpen}
+        data-test-id="page-filter-upload-selector"
+        onMouseDown={() => setIsOpen(!isOpen)}
+      >
+        <TriggerLabelWrap>
+          <TriggerLabel>{getDisplayText()}</TriggerLabel>
+        </TriggerLabelWrap>
+      </DropdownButton>
+
+      {isOpen && (
+        <DropdownMenuContent>
           {options.map(option => (
             <DropdownItem
               key={option.value}
@@ -349,8 +343,8 @@ function MultiSelectDropdown({
             </DropdownItem>
           ))}
         </DropdownMenuContent>
-      }
-    />
+      )}
+    </CustomDropdownContainer>
   );
 }
 
@@ -503,7 +497,10 @@ export default function CommitsListPage() {
   const [selectedBranch, setSelectedBranch] = useState('main');
   const [activeTab, setActiveTab] = useState('commits');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUploadFilters, setSelectedUploadFilters] = useState<string[]>(['all']);
+  const [selectedUploadFilters, setSelectedUploadFilters] = useState<string[]>([
+    'completed',
+    'pending',
+  ]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -743,8 +740,23 @@ const IconContainer = styled('div')`
   height: 14px;
 `;
 
+const CustomDropdownContainer = styled('div')`
+  position: relative;
+  display: inline-block;
+`;
+
 const DropdownMenuContent = styled('div')`
-  /* Content wrapper for custom dropdown menu */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 200px;
+  margin-top: 4px;
 `;
 
 const TabNavigationContainer = styled('div')`
