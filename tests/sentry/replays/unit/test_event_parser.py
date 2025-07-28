@@ -1156,7 +1156,7 @@ def test_as_trace_item_context_fcp_event():
         },
     }
 
-    result = as_trace_item_context(EventType.FCP, event)
+    result = as_trace_item_context(which(event), event)
     assert result is not None
     assert result["attributes"]["category"] == "web-vital.fcp"
     assert result["attributes"]["duration"] == 0
