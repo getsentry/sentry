@@ -8,7 +8,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
+import {type EventBucket, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
@@ -933,6 +933,65 @@ describe('getOnDemandCategories', function () {
     });
     expect(categories).toHaveLength(plan.onDemandCategories.length);
     expect(categories).toEqual(plan.onDemandCategories);
+  });
+});
+
+describe('getOnDemandCategories - AM2 logBytes support', function () {
+  it('includes logBytes in AM2 business plan on-demand categories', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    expect(plan.onDemandCategories).toContain('logBytes');
+  });
+
+  it('includes logBytes in getOnDemandCategories for AM2 plans in per-category mode', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    });
+    expect(categories).toContain('logBytes');
+  });
+
+  it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.SHARED,
+    });
+    expect(categories).toContain('logBytes');
+  });
+
+  it('has planCategories entry for logBytes in AM2 business plan', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const logBytes: EventBucket[] | undefined = plan.planCategories.logBytes;
+    expect(logBytes).toBeDefined();
+    expect(logBytes).toHaveLength(1);
+    if (logBytes) {
+      expect(logBytes[0]).toEqual({
+        events: 0,
+        unitPrice: 0,
+        price: 0,
+      });
+    }
+  });
+
+  it('has category display names for logBytes', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    expect(plan.categoryDisplayNames?.logBytes).toBeDefined();
+    expect(plan.categoryDisplayNames?.logBytes).toEqual({
+      singular: 'log byte',
+      plural: 'log bytes',
+    });
+  });
+
+  it('ensures all AM2 plans with logBytes in onDemandCategories also have it in planCategories', function () {
+    const am2Plans = ['am2_business', 'am2_f', 'am2_team'];
+
+    am2Plans.forEach(planId => {
+      const plan = PlanDetailsLookupFixture(planId);
+      if (plan?.onDemandCategories.includes('logBytes' as DataCategory)) {
+        expect(plan.planCategories.logBytes).toBeDefined();
+      }
+    });
   });
 });
 
