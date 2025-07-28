@@ -235,7 +235,7 @@ class SQLInjectionDetector(PerformanceDetector):
 
         # Laravel queries with this pattern can contain interpolated values
         if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
-            r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description
+            r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description.upper()
         ):
             return False
 
