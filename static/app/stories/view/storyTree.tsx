@@ -127,7 +127,7 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: StoryCategory[] = ['foundations', 'core', 'shared'];
+const order: StoryCategory[] = ['foundations', 'primitives', 'core', 'shared'];
 function rootCategorySort(
   a: [StoryCategory | string, StoryTreeNode],
   b: [StoryCategory | string, StoryTreeNode]
@@ -164,9 +164,13 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'foundations' | 'core' | 'shared';
+export type StoryCategory = 'foundations' | 'core' | 'shared' | 'primitives';
 
 function inferFileCategory(path: string): StoryCategory {
+  if (isPrimitivesFile(path)) {
+    return 'primitives';
+  }
+
   if (isCoreFile(path)) {
     return 'core';
   }
@@ -184,6 +188,10 @@ function isCoreFile(file: string) {
 
 function isFoundationFile(file: string) {
   return file.includes('app/styles') || file.includes('app/icons');
+}
+
+function isPrimitivesFile(file: string) {
+  return file.includes('components/core/layout') || file.includes('components/core/text');
 }
 
 function inferComponentName(path: string): string {
