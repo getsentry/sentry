@@ -279,7 +279,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <CellAction
               key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
               column={formattedColumn}
-              dataRow={{...dataRow, id: `${rowIndex}:${tableColumn.name}`}}
+              // id is not used by CellAction, but is required for the TableDataRow type
+              dataRow={{...dataRow, id: ''}}
               handleCellAction={(action: Actions, value: string | number) => {
                 onTriggerCellAction?.(action, value);
                 switch (action) {
