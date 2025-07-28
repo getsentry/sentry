@@ -259,6 +259,7 @@ function Product({
   docLink,
   description,
 }: ProductProps) {
+  const isDisabled = !!disabled && !disabled.requiresUpgrade;
   return (
     <Tooltip
       title={
@@ -276,7 +277,7 @@ function Product({
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
         priority={!!disabled || checked ? 'primary' : 'default'}
-        disabled={!!disabled && !disabled.requiresUpgrade}
+        disabled={isDisabled}
         aria-label={label}
       >
         <ProductButtonInner>
@@ -289,6 +290,7 @@ function Product({
             role="presentation"
             checked={checked}
             aria-label={label}
+            disabled={isDisabled}
           />
           {label}
           <IconQuestion size="xs" />
