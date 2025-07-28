@@ -11,7 +11,7 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
 class JSONConfigBaseTest(BaseGroupTypeTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.correct_config = {
             "username": "user123",
@@ -95,7 +95,7 @@ class TestWorkflowConfig(JSONConfigBaseTest):
 
 # TODO - This should be moved into incidents directory
 class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.metric_alert = self.create_alert_rule(threshold_period=1)
 

@@ -20,7 +20,7 @@ from sentry.testutils.helpers import override_options
 
 
 class WebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -251,7 +251,7 @@ class WebhookTest(APITestCase):
 @patch("sentry.integrations.github_enterprise.client.get_jwt")
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PushEventWebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -531,7 +531,7 @@ class PushEventWebhookTest(APITestCase):
 
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PullRequestEventWebhook(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",

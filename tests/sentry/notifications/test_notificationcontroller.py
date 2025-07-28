@@ -60,7 +60,7 @@ def add_notification_setting_provider(
 # NotificationSettingOption and NotificationSettingProvider tables
 @control_silo_test
 class NotificationControllerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         setting_option_1 = add_notification_setting_option(
             scope_type=NotificationScopeEnum.USER,

@@ -38,7 +38,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 
 @freeze_time(MOCK_DATETIME)
 class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         release_1 = self.create_release(

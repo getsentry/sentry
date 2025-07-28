@@ -382,7 +382,7 @@ class DateTimePaginatorTest(TestCase):
         assert result7[0] == res4
 
 
-def test_reverse_bisect_left():
+def test_reverse_bisect_left() -> None:
     assert reverse_bisect_left([], 0) == 0
 
     assert reverse_bisect_left([1], -1) == 1
@@ -915,7 +915,7 @@ def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
 class CallbackPaginatorTest(APITestCase, SnubaTestCase):
     cls = CallbackPaginator
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now()
         self.project.date_added = self.now - timedelta(minutes=5)

@@ -18,7 +18,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
     def test(self) -> None:

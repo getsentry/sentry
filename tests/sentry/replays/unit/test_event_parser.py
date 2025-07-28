@@ -17,7 +17,7 @@ from sentry.replays.usecases.ingest.event_parser import (
 from sentry.utils import json
 
 
-def test_highlighted_event_builder_canvas_sizes():
+def test_highlighted_event_builder_canvas_sizes() -> None:
     event = {"type": 3, "data": {"source": 9, "id": 2440, "type": 0, "commands": [{"a": "b"}]}}
 
     builder = HighlightedEventsBuilder()
@@ -31,7 +31,7 @@ def test_highlighted_event_builder_canvas_sizes():
     assert len(builder.result.canvas_sizes) == 0
 
 
-def test_parse_highlighted_events_mutation_events():
+def test_parse_highlighted_events_mutation_events() -> None:
     event = {
         "type": 5,
         "data": {
@@ -52,7 +52,7 @@ def test_parse_highlighted_events_mutation_events():
     assert len(result.mutation_events) == 0
 
 
-def test_parse_highlighted_events_options_events():
+def test_parse_highlighted_events_options_events() -> None:
     event = {
         "data": {
             "payload": {
@@ -86,7 +86,7 @@ def test_parse_highlighted_events_options_events():
     assert len(result.options_events) == 0
 
 
-def test_parse_highlighted_events_hydration_errors():
+def test_parse_highlighted_events_hydration_errors() -> None:
     event = {
         "type": 5,
         "data": {
@@ -106,7 +106,7 @@ def test_parse_highlighted_events_hydration_errors():
     assert result.hydration_errors[0].timestamp == event["data"]["payload"]["timestamp"]  # type: ignore[index]
 
 
-def test_parse_highlighted_events_hydration_errors_missing_data_key():
+def test_parse_highlighted_events_hydration_errors_missing_data_key() -> None:
     event = {
         "type": 5,
         "data": {
@@ -125,7 +125,7 @@ def test_parse_highlighted_events_hydration_errors_missing_data_key():
 # Request response body sizes parsing.
 
 
-def test_parse_highlighted_events_payload_sizes_old_format():
+def test_parse_highlighted_events_payload_sizes_old_format() -> None:
     event = {
         "type": 5,
         "data": {
@@ -143,7 +143,7 @@ def test_parse_highlighted_events_payload_sizes_old_format():
     assert result.request_response_sizes[0] == (1002, 8001)
 
 
-def test_parse_highlighted_events_payload_sizes_old_format_no_response():
+def test_parse_highlighted_events_payload_sizes_old_format_no_response() -> None:
     event = {
         "type": 5,
         "data": {
@@ -158,7 +158,7 @@ def test_parse_highlighted_events_payload_sizes_old_format_no_response():
     assert result.request_response_sizes[0] == (1002, None)
 
 
-def test_parse_highlighted_events_payload_sizes_old_format_no_request():
+def test_parse_highlighted_events_payload_sizes_old_format_no_request() -> None:
     event = {
         "type": 5,
         "data": {
@@ -173,7 +173,7 @@ def test_parse_highlighted_events_payload_sizes_old_format_no_request():
     assert result.request_response_sizes[0] == (None, 8001)
 
 
-def test_parse_highlighted_events_payload_sizes_old_format_nothing():
+def test_parse_highlighted_events_payload_sizes_old_format_nothing() -> None:
     event = {
         "type": 5,
         "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr", "data": {}}},
@@ -184,7 +184,7 @@ def test_parse_highlighted_events_payload_sizes_old_format_nothing():
     assert len(result.request_response_sizes) == 0
 
 
-def test_parse_highlighted_events_payload_sizes_new_format():
+def test_parse_highlighted_events_payload_sizes_new_format() -> None:
     event = {
         "type": 5,
         "data": {
@@ -202,7 +202,7 @@ def test_parse_highlighted_events_payload_sizes_new_format():
     assert result.request_response_sizes[0] == (5, 22)
 
 
-def test_parse_highlighted_events_payload_sizes_new_format_no_response():
+def test_parse_highlighted_events_payload_sizes_new_format_no_response() -> None:
     event = {
         "type": 5,
         "data": {
@@ -217,7 +217,7 @@ def test_parse_highlighted_events_payload_sizes_new_format_no_response():
     assert result.request_response_sizes[0] == (5, None)
 
 
-def test_parse_highlighted_events_payload_sizes_new_format_no_request():
+def test_parse_highlighted_events_payload_sizes_new_format_no_request() -> None:
     event = {
         "type": 5,
         "data": {
@@ -232,7 +232,7 @@ def test_parse_highlighted_events_payload_sizes_new_format_no_request():
     assert result.request_response_sizes[0] == (None, 5)
 
 
-def test_parse_highlighted_events_payload_sizes_new_format_nothing():
+def test_parse_highlighted_events_payload_sizes_new_format_nothing() -> None:
     event = {
         "type": 5,
         "data": {"tag": "performanceSpan", "payload": {"op": "resource.fetch"}},
@@ -243,7 +243,7 @@ def test_parse_highlighted_events_payload_sizes_new_format_nothing():
     assert len(result.request_response_sizes) == 0
 
 
-def test_parse_highlighted_events_payload_sizes_invalid_op():
+def test_parse_highlighted_events_payload_sizes_invalid_op() -> None:
     event = {
         "type": 5,
         "data": {
@@ -260,7 +260,7 @@ def test_parse_highlighted_events_payload_sizes_invalid_op():
 # Click parsing.
 
 
-def test_parse_highlighted_events_click_events():
+def test_parse_highlighted_events_click_events() -> None:
     event = {
         "type": 5,
         "timestamp": 1674298825,
@@ -313,7 +313,7 @@ def test_parse_highlighted_events_click_events():
     assert user_actions.click_events[0].timestamp == 1674298825
 
 
-def test_parse_highlighted_events_click_events_missing_node():
+def test_parse_highlighted_events_click_events_missing_node() -> None:
     event = {
         "type": 5,
         "timestamp": 1674298825,
@@ -334,7 +334,7 @@ def test_parse_highlighted_events_click_events_missing_node():
     assert len(builder.result.click_events) == 0
 
 
-def test_parse_highlighted_events_click_event_str_payload():
+def test_parse_highlighted_events_click_event_str_payload() -> None:
     event = {"type": 5, "data": {"tag": "breadcrumb", "payload": "hello world"}}
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=False)
@@ -342,7 +342,7 @@ def test_parse_highlighted_events_click_event_str_payload():
     assert len(result.click_events) == 0
 
 
-def test_parse_highlighted_events_click_event_missing_node():
+def test_parse_highlighted_events_click_event_missing_node() -> None:
     event = {
         "type": 5,
         "data": {
@@ -357,7 +357,7 @@ def test_parse_highlighted_events_click_event_missing_node():
     assert len(result.click_events) == 0
 
 
-def test_parse_highlighted_events_click_event_dead_rage():
+def test_parse_highlighted_events_click_event_dead_rage() -> None:
     time_after_click_ms = 7000.0
     event1 = {
         "type": 5,
@@ -497,7 +497,7 @@ def test_parse_highlighted_events_click_event_dead_rage():
     assert action.is_rage == 1
 
 
-def test_emit_click_negative_node_id():
+def test_emit_click_negative_node_id() -> None:
     event = {
         "type": 5,
         "timestamp": 1674298825,
@@ -539,7 +539,7 @@ def test_emit_click_negative_node_id():
 # Misc helper tests
 
 
-def test_get_testid():
+def test_get_testid() -> None:
     # Assert each test-id permutation is extracted.
     assert _get_testid({"testId": "123"}) == "123"
     assert _get_testid({"data-testid": "123"}) == "123"
@@ -563,7 +563,7 @@ def test_get_testid():
     assert _get_testid({}) == ""
 
 
-def test_parse_classes():
+def test_parse_classes() -> None:
     assert _parse_classes("") == []
     assert _parse_classes("   ") == []
     assert _parse_classes("  a b ") == ["a", "b"]
@@ -571,7 +571,7 @@ def test_parse_classes():
     assert _parse_classes("  a") == ["a"]
 
 
-def test_which():
+def test_which() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
@@ -614,6 +614,22 @@ def test_which():
         },
     }
     assert which(event) == EventType.RAGE_CLICK
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "navigation.push",
+                "description": "url",
+                "startTimestamp": 1752530070.378,
+                "endTimestamp": 1752530070.378,
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.NAVIGATION_SPAN
 
     event = {
         "type": 5,
@@ -782,7 +798,7 @@ def test_parse_highlighted_events_fault_tolerance(event):
 # Tests for trace item functions
 
 
-def test_as_trace_item_context_click_event():
+def test_as_trace_item_context_click_event() -> None:
     event = {
         "type": 5,
         "data": {
@@ -836,7 +852,7 @@ def test_as_trace_item_context_click_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_click_event_missing_node():
+def test_as_trace_item_context_click_event_missing_node() -> None:
     event = {
         "type": 5,
         "data": {
@@ -856,7 +872,7 @@ def test_as_trace_item_context_click_event_missing_node():
     assert result is None
 
 
-def test_as_trace_item_context_dead_click_event():
+def test_as_trace_item_context_dead_click_event() -> None:
     event = {
         "type": 5,
         "data": {
@@ -888,7 +904,7 @@ def test_as_trace_item_context_dead_click_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_rage_click_event():
+def test_as_trace_item_context_rage_click_event() -> None:
     event = {
         "type": 5,
         "data": {
@@ -920,7 +936,7 @@ def test_as_trace_item_context_rage_click_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_navigation_event():
+def test_as_trace_item_context_navigation_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710793872,
@@ -944,7 +960,7 @@ def test_as_trace_item_context_navigation_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_navigation_event_missing_optional_fields():
+def test_as_trace_item_context_navigation_event_missing_optional_fields() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710793872,
@@ -967,7 +983,7 @@ def test_as_trace_item_context_navigation_event_missing_optional_fields():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_resource_fetch_event():
+def test_as_trace_item_context_resource_fetch_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710794.0346,
@@ -998,7 +1014,7 @@ def test_as_trace_item_context_resource_fetch_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_resource_xhr_event():
+def test_as_trace_item_context_resource_xhr_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710794.0346,
@@ -1028,7 +1044,7 @@ def test_as_trace_item_context_resource_xhr_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_resource_no_sizes():
+def test_as_trace_item_context_resource_no_sizes() -> None:
     event = {
         "data": {
             "payload": {
@@ -1049,7 +1065,7 @@ def test_as_trace_item_context_resource_no_sizes():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_resource_script_event():
+def test_as_trace_item_context_resource_script_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710794.0346,
@@ -1081,7 +1097,7 @@ def test_as_trace_item_context_resource_script_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_resource_image_event():
+def test_as_trace_item_context_resource_image_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710794.0346,
@@ -1113,7 +1129,7 @@ def test_as_trace_item_context_resource_image_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_lcp_event():
+def test_as_trace_item_context_lcp_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753712471.43,
@@ -1140,7 +1156,7 @@ def test_as_trace_item_context_lcp_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_fcp_event():
+def test_as_trace_item_context_fcp_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753712471.43,
@@ -1166,7 +1182,7 @@ def test_as_trace_item_context_fcp_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_cls_event():
+def test_as_trace_item_context_cls_event() -> None:
     event = {
         "type": 5,
         "timestamp": 1753467516.4146557,
@@ -1199,7 +1215,7 @@ def test_as_trace_item_context_cls_event():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_hydration_error():
+def test_as_trace_item_context_hydration_error() -> None:
     event = {
         "data": {
             "payload": {"timestamp": 1674298825.0, "data": {"url": "https://example.com/page"}}
@@ -1214,7 +1230,7 @@ def test_as_trace_item_context_hydration_error():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_mutations():
+def test_as_trace_item_context_mutations() -> None:
     event = {"timestamp": 1674298825000, "data": {"payload": {"data": {"count": 42}}}}
 
     result = as_trace_item_context(EventType.MUTATIONS, event)
@@ -1225,7 +1241,7 @@ def test_as_trace_item_context_mutations():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_options():
+def test_as_trace_item_context_options() -> None:
     event = {
         "type": 5,
         "timestamp": 1753710752516,
@@ -1267,7 +1283,7 @@ def test_as_trace_item_context_options():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_memory():
+def test_as_trace_item_context_memory() -> None:
     event = {
         "type": 5,
         "timestamp": 1753467523.594,
@@ -1300,7 +1316,7 @@ def test_as_trace_item_context_memory():
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
-def test_as_trace_item_context_returns_none_for_unsupported_events():
+def test_as_trace_item_context_returns_none_for_unsupported_events() -> None:
     event: dict[str, Any] = {"data": {"payload": {}}}
     assert as_trace_item_context(EventType.CONSOLE, event) is None
     assert as_trace_item_context(EventType.UI_BLUR, event) is None
@@ -1310,7 +1326,7 @@ def test_as_trace_item_context_returns_none_for_unsupported_events():
     assert as_trace_item_context(EventType.FEEDBACK, event) is None
 
 
-def test_as_trace_item():
+def test_as_trace_item() -> None:
     context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
@@ -1345,7 +1361,7 @@ def test_as_trace_item():
     assert result.attributes["replay_id"].string_value == "replay-456"  # Should be added
 
 
-def test_as_trace_item_with_no_trace_id():
+def test_as_trace_item_with_no_trace_id() -> None:
     context: EventContext = {
         "organization_id": 123,
         "project_id": 456,
@@ -1371,7 +1387,7 @@ def test_as_trace_item_with_no_trace_id():
     assert result.trace_id == "replay-456"  # Should fall back to replay_id
 
 
-def test_as_trace_item_returns_none_for_unsupported_event():
+def test_as_trace_item_returns_none_for_unsupported_event() -> None:
     context: EventContext = {
         "organization_id": 123,
         "project_id": 456,

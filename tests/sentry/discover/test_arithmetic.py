@@ -78,7 +78,7 @@ def test_homogenous_arithmetic(a, op1, b, op2, c):
     assert result.rhs == float(c), equation
 
 
-def test_mixed_arithmetic():
+def test_mixed_arithmetic() -> None:
     result, _, _ = parse_arithmetic("12 + 34 * 56")
     assert result.operator == "plus"
     assert result.lhs == 12.0
@@ -96,7 +96,7 @@ def test_mixed_arithmetic():
     assert result.rhs == 56.0
 
 
-def test_four_terms():
+def test_four_terms() -> None:
     result, _, _ = parse_arithmetic("1 + 2 / 3 * 4")
     assert result.operator == "plus"
     assert result.lhs == 1.0
@@ -109,7 +109,7 @@ def test_four_terms():
     assert result.rhs.rhs == 4.0
 
 
-def test_brackets_with_two_inner_terms():
+def test_brackets_with_two_inner_terms() -> None:
     result, _, _ = parse_arithmetic("(1 + 2) / (3 - 4)")
     assert result.operator == "divide"
     assert isinstance(result.lhs, Operation)
@@ -122,7 +122,7 @@ def test_brackets_with_two_inner_terms():
     assert result.rhs.rhs == 4.0
 
 
-def test_brackets_with_three_inner_terms():
+def test_brackets_with_three_inner_terms() -> None:
     result, _, _ = parse_arithmetic("(1 + 2 + 3) / 4")
     assert result.operator == "divide"
     assert isinstance(result.lhs, Operation)
@@ -134,7 +134,7 @@ def test_brackets_with_three_inner_terms():
     assert result.rhs == 4.0
 
 
-def test_brackets_with_four_inner_terms():
+def test_brackets_with_four_inner_terms() -> None:
     result, _, _ = parse_arithmetic("(1 + 2 / 3 * 4)")
     assert result.operator == "plus"
     assert result.lhs == 1.0
@@ -181,7 +181,7 @@ def test_homogenous_four_terms(a, op1, b, op2, c, op3, d):
     assert result.rhs == float(d), equation
 
 
-def test_max_operators():
+def test_max_operators() -> None:
     with pytest.raises(MaxOperatorError):
         parse_arithmetic("1 + 2 * 3 * 4", 2)
 

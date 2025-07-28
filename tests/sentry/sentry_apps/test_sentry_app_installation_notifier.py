@@ -24,7 +24,7 @@ MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 @control_silo_test
 class TestInstallationNotifier(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.sentry_app = self.create_sentry_app(

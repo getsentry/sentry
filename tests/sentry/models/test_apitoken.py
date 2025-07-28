@@ -189,7 +189,7 @@ class ApiTokenTest(TestCase):
 
 @control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.proxy = self.create_user()
         self.org = self.create_organization()

@@ -59,7 +59,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
         )
 
 
-def test_adjust_instruction_addr_sample_format():
+def test_adjust_instruction_addr_sample_format() -> None:
     original_frames = [
         {"instruction_addr": "0xdeadbeef"},
         {"instruction_addr": "0xbeefdead"},
@@ -86,7 +86,7 @@ def test_adjust_instruction_addr_sample_format():
     assert frames[4] == {"instruction_addr": "0xdeadbeef", "adjust_instruction_addr": False}
 
 
-def test_adjust_instruction_addr_original_format():
+def test_adjust_instruction_addr_original_format() -> None:
     profile = {
         "platform": "cocoa",
         "sampled_profile": {

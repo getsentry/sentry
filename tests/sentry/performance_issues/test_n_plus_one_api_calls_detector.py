@@ -27,7 +27,7 @@ from sentry.testutils.performance_issues.event_generators import (
 
 @pytest.mark.django_db
 class NPlusOneAPICallsDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
