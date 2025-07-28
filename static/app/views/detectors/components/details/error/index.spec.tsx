@@ -32,7 +32,7 @@ describe('ErrorDetectorDetails', function () {
       render(<ErrorDetectorDetails {...defaultProps} />);
 
       expect(
-        await screen.findByText('Auto-resolve after 30 days of inactivity')
+        await screen.findByText('Auto-resolve after 30 days of inactivity.')
       ).toBeInTheDocument();
     });
 
@@ -41,7 +41,7 @@ describe('ErrorDetectorDetails', function () {
 
       render(<ErrorDetectorDetails {...defaultProps} project={project} />);
 
-      expect(await screen.findByText('Auto-resolution disabled')).toBeInTheDocument();
+      expect(await screen.findByText('Auto-resolution disabled.')).toBeInTheDocument();
     });
   });
 });
