@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
+import type {RouteObject} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
-import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
@@ -37,13 +37,14 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-import {Redirect, Route, type SentryRouteObject} from './components/route';
+import {type SentryRouteObject} from './components/route';
+import {translateSentryRoute} from './utils/reactRouter6Compat/router';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const routeHook = (name: HookName): SentryRouteObject =>
   HookStore.get(name)?.[0]?.() ?? {};
 
-function buildRoutes() {
+function buildRoutes(): RouteObject[] {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -103,8 +104,8 @@ function buildRoutes() {
   //
   //   This is where a majority of the app routes live. This is wrapped with
   //   the <OrganizationLayout /> component, which renders the sidebar and
-  //   loads the organiztion into context (though in some cases, there may be
-  //   no organiztion)
+  //   loads the organization into context (though in some cases, there may be
+  //   no organization)
   //
   //   When adding new top-level organization routes, be sure the top level
   //   route includes withOrgPath to support installs that are not using
@@ -116,9 +117,9 @@ function buildRoutes() {
   //
   // * `legacyRedirectRoutes`
   //
-  //   This route tree contains <Redirect /> routes for many old legacy paths.
+  //   This route tree contains redirect routes for many old legacy paths.
   //
-  //   You may also find <Redirect />'s collocated next to the feature routes
+  //   You may also find redirects's collocated next to the feature routes
   //   they have redirects for. A good rule here is to place 'helper' redirects
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
@@ -133,21 +134,15 @@ function buildRoutes() {
       component: make(() => import('sentry/views/auth/login')),
     },
   ];
+  const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
+    ? {
+        path: '/auth/login/',
+        component: errorHandler(AuthLayout),
+        children: experimentalSpaChildRoutes,
+      }
+    : {};
 
-  const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-    <Route
-      path="/auth/login/"
-      component={errorHandler(AuthLayout)}
-      newStyleChildren={experimentalSpaChildRoutes}
-    />
-  ) : null;
-
-  const traceViewRouteObject: SentryRouteObject = {
-    path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/traceDetails')),
-  };
-
-  const rootChildRoutes: SentryRouteObject[] = [
+  const rootChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/app/root')),
@@ -313,12 +308,12 @@ function buildRoutes() {
       withOrgPath: true,
     },
   ];
+  const rootRoutes: SentryRouteObject = {
+    component: errorHandler(AppBodyContent),
+    children: rootChildren,
+  };
 
-  const rootRoutes = (
-    <Route component={errorHandler(AppBodyContent)} newStyleChildren={rootChildRoutes} />
-  );
-
-  const accountSettingsChildRoutes: SentryRouteObject[] = [
+  const accountSettingsChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'details/',
@@ -481,15 +476,14 @@ function buildRoutes() {
       component: make(() => import('sentry/views/settings/account/accountClose')),
     },
   ];
-
   const accountSettingsRoutes: SentryRouteObject = {
     path: 'account/',
     name: t('Account'),
     component: make(() => import('sentry/views/settings/account/accountSettingsLayout')),
-    children: accountSettingsChildRoutes,
+    children: accountSettingsChildren,
   };
 
-  const projectSettingsChildRoutes: SentryRouteObject[] = [
+  const projectSettingsChildren: SentryRouteObject[] = [
     {
       index: true,
       name: t('General'),
@@ -774,15 +768,14 @@ function buildRoutes() {
       ],
     },
   ];
-
   const projectSettingsRoutes: SentryRouteObject = {
     path: 'projects/:projectId/',
     name: t('Project'),
     component: make(() => import('sentry/views/settings/project/projectSettingsLayout')),
-    children: projectSettingsChildRoutes,
+    children: projectSettingsChildren,
   };
 
-  const statsChildRoutes: SentryRouteObject[] = [
+  const statsChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/organizationStats')),
@@ -805,22 +798,22 @@ function buildRoutes() {
       ],
     },
   ];
-  const statsRoutes = (
-    <Fragment>
-      <Route
-        path="/stats/"
-        withOrgPath
-        component={OrganizationStatsWrapper}
-        newStyleChildren={statsChildRoutes}
-      />
-      <Redirect
-        from="/organizations/:orgId/stats/team/"
-        to="/organizations/:orgId/stats/issues/"
-      />
-    </Fragment>
-  );
+  const statsRoutes: SentryRouteObject = {
+    children: [
+      {
+        path: '/stats/',
+        withOrgPath: true,
+        component: OrganizationStatsWrapper,
+        children: statsChildren,
+      },
+      {
+        path: '/organizations/:orgId/stats/team/',
+        redirectTo: '/organizations/:orgId/stats/issues/',
+      },
+    ],
+  };
 
-  const orgSettingsChildRoutes: SentryRouteObject[] = [
+  const orgSettingsChildren: SentryRouteObject[] = [
     routeHook('routes:settings'),
     {
       index: true,
@@ -1209,15 +1202,14 @@ function buildRoutes() {
     {
       path: 'stats/',
       name: t('Stats'),
-      children: statsChildRoutes,
+      children: statsChildren,
     },
   ];
-
   const orgSettingsRoutes: SentryRouteObject = {
     component: make(
       () => import('sentry/views/settings/organization/organizationSettingsLayout')
     ),
-    children: orgSettingsChildRoutes,
+    children: orgSettingsChildren,
   };
 
   const legacySettingsRedirects: SentryRouteObject = {
@@ -1241,36 +1233,32 @@ function buildRoutes() {
     ],
   };
 
-  const settingsChildRoutes: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(() => import('sentry/views/settings/settingsIndex')),
-    },
-    accountSettingsRoutes,
-    {
-      name: t('Organization'),
-      component: withDomainRequired(NoOp),
-      customerDomainOnlyRoute: true,
-      children: [orgSettingsRoutes, projectSettingsRoutes],
-    },
-    {
-      path: ':orgId/',
-      name: t('Organization'),
-      component: withDomainRedirect(NoOp),
-      children: [orgSettingsRoutes, projectSettingsRoutes, legacySettingsRedirects],
-    },
-  ];
+  const settingsRoutes: SentryRouteObject = {
+    path: '/settings/',
+    name: t('Settings'),
+    component: SettingsWrapper,
+    children: [
+      {
+        index: true,
+        component: make(() => import('sentry/views/settings/settingsIndex')),
+      },
+      accountSettingsRoutes,
+      {
+        name: t('Organization'),
+        component: withDomainRequired(NoOp),
+        customerDomainOnlyRoute: true,
+        children: [orgSettingsRoutes, projectSettingsRoutes],
+      },
+      {
+        path: ':orgId/',
+        name: t('Organization'),
+        component: withDomainRedirect(NoOp),
+        children: [orgSettingsRoutes, projectSettingsRoutes, legacySettingsRedirects],
+      },
+    ],
+  };
 
-  const settingsRoutes = (
-    <Route
-      path="/settings/"
-      name={t('Settings')}
-      component={SettingsWrapper}
-      newStyleChildren={settingsChildRoutes}
-    />
-  );
-
-  const projectsChildRoutes: SentryRouteObject[] = [
+  const projectsChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/projectsDashboard')),
@@ -1292,16 +1280,19 @@ function buildRoutes() {
       component: make(() => import('sentry/views/projectInstall/gettingStarted')),
     },
   ];
-  const projectsRoutes = (
-    <Route
-      path="/projects/"
-      component={make(() => import('sentry/views/projects/'))}
-      withOrgPath
-      newStyleChildren={projectsChildRoutes}
-    />
-  );
+  const projectsRoutes: SentryRouteObject = {
+    path: '/projects/',
+    component: make(() => import('sentry/views/projects/')),
+    withOrgPath: true,
+    children: projectsChildren,
+  };
 
-  const dashboardChildRoutes: SentryRouteObject[] = [
+  const traceView: SentryRouteObject = {
+    path: 'trace/:traceSlug/',
+    component: make(() => import('sentry/views/performance/traceDetails')),
+  };
+
+  const dashboardChildren: SentryRouteObject[] = [
     {
       path: '/dashboards/',
       component: withDomainRequired(make(() => import('sentry/views/dashboards'))),
@@ -1311,7 +1302,7 @@ function buildRoutes() {
           index: true,
           component: make(() => import('sentry/views/dashboards/manage')),
         },
-        traceViewRouteObject,
+        traceView,
       ],
     },
     {
@@ -1397,8 +1388,9 @@ function buildRoutes() {
       ],
     },
   ];
-
-  const dashboardRoutes = <Route newStyleChildren={dashboardChildRoutes} />;
+  const dashboardRoutes: SentryRouteObject = {
+    children: dashboardChildren,
+  };
 
   const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject[] => [
     {
@@ -1573,27 +1565,23 @@ function buildRoutes() {
       ],
     },
   ];
+  const alertRoutes: SentryRouteObject = {
+    children: [
+      {
+        path: '/alerts/',
+        component: withDomainRequired(make(() => import('sentry/views/alerts'))),
+        customerDomainOnlyRoute: true,
+        children: alertChildRoutes(true),
+      },
+      {
+        path: '/organizations/:orgId/alerts/',
+        component: withDomainRedirect(make(() => import('sentry/views/alerts'))),
+        children: alertChildRoutes(false),
+      },
+    ],
+  };
 
-  const alertRoutes = (
-    <Fragment>
-      {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/alerts/"
-          component={withDomainRequired(make(() => import('sentry/views/alerts')))}
-          key="orgless-alerts-route"
-          newStyleChildren={alertChildRoutes(true)}
-        />
-      )}
-      <Route
-        path="/organizations/:orgId/alerts/"
-        component={withDomainRedirect(make(() => import('sentry/views/alerts')))}
-        key="org-alerts"
-        newStyleChildren={alertChildRoutes(false)}
-      />
-    </Fragment>
-  );
-
-  const replayChildRoutes: SentryRouteObject[] = [
+  const replayChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/replays/list')),
@@ -1609,16 +1597,14 @@ function buildRoutes() {
       component: make(() => import('sentry/views/replays/details')),
     },
   ];
-  const replayRoutes = (
-    <Route
-      path="/replays/"
-      component={make(() => import('sentry/views/replays/index'))}
-      withOrgPath
-      newStyleChildren={replayChildRoutes}
-    />
-  );
+  const replayRoutes: SentryRouteObject = {
+    path: '/replays/',
+    component: make(() => import('sentry/views/replays/index')),
+    withOrgPath: true,
+    children: replayChildren,
+  };
 
-  const releasesChildRoutes: SentryRouteObject[] = [
+  const releaseChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/releases/list')),
@@ -1646,26 +1632,26 @@ function buildRoutes() {
       ],
     },
   ];
-  const releasesRoutes = (
-    <Fragment>
-      <Route
-        path="/releases/"
-        component={make(() => import('sentry/views/releases/index'))}
-        withOrgPath
-        newStyleChildren={releasesChildRoutes}
-      />
-      <Redirect
-        from="/releases/new-events/"
-        to="/organizations/:orgId/releases/:release/"
-      />
-      <Redirect
-        from="/releases/all-events/"
-        to="/organizations/:orgId/releases/:release/"
-      />
-    </Fragment>
-  );
+  const releasesRoutes: SentryRouteObject = {
+    children: [
+      {
+        path: '/releases/',
+        component: make(() => import('sentry/views/releases/index')),
+        withOrgPath: true,
+        children: releaseChildren,
+      },
+      {
+        path: '/releases/new-events/',
+        redirectTo: '/organizations/:orgId/releases/:release/',
+      },
+      {
+        path: '/releases/all-events/',
+        redirectTo: '/organizations/:orgId/releases/:release/',
+      },
+    ],
+  };
 
-  const discoverChildRoutes: SentryRouteObject[] = [
+  const discoverChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'queries/',
@@ -1674,7 +1660,7 @@ function buildRoutes() {
       path: 'homepage/',
       component: make(() => import('sentry/views/discover/homepage')),
     },
-    traceViewRouteObject,
+    traceView,
     {
       path: 'queries/',
       component: make(() => import('sentry/views/discover/landing')),
@@ -1688,26 +1674,26 @@ function buildRoutes() {
       component: make(() => import('sentry/views/discover/eventDetails')),
     },
   ];
-  const discoverRoutes = (
-    <Route
-      path="/discover/"
-      component={make(() => import('sentry/views/discover'))}
-      withOrgPath
-      newStyleChildren={discoverChildRoutes}
-    />
-  );
+  const discoverRoutes: SentryRouteObject = {
+    path: '/discover/',
+    component: make(() => import('sentry/views/discover')),
+    withOrgPath: true,
+    children: discoverChildren,
+  };
 
-  const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
-    <Redirect
-      from="/llm-monitoring/"
-      to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
-    />
-  ) : (
-    <Redirect
-      from="/organizations/:orgId/llm-monitoring/"
-      to={`/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
-    />
-  );
+  const llmMonitoringRedirects: SentryRouteObject = {
+    children: [
+      {
+        path: '/llm-monitoring/',
+        redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`,
+        customerDomainOnlyRoute: true,
+      },
+      {
+        path: '/organizations/:orgId/llm-monitoring/',
+        redirectTo: `/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`,
+      },
+    ],
+  };
 
   const moduleUrlToModule: Record<string, ModuleName> = Object.fromEntries(
     Object.values(ModuleName).map(name => [MODULE_BASE_URLS[name], name])
@@ -1724,14 +1710,14 @@ function buildRoutes() {
     )
     .filter(route => route !== null);
 
-  const transactionSummaryChildRoutes: SentryRouteObject[] = [
+  const transactionSummaryChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(
         () => import('sentry/views/performance/transactionSummary/transactionOverview')
       ),
     },
-    traceViewRouteObject,
+    traceView,
     {
       path: 'replays/',
       component: make(
@@ -1958,7 +1944,7 @@ function buildRoutes() {
     },
     {
       path: 'summary/',
-      children: transactionSummaryChildRoutes,
+      children: transactionSummaryChildren,
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/`,
@@ -1971,9 +1957,9 @@ function buildRoutes() {
         },
         {
           path: 'summary/',
-          children: transactionSummaryChildRoutes,
+          children: transactionSummaryChildren,
         },
-        traceViewRouteObject,
+        traceView,
         ...moduleRoutes,
       ],
     },
@@ -1988,9 +1974,9 @@ function buildRoutes() {
         },
         {
           path: 'summary/',
-          children: transactionSummaryChildRoutes,
+          children: transactionSummaryChildren,
         },
-        traceViewRouteObject,
+        traceView,
         ...moduleRoutes,
       ],
     },
@@ -2005,15 +1991,15 @@ function buildRoutes() {
         },
         {
           path: 'summary/',
-          children: transactionSummaryChildRoutes,
+          children: transactionSummaryChildren,
         },
-        traceViewRouteObject,
+        traceView,
         ...moduleRoutes,
       ],
     },
     {
       path: `${AI_LANDING_SUB_PATH}/`,
-      children: [traceViewRouteObject, ...moduleRoutes],
+      children: [traceView, ...moduleRoutes],
     },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
@@ -2024,16 +2010,16 @@ function buildRoutes() {
         },
         {
           path: 'summary/',
-          children: transactionSummaryChildRoutes,
+          children: transactionSummaryChildren,
         },
-        traceViewRouteObject,
+        traceView,
         ...moduleRoutes,
       ],
     },
     {
       path: 'projects/',
       component: make(() => import('sentry/views/projects/')),
-      children: projectsChildRoutes,
+      children: projectsChildren,
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
@@ -2067,28 +2053,26 @@ function buildRoutes() {
     },
   ];
 
-  const domainViewRoutes = (
-    <Route
-      path={`/${DOMAIN_VIEW_BASE_URL}/`}
-      withOrgPath
-      newStyleChildren={domainViewChildRoutes}
-    />
-  );
+  const domainViewRoutes: SentryRouteObject = {
+    path: `/${DOMAIN_VIEW_BASE_URL}/`,
+    withOrgPath: true,
+    children: domainViewChildRoutes,
+  };
 
-  const performanceChildRoutes: SentryRouteObject[] = [
+  const performanceChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: '/insights/frontend/',
     },
     {
       path: 'summary/',
-      children: transactionSummaryChildRoutes,
+      children: transactionSummaryChildren,
     },
     {
       path: 'vitaldetail/',
       component: make(() => import('sentry/views/performance/vitalDetail')),
     },
-    traceViewRouteObject,
+    traceView,
     ...insightsRedirectObjects,
     {
       path: 'browser/resources',
@@ -2107,46 +2091,40 @@ function buildRoutes() {
       component: make(() => import('sentry/views/performance/transactionDetails')),
     },
   ];
+  const performanceRoutes: SentryRouteObject = {
+    path: '/performance/',
+    component: make(() => import('sentry/views/performance')),
+    withOrgPath: true,
+    children: performanceChildren,
+  };
 
-  const performanceRoutes = (
-    <Route
-      path="/performance/"
-      component={make(() => import('sentry/views/performance'))}
-      withOrgPath
-      newStyleChildren={performanceChildRoutes}
-    />
-  );
-
-  const tracesChildRoutes: SentryRouteObject[] = [
+  const tracesChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/traces/content')),
     },
-    traceViewRouteObject,
+    traceView,
     {
       path: 'compare/',
       component: make(() => import('sentry/views/explore/multiQueryMode')),
     },
   ];
+  const tracesRoutes: SentryRouteObject = {
+    path: '/traces/',
+    component: make(() => import('sentry/views/traces')),
+    withOrgPath: true,
+    children: tracesChildren,
+  };
 
-  const logsChildRoutes: SentryRouteObject[] = [
+  const logsChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/explore/logs/content')),
     },
-    traceViewRouteObject,
+    traceView,
   ];
 
-  const tracesRoutes = (
-    <Route
-      path="/traces/"
-      component={make(() => import('sentry/views/traces'))}
-      withOrgPath
-      newStyleChildren={tracesChildRoutes}
-    />
-  );
-
-  const profilingChildRoutes: SentryRouteObject[] = [
+  const profilingChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/profiling/content')),
@@ -2159,7 +2137,7 @@ function buildRoutes() {
       path: 'profile/:projectId/differential-flamegraph/',
       component: make(() => import('sentry/views/profiling/differentialFlamegraph')),
     },
-    traceViewRouteObject,
+    traceView,
     {
       path: 'profile/:projectId/',
       component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
@@ -2183,8 +2161,14 @@ function buildRoutes() {
       ],
     },
   ];
+  const profilingRoutes: SentryRouteObject = {
+    path: '/profiling/',
+    component: make(() => import('sentry/views/profiling')),
+    withOrgPath: true,
+    children: profilingChildren,
+  };
 
-  const exploreChildRoutes: SentryRouteObject[] = [
+  const exploreChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/explore/indexRedirect')),
@@ -2192,42 +2176,43 @@ function buildRoutes() {
     {
       path: 'profiling/',
       component: make(() => import('sentry/views/profiling')),
-      children: profilingChildRoutes,
+      children: profilingChildren,
     },
     {
       path: 'traces/',
       component: make(() => import('sentry/views/traces')),
-      children: tracesChildRoutes,
+      children: tracesChildren,
     },
     {
       path: 'replays/',
       component: make(() => import('sentry/views/replays/index')),
-      children: replayChildRoutes,
+      children: replayChildren,
     },
     {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
-      children: discoverChildRoutes,
+      children: discoverChildren,
     },
     {
       path: 'releases/',
       component: make(() => import('sentry/views/releases/index')),
-      children: releasesChildRoutes,
+      children: releaseChildren,
     },
     {
       path: 'logs/',
       component: make(() => import('sentry/views/explore/logs')),
-      children: logsChildRoutes,
+      children: logsChildren,
     },
     {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
   ];
-
-  const exploreRoutes = (
-    <Route path="/explore/" withOrgPath newStyleChildren={exploreChildRoutes} />
-  );
+  const exploreRoutes: SentryRouteObject = {
+    path: '/explore/',
+    withOrgPath: true,
+    children: exploreChildren,
+  };
 
   // This is a layout route that will render a header for a commit
   const codecovCommitRoutes: SentryRouteObject = {
@@ -2265,7 +2250,7 @@ function buildRoutes() {
     ],
   };
 
-  const codecovChildrenRoutes: SentryRouteObject[] = [
+  const codecovChildren: SentryRouteObject[] = [
     {
       path: 'coverage/',
       children: [
@@ -2343,49 +2328,41 @@ function buildRoutes() {
       ],
     },
   ];
+  const codecovRoutes: SentryRouteObject = {
+    path: '/codecov/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/codecov/index')),
+    children: codecovChildren,
+  };
 
-  const codecovRoutes = (
-    <Route
-      path="/codecov/"
-      withOrgPath
-      component={make(() => import('sentry/views/codecov/index'))}
-      newStyleChildren={codecovChildrenRoutes}
-    />
-  );
-
-  const preprodChildRoutes: SentryRouteObject[] = [
+  const preprodChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/preprod/buildDetails')),
     },
   ];
+  const preprodRoutes: SentryRouteObject = {
+    path: '/preprod/:projectId/:artifactId/',
+    component: make(() => import('sentry/views/preprod/index')),
+    withOrgPath: true,
+    children: preprodChildren,
+  };
 
-  const preprodRoutes = (
-    <Route
-      path="/preprod/:projectId/:artifactId/"
-      component={make(() => import('sentry/views/preprod/index'))}
-      withOrgPath
-      newStyleChildren={preprodChildRoutes}
-    />
-  );
-
-  const feedbackV2ChildRoutes: SentryRouteObject[] = [
+  const feedbackV2Children: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/feedback/feedbackListPage')),
     },
-    traceViewRouteObject,
+    traceView,
   ];
-  const feedbackv2Routes = (
-    <Route
-      path="/feedback/"
-      component={make(() => import('sentry/views/feedback/index'))}
-      withOrgPath
-      newStyleChildren={feedbackV2ChildRoutes}
-    />
-  );
+  const feedbackv2Routes: SentryRouteObject = {
+    path: '/feedback/',
+    component: make(() => import('sentry/views/feedback/index')),
+    withOrgPath: true,
+    children: feedbackV2Children,
+  };
 
-  const issueTabsObject: SentryRouteObject[] = [
+  const issueTabs: SentryRouteObject[] = [
     {
       index: true,
       component: make(
@@ -2447,7 +2424,7 @@ function buildRoutes() {
     },
   ];
 
-  const issueChildRoutes: SentryRouteObject[] = [
+  const issueChildren: SentryRouteObject[] = [
     {
       index: true,
       component: errorHandler(OverviewWrapper),
@@ -2499,105 +2476,106 @@ function buildRoutes() {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
       children: [
-        ...issueTabsObject,
+        ...issueTabs,
         {
           path: `${TabPaths[Tab.EVENTS]}:eventId/`,
-          children: issueTabsObject,
+          children: issueTabs,
         },
       ],
     },
     {
       path: 'feedback/',
       component: make(() => import('sentry/views/feedback/index')),
-      children: feedbackV2ChildRoutes,
+      children: feedbackV2Children,
     },
     {
       path: 'alerts/',
       component: make(() => import('sentry/views/alerts')),
       children: alertChildRoutes(true),
     },
-    traceViewRouteObject,
+    traceView,
     automationRoutes,
     detectorRoutes,
   ];
+  const issueRoutes: SentryRouteObject = {
+    path: '/issues/',
+    withOrgPath: true,
+    children: issueChildren,
+  };
 
-  const issueRoutes = (
-    <Route path="/issues/" withOrgPath newStyleChildren={issueChildRoutes} />
-  );
+  const adminManageChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/admin/adminOverview')),
+    },
+    {
+      path: 'buffer/',
+      component: make(() => import('sentry/views/admin/adminBuffer')),
+    },
+    {
+      path: 'relays/',
+      component: make(() => import('sentry/views/admin/adminRelays')),
+    },
+    {
+      path: 'organizations/',
+      component: make(() => import('sentry/views/admin/adminOrganizations')),
+    },
+    {
+      path: 'projects/',
+      component: make(() => import('sentry/views/admin/adminProjects')),
+    },
+    {
+      path: 'queue/',
+      component: make(() => import('sentry/views/admin/adminQueue')),
+    },
+    {
+      path: 'quotas/',
+      component: make(() => import('sentry/views/admin/adminQuotas')),
+    },
+    {
+      path: 'settings/',
+      component: make(() => import('sentry/views/admin/adminSettings')),
+    },
+    {
+      path: 'users/',
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/admin/adminUsers')),
+        },
+        {
+          path: ':id',
+          component: make(() => import('sentry/views/admin/adminUserEdit')),
+        },
+      ],
+    },
+    {
+      path: 'status/mail/',
+      component: make(() => import('sentry/views/admin/adminMail')),
+    },
+    {
+      path: 'status/environment/',
+      component: make(() => import('sentry/views/admin/adminEnvironment')),
+    },
+    {
+      path: 'status/packages/',
+      component: make(() => import('sentry/views/admin/adminPackages')),
+    },
+    {
+      path: 'status/warnings/',
+      component: make(() => import('sentry/views/admin/adminWarnings')),
+    },
+  ];
 
   // These are the "manage" pages. For sentry.io, these are _different_ from
   // the SaaS admin routes in getsentry.
-  const adminManageRoutes = (
-    <Route
-      path="/manage/"
-      component={make(() => import('sentry/views/admin/adminLayout'))}
-      newStyleChildren={[
-        {
-          index: true,
-          component: make(() => import('sentry/views/admin/adminOverview')),
-        },
-        {
-          path: 'buffer/',
-          component: make(() => import('sentry/views/admin/adminBuffer')),
-        },
-        {
-          path: 'relays/',
-          component: make(() => import('sentry/views/admin/adminRelays')),
-        },
-        {
-          path: 'organizations/',
-          component: make(() => import('sentry/views/admin/adminOrganizations')),
-        },
-        {
-          path: 'projects/',
-          component: make(() => import('sentry/views/admin/adminProjects')),
-        },
-        {
-          path: 'queue/',
-          component: make(() => import('sentry/views/admin/adminQueue')),
-        },
-        {
-          path: 'quotas/',
-          component: make(() => import('sentry/views/admin/adminQuotas')),
-        },
-        {
-          path: 'settings/',
-          component: make(() => import('sentry/views/admin/adminSettings')),
-        },
-        {
-          path: 'users/',
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/admin/adminUsers')),
-            },
-            {
-              path: ':id',
-              component: make(() => import('sentry/views/admin/adminUserEdit')),
-            },
-          ],
-        },
-        {
-          path: 'status/mail/',
-          component: make(() => import('sentry/views/admin/adminMail')),
-        },
-        {
-          path: 'status/environment/',
-          component: make(() => import('sentry/views/admin/adminEnvironment')),
-        },
-        {
-          path: 'status/packages/',
-          component: make(() => import('sentry/views/admin/adminPackages')),
-        },
-        {
-          path: 'status/warnings/',
-          component: make(() => import('sentry/views/admin/adminWarnings')),
-        },
-      ]}
-    />
-  );
+  const adminManageRoutes: SentryRouteObject = {
+    path: '/manage/',
+    component: make(() => import('sentry/views/admin/adminLayout')),
+    children: adminManageChildren,
+  };
 
-  const legacyOrganizationRootChildRoutes: SentryRouteObject[] = [
+  const legacyOrganizationRootChildren: SentryRouteObject[] = [
     {
       path: '/organizations/:orgId/teams/new/',
       redirectTo: '/settings/:orgId/teams/',
@@ -2673,12 +2651,11 @@ function buildRoutes() {
       ],
     },
   ];
+  const legacyOrganizationRootRoutes: SentryRouteObject = {
+    children: legacyOrganizationRootChildren,
+  };
 
-  const legacyOrganizationRootRoutes = (
-    <Route newStyleChildren={legacyOrganizationRootChildRoutes} />
-  );
-
-  const gettingStartedChildRoutes: SentryRouteObject[] = [
+  const gettingStartedChildren: SentryRouteObject[] = [
     {
       path: '/getting-started/:projectId/',
       redirectTo: '/projects/:projectId/getting-started/',
@@ -2698,24 +2675,16 @@ function buildRoutes() {
       redirectTo: '/organizations/:orgId/projects/:projectId/getting-started/',
     },
   ];
-
-  const gettingStartedRoutes = <Route newStyleChildren={gettingStartedChildRoutes} />;
-
-  const profilingRoutes = (
-    <Route
-      path="/profiling/"
-      component={make(() => import('sentry/views/profiling'))}
-      withOrgPath
-      newStyleChildren={profilingChildRoutes}
-    />
-  );
+  const gettingStartedRoutes: SentryRouteObject = {
+    children: gettingStartedChildren,
+  };
 
   // Support for deprecated URLs (pre-Sentry 10). We just redirect users to new
   // canonical URLs.
   //
   // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
   // or do these need to be nested into the OrganizationLayout tree?
-  const legacyOrgRedirectChildRoutes: SentryRouteObject[] = [
+  const legacyOrgRedirectChildren: SentryRouteObject[] = [
     {
       index: true,
       component: errorHandler(
@@ -2794,211 +2763,214 @@ function buildRoutes() {
       ),
     },
   ];
+  const legacyOrgRedirects: SentryRouteObject = {
+    path: '/:orgId/:projectId/',
+    children: legacyOrgRedirectChildren,
+  };
 
-  const legacyOrgRedirects = (
-    <Route path="/:orgId/:projectId/" newStyleChildren={legacyOrgRedirectChildRoutes} />
-  );
+  const organizationRoutes: SentryRouteObject = {
+    component: errorHandler(OrganizationLayout),
+    children: [
+      settingsRoutes,
+      projectsRoutes,
+      dashboardRoutes,
+      feedbackv2Routes,
+      issueRoutes,
+      alertRoutes,
+      codecovRoutes,
+      preprodRoutes,
+      replayRoutes,
+      releasesRoutes,
+      statsRoutes,
+      discoverRoutes,
+      performanceRoutes,
+      domainViewRoutes,
+      tracesRoutes,
+      exploreRoutes,
+      llmMonitoringRedirects,
+      profilingRoutes,
+      gettingStartedRoutes,
+      adminManageRoutes,
+      legacyOrganizationRootRoutes,
+      legacyOrgRedirects,
+    ],
+  };
 
-  const organizationRoutes = (
-    <Route component={errorHandler(OrganizationLayout)}>
-      {settingsRoutes}
-      {projectsRoutes}
-      {dashboardRoutes}
-      {feedbackv2Routes}
-      {issueRoutes}
-      {alertRoutes}
-      {codecovRoutes}
-      {preprodRoutes}
-      {replayRoutes}
-      {releasesRoutes}
-      {statsRoutes}
-      {discoverRoutes}
-      {performanceRoutes}
-      {domainViewRoutes}
-      {tracesRoutes}
-      {exploreRoutes}
-      {llmMonitoringRedirects}
-      {profilingRoutes}
-      {gettingStartedRoutes}
-      {adminManageRoutes}
-      {legacyOrganizationRootRoutes}
-      {legacyOrgRedirects}
-    </Route>
-  );
+  const legacyRedirectRoutes: SentryRouteObject = {
+    path: '/:orgId/',
+    children: [
+      {
+        index: true,
+        redirectTo: '/organizations/:orgId/',
+      },
+      {
+        path: ':projectId/settings/',
+        children: [
+          {
+            path: 'teams/',
+            redirectTo: '/settings/:orgId/projects/:projectId/teams/',
+          },
+          {
+            path: 'alerts/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/',
+          },
+          {
+            path: 'alerts/rules/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/',
+          },
+          {
+            path: 'alerts/rules/new/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/new/',
+          },
+          {
+            path: 'alerts/rules/:ruleId/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+          },
+          {
+            path: 'environments/',
+            redirectTo: '/settings/:orgId/projects/:projectId/environments/',
+          },
+          {
+            path: 'environments/hidden/',
+            redirectTo: '/settings/:orgId/projects/:projectId/environments/hidden/',
+          },
+          {
+            path: 'tags/',
+            redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
+          },
+          {
+            path: 'issue-tracking/',
+            redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
+          },
+          {
+            path: 'release-tracking/',
+            redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
+          },
+          {
+            path: 'ownership/',
+            redirectTo: '/settings/:orgId/projects/:projectId/ownership/',
+          },
+          {
+            path: 'data-forwarding/',
+            redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
+          },
+          {
+            path: 'debug-symbols/',
+            redirectTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
+          },
+          {
+            path: 'filters/',
+            redirectTo: '/settings/:orgId/projects/:projectId/filters/',
+          },
+          {
+            path: 'hooks/',
+            redirectTo: '/settings/:orgId/projects/:projectId/hooks/',
+          },
+          {
+            path: 'keys/',
+            redirectTo: '/settings/:orgId/projects/:projectId/keys/',
+          },
+          {
+            path: 'keys/:keyId/',
+            redirectTo: '/settings/:orgId/projects/:projectId/keys/:keyId/',
+          },
+          {
+            path: 'user-feedback/',
+            redirectTo: '/settings/:orgId/projects/:projectId/user-feedback/',
+          },
+          {
+            path: 'security-headers/',
+            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/',
+          },
+          {
+            path: 'security-headers/csp/',
+            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+          },
+          {
+            path: 'security-headers/expect-ct/',
+            redirectTo:
+              '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
+          },
+          {
+            path: 'security-headers/hpkp/',
+            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
+          },
+          {
+            path: 'plugins/',
+            redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
+          },
+          {
+            path: 'plugins/:pluginId/',
+            redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
+          },
+          {
+            path: 'integrations/:providerKey/',
+            redirectTo: '/settings/:orgId/projects/:projectId/integrations/:providerKey/',
+          },
+        ],
+      },
+      {
+        path: ':projectId/group/:groupId/',
+        redirectTo: 'issues/:groupId/',
+      },
+      {
+        path: ':projectId/issues/:groupId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/',
+      },
+      {
+        path: ':projectId/issues/:groupId/events/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/events/',
+      },
+      {
+        path: ':projectId/issues/:groupId/events/:eventId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      },
+      {
+        path: ':projectId/issues/:groupId/tags/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/tags/',
+      },
+      {
+        path: ':projectId/issues/:groupId/tags/:tagKey/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+      },
+      {
+        path: ':projectId/issues/:groupId/feedback/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/feedback/',
+      },
+      {
+        path: ':projectId/issues/:groupId/similar/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/similar/',
+      },
+      {
+        path: ':projectId/issues/:groupId/merged/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
+      },
+      {
+        path: ':projectId/events/:eventId/',
+        component: errorHandler(ProjectEventRedirect),
+      },
+    ],
+  };
 
-  const legacyRedirectRoutes: SentryRouteObject[] = [
-    {
-      path: '/:orgId/',
-      children: [
-        {
-          index: true,
-          redirectTo: '/organizations/:orgId/',
-        },
-        {
-          path: ':projectId/settings/',
-          children: [
-            {
-              path: 'teams/',
-              redirectTo: '/settings/:orgId/projects/:projectId/teams/',
-            },
-            {
-              path: 'alerts/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/',
-            },
-            {
-              path: 'alerts/rules/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/',
-            },
-            {
-              path: 'alerts/rules/new/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/new/',
-            },
-            {
-              path: 'alerts/rules/:ruleId/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
-            },
-            {
-              path: 'environments/',
-              redirectTo: '/settings/:orgId/projects/:projectId/environments/',
-            },
-            {
-              path: 'environments/hidden/',
-              redirectTo: '/settings/:orgId/projects/:projectId/environments/hidden/',
-            },
-            {
-              path: 'tags/',
-              redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
-            },
-            {
-              path: 'issue-tracking/',
-              redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
-            },
-            {
-              path: 'release-tracking/',
-              redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
-            },
-            {
-              path: 'ownership/',
-              redirectTo: '/settings/:orgId/projects/:projectId/ownership/',
-            },
-            {
-              path: 'data-forwarding/',
-              redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
-            },
-            {
-              path: 'debug-symbols/',
-              redirectTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
-            },
-            {
-              path: 'filters/',
-              redirectTo: '/settings/:orgId/projects/:projectId/filters/',
-            },
-            {
-              path: 'hooks/',
-              redirectTo: '/settings/:orgId/projects/:projectId/hooks/',
-            },
-            {
-              path: 'keys/',
-              redirectTo: '/settings/:orgId/projects/:projectId/keys/',
-            },
-            {
-              path: 'keys/:keyId/',
-              redirectTo: '/settings/:orgId/projects/:projectId/keys/:keyId/',
-            },
-            {
-              path: 'user-feedback/',
-              redirectTo: '/settings/:orgId/projects/:projectId/user-feedback/',
-            },
-            {
-              path: 'security-headers/',
-              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/',
-            },
-            {
-              path: 'security-headers/csp/',
-              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
-            },
-            {
-              path: 'security-headers/expect-ct/',
-              redirectTo:
-                '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
-            },
-            {
-              path: 'security-headers/hpkp/',
-              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
-            },
-            {
-              path: 'plugins/',
-              redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
-            },
-            {
-              path: 'plugins/:pluginId/',
-              redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
-            },
-            {
-              path: 'integrations/:providerKey/',
-              redirectTo:
-                '/settings/:orgId/projects/:projectId/integrations/:providerKey/',
-            },
-          ],
-        },
-        {
-          path: ':projectId/group/:groupId/',
-          redirectTo: 'issues/:groupId/',
-        },
-        {
-          path: ':projectId/issues/:groupId/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/',
-        },
-        {
-          path: ':projectId/issues/:groupId/events/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/events/',
-        },
-        {
-          path: ':projectId/issues/:groupId/events/:eventId/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/events/:eventId/',
-        },
-        {
-          path: ':projectId/issues/:groupId/tags/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/tags/',
-        },
-        {
-          path: ':projectId/issues/:groupId/tags/:tagKey/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
-        },
-        {
-          path: ':projectId/issues/:groupId/feedback/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/feedback/',
-        },
-        {
-          path: ':projectId/issues/:groupId/similar/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/similar/',
-        },
-        {
-          path: ':projectId/issues/:groupId/merged/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-        },
-        {
-          path: ':projectId/events/:eventId/',
-          component: errorHandler(ProjectEventRedirect),
-        },
-      ],
-    },
-  ];
+  const appRoutes: SentryRouteObject = {
+    component: ProvideAriaRouter,
+    children: [
+      experimentalSpaRoutes,
+      {
+        path: '/',
+        component: errorHandler(App),
+        children: [
+          rootRoutes,
+          authV2Routes,
+          organizationRoutes,
+          legacyRedirectRoutes,
+          {path: '*', component: errorHandler(RouteNotFound)},
+        ],
+      },
+    ],
+  };
 
-  const appRoutes = (
-    <Route component={ProvideAriaRouter}>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {authV2Routes}
-        {organizationRoutes}
-        <Route newStyleChildren={legacyRedirectRoutes} />
-        <Route path="*" component={errorHandler(RouteNotFound)} />
-      </Route>
-    </Route>
-  );
-
-  return appRoutes;
+  return [translateSentryRoute(appRoutes)];
 }
 
 // We load routes both when initializing the SDK (for routing integrations) and

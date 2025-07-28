@@ -26,7 +26,7 @@ class BitbucketPlugin(IssueTrackingPlugin2):
 
 @control_silo_test
 class BitbucketInstalledEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provider = "bitbucket"
         self.path = "/extensions/bitbucket/installed/"
         self.username = "sentryuser"

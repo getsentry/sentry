@@ -6,7 +6,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectEventTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
@@ -61,7 +61,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
 
 
 class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)

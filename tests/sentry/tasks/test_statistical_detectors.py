@@ -1343,7 +1343,7 @@ def test_redirect_escalations(
 
 
 class FunctionsTasksTest(ProfilesSnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.now = before_now(minutes=10)
@@ -1652,7 +1652,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
 
 @pytest.mark.sentry_metrics
 class TestTransactionsQuery(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4
@@ -1724,7 +1724,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
 
 @pytest.mark.sentry_metrics
 class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4

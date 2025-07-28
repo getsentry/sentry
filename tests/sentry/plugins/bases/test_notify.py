@@ -60,7 +60,7 @@ class NotifyPluginTest(TestCase):
 
 
 class DummyNotificationPluginTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = self.store_event(data={}, project_id=self.project.id)
         self.group = self.event.group
         self.plugin = DummyNotificationPlugin()

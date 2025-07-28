@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = PostgresRuleHistoryBackend()
 
 

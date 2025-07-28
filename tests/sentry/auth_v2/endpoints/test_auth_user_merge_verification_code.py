@@ -8,7 +8,7 @@ class VerificationCodeTest(APITestCase):
     endpoint = "sentry-api-0-auth-verification-codes"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
         return super().setUp()
 

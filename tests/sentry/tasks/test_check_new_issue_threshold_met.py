@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class CheckNewIssueThresholdMetTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.project.flags.has_high_priority_alerts = False
         self.project.save()

@@ -16,7 +16,7 @@ now = before_now(days=1).replace(minute=10, second=0, microsecond=0, tzinfo=None
 
 @freeze_time(now)
 class EventUserTestCase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))

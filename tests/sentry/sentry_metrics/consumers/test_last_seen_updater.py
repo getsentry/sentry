@@ -66,19 +66,19 @@ def kafka_message(kafka_payload):
     )
 
 
-def test_retrieve_db_read_keys_meta_field_present_with_db_keys():
+def test_retrieve_db_read_keys_meta_field_present_with_db_keys() -> None:
     message = kafka_message(headerless_kafka_payload(mixed_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == {2000, 2001, 2002}
 
 
-def test_retrieve_db_read_keys_meta_field_not_present():
+def test_retrieve_db_read_keys_meta_field_not_present() -> None:
     message = kafka_message(headerless_kafka_payload(empty_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == set()
 
 
-def test_retrieve_db_read_keys_meta_field_bad_json():
+def test_retrieve_db_read_keys_meta_field_bad_json() -> None:
     message = kafka_message(headerless_kafka_payload(bad_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == set()
@@ -94,7 +94,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             max_batch_size=1,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 1234
         self.stale_id = 2001
         self.fresh_id = 2002

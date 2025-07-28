@@ -10,7 +10,7 @@ from sentry.testutils.silo import all_silo_test, create_test_regions
 @all_silo_test(regions=create_test_regions("us"))
 @freeze_time("2025-07-08 00:00:00")
 class TestDataAccessGrantService(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.organization_2 = self.create_organization()
 

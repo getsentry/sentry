@@ -23,7 +23,7 @@ from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEv
 
 
 class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_id = [self._create_event(user_id=str(i)) for i in range(6)][0].group.id
 
     def test_simple(self) -> None:
@@ -145,7 +145,7 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         )
 
 
-def test_safe_for_fetching_issues():
+def test_safe_for_fetching_issues() -> None:
     pr_files: list[PrFile] = [
         {"filename": "foo.py", "patch": "a", "changes": 100, "status": "modified"},
         {"filename": "bar.js", "patch": "b", "changes": 100, "status": "modified"},
@@ -181,7 +181,7 @@ def test_safe_for_fetching_issues():
     assert safe_for_fetching_issues(pr_files_with_unsupported_language) == pr_files_safe
 
 
-def test__left_truncated_paths():
+def test__left_truncated_paths() -> None:
     assert _left_truncated_paths("foo.py") == []
     assert _left_truncated_paths("path/foo.py") == ["foo.py"]
     assert _left_truncated_paths("path/to/foo.py") == ["to/foo.py", "foo.py"]
@@ -200,7 +200,7 @@ class TestGetIssues(IntegrationTestCase, CreateEventTestCase):
     # Mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_id = "user_1"
         self.app_id = "app_1"
 

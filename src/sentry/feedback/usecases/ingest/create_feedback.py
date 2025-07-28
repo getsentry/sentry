@@ -322,7 +322,7 @@ def create_feedback_issue(
     issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
-        event_id=event.get("event_id") or uuid4().hex,
+        event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title=get_feedback_title(feedback_message),
@@ -335,15 +335,16 @@ def create_feedback_issue(
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
     )
-    now = datetime.now()
 
-    event_data = {
-        "project_id": project.id,
-        "received": now.isoformat(),
-        "tags": event.get("tags", {}),
-        **event,
-    }
-    event_fixed = fix_for_issue_platform(event_data)
+    event_fixed = fix_for_issue_platform(
+        # Pass in a copy of the event so mutations to the original and fixed don't affect each other.
+        {
+            **event,
+            "project_id": project_id,
+            "received": datetime.now().isoformat(),
+            "tags": event.get("tags", {}),
+        }
+    )
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it

@@ -12,7 +12,7 @@ class BaseIncidentDetailsTest(APITestCase):
 
     endpoint = "sentry-api-0-organization-incident-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 

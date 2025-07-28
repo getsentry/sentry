@@ -8,7 +8,7 @@ from sentry.sentry_apps.api.parsers.schema import validate_component
 
 
 class TestAlertRuleActionSchemaValidation(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.schema: dict[str, Any] = {
             "type": "alert-rule-action",
             "title": "Create Task",

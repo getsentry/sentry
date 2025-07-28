@@ -46,7 +46,7 @@ def fake_get_tags(event_for_tags, tags):
 
 
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",

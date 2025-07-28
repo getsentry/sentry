@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ExternalActorSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.integration, self.org_integration = self.create_provider_integration_for(

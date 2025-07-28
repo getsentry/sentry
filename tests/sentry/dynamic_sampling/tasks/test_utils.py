@@ -5,7 +5,7 @@ from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
 
 
-def test_injection_dynamic_sampling_task_with_context():
+def test_injection_dynamic_sampling_task_with_context() -> None:
     duration = 420
 
     @dynamic_sampling_task_with_context(max_task_execution=duration)
@@ -16,7 +16,7 @@ def test_injection_dynamic_sampling_task_with_context():
     inner()
 
 
-def test_log_dynamic_sampling_task_with_context():
+def test_log_dynamic_sampling_task_with_context() -> None:
     @dynamic_sampling_task_with_context(max_task_execution=100)
     def inner(context: TaskContext):
         pass
@@ -24,7 +24,7 @@ def test_log_dynamic_sampling_task_with_context():
     inner()
 
 
-def test_timeout_dynamic_sampling_task_with_context():
+def test_timeout_dynamic_sampling_task_with_context() -> None:
     @dynamic_sampling_task_with_context(max_task_execution=100)
     def inner(context: TaskContext):
         raise TimeoutException(context)

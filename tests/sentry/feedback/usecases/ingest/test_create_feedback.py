@@ -21,7 +21,7 @@ from sentry.types.group import GroupSubStatus
 from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
 
 
-def test_fix_for_issue_platform():
+def test_fix_for_issue_platform() -> None:
     event: dict[str, Any] = {
         "project_id": 1,
         "request": {
@@ -117,7 +117,7 @@ def test_fix_for_issue_platform():
     assert fixed_event["user"]["email"] == event["contexts"]["feedback"]["contact_email"]
 
 
-def test_corrected_still_works():
+def test_corrected_still_works() -> None:
     event: dict[str, Any] = {
         "project_id": 1,
         "request": {
