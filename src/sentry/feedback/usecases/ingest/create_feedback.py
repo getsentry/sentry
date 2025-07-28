@@ -366,8 +366,9 @@ def create_feedback_issue(
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
     if (
-        features.has("organizations:user-feedback-ai-categorization", project.organization)
-        and not is_message_spam
+        not is_message_spam
+        and features.has("organizations:user-feedback-ai-categorization", project.organization)
+        and features.has("organizations:gen-ai-features", project.organization)
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
@@ -381,6 +382,7 @@ def create_feedback_issue(
                     },
                 )
                 labels = labels[:15]
+
             for idx, label in enumerate(labels):
                 event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
         except Exception:

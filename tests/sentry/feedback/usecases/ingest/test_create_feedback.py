@@ -944,3 +944,84 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
         "User Feedback: This is a very long feedback message that describes multiple..."
     )
     assert occurrence.issue_title == expected_title
+
+
+@django_db_all
+def test_create_feedback_adds_ai_labels_when_generation_succeeds(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch
+):
+    """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
+    with Feature(
+        {
+            "organizations:user-feedback-ai-categorization": True,
+            "organizations:gen-ai-features": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+
+        # Mock generate_labels to return fake labels
+        def mock_generate_labels(*args, **kwargs):
+            return ["User Interface", "Authentication", "Performance"]
+
+        monkeypatch.setattr(
+            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+            mock_generate_labels,
+        )
+
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        # Verify that the feedback was created successfully
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+
+        # Verify that AI categorization labels were added to tags
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        tags = produced_event["tags"]
+
+        assert tags["ai_categorization.label.0"] == "User Interface"
+        assert tags["ai_categorization.label.1"] == "Authentication"
+        assert tags["ai_categorization.label.2"] == "Performance"
+
+
+@django_db_all
+def test_create_feedback_handles_label_generation_errors(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch
+):
+    """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
+    with Feature(
+        {
+            "organizations:user-feedback-ai-categorization": True,
+            "organizations:gen-ai-features": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "This is a valid feedback message"
+
+        # Mock generate_labels to raise an exception
+        def mock_generate_labels(*args, **kwargs):
+            raise Exception("Label generation failed")
+
+        monkeypatch.setattr(
+            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+            mock_generate_labels,
+        )
+
+        # This should not raise an exception and should still create the feedback
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        # Verify that the feedback was still created successfully
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+
+        # Verify that no AI categorization labels were added due to the error
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        tags = produced_event["tags"]
+
+        # Check that no AI categorization labels are present
+        ai_labels = [tag for tag in tags.keys() if tag.startswith("ai_categorization.label.")]
+        assert (
+            len(ai_labels) == 0
+        ), "No AI categorization labels should be present when label generation fails"
