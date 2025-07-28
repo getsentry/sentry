@@ -68,7 +68,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             ),
         )
 
-    def test_skips_disabled_workflows(self):
+    def test_skips_disabled_workflows(self) -> None:
         workflow_triggers = self.create_data_condition_group()
         self.create_data_condition(
             condition_group=workflow_triggers,
@@ -87,7 +87,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
-    def test_error_event(self):
+    def test_error_event(self) -> None:
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
@@ -162,7 +162,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         mock_filter.assert_called_with({workflow_filters}, self.event_data)
 
-    def test_same_environment_only(self):
+    def test_same_environment_only(self) -> None:
         env = self.create_environment(project=self.project)
         other_env = self.create_environment(project=self.project)
 
@@ -208,14 +208,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow, matching_env_workflow}
 
-    def test_issue_occurrence_event(self):
+    def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.workflow}
 
-    def test_regressed_event(self):
+    def test_regressed_event(self) -> None:
         dcg = self.create_data_condition_group()
         self.create_data_condition(
             type=Condition.REGRESSION_EVENT,
@@ -314,22 +314,22 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def test_workflow_trigger(self):
+    def test_workflow_trigger(self) -> None:
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
 
-    def test_workflow_trigger__no_conditions(self):
+    def test_workflow_trigger__no_conditions(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
 
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
 
-    def test_no_workflow_trigger(self):
+    def test_no_workflow_trigger(self) -> None:
         triggered_workflows = evaluate_workflow_triggers(set(), self.event_data)
         assert not triggered_workflows
 
-    def test_workflow_many_filters(self):
+    def test_workflow_many_filters(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
 
@@ -343,7 +343,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
 
-    def test_workflow_filtered_out(self):
+    def test_workflow_filtered_out(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
 
@@ -356,7 +356,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert not triggered_workflows
 
-    def test_many_workflows(self):
+    def test_many_workflows(self) -> None:
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
         triggered_workflows = evaluate_workflow_triggers(
             {self.workflow, workflow_two}, self.event_data
@@ -364,7 +364,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
         assert triggered_workflows == {self.workflow, workflow_two}
 
-    def test_delays_slow_conditions(self):
+    def test_delays_slow_conditions(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
 
@@ -382,7 +382,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         # no workflows are triggered because the slow conditions need to be evaluated
         assert triggered_workflows == set()
 
-    def test_activity_update__slow_condition(self):
+    def test_activity_update__slow_condition(self) -> None:
         # Setup slow conditions
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
@@ -441,7 +441,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
 
-    def test_enqueues_workflow_all_logic_type(self):
+    def test_enqueues_workflow_all_logic_type(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
         self.create_data_condition(
@@ -465,7 +465,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         assert project_ids
         assert project_ids[0][0] == self.project.id
 
-    def test_enqueues_workflow_any_logic_type(self):
+    def test_enqueues_workflow_any_logic_type(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
 
@@ -493,7 +493,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         )
         assert project_ids[0][0] == self.project.id
 
-    def test_skips_enqueuing_any(self):
+    def test_skips_enqueuing_any(self) -> None:
         # skips slow conditions if the condition group evaluates to True without evaluating them
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.update(
@@ -517,7 +517,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         )
         assert len(project_ids) == 0
 
-    def test_skips_enqueuing_all(self):
+    def test_skips_enqueuing_all(self) -> None:
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
         self.workflow.when_condition_group.update(logic_type=DataConditionGroup.Type.ALL)
@@ -584,7 +584,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         assert set(triggered_action_filters) == {self.action_group}
 
-    def test_basic__with_filter__passes(self):
+    def test_basic__with_filter__passes(self) -> None:
         self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.EVENT_SEEN_COUNT,
@@ -597,7 +597,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         assert set(triggered_action_filters) == {self.action_group}
 
-    def test_basic__with_filter__filtered(self):
+    def test_basic__with_filter__filtered(self) -> None:
         # Add a filter to the action's group
         self.create_data_condition(
             condition_group=self.action_group,
@@ -610,7 +610,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         assert not triggered_action_filters
 
-    def test_with_slow_conditions(self):
+    def test_with_slow_conditions(self) -> None:
         self.action_group.logic_type = DataConditionGroup.Type.ALL
 
         self.create_data_condition(
@@ -636,7 +636,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         # The first condition passes, but the second is enqueued for later evaluation
         assert not triggered_action_filters
 
-    def test_activity__with_slow_conditions(self):
+    def test_activity__with_slow_conditions(self) -> None:
         # Create a condition group with fast and slow conditions
         self.action_group.logic_type = DataConditionGroup.Type.ALL
 
@@ -810,7 +810,7 @@ class TestDeleteWorkflow:
         delete_workflow(self.workflow)
         assert not cls.objects.filter(id=instance_id).exists()
 
-    def test_delete_workflow__no_actions(self):
+    def test_delete_workflow__no_actions(self) -> None:
         Action.objects.get(id=self.action.id).delete()
         assert not DataConditionGroupAction.objects.filter(id=self.action_and_filter.id).exists()
 
@@ -819,7 +819,7 @@ class TestDeleteWorkflow:
 
         assert not Workflow.objects.filter(id=workflow_id).exists()
 
-    def test_delete_workflow__no_workflow_triggers(self):
+    def test_delete_workflow__no_workflow_triggers(self) -> None:
         # TODO - when this condition group is deleted, it's removing the workflow
         # it's basically inverted from what's expected on the cascade delete
         self.workflow.when_condition_group = None

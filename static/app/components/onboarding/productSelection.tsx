@@ -31,6 +31,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
+  const hasLogs = organization.features.includes('ourlogs-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -66,6 +67,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
     disabledProducts[ProductSolution.PROFILING] = {
       reason,
       onClick: createClickHandler('organizations:profiling-view', 'Profiling'),
+    };
+  }
+  if (!hasLogs) {
+    disabledProducts[ProductSolution.LOGS] = {
+      reason,
+      onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
     };
   }
   return disabledProducts;
@@ -122,6 +129,7 @@ export const platformProductAvailability = {
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -251,6 +259,7 @@ function Product({
   docLink,
   description,
 }: ProductProps) {
+  const isDisabled = !!disabled && !disabled.requiresUpgrade;
   return (
     <Tooltip
       title={
@@ -268,7 +277,7 @@ function Product({
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
         priority={!!disabled || checked ? 'primary' : 'default'}
-        disabled={!!disabled && !disabled.requiresUpgrade}
+        disabled={isDisabled}
         aria-label={label}
       >
         <ProductButtonInner>
@@ -281,6 +290,7 @@ function Product({
             role="presentation"
             checked={checked}
             aria-label={label}
+            disabled={isDisabled}
           />
           {label}
           <IconQuestion size="xs" />
@@ -430,6 +440,18 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
           disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
           checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+        />
+      )}
+      {products.includes(ProductSolution.LOGS) && (
+        <Product
+          label={t('Logs')}
+          description={t(
+            'Structured application logs for debugging and troubleshooting. Automatically gets associated with errors and traces.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/logs/"
+          onClick={() => handleClickProduct(ProductSolution.LOGS)}
+          disabled={disabledProducts[ProductSolution.LOGS]}
+          checked={urlProducts.includes(ProductSolution.LOGS)}
         />
       )}
     </Products>

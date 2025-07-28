@@ -1,4 +1,5 @@
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -100,7 +101,7 @@ describe('DetectorEdit | Metric Detector', () => {
     await userEvent.click(screen.getByText('All Environments'));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'production'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     const snubaQuery = mockDetector.dataSources[0].queryObj!.snubaQuery;
     await waitFor(() => {
@@ -125,7 +126,7 @@ describe('DetectorEdit | Metric Detector', () => {
               queryType: 0,
             },
             conditionGroup: {
-              conditions: [{comparison: 8, conditionResult: 50, type: 'gt'}],
+              conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
               logicType: 'any',
             },
             config: {detectionType: 'static', thresholdPeriod: 1},
@@ -194,5 +195,117 @@ describe('DetectorEdit | Metric Detector', () => {
     expect(screen.getByRole('option', {name: 'Last 24 hours'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Last 3 days'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Last 7 days'})).toBeInTheDocument();
+  });
+
+  it('includes comparisonDelta in events-stats request when using percent change detection', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+      body: mockDetector,
+    });
+
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {data: []},
+    });
+
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+      method: 'PUT',
+      body: mockDetector,
+    });
+
+    render(<DetectorEdit />, {
+      organization,
+      initialRouterConfig: {
+        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+        },
+      },
+    });
+
+    expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+    // Switch to percent change detection
+    await userEvent.click(screen.getByRole('radio', {name: 'Change'}));
+
+    // Set % change value to 10%
+    const newThresholdValue = '22';
+    await userEvent.clear(screen.getByLabelText('Initial threshold'));
+    await userEvent.type(screen.getByLabelText('Initial threshold'), newThresholdValue);
+
+    // Wait for the events-stats request to be made with comparisonDelta
+    // Default comparisonDelta is 1 hour (3600 seconds)
+    await waitFor(() => {
+      expect(eventsStatsRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-stats/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            comparisonDelta: 3600,
+          }),
+        })
+      );
+    });
+
+    // Save changes and verify the update request includes comparisonDelta
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(updateRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            config: expect.objectContaining({
+              detectionType: 'percent',
+              comparisonDelta: 3600,
+            }),
+          }),
+        })
+      );
+    });
+    const updateBody = updateRequest.mock.calls[0][1];
+    expect(updateBody.data.conditionGroup.conditions[0]).toEqual({
+      comparison: Number(newThresholdValue),
+      conditionResult: 75,
+      type: 'gt',
+    });
+  });
+
+  it('hides detection type options when dataset is changed to releases', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+      body: mockDetector,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/metrics/data/`,
+      body: MetricsFieldFixture('count()'),
+    });
+
+    render(<DetectorEdit />, {
+      organization,
+      initialRouterConfig: {
+        route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+        },
+      },
+    });
+
+    expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+    // Verify detection type options are initially available
+    expect(screen.getByText('Threshold')).toBeInTheDocument();
+    expect(screen.getByText('Change')).toBeInTheDocument();
+
+    // Change dataset to releases
+    const datasetField = screen.getByLabelText('Dataset');
+    await userEvent.click(datasetField);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+
+    // Verify detection type options are no longer available
+    expect(screen.queryByText('Change')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
   });
 });

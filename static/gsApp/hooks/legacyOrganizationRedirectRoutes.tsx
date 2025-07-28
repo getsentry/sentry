@@ -1,29 +1,44 @@
-import {Fragment} from 'react';
+import type {SentryRouteObject} from 'sentry/components/route';
 
-import {Redirect} from 'sentry/components/route';
-
-const legacyOrganizationRedirectRoutes = () =>
-  (
-    <Fragment key="gs-routes-legacy-organization-redirects">
-      <Redirect from="support/" to="/settings/:orgId/support/" />
-      <Redirect from="billing/:splat/" to="/settings/:orgId/billing/:splat/" />
-      <Redirect
-        from="billing/receipts/:invoiceGuid/"
-        to="/settings/:orgId/billing/receipts/:invoiceGuid/"
-      />
-      <Redirect
-        from="subscription/redeem-code/"
-        to="/settings/:orgId/subscription/redeem-code/"
-      />
-      <Redirect from="subscription/:splat/" to="/settings/:orgId/billing/:splat/" />
-      <Redirect from="legal/" to="/settings/:orgId/legal/" />
-      <Redirect from="payments/" to="/settings/:orgId/billing/receipts/" />
-      <Redirect from="subscription/" to="/settings/:orgId/billing/overview/" />
-      <Redirect
-        from="payments/:invoiceGuid/*"
-        to="/settings/:orgId/billing/receipts/:invoiceGuid/"
-      />
-    </Fragment>
-  ) as any; // TODO(ts): This does not play nicely with sentry's RoutesHook type
+const legacyOrganizationRedirectRoutes = (): SentryRouteObject => ({
+  children: [
+    {
+      path: 'support/',
+      redirectTo: '/settings/:orgId/support/',
+    },
+    {
+      path: 'billing/:splat/',
+      redirectTo: '/settings/:orgId/billing/:splat/',
+    },
+    {
+      path: 'billing/receipts/:invoiceGuid/',
+      redirectTo: '/settings/:orgId/billing/receipts/:invoiceGuid/',
+    },
+    {
+      path: 'subscription/redeem-code/',
+      redirectTo: '/settings/:orgId/subscription/redeem-code/',
+    },
+    {
+      path: 'subscription/:splat/',
+      redirectTo: '/settings/:orgId/billing/:splat/',
+    },
+    {
+      path: 'legal/',
+      redirectTo: '/settings/:orgId/legal/',
+    },
+    {
+      path: 'payments/',
+      redirectTo: '/settings/:orgId/billing/receipts/',
+    },
+    {
+      path: 'subscription/',
+      redirectTo: '/settings/:orgId/billing/overview/',
+    },
+    {
+      path: 'payments/:invoiceGuid/*',
+      redirectTo: '/settings/:orgId/billing/receipts/:invoiceGuid/',
+    },
+  ],
+});
 
 export default legacyOrganizationRedirectRoutes;

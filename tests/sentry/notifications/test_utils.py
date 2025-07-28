@@ -19,7 +19,7 @@ def mock_event(*, transaction, data=None):
 
 
 class PerformanceProblemContextTestCase(TestCase):
-    def test_creates_correct_context(self):
+    def test_creates_correct_context(self) -> None:
         assert (
             PerformanceProblemContext.from_problem_and_spans(
                 PerformanceProblem(
@@ -56,7 +56,7 @@ class PerformanceProblemContextTestCase(TestCase):
             == NPlusOneAPICallProblemContext
         )
 
-    def test_returns_n_plus_one_db_query_context(self):
+    def test_returns_n_plus_one_db_query_context(self) -> None:
         event = mock_event(transaction="sentry transaction")
         context = PerformanceProblemContext(
             PerformanceProblem(
@@ -94,7 +94,7 @@ class PerformanceProblemContextTestCase(TestCase):
             "num_repeating_spans": "1",
         }
 
-    def test_returns_n_plus_one_api_call_context(self):
+    def test_returns_n_plus_one_api_call_context(self) -> None:
         event = mock_event(transaction="/resources")
         context = NPlusOneAPICallProblemContext(
             PerformanceProblem(
@@ -138,7 +138,7 @@ class PerformanceProblemContextTestCase(TestCase):
             "num_repeating_spans": "3",
         }
 
-    def test_returns_render_blocking_asset_context(self):
+    def test_returns_render_blocking_asset_context(self) -> None:
         event = mock_event(
             transaction="/details",
             data={

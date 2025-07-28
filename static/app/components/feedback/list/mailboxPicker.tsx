@@ -46,7 +46,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? 'sm' : 'none'}>
+                <Flex align="center" gap={theme.isChonk ? 'sm' : '0'}>
                   {mailbox.label}
                   {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>

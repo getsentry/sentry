@@ -26,7 +26,7 @@ class NotificationServiceTest(TestCase):
         )
         self.template = MockNotificationTemplate()
 
-    def test_basic_notify(self):
+    def test_basic_notify(self) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         service.notify(targets=[self.target])
 
@@ -51,12 +51,12 @@ class NotificationServiceTest(TestCase):
             "Strategy '%s' did not yield targets", strategy.__class__.__name__
         )
 
-    def test_basic_notify_prepared_target(self):
+    def test_basic_notify_prepared_target(self) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         prepare_targets([self.target])
         service.notify_prepared_target(target=self.target)
 
-    def test_validation_on_notify_prepared_target(self):
+    def test_validation_on_notify_prepared_target(self) -> None:
         empty_data_service: NotificationService[Any] = NotificationService(data=None)
         with pytest.raises(
             NotificationServiceError,

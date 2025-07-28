@@ -10,8 +10,8 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
 from sentry.codecov.client import CodecovApiClient
-from sentry.codecov.endpoints.TestResults.query import query
-from sentry.codecov.endpoints.TestResults.serializers import TestResultSerializer
+from sentry.codecov.endpoints.test_results.query import query
+from sentry.codecov.endpoints.test_results.serializers import TestResultSerializer
 from sentry.codecov.enums import (
     MeasurementInterval,
     NavigationParameter,

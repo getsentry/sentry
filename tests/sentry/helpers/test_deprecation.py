@@ -75,12 +75,12 @@ class TestDeprecationDecorator(APITestCase):
         assert resp.data == {"message": "This API no longer exists."}
         self.assert_deprecation_metadata(request, resp)
 
-    def test_before_deprecation_date(self):
+    def test_before_deprecation_date(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with freeze_time(test_date - timedelta(seconds=1)):
                 self.assert_allowed_request("GET")
 
-    def test_after_deprecation_date(self):
+    def test_after_deprecation_date(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with freeze_time(test_date):
                 self.assert_allowed_request("GET")
@@ -97,15 +97,15 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(brownout_end):
                 self.assert_allowed_request("GET")
 
-    def test_self_hosted(self):
+    def test_self_hosted(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=True):
             self.assert_not_deprecated("GET")
 
-    def test_no_decorator(self):
+    def test_no_decorator(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.assert_not_deprecated("HEAD")
 
-    def test_default_key(self):
+    def test_default_key(self) -> None:
         with (
             self.settings(SENTRY_SELF_HOSTED=False),
             override_options(
@@ -136,7 +136,7 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(new_brownout_end):
                 self.assert_allowed_request("GET")
 
-    def test_custom_key(self):
+    def test_custom_key(self) -> None:
         with self.settings(
             SENTRY_SELF_HOSTED=False,
         ):
@@ -160,7 +160,7 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(new_brownout_end):
                 self.assert_allowed_request("POST")
 
-    def test_bad_schedule_format(self):
+    def test_bad_schedule_format(self) -> None:
         brownout_start = next(timeiter)
         with freeze_time(brownout_start):
             with (

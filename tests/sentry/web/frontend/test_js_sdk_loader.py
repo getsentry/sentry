@@ -23,18 +23,18 @@ class JavaScriptSdkLoaderTest(TestCase):
     def path(self):
         return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
 
-    def test_noop_no_pub_key(self):
+    def test_noop_no_pub_key(self) -> None:
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=["abc"]))
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader-noop.js.tmpl")
 
-    def test_noop(self):
+    def test_noop(self) -> None:
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = ""
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key]))
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader-noop.js.tmpl")
 
-    def test_no_replace(self):
+    def test_no_replace(self) -> None:
         settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = (
             "https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js"
@@ -44,14 +44,14 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert settings.JS_SDK_LOADER_DEFAULT_SDK_URL.encode("utf-8") in resp.content
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
 
-    def test_renders_js_loader(self):
+    def test_renders_js_loader(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert self.projectkey.public_key.encode("utf-8") in resp.content
         assert b"bundle.min.js" in resp.content
 
-    def test_minified(self):
+    def test_minified(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         min_resp = self.client.get(
@@ -341,7 +341,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert "Set-Cookie" not in resp
         assert "Vary" not in resp, f"Found Vary header: {resp['Vary']}"
 
-    def test_absolute_url(self):
+    def test_absolute_url(self) -> None:
         assert (
             reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
             in self.projectkey.js_sdk_loader_cdn_url

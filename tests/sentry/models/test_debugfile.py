@@ -31,7 +31,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 class DebugFileTest(TestCase):
-    def test_delete_dif(self):
+    def test_delete_dif(self) -> None:
         dif = self.create_dif_file(
             debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface", features=["debug", "unwind"]
         )
@@ -42,7 +42,7 @@ class DebugFileTest(TestCase):
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         assert not File.objects.filter(id=dif.file.id).exists()
 
-    def test_find_dif_by_debug_id(self):
+    def test_find_dif_by_debug_id(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
         debug_id2 = "19bd7a09-3e31-4911-a5cd-8e829b845407"
         debug_id3 = "7d402821-fae6-4ebc-bbb2-152f8e3b3352"
@@ -59,7 +59,7 @@ class DebugFileTest(TestCase):
         assert difs[debug_id2].id == dif2.id
         assert debug_id3 not in difs
 
-    def test_find_dif_by_feature(self):
+    def test_find_dif_by_feature(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
         debug_id2 = "19bd7a09-3e31-4911-a5cd-8e829b845407"
         debug_id3 = "7d402821-fae6-4ebc-bbb2-152f8e3b3352"
@@ -77,7 +77,7 @@ class DebugFileTest(TestCase):
         assert difs[debug_id2].id == dif2.id
         assert debug_id3 not in difs
 
-    def test_find_dif_by_features(self):
+    def test_find_dif_by_features(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
         debug_id2 = "19bd7a09-3e31-4911-a5cd-8e829b845407"
         debug_id3 = "7d402821-fae6-4ebc-bbb2-152f8e3b3352"
@@ -97,7 +97,7 @@ class DebugFileTest(TestCase):
         assert difs[debug_id2].id == dif2.id
         assert debug_id3 not in difs
 
-    def test_find_legacy_dif_by_features(self):
+    def test_find_legacy_dif_by_features(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
         self.create_dif_file(debug_id=debug_id1)
         dif1 = self.create_dif_file(debug_id=debug_id1)
@@ -109,7 +109,7 @@ class DebugFileTest(TestCase):
         )
         assert difs[debug_id1].id == dif1.id
 
-    def test_find_dif_miss_by_features(self):
+    def test_find_dif_miss_by_features(self) -> None:
         debug_id = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
         self.create_dif_file(debug_id=debug_id, features=[])
 
@@ -118,7 +118,7 @@ class DebugFileTest(TestCase):
         )
         assert debug_id not in difs
 
-    def test_find_missing(self):
+    def test_find_missing(self) -> None:
         dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
         ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
         assert ret == ["a" * 40]
@@ -141,7 +141,7 @@ class CreateDebugFileTest(APITestCase):
         args.update(kwargs)
         return create_dif_from_id(self.project, DifMeta(**args), fileobj=fileobj, file=file)
 
-    def test_create_dif_from_file(self):
+    def test_create_dif_from_file(self) -> None:
         file = self.create_file(
             name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
         )
@@ -153,7 +153,7 @@ class CreateDebugFileTest(APITestCase):
         assert "Content-Type" in dif.file.headers
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
-    def test_create_dif_from_fileobj(self):
+    def test_create_dif_from_fileobj(self) -> None:
         with open(self.file_path, "rb") as f:
             dif, created = self.create_dif(fileobj=f)
 
@@ -163,7 +163,7 @@ class CreateDebugFileTest(APITestCase):
         assert "Content-Type" in dif.file.headers
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
-    def test_keep_disjoint_difs(self):
+    def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(
             name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
         )
@@ -178,7 +178,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif1.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
-    def test_keep_overlapping_difs(self):
+    def test_keep_overlapping_difs(self) -> None:
         file = self.create_file(
             name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
         )
@@ -193,7 +193,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif1.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
-    def test_keep_latest_dif(self):
+    def test_keep_latest_dif(self) -> None:
         file = self.create_file(
             name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
         )
@@ -218,7 +218,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif3.id).exists()
 
-    def test_skip_redundant_dif(self):
+    def test_skip_redundant_dif(self) -> None:
         with open(self.file_path, "rb") as f:
             dif1, created1 = self.create_dif(fileobj=f)
 
@@ -229,7 +229,7 @@ class CreateDebugFileTest(APITestCase):
         assert not created2
         assert dif1 == dif2
 
-    def test_remove_redundant_dif(self):
+    def test_remove_redundant_dif(self) -> None:
         file = self.create_file(
             name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
         )
@@ -246,7 +246,7 @@ class CreateDebugFileTest(APITestCase):
 
 
 class DebugFilesClearTest(APITestCase):
-    def test_simple_cache_clear(self):
+    def test_simple_cache_clear(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(

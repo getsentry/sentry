@@ -38,7 +38,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
     @override_options({"staff.ga-rollout": True})
-    def test_staff_read_docs(self):
+    def test_staff_read_docs(self) -> None:
         """
         Tests that all DocIntegrations are returned for staff users,
         along with serialized versions of their avatars and IntegrationFeatures
@@ -60,7 +60,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
     # TODO(schew2381): Change test to check superuser can only fetch non-draft DocIntegrations
-    def test_superuser_read_docs(self):
+    def test_superuser_read_docs(self) -> None:
         """
         Tests that all DocIntegrations are returned for super users,
         along with serialized versions of their avatars and IntegrationFeatures
@@ -81,7 +81,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
         for feature in features:
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
-    def test_read_docs_public(self):
+    def test_read_docs_public(self) -> None:
         """
         Tests that only non-draft DocIntegrations are returned for users,
         along with serialized versions of their avatars and IntegrationFeatures
@@ -121,7 +121,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         super().setUp()
         self.login_as(user=self.staff_user, staff=True)
 
-    def test_staff_create_doc(self):
+    def test_staff_create_doc(self) -> None:
         """
         Tests that a draft DocIntegration is created for superuser requests along
         with all the appropriate IntegrationFeatures
@@ -142,7 +142,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
             assert serialize(feature) in response.data["features"]
 
     # TODO(schew2381): Change test to check superuser can't access POST
-    def test_superuser_create_doc(self):
+    def test_superuser_create_doc(self) -> None:
         """
         Tests that a draft DocIntegration is created for superuser requests along
         with all the appropriate IntegrationFeatures
@@ -163,14 +163,14 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
             # Ensure they are also serialized in the response
             assert serialize(feature) in response.data["features"]
 
-    def test_create_invalid_auth(self):
+    def test_create_invalid_auth(self) -> None:
         """
         Tests that the POST endpoint is only accessible for superusers
         """
         self.login_as(user=self.user)
         self.get_error_response(status_code=status.HTTP_403_FORBIDDEN, **self.payload)
 
-    def test_create_repeated_slug(self):
+    def test_create_repeated_slug(self) -> None:
         """
         Tests that repeated names throw errors when generating slugs
         """
@@ -178,7 +178,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         response = self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST, **payload)
         assert "name" in response.data.keys()
 
-    def test_generated_slug_not_entirely_numeric(self):
+    def test_generated_slug_not_entirely_numeric(self) -> None:
         """
         Tests that generated slug based on name is not entirely numeric
         """
@@ -189,7 +189,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
-    def test_create_invalid_metadata(self):
+    def test_create_invalid_metadata(self) -> None:
         """
         Tests that incorrectly structured metadata throws an error
         """
@@ -203,7 +203,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
             response = self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST, **payload)
             assert "metadata" in response.data.keys()
 
-    def test_create_empty_metadata(self):
+    def test_create_empty_metadata(self) -> None:
         """
         Tests that sending no metadata keys does not trigger any
         server/database errors
@@ -213,7 +213,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
         assert "resources" not in response.data.keys()
 
-    def test_create_ignore_keys(self):
+    def test_create_ignore_keys(self) -> None:
         """
         Tests that certain reserved keys cannot be overridden by the
         request payload. They must be created by the API.
@@ -225,7 +225,7 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         for key in self.ignored_keys:
             assert getattr(doc, key) is not payload[key]
 
-    def test_create_duplicate_features(self):
+    def test_create_duplicate_features(self) -> None:
         """
         Tests that providing duplicate keys do not result in a server
         error; instead, the excess are ignored.

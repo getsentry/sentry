@@ -59,11 +59,11 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def test_missing_field(self):
+    def test_missing_field(self) -> None:
         response = self.get_error_response(self.project.organization.slug, status_code=400)
         assert response.data["detail"] == 'Request is missing a "field"'
 
-    def test_incorrect_use_case_id_value(self):
+    def test_incorrect_use_case_id_value(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -73,11 +73,11 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         )
         assert response.data["detail"] == "The supplied use case doesn't exist or it's private"
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         for field in ["", "(*&%", "foo(session", "foo(session)"]:
             self.get_error_response(self.project.organization.slug, field=field, status_code=400)
 
-    def test_groupby_single(self):
+    def test_groupby_single(self) -> None:
         rh_indexer_record(self.project.organization_id, "environment")
         self.get_success_response(
             self.project.organization.slug,
@@ -85,7 +85,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             groupBy="environment",
         )
 
-    def test_groupby_session_status(self):
+    def test_groupby_session_status(self) -> None:
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.build_and_store_session(
@@ -106,7 +106,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             "Tag name session.status cannot be used in groupBy query"
         )
 
-    def test_filter_session_status(self):
+    def test_filter_session_status(self) -> None:
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.build_and_store_session(
@@ -125,7 +125,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         )
         assert response.data["detail"] == ("Tag name session.status is not a valid query filter")
 
-    def test_invalid_filter(self):
+    def test_invalid_filter(self) -> None:
         query = "release:foo or "
         self.get_error_response(
             self.project.organization.slug,
@@ -136,7 +136,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         )
         assert query
 
-    def test_valid_filter(self):
+    def test_valid_filter(self) -> None:
         self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
             rh_indexer_record(self.project.organization_id, tag)
@@ -150,7 +150,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         )
         assert response.data.keys() == {"start", "end", "query", "intervals", "groups", "meta"}
 
-    def test_validate_include_meta_not_enabled_by_default(self):
+    def test_validate_include_meta_not_enabled_by_default(self) -> None:
         self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
             rh_indexer_record(self.project.organization_id, tag)
@@ -163,7 +163,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         )
         assert response.data["meta"] == []
 
-    def test_orderby_unknown(self):
+    def test_orderby_unknown(self) -> None:
         self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -171,7 +171,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             status_code=400,
         )
 
-    def test_orderby_tag(self):
+    def test_orderby_tag(self) -> None:
         """Order by tag is not supported (yet)"""
         self.get_error_response(
             self.project.organization.slug,
@@ -181,7 +181,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             status_code=400,
         )
 
-    def test_date_range_too_long(self):
+    def test_date_range_too_long(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
@@ -195,7 +195,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             "or a smaller date range."
         )
 
-    def test_interval_must_be_multiple_of_smallest_interval(self):
+    def test_interval_must_be_multiple_of_smallest_interval(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
@@ -208,7 +208,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             "The interval has to be a multiple of the minimum interval of ten seconds."
         )
 
-    def test_interval_should_divide_day_with_no_remainder(self):
+    def test_interval_should_divide_day_with_no_remainder(self) -> None:
         response = self.get_error_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
@@ -221,7 +221,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             "The interval should divide one day without a remainder."
         )
 
-    def test_filter_by_project_slug(self):
+    def test_filter_by_project_slug(self) -> None:
         p = self.create_project(name="sentry2")
         p2 = self.create_project(name="sentry3")
 
@@ -263,7 +263,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_filter_by_project_slug_negation(self):
+    def test_filter_by_project_slug_negation(self) -> None:
         p = self.create_project(name="sentry2")
         p2 = self.create_project(name="sentry3")
 
@@ -305,7 +305,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_staff_filter_by_single_project_slug(self):
+    def test_staff_filter_by_single_project_slug(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(staff_user, staff=True)
 
@@ -342,7 +342,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_filter_by_single_project_slug(self):
+    def test_filter_by_single_project_slug(self) -> None:
         p = self.create_project(name="sentry2")
 
         for minute in range(2):
@@ -376,7 +376,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_filter_by_single_project_slug_negation(self):
+    def test_filter_by_single_project_slug_negation(self) -> None:
         p = self.create_project(name="sentry2")
 
         for minute in range(2):
@@ -410,7 +410,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_group_by_project(self):
+    def test_group_by_project(self) -> None:
         prj_foo = self.create_project(name="foo")
         prj_boo = self.create_project(name="boo")
 
@@ -465,7 +465,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             prj_id = grp["by"]["project"]
             assert grp == expected_output[prj_id]
 
-    def test_pagination_limit_without_orderby(self):
+    def test_pagination_limit_without_orderby(self) -> None:
         """
         Test that ensures a successful response is returned even when sending a per_page
         without an orderBy
@@ -478,7 +478,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             useCase="transactions",
         )
 
-    def test_query_with_wildcard(self):
+    def test_query_with_wildcard(self) -> None:
         rh_indexer_record(self.organization.id, "session.crash_free_user_rate")
         self.build_and_store_session(
             project_id=self.project.id,
@@ -501,7 +501,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
-    def test_pagination_offset_without_orderby(self):
+    def test_pagination_offset_without_orderby(self) -> None:
         """
         Test that ensures a successful response is returned even when requesting an offset
         without an orderBy
@@ -515,7 +515,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             useCase="transactions",
         )
 
-    def test_statsperiod_invalid(self):
+    def test_statsperiod_invalid(self) -> None:
         self.get_error_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -523,7 +523,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             status_code=400,
         )
 
-    def test_separate_projects(self):
+    def test_separate_projects(self) -> None:
         # Insert session metrics:
         self.build_and_store_session(
             project_id=self.project.id,
@@ -553,7 +553,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
 
-    def test_max_and_min_on_distributions(self):
+    def test_max_and_min_on_distributions(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             self.store_performance_metric(
                 name=TransactionMRI.MEASUREMENTS_LCP.value,
@@ -587,7 +587,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_orderby(self):
+    def test_orderby(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for v_rating in ("good", "meh", "poor"):
                 # count decides the cardinality of this distribution bucket
@@ -626,7 +626,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
             }
 
-    def test_multi_field_orderby(self):
+    def test_multi_field_orderby(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for v_rating in ("good", "meh", "poor"):
                 # count decides the cardinality of this distribution bucket
@@ -673,7 +673,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": 0,
             }
 
-    def test_orderby_percentile(self):
+    def test_orderby_percentile(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [4, 5, 6]),
             ("tag1", "value2", [1, 2, 3]),
@@ -711,7 +711,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
             }
 
-    def test_orderby_percentile_with_pagination(self):
+    def test_orderby_percentile_with_pagination(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [4, 5, 6]),
             ("tag1", "value2", [1, 2, 3]),
@@ -754,7 +754,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert groups[0]["by"] == {"tag1": "value1"}
         assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5}
 
-    def test_limit_with_orderby_is_overridden_by_paginator_limit(self):
+    def test_limit_with_orderby_is_overridden_by_paginator_limit(self) -> None:
         """
         Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
         `limit` parameter
@@ -783,7 +783,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 1
 
-    def test_orderby_percentile_with_many_fields_one_entity_no_data(self):
+    def test_orderby_percentile_with_many_fields_one_entity_no_data(self) -> None:
         """
         Test that ensures that when metrics data is available then an empty response is returned
         gracefully
@@ -808,7 +808,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 0
 
-    def test_orderby_percentile_with_many_fields_one_entity(self):
+    def test_orderby_percentile_with_many_fields_one_entity(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from the same entity
@@ -868,7 +868,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
             }
 
-    def test_multi_field_orderby_percentile_with_many_fields_one_entity(self):
+    def test_multi_field_orderby_percentile_with_many_fields_one_entity(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from the same entity
@@ -966,7 +966,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
             }
 
-    def test_orderby_percentile_with_many_fields_multiple_entities(self):
+    def test_orderby_percentile_with_many_fields_multiple_entities(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
@@ -1024,7 +1024,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"count_unique({TransactionMetricKey.USER.value})": [users],
             }
 
-    def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self):
+    def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
@@ -1126,7 +1126,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             ],
         }
 
-    def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self):
+    def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self) -> None:
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
             for _ in range(minute + 1):
@@ -1153,7 +1153,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
-    def test_one_field_orderby_with_no_groupby_returns_one_row(self):
+    def test_one_field_orderby_with_no_groupby_returns_one_row(self) -> None:
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
             for _ in range(minute + 1):
@@ -1182,7 +1182,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
-    def test_orderby_percentile_with_many_fields_multiple_entities_with_missing_data(self):
+    def test_orderby_percentile_with_many_fields_multiple_entities_with_missing_data(self) -> None:
         """
         Test that ensures when transactions table has null values for some fields (i.e. fields
         with a different entity than the entity of the field in the order by), then the table gets
@@ -1230,7 +1230,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
             }
 
-    def test_limit_without_orderby(self):
+    def test_limit_without_orderby(self) -> None:
         """
         Test that ensures when an `orderBy` clause is not set, then we still get groups that fit
         within the limit, and that are also with complete data from across the entities
@@ -1272,7 +1272,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         returned_values = {group["by"]["tag3"] for group in groups}
         assert "value1" not in returned_values, returned_values
 
-    def test_limit_without_orderby_excess_groups_pruned(self):
+    def test_limit_without_orderby_excess_groups_pruned(self) -> None:
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
         each query is not met, thereby a limit is not applied to the aueries and we end up with
@@ -1323,7 +1323,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 3
 
-    def test_limit_without_orderby_partial_groups_pruned(self):
+    def test_limit_without_orderby_partial_groups_pruned(self) -> None:
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
         each query is met, thereby a limit is applied to the queries and we end up with
@@ -1375,7 +1375,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert returned_values.issubset({"B1", "B2", "B3", "C1"})
 
     # TODO: check whether we leave - 1 seconds or whether we will abstract build_session like store_*_metric.
-    def test_groupby_project(self):
+    def test_groupby_project(self) -> None:
         self.build_and_store_session(project_id=self.project2.id)
 
         for _ in range(2):
@@ -1401,7 +1401,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             totals = group["totals"]
             assert totals == {"sum(sentry.sessions.session)": expected_count}
 
-    def test_unknown_groupby(self):
+    def test_unknown_groupby(self) -> None:
         """Use a tag name in groupby that does not exist in the indexer"""
         # Insert session metrics:
         self.build_and_store_session(
@@ -1436,7 +1436,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         "sentry.api.endpoints.organization_release_health_data.OrganizationReleaseHealthDataEndpoint.default_per_page",
         1,
     )
-    def test_no_limit_with_series(self):
+    def test_no_limit_with_series(self) -> None:
         """Pagination args do not apply to series"""
         rh_indexer_record(self.organization.id, "session.status")
         for minute in range(4):
@@ -1455,7 +1455,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["sum(sentry.sessions.session)"] == 4
         assert group["series"]["sum(sentry.sessions.session)"] == [1, 1, 1, 1]
 
-    def test_unknown_filter(self):
+    def test_unknown_filter(self) -> None:
         """Use a tag key/value in filter that does not exist in the indexer"""
         # Insert session metrics:
         self.build_and_store_session(project_id=self.project.id)
@@ -1481,7 +1481,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert groups[0]["totals"]["sum(sentry.sessions.session)"] == 0
         assert groups[0]["series"]["sum(sentry.sessions.session)"] == [0]
 
-    def test_request_too_granular(self):
+    def test_request_too_granular(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -1498,7 +1498,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             f"or decrease your per_page parameter."
         )
 
-    def test_include_series(self):
+    def test_include_series(self) -> None:
         rh_indexer_record(self.organization.id, "session.status")
         self.build_and_store_session(
             project_id=self.project.id,
@@ -1524,7 +1524,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             status_code=400,
         )
 
-    def test_transaction_status_unknown_error(self):
+    def test_transaction_status_unknown_error(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             tags={"transaction.status": "unknown"},
@@ -1619,7 +1619,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Derived Metric crash_free_fake cannot be calculated from a single entity"
         )
 
-    def test_derived_metric_does_not_exist(self):
+    def test_derived_metric_does_not_exist(self) -> None:
         """
         Test that ensures appropriate exception is raised when a request is made for a field with no
         operation and a field that is not a valid derived metric
@@ -1636,7 +1636,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
 
-    def test_staff_crash_free_percentage(self):
+    def test_staff_crash_free_percentage(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
@@ -1660,7 +1660,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
-    def test_crash_free_percentage(self):
+    def test_crash_free_percentage(self) -> None:
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.build_and_store_session(
@@ -1681,7 +1681,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crashed"] == 4
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
-    def test_crash_free_percentage_with_orderby(self):
+    def test_crash_free_percentage_with_orderby(self) -> None:
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.build_and_store_session(
@@ -1717,7 +1717,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crash_free_rate"] == 0.5
         assert group["series"]["session.crash_free_rate"] == [None, None, 0.5, 0.5, 0.5, 0.5]
 
-    def test_crash_free_rate_when_no_session_metrics_data_exist(self):
+    def test_crash_free_rate_when_no_session_metrics_data_exist(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
@@ -1732,7 +1732,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["sum(sentry.sessions.session)"] == [0]
         assert group["series"]["session.crash_free_rate"] == [None]
 
-    def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self):
+    def test_crash_free_rate_when_no_session_metrics_data_with_orderby_and_groupby(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             project=[self.project.id],
@@ -1747,7 +1747,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.data["groups"] == []
 
-    def test_incorrect_crash_free_rate(self):
+    def test_incorrect_crash_free_rate(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             project=[self.project.id],
@@ -1761,7 +1761,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "field as it is already a derived metric with an aggregation applied to it."
         )
 
-    def test_errored_sessions(self):
+    def test_errored_sessions(self) -> None:
         for tag_value, value in (
             ("errored_preaggr", 10),
             ("crashed", 2),
@@ -1790,7 +1790,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.errored"] == 7
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
 
-    def test_orderby_composite_entity_derived_metric(self):
+    def test_orderby_composite_entity_derived_metric(self) -> None:
         self.build_and_store_session(
             project_id=self.project.id,
             status="ok",
@@ -1811,7 +1811,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Selected 'orderBy' columns must belongs to the same entity"
         )
 
-    def test_abnormal_sessions(self):
+    def test_abnormal_sessions(self) -> None:
         for tag_value, value, minutes in (
             ("foo", 4, 4),
             ("bar", 3, 2),
@@ -1839,7 +1839,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["totals"] == {"session.abnormal": 3}
         assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
 
-    def test_crashed_user_sessions(self):
+    def test_crashed_user_sessions(self) -> None:
         for tag_value, values in (
             ("foo", [1, 2, 4]),
             ("bar", [1, 2, 4, 8, 9, 5]),
@@ -1867,7 +1867,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["totals"] == {"session.crashed_user": 6}
         assert bar_group["series"] == {"session.crashed_user": [0, 0, 0, 0, 0, 6]}
 
-    def test_all_user_sessions(self):
+    def test_all_user_sessions(self) -> None:
         for value in [1, 2, 4]:
             self.store_release_health_metric(
                 name=SessionMRI.RAW_USER.value,
@@ -1885,7 +1885,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"session.all_user": 3}
         assert group["series"] == {"session.all_user": [0, 0, 0, 0, 0, 3]}
 
-    def test_abnormal_user_sessions(self):
+    def test_abnormal_user_sessions(self) -> None:
         cases: tuple[tuple[dict[str, str], list[int]], ...] = (
             ({"session.status": "abnormal"}, [1, 2, 4]),
             ({}, [1, 2, 4, 7, 9]),
@@ -1908,7 +1908,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"session.abnormal_user": 3}
         assert group["series"] == {"session.abnormal_user": [0, 0, 0, 0, 0, 3]}
 
-    def test_crash_free_user_percentage_with_orderby(self):
+    def test_crash_free_user_percentage_with_orderby(self) -> None:
         for tags, values in (
             ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
             ({"session.status": "crashed", "release": "foobar@1.0"}, [1, 2]),
@@ -1939,7 +1939,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crash_free_user_rate"] == 0.5
         assert group["series"]["session.crash_free_user_rate"] == [0.5]
 
-    def test_crash_free_user_rate_orderby_crash_free_rate(self):
+    def test_crash_free_user_rate_orderby_crash_free_rate(self) -> None:
         # Users crash free rate
         # foobar@1.0 -> 0.5
         # foobar@2.0 -> 1
@@ -1998,7 +1998,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crash_rate"] == 0.75
         assert group["totals"]["session.crash_user_rate"] == 0.0
 
-    def test_healthy_sessions(self):
+    def test_healthy_sessions(self) -> None:
         for tags, value in (
             ({"session.status": "errored_preaggr", "release": "foo"}, 4),
             ({"session.status": "init", "release": "foo"}, 10),
@@ -2026,7 +2026,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.healthy"] == 3
         assert group["series"]["session.healthy"] == [3]
 
-    def test_healthy_sessions_preaggr(self):
+    def test_healthy_sessions_preaggr(self) -> None:
         """Healthy sessions works also when there are no individual errors"""
         for tag_value, value in (
             ("errored_preaggr", 4),
@@ -2050,7 +2050,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.healthy"] == 6
         assert group["series"]["session.healthy"] == [6]
 
-    def test_errored_user_sessions(self):
+    def test_errored_user_sessions(self) -> None:
         # Crashed 3
         # Abnormal 6
         # Errored all 9
@@ -2080,7 +2080,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.errored_user"] == 3
         assert group["series"]["session.errored_user"] == [3]
 
-    def test_errored_user_sessions_clamped_to_zero(self):
+    def test_errored_user_sessions_clamped_to_zero(self) -> None:
         # Crashed 3
         # Errored all 0
         # Errored = -3
@@ -2101,7 +2101,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.errored_user"] == 0
         assert group["series"]["session.errored_user"] == [0]
 
-    def test_healthy_user_sessions(self):
+    def test_healthy_user_sessions(self) -> None:
         cases: tuple[tuple[dict[str, str], list[int]], ...] = (
             ({}, [1, 2, 4, 5, 7]),  # 3 and 6 did not recorded at init
             ({"session.status": "ok"}, [3]),  # 3 was not in init, but still counts
@@ -2125,7 +2125,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.healthy_user"] == 4
         assert group["series"]["session.healthy_user"] == [4]
 
-    def test_healthy_user_sessions_clamped_to_zero(self):
+    def test_healthy_user_sessions_clamped_to_zero(self) -> None:
         # init = 0
         # errored_all = 1
         self.store_release_health_metric(
@@ -2144,7 +2144,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.healthy_user"] == 0
         assert group["series"]["session.healthy_user"] == [0]
 
-    def test_private_transactions_derived_metric(self):
+    def test_private_transactions_derived_metric(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             project=[self.project.id],
@@ -2158,7 +2158,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
-    def test_failure_rate_transaction(self):
+    def test_failure_rate_transaction(self) -> None:
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
@@ -2185,7 +2185,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"transaction.failure_rate": 0.25}
         assert group["series"] == {"transaction.failure_rate": [0.25]}
 
-    def test_failure_rate_without_transactions(self):
+    def test_failure_rate_without_transactions(self) -> None:
         """
         Ensures the absence of transactions isn't an issue to calculate the rate.
 
@@ -2221,7 +2221,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             },
         ]
 
-    def test_request_private_derived_metric(self):
+    def test_request_private_derived_metric(self) -> None:
         for private_name in [
             "session.crashed_and_abnormal_user",
             "session.errored_set",
@@ -2239,7 +2239,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
-    def test_apdex_transactions(self):
+    def test_apdex_transactions(self) -> None:
         # See https://docs.sentry.io/product/performance/metrics/#apdex
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
@@ -2269,7 +2269,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.apdex": 0.6666666666666666}
 
-    def test_miserable_users(self):
+    def test_miserable_users(self) -> None:
         for subvalue in [1, 2]:
             self.store_performance_metric(
                 name=TransactionMRI.USER.value,
@@ -2299,7 +2299,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
 
-    def test_user_misery(self):
+    def test_user_misery(self) -> None:
         for subvalue in [3, 4]:
             self.store_performance_metric(
                 name=TransactionMRI.USER.value,
@@ -2330,7 +2330,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "transaction.user_misery": 0.06478439425051336
         }
 
-    def test_session_duration_derived_alias(self):
+    def test_session_duration_derived_alias(self) -> None:
         for tag_value, numbers in (
             ("exited", [2, 6, 8]),
             ("crashed", [11, 13, 15]),
@@ -2355,7 +2355,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "series": {"p50(session.duration)": [6.0]},
         }
 
-    def test_do_not_return_negative_crash_free_rate_value_to_the_customer(self):
+    def test_do_not_return_negative_crash_free_rate_value_to_the_customer(self) -> None:
         """
         Bug: https://github.com/getsentry/sentry/issues/73172
         Assert that negative value is never returned to the user, even
@@ -2409,7 +2409,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for value in group["series"]["session.crash_free_rate"]:
             assert value is None or value >= 0
 
-    def test_do_not_return_crash_rate_value_greater_than_one(self):
+    def test_do_not_return_crash_rate_value_greater_than_one(self) -> None:
         """
         Assert that value for crash_rate won't be greater than 1.
         This can happen due to possible corruption of data.  This problem
@@ -2459,7 +2459,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for value in group["series"]["session.crash_rate"]:
             assert value is None or value <= 1
 
-    def test_metric_without_operation_is_not_allowed(self):
+    def test_metric_without_operation_is_not_allowed(self) -> None:
         """
         Do not allow to query for a metric without operation.
         For example:
