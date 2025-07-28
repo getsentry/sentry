@@ -51,10 +51,10 @@ export function useFindNextTrace({
       fields: ['id', 'trace'],
       limit: 1,
       enabled: direction === 'next' && !!projectId,
-      projectIds: [projectId ?? 0],
+      projectIds: projectId ? [projectId] : [],
       pageFilters: {
-        environments: [environment ?? ''],
-        projects: [projectId ?? 0],
+        environments: environment ? [environment] : [],
+        projects: projectId ? [projectId] : [],
         datetime: {
           start: nextTraceStartTimestamp
             ? new Date(nextTraceStartTimestamp * 1000).toISOString()
@@ -141,10 +141,10 @@ export function useFindPreviousTrace({
       fields: ['id', 'trace'],
       limit: 1,
       enabled: direction === 'previous' && hasPreviousTraceLink && sampled,
-      projectIds: [projectId ?? 0],
+      projectIds: projectId ? [projectId] : [],
       pageFilters: {
-        environments: [environment ?? ''],
-        projects: [projectId ?? 0],
+        environments: environment ? [environment] : [],
+        projects: projectId ? [projectId] : [],
         datetime: {
           start: new Date(previousTraceStartTimestamp * 1000).toISOString(),
           end: new Date(previousTraceEndTimestamp * 1000).toISOString(),
