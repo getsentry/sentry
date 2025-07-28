@@ -1,9 +1,10 @@
 from sentry.deletions.base import ModelDeletionTask
-from sentry.uptime.models import UptimeSubscription, get_detector
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 
 
 class UptimeSubscriptionDeletionTask(ModelDeletionTask[UptimeSubscription]):
     def delete_instance(self, instance: UptimeSubscription) -> None:
-        from sentry.uptime.subscriptions.subscriptions import delete_uptime_detector
+        from sentry.uptime.subscriptions.subscriptions import delete_project_uptime_subscription
 
-        delete_uptime_detector(get_detector(instance), delete_detector=False)
+        uptime_monitor = ProjectUptimeSubscription.objects.get(uptime_subscription_id=instance.id)
+        delete_project_uptime_subscription(uptime_monitor)
