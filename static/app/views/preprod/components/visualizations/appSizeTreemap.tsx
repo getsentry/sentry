@@ -21,9 +21,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   // TODO: Use theme colors
 
   function convertToEChartsData(element: TreemapElement): any {
-    const color = element.type
-      ? APP_SIZE_CATEGORY_INFO[element.type]?.color
-      : APP_SIZE_CATEGORY_INFO[TreemapType.OTHER]?.color;
+    const categoryInfo = APP_SIZE_CATEGORY_INFO[element.type];
+    if (!categoryInfo) {
+      throw new Error(`Category ${element.type} not found`);
+    }
 
     const data: any = {
       name: element.name,
@@ -32,7 +33,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       category: element.type,
       itemStyle: {
         color: 'transparent',
-        borderColor: color,
+        borderColor: categoryInfo.color,
         borderWidth: 6,
         gapWidth: 2,
       },
@@ -63,9 +64,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     };
 
     if (element.children && element.children.length > 0) {
-      data.children = element.children.map((child: TreemapElement) =>
-        convertToEChartsData(child)
-      );
+      data.children = element.children.map((child: TreemapElement) => convertToEChartsData(child));
     }
 
     return data;
