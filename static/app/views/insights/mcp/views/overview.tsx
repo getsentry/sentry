@@ -167,6 +167,10 @@ function McpOverviewPage() {
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: ['span.description'],
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
     }),
     [
       numberSecondaryAliases,
