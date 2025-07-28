@@ -142,6 +142,67 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
             yield
 
 
+class FeatureContextManagerOrDecorator:
+    def __init__(self, feature_names):
+        self.feature_names = feature_names
+        self._context_manager = None
+
+    def __enter__(self):
+        self._context_manager = Feature(self.feature_names)
+        return self._context_manager.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._context_manager:
+            return self._context_manager.__exit__(exc_type, exc_val, exc_tb)
+
+    def __call__(self, func_or_cls):
+        # Check if we're decorating a class
+        if isinstance(func_or_cls, type):
+            # Apply feature flag to the entire class
+            # First, create pytest fixture for compatibility with pytest runs
+            feature_names = self.feature_names
+
+            def _feature_fixture(self: object) -> Generator[None]:
+                with Feature(feature_names):
+                    yield
+
+            name = f"{_feature_fixture.__name__}[{feature_names}]"
+            _feature_fixture.__name__ = name
+            fixture = pytest.fixture(scope="class", autouse=True)(_feature_fixture)
+            setattr(func_or_cls, name, fixture)
+
+            # Additionally, wrap each test method directly so it works when called manually
+            for attr_name in dir(func_or_cls):
+                if (
+                    attr_name.startswith("test_")
+                    or attr_name.startswith("setup_")
+                    or attr_name.startswith("teardown_")
+                ):
+                    original_method = getattr(func_or_cls, attr_name)
+                    if callable(original_method):
+
+                        def create_wrapped_method(method):
+                            @wraps(method)
+                            def wrapped_method(*args, **kwargs):
+                                with Feature(feature_names):
+                                    return method(*args, **kwargs)
+
+                            return wrapped_method
+
+                        wrapped = create_wrapped_method(original_method)
+                        setattr(func_or_cls, attr_name, wrapped)
+
+            return func_or_cls
+
+        # Decorating a function - wrap it with the feature context
+        @wraps(func_or_cls)
+        def wrapper(*args, **kwargs):
+            with Feature(self.feature_names):
+                return func_or_cls(*args, **kwargs)
+
+        return wrapper
+
+
 def with_feature(names: str | Iterable[str] | dict[str, bool]):
     """
     Control whether a feature is enabled.
@@ -151,62 +212,6 @@ def with_feature(names: str | Iterable[str] | dict[str, bool]):
     - Method decorator: @with_feature('feature-name')
     - Class decorator: @with_feature('feature-name')
     """
-
-    class FeatureContextManagerOrDecorator:
-        def __init__(self, feature_names):
-            self.feature_names = feature_names
-            self._context_manager = None
-
-        def __enter__(self):
-            self._context_manager = Feature(self.feature_names)
-            return self._context_manager.__enter__()
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            if self._context_manager:
-                return self._context_manager.__exit__(exc_type, exc_val, exc_tb)
-
-        def __call__(self, func_or_cls):
-            # Check if we're decorating a class
-            if isinstance(func_or_cls, type):
-                # Apply feature flag to the entire class
-                # First, create pytest fixture for compatibility with pytest runs
-                feature_names = self.feature_names
-
-                def _feature_fixture(self: object) -> Generator[None]:
-                    with Feature(feature_names):
-                        yield
-
-                name = f"{_feature_fixture.__name__}[{feature_names}]"
-                _feature_fixture.__name__ = name
-                fixture = pytest.fixture(scope="class", autouse=True)(_feature_fixture)
-                setattr(func_or_cls, name, fixture)
-
-                # Additionally, wrap each test method directly so it works when called manually
-                for attr_name in dir(func_or_cls):
-                    if attr_name.startswith("test_"):
-                        original_method = getattr(func_or_cls, attr_name)
-                        if callable(original_method):
-
-                            def create_wrapped_method(method):
-                                @wraps(method)
-                                def wrapped_method(*args, **kwargs):
-                                    with Feature(feature_names):
-                                        return method(*args, **kwargs)
-
-                                return wrapped_method
-
-                            wrapped = create_wrapped_method(original_method)
-                            setattr(func_or_cls, attr_name, wrapped)
-
-                return func_or_cls
-
-            # Decorating a function - wrap it with the feature context
-            @wraps(func_or_cls)
-            def wrapper(*args, **kwargs):
-                with Feature(self.feature_names):
-                    return func_or_cls(*args, **kwargs)
-
-            return wrapper
 
     return FeatureContextManagerOrDecorator(names)
 

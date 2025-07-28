@@ -92,3 +92,160 @@ class TestWithFeatureClassDecorator(TestCase):
         test_instance.setUp()
         test_instance.test_method_1()
         test_instance.test_method_2()
+
+
+class TestNestedFeatureOverrides(TestCase):
+    """Test that nested with_feature contexts work correctly with proper precedence."""
+
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+
+    def test_nested_context_managers_override(self):
+        """Test that nested context managers properly override outer contexts."""
+        # Initially disabled
+        assert not features.has("organizations:global-views", self.org)
+        assert not features.has("organizations:codecov-integration", self.org)
+
+        # Enable feature in outer context
+        with self.feature("organizations:global-views"):
+            assert features.has("organizations:global-views", self.org)
+
+            # Override to disable in inner context
+            with self.feature({"organizations:global-views": False}):
+                assert not features.has("organizations:global-views", self.org)
+
+                # Enable different feature in inner context
+                with self.feature("organizations:codecov-integration"):
+                    assert not features.has(
+                        "organizations:global-views", self.org
+                    )  # Still disabled
+                    assert features.has("organizations:codecov-integration", self.org)  # Enabled
+
+            # Back to outer context - should be enabled again
+            assert features.has("organizations:global-views", self.org)
+
+    def test_multiple_features_nested_contexts(self):
+        """Test multiple features being enabled/disabled in nested contexts."""
+        with self.feature(
+            {"organizations:global-views": True, "organizations:codecov-integration": False}
+        ):
+            assert features.has("organizations:global-views", self.org)
+            assert not features.has("organizations:codecov-integration", self.org)
+
+            # Override both in nested context
+            with self.feature(
+                {"organizations:global-views": False, "organizations:codecov-integration": True}
+            ):
+                assert not features.has("organizations:global-views", self.org)
+                assert features.has("organizations:codecov-integration", self.org)
+
+            # Back to original state
+            assert features.has("organizations:global-views", self.org)
+            assert not features.has("organizations:codecov-integration", self.org)
+
+    @with_feature("organizations:global-views")
+    def test_method_decorator_with_context_override(self):
+        """Test that context managers can override method-level decorators."""
+        # Method decorator enables the feature
+        assert features.has("organizations:global-views", self.org)
+
+        # Context manager overrides to disable
+        with self.feature({"organizations:global-views": False}):
+            assert not features.has("organizations:global-views", self.org)
+
+        # Back to method decorator state
+        assert features.has("organizations:global-views", self.org)
+
+    @with_feature({"organizations:global-views": True, "organizations:codecov-integration": False})
+    def test_method_decorator_multiple_features_with_context_override(self):
+        """Test context manager overriding specific features from method decorator."""
+        # Method decorator state
+        assert features.has("organizations:global-views", self.org)
+        assert not features.has("organizations:codecov-integration", self.org)
+
+        # Override only one feature in context
+        with self.feature({"organizations:codecov-integration": True}):
+            assert features.has("organizations:global-views", self.org)  # Still from decorator
+            assert features.has("organizations:codecov-integration", self.org)  # Overridden
+
+        # Back to decorator state
+        assert features.has("organizations:global-views", self.org)
+        assert not features.has("organizations:codecov-integration", self.org)
+
+
+@with_feature("organizations:global-views")
+class TestClassDecoratorWithNestedOverrides(TestCase):
+    """Test nested overrides when the class itself has a feature decorator."""
+
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+
+    def test_class_decorator_baseline(self):
+        """Verify the class decorator is working."""
+        assert features.has("organizations:global-views", self.org)
+
+    def test_context_manager_override_class_decorator(self):
+        """Test that context managers can override class-level decorators."""
+        # Class decorator enables the feature
+        assert features.has("organizations:global-views", self.org)
+
+        # Context manager overrides to disable
+        with self.feature({"organizations:global-views": False}):
+            assert not features.has("organizations:global-views", self.org)
+
+            # Nested context enables it again
+            with self.feature("organizations:global-views"):
+                assert features.has("organizations:global-views", self.org)
+
+            # Back to first override
+            assert not features.has("organizations:global-views", self.org)
+
+        # Back to class decorator state
+        assert features.has("organizations:global-views", self.org)
+
+    @with_feature("organizations:codecov-integration")
+    def test_method_and_class_decorators_with_context_override(self):
+        """Test interaction of class decorator + method decorator + context manager."""
+        # Both class and method decorators should be active
+        assert features.has("organizations:global-views", self.org)  # From class
+        assert features.has("organizations:codecov-integration", self.org)  # From method
+
+        # Override both with context manager
+        with self.feature(
+            {"organizations:global-views": False, "organizations:codecov-integration": False}
+        ):
+            assert not features.has("organizations:global-views", self.org)
+            assert not features.has("organizations:codecov-integration", self.org)
+
+        # Back to decorator states
+        assert features.has("organizations:global-views", self.org)
+        assert features.has("organizations:codecov-integration", self.org)
+
+    def test_deeply_nested_context_managers(self):
+        """Test deeply nested context managers with alternating states."""
+        # Start with class decorator enabled
+        assert features.has("organizations:global-views", self.org)
+
+        with self.feature({"organizations:global-views": False}):  # Level 1: Disabled
+            assert not features.has("organizations:global-views", self.org)
+
+            with self.feature("organizations:global-views"):  # Level 2: Enabled
+                assert features.has("organizations:global-views", self.org)
+
+                with self.feature({"organizations:global-views": False}):  # Level 3: Disabled
+                    assert not features.has("organizations:global-views", self.org)
+
+                    with self.feature("organizations:global-views"):  # Level 4: Enabled
+                        assert features.has("organizations:global-views", self.org)
+
+                    # Back to level 3
+                    assert not features.has("organizations:global-views", self.org)
+
+                # Back to level 2
+                assert features.has("organizations:global-views", self.org)
+
+            # Back to level 1
+            assert not features.has("organizations:global-views", self.org)
+
+        # Back to class decorator
+        assert features.has("organizations:global-views", self.org)
