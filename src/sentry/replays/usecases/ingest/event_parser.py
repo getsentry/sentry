@@ -111,6 +111,7 @@ class EventType(Enum):
     UI_FOCUS = 19
     UNKNOWN = 20
     CLS = 21
+    NAVIGATION_SPAN = 22
 
 
 def which(event: dict[str, Any]) -> EventType:
@@ -177,6 +178,8 @@ def which(event: dict[str, Any]) -> EventType:
             elif event["data"]["tag"] == "performanceSpan":
                 payload = event["data"]["payload"]
                 op = payload["op"]
+                if op.startswith("navigation"):
+                    return EventType.NAVIGATION_SPAN
                 if op == "resource.fetch":
                     return EventType.RESOURCE_FETCH
                 elif op == "resource.xhr":
@@ -507,6 +510,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["startTimestamp"]),
             }
+        case EventType.NAVIGATION_SPAN:
+            return None
 
 
 def as_string_strict(value: Any) -> str:
