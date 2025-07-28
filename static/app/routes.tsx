@@ -133,13 +133,13 @@ function buildRoutes() {
     },
   ];
 
-  const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-    <Route
-      path="/auth/login/"
-      component={errorHandler(AuthLayout)}
-      newStyleChildren={experimentalSpaChildRoutes}
-    />
-  ) : null;
+  const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
+    ? {
+        path: '/auth/login/',
+        component: errorHandler(AuthLayout),
+        children: experimentalSpaChildRoutes,
+      }
+    : {};
 
   const traceViewRouteObject: SentryRouteObject = {
     path: 'trace/:traceSlug/',
@@ -313,9 +313,10 @@ function buildRoutes() {
     },
   ];
 
-  const rootRoutes = (
-    <Route component={errorHandler(AppBodyContent)} newStyleChildren={rootChildRoutes} />
-  );
+  const rootRoutes: SentryRouteObject = {
+    component: errorHandler(AppBodyContent),
+    children: rootChildRoutes,
+  };
 
   const accountSettingsChildRoutes: SentryRouteObject[] = [
     {
@@ -2782,209 +2783,209 @@ function buildRoutes() {
     children: legacyOrgRedirectChildRoutes,
   };
 
-  const organizationRoutes = (
-    <Route
-      component={errorHandler(OrganizationLayout)}
-      newStyleChildren={[
-        settingsRoutes,
-        projectsRoutes,
-        dashboardRoutes,
-        feedbackv2Routes,
-        issueRoutes,
-        alertRoutes,
-        codecovRoutes,
-        preprodRoutes,
-        replayRoutes,
-        releasesRoutes,
-        statsRoutes,
-        discoverRoutes,
-        performanceRoutes,
-        domainViewRoutes,
-        tracesRoutes,
-        exploreRoutes,
-        llmMonitoringRedirects,
-        profilingRoutes,
-        gettingStartedRoutes,
-        adminManageRoutes,
-        legacyOrganizationRootRoutes,
-        legacyOrgRedirects,
-      ]}
-    />
-  );
+  const organizationRoutes: SentryRouteObject = {
+    component: errorHandler(OrganizationLayout),
+    children: [
+      settingsRoutes,
+      projectsRoutes,
+      dashboardRoutes,
+      feedbackv2Routes,
+      issueRoutes,
+      alertRoutes,
+      codecovRoutes,
+      preprodRoutes,
+      replayRoutes,
+      releasesRoutes,
+      statsRoutes,
+      discoverRoutes,
+      performanceRoutes,
+      domainViewRoutes,
+      tracesRoutes,
+      exploreRoutes,
+      llmMonitoringRedirects,
+      profilingRoutes,
+      gettingStartedRoutes,
+      adminManageRoutes,
+      legacyOrganizationRootRoutes,
+      legacyOrgRedirects,
+    ],
+  };
 
-  const legacyRedirectRoutes: SentryRouteObject[] = [
-    {
-      path: '/:orgId/',
-      children: [
-        {
-          index: true,
-          redirectTo: '/organizations/:orgId/',
-        },
-        {
-          path: ':projectId/settings/',
-          children: [
-            {
-              path: 'teams/',
-              redirectTo: '/settings/:orgId/projects/:projectId/teams/',
-            },
-            {
-              path: 'alerts/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/',
-            },
-            {
-              path: 'alerts/rules/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/',
-            },
-            {
-              path: 'alerts/rules/new/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/new/',
-            },
-            {
-              path: 'alerts/rules/:ruleId/',
-              redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
-            },
-            {
-              path: 'environments/',
-              redirectTo: '/settings/:orgId/projects/:projectId/environments/',
-            },
-            {
-              path: 'environments/hidden/',
-              redirectTo: '/settings/:orgId/projects/:projectId/environments/hidden/',
-            },
-            {
-              path: 'tags/',
-              redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
-            },
-            {
-              path: 'issue-tracking/',
-              redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
-            },
-            {
-              path: 'release-tracking/',
-              redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
-            },
-            {
-              path: 'ownership/',
-              redirectTo: '/settings/:orgId/projects/:projectId/ownership/',
-            },
-            {
-              path: 'data-forwarding/',
-              redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
-            },
-            {
-              path: 'debug-symbols/',
-              redirectTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
-            },
-            {
-              path: 'filters/',
-              redirectTo: '/settings/:orgId/projects/:projectId/filters/',
-            },
-            {
-              path: 'hooks/',
-              redirectTo: '/settings/:orgId/projects/:projectId/hooks/',
-            },
-            {
-              path: 'keys/',
-              redirectTo: '/settings/:orgId/projects/:projectId/keys/',
-            },
-            {
-              path: 'keys/:keyId/',
-              redirectTo: '/settings/:orgId/projects/:projectId/keys/:keyId/',
-            },
-            {
-              path: 'user-feedback/',
-              redirectTo: '/settings/:orgId/projects/:projectId/user-feedback/',
-            },
-            {
-              path: 'security-headers/',
-              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/',
-            },
-            {
-              path: 'security-headers/csp/',
-              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
-            },
-            {
-              path: 'security-headers/expect-ct/',
-              redirectTo:
-                '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
-            },
-            {
-              path: 'security-headers/hpkp/',
-              redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
-            },
-            {
-              path: 'plugins/',
-              redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
-            },
-            {
-              path: 'plugins/:pluginId/',
-              redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
-            },
-            {
-              path: 'integrations/:providerKey/',
-              redirectTo:
-                '/settings/:orgId/projects/:projectId/integrations/:providerKey/',
-            },
-          ],
-        },
-        {
-          path: ':projectId/group/:groupId/',
-          redirectTo: 'issues/:groupId/',
-        },
-        {
-          path: ':projectId/issues/:groupId/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/',
-        },
-        {
-          path: ':projectId/issues/:groupId/events/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/events/',
-        },
-        {
-          path: ':projectId/issues/:groupId/events/:eventId/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/events/:eventId/',
-        },
-        {
-          path: ':projectId/issues/:groupId/tags/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/tags/',
-        },
-        {
-          path: ':projectId/issues/:groupId/tags/:tagKey/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
-        },
-        {
-          path: ':projectId/issues/:groupId/feedback/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/feedback/',
-        },
-        {
-          path: ':projectId/issues/:groupId/similar/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/similar/',
-        },
-        {
-          path: ':projectId/issues/:groupId/merged/',
-          redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-        },
-        {
-          path: ':projectId/events/:eventId/',
-          component: errorHandler(ProjectEventRedirect),
-        },
-      ],
-    },
-  ];
+  const legacyRedirectRoutes: SentryRouteObject = {
+    path: '/:orgId/',
+    children: [
+      {
+        index: true,
+        redirectTo: '/organizations/:orgId/',
+      },
+      {
+        path: ':projectId/settings/',
+        children: [
+          {
+            path: 'teams/',
+            redirectTo: '/settings/:orgId/projects/:projectId/teams/',
+          },
+          {
+            path: 'alerts/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/',
+          },
+          {
+            path: 'alerts/rules/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/',
+          },
+          {
+            path: 'alerts/rules/new/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/new/',
+          },
+          {
+            path: 'alerts/rules/:ruleId/',
+            redirectTo: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+          },
+          {
+            path: 'environments/',
+            redirectTo: '/settings/:orgId/projects/:projectId/environments/',
+          },
+          {
+            path: 'environments/hidden/',
+            redirectTo: '/settings/:orgId/projects/:projectId/environments/hidden/',
+          },
+          {
+            path: 'tags/',
+            redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
+          },
+          {
+            path: 'issue-tracking/',
+            redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
+          },
+          {
+            path: 'release-tracking/',
+            redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
+          },
+          {
+            path: 'ownership/',
+            redirectTo: '/settings/:orgId/projects/:projectId/ownership/',
+          },
+          {
+            path: 'data-forwarding/',
+            redirectTo: '/settings/:orgId/projects/:projectId/data-forwarding/',
+          },
+          {
+            path: 'debug-symbols/',
+            redirectTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
+          },
+          {
+            path: 'filters/',
+            redirectTo: '/settings/:orgId/projects/:projectId/filters/',
+          },
+          {
+            path: 'hooks/',
+            redirectTo: '/settings/:orgId/projects/:projectId/hooks/',
+          },
+          {
+            path: 'keys/',
+            redirectTo: '/settings/:orgId/projects/:projectId/keys/',
+          },
+          {
+            path: 'keys/:keyId/',
+            redirectTo: '/settings/:orgId/projects/:projectId/keys/:keyId/',
+          },
+          {
+            path: 'user-feedback/',
+            redirectTo: '/settings/:orgId/projects/:projectId/user-feedback/',
+          },
+          {
+            path: 'security-headers/',
+            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/',
+          },
+          {
+            path: 'security-headers/csp/',
+            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
+          },
+          {
+            path: 'security-headers/expect-ct/',
+            redirectTo:
+              '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
+          },
+          {
+            path: 'security-headers/hpkp/',
+            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
+          },
+          {
+            path: 'plugins/',
+            redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
+          },
+          {
+            path: 'plugins/:pluginId/',
+            redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
+          },
+          {
+            path: 'integrations/:providerKey/',
+            redirectTo: '/settings/:orgId/projects/:projectId/integrations/:providerKey/',
+          },
+        ],
+      },
+      {
+        path: ':projectId/group/:groupId/',
+        redirectTo: 'issues/:groupId/',
+      },
+      {
+        path: ':projectId/issues/:groupId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/',
+      },
+      {
+        path: ':projectId/issues/:groupId/events/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/events/',
+      },
+      {
+        path: ':projectId/issues/:groupId/events/:eventId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      },
+      {
+        path: ':projectId/issues/:groupId/tags/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/tags/',
+      },
+      {
+        path: ':projectId/issues/:groupId/tags/:tagKey/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+      },
+      {
+        path: ':projectId/issues/:groupId/feedback/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/feedback/',
+      },
+      {
+        path: ':projectId/issues/:groupId/similar/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/similar/',
+      },
+      {
+        path: ':projectId/issues/:groupId/merged/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
+      },
+      {
+        path: ':projectId/events/:eventId/',
+        component: errorHandler(ProjectEventRedirect),
+      },
+    ],
+  };
 
-  const appRoutes = (
-    <Route component={ProvideAriaRouter}>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {authV2Routes}
-        {organizationRoutes}
-        <Route newStyleChildren={legacyRedirectRoutes} />
-        <Route path="*" component={errorHandler(RouteNotFound)} />
-      </Route>
-    </Route>
-  );
+  const appRoutes: SentryRouteObject = {
+    component: ProvideAriaRouter,
+    children: [
+      experimentalSpaRoutes,
+      {
+        path: '/',
+        component: errorHandler(App),
+        children: [
+          rootRoutes,
+          authV2Routes,
+          organizationRoutes,
+          legacyRedirectRoutes,
+          {path: '*', component: errorHandler(RouteNotFound)},
+        ],
+      },
+    ],
+  };
 
-  return appRoutes;
+  return <Route newStyleChildren={[appRoutes]} />;
 }
 
 // We load routes both when initializing the SDK (for routing integrations) and
