@@ -368,17 +368,18 @@ def create_feedback_issue(
     if features.has("organizations:user-feedback-ai-categorization", project.organization):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
-            for idx, label in enumerate(labels):
-                event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
-            if len(labels) >= 15:
+            if len(labels) > 15:
                 logger.info(
-                    "Feedback message has 15 or more labels.",
+                    "Feedback message has more than 15 labels.",
                     extra={
                         "project_id": project_id,
                         "entrypoint": "create_feedback_issue",
                         "feedback_message": feedback_message[:100],
                     },
                 )
+                labels = labels[:15]
+            for idx, label in enumerate(labels):
+                event_fixed["tags"][f"ai_categorization.label.{idx}"] = label
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project_id})
     else:
