@@ -960,7 +960,6 @@ def test_create_feedback_adds_ai_labels_when_generation_succeeds(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        # Mock generate_labels to return fake labels
         def mock_generate_labels(*args, **kwargs):
             return ["User Interface", "Authentication", "Performance"]
 
@@ -973,10 +972,7 @@ def test_create_feedback_adds_ai_labels_when_generation_succeeds(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-        # Verify that the feedback was created successfully
         assert mock_produce_occurrence_to_kafka.call_count == 1
-
-        # Verify that AI categorization labels were added to tags
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
@@ -1016,11 +1012,9 @@ def test_create_feedback_handles_label_generation_errors(
         # Verify that the feedback was still created successfully
         assert mock_produce_occurrence_to_kafka.call_count == 1
 
-        # Verify that no AI categorization labels were added due to the error
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        # Check that no AI categorization labels are present
         ai_labels = [tag for tag in tags.keys() if tag.startswith("ai_categorization.label.")]
         assert (
             len(ai_labels) == 0
