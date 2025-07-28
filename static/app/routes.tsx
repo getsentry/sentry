@@ -2075,6 +2075,7 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+  ];
     {
       path: `${MODULE_BASE_URLS[ModuleName.MCP]}/`,
       children: [
