@@ -1,21 +1,21 @@
 import type {Key} from 'react';
 import {useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {Badge} from 'sentry/components/core/badge';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {notificationCategories} from 'sentry/debug/notifications/data';
 import type {NotificationSource} from 'sentry/debug/notifications/types';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  filter,
-  SearchInput,
-  StorySearchContainer as SearchContainer,
-  StyledOverlay,
-} from 'sentry/stories/view/storySearch';
+import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -117,3 +117,52 @@ function SearchComboBox<T extends NotificationSource>(props: SearchComboBoxProps
     </SearchContainer>
   );
 }
+
+function SearchInput(
+  props: React.HTMLProps<HTMLInputElement> & React.RefAttributes<HTMLInputElement>
+) {
+  const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
+
+  return (
+    <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
+      <InputGroup.LeadingItems disablePointerEvents>
+        <IconSearch />
+      </InputGroup.LeadingItems>
+      <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
+      <InputGroup.TrailingItems>
+        <Badge type="internal">/</Badge>
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+}
+
+function filter(textValue: string, inputValue: string): boolean {
+  const match = fzf(textValue, inputValue.toLowerCase(), false);
+  return match.score > 0;
+}
+
+const SearchContainer = styled('div')`
+  position: relative;
+  width: 320px;
+  flex-grow: 1;
+  z-index: ${p => p.theme.zIndex.header};
+  padding: ${p => p.theme.space.md};
+  padding-right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+`;
+
+const StyledOverlay = styled(Overlay)`
+  position: fixed;
+  top: 48px;
+  left: 108px;
+  width: 320px;
+  max-height: calc(100dvh - 128px);
+  overflow-y: auto;
+
+  /* Make section headers darker in this component */
+  p[id][aria-hidden='true'] {
+    color: ${p => p.theme.textColor};
+  }
+`;

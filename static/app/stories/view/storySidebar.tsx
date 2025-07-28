@@ -83,7 +83,7 @@ function isFoundationFile(file: string) {
   return file.includes('app/styles') || file.includes('app/icons');
 }
 
-export const SidebarContainer = styled('nav')`
+const SidebarContainer = styled('nav')`
   position: fixed;
   top: 52px;
   grid-row: 1;

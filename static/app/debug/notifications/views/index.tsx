@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -11,8 +10,6 @@ import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview
 import {EmailPreview} from 'sentry/debug/notifications/previews/emailPreview';
 import {SlackPreview} from 'sentry/debug/notifications/previews/slackPreview';
 import {TeamsPreview} from 'sentry/debug/notifications/previews/teamsPreview';
-import {HeaderContainer, Layout} from 'sentry/stories/view/index';
-import {SidebarContainer} from 'sentry/stories/view/storySidebar';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -33,12 +30,10 @@ export default function DebugNotificationsIndex() {
           <HeaderContainer>
             <DebugNotificationsHeader />
           </HeaderContainer>
-          <SidebarContainer>
-            <DebugNotificationsSidebar />
-          </SidebarContainer>
+          <DebugNotificationsSidebar />
           <BodyContainer>
             {selectedSource ? (
-              <Fragment>
+              <SourceContainer>
                 <Heading as="h2" variant="success">
                   {selectedSource.label}
                   <Tag type="success">{selectedSource.category.label}</Tag>
@@ -47,7 +42,7 @@ export default function DebugNotificationsIndex() {
                 <SlackPreview />
                 <DiscordPreview />
                 <TeamsPreview />
-              </Fragment>
+              </SourceContainer>
             ) : (
               <DebugNotificationsLanding />
             )}
@@ -67,9 +62,31 @@ const BodyContainer = styled('div')`
   gap: ${p => p.theme.space['3xl']};
 `;
 
-// const SourceTitle = styled('h2')`
-//   margin-bottom: ${p => p.theme.space.md};
-//   display: flex;
-//   align-items: center;
-//   gap: ${p => p.theme.space.md};
-// `;
+const Layout = styled('div')`
+  background: ${p => p.theme.tokens.background.primary};
+  --stories-grid-space: 0;
+
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 256px minmax(auto, 1fr);
+  place-items: stretch;
+  min-height: calc(100dvh - 52px);
+  padding-bottom: ${p => p.theme.space['3xl']};
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
+`;
+
+const HeaderContainer = styled('header')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: ${p => p.theme.zIndex.header};
+  background: ${p => p.theme.tokens.background.primary};
+`;
+
+const SourceContainer = styled('div')`
+  padding: ${p => p.theme.space['2xl']};
+`;

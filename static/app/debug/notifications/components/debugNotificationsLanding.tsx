@@ -6,7 +6,6 @@ import heroImg from 'sentry-images/debug/notifications/hero.png';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading} from 'sentry/components/core/text';
-import {Container, Hero} from 'sentry/stories/view/landing';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 
 export function DebugNotificationsLanding() {
@@ -74,4 +73,49 @@ const TitleEmphasis = styled('em')`
   font-style: normal;
   display: inline-block;
   color: ${p => p.theme.tokens.content.success};
+`;
+
+const Hero = styled('div')`
+  padding: 48px 0;
+  gap: ${p => p.theme.space['3xl']};
+  display: flex;
+  align-items: center;
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+  h1 {
+    font-size: 36px;
+    margin-top: ${p => p.theme.space.md};
+  }
+
+  p {
+    font-size: ${p => p.theme.fontSize.lg};
+    text-wrap: balance;
+    color: ${p => p.theme.tokens.content.muted};
+  }
+
+  img {
+    min-width: 320px;
+    height: auto;
+  }
+`;
+
+const Container = styled('div')`
+  max-width: 1080px;
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['3xl']};
+  padding-inline: ${p => p.theme.space.xl};
+  padding-block: ${p => p.theme.space['3xl']};
+  align-items: center;
+  justify-content: center;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    flex-direction: row;
+  }
 `;

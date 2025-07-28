@@ -135,7 +135,7 @@ const TitleEmphasis = styled('em')`
   color: ${p => p.theme.tokens.content.accent};
 `;
 
-export const Hero = styled('div')`
+const Hero = styled('div')`
   padding: 48px 0;
   gap: ${space(4)};
   display: flex;
@@ -161,7 +161,7 @@ export const Hero = styled('div')`
   }
 `;
 
-export const Container = styled('div')`
+const Container = styled('div')`
   max-width: 1080px;
   width: 100%;
   flex-grow: 1;

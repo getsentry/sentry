@@ -1,19 +1,21 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Heading} from 'sentry/components/core/text';
 import {DebugNotificationsSearch} from 'sentry/debug/notifications/components/debugNotificationsSearch';
-import {IconGithub, IconLink} from 'sentry/icons';
-import {ThemeSwitcher} from 'sentry/stories/theme';
-import {HeaderGrid} from 'sentry/stories/view/storyHeader';
+import {IconGithub, IconLink, IconMoon} from 'sentry/icons';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export function DebugNotificationsHeader() {
   const location = useLocation();
   return (
-    <DebugNotificationsHeaderGrid>
+    <HeaderGrid>
       <Link to={location.pathname}>
         <Heading as="h1" variant="success">
           <Flex align="center" gap="md">
@@ -37,7 +39,7 @@ export function DebugNotificationsHeader() {
         <span />
         <ThemeSwitcher />
       </Flex>
-    </DebugNotificationsHeaderGrid>
+    </HeaderGrid>
   );
 }
 
@@ -60,6 +62,38 @@ function SentryNotificationsLogo() {
   );
 }
 
-const DebugNotificationsHeaderGrid = styled(HeaderGrid)`
+const HeaderGrid = styled('div')`
+  display: grid;
   grid-template-columns: 200px minmax(auto, 820px) auto;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  padding: 0 ${p => p.theme.space.md};
+  height: 53px;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  position: sticky;
+  top: 0;
+
+  input:is(input) {
+    height: 32px;
+    min-height: 32px;
+  }
 `;
+
+function ThemeSwitcher() {
+  const config = useLegacyStore(ConfigStore);
+  const isDark = config.theme === 'dark';
+
+  const handleClick = useCallback(() => {
+    ConfigStore.set('theme', isDark ? 'light' : 'dark');
+  }, [isDark]);
+
+  return (
+    <Button
+      size="xs"
+      onClick={handleClick}
+      icon={<IconMoon />}
+      aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+    />
+  );
+}
