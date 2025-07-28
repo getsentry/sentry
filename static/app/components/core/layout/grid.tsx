@@ -13,7 +13,6 @@ const omitGridProps = new Set<keyof GridProps>([
   'gap',
   'inline',
   'justify',
-  'order',
   'areas',
   'columns',
   'rows',

@@ -13,7 +13,6 @@ const omitFlexProps = new Set<keyof FlexProps>([
   'align',
   'justify',
   'wrap',
-  'order',
 ]);
 
 type FlexProps<T extends ContainerElement = 'div'> = Omit<
