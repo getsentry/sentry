@@ -856,12 +856,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "deletions.groups.use-new-task",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
     type=Sequence,
@@ -3473,6 +3468,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.errors.postprocess.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3487,6 +3487,12 @@ register(
 register(
     "taskworker.scheduler.rollout",
     default=["sync_options_trial"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "taskworker.postprocess.namespace.rollout",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
