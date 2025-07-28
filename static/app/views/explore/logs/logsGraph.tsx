@@ -6,7 +6,6 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useCachedTimeseriesResults} from 'sentry/views/explore/components/chart/useCachedTimeseriesResults';
 import {useLogsAggregate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -24,27 +23,20 @@ interface LogsGraphProps {
 export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   const aggregate = useLogsAggregate();
 
-  const canUsePreviousResults = timeseriesResult.isPending;
-  const cachedTimeseriesResult = useCachedTimeseriesResults({
-    canUsePreviousResults,
-    timeseriesResult,
-    yAxis: aggregate,
-  });
-
   const [chartType, setChartType] = useState<ChartType>(ChartType.BAR);
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
   const chartInfo = useMemo(() => {
-    const series = cachedTimeseriesResult.data[aggregate] ?? [];
+    const series = timeseriesResult.data[aggregate] ?? [];
     return {
       chartType,
       series,
-      timeseriesResult: cachedTimeseriesResult,
+      timeseriesResult,
       yAxis: aggregate,
     };
-  }, [chartType, cachedTimeseriesResult, aggregate]);
+  }, [chartType, timeseriesResult, aggregate]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
