@@ -70,6 +70,7 @@ export type ContainerProps<T extends ContainerElement = 'div'> = BaseContainerPr
 const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
   'area',
+  'border',
   'background',
   'display',
   'padding',
