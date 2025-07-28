@@ -13,6 +13,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -80,3 +81,6 @@ def delete_groups_for_project(
     has_more = True
     while has_more:
         has_more = task.chunk()
+        if not has_more:
+            metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
+            sentry_sdk.capture_message("This should not be happening")
