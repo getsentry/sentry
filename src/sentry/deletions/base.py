@@ -238,6 +238,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
                         "transaction_id": self.transaction_id,
                     },
                 )
+                raise Exception("This is to help find a test that reaches this point")
 
         # We have more work to do as we didn't run out of rows to delete.
         return True
