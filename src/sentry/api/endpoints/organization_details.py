@@ -1114,84 +1114,87 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if request.access.has_scope("org:write") and has_custom_dynamic_sampling(organization):
-                is_org_mode = is_organization_mode_sampling(organization)
-
-                # If the sampling mode was changed, adapt the project and org options accordingly
-                if "samplingMode" in changed_data:
-                    with transaction.atomic(router.db_for_write(ProjectOption)):
-                        if is_project_mode_sampling(organization):
-                            self._compute_project_target_sample_rates(request, organization)
-                            organization.delete_option("sentry:target_sample_rate")
-                            changed_data["samplingMode"] = "to Advanced Mode"
-
-                        elif is_org_mode:
-                            if "targetSampleRate" in changed_data:
-                                organization.update_option(
-                                    "sentry:target_sample_rate",
-                                    serializer.validated_data["targetSampleRate"],
-                                )
-                            changed_data["samplingMode"] = "to Default Mode"
-
-                            ProjectOption.objects.filter(
-                                project__organization_id=organization.id,
-                                key="sentry:target_sample_rate",
-                            ).delete()
-
-                # If the target sample rate for the org was changed, update the org option
-                if is_org_mode and "targetSampleRate" in changed_data:
-                    organization.update_option(
-                        "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
-                    )
-
-                # If the sampling mode was changed to org mode or the target sample rate was changed (or both),
-                # trigger the rebalancing of project sample rates.
-                if is_org_mode and (
-                    "samplingMode" in changed_data or "targetSampleRate" in changed_data
+                if request.access.has_scope("org:write") and has_custom_dynamic_sampling(
+                    organization
                 ):
-                    boost_low_volume_projects_of_org_with_query.delay(
-                        organization.id,
-                    )
+                    is_org_mode = is_organization_mode_sampling(organization)
 
-                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
-                    organization.update_option(
-                        "sentry:default_autofix_automation_tuning",
-                        serializer.validated_data["defaultAutofixAutomationTuning"],
-                    )
-                if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
-                    organization.update_option(
-                        "sentry:default_seer_scanner_automation",
-                        serializer.validated_data["defaultSeerScannerAutomation"],
-                    )
+                    # If the sampling mode was changed, adapt the project and org options accordingly
+                    if "samplingMode" in changed_data:
+                        with transaction.atomic(router.db_for_write(ProjectOption)):
+                            if is_project_mode_sampling(organization):
+                                self._compute_project_target_sample_rates(request, organization)
+                                organization.delete_option("sentry:target_sample_rate")
+                                changed_data["samplingMode"] = "to Advanced Mode"
 
-            if was_pending_deletion:
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=organization.id,
-                    event=audit_log.get_event_id("ORG_RESTORE"),
-                    data=organization.get_audit_log_data(),
-                )
-                RegionScheduledDeletion.cancel(organization)
-            elif changed_data:
-                if "enabledConsolePlatforms" in changed_data:
-                    create_console_platform_audit_log(
-                        request,
-                        organization,
-                        previous_console_platforms,
-                        serializer.validated_data.get("enabledConsolePlatforms", []),
-                    )
+                            elif is_org_mode:
+                                if "targetSampleRate" in changed_data:
+                                    organization.update_option(
+                                        "sentry:target_sample_rate",
+                                        serializer.validated_data["targetSampleRate"],
+                                    )
+                                changed_data["samplingMode"] = "to Default Mode"
 
-                    del changed_data["enabledConsolePlatforms"]
+                                ProjectOption.objects.filter(
+                                    project__organization_id=organization.id,
+                                    key="sentry:target_sample_rate",
+                                ).delete()
 
-                if changed_data:
+                    # If the target sample rate for the org was changed, update the org option
+                    if is_org_mode and "targetSampleRate" in changed_data:
+                        organization.update_option(
+                            "sentry:target_sample_rate",
+                            serializer.validated_data["targetSampleRate"],
+                        )
+
+                    # If the sampling mode was changed to org mode or the target sample rate was changed (or both),
+                    # trigger the rebalancing of project sample rates.
+                    if is_org_mode and (
+                        "samplingMode" in changed_data or "targetSampleRate" in changed_data
+                    ):
+                        boost_low_volume_projects_of_org_with_query.delay(
+                            organization.id,
+                        )
+
+                    if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
+                        organization.update_option(
+                            "sentry:default_autofix_automation_tuning",
+                            serializer.validated_data["defaultAutofixAutomationTuning"],
+                        )
+                    if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
+                        organization.update_option(
+                            "sentry:default_seer_scanner_automation",
+                            serializer.validated_data["defaultSeerScannerAutomation"],
+                        )
+
+                if was_pending_deletion:
                     self.create_audit_entry(
                         request=request,
                         organization=organization,
                         target_object=organization.id,
-                        event=audit_log.get_event_id("ORG_EDIT"),
-                        data=changed_data,
+                        event=audit_log.get_event_id("ORG_RESTORE"),
+                        data=organization.get_audit_log_data(),
                     )
+                    RegionScheduledDeletion.cancel(organization)
+                elif changed_data:
+                    if "enabledConsolePlatforms" in changed_data:
+                        create_console_platform_audit_log(
+                            request,
+                            organization,
+                            previous_console_platforms,
+                            serializer.validated_data.get("enabledConsolePlatforms", []),
+                        )
+
+                        del changed_data["enabledConsolePlatforms"]
+
+                    if changed_data:
+                        self.create_audit_entry(
+                            request=request,
+                            organization=organization,
+                            target_object=organization.id,
+                            event=audit_log.get_event_id("ORG_EDIT"),
+                            data=changed_data,
+                        )
 
             context = serialize(
                 organization,
