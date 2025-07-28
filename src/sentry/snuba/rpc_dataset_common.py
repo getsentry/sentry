@@ -304,12 +304,12 @@ def run_bulk_table_queries(queries: list[TableQuery]):
     return results
 
 
-def get_table_rpc_request(query: TableQuery) -> TableRequest:
+def get_table_rpc_request(query: TableQuery, debug: bool = False) -> TableRequest:
     """Make the query"""
     resolver = query.resolver
     sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
     meta = resolver.resolve_meta(
-        referrer=query.referrer, sampling_mode=query.sampling_mode, debug=query.debug
+        referrer=query.referrer, sampling_mode=query.sampling_mode, debug=debug
     )
     where, having, query_contexts = resolver.resolve_query(query.query_string)
 
@@ -384,7 +384,7 @@ def run_table_query(
     debug: bool = False,
 ) -> EAPResponse:
     """Run the query"""
-    table_request = get_table_rpc_request(query)
+    table_request = get_table_rpc_request(query, debug)
     rpc_request = table_request.rpc_request
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
     sentry_sdk.set_tag("query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier)
