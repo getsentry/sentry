@@ -444,9 +444,8 @@ export function ProjectPageFilter({
 }
 
 function shouldCloseOnInteractOutside(target: Element) {
-  // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard that includes a link to the configuration documentation
-  const powerHovercard = target.closest('.power-hovercard');
-  // Don't close select menu / tooltip when clicking on disabled feature hovercard that includes a link to the configuration documentation
+  // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
+  const powerHovercard = target.closest('[data-test-id="power-hovercard"]');
   const disabledFeatureHovercard = target.closest('.disabled-feature-hovercard');
   return !powerHovercard && !disabledFeatureHovercard;
 }
