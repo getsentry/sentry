@@ -42,13 +42,7 @@ const onboarding: OnboardingConfig = {
           ),
           showIcon: true,
           trailingItems: (
-            <Button
-              size="sm"
-              priority="primary"
-              onClick={() => {
-                // TODO: Add modal
-              }}
-            >
+            <Button size="sm" priority="primary">
               {t('Request Access')}
             </Button>
           ),
