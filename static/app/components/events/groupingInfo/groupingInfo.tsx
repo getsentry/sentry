@@ -12,31 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {GroupingConfigSelect} from './groupingConfigSelect';
 import GroupingVariant from './groupingVariant';
-
-function GroupConfigSelect({
-  event,
-  configOverride,
-  setConfigOverride,
-}: {
-  configOverride: string | null;
-  event: Event;
-  setConfigOverride: (value: string) => void;
-}) {
-  if (!event.groupingConfig) {
-    return null;
-  }
-
-  const configId = configOverride ?? event.groupingConfig?.id;
-
-  return (
-    <GroupingConfigSelect
-      configId={configId}
-      onSelect={selection => setConfigOverride(selection.value)}
-    />
-  );
-}
 
 interface GroupingSummaryProps {
   event: Event;
@@ -51,7 +27,7 @@ export default function GroupingInfo({
   showGroupingConfig,
   group,
 }: GroupingSummaryProps) {
-  const [configOverride, setConfigOverride] = useState<string | null>(null);
+  const [configOverride] = useState<string | null>(null);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -82,15 +58,6 @@ export default function GroupingInfo({
         <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
       )}
       <ConfigHeader>
-        <div>
-          {showGroupingConfig && (
-            <GroupConfigSelect
-              event={event}
-              configOverride={configOverride}
-              setConfigOverride={setConfigOverride}
-            />
-          )}
-        </div>
         <FeatureFeedback
           featureName="grouping"
           feedbackTypes={[
