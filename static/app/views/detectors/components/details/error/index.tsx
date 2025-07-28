@@ -1,13 +1,17 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
@@ -64,12 +68,27 @@ function ResolveSection({project}: {project: Project}) {
 export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsProps) {
   const organization = useOrganization();
 
+  const {selection} = usePageFilters();
+  const {start, end, period} = selection.datetime;
+  const timeProps =
+    start && end
+      ? {
+          start: getUtcDateString(start),
+          end: getUtcDateString(end),
+        }
+      : {
+          statsPeriod: period,
+        };
+
   return (
     <DetailLayout>
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DetectorDetailsOngoingIssues />
+          <PageFiltersContainer>
+            <DatePageFilter />
+            <DetectorDetailsOngoingIssues detectorId={detector.id} query={timeProps} />
+          </PageFiltersContainer>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

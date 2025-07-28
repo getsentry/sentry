@@ -19,7 +19,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
       <DetailLayout.Body>
         <DetailLayout.Main>
           <MetricDetectorDetailsChart detector={detector} />
-          <DetectorDetailsOngoingIssues />
+          <DetectorDetailsOngoingIssues detectorId={detector.id} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
