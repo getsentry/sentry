@@ -54,8 +54,7 @@ export const APP_SIZE_CATEGORY_INFO: Record<
   },
   [TreemapType.FRAMEWORKS]: {
     color: COLORS.pink,
-    displayName: 'iOS',
-    displayName: 'Extensions',
+    displayName: 'Frameworks',
   },
   [TreemapType.PLISTS]: {
     color: COLORS.pink,
