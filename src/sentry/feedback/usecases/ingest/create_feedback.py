@@ -279,7 +279,7 @@ def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
 
 
 def create_feedback_issue(
-    event: dict[str, Any], project_id: int, source: FeedbackCreationSource
+    event: dict[str, Any], project: Project, source: FeedbackCreationSource
 ) -> dict[str, Any] | None:
     """
     Produces a feedback issue occurrence to kafka for issues processing. Applies filters, spam filters, and event validation.
@@ -294,13 +294,11 @@ def create_feedback_issue(
         },
     )
 
-    project = Project.objects.get_from_cache(id=project_id)
-
-    should_filter, filter_reason = should_filter_feedback(event, project_id, source)
+    should_filter, filter_reason = should_filter_feedback(event, project.id, source)
     if should_filter:
         track_outcome(
             org_id=project.organization_id,
-            project_id=project_id,
+            project_id=project.id,
             key_id=None,
             outcome=Outcome.INVALID,
             reason=filter_reason,
@@ -320,7 +318,7 @@ def create_feedback_issue(
             is_message_spam = is_spam(feedback_message)
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
-            logger.exception("Error checking if message is spam", extra={"project_id": project_id})
+            logger.exception("Error checking if message is spam", extra={"project_id": project.id})
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={
@@ -341,7 +339,7 @@ def create_feedback_issue(
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
-        project_id=project_id,
+        project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title=get_feedback_title(feedback_message),
         subtitle=feedback_message,
@@ -356,7 +354,7 @@ def create_feedback_issue(
     now = datetime.now()
 
     event_data = {
-        "project_id": project_id,
+        "project_id": project.id,
         "received": now.isoformat(),
         "tags": event.get("tags", {}),
         **event,
@@ -415,7 +413,7 @@ def create_feedback_issue(
 
     track_outcome(
         org_id=project.organization_id,
-        project_id=project_id,
+        project_id=project.id,
         key_id=None,
         outcome=Outcome.ACCEPTED,
         reason=None,

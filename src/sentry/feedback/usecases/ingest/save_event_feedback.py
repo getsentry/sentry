@@ -26,9 +26,11 @@ def save_event_feedback(event_data: Mapping[str, Any], project_id: int):
     if not isinstance(event_data, dict):
         event_data = dict(event_data)
 
+    project = Project.objects.get_from_cache(id=project_id)
+
     # Produce to issue platform
     fixed_event_data = create_feedback_issue(
-        event_data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_data, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     if not fixed_event_data:
         return
