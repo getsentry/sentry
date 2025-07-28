@@ -32,6 +32,7 @@ from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
+from sentry.objectstore.metrics import measure_storage_put
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -58,7 +59,6 @@ from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.sdk import set_span_attribute
-from sentry.utils.storage import measure_storage_put
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
