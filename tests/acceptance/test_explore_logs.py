@@ -8,6 +8,10 @@ from sentry.testutils.silo import no_silo_test
 
 FEATURE_FLAGS = [
     "organizations:ourlogs-enabled",
+    "organizations:ourlogs-visualize-sidebar",
+    "organizations:ourlogs-dashboards",
+    "organizations:ourlogs-alerts",
+    "organizations:ourlogs-infinite-scroll",
 ]
 
 
