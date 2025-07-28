@@ -17,6 +17,8 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.exceptions import ParseError
 from sentry.models.project import Project
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -46,6 +48,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             CursorQueryParam,
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -68,8 +73,19 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
+        # Parse date range parameters
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams as e:
+            raise ParseError(detail=f"Invalid date range: {e}")
+
         event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
-        if features.has(
+        
+        # Apply date filtering based on parameters or feature flag
+        if start and end:
+            event_filter.start = start
+            event_filter.end = end
+        elif features.has(
             "organizations:project-event-date-limit", project.organization, actor=request.user
         ):
             event_filter.start = timezone.now() - timedelta(days=7)
