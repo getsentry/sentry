@@ -2,8 +2,6 @@ import {useMemo} from 'react';
 
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {isEmptyTrace} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 
 import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
 
@@ -17,23 +15,35 @@ export function useFindNextTrace({
   nextTraceEndTimestamp,
   nextTraceStartTimestamp,
 }: {
+  attributes: TraceItemResponseAttribute[];
   direction: ConnectedTraceConnection;
   nextTraceEndTimestamp: number;
   nextTraceStartTimestamp: number;
-  attributes?: TraceItemResponseAttribute[];
 }): {isLoading: boolean; id?: string; trace?: string} {
-  const currentTraceId = attributes?.find(a => a.name === 'trace' && a.type === 'str')
-    ?.value as string | undefined;
+  const {currentTraceId, currentSpanId, projectId, environment} = useMemo(() => {
+    let _currentTraceId: string | undefined;
+    let _currentSpanId: string | undefined;
+    let _projectId: number | undefined;
+    let _environment: string | undefined;
 
-  const currentSpanId = attributes?.find(
-    a => a.name === 'transaction.span_id' && a.type === 'str'
-  )?.value as string | undefined;
-
-  const projectId = attributes?.find(a => a.name === 'project_id' && a.type === 'int')
-    ?.value as number | undefined;
-
-  const environment = attributes?.find(a => a.name === 'environment' && a.type === 'str')
-    ?.value as string | undefined;
+    for (const a of attributes) {
+      if (a.name === 'trace' && a.type === 'str') {
+        _currentTraceId = a.value;
+      } else if (a.name === 'transaction.span_id' && a.type === 'str') {
+        _currentSpanId = a.value;
+      } else if (a.name === 'project_id' && a.type === 'int') {
+        _projectId = a.value;
+      } else if (a.name === 'environment' && a.type === 'str') {
+        _environment = a.value;
+      }
+    }
+    return {
+      currentTraceId: _currentTraceId,
+      currentSpanId: _currentSpanId,
+      projectId: _projectId,
+      environment: _environment,
+    };
+  }, [attributes]);
 
   const {data, isError, isPending} = useSpans(
     {
@@ -52,7 +62,7 @@ export function useFindNextTrace({
           end: nextTraceEndTimestamp
             ? new Date(nextTraceEndTimestamp * 1000).toISOString()
             : '',
-          period: '1d',
+          period: '2h',
           utc: true,
         },
       },
@@ -82,11 +92,13 @@ export function useFindNextTrace({
 export function useFindPreviousTrace({
   direction,
   attributes,
-  linkedTraceTimestamp,
+  previousTraceEndTimestamp,
+  previousTraceStartTimestamp,
 }: {
+  attributes: TraceItemResponseAttribute[];
   direction: ConnectedTraceConnection;
-  attributes?: TraceItemResponseAttribute[];
-  linkedTraceTimestamp?: number;
+  previousTraceEndTimestamp: number;
+  previousTraceStartTimestamp: number;
 }): {
   available: boolean;
   isLoading: boolean;
@@ -94,10 +106,27 @@ export function useFindPreviousTrace({
   id?: string;
   trace?: string;
 } {
-  const previousTraceAttribute = useMemo(
-    () => attributes?.find(a => a.name === 'previous_trace' && a.type === 'str'),
-    [attributes]
-  );
+  const {projectId, environment, previousTraceAttribute} = useMemo(() => {
+    let _projectId: number | undefined = undefined;
+    let _environment: string | undefined = undefined;
+    let _previousTraceAttribute: TraceItemResponseAttribute | undefined = undefined;
+
+    for (const a of attributes ?? []) {
+      if (a.name === 'project_id' && a.type === 'int') {
+        _projectId = a.value;
+      } else if (a.name === 'environment' && a.type === 'str') {
+        _environment = a.value;
+      } else if (a.name === 'previous_trace' && a.type === 'str') {
+        _previousTraceAttribute = a;
+      }
+    }
+
+    return {
+      projectId: _projectId,
+      environment: _environment,
+      previousTraceAttribute: _previousTraceAttribute,
+    };
+  }, [attributes]);
 
   const hasPreviousTraceLink = typeof previousTraceAttribute?.value === 'string';
 
@@ -106,47 +135,33 @@ export function useFindPreviousTrace({
 
   const sampled = previousTraceSampledFlag === '1';
 
-  const queryFn =
-    direction === 'previous' && hasPreviousTraceLink && sampled
-      ? useIsTraceAvailable
-      : () => ({
-          isAvailable: false,
-          isLoading: false,
-        });
-
-  const {isAvailable, isLoading} = queryFn(previousTraceId, linkedTraceTimestamp);
+  const {data, isError, isPending} = useSpans(
+    {
+      search: `id:${previousTraceSpanId} trace:${previousTraceId}`,
+      fields: ['id', 'trace'],
+      limit: 1,
+      enabled: direction === 'previous' && hasPreviousTraceLink && sampled,
+      projectIds: [projectId ?? 0],
+      pageFilters: {
+        environments: [environment ?? ''],
+        projects: [projectId ?? 0],
+        datetime: {
+          start: new Date(previousTraceStartTimestamp * 1000).toISOString(),
+          end: new Date(previousTraceEndTimestamp * 1000).toISOString(),
+          period: '2h',
+          utc: true,
+        },
+      },
+      queryWithoutPageFilters: true,
+    },
+    `api.performance.trace-panel-${direction}-trace-link`
+  );
 
   return {
     trace: previousTraceId,
     id: previousTraceSpanId,
-    available: isAvailable,
+    available: !!data?.[0]?.id && !isError,
     sampled,
-    isLoading,
-  };
-}
-
-function useIsTraceAvailable(
-  traceID?: string,
-  linkedTraceTimestamp?: number
-): {
-  isAvailable: boolean;
-  isLoading: boolean;
-} {
-  const trace = useTrace({
-    traceSlug: traceID,
-    timestamp: linkedTraceTimestamp,
-  });
-
-  const isAvailable = useMemo(() => {
-    if (!traceID) {
-      return false;
-    }
-
-    return Boolean(trace.data && !isEmptyTrace(trace.data));
-  }, [traceID, trace]);
-
-  return {
-    isAvailable,
-    isLoading: trace.isLoading,
+    isLoading: isPending,
   };
 }

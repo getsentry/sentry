@@ -21,9 +21,9 @@ export type ConnectedTraceConnection = 'previous' | 'next';
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
 type TraceLinkNavigationButtonProps = {
-  currentTraceTimestamps: {end?: number; start?: number};
+  attributes: TraceItemResponseAttribute[];
+  currentTraceTimestamps: {end: number; start: number};
   direction: ConnectedTraceConnection;
-  attributes?: TraceItemResponseAttribute[];
   isLoading?: boolean;
 };
 
@@ -37,12 +37,10 @@ export function TraceLinkNavigationButton({
   const location = useLocation();
 
   // We connect traces over a 1h period - As we don't have timestamps of the linked trace, it is calculated based on this timeframe
-  const linkedTraceTimestamp =
+  const linkedTraceWindowTimestamp =
     direction === 'previous' && currentTraceTimestamps.start
       ? currentTraceTimestamps.start - LINKED_TRACE_MAX_DURATION // Earliest start time of previous trace (- 1h)
-      : direction === 'next' && currentTraceTimestamps.end
-        ? currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION // Latest end time of next trace (+ 1h)
-        : undefined;
+      : currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION; // Latest end time of next trace (+ 1h)
 
   const {
     available: isPreviousTraceAvailable,
@@ -52,7 +50,8 @@ export function TraceLinkNavigationButton({
     isLoading: isPreviousTraceLoading,
   } = useFindPreviousTrace({
     direction,
-    linkedTraceTimestamp,
+    previousTraceEndTimestamp: currentTraceTimestamps.start,
+    previousTraceStartTimestamp: linkedTraceWindowTimestamp,
     attributes,
   });
 
@@ -62,8 +61,8 @@ export function TraceLinkNavigationButton({
     isLoading: isNextTraceLoading,
   } = useFindNextTrace({
     direction,
-    nextTraceEndTimestamp: currentTraceTimestamps.end ?? 0,
-    nextTraceStartTimestamp: linkedTraceTimestamp ?? 0,
+    nextTraceEndTimestamp: currentTraceTimestamps.end,
+    nextTraceStartTimestamp: linkedTraceWindowTimestamp,
     attributes,
   });
 
@@ -102,7 +101,7 @@ export function TraceLinkNavigationButton({
               traceSlug: previousTraceId,
               spanId: previousTraceSpanId,
               dateSelection,
-              timestamp: linkedTraceTimestamp,
+              timestamp: linkedTraceWindowTimestamp,
               location,
               organization,
             })}
@@ -166,7 +165,7 @@ export function TraceLinkNavigationButton({
             traceSlug: nextTraceId,
             spanId: nextTraceSpanId,
             dateSelection,
-            timestamp: linkedTraceTimestamp,
+            timestamp: linkedTraceWindowTimestamp,
             location,
             organization,
           })}
