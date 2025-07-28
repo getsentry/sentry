@@ -285,7 +285,9 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
    * Aligns flex items along the block axis of the current line of flex items.
    * Uses CSS justify-content property.
    */
-  justify?: Responsive<'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'>;
+  justify?: Responsive<
+    'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
+  >;
   order?: Responsive<CSSProperties['order']>;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 };
