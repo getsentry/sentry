@@ -11,43 +11,18 @@ type Opts<T extends Element> = {
   elem: RefObject<T | null>;
 };
 
-export function useScrubberMouseTracking<T extends Element>({elem}: Opts<T>) {
-  const replay = useReplayReader();
-  const [, setCurrentHoverTime] = useCurrentHoverTime();
-  const durationMs = replay?.getDurationMs();
-
-  const handlePositionChange = useCallback(
-    (params: any) => {
-      if (!params || durationMs === undefined) {
-        setCurrentHoverTime(undefined);
-        return;
-      }
-      const {left, width} = params;
-
-      if (left >= 0) {
-        const percent = left / width;
-        const time = percent * durationMs;
-        setCurrentHoverTime(time);
-      } else {
-        setCurrentHoverTime(undefined);
-      }
-    },
-    [durationMs, setCurrentHoverTime]
-  );
-
-  const mouseTrackingProps = useMouseTracking({
-    elem,
-    onPositionChange: handlePositionChange,
-  });
-  return mouseTrackingProps;
-}
-
-export function useTimelineScrubberMouseTracking<T extends Element>(
-  {elem}: Opts<T>,
-  scale: number
-) {
+/**
+ * This provides scale-aware logic for accurate hover time and position
+ * calculations on a zoomed timeline, accounting for the zoom level, current
+ * playback position, and timeline boundaries.
+ */
+export default function useTimelineMouseTracking<T extends Element>({
+  elem,
+  scale,
+}: Opts<T> & {scale: number}) {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
+
   const [, setCurrentHoverTime] = useCurrentHoverTime();
   const durationMs = replay?.getDurationMs();
 
