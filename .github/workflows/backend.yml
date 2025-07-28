@@ -200,16 +200,6 @@ jobs:
             devservices logs
           fi
 
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ always() }}
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-          type: cli
-
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
