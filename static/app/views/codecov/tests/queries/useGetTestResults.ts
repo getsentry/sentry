@@ -50,6 +50,7 @@ type TestResultItem = {
 };
 
 interface TestResults {
+  defaultBranch: string;
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
@@ -77,7 +78,7 @@ export function useInfiniteTestResults({
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';
-  const testSuites = searchParams.get('testSuites') || null;
+  const testSuites = searchParams.getAll('testSuites') || null;
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -147,6 +148,7 @@ export function useInfiniteTestResults({
         : undefined;
     },
     initialPageParam: null,
+    enabled: !!(integratedOrgId && repository && branch && codecovPeriod),
   });
 
   const memoizedData = useMemo(
@@ -181,7 +183,10 @@ export function useInfiniteTestResults({
   );
 
   return {
-    data: memoizedData,
+    data: {
+      testResults: memoizedData,
+      defaultBranch: data?.pages?.[0]?.[0].defaultBranch,
+    },
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
     endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
@@ -189,3 +194,5 @@ export function useInfiniteTestResults({
     ...rest,
   };
 }
+
+export type UseInfiniteTestResultsResult = ReturnType<typeof useInfiniteTestResults>;

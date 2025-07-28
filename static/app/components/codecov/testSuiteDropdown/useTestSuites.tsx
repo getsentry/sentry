@@ -12,17 +12,15 @@ type TestSuite = {
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
-// export function useTestSuites({term}: {term?: string[] | null}) {
 export function useTestSuites() {
   const api = useApi();
   const organization = useOrganization();
   const {integratedOrgId, repository} = useCodecovContext();
-  const term = null;
 
   const {data, ...rest} = useQuery<TestSuite, Error, TestSuite, QueryKey>({
     queryKey: [
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-suites/`,
-      {query: {term}},
+      {query: {}},
     ],
     queryFn: async ({queryKey: [url]}): Promise<TestSuite> => {
       const result = await api.requestPromise(url, {
@@ -32,6 +30,7 @@ export function useTestSuites() {
 
       return result as TestSuite;
     },
+    enabled: !!(integratedOrgId && repository),
   });
 
   const memoizedData = useMemo(() => {
