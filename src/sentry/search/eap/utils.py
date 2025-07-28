@@ -34,7 +34,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.search.events.types import SAMPLING_MODES
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
 BINARY_FORMULA_OPERATOR_MAP = {
@@ -198,7 +198,7 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
 
 
-def set_debug_meta(events_meta: dict, rpc_meta: ResponseMeta) -> dict:
+def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> EventsMeta:
     query_info = rpc_meta.query_info
 
     events_meta["query_info"] = {
