@@ -113,6 +113,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
+        allowedCellActions={[]}
       />
     </TableContainer>
   ) : (
