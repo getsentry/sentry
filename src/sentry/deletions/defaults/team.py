@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.models.team import Team
@@ -19,7 +20,7 @@ class TeamDeletionTask(ModelDeletionTask[Team]):
             if instance.status != TeamStatus.DELETION_IN_PROGRESS:
                 instance.update(status=TeamStatus.DELETION_IN_PROGRESS)
 
-    def delete_instance(self, instance: Team) -> None:
+    def delete_instance(self, instance: Team, **kwargs: Any) -> None:
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.rule import Rule
         from sentry.monitors.models import Monitor

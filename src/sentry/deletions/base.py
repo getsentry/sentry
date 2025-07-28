@@ -100,7 +100,7 @@ class BaseDeletionTask(Generic[ModelT]):
             self.actor_id,
         )
 
-    def chunk(self) -> bool:
+    def chunk(self, **kwargs: Any) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if the entity has been removed.
@@ -134,7 +134,7 @@ class BaseDeletionTask(Generic[ModelT]):
             rel for rel in child_relations if rel.params.get("model") not in self.skip_models
         )
 
-    def delete_bulk(self, instance_list: Sequence[ModelT]) -> bool:
+    def delete_bulk(self, instance_list: Sequence[ModelT], **kwargs: Any) -> bool:
         """
         Delete a batch of objects bound to this task.
 
@@ -158,16 +158,17 @@ class BaseDeletionTask(Generic[ModelT]):
                 if has_more:
                     return has_more
 
-        self.delete_instance_bulk(instance_list)
+        silent = kwargs.get("silent", False)
+        self.delete_instance_bulk(instance_list, silent=silent)
 
         return False
 
-    def delete_instance(self, instance: ModelT) -> None:
+    def delete_instance(self, instance: ModelT, **kwargs: Any) -> None:
         raise NotImplementedError
 
-    def delete_instance_bulk(self, instance_list: Sequence[ModelT]) -> None:
+    def delete_instance_bulk(self, instance_list: Sequence[ModelT], silent: bool) -> None:
         for instance in instance_list:
-            self.delete_instance(instance)
+            self.delete_instance(instance, silent=silent)
 
     def delete_children(self, relations: list[BaseRelation]) -> bool:
         return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
@@ -205,7 +206,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             self.actor_id,
         )
 
-    def chunk(self) -> bool:
+    def chunk(self, **kwargs: Any) -> bool:
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
         more work, or ``False`` if all matching entities have been removed.
@@ -223,29 +224,32 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             if not queryset:
                 return False
 
-            self.delete_bulk(queryset)
+            silent = kwargs.get("silent", False)
+            self.delete_bulk(queryset, silent=silent)
             remaining = remaining - len(queryset)
 
         # We have more work to do as we didn't run out of rows to delete.
         return True
 
-    def delete_instance(self, instance: ModelT) -> None:
+    def delete_instance(self, instance: ModelT, **kwargs: Any) -> None:
         instance_id = instance.id
         try:
             instance.delete()
         finally:
             # Don't log Group and Event child object deletions.
-            model_name = type(instance).__name__
-            if not _leaf_re.search(model_name):
-                self.logger.info(
-                    "object.delete.executed",
-                    extra={
-                        "object_id": instance_id,
-                        "transaction_id": self.transaction_id,
-                        "app_label": instance._meta.app_label,
-                        "model": model_name,
-                    },
-                )
+            silent = kwargs.get("silent", False)
+            if not silent:
+                model_name = type(instance).__name__
+                if not _leaf_re.search(model_name):
+                    self.logger.info(
+                        "object.delete.executed",
+                        extra={
+                            "object_id": instance_id,
+                            "transaction_id": self.transaction_id,
+                            "app_label": instance._meta.app_label,
+                            "model": model_name,
+                        },
+                    )
 
     def get_actor(self) -> RpcUser | None:
         if self.actor_id:
@@ -269,7 +273,7 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
 
     DEFAULT_CHUNK_SIZE = 10000
 
-    def chunk(self) -> bool:
+    def chunk(self, **kwargs: Any) -> bool:
         return self._delete_instance_bulk()
 
     def _delete_instance_bulk(self) -> bool:
