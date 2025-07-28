@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {captureFeedback} from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -47,7 +47,7 @@ export function PrivateGamingSdkAccessModal({
 
   const isFormValid = !!githubProfile.trim() && gamingPlatforms.length > 0;
 
-  const handleSubmit = useCallback(() => {
+  function handleSubmit() {
     if (!isFormValid) {
       return;
     }
@@ -105,17 +105,7 @@ export function PrivateGamingSdkAccessModal({
     );
     setIsSubmitting(false);
     closeModal();
-  }, [
-    isFormValid,
-    githubProfile,
-    organization,
-    sdkName,
-    user,
-    gamingPlatforms,
-    closeModal,
-    onSubmit,
-    projectSlug,
-  ]);
+  }
 
   return (
     <Fragment>
