@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, type ContainerElement} from './container';
+import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
 const omitFlexProps = new Set<keyof FlexProps>([
