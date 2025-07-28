@@ -585,7 +585,7 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     getAiRulesConfig(params),
   ],
   verify: getVerifyConfig,
-  nextSteps: (params: Params) => {
+  nextSteps: () => {
     const steps = [
       {
         id: 'source-maps',
@@ -596,18 +596,6 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
       },
     ];
-
-    if (params.isLogsSelected) {
-      steps.push({
-        id: 'logs',
-        name: t('Logging Integrations'),
-        description: t(
-          'Add logging integrations to automatically capture logs from your application.'
-        ),
-        link: 'https://docs.sentry.io/platforms/javascript/logs/#integrations/',
-      });
-    }
-
     return steps;
   },
   onPageLoad: params => {
