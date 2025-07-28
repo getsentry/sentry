@@ -1194,7 +1194,7 @@ const commonTheme = {
     toast: 10001,
 
     // tooltips and hovercards can be inside modals sometimes.
-    hovercard: 10002,
+    hovercard: 10004,
     tooltip: 10003,
 
     tour: {
