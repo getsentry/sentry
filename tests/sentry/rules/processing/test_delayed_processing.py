@@ -79,7 +79,7 @@ def mock_get_condition_group(descending=False):
 
 
 class BulkFetchEventsTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)
@@ -304,7 +304,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
 
 
 class GetGroupToGroupEventTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.log_config = LogConfig(
@@ -416,7 +416,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
 
 
 class GetRulesToFireTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project()
         self.environment = self.create_environment()
@@ -561,7 +561,7 @@ class GetRulesToGroupsTest(TestCase):
 class GetSlowConditionsTest(RuleTestCase):
     rule_cls = EventFrequencyCondition
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
 
     def test_get_slow_conditions(self) -> None:
@@ -576,7 +576,7 @@ class GetSlowConditionsTest(RuleTestCase):
 
 
 class ParseRuleGroupToEventDataTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.group_two = self.create_group(self.project)
@@ -1387,7 +1387,7 @@ class DataAndGroupsTest(TestCase):
 
 
 class CleanupRedisBufferTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()

@@ -31,7 +31,7 @@ class RedisTSDBTest(TestCase):
     @override_options(
         {"redis.clusters": {"tsdb": {"hosts": {i - 6: {"db": i} for i in range(6, 9)}}}}
     )
-    def setUp(self):
+    def setUp(self) -> None:
         self.db = RedisTSDB(
             rollups=(
                 # time in seconds, samples to keep

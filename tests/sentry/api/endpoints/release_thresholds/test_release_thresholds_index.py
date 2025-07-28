@@ -7,7 +7,7 @@ class ReleaseThresholdTest(APITestCase):
     endpoint = "sentry-api-0-organization-release-thresholds"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=self.user)

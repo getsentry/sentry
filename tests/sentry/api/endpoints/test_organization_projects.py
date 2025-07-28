@@ -36,7 +36,7 @@ class OrganizationProjectsTestBase(APITestCase):
 
 
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -316,7 +316,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)

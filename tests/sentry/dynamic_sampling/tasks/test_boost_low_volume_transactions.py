@@ -30,7 +30,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         num_orgs = 3

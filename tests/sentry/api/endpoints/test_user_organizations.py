@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 class UserOrganizationsTest(APITestCase):
     endpoint = "sentry-api-0-user-organizations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

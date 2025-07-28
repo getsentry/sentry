@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.project2 = self.create_project(organization=self.organization)
@@ -225,7 +225,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

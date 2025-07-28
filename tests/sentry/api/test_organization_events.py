@@ -26,7 +26,7 @@ class OrganizationEventsEndpointTest(APITestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = self.ten_mins_ago.isoformat()

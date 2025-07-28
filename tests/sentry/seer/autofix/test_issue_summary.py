@@ -24,7 +24,7 @@ pytestmark = [requires_snuba]
 
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 class IssueSummaryTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
         self.login_as(user=self.user)

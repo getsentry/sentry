@@ -9,7 +9,7 @@ from sentry.toolbar.views.iframe_view import TEMPLATE
 class IframeViewTest(APITestCase):
     view_name = "sentry-toolbar-iframe"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))

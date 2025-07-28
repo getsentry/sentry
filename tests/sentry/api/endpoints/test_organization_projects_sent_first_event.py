@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.foo = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)

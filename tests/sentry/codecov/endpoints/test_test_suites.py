@@ -23,7 +23,7 @@ mock_graphql_response_empty: dict[str, Any] = {
 class TestSuitesEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-test-suites"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.organization = self.create_organization(owner=self.user)

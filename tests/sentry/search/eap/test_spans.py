@@ -37,7 +37,7 @@ from sentry.utils import json
 
 
 class SearchResolverQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.resolver = SearchResolver(
             params=SnubaParams(), config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
         )
@@ -549,7 +549,7 @@ class SearchResolverQueryTest(TestCase):
 
 
 class SearchResolverColumnTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(name="test")
         self.resolver = SearchResolver(

@@ -69,7 +69,7 @@ def get_trusted_relay_value(organization):
 class OrganizationDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -1640,7 +1640,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # 2FA enforced org
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)

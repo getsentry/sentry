@@ -6,7 +6,7 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 
 
 class WorkflowEventContextTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ctx_token = None
 
