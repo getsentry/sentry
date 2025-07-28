@@ -18,7 +18,7 @@ from snuba_sdk import (
 from sentry.utils.snuba import raw_snql_query
 
 
-# TODO: abstract out the reusable parts of this query into helps (e.g., getting first tuple element, etc.)
+# TODO: abstract out the reusable parts of this query into helpers (e.g., getting first tuple element, etc.)
 def query_top_10_ai_labels_by_feedback_count(
     organization_id: int,
     project_ids: list[int],
