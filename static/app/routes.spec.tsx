@@ -2,7 +2,6 @@ import type {RouteObject} from 'react-router-dom';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';
-import {buildReactRouter6Routes} from 'sentry/utils/reactRouter6Compat/router';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace
@@ -75,11 +74,11 @@ describe('buildRoutes()', function () {
 
     // Get routes for with customer domains off.
     spy.mockReturnValue(false);
-    const routes = extractRoutes(buildReactRouter6Routes(buildRoutes()));
+    const routes = extractRoutes(buildRoutes());
 
     // Get routes with customer domains on.
     spy.mockReturnValue(true);
-    const domainRoutes = extractRoutes(buildReactRouter6Routes(buildRoutes()));
+    const domainRoutes = extractRoutes(buildRoutes());
 
     // All routes that exist under orgId path slugs should
     // have a sibling under customer-domains.

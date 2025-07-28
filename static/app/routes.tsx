@@ -1,3 +1,4 @@
+import type {RouteObject} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
@@ -36,13 +37,14 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-import {Route, type SentryRouteObject} from './components/route';
+import {type SentryRouteObject} from './components/route';
+import {translateSentryRoute} from './utils/reactRouter6Compat/router';
 import {makeLazyloadComponent as make} from './makeLazyloadComponent';
 
 const routeHook = (name: HookName): SentryRouteObject =>
   HookStore.get(name)?.[0]?.() ?? {};
 
-function buildRoutes() {
+function buildRoutes(): RouteObject[] {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
@@ -2985,7 +2987,7 @@ function buildRoutes() {
     ],
   };
 
-  return <Route newStyleChildren={[appRoutes]} />;
+  return [translateSentryRoute(appRoutes)];
 }
 
 // We load routes both when initializing the SDK (for routing integrations) and
