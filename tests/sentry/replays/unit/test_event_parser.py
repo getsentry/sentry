@@ -1329,7 +1329,7 @@ def test_as_trace_item_returns_none_for_unsupported_event():
 @mock.patch("sentry.options.get")
 def test_parse_events(options_get):
     """Test "parse_events" function."""
-    options_get.return_value = [1]
+    options_get.return_value = 1
 
     parsed, trace_items = parse_events(
         {
@@ -1387,7 +1387,7 @@ def test_parse_events(options_get):
 @mock.patch("sentry.options.get")
 def test_parse_events_disabled(options_get):
     """Test "parse_events" function."""
-    options_get.return_value = []
+    options_get.return_value = 0
 
     parsed, trace_items = parse_events(
         {

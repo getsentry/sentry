@@ -82,7 +82,7 @@ def parse_events(
     hev_builder = HighlightedEventsBuilder()
 
     for event_type, event in which_iter(events):
-        eap_builder.add(event_type, event)
+        eap_builder.add(event_type, event, sampled=random.random())
         hev_builder.add(event_type, event, sampled)
 
     return (hev_builder.result, eap_builder.result)
@@ -227,15 +227,11 @@ class EAPEventsBuilder:
         self.context = context
         self.events: list[TraceItem] = []
 
-    def add(self, event_type: EventType, event: dict[str, Any]) -> None:
-        if self.context["project_id"] not in options.get(
-            "replay.recording.ingest-trace-items.allow-list"
-        ):
-            return None
-
-        trace_item = parse_trace_item(self.context, event_type, event)
-        if trace_item:
-            self.events.append(trace_item)
+    def add(self, event_type: EventType, event: dict[str, Any], sampled: float) -> None:
+        if sampled and sampled <= options.get("replay.recording.ingest-trace-items.rollout"):
+            trace_item = parse_trace_item(self.context, event_type, event)
+            if trace_item:
+                self.events.append(trace_item)
 
     @property
     def result(self) -> list[TraceItem]:
