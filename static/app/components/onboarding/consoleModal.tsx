@@ -70,7 +70,7 @@ const consoleConfig = {
   xbox: (
     <Fragment>
       <p>
-        {t('Sentry supports Xbox Series X and S, devkits as well as retail devices.')}
+        {t('Sentry supports Xbox One and Series X|S, devkits as well as retail devices.')}
       </p>
       <p>
         {tct(
