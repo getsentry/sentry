@@ -31,7 +31,6 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
     DetectorWorkflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -277,26 +276,27 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         if "latestIncident" in self.expand:
             # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
-            detector_workflows = DetectorWorkflow.objects.filter(detector__in=detector_ids)
+            detector_workflows = DetectorWorkflow.objects.filter(
+                detector__in=detector_ids
+            ).values_list("detector_id", "workflow_id")
+            detector_id_to_workflow_ids = defaultdict(list)
+            for detector_id, workflow_id in detector_workflows:
+                detector_id_to_workflow_ids[detector_id].append(workflow_id)
 
-            wdcgs = WorkflowDataConditionGroup.objects.filter(
-                workflow__in=detector_workflows.values_list("workflow_id", flat=True)
+            data_condition_group_actions = dcgas.values_list(
+                "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
             )
 
-            workflows_to_detectors = {
-                detector_workflow.workflow: detector_workflow.detector
-                for detector_workflow in detector_workflows
-            }
-
-            action_filters_to_detectors = {}
-            for wdcg in wdcgs:
-                detector = workflows_to_detectors[wdcg.workflow]
-                action_filters_to_detectors[wdcg.condition_group] = detector
+            workflow_id_to_action_ids = defaultdict(list)
+            for workflow_id, action_id in data_condition_group_actions:
+                workflow_id_to_action_ids[workflow_id].append(action_id)
 
             detector_to_action_ids = defaultdict(list)
-            for dcga in dcgas:
-                detector = action_filters_to_detectors[dcga.condition_group]
-                detector_to_action_ids[detector].append(dcga.action.id)
+            for detector_id in detectors:
+                for workflow_id in detector_id_to_workflow_ids.get(detector_id, []):
+                    detector_to_action_ids[detectors[detector_id]].extend(
+                        workflow_id_to_action_ids.get(workflow_id, [])
+                    )
 
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
