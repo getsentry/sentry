@@ -1,5 +1,6 @@
+{% load sentry_assets %}
+{% script %}
 <script>
-
   const status = document.getElementById('csrf-status');
   const button = document.getElementById('csrf-rotate-btn');
 
@@ -98,3 +99,4 @@
    */
   autoRotateCsrf();
 </script>
+{% endscript %}

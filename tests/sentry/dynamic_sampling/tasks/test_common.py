@@ -22,7 +22,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 )
 
 
-def test_timeout_exception():
+def test_timeout_exception() -> None:
     """
     Test creation of exception
     """
@@ -58,7 +58,7 @@ class FakeContextIterator:
         self.count = state.num_iterations
 
 
-def test_timed_iterator_no_timout():
+def test_timed_iterator_no_timout() -> None:
 
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         context = TaskContext("my_context", 3)
@@ -86,7 +86,7 @@ def test_timed_iterator_no_timout():
             next(it)
 
 
-def test_timed_iterator_with_timeout():
+def test_timed_iterator_with_timeout() -> None:
     with freeze_time("2023-07-12 10:00:00") as frozen_time:
         context = TaskContext("my_context", 3)
         it = TimedIterator(context, FakeContextIterator(frozen_time, 4), "ti1")
@@ -148,7 +148,7 @@ class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
         assert total_orgs == 10
 
 
-def test_timed_function_decorator_updates_state():
+def test_timed_function_decorator_updates_state() -> None:
     """
     Tests that the decorator correctly extracts the state
     and passes it to the inner function.
@@ -179,7 +179,7 @@ def test_timed_function_decorator_updates_state():
     assert f2_state.num_iterations == 2
 
 
-def test_timed_function_correctly_times_inner_function():
+def test_timed_function_correctly_times_inner_function() -> None:
     with freeze_time("2023-07-14 10:00:00") as frozen_time:
         context = TaskContext(name="TC", num_seconds=60.0)
 
@@ -197,7 +197,7 @@ def test_timed_function_correctly_times_inner_function():
         assert t.current() == 2.0
 
 
-def test_timed_function_correctly_raises_when_task_expires():
+def test_timed_function_correctly_raises_when_task_expires() -> None:
     with freeze_time("2023-07-14 10:00:00") as frozen_time:
         context = TaskContext(name="TC", num_seconds=2.0)
 

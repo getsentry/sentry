@@ -1825,7 +1825,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-def test_trusted_relays_option_serialization():
+def test_trusted_relays_option_serialization() -> None:
     # incoming raw data
     data = {
         "publicKey": _VALID_RELAY_KEYS[0],
@@ -1884,7 +1884,7 @@ def test_trusted_relay_serializer_validation(invalid_data):
     assert not serializer.is_valid()
 
 
-def test_trusted_relays_option_deserialization():
+def test_trusted_relays_option_deserialization() -> None:
     # internal data
     instance = {
         "public_key": "key1",
