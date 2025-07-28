@@ -15,6 +15,8 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
 
+logger = logging.getLogger(__name__)
+
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
@@ -225,6 +227,17 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
 
             self.delete_bulk(queryset)
             remaining = remaining - len(queryset)
+            if remaining and self.model.__name__ == "Group":
+                logger.info(
+                    "deletions.group.chunk.remaining",
+                    extra={
+                        "chunk_size": self.chunk_size,
+                        "remaining": remaining,
+                        "query": self.query,
+                        "queryset": queryset,
+                        "transaction_id": self.transaction_id,
+                    },
+                )
 
         # We have more work to do as we didn't run out of rows to delete.
         return True

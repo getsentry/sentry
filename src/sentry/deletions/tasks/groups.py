@@ -13,7 +13,6 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -77,16 +76,10 @@ def delete_groups_for_project(
     extra = {"project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
     logger.info("delete_groups.started", extra={"object_ids": object_ids, **extra})
-
     task = deletions.get(model=Group, query={"id__in": object_ids}, transaction_id=transaction_id)
-    has_more = task.chunk()
+    has_more = True
+    while has_more:
+        has_more = task.chunk()
 
-    # XXX: Delete this block once I'm convince this is not happening
-    if has_more:
-        metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
-        sentry_sdk.capture_message(
-            "This should not be happening",
-            level="info",
-            # Use this to query the logs
-            tags={"transaction_id": transaction_id},
-        )
+    # This will delete all Snuba events for all deleted groups
+    eventstream.backend.end_delete_groups(eventstream_state)
