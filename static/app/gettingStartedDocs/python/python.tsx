@@ -465,6 +465,7 @@ from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
