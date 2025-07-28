@@ -9,7 +9,6 @@ import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -226,8 +225,8 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
     display: block;
     &:before {
       right: 0;
-      top: ${space(1)};
-      bottom: ${space(1)};
+      top: ${theme.space.md};
+      bottom: ${theme.space.md};
       width: 1px;
       content: '';
       position: absolute;
@@ -298,8 +297,8 @@ const DateFilter = styled(TimeRangeSelector)`
   display: block;
   &:before {
     right: 0;
-    top: ${space(1)};
-    bottom: ${space(1)};
+    top: ${p => p.theme.space.md};
+    bottom: ${p => p.theme.space.md};
     width: 1px;
     content: '';
     position: absolute;
@@ -320,7 +319,7 @@ const GraphSection = styled('div')`
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
   background: ${p => p.theme.background};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.translucentBorder};
 `;
@@ -330,5 +329,5 @@ const PageErrorBoundary = styled(ErrorBoundary)`
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
   border-radius: 0;
-  padding: ${space(1.5)} 24px;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
 `;

@@ -12,7 +12,6 @@ import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -204,16 +203,16 @@ const ChartContainer = styled('div')<{envCount: number}>`
   position: relative;
   width: 100%;
   min-height: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 104}px;
-  padding-left: ${space(1.5)};
-  padding-right: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegend = styled('div')`
   position: absolute;
   user-select: none;
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegendText = styled('div')`
@@ -224,8 +223,8 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
-  left: ${space(1.5)};
-  right: ${space(1.5)};
+  left: ${p => p.theme.space.lg};
+  right: ${p => p.theme.space.lg};
 `;
 
 const EnvironmentLabel = styled(Tooltip)`

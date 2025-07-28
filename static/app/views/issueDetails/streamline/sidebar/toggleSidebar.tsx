@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,8 +61,8 @@ const ToggleButton = withChonk(
     box-shadow: none;
     position: absolute;
     padding: 0;
-    left: ${space(0.5)};
-    width: calc(100% - ${space(0.5)} + 1px);
+    left: ${p => p.theme.space.xs};
+    width: calc(100% - ${p => p.theme.space.xs} + 1px);
     outline: 0;
     min-height: unset;
     color: ${p => p.theme.subText};
@@ -84,5 +83,5 @@ const ToggleButton = withChonk(
 
 const StyledIconChevron = styled(IconChevron)`
   position: absolute;
-  left: ${space(0.75)};
+  left: ${p => p.theme.space.sm};
 `;

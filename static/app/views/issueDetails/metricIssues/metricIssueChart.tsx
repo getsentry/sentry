@@ -5,7 +5,6 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Alert} from 'sentry/components/core/alert';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -158,18 +157,18 @@ function MetricIssuePlaceholder({type}: {type: 'loading' | 'error'}) {
 
 const MetricChartSection = styled('div')`
   display: block;
-  padding-right: ${space(1.5)};
-  padding-left: ${space(1.5)};
+  padding-right: ${p => p.theme.space.lg};
+  padding-left: ${p => p.theme.space.lg};
   width: 100%;
 `;
 
 const PlaceholderContainer = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const ChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} 0;
+  padding: ${p => p.theme.space.sm} 0;
 `;
 
 const MetricChartAlert = styled(Alert)`

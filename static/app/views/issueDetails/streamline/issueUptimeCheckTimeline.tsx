@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {Flex} from 'sentry/components/core/layout';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -135,7 +134,7 @@ const ChartContainer = styled('div')`
   position: relative;
   min-height: 100px;
   width: 100%;
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegend = styled('div')`
@@ -143,8 +142,8 @@ const TimelineLegend = styled('div')`
   width: 100%;
   user-select: none;
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegendText = styled('div')`

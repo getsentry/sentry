@@ -16,7 +16,6 @@ import {
   frontend,
 } from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -328,8 +327,8 @@ const IssueTagPreviewSection = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(1.5)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const TagsPreview = styled('div')`
@@ -339,7 +338,7 @@ const TagsPreview = styled('div')`
   align-items: center;
   align-content: center;
   gap: 1px;
-  column-gap: ${space(0.5)};
+  column-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.fontSize.sm};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -361,7 +360,7 @@ const TagBarSegment = styled('div')`
   height: 100%;
   position: absolute;
   top: 0;
-  min-width: ${space(0.25)};
+  min-width: ${p => p.theme.space['2xs']};
   border-right: 1px solid ${p => p.theme.translucentBorder};
 
   &:last-child {
@@ -371,18 +370,18 @@ const TagBarSegment = styled('div')`
 
 const TopPercentage = styled('div')`
   text-align: right;
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
 `;
 
 const TooltipLegend = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;
 
 const LegendGrid = styled('div')`
   display: grid;
   grid-template-columns: min-content auto min-content;
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   align-items: center;
   text-align: left;
 `;
@@ -398,8 +397,8 @@ const TagPreviewGrid = styled(Link)`
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   align-items: center;
-  padding: 0 ${space(0.75)};
-  margin: 0 -${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
+  margin: 0 -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
@@ -424,7 +423,7 @@ const LegendPercentage = styled('span')`
 
 const LegendTitle = styled('div')`
   font-weight: 600;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const DistributionsDrawerLink = styled(Link)`
@@ -439,8 +438,8 @@ const DistributionsDrawerLink = styled(Link)`
 const VerticalDistributionsDrawerButton = styled(LinkButton)`
   display: block;
   flex: 0;
-  margin: ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
+  margin: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   text-align: center;
   height: unset;
   align-self: center;
