@@ -329,7 +329,6 @@ function WidgetCard(props: Props) {
             showLoadingText={showLoadingText && isLoadingTextVisible}
             onWidgetTableSort={onWidgetTableSort}
             onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-            isPreview={props.isPreview}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

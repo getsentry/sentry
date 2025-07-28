@@ -497,8 +497,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return <Container>{getShortEventId(id)}</Container>;
     },
   },
-  [SpanFields.SPAN_DESCRIPTION]: {
-    sortField: SpanFields.SPAN_DESCRIPTION,
+  'span.description': {
+    sortField: 'span.description',
     renderFunc: (data, {organization}) => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
