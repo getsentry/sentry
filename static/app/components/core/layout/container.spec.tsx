@@ -2,51 +2,40 @@ import React, {createRef} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Container} from 'sentry/components/core/layout/container';
 
-describe('Flex', () => {
+describe('Container', () => {
   it('renders children', () => {
-    render(<Flex>Hello</Flex>);
+    render(<Container>Hello</Container>);
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Flex data-test-id="container">Hello</Flex>);
+    render(<Container data-test-id="container">Hello</Container>);
     expect(screen.getByTestId('container')).toBeInTheDocument();
   });
 
   it('renders as a different element if specified', () => {
-    render(<Flex as="section">Hello</Flex>);
+    render(<Container as="section">Hello</Container>);
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
   it('does not bleed attributes to the underlying element', () => {
-    render(<Flex radius="sm">Hello</Flex>);
+    render(<Container radius="sm">Hello</Container>);
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
-  it('does not bleed flex attributes to the underlying element', () => {
-    render(
-      <Flex align="center" justify="center">
-        Hello
-      </Flex>
-    );
-
-    expect(screen.getByText('Hello')).not.toHaveAttribute('align');
-    expect(screen.getByText('Hello')).not.toHaveAttribute('justify');
-  });
-
   it('allows settings native html attributes', () => {
-    render(<Flex style={{color: 'red'}}>Hello</Flex>);
+    render(<Container style={{color: 'red'}}>Hello</Container>);
     expect(screen.getByText('Hello')).toHaveStyle({color: 'red'});
   });
 
   it('attaches ref to the underlying element', () => {
     const ref = createRef<HTMLOListElement>();
     render(
-      <Flex ref={ref} as="ol">
+      <Container ref={ref} as="ol">
         Hello
-      </Flex>
+      </Container>
     );
     expect(ref.current).toBeInTheDocument();
     expect(ref.current?.tagName).toBe('OL');
@@ -55,12 +44,12 @@ describe('Flex', () => {
   it('reuses class names for the same props', () => {
     render(
       <React.Fragment>
-        <Flex radius="sm" padding="md">
+        <Container radius="sm" padding="md">
           Padding First
-        </Flex>
-        <Flex radius="sm" padding="md">
+        </Container>
+        <Container radius="sm" padding="md">
           PaddingBottom First
-        </Flex>
+        </Container>
       </React.Fragment>
     );
 

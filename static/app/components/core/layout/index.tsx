@@ -1,1 +1,2 @@
-export {Flex, Container} from './flex';
+export {Flex} from './flex';
+export {Container} from './container';
