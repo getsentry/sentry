@@ -47,14 +47,18 @@ function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
     return undefined;
   }
 
-  return theme.space[sizeComponent] ?? theme.space.none;
+  return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
 function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
   return typeof prop === 'object' && prop !== null;
 }
 
-function getRadius(radius: Shorthand<RadiusSize, 4>, theme: Theme) {
+function getRadius(
+  radius: Shorthand<RadiusSize, 4>,
+  _breakpoint: Breakpoint | undefined,
+  theme: Theme
+) {
   if (radius.length <= 3) {
     // This can only be a single radius value, so we can resolve it directly.
     return resolveRadius(radius as RadiusSize, theme) as string;
@@ -66,7 +70,11 @@ function getRadius(radius: Shorthand<RadiusSize, 4>, theme: Theme) {
     .join(' ');
 }
 
-function getSpacing(spacing: Shorthand<SpacingSize, 4>, theme: Theme): string {
+function getSpacing(
+  spacing: Shorthand<SpacingSize, 4>,
+  _breakpoint: Breakpoint | undefined,
+  theme: Theme
+): string {
   if (spacing.length <= 3) {
     // This can only be a single spacing value, so we can resolve it directly.
     return resolveSpacing(spacing as SpacingSize, theme) as string;
@@ -103,6 +111,8 @@ interface BaseContainerProps {
   height?: Responsive<CSSProperties['height']>;
   minHeight?: Responsive<CSSProperties['minHeight']>;
   maxHeight?: Responsive<CSSProperties['maxHeight']>;
+
+  area?: Responsive<CSSProperties['gridArea']>;
 }
 /* eslint-enable typescript-sort-keys/interface */
 type ContainerElement =
@@ -128,6 +138,7 @@ type ContainerProps<T extends ContainerElement = 'div'> = BaseContainerProps & {
 
 const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
+  'area',
   'background',
   'display',
   'padding',
@@ -179,6 +190,8 @@ export const Container = styled(
   ${p => rc('min-height', p.minHeight, p.theme)};
   ${p => rc('max-height', p.maxHeight, p.theme)};
 
+  ${p => rc('grid-area', p.area, p.theme)};
+
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
@@ -194,7 +207,11 @@ function rc<T>(
   value: Responsive<T> | undefined,
   theme: Theme,
   // Optional resolver function to transform the value before it is applied to the CSS property.
-  resolver?: (value: T, theme: Theme) => string | number
+  resolver?: (
+    value: T,
+    breakpoint: Breakpoint | undefined,
+    theme: Theme
+  ) => string | number
 ): SerializedStyles | undefined {
   if (!value) {
     return undefined;
@@ -203,8 +220,9 @@ function rc<T>(
   // Most values are unlikely to be responsive, so we can resolve
   // them directly and return early.
   if (!isResponsive(value)) {
-    // prettier-ignore
-    return css`${property}: ${resolver ? resolver(value, theme) : value};`;
+    return css`
+      ${property}: ${resolver ? resolver(value, undefined, theme) : value};
+    `;
   }
 
   let first = true;
@@ -221,14 +239,14 @@ function rc<T>(
         return css`
           @media (min-width: ${theme.breakpoints[breakpoint]}),
             (max-width: ${theme.breakpoints[breakpoint]}) {
-            ${property}: ${resolver ? resolver(v, theme) : (v as string)};
+            ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
           }
         `;
       }
 
       return css`
         @media (min-width: ${theme.breakpoints[breakpoint]}) {
-          ${property}: ${resolver ? resolver(v, theme) : (v as string)};
+          ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
         }
       `;
     }).filter(Boolean)}
@@ -251,6 +269,10 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
   ContainerProps<T>,
   'display'
 > & {
+  /**
+   * Aligns flex items along the cross axis of the current line of flex items.
+   * Uses CSS align-items property.
+   */
   align?: Responsive<'start' | 'end' | 'center' | 'baseline' | 'stretch'>;
   direction?: Responsive<'row' | 'row-reverse' | 'column' | 'column-reverse'>;
   flex?: Responsive<CSSProperties['flex']>;
@@ -259,7 +281,10 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
    * Determines whether the flex container should be displayed as an inline-flex.
    */
   inline?: Responsive<boolean>;
-  // @TODO(jonasbadalic): remove the `between` and `around` values and use the `space-between` and `space-around` values instead.
+  /**
+   * Aligns flex items along the block axis of the current line of flex items.
+   * Uses CSS justify-content property.
+   */
   justify?: Responsive<'start' | 'end' | 'center' | 'between' | 'around' | 'evenly'>;
   order?: Responsive<CSSProperties['order']>;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
@@ -285,7 +310,7 @@ export const Flex = styled(
   ${p => rc('flex-wrap', p.wrap, p.theme)};
   ${p => rc('flex', p.flex, p.theme)};
   ${p =>
-    rc('justify-content', p.justify, p.theme, (value, _theme) => {
+    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
       switch (value) {
         case 'start':
           return 'flex-start';
@@ -305,7 +330,7 @@ export const Flex = styled(
     })};
 
   ${p =>
-    rc('align-items', p.align, p.theme, (value, _theme) => {
+    rc('align-items', p.align, p.theme, (value, _breakpoint, _theme) => {
       switch (value) {
         case 'start':
           return 'flex-start';
