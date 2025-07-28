@@ -134,6 +134,12 @@ class GroupingContext:
                 return d[key]
         raise KeyError(key)
 
+    def get(self, key: str, default: ContextValue | None = None) -> ContextValue | None:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     def __enter__(self) -> Self:
         self.push()
         return self
