@@ -3,7 +3,6 @@ import {useCallback, useState} from 'react';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -52,10 +51,15 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
       },
       refetchOnWindowFocus: 'always',
       ...options,
-    } as UseApiQueryOptions<SummaryResponse, RequestError>
+    }
   );
 
   const triggerSummary = useCallback(async () => {
+    // Don't trigger if the feature is disabled
+    if (options?.enabled === false) {
+      return;
+    }
+
     setWaitingForNextRun(true);
 
     try {
@@ -65,6 +69,12 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
           method: 'POST',
         }
       );
+      // invalidate the query when a summary is triggered
+      // so the cached data is marked as sale.
+      // occurs if the summary was created over 90d ago,
+      // the segment count of the replay increased,
+      // there is no summary yet,
+      // or the user clicks "regenerate".
       queryClient.invalidateQueries({
         queryKey: createAISummaryQueryKey(
           organization.slug,
@@ -76,7 +86,14 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
       setWaitingForNextRun(false);
       setTriggerError(true);
     }
-  }, [queryClient, api, organization.slug, project?.slug, replayRecord?.id]);
+  }, [
+    queryClient,
+    api,
+    organization.slug,
+    project?.slug,
+    replayRecord?.id,
+    options?.enabled,
+  ]);
 
   return {
     summaryData,
