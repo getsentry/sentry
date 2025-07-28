@@ -1,6 +1,7 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {Actions} from 'sentry/views/discover/table/cellAction';
 
 type AttributeValueType =
   | 'number'
@@ -81,6 +82,7 @@ export type TabularData<TFields extends string = string> = {
 
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
+  allowedCellActions?: Actions[];
   sortable?: boolean;
   type?: AttributeValueType;
   width?: number;

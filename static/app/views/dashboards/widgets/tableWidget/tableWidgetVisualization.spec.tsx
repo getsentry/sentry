@@ -283,6 +283,23 @@ describe('TableWidgetVisualization', function () {
       await screen.findByText('Add to filter');
     });
 
+    it('Renders allowedCellActions from columns over table prop if both supplied', async function () {
+      const actionColumns = [
+        {key: columns[0]!.key!, allowedCellActions: [Actions.COPY_TO_CLIPBOARD]},
+        {key: columns[1]!.key!},
+      ];
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[Actions.ADD]}
+          columns={actionColumns}
+        />
+      );
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      await screen.findByText('Copy to clipboard');
+    });
+
     it('Uses onTriggerCellAction if supplied on action click', async function () {
       const onTriggerCellActionMock = jest.fn(
         (_actions: Actions, _value: string | number) => {}

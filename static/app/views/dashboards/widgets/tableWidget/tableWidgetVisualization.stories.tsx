@@ -335,22 +335,45 @@ function onChangeSort(newSort: Sort) {
 
   story('Cell Actions', () => {
     const [filter, setFilter] = useState<Array<string | number>>([]);
+    const customActionColumns = [
+      {key: 'no.actions', allowedCellActions: []},
+      ...customColumns,
+    ];
+    const customTableData = {
+      data: sampleHTTPRequestTableData.data.map(row => ({
+        ...row,
+        'no.actions': 'this cell has no actions!',
+      })),
+      meta: sampleHTTPRequestTableData.meta,
+    };
     return (
       <Fragment>
         <p>
           The default enabled cell actions are copying text to the clipboard and opening
-          external links in a new tab. To customize the list of allowed cell actions, use
-          the <code>allowedCellActions</code> prop. For example, passing <code>[]</code>{' '}
-          will disable actions completely:
+          external links in a new tab. To customize the list of allowed cell actions for
+          the entire table, use the <code>allowedCellActions</code> prop. For example,
+          passing <code>[]</code> will disable actions completely:
         </p>
         <TableWidgetVisualization
           tableData={sampleHTTPRequestTableData}
           allowedCellActions={[]}
         />
         <p>
+          If a table has columns that needs a different set of cell actions from other
+          columns, pass <code>allowedCellActions</code> in the specific column in the{' '}
+          <code>columns</code> prop. If defined, the prop takes priority over the table{' '}
+          <code>allowedCellActions</code> prop.
+        </p>
+        <TableWidgetVisualization
+          tableData={customTableData}
+          columns={customActionColumns}
+        />
+        <p>
           If a custom list of cell actions is supplied, then pass the{' '}
           <code>onTriggerCellAction</code> prop to add behavior when the action is
-          selected by the user.
+          selected by the user. This table only provides default behavior for copying text
+          and opening external links. You are responsible to supply behavior for any
+          custom actions.
         </p>
         <p>
           Current filter: <b>[{filter.toString()}]</b>

@@ -40,7 +40,10 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {
+  type RenderFunctionBaggage,
+  shouldUseCellActions,
+} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -97,6 +100,7 @@ type WidgetCardChartProps = Pick<
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isPreview?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
@@ -158,6 +162,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       theme,
       onWidgetTableSort,
       onWidgetTableResizeColumn,
+      isPreview,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -190,6 +195,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         type: column.type === 'never' ? null : column.type,
         sortable:
           widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
+        allowedCellActions: shouldUseCellActions(column.key, fields) ? undefined : [],
       }));
       const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
@@ -229,7 +235,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
-              allowedCellActions={[]}
+              allowedCellActions={isPreview ? [] : undefined}
             />
           ) : (
             <StyledSimpleTableChart

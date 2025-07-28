@@ -294,7 +294,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                     break;
                 }
               }}
-              allowActions={allowedCellActions}
+              allowActions={column?.allowedCellActions ?? allowedCellActions}
             >
               {cell}
             </CellAction>
