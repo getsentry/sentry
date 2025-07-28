@@ -18,7 +18,7 @@ from tests.snuba.search.test_backend import SharedSnubaMixin
 
 
 class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
@@ -141,7 +141,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
 
 
 class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
@@ -280,7 +280,7 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 

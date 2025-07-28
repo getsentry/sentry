@@ -30,7 +30,7 @@ class DiscordRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,

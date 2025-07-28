@@ -14,7 +14,7 @@ def first_symbol_source_id(sources_json):
 class ProjectOverviewTest(APITestCase):
     endpoint = "sentry-api-0-project-overview"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

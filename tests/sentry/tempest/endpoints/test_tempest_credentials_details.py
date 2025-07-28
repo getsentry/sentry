@@ -8,7 +8,7 @@ from sentry.testutils.helpers.features import Feature
 class TestTempestCredentialsDetails(APITestCase):
     endpoint = "sentry-api-0-project-tempest-credentials-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.tempest_credentials = self.create_tempest_credentials(self.project)
 

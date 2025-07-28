@@ -18,7 +18,7 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         data = load_data("transaction")
         return self.store_event(data, project_id=self.project.id)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="radu@sentry.io", username="raduw", name="RaduW")
 

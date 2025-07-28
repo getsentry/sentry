@@ -93,7 +93,7 @@ class MSTeamsMessageBuilderTest(TestCase):
     These tests do NOT test all visual aspects of the card.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(is_superuser=False)
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
@@ -469,7 +469,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
 
 class MSTeamsNotificationMessageBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
 

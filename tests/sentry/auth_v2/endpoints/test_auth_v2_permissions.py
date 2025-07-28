@@ -11,7 +11,7 @@ class AuthV2PermissionsTest(DRFPermissionTestCase):
     See tests/sentry/api/test_permissions.py
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.auth_v2_permission = AuthV2Permission()
         self.user = self.create_user(is_superuser=False, is_staff=False)

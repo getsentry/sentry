@@ -26,7 +26,7 @@ pytestmark = [requires_snuba]
 
 
 class SlackTasksTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = install_slack(self.organization)
         self.uuid = uuid4().hex
 

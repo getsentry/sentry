@@ -299,7 +299,7 @@ class TestDataConditionGroupSerializer(TestCase):
 
 
 class TestActionSerializer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             provider="slack",
@@ -526,7 +526,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowGroupsPaginatedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -547,6 +547,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     workflow=self.workflow,
                     group=self.group,
                     event_id=uuid4().hex,
+                    is_single_written=True,
                 )
             )
         self.group_2 = self.create_group()
@@ -560,6 +561,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 workflow=self.workflow,
                 group=self.group_2,
                 event_id=uuid4().hex,
+                is_single_written=True,
             )
         )
         self.group_3 = self.create_group()
@@ -574,8 +576,17 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     workflow=self.workflow,
                     group=self.group_3,
                     event_id=uuid4().hex,
+                    is_single_written=True,
                 )
             )
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            detector=self.detector_3,
+            workflow=self.workflow,
+            group=self.group_3,
+            event_id=uuid4().hex,
+            is_single_written=False,
+        )
         # this will be ordered after the WFH with self.detector_1
         self.detector_4 = self.create_detector(
             project_id=self.project.id,
@@ -588,6 +599,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 workflow=self.workflow_2,
                 group=self.group,
                 event_id=uuid4().hex,
+                is_single_written=True,
             )
         )
 
@@ -743,7 +755,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
 @freeze_time()
 class WorkflowHourlyStatsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -759,6 +771,7 @@ class WorkflowHourlyStatsTest(TestCase):
                     WorkflowFireHistory(
                         workflow=self.workflow,
                         group=self.group,
+                        is_single_written=True,
                     )
                 )
 
@@ -768,8 +781,16 @@ class WorkflowHourlyStatsTest(TestCase):
                 WorkflowFireHistory(
                     workflow=self.workflow_2,
                     group=self.group,
+                    is_single_written=True,
                 )
             )
+
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow_2,
+            group=self.group,
+            is_single_written=False,
+        )
 
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
 

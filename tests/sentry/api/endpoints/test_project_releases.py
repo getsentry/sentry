@@ -123,7 +123,7 @@ class ProjectReleaseListTest(APITestCase):
 
 
 class ProjectReleaseListEnvironmentsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=UTC)
@@ -724,7 +724,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 
 class ReleaseSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"

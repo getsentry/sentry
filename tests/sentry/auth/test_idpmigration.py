@@ -13,7 +13,7 @@ from sentry.utils import json
 
 @control_silo_test
 class IDPMigrationTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)

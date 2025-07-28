@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user

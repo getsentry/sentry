@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationPluginsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.projectA = self.create_project()
         self.projectB = self.create_project(organization=self.projectA.organization)
 
