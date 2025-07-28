@@ -197,7 +197,9 @@ def get_timeseries_query(
     list[ResolvedAttribute],
 ]:
     timeseries_filter, params = update_timestamps(params, search_resolver)
-    meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
+    meta = search_resolver.resolve_meta(
+        referrer=referrer, sampling_mode=sampling_mode, debug=params.debug
+    )
     query, _, query_contexts = search_resolver.resolve_query(query_string)
     selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)
     (functions, _) = search_resolver.resolve_functions(selected_axes)
@@ -306,7 +308,9 @@ def get_table_rpc_request(query: TableQuery) -> TableRequest:
     """Make the query"""
     resolver = query.resolver
     sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
-    meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
+    meta = resolver.resolve_meta(
+        referrer=query.referrer, sampling_mode=query.sampling_mode, debug=query.debug
+    )
     where, having, query_contexts = resolver.resolve_query(query.query_string)
 
     all_columns: list[AnyResolved] = []

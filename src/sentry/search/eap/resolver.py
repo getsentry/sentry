@@ -101,7 +101,10 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_meta(
-        self, referrer: str, sampling_mode: SAMPLING_MODES | None = None
+        self,
+        referrer: str,
+        sampling_mode: SAMPLING_MODES | None = None,
+        debug: bool = False,
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
@@ -115,6 +118,7 @@ class SearchResolver:
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
             trace_item_type=self.definitions.trace_item_type,
+            debug=debug,
             downsampled_storage_config=validate_sampling(sampling_mode),
         )
 
