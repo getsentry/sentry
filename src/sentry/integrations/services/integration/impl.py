@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
@@ -9,7 +10,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import ObjectStatus, SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.messaging.metrics import (
@@ -353,6 +354,71 @@ class DatabaseBackedIntegrationService(IntegrationService):
             set_grace_period_end_null=set_grace_period_end_null,
         )
         return ois[0] if len(ois) > 0 else None
+
+    def start_grace_period_for_provider(
+        self,
+        *,
+        organization_id: int,
+        provider: str,
+        grace_period_end: datetime,
+        status: int = ObjectStatus.ACTIVE,
+        skip_oldest: bool = True,
+    ) -> list[RpcOrganizationIntegration]:
+        # 1. Get OrganizationIntegrations associated with the providers, organization and status
+        # 2. If skip_oldest if true we need to get all OIs associated with the Integrations used by this org to check if the oldest OrganizationIntegration for an Integration belongs to THIS organization
+        # 3. If skip_oldest is false we want to start grace period for all OrganizationIntegrations belonging to THIS organization
+        # 4. Get all OrganizationIntegrations for the Integrations used by this org
+        # 5. Sort the OrganizationIntegrations for each Integration to determine the oldest
+        # 6. If the oldest OrganizationIntegration for an Integration does not belong to THIS organization we want to start the grace period for this OrganizationIntegration
+        # 7. Update the OrganizationIntegrations with the grace period end
+        # 8. Return the updated OrganizationIntegrations
+        # Get all OrganizationIntegrations for Integrations used by this org
+        current_org_ois = OrganizationIntegration.objects.filter(
+            organization_id=organization_id,
+            integration__provider=provider,
+            status=status,
+        )
+        ois_to_update: list[int] = list(current_org_ois.values_list("id", flat=True))
+
+        if skip_oldest:
+            # Get all OrganizationIntegrations for the Integrations used by this org
+            all_ois = OrganizationIntegration.objects.filter(
+                integration__in=current_org_ois.values_list("integration_id", flat=True),
+                status=status,
+                integration__provider=provider,
+            )
+            # Get all associated OrganizationIntegrations for the Integrations used by this org
+            all_ois = (
+                OrganizationIntegration.objects.filter(
+                    integration__in=current_org_ois.values_list("integration_id", flat=True),
+                    status=status,
+                    integration__provider=provider,
+                )
+                .order_by("date_added")
+                .distinct()
+            )
+
+            # Create mapping of integration_id to list of OrganizationIntegrations
+            integration_to_ois: dict[int, list[OrganizationIntegration]] = defaultdict(list)
+            for oi in all_ois:
+                integration_to_ois[oi.integration_id].append(oi)
+
+            # Sort the OrganizationIntegrations for each Integration
+            for integration, ois in integration_to_ois.items():
+                integration_to_ois[integration] = sorted(
+                    ois, key=lambda oi: oi.date_added, reverse=False
+                )
+
+                # Check if the oldest OrganizationIntegration for this Integration belongs to THIS organization
+                # If not we want to start the grace period for this OrganizationIntegration
+                if integration_to_ois[integration][0].organization_id == organization_id:
+                    ois_to_update.remove(integration_to_ois[integration][0].id)
+
+        ois = self.update_organization_integrations(
+            org_integration_ids=ois_to_update,
+            grace_period_end=grace_period_end,
+        )
+        return [serialize_organization_integration(oi) for oi in ois]
 
     def add_organization(self, *, integration_id: int, org_ids: list[int]) -> RpcIntegration | None:
         try:
