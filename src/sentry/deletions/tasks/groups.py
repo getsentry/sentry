@@ -83,4 +83,4 @@ def delete_groups_for_project(
         has_more = task.chunk()
         if not has_more:
             metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
-            sentry_sdk.capture_message("This should not be happening")
+            sentry_sdk.capture_message("delete_groups reached a state that should not happen")
