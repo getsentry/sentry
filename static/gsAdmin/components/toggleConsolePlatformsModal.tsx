@@ -71,7 +71,7 @@ function ToggleConsolePlatformsModal({
       submitDisabled={isPending}
     >
       <Header closeButton>
-        <Flex align="center" gap={space(2)}>
+        <Flex align="center" gap="xl">
           <h4>Toggle Console Platforms</h4>
         </Flex>
       </Header>
