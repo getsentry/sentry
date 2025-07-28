@@ -274,7 +274,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         for _ in range(5):
             self.store_event(error_data, project_id=self.project.id)
 
-        with mock.patch("sentry.api.endpoints.organization_trace.ERROR_LIMIT", 1):
+        with mock.patch("sentry.snuba.trace.ERROR_LIMIT", 1):
             with self.feature(self.FEATURES):
                 response = self.client_get(
                     data={"timestamp": self.day_ago, "errorId": error.event_id},

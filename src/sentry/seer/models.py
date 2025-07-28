@@ -51,3 +51,14 @@ class SummarizeTraceResponse(BaseModel):
     key_observations: str
     performance_characteristics: str
     suggested_investigations: list[SpanInsight]
+
+
+class PageWebVitalsInsight(SpanInsight):
+    trace_id: str
+    suggestions: list[str]
+    reference_url: str | None = None
+
+
+class SummarizePageWebVitalsResponse(BaseModel):
+    trace_ids: list[str]
+    suggested_investigations: list[PageWebVitalsInsight]
