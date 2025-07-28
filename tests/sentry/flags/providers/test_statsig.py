@@ -6,7 +6,7 @@ from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, StatsigProvider
 
 
-def test_handle_batched_all_actions():
+def test_handle_batched_all_actions() -> None:
     org_id = 123
     logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
         {
@@ -110,7 +110,7 @@ def test_handle_batched_all_actions():
     }
 
 
-def test_handle_no_user():
+def test_handle_no_user() -> None:
     org_id = 123
     logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
         {
@@ -136,7 +136,7 @@ def test_handle_no_user():
     assert logs[0]["created_by_type"] is None
 
 
-def test_handle_no_project_or_environments():
+def test_handle_no_project_or_environments() -> None:
     org_id = 123
     logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
         {
@@ -160,7 +160,7 @@ def test_handle_no_project_or_environments():
     assert logs[0]["organization_id"] == org_id
 
 
-def test_handle_additional_fields():
+def test_handle_additional_fields() -> None:
     org_id = 123
     logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
         {
@@ -191,7 +191,7 @@ def test_handle_additional_fields():
     assert logs[0]["organization_id"] == org_id
 
 
-def test_handle_created_by_id():
+def test_handle_created_by_id() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
@@ -213,7 +213,7 @@ def test_handle_created_by_id():
     assert logs[0]["created_by_type"] == 1
 
 
-def test_handle_created_by_id2():
+def test_handle_created_by_id2() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
@@ -235,7 +235,7 @@ def test_handle_created_by_id2():
     assert logs[0]["created_by_type"] == 1
 
 
-def test_handle_created_by_name():
+def test_handle_created_by_name() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
@@ -258,7 +258,7 @@ def test_handle_created_by_name():
     assert logs[0]["created_by_type"] == 2
 
 
-def test_handle_unsupported_events():
+def test_handle_unsupported_events() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
@@ -295,7 +295,7 @@ def test_handle_unsupported_events():
     assert len(logs) == 0
 
 
-def test_handle_unsupported_config_changes():
+def test_handle_unsupported_config_changes() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
@@ -323,7 +323,7 @@ def test_handle_unsupported_config_changes():
     assert len(logs) == 0
 
 
-def test_handle_unsupported_action():
+def test_handle_unsupported_action() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
             "data": [
@@ -342,12 +342,12 @@ def test_handle_unsupported_action():
     assert len(logs) == 0
 
 
-def test_handle_empty_batch():
+def test_handle_empty_batch() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({"data": []})
     assert len(logs) == 0
 
 
-def test_handle_empty_message():
+def test_handle_empty_message() -> None:
     with pytest.raises(DeserializationError) as exc_info:
         StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({})
 
@@ -356,7 +356,7 @@ def test_handle_empty_message():
     assert errors["data"][0].code == "required"
 
 
-def test_handle_empty_event():
+def test_handle_empty_event() -> None:
     with pytest.raises(DeserializationError) as exc_info:
         StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({"data": [{}]})
 

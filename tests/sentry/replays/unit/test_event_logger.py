@@ -14,7 +14,7 @@ from sentry.replays.usecases.ingest.event_logger import (
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 
 
-def test_gen_rage_clicks():
+def test_gen_rage_clicks() -> None:
     # No clicks.
     meta = ParsedEventMeta([], [], [], [], [], [])
     assert len(list(gen_rage_clicks(meta, 1, "1", {"a": "b"}))) == 0
@@ -40,7 +40,7 @@ def test_gen_rage_clicks():
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
-def test_emit_click_events_environment_handling():
+def test_emit_click_events_environment_handling() -> None:
     click_events = [
         ClickEvent(
             timestamp=1,

@@ -421,7 +421,7 @@ class FakeConnectionPool(HTTPConnectionPool):
         return self.connection
 
 
-def test_retries():
+def test_retries() -> None:
     """
     Tests that, even if I set up 5 retries, there is only one request
     made since it times out.

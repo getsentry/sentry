@@ -263,7 +263,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
 
 
 # TODO(jferg): remove after 90 days
-def test_add_extra_buckets_for_epoch_cutoff():
+def test_add_extra_buckets_for_epoch_cutoff() -> None:
     """Test adding extra buckets when there's an epoch cutoff"""
     start = datetime(2025, 1, 1, tzinfo=timezone.utc)
     end = datetime(2025, 1, 2, tzinfo=timezone.utc)
