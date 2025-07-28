@@ -7,6 +7,7 @@ import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQue
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
+import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
@@ -446,4 +447,14 @@ export async function openTokenRegenerationConfirmationModal(options: ModalOptio
   );
 
   openModal(deps => <Modal {...deps} {...options} />);
+}
+
+export async function openPrivateGamingSdkAccessModal(
+  options: PrivateGamingSdkAccessModalProps
+) {
+  const {PrivateGamingSdkAccessModal} = await import(
+    'sentry/components/modals/privateGamingSdkAccessModal'
+  );
+
+  openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }
