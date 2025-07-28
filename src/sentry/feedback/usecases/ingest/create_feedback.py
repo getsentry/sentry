@@ -11,7 +11,11 @@ import jsonschema
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
-from sentry.feedback.usecases.label_generation import LABEL_TAG_PREFIX, generate_labels
+from sentry.feedback.usecases.label_generation import (
+    AI_LABEL_TAG_PREFIX,
+    MAX_AI_LABELS,
+    generate_labels,
+)
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -355,19 +359,19 @@ def create_feedback_issue(
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
-            if len(labels) > 15:
+            if len(labels) > MAX_AI_LABELS:
                 logger.info(
-                    "Feedback message has more than 15 labels.",
+                    "Feedback message has more than the maximum allowed labels.",
                     extra={
                         "project_id": project.id,
                         "entrypoint": "create_feedback_issue",
                         "feedback_message": feedback_message[:100],
                     },
                 )
-                labels = labels[:15]
+                labels = labels[:MAX_AI_LABELS]
 
             for idx, label in enumerate(labels):
-                event_fixed["tags"][f"{LABEL_TAG_PREFIX}.{idx}"] = label
+                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.{idx}"] = label
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
 
