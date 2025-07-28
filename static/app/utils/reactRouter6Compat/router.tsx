@@ -157,14 +157,14 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
 
   const dualRoutes: RouteObject[] = [];
 
-  const hasNoComponent = !component;
+  const hasComponent = !!component;
 
   if (USING_CUSTOMER_DOMAIN) {
     dualRoutes.push({
       path,
-      element: hasNoComponent
-        ? undefined
-        : getElement(withDomainRequired(component), deprecatedRouteProps),
+      element: hasComponent
+        ? getElement(withDomainRequired(component), deprecatedRouteProps)
+        : undefined,
       handle,
       children,
     });
@@ -172,9 +172,9 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
 
   dualRoutes.push({
     path: `/organizations/:orgId${path}`,
-    element: hasNoComponent
-      ? undefined
-      : getElement(withDomainRedirect(component), deprecatedRouteProps),
+    element: hasComponent
+      ? getElement(withDomainRedirect(component), deprecatedRouteProps)
+      : undefined,
     handle,
     children,
   });
