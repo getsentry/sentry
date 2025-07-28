@@ -382,7 +382,7 @@ class SiloClientTest(TestCase):
             assert mock_validate_region_ip_address.call_count == 1
 
 
-def test_validate_region_ip_address():
+def test_validate_region_ip_address() -> None:
     with (
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
         override_allowed_region_silo_ip_addresses(),
@@ -411,7 +411,7 @@ def test_validate_region_ip_address():
         assert mock_capture_exception.call_count == 0
 
 
-def test_get_region_ip_addresses():
+def test_get_region_ip_addresses() -> None:
     internal_region_address = "http://i.am.an.internal.hostname:9000"
     region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
     region_config = (region,)

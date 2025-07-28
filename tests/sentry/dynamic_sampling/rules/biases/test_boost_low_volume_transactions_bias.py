@@ -96,7 +96,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
     assert rules == expected
 
 
-def test_transaction_boost_unknown_projects():
+def test_transaction_boost_unknown_projects() -> None:
     """
     Tests that when there is no information available for the project transactions
     it returns an empty set of rules.

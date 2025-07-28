@@ -10,7 +10,7 @@ from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
 from sentry.utils.dates import to_datetime
 
 
-def test_suppression_wrapper():
+def test_suppression_wrapper() -> None:
     @contextmanager
     def raise_after():
         yield

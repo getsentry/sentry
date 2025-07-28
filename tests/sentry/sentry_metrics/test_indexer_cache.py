@@ -94,7 +94,7 @@ def test_cache(use_case_id: str) -> None:
         assert indexer_cache.get(namespace_2, f"{use_case_id}:1:blah:123") is None
 
 
-def test_cache_validate_stale_timestamp():
+def test_cache_validate_stale_timestamp() -> None:
     with override_options(
         {
             "sentry-metrics.indexer.read-new-cache-namespace": True,

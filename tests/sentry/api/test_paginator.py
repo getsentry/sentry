@@ -382,7 +382,7 @@ class DateTimePaginatorTest(TestCase):
         assert result7[0] == res4
 
 
-def test_reverse_bisect_left():
+def test_reverse_bisect_left() -> None:
     assert reverse_bisect_left([], 0) == 0
 
     assert reverse_bisect_left([1], -1) == 1

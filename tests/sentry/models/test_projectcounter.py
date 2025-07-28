@@ -334,6 +334,6 @@ def test_preallocation_early_return(default_project):
     )  # Redis values haven't changed
 
 
-def test_calculate_cached_id_block_size():
+def test_calculate_cached_id_block_size() -> None:
     assert calculate_cached_id_block_size(1) == 100
     assert calculate_cached_id_block_size(1000) == 1000

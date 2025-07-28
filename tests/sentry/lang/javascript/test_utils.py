@@ -7,7 +7,7 @@ from sentry.lang.javascript.utils import generate_module, trim_line
 LONG_LINE = "The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring."
 
 
-def test_trim_line():
+def test_trim_line() -> None:
     assert trim_line("foo") == "foo"
     assert (
         trim_line(LONG_LINE)
@@ -31,7 +31,7 @@ def test_trim_line():
     )
 
 
-def test_generate_module():
+def test_generate_module() -> None:
     assert generate_module(None) == "<unknown module>"
     assert generate_module("http://example.com/foo.js") == "foo"
     assert generate_module("http://example.com/foo/bar.js") == "foo/bar"
@@ -88,7 +88,7 @@ def test_generate_module():
     )
 
 
-def test_ensure_module_names():
+def test_ensure_module_names() -> None:
     data: dict[str, Any] = {
         "message": "hello",
         "platform": "javascript",
@@ -123,7 +123,7 @@ def test_ensure_module_names():
     assert exc["stacktrace"]["frames"][1]["module"] == "foo/bar"
 
 
-def test_generate_modules_skips_none():
+def test_generate_modules_skips_none() -> None:
     expected = {
         "culprit": "",
         "exception": {

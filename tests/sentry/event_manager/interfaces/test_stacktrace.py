@@ -7,7 +7,7 @@ from sentry.event_manager import EventManager
 from sentry.interfaces.stacktrace import get_context, is_url
 
 
-def test_is_url():
+def test_is_url() -> None:
     assert is_url("http://example.org/") is True
     assert is_url("https://example.org/") is True
     assert is_url("file:///tmp/filename") is True
@@ -18,7 +18,7 @@ def test_is_url():
     assert is_url("blob:\x00") is False
 
 
-def test_works_with_empty_filename():
+def test_works_with_empty_filename() -> None:
     result = get_context(0, "hello world")
     assert result == [(0, "hello world")]
 

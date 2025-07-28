@@ -234,7 +234,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
 
-def test_count_default_argument():
+def test_count_default_argument() -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )

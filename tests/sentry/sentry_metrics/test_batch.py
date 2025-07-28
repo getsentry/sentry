@@ -261,7 +261,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
 
 
 @pytest.mark.django_db
-def test_extract_strings_with_multiple_use_case_ids():
+def test_extract_strings_with_multiple_use_case_ids() -> None:
     """
     Verify that the extract string method can handle payloads that has multiple
     (generic) uses cases
@@ -353,7 +353,7 @@ def test_extract_strings_with_multiple_use_case_ids():
 
 @pytest.mark.django_db
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["escalating_issues"]})
-def test_extract_strings_with_single_use_case_ids_blocked():
+def test_extract_strings_with_single_use_case_ids_blocked() -> None:
     """
     Verify that the extract string method will work normally when a single use case ID is blocked
     """
@@ -431,7 +431,7 @@ def test_extract_strings_with_single_use_case_ids_blocked():
 
 @pytest.mark.django_db
 @override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "escalating_issues"]})
-def test_extract_strings_with_multiple_use_case_ids_blocked():
+def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
     """
     Verify that the extract string method will work normally when multiple use case IDs are blocked
     """
@@ -506,7 +506,7 @@ def test_extract_strings_with_multiple_use_case_ids_blocked():
 
 
 @pytest.mark.django_db
-def test_extract_strings_with_invalid_mri():
+def test_extract_strings_with_invalid_mri() -> None:
     """
     Verify that extract strings will drop payload that has invalid MRI in name field but continue processing the rest
     """
@@ -611,7 +611,7 @@ def test_extract_strings_with_invalid_mri():
 
 
 @pytest.mark.django_db
-def test_extract_strings_with_multiple_use_case_ids_and_org_ids():
+def test_extract_strings_with_multiple_use_case_ids_and_org_ids() -> None:
     """
     Verify that the extract string method can handle payloads that has multiple
     (generic) uses cases and from different orgs
@@ -1798,7 +1798,7 @@ def test_one_org_limited(caplog, settings):
     ]
 
 
-def test_aggregation_options():
+def test_aggregation_options() -> None:
 
     with override_options(
         {

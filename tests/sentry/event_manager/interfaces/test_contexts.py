@@ -110,7 +110,7 @@ def test_gpu(make_ctx_snapshot):
     )
 
 
-def test_large_numbers():
+def test_large_numbers() -> None:
     data = {
         "large_numbers": {
             "decimal_number": 123456.789,
@@ -136,7 +136,7 @@ def test_large_numbers():
         assert isinstance(ctx_data[key], str)
 
 
-def test_large_nested_numbers():
+def test_large_nested_numbers() -> None:
     data = {
         "large_numbers": {
             "dictionary": {"key_1": 608548899684111178, "key_2": -123456789123456789},

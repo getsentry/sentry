@@ -116,7 +116,7 @@ def create_memory_producer_factory():
         ("buffered-segments", 1): {"cluster": "default", "topic": "buffered-segments-2"},
     }
 )
-def test_multi_producer_sliced_integration_with_arroyo_local_producer():
+def test_multi_producer_sliced_integration_with_arroyo_local_producer() -> None:
     from arroyo import Topic as ArroyoTopic
     from arroyo.backends.kafka import KafkaPayload
 

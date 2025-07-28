@@ -43,7 +43,7 @@ class AuthenticatorTest(TestCase):
 
 
 @django_db_all
-def test_authenticator_config_compatibility():
+def test_authenticator_config_compatibility() -> None:
     field_json = AuthenticatorConfig()
 
     value = {

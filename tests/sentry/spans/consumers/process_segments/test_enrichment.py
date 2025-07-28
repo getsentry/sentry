@@ -7,7 +7,7 @@ from tests.sentry.spans.consumers.process import build_mock_span
 # Tests ported from Relay
 
 
-def test_childless_spans():
+def test_childless_spans() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -50,7 +50,7 @@ def test_childless_spans():
     }
 
 
-def test_nested_spans():
+def test_nested_spans() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -93,7 +93,7 @@ def test_nested_spans():
     }
 
 
-def test_overlapping_child_spans():
+def test_overlapping_child_spans() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -136,7 +136,7 @@ def test_overlapping_child_spans():
     }
 
 
-def test_child_spans_dont_intersect_parent():
+def test_child_spans_dont_intersect_parent() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -179,7 +179,7 @@ def test_child_spans_dont_intersect_parent():
     }
 
 
-def test_child_spans_extend_beyond_parent():
+def test_child_spans_extend_beyond_parent() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -222,7 +222,7 @@ def test_child_spans_extend_beyond_parent():
     }
 
 
-def test_child_spans_consumes_all_of_parent():
+def test_child_spans_consumes_all_of_parent() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -265,7 +265,7 @@ def test_child_spans_consumes_all_of_parent():
     }
 
 
-def test_only_immediate_child_spans_affect_calculation():
+def test_only_immediate_child_spans_affect_calculation() -> None:
     spans = [
         build_mock_span(
             project_id=1,
@@ -308,7 +308,7 @@ def test_only_immediate_child_spans_affect_calculation():
     }
 
 
-def test_emit_ops_breakdown():
+def test_emit_ops_breakdown() -> None:
     segment_span = build_mock_span(
         project_id=1,
         is_segment=True,

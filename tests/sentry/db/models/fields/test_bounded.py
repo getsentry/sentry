@@ -8,7 +8,7 @@ from sentry.db.models.fields.bounded import (
 )
 
 
-def test_norm_int():
+def test_norm_int() -> None:
     field = BoundedIntegerField()
     with pytest.raises(AssertionError):
         field.get_prep_value(9223372036854775807)
@@ -21,7 +21,7 @@ def test_big_int(cls):
         field.get_prep_value(9223372036854775808)
 
 
-def test_u32_wraparound():
+def test_u32_wraparound() -> None:
     field = WrappingU32IntegerField()
 
     assert field.get_prep_value(2**31) == -(2**31)  # I32_MAX + 1 wraps to I32_MIN

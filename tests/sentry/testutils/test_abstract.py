@@ -1,7 +1,7 @@
 from sentry.testutils.abstract import Abstract
 
 
-def test_abstract():
+def test_abstract() -> None:
     class C:
         __test__ = Abstract(__module__, __qualname__)
 

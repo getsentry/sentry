@@ -3,7 +3,7 @@ from typing import Any
 from sentry.profiles.utils import apply_stack_trace_rules_to_profile
 
 
-def test_apply_stack_trace_rules_to_profile_sample_format():
+def test_apply_stack_trace_rules_to_profile_sample_format() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "python",
@@ -64,7 +64,7 @@ def test_apply_stack_trace_rules_to_profile_sample_format():
     assert profile["profile"]["frames"] == expected_frames
 
 
-def test_apply_stack_trace_rules_to_profile_android():
+def test_apply_stack_trace_rules_to_profile_android() -> None:
     profile: dict[str, Any] = {
         "platform": "android",
         "profile": {

@@ -200,7 +200,7 @@ class IntegrationProxyClientTest(TestCase):
         assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
 
 
-def test_get_control_silo_ip_address():
+def test_get_control_silo_ip_address() -> None:
     with override_settings(SENTRY_CONTROL_ADDRESS=None):
         assert get_control_silo_ip_address() is None
 

@@ -16,7 +16,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 
 
-def test_closes_depnedent_files_is_iterable():
+def test_closes_depnedent_files_is_iterable() -> None:
     # django (but not django.test) requires a file response to be iterable
     f = ClosesDependentFiles(io.BytesIO(b"hello\nworld\n"))
     assert list(f) == [b"hello\n", b"world\n"]

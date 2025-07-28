@@ -39,7 +39,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_with_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task():
+        def test_task() -> str:
             return "done"
 
         assert test_task.name == "test.test_with_taskworker_rollout"
@@ -154,7 +154,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_taskworker_no_rollout_configured",
             taskworker_config=self.config,
         )
-        def test_task():
+        def test_task() -> str:
             return "done"
 
         assert test_task.name == "test.test_taskworker_no_rollout_configured"

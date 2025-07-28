@@ -221,7 +221,7 @@ def test_report_rage_click_issue_no_component(produce_occurrence_to_kafka):
     assert occurrence.evidence_display[1].important is True
 
 
-def test_make_clicked_element():
+def test_make_clicked_element() -> None:
     node = {
         "tagName": "a",
         "attributes": {
