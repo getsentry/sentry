@@ -2000,6 +2000,12 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="ai/">
+        {/* Render AI page with layout wrapper */}
+        <Route component={make(() => import('sentry/views/codecov/ai/aiWrapper'))}>
+          <IndexRoute component={make(() => import('sentry/views/codecov/ai/ai'))} />
+        </Route>
+      </Route>
       <Route path="tokens/">
         <Route
           component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}

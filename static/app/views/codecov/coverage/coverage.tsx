@@ -91,7 +91,7 @@ const SAMPLE_DATA = {
 export default function CoveragePage() {
   return (
     <LayoutGap>
-      <p>Coverage Analytics</p>
+      <p>Code Coverage</p>
       <TreeCoverageSunburstChart data={SAMPLE_DATA} />
     </LayoutGap>
   );
