@@ -27,7 +27,7 @@ from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import ingest_errors_tasks
+from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks, ingest_errors_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -478,6 +478,29 @@ def should_update_escalating_metrics(event: Event) -> bool:
         and event.group is not None
         and event.group.issue_type.should_detect_escalation()
     )
+
+
+@instrumented_task(
+    name="sentry.issues.tasks.post_process.post_process_group",
+    time_limit=120,
+    soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_postprocess_tasks,
+        processing_deadline_duration=120,
+    ),
+)
+def post_process_group_shim(*args, **kwargs) -> None:
+    """
+    Deployment shim for post_process_group.
+
+    We need to move this task to a new taskworker namespace, but don't want to change the
+    celery queue, or task name of inflight tasks.
+
+    Once all inflight work is going through this task, we can rename this function and remove
+    the binding to the old namespace.
+    """
+    post_process_group(*args, **kwargs)
 
 
 @instrumented_task(
