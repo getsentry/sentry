@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
@@ -39,7 +38,7 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
 
   return (
-    <Flex direction="column" gap={space(2)}>
+    <Flex direction="column" gap="xl">
       <CompactSelect
         size="sm"
         options={timePeriodOptions}

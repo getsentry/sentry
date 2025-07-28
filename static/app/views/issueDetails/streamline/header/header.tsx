@@ -116,7 +116,7 @@ export default function StreamlinedGroupHeader({
   return (
     <Fragment>
       <Header>
-        <Flex justify="space-between">
+        <Flex justify="between">
           <Flex align="center">
             <Breadcrumbs
               crumbs={[
