@@ -12,7 +12,7 @@ from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import handle_downsample_meta
+from sentry.search.eap.utils import handle_downsample_meta, set_debug_meta
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -91,6 +91,7 @@ def run_timeseries_query(
 
     if params.debug:
         final_meta["query"] = json.loads(MessageToJson(rpc_request))
+        set_debug_meta(final_meta, rpc_response.meta)
 
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type

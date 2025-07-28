@@ -42,7 +42,11 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
+from sentry.search.eap.utils import (
+    handle_downsample_meta,
+    set_debug_meta,
+    transform_binary_formula_to_expression,
+)
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
@@ -436,6 +440,7 @@ def process_table_response(
 
     if debug:
         final_meta["query"] = json.loads(MessageToJson(table_request.rpc_request))
+        set_debug_meta(final_meta, rpc_response.meta)
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
@@ -575,6 +580,7 @@ def run_top_events_timeseries_query(
 
     if params.debug:
         final_meta["query"] = json.loads(MessageToJson(rpc_request))
+        set_debug_meta(final_meta, rpc_response.meta)
 
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
