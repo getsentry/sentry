@@ -78,7 +78,6 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import {OptInBanner} from 'sentry/views/nav/optInBanner';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
@@ -538,10 +537,6 @@ function Sidebar() {
             </SidebarSection>
 
             <SidebarSection centeredItems={horizontal}>
-              <OptInBanner
-                collapsed={collapsed || horizontal}
-                organization={organization}
-              />
               <ChonkOptInBanner collapsed={collapsed || horizontal} />
 
               {HookStore.get('sidebar:try-business').length > 0 &&
