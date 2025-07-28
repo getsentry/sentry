@@ -4,7 +4,7 @@ from typing import cast
 
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
@@ -79,23 +79,34 @@ def _process_suspect_commits(
                     sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
-                        group_owner, created = (
-                            GroupOwner.objects.update_or_create_and_preserve_context(
-                                lookup_kwargs={
-                                    "group_id": group_id,
-                                    "type": GroupOwnerType.SUSPECT_COMMIT.value,
-                                    "user_id": owner_id,
-                                    "project_id": project.id,
-                                    "organization_id": project.organization_id,
-                                },
-                                defaults={
-                                    "date_added": timezone.now(),
-                                },
-                                context_defaults={
-                                    "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED.value,
-                                },
+                        if options.get("issues.suspect-commit-strategy"):
+                            group_owner, created = (
+                                GroupOwner.objects.update_or_create_and_preserve_context(
+                                    lookup_kwargs={
+                                        "group_id": group_id,
+                                        "type": GroupOwnerType.SUSPECT_COMMIT.value,
+                                        "user_id": owner_id,
+                                        "project_id": project.id,
+                                        "organization_id": project.organization_id,
+                                    },
+                                    defaults={
+                                        "date_added": timezone.now(),
+                                    },
+                                    context_defaults={
+                                        "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+                                    },
+                                )
                             )
-                        )
+                        else:
+                            group_owner, created = GroupOwner.objects.update_or_create(
+                                group_id=group_id,
+                                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                                user_id=owner_id,
+                                project=project,
+                                organization_id=project.organization_id,
+                                defaults={"date_added": timezone.now()},
+                            )
+
                         if created:
                             owner_count += 1
                             if owner_count > PREFERRED_GROUP_OWNERS:

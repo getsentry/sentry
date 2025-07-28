@@ -30,11 +30,11 @@ class GroupOwnerTest(TestCase):
 
         self.scm_context_defaults = {
             "commitId": self.c.id,
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
         self.rb_context_defaults = {
-            "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
         }
 
     def _make_scm_lookup_kwargs(self):
@@ -111,7 +111,7 @@ class GroupOwnerTest(TestCase):
         assert obj.context == {
             "commitId": self.c.id,
             "something": "else",
-            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED.value,
+            "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
     def test_update_or_create_and_preserve_context_create_then_update_rb(self):
