@@ -172,11 +172,7 @@ export type Plan = {
 
 type PendingChanges = {
   customPrice: number | null;
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
-  // TODO:categories remove customPrice{Categories}
   customPrices: Partial<Record<DataCategory, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
@@ -185,14 +181,9 @@ type PendingChanges = {
   plan: string;
   planDetails: Plan;
   planName: string;
-  // TODO:categories remove reserved{Categories}
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
-  reservedErrors: number | null;
-  reservedEvents: number;
-  reservedTransactions: number | null;
 };
 
 enum VatStatus {
@@ -246,25 +237,15 @@ type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {
 };
 
 export type PerCategoryOnDemandBudget = {
-  attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
-  // TODO:categories remove {categories}Budget
   budgets: Partial<Record<DataCategory, number>>;
-  // TODO(data categories): check if these can be removed
-  errorsBudget: number;
-  replaysBudget: number;
-  transactionsBudget: number;
-  monitorSeatsBudget?: number;
-  profileDurationBudget?: number;
-  profileDurationUIBudget?: number;
-  uptimeBudget?: number;
 };
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
   attachmentSpendUsed: number;
   errorSpendUsed: number;
   transactionSpendUsed: number;
-  // TODO:categories remove {categories}SpendUsed
+  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 
@@ -315,10 +296,7 @@ export type Subscription = {
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
   dataRetention: string | null;
   // Event details
   dateJoined: string;
@@ -330,7 +308,6 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasOverageNotificationsDisabled: boolean;
-  hasReservedBudgets: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
@@ -382,20 +359,7 @@ export type Subscription = {
   /**
    * Total events allowed for the current usage period including gifted
    */
-  prepaidEventsAllowed: number | null;
   renewalDate: string;
-  reservedAttachments: number | null;
-  reservedBudgetCategories: DataCategory[] | null;
-  /**
-   * For am1 plan tier, null for previous tiers
-   */
-  reservedErrors: number | null;
-  /**
-   * Reserved events on a recurring subscription
-   * For plan tiers previous to am1
-   */
-  reservedEvents: number;
-  reservedTransactions: number | null;
   slug: string;
   spendAllocationEnabled: boolean;
   sponsoredType: string | null;
@@ -451,8 +415,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  trueForward?: {attachment: boolean; error: boolean; transaction: boolean};
 
   /**
    * Optional without access, and possibly null with access
@@ -640,6 +602,7 @@ export type InvoiceItem = BaseInvoiceItem & {
   periodStart: string;
 };
 
+// TODO(data categories): BIL-969
 export enum InvoiceItemType {
   UNKOWN = '',
   SUBSCRIPTION = 'subscription',
@@ -651,9 +614,8 @@ export enum InvoiceItemType {
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
   /**
-   * Used for am1 plans
+   * Used for AM plans
    */
-  // TODO(data categories): check if these can be parsed
   ATTACHMENTS = 'attachments',
   TRANSACTIONS = 'transactions',
   ONDEMAND_ATTACHMENTS = 'ondemand_attachments',
@@ -713,7 +675,6 @@ export type BillingMetricHistory = {
 export type BillingHistory = {
   categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
-  hasReservedBudgets: boolean;
   id: string;
   isCurrent: boolean;
   links: {
@@ -729,7 +690,6 @@ export type BillingHistory = {
   plan: string;
   planName: string;
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedBudgetCategories: DataCategory[];
   usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
@@ -754,20 +714,18 @@ type PreviewInvoiceItem = BaseInvoiceItem & {
   period_start: string;
 };
 
+// TODO(data categories): BIL-970
 export enum CreditType {
-  // TODO(data categories): check if these can be parsed
   ERROR = 'error',
   TRANSACTION = 'transaction',
   SPAN = 'span',
-  SPAN_INDEXED = 'spanIndexed',
-  PROFILE_DURATION = 'profileDuration',
-  PROFILE_DURATION_UI = 'profileDurationUI',
+  PROFILE_DURATION = 'profile_duration',
+  PROFILE_DURATION_UI = 'profile_duration_ui',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
-  MONITOR_SEAT = 'monitorSeat',
   DISCOUNT = 'discount',
   PERCENT = 'percent',
-  UPTIME = 'uptime',
+  LOG_BYTE = 'log_byte',
 }
 
 type BaseRecurringCredit = {
@@ -790,14 +748,15 @@ interface RecurringPercentDiscount extends BaseRecurringCredit {
 
 interface RecurringEventCredit extends BaseRecurringCredit {
   totalAmountRemaining: null;
-  type: // TODO(data categories): check if these can be parsed
-  | CreditType.ERROR
+  type:
+    | CreditType.ERROR
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
     | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
-    | CreditType.REPLAY;
+    | CreditType.REPLAY
+    | CreditType.LOG_BYTE;
 }
 
 export type RecurringCredit =
@@ -815,6 +774,7 @@ export enum CohortId {
   EIGHTH = 8,
   NINTH = 9,
   TENTH = 10,
+  TEST_ONE = 111,
 }
 
 /** @internal exported for tests only */
@@ -828,13 +788,9 @@ export type NextPlanInfo = {
   contractPeriod: string;
   discountAmount: number;
   discountMonths: number;
-  errorCredits: number;
-  errorCreditsMonths: number;
   id: string;
   name: string;
   reserved: Partial<Record<DataCategory, number>>;
-  reservedAttachments: number;
-  reservedErrors: number;
   totalPrice: number;
   categoryCredits?: Partial<
     Record<
@@ -845,7 +801,6 @@ export type NextPlanInfo = {
       }
     >
   >;
-  reservedTransactions?: number;
 };
 
 export type PlanMigration = {
@@ -1037,6 +992,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Whether the category has spike protection support
+   */
+  hasSpikeProtection: boolean;
+  /**
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
@@ -1044,4 +1003,8 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The tooltip text for the checkout page
    */
   reservedVolumeTooltip: string | null;
+  /**
+   * How usage is tallied for the category
+   */
+  tallyType: 'usage' | 'seat';
 }

@@ -197,7 +197,7 @@ describe('GSBanner', function () {
 
   it('does not display trial ending modal more than 3 days', async function () {
     const now = moment();
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -217,7 +217,7 @@ describe('GSBanner', function () {
   });
 
   it('does not display trial ending modal to free plan', async function () {
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -237,7 +237,7 @@ describe('GSBanner', function () {
 
   it('does not display trial ending modal to plan trial', async function () {
     const now = moment();
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,
       SubscriptionFixture({
@@ -755,21 +755,16 @@ describe('GSBanner', function () {
       slug: 'forced-trial',
       orgRole: 'admin',
     });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        plan: 'am1_business',
-        onDemandMaxSpend: 1000,
-        totalMembers: 26,
-        reservedErrors: 5_000_000,
-        reservedTransactions: 10_000_001,
-        planDetails: PlanFixture({
-          totalPrice: 100_000 * 12,
-          billingInterval: 'annual',
-        }),
-      })
-    );
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am1_business_auf',
+      onDemandMaxSpend: 1000,
+      totalMembers: 26,
+    });
+    subscription.categories.errors!.reserved = 5_000_000;
+    subscription.categories.transactions!.reserved = 10_000_001;
+    subscription.planDetails.totalPrice = 100_000 * 12;
+    SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       method: 'POST',
       url: `/organizations/${organization.slug}/promotions/lorem-ipsum/claim/`,
@@ -834,7 +829,7 @@ describe('GSBanner', function () {
           totalMembers: 'blue',
           arr: 'yellow',
           fieldB: 'valueB',
-          plan: 'am1_business',
+          plan: 'am1_business_auf',
         }),
         guides: {
           delay: false,
@@ -1661,7 +1656,7 @@ describe('GSBanner Overage Alerts', function () {
       organization,
       plan: 'am1_team',
       categories: {
-        errors: MetricHistoryFixture({sentUsageWarning: true}),
+        errors: MetricHistoryFixture({sentUsageWarning: true, usageExceeded: true}),
         transactions: MetricHistoryFixture({sentUsageWarning: false}),
         replays: MetricHistoryFixture({usageExceeded: false}),
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
@@ -2075,14 +2070,6 @@ describe('GSBanner Overage Alerts', function () {
       organization,
       plan: 'am3_team',
     });
-    subscription.categories = {
-      ...subscription.categories,
-      // TODO(Seer): remove this after seer has been added to the fixtures
-      // tests that seer is not included in prompts before launch even
-      // though isBilledCategory is true
-      seerAutofix: MetricHistoryFixture({usageExceeded: true}),
-      seerScanner: MetricHistoryFixture({usageExceeded: true}),
-    };
     const promptsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -2180,5 +2167,68 @@ describe('GSBanner Overage Alerts', function () {
         nonBilledOveragePrompts.includes(prompt)
       )
     ).toBe(false);
+  });
+
+  it('shows see usage button for overages that are not strictly seat-based', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      categories: {
+        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
+        profileDuration: MetricHistoryFixture({usageExceeded: true}),
+      },
+      onDemandPeriodStart: '2025-01-01',
+      onDemandPeriodEnd: '2025-01-31',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const {router} = render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByTestId('overage-banner-monitorSeat-profileDuration')
+    ).toBeInTheDocument();
+
+    const seeUsageButton = await screen.findByRole('button', {name: 'See Usage'});
+    await userEvent.click(seeUsageButton);
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${organization.slug}/stats/`,
+        query: {
+          dataCategory: 'profileDuration', // doesn't use monitorSeat because it does not have a stats page
+          pageStart: '2025-01-01',
+          pageEnd: '2025-01-31',
+          pageUtc: 'true',
+        },
+      })
+    );
+  });
+
+  it('does not show see usage button for overages that are strictly seat-based', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      categories: {
+        monitorSeats: MetricHistoryFixture({usageExceeded: true}),
+        uptime: MetricHistoryFixture({usageExceeded: true}),
+      },
+      onDemandPeriodStart: '2025-01-01',
+      onDemandPeriodEnd: '2025-01-31',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByTestId('overage-banner-monitorSeat-uptime')
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', {name: 'See Usage'})).not.toBeInTheDocument();
   });
 });

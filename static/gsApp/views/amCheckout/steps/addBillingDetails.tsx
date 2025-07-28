@@ -271,13 +271,13 @@ const Heading = styled('div')`
 `;
 
 const DetailsText = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: 0px;
   font-weight: 600;
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   line-height: 1.2;
   font-weight: normal;

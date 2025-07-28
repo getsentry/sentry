@@ -6,6 +6,7 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
   ChonkContentWrap,
   ChonkDetails,
@@ -17,7 +18,6 @@ import {
 } from 'sentry/components/core/menuListItem/index.chonk';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -420,7 +420,7 @@ const Label = withChonk(
 
 const Details = withChonk(
   styled('div')<{disabled: boolean; priority: Priority}>`
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
     color: ${p => p.theme.subText};
     line-height: 1.2;
     margin-bottom: 0;

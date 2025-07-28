@@ -201,7 +201,7 @@ const RightMask = styled('div')<{transparentMask: boolean}>`
   right: 0;
   background: ${p =>
     p.transparentMask
-      ? 'linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))'
+      ? `linear-gradient(to right, transparent, ${p.theme.background})`
       : `linear-gradient(
     270deg,
     ${p.theme.background} 50%,

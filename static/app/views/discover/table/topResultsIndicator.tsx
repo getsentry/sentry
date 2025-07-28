@@ -17,7 +17,7 @@ export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
     // this background color needs to match the colors used in
     // app/components/charts/eventsChart so that the ordering matches
 
-    // the color pallete contains n + 2 colors, so we subtract 2 here
-    return p.theme.chart.getColorPalette(p.count - 2)?.[p.index];
+    // the color palette contains n + 1 colors, so we subtract 1 here
+    return p.theme.chart.getColorPalette(p.count - 1)?.[p.index];
   }};
 `;

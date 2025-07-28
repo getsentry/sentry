@@ -2,10 +2,12 @@ import logging
 
 from django.db.models import F
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -13,6 +15,8 @@ from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
+from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -23,14 +27,55 @@ from sentry.signals import deploy_created
 logger = logging.getLogger(__name__)
 
 
+class DeployResponseSerializer(serializers.Serializer):
+    """Serializer for Deploy response objects"""
+
+    id = serializers.CharField(help_text="The ID of the deploy")
+    environment = serializers.CharField(help_text="The environment name")
+    dateStarted = serializers.DateTimeField(
+        allow_null=True, help_text="An optional date that indicates when the deploy started"
+    )
+    dateFinished = serializers.DateTimeField(
+        help_text="An optional date that indicates when the deploy ended"
+    )
+    name = serializers.CharField(allow_null=True, help_text="The optional name of the deploy")
+    url = serializers.URLField(
+        allow_null=True, help_text="The optional URL that points to the deploy"
+    )
+
+
 class DeploySerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=False, allow_blank=True, allow_null=True)
-    environment = serializers.CharField(max_length=64)
-    url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
-    dateStarted = serializers.DateTimeField(required=False, allow_null=True)
-    dateFinished = serializers.DateTimeField(required=False, allow_null=True)
+    name = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="The optional name of the deploy",
+    )
+    environment = serializers.CharField(
+        max_length=64, help_text="The environment you're deploying to"
+    )
+    url = serializers.URLField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="The optional URL that points to the deploy",
+    )
+    dateStarted = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        help_text="An optional date that indicates when the deploy started",
+    )
+    dateFinished = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        help_text="An optional date that indicates when the deploy ended. If not provided, the current time is used.",
+    )
     projects = serializers.ListField(
-        child=ProjectField(scope="project:read", id_allowed=True), required=False, allow_empty=False
+        child=ProjectField(scope="project:read", id_allowed=True),
+        required=False,
+        allow_empty=False,
+        help_text="The optional list of project slugs to create a deploy within. If not provided, deploys are created for all of the release's projects.",
     )
 
     def validate_environment(self, value):
@@ -89,22 +134,23 @@ def create_deploy(
     return deploy
 
 
+@extend_schema(tags=["Releases"])
 @region_silo_endpoint
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
+    owner = ApiOwner.UNOWNED
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="List a Release's Deploys",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
+        responses={200: DeployResponseSerializer(many=True)},
+    )
     def get(self, request: Request, organization, version) -> Response:
         """
-        List a Release's Deploys
-        ````````````````````````
-
         Returns a list of deploys based on the organization, version, and project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization
-        :pparam string version: the version identifier of the release.
         """
         try:
             release = Release.objects.get(version=version, organization=organization)
@@ -136,26 +182,15 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    @extend_schema(
+        operation_id="Create a Deploy",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
+        request=DeploySerializer,
+        responses={201: DeployResponseSerializer, 400: RESPONSE_BAD_REQUEST},
+    )
     def post(self, request: Request, organization, version) -> Response:
         """
-        Create a Deploy
-        ```````````````
-
         Create a deploy for a given release.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization
-        :pparam string version: the version identifier of the release.
-        :param string environment: the environment you're deploying to
-        :param string name: the optional name of the deploy
-        :param list projects: the optional list of project slugs to
-                        create a deploy within. If not provided, deploys
-                        are created for all of the release's projects.
-        :param url url: the optional url that points to the deploy
-        :param datetime dateStarted: an optional date that indicates when
-                                     the deploy started
-        :param datetime dateFinished: an optional date that indicates when
-                                      the deploy ended. If not provided, the
-                                      current time is used.
         """
         logging_info = {
             "org_slug": organization.slug,

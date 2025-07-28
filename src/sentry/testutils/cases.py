@@ -140,6 +140,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.uptime.types import IncidentStatus
@@ -416,15 +417,14 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def get_mock_uuid(self):
+    def get_mock_uuid(self, hex_value="abc123"):
         class uuid:
-            hex = "abc123"
+            hex = hex_value
             bytes = b"\x00\x01\x02"
 
         return uuid
 
 
-@override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
@@ -831,8 +831,7 @@ class DRFPermissionTestCase(TestCase):
         Override the return type of make_request b/c DRF permission classes
         expect a DRF request (go figure)
         """
-        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore[assignment]
-        return drf_request
+        return super().make_request(*arg, **kwargs)  # type: ignore[return-value]
 
     def setUp(self):
         self.superuser = self.create_user(is_superuser=True, is_staff=False)
@@ -1886,7 +1885,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         """
         with self.feature(features or self.features):
             ret = self.client.get(self.url, data=data, format="json")
-            assert isinstance(ret, Response), ret
+            assert is_drf_response(ret)
             return ret
 
     def _index_metric_strings(self):

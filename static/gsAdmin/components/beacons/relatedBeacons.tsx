@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Truncate from 'sentry/components/truncate';
 
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';

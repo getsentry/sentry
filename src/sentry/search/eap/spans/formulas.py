@@ -36,7 +36,11 @@ from sentry.search.eap.spans.utils import (
 )
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
-from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
+from sentry.search.events.constants import (
+    MISERY_ALPHA,
+    MISERY_BETA,
+    WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS,
+)
 from sentry.snuba import spans_rpc
 from sentry.snuba.referrer import Referrer
 
@@ -737,6 +741,292 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
+def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.status",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_NOT_IN,
+                        value=AttributeValue(
+                            val_str_array=StrArray(
+                                values=["ok", "cancelled", "unknown"],
+                            ),
+                        ),
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=1.0)),
+    )
+
+
+def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
+
+    return Column.BinaryFormula(
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=divisor),
+        ),
+    )
+
+
+def apdex(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate Apdex score based on response time field and threshold.
+
+    Apdex = (Satisfactory + Tolerable/2) / Total Requests
+    Where:
+    - Satisfactory: response time ≤ T
+    - Tolerable: response time > T and ≤ 4T
+    - Frustrated: response time > 4T
+    """
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    # Get the response time field and threshold
+    response_time_field = cast(AttributeKey, args[0])
+    threshold = cast(float, args[1])
+
+    # Calculate 4T for tolerable range
+    tolerable_threshold = threshold * 4
+
+    # Satisfactory requests: response time ≤ T and is_transaction = True
+    satisfactory = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Tolerable requests: response time > T and ≤ 4T and is_transaction = True
+    tolerable = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_GREATER_THAN,
+                                value=AttributeValue(val_double=threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+                                value=AttributeValue(val_double=tolerable_threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Total requests: count of all requests with the response time field and is_transaction = True
+    total = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=response_time_field,
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_bool=True),
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Calculate (Satisfactory + Tolerable/2) / Total
+    numerator = Column(
+        formula=Column.BinaryFormula(
+            left=satisfactory,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(
+                formula=Column.BinaryFormula(
+                    left=tolerable,
+                    op=Column.BinaryFormula.OP_DIVIDE,
+                    right=Column(literal=LiteralValue(val_double=2.0)),
+                )
+            ),
+        )
+    )
+
+    return Column.BinaryFormula(
+        left=numerator,
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=total,
+    )
+
+
+def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """
+    Calculate User Misery score based on response time field and threshold.
+
+    User Misery = (miserable_users + α) / (total_unique_users + α + β)
+    Where:
+    - miserable_users: unique users with response time > 4T
+    - total_unique_users: total unique users with response time field
+    - α (MISERY_ALPHA) = 5.8875
+    - β (MISERY_BETA) = 111.8625
+    """
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    # Get the response time field and threshold
+    response_time_field = cast(AttributeKey, args[0])
+    threshold = cast(float, args[1])
+
+    # Calculate 4T for miserable threshold
+    miserable_threshold = threshold * 4
+
+    # Count miserable users: unique users with response time > 4T and is_transaction = True
+    miserable_users = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_UNIQ,
+            key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.user"),
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=response_time_field,
+                                op=ComparisonFilter.OP_GREATER_THAN,
+                                value=AttributeValue(val_double=miserable_threshold),
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Count total unique users: unique users with response time field and is_transaction = True
+    total_unique_users = Column(
+        conditional_aggregation=AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_UNIQ,
+            key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.user"),
+            filter=TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            exists_filter=ExistsFilter(key=response_time_field),
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=AttributeKey(
+                                    type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"
+                                ),
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_bool=True),
+                            )
+                        ),
+                    ]
+                )
+            ),
+            extrapolation_mode=extrapolation_mode,
+        )
+    )
+
+    # Calculate (miserable_users + α) / (total_unique_users + α + β)
+    numerator = Column(
+        formula=Column.BinaryFormula(
+            left=miserable_users,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(literal=LiteralValue(val_double=MISERY_ALPHA)),
+        )
+    )
+
+    denominator = Column(
+        formula=Column.BinaryFormula(
+            left=total_unique_users,
+            op=Column.BinaryFormula.OP_ADD,
+            right=Column(literal=LiteralValue(val_double=MISERY_ALPHA + MISERY_BETA)),
+        )
+    )
+
+    return Column.BinaryFormula(
+        left=numerator,
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=denominator,
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -919,5 +1209,44 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "tpm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
+    ),
+    "failure_count": FormulaDefinition(
+        default_search_type="integer",
+        arguments=[],
+        formula_resolver=failure_count,
+        is_aggregate=True,
+    ),
+    "eps": FormulaDefinition(
+        default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
+    ),
+    "apdex": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ValueArgumentDefinition(argument_types={"number"}),
+        ],
+        formula_resolver=apdex,
+        is_aggregate=True,
+    ),
+    "user_misery": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ValueArgumentDefinition(argument_types={"number"}),
+        ],
+        formula_resolver=user_misery,
+        is_aggregate=True,
     ),
 }

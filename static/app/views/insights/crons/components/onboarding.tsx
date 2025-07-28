@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -52,7 +52,7 @@ const WaitingNotice = styled('div')`
 
 const WaitingHelpText = styled('small')`
   grid-column: 2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

@@ -31,7 +31,7 @@ from sentry.types.actor import Actor
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-    ProjectUptimeSubscriptionMode,
+    UptimeMonitorMode,
 )
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
@@ -184,8 +184,8 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
     )
     mode = models.SmallIntegerField(
-        default=ProjectUptimeSubscriptionMode.MANUAL.value,
-        db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
+        default=UptimeMonitorMode.MANUAL.value,
+        db_default=UptimeMonitorMode.MANUAL.value,
     )
     # Date of the last time we updated the status for this monitor
     name = models.TextField()
@@ -211,15 +211,15 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
             models.UniqueConstraint(
                 fields=["project_id", "uptime_subscription"],
                 name="uptime_projectuptimesubscription_unique_manual_project_subscription",
-                condition=Q(mode=ProjectUptimeSubscriptionMode.MANUAL.value),
+                condition=Q(mode=UptimeMonitorMode.MANUAL.value),
             ),
             models.UniqueConstraint(
                 fields=["project_id", "uptime_subscription"],
                 name="uptime_projectuptimesubscription_unique_auto_project_subscription",
                 condition=Q(
                     mode__in=(
-                        ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-                        ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE.value,
+                        UptimeMonitorMode.AUTO_DETECTED_ONBOARDING.value,
+                        UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
                     )
                 ),
             ),
@@ -254,8 +254,8 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
         type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         project__organization=organization,
         config__mode__in=[
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+            UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
 
@@ -348,20 +348,28 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
         raise NotImplementedError
 
 
-def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+def get_detector(
+    uptime_subscription: UptimeSubscription, prefetch_workflow_data=False
+) -> Detector | None:
     """
     Fetches a workflow_engine Detector given an existing uptime_subscription.
     This is used during the transition period moving uptime to detector.
     """
     try:
-        data_source = DataSource.objects.get(
+        data_source = DataSource.objects.filter(
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             source_id=str(uptime_subscription.id),
         )
-        return Detector.objects.get(
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source
+        qs = Detector.objects_for_deletion.filter(
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
         )
-    except (DataSource.DoesNotExist, Detector.DoesNotExist):
+        select_related = ["project", "project__organization"]
+        if prefetch_workflow_data:
+            select_related.append("workflow_condition_group")
+            qs = qs.prefetch_related("workflow_condition_group__conditions")
+        qs = qs.select_related(*select_related)
+        return qs.get()
+    except Detector.DoesNotExist:
         return None
 
 

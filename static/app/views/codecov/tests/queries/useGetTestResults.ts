@@ -9,8 +9,14 @@ import {
   type QueryKeyEndpointOptions,
   useInfiniteQuery,
 } from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {
+  SummaryFilterKey,
+  SummaryTAFilterKey,
+} from 'sentry/views/codecov/tests/config';
 import {
   DATE_TO_QUERY_INTERVAL,
+  SUMMARY_TO_TA_TABLE_FILTER_KEY,
   TABLE_FIELD_NAME_TO_SORT_KEY,
 } from 'sentry/views/codecov/tests/config';
 import type {SortableTAOptions} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
@@ -47,6 +53,8 @@ interface TestResults {
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string;
   };
   results: TestResultItem[];
   totalCount: number;
@@ -54,11 +62,27 @@ interface TestResults {
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
-export function useInfiniteTestResults() {
-  const {integratedOrg, repository, branch, codecovPeriod} = useCodecovContext();
+export function useInfiniteTestResults({
+  cursor,
+  navigation,
+}: {
+  cursor?: string | null;
+  navigation?: 'next' | 'prev';
+}) {
+  const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
+  const organization = useOrganization();
   const [searchParams] = useSearchParams();
+
   const sortBy = searchParams.get('sort') || '-commitsFailed';
   const signedSortBy = sortValueToSortKey(sortBy);
+
+  const term = searchParams.get('term') || '';
+
+  const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
+  let mappedFilterBy = null;
+  if (filterBy in SUMMARY_TO_TA_TABLE_FILTER_KEY) {
+    mappedFilterBy = SUMMARY_TO_TA_TABLE_FILTER_KEY[filterBy as SummaryTAFilterKey];
+  }
 
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<TestResults>,
@@ -67,8 +91,18 @@ export function useInfiniteTestResults() {
     QueryKey
   >({
     queryKey: [
-      `/prevent/owner/${integratedOrg}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy}},
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
+      {
+        query: {
+          branch,
+          codecovPeriod,
+          signedSortBy,
+          mappedFilterBy,
+          term,
+          cursor,
+          navigation,
+        },
+      },
     ],
     queryFn: async ({
       queryKey: [url],
@@ -81,9 +115,16 @@ export function useInfiniteTestResults() {
           url,
           {
             query: {
-              interval: DATE_TO_QUERY_INTERVAL[codecovPeriod],
+              interval:
+                DATE_TO_QUERY_INTERVAL[
+                  codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
+                ],
               sortBy: signedSortBy,
               branch,
+              term,
+              ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
+              ...(cursor ? {cursor} : {}),
+              ...(navigation ? {navigation} : {}),
             },
           },
         ],
@@ -96,6 +137,11 @@ export function useInfiniteTestResults() {
     },
     getNextPageParam: ([lastPage]) => {
       return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    },
+    getPreviousPageParam: ([firstPage]) => {
+      return firstPage.pageInfo?.hasPreviousPage
+        ? firstPage.pageInfo.startCursor
+        : undefined;
     },
     initialPageParam: null,
   });
@@ -133,6 +179,9 @@ export function useInfiniteTestResults() {
 
   return {
     data: memoizedData,
+    totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
+    startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
+    endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

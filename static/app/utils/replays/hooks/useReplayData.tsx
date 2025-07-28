@@ -4,9 +4,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useFeedbackEvents from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -47,6 +49,7 @@ interface Result {
   projectSlug: string | null;
   replayRecord: ReplayRecord | undefined;
   status: 'pending' | 'error' | 'success';
+  feedbackEvents?: FeedbackEvent[];
 }
 
 /**
@@ -151,7 +154,7 @@ function useReplayData({
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.DISCOVER,
-            start: replayRecord?.started_at.toISOString(),
+            start: replayRecord?.started_at?.toISOString() ?? '',
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,
@@ -179,7 +182,7 @@ function useReplayData({
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.ISSUE_PLATFORM,
-            start: replayRecord?.started_at.toISOString(),
+            start: replayRecord?.started_at?.toISOString() ?? '',
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,
@@ -241,6 +244,28 @@ function useReplayData({
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
+  const {allErrors, feedbackEventIds} = useMemo(() => {
+    const errors = errorPages
+      .concat(extraErrorPages)
+      .concat(platformErrorPages)
+      .flatMap(page => page.data);
+
+    const feedbackIds = errors
+      ?.filter(error => error?.title.includes('User Feedback'))
+      .map(error => error.id);
+
+    return {allErrors: errors, feedbackEventIds: feedbackIds};
+  }, [errorPages, extraErrorPages, platformErrorPages]);
+
+  const {
+    feedbackEvents,
+    isPending: feedbackEventsPending,
+    isError: feedbackEventsError,
+  } = useFeedbackEvents({
+    feedbackEventIds: feedbackEventIds ?? [],
+    projectId: replayRecord?.project_id,
+  });
+
   const allStatuses = [
     enableReplayRecord ? fetchReplayStatus : undefined,
     enableAttachments ? fetchAttachmentsStatus : undefined,
@@ -249,20 +274,17 @@ function useReplayData({
     fetchPlatformErrorsStatus,
   ];
 
-  const isError = allStatuses.includes('error');
-  const isPending = allStatuses.includes('pending');
+  const isError = allStatuses.includes('error') || feedbackEventsError;
+  const isPending = allStatuses.includes('pending') || feedbackEventsPending;
   const status = isError ? 'error' : isPending ? 'pending' : 'success';
 
   return useMemo(() => {
-    const allErrors = errorPages
-      .concat(extraErrorPages)
-      .concat(platformErrorPages)
-      .flatMap(page => page.data);
     return {
       attachments: attachmentPages.flat(2),
       errors: allErrors,
       fetchError: fetchReplayError ?? undefined,
       attachmentError: fetchAttachmentsError ?? undefined,
+      feedbackEvents,
       isError,
       isPending,
       status,
@@ -271,18 +293,17 @@ function useReplayData({
       replayRecord,
     };
   }, [
-    errorPages,
-    extraErrorPages,
-    platformErrorPages,
     attachmentPages,
     fetchReplayError,
     fetchAttachmentsError,
+    feedbackEvents,
     isError,
     isPending,
     status,
     clearQueryCache,
     projectSlug,
     replayRecord,
+    allErrors,
   ]);
 }
 

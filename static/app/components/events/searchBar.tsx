@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
@@ -25,7 +25,7 @@ import {
 } from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
-import withTags from 'sentry/utils/withTags';
+import useTags from 'sentry/utils/useTags';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 import {
@@ -137,7 +137,6 @@ export const getHasTag = (tags: TagCollection) => ({
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
-  tags: TagCollection;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
   fields?: readonly Field[];
@@ -154,11 +153,10 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   supportedTags?: TagCollection | undefined;
 };
 
-function SearchBar(props: SearchBarProps) {
+export default function SearchBar(props: SearchBarProps) {
   const {
     maxSearchItems,
     organization,
-    tags,
     omitTags,
     fields,
     projectIds,
@@ -171,6 +169,7 @@ function SearchBar(props: SearchBarProps) {
   } = props;
 
   const api = useApi();
+  const tags = useTags();
 
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
   const tagsWithKind = useMemo(() => {
@@ -208,30 +207,20 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
-      const fetchPromise =
-        dataset === DiscoverDatasets.SPANS_INDEXED
-          ? fetchSpanFieldValues({
-              api,
-              orgSlug: organization.slug,
-              fieldKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              endpointParams,
-            })
-          : fetchTagValues({
-              api,
-              orgSlug: organization.slug,
-              tagKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              endpointParams,
-              // allows searching for tags on transactions as well
-              includeTransactions,
-              // allows searching for tags on sessions as well
-              includeSessions: includeSessionTagsValues,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
-            });
+      const fetchPromise = fetchTagValues({
+        api,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: query,
+        projectIds: projectIdStrings,
+        endpointParams,
+        // allows searching for tags on transactions as well
+        includeTransactions,
+        // allows searching for tags on sessions as well
+        includeSessions: includeSessionTagsValues,
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
+      });
 
       return fetchPromise.then(
         results => results.filter(({name}) => defined(name)).map(({name}) => name),
@@ -310,5 +299,3 @@ function SearchBar(props: SearchBarProps) {
     </Measurements>
   );
 }
-
-export default withTags(SearchBar);

@@ -1006,6 +1006,7 @@ def test_mobile_performance_calculate_score(default_project):
 @pytest.mark.parametrize("passive", [False, True])
 def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
             {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
         ],
@@ -1099,6 +1100,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
 @region_silo_test
 def test_project_config_cardinality_limits_project_options_override_other_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1166,6 +1168,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
 @region_silo_test
 def test_project_config_cardinality_limits_organization_options_override_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1249,3 +1252,32 @@ def test_project_config_with_transaction_name_clustering_disabled(
         config = get_project_config(default_project).to_dict()
         _validate_project_config(config["config"])
         assert "txNameRules" not in config["config"]
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("feature_enabled", [True, False])
+@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
+def test_project_config_trusted_relay_settings(
+    default_project, feature_enabled, project_option_value
+):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", project_option_value
+    )
+
+    features_dict = {}
+    if feature_enabled:
+        features_dict["organizations:ingest-through-trusted-relays-only"] = True
+
+    with Feature(features_dict):
+        config = get_project_config(default_project).to_dict()
+
+        trusted_relay_settings = config["config"].get("trustedRelaySettings")
+
+        if feature_enabled:
+            # trustedRelaySettings should be present
+            assert trusted_relay_settings is not None
+            assert trusted_relay_settings["verifySignature"] == project_option_value
+        else:
+            # trustedRelaySettings should not be present
+            assert trusted_relay_settings is None

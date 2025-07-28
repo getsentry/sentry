@@ -11,8 +11,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {Outcome} from 'sentry/types/core';
-
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
   ['#444674'],
@@ -199,18 +197,6 @@ type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
 
 type ValidLengthArgument = TupleOf<ColorLength>[number];
 
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -221,16 +207,14 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): <Length extends ValidLengthArgument>(
-  length: Length | number
-) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+): <Length extends ValidLengthArgument>(length: Length | number) => T[Length] {
   return function getChartColorPalette<Length extends ValidLengthArgument>(
     length: Length | number
-  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+  ): T[Length] {
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
-    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
-    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as T[Length];
   };
 }
 
@@ -362,8 +346,7 @@ const generateThemeAliases = (colors: Colors) => ({
   disabledBorder: colors.gray200,
 
   /**
-   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
-   * interaction (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   hover: colors.surface500,
@@ -432,12 +415,6 @@ const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.purple200,
-  tagBar: colors.gray200,
-
-  /**
    * Search filter "token" background
    */
   searchTokenBackground: {
@@ -468,7 +445,6 @@ const generateThemeAliases = (colors: Colors) => ({
 });
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
-
 type AlertColors = Record<
   Alert,
   {
@@ -711,8 +687,7 @@ interface Colors {
   translucentSurface200: string;
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: string;
@@ -778,8 +753,7 @@ const lightColors: Colors = {
   translucentSurface200: '#FAF9FBE6',
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: '#F5F3F7',
@@ -844,8 +818,7 @@ const darkColors: Colors = {
   translucentSurface200: '#1A141FB3',
 
   /**
-   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
-   * (hover/press) states.
+   * Hover color. Deprecated – use core components with built-in interaction states
    * @deprecated
    */
   surface500: '#362E3E',
@@ -982,59 +955,19 @@ type ButtonColors = Record<
   }
 >;
 
-type ButtonSize = 'md' | 'sm' | 'xs';
-type ButtonPaddingSizes = Record<
-  ButtonSize,
-  {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  }
->;
-const buttonPaddingSizes: ButtonPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 12,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-};
-
-type Breakpoint = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
+type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 type Breakpoints = Record<Breakpoint, string>;
 
 const breakpoints = {
-  xsmall: '500px',
-  small: '800px',
-  medium: '992px',
-  large: '1200px',
-  xlarge: '1440px',
-  xxlarge: '2560px',
+  xs: '500px',
+  sm: '800px',
+  md: '992px',
+  lg: '1200px',
+  xl: '1440px',
+  '2xl': '2560px',
 } as const satisfies Breakpoints;
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-type Sizes = Record<Size, string>;
-const iconNumberSizes: Record<Size, number> = {
-  xs: 12,
-  sm: 14,
-  md: 18,
-  lg: 24,
-  xl: 32,
-  xxl: 72,
-} as const;
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 // @TODO: this needs to directly reference the icon direction
 type IconDirection = 'up' | 'right' | 'down' | 'left';
@@ -1045,7 +978,14 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
   left: 270,
 } as const;
 
+/**
+ * Unless you are implementing a new component in the `sentry/components/core`
+ * directory, use `ComponentProps['size']` instead.
+ * @internal
+ */
 export type FormSize = 'xs' | 'sm' | 'md';
+
+export type Space = keyof Theme['space'];
 
 export type FormTheme = {
   form: Record<
@@ -1143,33 +1083,50 @@ const formTheme: FormTheme = {
   },
 };
 
-const iconSizes: Sizes = {
-  xs: `${iconNumberSizes.xs}px`,
-  sm: `${iconNumberSizes.sm}px`,
-  md: `${iconNumberSizes.md}px`,
-  lg: `${iconNumberSizes.lg}px`,
-  xl: `${iconNumberSizes.xl}px`,
-  xxl: `${iconNumberSizes.xxl}px`,
+const iconSizes: Record<Size, string> = {
+  xs: '12px',
+  sm: '14px',
+  md: '18px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '72px',
 } as const;
 
-/**
- * Default colors for data usage outcomes.
- * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
- * which is why they don't have their own defined colors.
- */
-type OutcomeColors = Record<
-  Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
-  string
->;
-
-const outcome: OutcomeColors = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
-};
+const space = {
+  '0': '0px',
+  /**
+   * Equivalent to deprecated `space(0.25)`
+   */
+  '2xs': '2px',
+  /**
+   * Equivalent to deprecated `space(0.5)`
+   */
+  xs: '4px',
+  /**
+   * Equivalent to deprecated `space(0.75)`
+   */
+  sm: '6px',
+  /**
+   * Equivalent to deprecated `space(1)`
+   */
+  md: '8px',
+  /**
+   * Equivalent to deprecated `space(1.5)`
+   */
+  lg: '12px',
+  /**
+   * Equivalent to deprecated `space(2)`
+   */
+  xl: '16px',
+  /**
+   * Equivalent to deprecated `space(3)` (was `20px`)
+   */
+  '2xl': '24px',
+  /**
+   * Equivalent to deprecated `space(4)` (was `30px`)
+   */
+  '3xl': '32px',
+} as const;
 
 /**
  * Values shared between light and dark theme
@@ -1180,9 +1137,10 @@ const commonTheme = {
   ...lightColors,
   ...lightShadows,
 
+  space,
+
   // Icons
   iconSizes,
-  iconNumberSizes,
   iconDirections: iconDirectionToAngle,
 
   // Try to keep these ordered plz
@@ -1254,21 +1212,27 @@ const commonTheme = {
   },
 
   borderRadius: '6px',
+  fontSize: {
+    xs: '11px',
+    sm: '12px',
+    md: '14px',
+    lg: '16px',
+    xl: '18px',
+    '2xl': '20px',
+  } satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>,
 
-  // Relative font sizes
-  // @TODO(jonasbadalic) why do we need these
+  fontWeight: {
+    normal: 400 as const,
+    bold: 600 as const,
+  },
+
+  /**
+   * @TODO(jonasbadalic) remove relative font sizes
+   * @deprecated use fontSize instead
+   */
   fontSizeRelativeSmall: '0.9em' as const,
-  fontSizeExtraSmall: '11px' as const,
-  fontSizeSmall: '12px' as const,
-  fontSizeMedium: '14px' as const,
-  fontSizeLarge: '16px' as const,
-  fontSizeExtraLarge: '18px' as const,
-
-  codeFontSize: '13px',
-  headerFontSize: '22px',
-
-  fontWeightNormal: 400,
-  fontWeightBold: 600,
+  codeFontSize: '13px' as const,
+  headerFontSize: '22px' as const,
 
   text: {
     family: "'Rubik', 'Avenir Next', sans-serif",
@@ -1277,17 +1241,8 @@ const commonTheme = {
     lineHeightBody: 1.4,
   },
 
-  /**
-   * Padding for buttons
-   * @TODO(jonasbadalic) This should exist on button component
-   */
-  buttonPadding: buttonPaddingSizes,
-
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
-
-  // @TODO(jonasbadalic) Do these need to be here?
-  outcome,
 };
 
 const lightTokens = generateTokens(lightColors);
@@ -1301,6 +1256,7 @@ const darkAliases = generateThemeAliases(darkColors);
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
+  type: 'light' as 'light' | 'dark',
   isChonk: false,
   ...commonTheme,
   ...formTheme,
@@ -1320,15 +1276,8 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
+    neutral: lightColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
@@ -1355,6 +1304,7 @@ export const lightTheme = {
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: typeof lightTheme = {
+  type: 'dark',
   isChonk: false,
   ...commonTheme,
   ...formTheme,
@@ -1379,15 +1329,8 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
-  tour: {
-    background: darkColors.purple300,
-    header: darkColors.white,
-    text: darkAliases.textColor,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
   chart: {
+    neutral: darkColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
@@ -1404,8 +1347,8 @@ export const darkTheme: typeof lightTheme = {
 
 export type ColorMapping = typeof lightColors;
 export type Color = keyof typeof lightColors;
-export type IconSize = Size;
-export type Aliases = typeof lightAliases;
+export type IconSize = keyof typeof iconSizes;
+type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type Theme = typeof lightTheme;
 

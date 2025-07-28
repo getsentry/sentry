@@ -1,14 +1,20 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/gridEditable';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {EAP_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -18,7 +24,9 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {TransactionCell} from 'sentry/views/insights/pages/platform/shared/table/TransactionCell';
-import {useTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useSpanTableData} from 'sentry/views/insights/pages/platform/shared/table/useTableData';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
@@ -31,17 +39,40 @@ const pageloadColumnOrder: Array<GridColumnOrder<string>> = [
     width: 140,
   },
   {
+    key: 'p95(span.duration)',
+    name: t('P95 Duration'),
+    width: 140,
+  },
+  {
     key: 'performance_score(measurements.score.total)',
     name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const rightAlignColumns = new Set(['count()', 'failure_rate()', 'avg(span.duration)']);
+const rightAlignColumns = new Set([
+  'count()',
+  'failure_rate()',
+  'avg(span.duration)',
+  'p95(span.duration)',
+]);
 
 export function ClientTable() {
-  const tableDataRequest = useTableData({
-    query: `span.op:[pageload, navigation]`,
+  const organization = useOrganization();
+  const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
+  const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
+
+  const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation', 'default'];
+
+  const existingQuery = new MutableSearch('');
+  existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
+  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValue('is_transaction', 'true');
+  existingQuery.addFilterValues('!sentry.origin', ['auto.db.*', 'auto'], false);
+
+  const {query} = useTransactionNameQuery();
+  const tableDataRequest = useSpanTableData({
+    query: `${existingQuery.formatString()} ${query ?? ''}`.trim(),
     fields: [
       'transaction',
       'project.id',
@@ -49,6 +80,7 @@ export function ClientTable() {
       'count()',
       'failure_rate()',
       'avg(span.duration)',
+      'p95(span.duration)',
       'performance_score(measurements.score.total)',
       'count_if(span.op,navigation)',
       'count_if(span.op,pageload)',
@@ -80,11 +112,28 @@ export function ClientTable() {
         }
         return (
           <AlignCenter>
-            <PerformanceBadge
-              score={Math.round(
-                dataRow['performance_score(measurements.score.total)'] * 100
-              )}
-            />
+            {hasWebVitalsFlag ? (
+              <Link
+                to={{
+                  pathname: `${webVitalsUrl}/overview/`,
+                  query: {
+                    transaction: dataRow.transaction,
+                  },
+                }}
+              >
+                <PerformanceBadge
+                  score={Math.round(
+                    dataRow['performance_score(measurements.score.total)'] * 100
+                  )}
+                />
+              </Link>
+            ) : (
+              <PerformanceBadge
+                score={Math.round(
+                  dataRow['performance_score(measurements.score.total)'] * 100
+                )}
+              />
+            )}
           </AlignCenter>
         );
       }
@@ -98,7 +147,11 @@ export function ClientTable() {
               dataRow={dataRow}
               targetView="frontend"
               projectId={dataRow['project.id'].toString()}
-              query={`transaction.op:${dataRow['span.op']}`}
+              query={
+                ['navigation', 'pageload'].includes(dataRow['span.op'])
+                  ? `transaction.op:${dataRow['span.op']}`
+                  : undefined
+              }
             />
           );
         }
@@ -121,11 +174,14 @@ export function ClientTable() {
         case 'avg(span.duration)': {
           return <DurationCell milliseconds={dataRow['avg(span.duration)']} />;
         }
+        case 'p95(span.duration)': {
+          return <DurationCell milliseconds={dataRow['p95(span.duration)']} />;
+        }
         default:
           return <div />;
       }
     },
-    []
+    [webVitalsUrl, hasWebVitalsFlag]
   );
 
   const pagesTablePageLinks = tableDataRequest.pageLinks;

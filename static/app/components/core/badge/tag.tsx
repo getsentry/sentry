@@ -73,7 +73,7 @@ export function Tag({
 const TagPill = styled('div')<{
   type: NonNullable<TagProps['type']>;
 }>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   background-color: ${p => p.theme.tag[p.type].background};
   border: solid 1px ${p => p.theme.tag[p.type].border};
   display: inline-flex;

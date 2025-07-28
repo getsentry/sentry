@@ -1,15 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 function NotFound() {
   return (
     <Alert.Container>
-      <Alert type="error" showIcon>
+      <Alert type="error">
         <Heading>{t('Page Not Found')}</Heading>
         <p>{t('The page you are looking for was not found.')}</p>
         <p>{t('You may wish to try the following:')}</p>
@@ -45,7 +44,7 @@ function NotFound() {
 }
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

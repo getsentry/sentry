@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from sentry.integrations.source_code_management.language_parsers import (
     CSharpParser,
+    GoParser,
     JavascriptParser,
     PHPParser,
     PythonParser,
@@ -10,7 +11,7 @@ from sentry.integrations.source_code_management.language_parsers import (
 
 
 class PythonParserTestCase(TestCase):
-    def test_python(self):
+    def test_python(self) -> None:
         # from https://github.com/getsentry/sentry/pull/61981
         patch = """@@ -36,6 +36,7 @@\n from sentry.templatetags.sentry_helpers import small_count\n from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER\n from sentry.utils import metrics\n+from sentry.utils.json import JSONData\n from sentry.utils.snuba import raw_snql_query\n \n logger = logging.getLogger(__name__)\n@@ -134,10 +135,10 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque\n # TODO(cathy): Change the client typing to allow for multiple SCM Integrations\n def safe_for_comment(\n     gh_client: GitHubApiClient, repository: Repository, pull_request: PullRequest\n-) -> bool:\n+) -> Tuple[bool, JSONData]:\n     logger.info("github.open_pr_comment.check_safe_for_comment")\n     try:\n-        pullrequest_resp = gh_client.get_pullrequest(\n+        pr_files = gh_client.get_pullrequest_files(\n             repo=repository.name, pull_number=pull_request.key\n         )\n     except ApiError as e:\n@@ -158,34 +159,47 @@ def safe_for_comment(\n                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},\n             )\n             logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})\n-        return False\n+        return False, []\n \n     safe_to_comment = True\n-    if pullrequest_resp["state"] != "open":\n-        metrics.incr(\n-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "incorrect_state"}\n-        )\n-        safe_to_comment = False\n-    if pullrequest_resp["changed_files"] > OPEN_PR_MAX_FILES_CHANGED:\n+\n+    changed_file_count = 0\n+    changed_lines_count = 0\n+\n+    for file in pr_files:\n+        filename = file["filename"]\n+        # don't count the file if it was added or is not a Python file\n+        if file["status"] == "added" or not filename.endswith(".py"):\n+            continue\n+\n+        changed_file_count += 1\n+        changed_lines_count += file["changes"]\n+\n+    if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:\n         metrics.incr(\n             OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_files"}\n         )\n         safe_to_comment = False\n-    if pullrequest_resp["additions"] + pullrequest_resp["deletions"] > OPEN_PR_MAX_LINES_CHANGED:\n+    if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:\n         metrics.incr(\n             OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_lines"}\n         )\n         safe_to_comment = False\n-    return safe_to_comment\n \n+    if not safe_to_comment:\n+        pr_files = []\n+\n+    return safe_to_comment, pr_files\n \n-def get_pr_filenames(\n-    gh_client: GitHubApiClient, repository: Repository, pull_request: PullRequest\n-) -> List[str]:\n-    pr_files = gh_client.get_pullrequest_files(repo=repository.name, pull_number=pull_request.key)\n \n+def get_pr_filenames(pr_files: JSONData) -> List[str]:\n     # new files will not have sentry issues associated with them\n-    pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]\n+    # only fetch Python files\n+    pr_filenames: List[str] = [\n+        file["filename"]\n+        for file in pr_files\n+        if file["status"] != "added" and file["filename"].endswith(".py")\n+    ]\n \n     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})\n     return pr_filenames\n@@ -316,15 +330,22 @@ def open_pr_comment_workflow(pr_id: int) -> None:\n     client = installation.get_client()\n \n     # CREATING THE COMMENT\n-    if not safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request):\n+    logger.info("github.open_pr_comment.check_safe_for_comment")\n+\n+    # fetch the files in the PR and determine if it is safe to comment\n+    safe_to_comment, pr_files = safe_for_comment(\n+        gh_client=client, repository=repo, pull_request=pull_request\n+    )\n+\n+    if not safe_to_comment:\n         logger.info("github.open_pr_comment.not_safe_for_comment")\n         metrics.incr(\n             OPEN_PR_METRICS_BASE.format(key="error"),\n             tags={"type": "unsafe_for_comment"},\n         )\n         return\n \n-    pr_filenames = get_pr_filenames(gh_client=client, repository=repo, pull_request=pull_request)\n+    pr_filenames = get_pr_filenames(pr_files)\n \n     issue_table_contents = {}\n     top_issues_per_file = []"""
         assert PythonParser.extract_functions_from_patch(patch) == {
@@ -19,7 +20,7 @@ class PythonParserTestCase(TestCase):
             "open_pr_comment_workflow",
         }
 
-    def test_python_in_class(self):
+    def test_python_in_class(self) -> None:
         # from https://github.com/getsentry/sentry/pull/59152
         patch = '@@ -274,6 +274,14 @@ def patch(self, request: Request, organization, member):\n \n         result = serializer.validated_data\n \n+        if getattr(member.flags, "partnership:restricted"):\n+            return Response(\n+                {\n+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."\n+                },\n+                status=403,\n+            )\n+\n         for operation in result["operations"]:\n             # we only support setting active to False which deletes the orgmember\n             if self._should_delete_member(operation):\n@@ -310,6 +318,14 @@ def delete(self, request: Request, organization, member) -> Response:\n         """\n         Delete an organization member with a SCIM User DELETE Request.\n         """\n+        if getattr(member.flags, "partnership:restricted"):\n+            return Response(\n+                {\n+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."\n+                },\n+                status=403,\n+            )\n+\n         self._delete_member(request, organization, member)\n         metrics.incr("sentry.scim.member.delete", tags={"organization": organization})\n         return Response(status=204)\n@@ -348,6 +364,14 @@ def put(self, request: Request, organization, member):\n             )\n             return Response(context, status=200)\n \n+        if getattr(member.flags, "partnership:restricted"):\n+            return Response(\n+                {\n+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."\n+                },\n+                status=403,\n+            )\n+\n         if request.data.get("sentryOrgRole"):\n             # Don\'t update if the org role is the same\n             if ('
         assert PythonParser.extract_functions_from_patch(patch) == {
@@ -30,7 +31,7 @@ class PythonParserTestCase(TestCase):
 
 
 class JavascriptParserTestCase(TestCase):
-    def test_javascript_simple(self):
+    def test_javascript_simple(self) -> None:
         patch = """\
 @@44,38@@ function hello(argument1, argument2)
 
@@ -191,7 +192,7 @@ class JavascriptParserTestCase(TestCase):
     for i in range(1, 30):
         assert "arrow" + str(i) in functions
 
-    def test_typescript_simple(self):
+    def test_typescript_simple(self) -> None:
         patch = """\
 @@44,38@@ function hello():
 
@@ -352,7 +353,7 @@ class JavascriptParserTestCase(TestCase):
     for i in range(1, 30):
         assert "arrow" + str(i) in functions
 
-    def test_typescript_example(self):
+    def test_typescript_example(self) -> None:
         # from https://github.com/getsentry/sentry/pull/61329
         patch = """\
 @@ -40,6 +40,7 @@ import {space} from 'sentry/styles/space';
@@ -366,7 +367,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -115,6 +116,7 @@ function Sidebar({organization}: Props) {
 
    const collapsed = !!preferences.collapsed;
-   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+   const horizontal = useMedia(`(max-width: ${theme.breakpoints.md})`);
 +  const hasSuperuserSession = isActiveSuperuser(organization);
 
    useOpenOnboardingSidebar();
@@ -546,7 +547,7 @@ class JavascriptParserTestCase(TestCase):
        </Button>
      </MemberCard>
 @@ -269,17 +259,7 @@ export const Subtitle = styled('div')`
-   font-size: ${p => p.theme.fontSizeSmall};
+   font-size: ${p => p.theme.fontSize.sm};
    font-weight: 400;
    color: ${p => p.theme.gray300};
 -  & > *:first-child {
@@ -567,7 +568,7 @@ class JavascriptParserTestCase(TestCase):
 @@ -305,9 +285,7 @@ const MemberCardContentRow = styled('div')`
    align-items: center;
    margin-bottom: ${space(0.25)};
-   font-size: ${p => p.theme.fontSizeSmall};
+   font-size: ${p => p.theme.fontSize.sm};
 -  & > *:first-child {
 -    margin-right: ${space(0.75)};
 -  }
@@ -581,7 +582,7 @@ class JavascriptParserTestCase(TestCase):
             "SeeMoreCard",
         }
 
-    def test_javascript_functions_after_const(self):
+    def test_javascript_functions_after_const(self) -> None:
 
         patch = """
           "@@ -305,9 +285,7 @@ export const Redacted Redacted\n   // Redacted.\n   // Redacted \n   const redacted = redacted;\n+  const redacted = redacted();\n+  // const redacted = true;\n+  const redacted = redacted()\n+    redacted; // Redacted\nconst \n@@ -165,24 +171,40 @@ export const RedactedRedactedRedactedRedactedRedacted
@@ -613,7 +614,7 @@ class JavascriptParserTestCase(TestCase):
 
 
 class PHPParserTestCase(TestCase):
-    def test_php_simple(self):
+    def test_php_simple(self) -> None:
         patch = """
 @@ -51,7 +51,7 @@ $arrowFunc = fn($parameter) => $parameter + 1;
 
@@ -674,7 +675,7 @@ class PHPParserTestCase(TestCase):
             "transformData",
         }
 
-    def test_php_example(self):
+    def test_php_example(self) -> None:
         # reference: https://github.com/getsentry/gib-potato/pull/45
         patch = """
 @@ -152,10 +152,6 @@ public function up(): void
@@ -744,7 +745,7 @@ class PHPParserTestCase(TestCase):
 
 
 class RubyParserTestCase(TestCase):
-    def test_ruby_simple(self):
+    def test_ruby_simple(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ def one ()
 
@@ -772,7 +773,7 @@ class RubyParserTestCase(TestCase):
             "seven",
         }
 
-    def test_ruby_example(self):
+    def test_ruby_example(self) -> None:
         patch = """
 @@ -73,9 +73,7 @@ def for(name)
 
@@ -811,7 +812,7 @@ class RubyParserTestCase(TestCase):
 
 
 class CSharpParserTestCase(TestCase):
-    def test_csharp_simple(self):
+    def test_csharp_simple(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ public void MethodOne()
 
@@ -864,7 +865,7 @@ class CSharpParserTestCase(TestCase):
             "AsyncLocalFunction",
         }
 
-    def test_csharp_operators(self):
+    def test_csharp_operators(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ public static ClassName operator+(ClassName a, ClassName b)
 
@@ -892,7 +893,7 @@ class CSharpParserTestCase(TestCase):
             ">",
         }
 
-    def test_csharp_generics_and_complex_types(self):
+    def test_csharp_generics_and_complex_types(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ public List<T> GetItems<T>()
 
@@ -923,7 +924,7 @@ class CSharpParserTestCase(TestCase):
             "GetNullableInt",
         }
 
-    def test_csharp_expression_bodied_members(self):
+    def test_csharp_expression_bodied_members(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ public int Add(int x, int y) => x + y;
 
@@ -948,7 +949,7 @@ class CSharpParserTestCase(TestCase):
             "ToString",
         }
 
-    def test_csharp_real_world_example(self):
+    def test_csharp_real_world_example(self) -> None:
         # Based on a typical C# class with various method types
         patch = """
 @@ -73,9 +73,7 @@ public UserService(IUserRepository repository)
@@ -984,7 +985,7 @@ class CSharpParserTestCase(TestCase):
             "Count",
         }
 
-    def test_csharp_interface_implementations(self):
+    def test_csharp_interface_implementations(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ void IDisposable.Dispose()
 
@@ -1003,7 +1004,7 @@ class CSharpParserTestCase(TestCase):
             "Equals",
         }
 
-    def test_csharp_local_functions_and_nested(self):
+    def test_csharp_local_functions_and_nested(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ void OuterMethod()
 {
@@ -1028,7 +1029,7 @@ class CSharpParserTestCase(TestCase):
             "GenericLocalFunction",
         }
 
-    def test_csharp_edge_cases(self):
+    def test_csharp_edge_cases(self) -> None:
         patch = """
 @@ -152,10 +152,6 @@ public unsafe void* GetPointer()
 
@@ -1049,4 +1050,280 @@ public void OldMethod()
             "OldMethod",
             "PartialMethod",
             "ComplexMethod",
+        }
+
+
+class GoParserTestCase(TestCase):
+    def test_go_simple(self) -> None:
+        patch = """
+@@ -152,10 +152,6 @@ func Hello(name string) string
+
+@@ -152,10 +152,6 @@ func (r *Receiver) MethodName() error
+
+@@ -152,10 +152,6 @@ func (r Receiver) ValueMethod() string
+
+@@ -152,10 +152,6 @@ var myFunc = func() {
+
+@@ -152,10 +152,6 @@ func Calculate(x, y int) int
+
+@@ -152,10 +152,6 @@ func ProcessData() (string, error)
+
+@@ -152,10 +152,6 @@ func noParams()
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Hello",
+            "MethodName",
+            "ValueMethod",
+            "myFunc",
+            "Calculate",
+            "ProcessData",
+            "noParams",
+        }
+
+    def test_go_methods_with_receivers(self) -> None:
+        patch = """
+@@ -152,10 +152,6 @@ func (s *Server) Start() error
+
+@@ -152,10 +152,6 @@ func (s Server) Stop()
+
+@@ -152,10 +152,6 @@ func (h *Handler) ServeHTTP(w ResponseWriter, r *Request)
+
+@@ -152,10 +152,6 @@ func (db *Database) Query(query string) (*Result, error)
+
+@@ -152,10 +152,6 @@ func (u User) String() string
+
+@@ -152,10 +152,6 @@ func (p *Point) Distance(q *Point) float64
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Start",
+            "Stop",
+            "ServeHTTP",
+            "Query",
+            "String",
+            "Distance",
+        }
+
+    def test_go_function_variables(self) -> None:
+        patch = """
+@@ -152,10 +152,6 @@ var handler = func(w http.ResponseWriter, r *http.Request) {
+
+@@ -152,10 +152,6 @@ var callback = func() error {
+
+@@ -152,10 +152,6 @@ processor := func(data []byte) []byte {
+
+@@ -152,10 +152,6 @@ validator := func(input string) bool {
+
+@@ -152,10 +152,6 @@ var transformer = func(x int) int {
+
+@@ -152,10 +152,6 @@ mapper := func(items []string) map[string]int {
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "handler",
+            "callback",
+            "processor",
+            "validator",
+            "transformer",
+            "mapper",
+        }
+
+    def test_go_interface_methods(self) -> None:
+        # Note: Interface method regex is intentionally last in the list
+        # because it's more general and could match other patterns
+        patch = """
+@@ -152,10 +152,6 @@ Read(p []byte) (n int, err error)
+
+@@ -152,10 +152,6 @@ Write(p []byte) (n int, err error)
+
+@@ -152,10 +152,6 @@ Close() error
+
+@@ -152,10 +152,6 @@ String() string
+
+@@ -152,10 +152,6 @@ ServeHTTP(ResponseWriter, *Request)
+
+@@ -152,10 +152,6 @@ Validate() bool
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Read",
+            "Write",
+            "Close",
+            "String",
+            "ServeHTTP",
+            "Validate",
+        }
+
+    def test_go_real_world_example(self) -> None:
+        # Based on a typical Go service with various function types
+        patch = """
+@@ -73,9 +73,7 @@ func NewService(db *sql.DB) *Service
+
+@@ -87,7 +87,8 @@ func (s *Service) GetUser(ctx context.Context, id int) (*User, error)
+
+@@ -95,6 +95,7 @@ func (s *Service) CreateUser(user *User) error
+
+@@ -103,4 +107,23 @@ func validateEmail(email string) bool
+
+@@ -115,6 +118,13 @@ var logger = func(msg string) {
+
+@@ -125,7 +125,7 @@ func (s *Service) updateCache(key string, value interface{})
+
+@@ -135,8 +135,8 @@ handleError := func(err error) {
+
+@@ -145,10 +145,10 @@ func init()
+
+@@ -168,15 +168,15 @@ func main()
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "NewService",
+            "GetUser",
+            "CreateUser",
+            "validateEmail",
+            "logger",
+            "updateCache",
+            "handleError",
+            "init",
+            "main",
+        }
+
+    def test_go_complex_signatures(self) -> None:
+        patch = """
+@@ -152,10 +152,6 @@ func Process(ctx context.Context, opts ...Option) (*Result, error)
+
+@@ -152,10 +152,6 @@ func (c *Client) Do(req *Request) (*Response, error)
+
+@@ -152,10 +152,6 @@ func HandleFunc(pattern string, handler func(ResponseWriter, *Request))
+
+@@ -152,10 +152,6 @@ var middleware = func(next http.Handler) http.Handler {
+
+@@ -152,10 +152,6 @@ converter := func(input interface{}) (interface{}, error) {
+
+@@ -152,10 +152,6 @@ func Generic[T any](items []T) T
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "Process",
+            "Do",
+            "HandleFunc",
+            "middleware",
+            "converter",
+            "Generic",
+        }
+
+    def test_go_edge_cases(self) -> None:
+        patch = """
+
+@@ -152,10 +152,6 @@ func (r *T) method_with_underscore()
+
+@@ -152,10 +152,6 @@ var fn123 = func() {
+
+@@ -152,10 +152,6 @@ camelCase := func() {
+
+@@ -152,10 +152,6 @@ func MixedCase_With_Underscores()
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "method_with_underscore",
+            "fn123",
+            "camelCase",
+            "MixedCase_With_Underscores",
+        }
+
+    def test_go_multiline_signatures(self) -> None:
+        """Test Go functions with parameters and return types spanning multiple lines"""
+        patch = """
+@@ -152,10 +152,6 @@ func LongFunction(
+    param1 string,
+    param2 int,
+    param3 []byte,
+) (string, error)
+
+@@ -160,12 +160,8 @@ func (s *Service) ProcessRequest(
+    ctx context.Context,
+    request *http.Request,
+    options ...Option,
+) (*Response, error) {
+
+@@ -170,15 +170,10 @@ var complexHandler = func(
+    w http.ResponseWriter,
+    r *http.Request,
+    middleware []Middleware,
+) error {
+
+@@ -180,18 +180,12 @@ transformer := func(
+    input map[string]interface{},
+    validators []Validator,
+) (
+    map[string]interface{},
+    error,
+) {
+
+@@ -190,20 +190,15 @@ func GenericProcessor[T any, R comparable](
+    items []T,
+    processor func(T) R,
+    options ProcessOptions,
+) ([]R, error)
+
+@@ -200,25 +200,18 @@ func (db *Database) ExecuteTransaction(
+    ctx context.Context,
+    queries []string,
+    params []interface{},
+) (
+    results []Result,
+    err error,
+)
+
+@@ -210,30 +210,20 @@ var middleware = func(
+    next http.Handler,
+) http.Handler {
+
+@@ -215,35 +215,22 @@ MultilineInterface(
+    param1 string,
+    param2 int,
+) (string, error)
+
+"""
+
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "LongFunction",
+            "ProcessRequest",
+            "complexHandler",
+            "transformer",
+            "GenericProcessor",
+            "ExecuteTransaction",
+            "middleware",
+            "MultilineInterface",
+        }
+
+    def test_go_separate_variable_assignment(self) -> None:
+        """Test Go function variables declared separately from assignment (addressing PR comment)"""
+        patch = """
+@@ -152,10 +152,6 @@ var add func(int, int) int
+some other code here
+@@ -160,12 +160,8 @@ add = func(x, y int) int {
+
+@@ -170,15 +170,10 @@ var handler func(http.ResponseWriter, *http.Request)
+@@ -175,18 +175,12 @@ handler = func(w http.ResponseWriter, r *http.Request) {
+
+@@ -180,20 +180,15 @@ var processor func([]byte) []byte
+random code
+@@ -190,25 +190,18 @@ processor = func(data []byte) []byte {
+
+"""
+
+        # The separate assignment should be captured by function_assignment_regex
+        assert GoParser.extract_functions_from_patch(patch) == {
+            "add",
+            "handler",
+            "processor",
         }

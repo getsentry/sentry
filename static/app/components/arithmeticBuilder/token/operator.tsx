@@ -22,13 +22,13 @@ export function ArithmeticTokenOperator({
 }: ArithmeticTokenOperatorProps) {
   const operator =
     token.operator === Operator.PLUS ? (
-      <IconAdd height={26} />
+      <IconAdd size="xs" />
     ) : token.operator === Operator.MINUS ? (
-      <IconSubtract height={26} />
+      <IconSubtract size="xs" />
     ) : token.operator === Operator.MULTIPLY ? (
-      <IconClose height={26} data-test-id="icon-multiply" />
+      <IconClose size="xs" data-test-id="icon-multiply" />
     ) : token.operator === Operator.DIVIDE ? (
-      <IconDivide height={26} />
+      <IconDivide size="xs" />
     ) : null;
 
   if (!operator) {

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -60,11 +59,21 @@ export interface SearchQueryBuilderProps {
    */
   disallowWildcard?: boolean;
   /**
+   * When true, the Ask Seer option will be displayed in the search bar.
+   */
+  enableAISearch?: boolean;
+  /**
    * The lookup strategy for field definitions.
    * Each SearchQueryBuilder instance can support a different list of fields and
    * tags, their definitions may not overlap.
    */
   fieldDefinitionGetter?: FieldDefinitionGetter;
+  /**
+   * A mapping of aliases for filter keys.
+   * These are used to ensure that the filter key does not show them as invalid, however
+   * they will not be shown in the filter key dropdown.
+   */
+  filterKeyAliases?: TagCollection;
   /**
    * The width of the filter key menu.
    * Defaults to 360px. May be increased if there are a large number of categories
@@ -88,6 +97,7 @@ export interface SearchQueryBuilderProps {
    * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
+
   /**
    * Allows for customization of the invalid token messages.
    */
@@ -116,44 +126,20 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
-   * When true, will trigger the `onSearch` callback when the query changes.
+   * When set, provided keys will override default raw search capabilities, while
+   * replacing it with options that include the provided keys, and the user's input
+   * as value.
+   *
+   * e.g. if `replaceRawSearchKeys` is set to `['span.description']`, the user will be
+   * able to type `randomValue` and the combobox will show `span.description:randomValue`
+   * as an option, and so on with any other provided keys.
    */
-  searchOnChange?: boolean;
-  /**
-   * When true, will display a visual indicator when there are unsaved changes.
-   * This search is considered unsubmitted when query !== initialQuery.
-   */
-  showUnsubmittedIndicator?: boolean;
+  replaceRawSearchKeys?: string[];
   /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */
   trailingItems?: React.ReactNode;
-}
-
-function SearchIndicator({
-  initialQuery,
-  showUnsubmittedIndicator,
-}: {
-  initialQuery?: string;
-  showUnsubmittedIndicator?: boolean;
-}) {
-  const {query} = useSearchQueryBuilder();
-
-  const unSubmittedChanges = query !== initialQuery;
-  const showIndicator = showUnsubmittedIndicator && unSubmittedChanges;
-
-  return (
-    <PositionedSearchIconContainer>
-      <Tooltip
-        title={t('The current search query is not active. Press Enter to submit.')}
-        disabled={!showIndicator}
-      >
-        <SearchIcon size="sm" />
-        {showIndicator ? <UnSubmittedDot /> : null}
-      </Tooltip>
-    </PositionedSearchIconContainer>
-  );
 }
 
 function ActionButtons({
@@ -196,15 +182,13 @@ function SearchQueryBuilderUI({
   initialQuery,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
-  showUnsubmittedIndicator,
   trailingItems,
   onChange,
-  searchOnChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
-  useOnChange({onChange, searchOnChange});
+  useOnChange({onChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
@@ -222,10 +206,9 @@ function SearchQueryBuilderUI({
       data-test-id="search-query-builder"
     >
       <PanelProvider>
-        <SearchIndicator
-          initialQuery={initialQuery}
-          showUnsubmittedIndicator={showUnsubmittedIndicator && !searchOnChange}
-        />
+        <PositionedSearchIconContainer>
+          <SearchIcon size="sm" />
+        </PositionedSearchIconContainer>
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
@@ -262,7 +245,7 @@ const Wrapper = styled(Input.withComponent('div'))`
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 `;
 
@@ -289,15 +272,4 @@ const PositionedSearchIconContainer = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.subText};
   height: 22px;
-`;
-
-const UnSubmittedDot = styled('div')`
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: ${p => p.theme.active};
-  border: solid 2px ${p => p.theme.background};
 `;

@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationIntegrationReposTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -72,7 +72,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             "searchable": True,
         }
 
-    def test_no_repository_method(self):
+    def test_no_repository_method(self) -> None:
         integration = self.create_integration(
             organization=self.org, provider="jira", name="Example", external_id="example:1"
         )

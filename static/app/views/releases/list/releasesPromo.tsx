@@ -11,10 +11,10 @@ import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
@@ -178,14 +178,14 @@ function ReleasesPromo({organization, project}: Props) {
 curl -sL https://sentry.io/get-cli/ | bash
 
 # Setup configuration values
-SENTRY_AUTH_TOKEN=`,
+export SENTRY_AUTH_TOKEN=`,
 
       token && selectedItem
         ? `${token} # From internal integration: ${selectedItem.value.name}`
         : '<click-here-for-your-token>',
       `
-SENTRY_ORG=${organization.slug}
-SENTRY_PROJECT=${project.slug}
+export SENTRY_ORG=${organization.slug}
+export SENTRY_PROJECT=${project.slug}
 VERSION=\`sentry-cli releases propose-version\`
 
 # Workflow to create releases
@@ -328,7 +328,7 @@ const ContainerHeader = styled('div')`
     margin: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: flex-start;
 
@@ -385,12 +385,12 @@ const CodeSnippetDropdown = styled(DropdownAutoComplete)`
 `;
 
 const GroupHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
-  line-height: ${p => p.theme.fontSizeSmall};
+  line-height: ${p => p.theme.fontSize.sm};
   text-align: left;
 `;
 const CreateIntegrationLink = styled(Link)`

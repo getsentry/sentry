@@ -57,7 +57,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   height: 100%;
   width: 100%;
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   transition: color 100ms;
   ${p => p.textCss?.(p)}
 `;

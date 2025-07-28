@@ -16,6 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 type Installation = {
   avatar_url: string;
@@ -94,7 +95,7 @@ export function GithubInstallationSelect({
     };
 
     const newUrl = `${origin}/extensions/github/setup/?${qs.stringify(newParams)}`;
-    return window.location.assign(newUrl);
+    return testableWindowLocation.assign(newUrl);
   };
 
   const handleSelect = ({value}: SelectOption<SelectKey>) => {
@@ -104,6 +105,7 @@ export function GithubInstallationSelect({
   const selectOptions = installation_info.map(
     (installation): SelectOption<SelectKey> => ({
       value: installation.installation_id,
+      textValue: installation.github_account,
       label: (
         <OptionLabelWrapper>
           {installation.installation_id === '-1' ? (

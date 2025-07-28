@@ -57,7 +57,7 @@ class BaseScheduledDeletion(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_scheduled = models.DateTimeField(default=default_date_schedule)
     actor_id = BoundedBigIntegerField(null=True)
-    data = JSONField(default={})
+    data = JSONField(default=dict)
     in_progress = models.BooleanField(default=False)
 
     @classmethod
@@ -77,22 +77,16 @@ class BaseScheduledDeletion(Model):
             )
 
         model_name = model.__name__
-        record, created = cls.objects.create_or_update(
+        record, created = cls.objects.update_or_create(
             app_label=instance._meta.app_label,
             model_name=model_name,
             object_id=instance.pk,
-            values={
+            defaults={
                 "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
                 "data": data or {},
                 "actor_id": actor.id if actor else None,
             },
         )
-        if not created:
-            record = cls.objects.get(
-                app_label=instance._meta.app_label,
-                model_name=model_name,
-                object_id=instance.pk,
-            )
 
         delete_logger.info(
             "object.delete.queued",

@@ -9,7 +9,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -139,7 +139,7 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
       <TimelineLegend ref={elementRef} role="caption">
         {!isPending &&
           legendStatuses.map(status => (
-            <Flex align="center" gap={space(0.5)} key={status}>
+            <Flex align="center" gap="xs" key={status}>
               <MonitorIndicator status={status} size={8} />
               <TimelineLegendText>{statusToText[status]}</TimelineLegendText>
             </Flex>
@@ -217,7 +217,7 @@ const TimelineLegend = styled('div')`
 
 const TimelineLegendText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TimelineContainer = styled('div')`
@@ -230,8 +230,8 @@ const EnvironmentLabel = styled(Tooltip)`
   position: absolute;
   user-select: none;
   left: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   white-space: nowrap;
 `;

@@ -15,6 +15,7 @@ from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -44,19 +45,15 @@ from sentry.integrations.repository.notification_action import (
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
-from sentry.integrations.slack.metrics import (
-    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
-    SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
-)
+from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
-from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action
 
 _logger = logging.getLogger(__name__)
@@ -440,7 +437,8 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
     )
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout
+    if should_fire_workflow_actions(organization, MetricIssue.type_id):
         return _handle_workflow_engine_notification(
             organization=organization,
             notification_context=notification_context,
@@ -487,20 +485,9 @@ def respond_to_slack_command(
             webhook_client.send(
                 text=command_response.message, replace_original=False, response_type="ephemeral"
             )
-            metrics.incr(
-                SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "webhook", "command": command_response.command},
-            )
         except (SlackApiError, SlackRequestError) as e:
-            metrics.incr(
-                SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "webhook", "command": command_response.command},
-            )
-            _logger.exception(log_msg("error"), extra={"error": str(e)})
+            _logger.info(log_msg("error"), extra={"error": str(e)})
     else:
-        _logger.info(log_msg("respond-ephemeral"))
         try:
             client = SlackSdkClient(integration_id=integration.id)
             client.chat_postMessage(
@@ -509,15 +496,5 @@ def respond_to_slack_command(
                 replace_original=False,
                 response_type="ephemeral",
             )
-            metrics.incr(
-                SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "ephemeral", "command": command_response.command},
-            )
         except SlackApiError as e:
-            metrics.incr(
-                SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "ephemeral", "command": command_response.command},
-            )
-            _logger.exception(log_msg("error"), extra={"error": str(e)})
+            _logger.info(log_msg("error"), extra={"error": str(e)})

@@ -3,9 +3,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.types import IntegrationProviderSlug
+
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
-SUPPORTED_INTEGRATIONS = ["github"]
+SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
 STACK_ROOT_MAX_LEVEL = 4
 # Stacktrace roots that match one of these will have three levels of granularity
 # com.au, co.uk, org.uk, gov.uk, net.uk, edu.uk, ct.uk

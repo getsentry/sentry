@@ -1,13 +1,14 @@
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
@@ -25,7 +26,10 @@ jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
 }));
 
+jest.mock('sentry/utils/useLocation');
+
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockUseLocation = jest.mocked(useLocation);
 
 describe('Dashboards > Detail', function () {
   const mockUnauthorizedOrg = OrganizationFixture({
@@ -50,9 +54,16 @@ describe('Dashboards > Detail', function () {
       url: '/organizations/org-slug/dashboards/?sort=name&per_page=9',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/starred/',
+      body: [],
+    });
+
+    mockUseLocation.mockReturnValue(LocationFixture());
   });
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    localStorage.clear();
   });
 
   it('renders', async function () {
@@ -62,11 +73,10 @@ describe('Dashboards > Detail', function () {
     });
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: mockAuthorizedOrg,
     });
 
-    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
 
@@ -79,7 +89,6 @@ describe('Dashboards > Detail', function () {
       statusCode: 400,
     });
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: mockAuthorizedOrg,
     });
 
@@ -88,7 +97,6 @@ describe('Dashboards > Detail', function () {
 
   it('denies access on missing feature', async function () {
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: mockUnauthorizedOrg,
     });
 
@@ -101,7 +109,6 @@ describe('Dashboards > Detail', function () {
     act(() => ProjectsStore.loadInitialData([]));
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: mockAuthorizedOrg,
     });
 
@@ -116,7 +123,6 @@ describe('Dashboards > Detail', function () {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: org,
     });
 
@@ -134,7 +140,6 @@ describe('Dashboards > Detail', function () {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: org,
     });
 
@@ -154,7 +159,6 @@ describe('Dashboards > Detail', function () {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: org,
     });
 
@@ -178,7 +182,6 @@ describe('Dashboards > Detail', function () {
     });
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: mockAuthorizedOrg,
     });
 
@@ -205,7 +208,6 @@ describe('Dashboards > Detail', function () {
     });
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: mockAuthorizedOrg,
     });
 
@@ -223,17 +225,15 @@ describe('Dashboards > Detail', function () {
     });
 
     render(<ManageDashboards />, {
-      ...RouteComponentPropsFixture(),
       organization: {
         ...mockAuthorizedOrg,
-        features: [...FEATURES, 'dashboards-table-view'],
       },
     });
 
-    expect(await screen.findByTestId('list')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('list'));
+    expect(await screen.findByTestId('table')).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId('table'));
 
-    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"list"');
+    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
 
     expect(await screen.findByTestId('grid')).toBeInTheDocument();
@@ -241,5 +241,85 @@ describe('Dashboards > Detail', function () {
 
     expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
     expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
+  });
+
+  it('uses recently viewed sort by default on table view', async function () {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-starred-reordering'],
+    });
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    // mock the view type to table
+    localStorage.setItem(LAYOUT_KEY, '"table"');
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    const sortBy = await screen.findByTestId('sort-by-select');
+    expect(sortBy).toBeInTheDocument();
+    // The prefix and the selection are concatenated when using text content
+    expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
+  });
+
+  it('does not show My Dashboards as a sort option in table view', async function () {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-starred-reordering'],
+    });
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    // mock the view type to table
+    localStorage.setItem(LAYOUT_KEY, '"table"');
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    const sortBy = await screen.findByTestId('sort-by-select');
+    expect(sortBy).toBeInTheDocument();
+    // The prefix and the selection are concatenated when using text content
+    expect(sortBy).toHaveTextContent('Sort ByRecently Viewed');
+    expect(screen.queryByText('My Dashboards')).not.toBeInTheDocument();
+  });
+
+  it('redirects the URL to the default sort option when the sort option is not valid', async function () {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-starred-reordering'],
+    });
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+    mockUseLocation.mockReturnValue(LocationFixture({query: {sort: 'invalid'}}));
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    expect(await screen.findByText('My Dashboards')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({query: {sort: 'mydashboards'}})
+      );
+    });
+  });
+
+  it('shows the most favorited sort option for the %s view type', async function () {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-starred-reordering'],
+    });
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    await selectEvent.openMenu(await screen.findByRole('button', {name: /sort by/i}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Most Starred'}));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {sort: 'mostFavorited'}})
+    );
   });
 });

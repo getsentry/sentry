@@ -285,7 +285,7 @@ const Currency = styled('span')`
     position: absolute;
     content: '$';
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
   }
 `;
 

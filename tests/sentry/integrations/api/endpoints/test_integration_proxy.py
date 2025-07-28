@@ -61,7 +61,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-integration-proxy"
     secret = SENTRY_SUBNET_SECRET
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
         self.proxy_path = "chat.postMessage"
         self.endpoint_cls = InternalIntegrationProxyEndpoint()
@@ -215,7 +215,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         assert proxy_response.get(PROXY_SIGNATURE_HEADER) is None
 
     @override_settings(SENTRY_SUBNET_SECRET=secret, SILO_MODE=SiloMode.CONTROL)
-    def test__validate_sender(self):
+    def test__validate_sender(self) -> None:
         # Missing header data
         header_kwargs = SiloHttpHeaders()
         request = self.factory.get(self.path, **header_kwargs)

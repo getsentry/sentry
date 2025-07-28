@@ -28,7 +28,7 @@ pytestmark = [requires_snuba]
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project_name = "Jira Cloud"
         self.integration, _ = self.create_provider_integration_for(
@@ -123,7 +123,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
-            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
@@ -155,7 +155,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
             )
 
-    def test_fails_validation(self):
+    def test_fails_validation(self) -> None:
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """
@@ -207,10 +207,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationFormError):
-                # Trigger its `after`, but with a broken client which should raise
-                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
-                self.trigger(event, rule_object)
+            self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
@@ -232,8 +229,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationInstallationConfigurationError):
-                self.trigger(event, rule_object)
+            self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list

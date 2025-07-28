@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -667,6 +667,34 @@ class AMCheckout extends Component<Props, State> {
     });
   }
 
+  renderPartnerAlert() {
+    const {subscription} = this.props;
+
+    if (!subscription.isSelfServePartner) {
+      return null;
+    }
+
+    return (
+      <Alert.Container>
+        <Alert type="info">
+          <PartnerAlertContent>
+            <PartnerAlertTitle>
+              {tct('Billing handled externally through [partnerName]', {
+                partnerName: subscription.partner?.partnership.displayName,
+              })}
+            </PartnerAlertTitle>
+            {tct(
+              'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
+              {
+                partnerName: subscription.partner?.partnership.displayName,
+              }
+            )}
+          </PartnerAlertContent>
+        </Alert>
+      </Alert.Container>
+    );
+  }
+
   render() {
     const {subscription, organization, isLoading, promotionData, checkoutTier} =
       this.props;
@@ -721,7 +749,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -732,9 +760,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info" showIcon>
-              {promotionDisclaimerText}
-            </Alert>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         <SettingsPageHeader
@@ -742,8 +768,12 @@ class AMCheckout extends Component<Props, State> {
           colorSubtitle={subscriptionDiscountInfo}
           data-test-id="change-subscription"
         />
+
         <CheckoutContainer>
-          <div data-test-id="checkout-steps">{this.renderSteps()}</div>
+          <CheckoutMain>
+            {this.renderPartnerAlert()}
+            <div data-test-id="checkout-steps">{this.renderSteps()}</div>
+          </CheckoutMain>
           <SidePanel>
             <OverviewContainer>
               {checkoutTier === PlanTier.AM3 ? (
@@ -798,7 +828,7 @@ const CheckoutContainer = styled('div')`
   gap: ${space(3)};
   grid-template-columns: 58% auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -815,7 +845,7 @@ const SidePanel = styled('div')`
  * but keep cancel subscription button
  */
 const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -826,7 +856,7 @@ const SupportPrompt = styled(Panel)`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
 `;
@@ -838,15 +868,27 @@ const CancelSubscription = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-align: center;
   margin-bottom: ${space(1)};
 `;
 
+const PartnerAlertContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PartnerAlertTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
+`;
+
 const AnnualTerms = styled(TextBlock)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
+
+const CheckoutMain = styled('div')``;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

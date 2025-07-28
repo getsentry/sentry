@@ -8,7 +8,12 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_metric_action,
+    migrate_metric_data_conditions,
+    migrate_resolve_threshold_data_condition,
+)
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -26,6 +31,20 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         assert serialized_detector == self.expected
 
     def test_latest_incident(self) -> None:
+        # add some other workflow engine objects to ensure that our filtering is working properly
+        other_alert_rule = self.create_alert_rule()
+        critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=other_alert_rule, label="critical"
+        )
+        critical_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=critical_trigger
+        )
+        migrate_alert_rule(other_alert_rule)
+        migrate_metric_data_conditions(critical_trigger)
+
+        migrate_metric_action(critical_trigger_action)
+        migrate_resolve_threshold_data_condition(other_alert_rule)
+
         self.add_incident_data()
         past_incident = self.create_incident(
             alert_rule=self.alert_rule, date_started=self.now - timedelta(days=1)
@@ -67,6 +86,43 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
             ],
         )
         self.sentry_app_action, _, _ = migrate_metric_action(self.sentry_app_trigger_action)
+
+        other_sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Not Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=other_sentry_app.slug, organization=self.organization, user=self.user
+        )
+
+        # add some other workflow engine objects to ensure that our filtering is working properly
+        other_alert_rule = self.create_alert_rule()
+        critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=other_alert_rule, label="critical"
+        )
+        critical_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=critical_trigger
+        )
+        migrate_alert_rule(other_alert_rule)
+        migrate_metric_data_conditions(critical_trigger)
+
+        migrate_metric_action(critical_trigger_action)
+        migrate_resolve_threshold_data_condition(other_alert_rule)
+
+        other_sentry_app_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=critical_trigger,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_identifier=other_sentry_app.id,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=other_sentry_app,
+            sentry_app_config=[
+                {"name": "title", "value": "An alert"},
+            ],
+        )
+        migrate_metric_action(other_sentry_app_action)
 
         # add a sentry app action and update expected actions
         sentry_app_action_data = {

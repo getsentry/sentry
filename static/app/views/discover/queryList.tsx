@@ -20,6 +20,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -171,7 +172,11 @@ class QueryList extends Component<Props> {
         hasDatasetSelector(organization) ? view.queryDataset : undefined
       );
 
-      const menuItems = [
+      const deprecateTransactionQuery =
+        organization.features.includes('discover-saved-queries-deprecation') &&
+        view.queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
+      const menuItems: MenuItemProps[] = [
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
@@ -191,6 +196,7 @@ class QueryList extends Component<Props> {
                 : undefined,
               source: DashboardWidgetSource.DISCOVERV2,
             }),
+          disabled: deprecateTransactionQuery,
         },
         {
           key: 'set-as-default',
@@ -262,6 +268,10 @@ class QueryList extends Component<Props> {
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
 
+      const deprecateTransactionQuery =
+        organization.features.includes('discover-saved-queries-deprecation') &&
+        savedQuery.queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
       const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
         ...(canAddToDashboard
           ? [
@@ -284,6 +294,7 @@ class QueryList extends Component<Props> {
                       : undefined,
                     source: DashboardWidgetSource.DISCOVERV2,
                   }),
+                disabled: deprecateTransactionQuery,
               },
             ]
           : []),
@@ -304,6 +315,7 @@ class QueryList extends Component<Props> {
           label: t('Duplicate Query'),
           onAction: () =>
             this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
+          disabled: deprecateTransactionQuery,
         },
         {
           key: 'delete',
@@ -381,11 +393,11 @@ const QueryGrid = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;

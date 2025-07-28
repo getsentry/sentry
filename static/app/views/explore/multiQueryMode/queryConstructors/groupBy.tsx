@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {
   type ReadableExploreQueryParts,
@@ -14,17 +14,19 @@ import {
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function GroupBySection({query, index}: Props) {
-  const {tags} = useSpanTags();
+  const {tags} = useTraceItemTags();
 
   const updateGroupBys = useUpdateQueryAtIndex(index);
 
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
     groupBys: [],
     tags,
+    traceItemType: TraceItemDataset.SPANS,
     hideEmptyOption: true,
   });
 

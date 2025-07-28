@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -8,19 +7,16 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
-
 jest.mock('sentry/views/explore/logs/useLogsQuery', () => ({
   useExploreLogsTableRow: jest.fn(),
   usePrefetchLogTableRowOnHover: jest.fn().mockReturnValue({}),
+  useLogsQueryKeyWithInfinite: jest.fn().mockReturnValue({}),
 }));
 
 jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
@@ -52,7 +48,7 @@ function ProviderWrapper({children}: {children?: React.ReactNode}) {
 
 describe('logsTableRow', () => {
   const organization = OrganizationFixture({
-    features: ['trace-view-v1'],
+    features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
   });
 
   const projects = [ProjectFixture()];
@@ -64,7 +60,7 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.PROJECT_ID]: String(projects[0]!.id),
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     [OurLogKnownFieldKey.MESSAGE]: 'test log body',
-    [OurLogKnownFieldKey.SEVERITY_NUMBER]: 456,
+    [OurLogKnownFieldKey.SEVERITY]: 'error',
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
   });
 
@@ -72,6 +68,7 @@ describe('logsTableRow', () => {
   const rowDetails = [
     ...Object.entries(rowData),
     ...Object.entries({
+      [OurLogKnownFieldKey.SPAN_ID]: 'faded0',
       [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: 'derp',
       [OurLogKnownFieldKey.CODE_LINE_NUMBER]: '10',
       [OurLogKnownFieldKey.CODE_FILE_PATH]: 'herp/merp/derp.py',
@@ -86,10 +83,6 @@ describe('logsTableRow', () => {
         type: typeof v === 'string' ? 'str' : 'float',
       }) as TraceItemResponseAttribute
   );
-
-  beforeEach(function () {
-    mockedUsedLocation.mockReturnValue(LocationFixture());
-  });
 
   it('renders row details', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -130,6 +123,9 @@ describe('logsTableRow', () => {
     expect(screen.getByText('test log body')).toBeInTheDocument();
     expect(screen.getByText('2025-04-03T15:50:10+00:00')).toBeInTheDocument();
 
+    // Check that the span ID is not rendered
+    expect(screen.queryByText('span_id')).not.toBeInTheDocument();
+
     // Expand the row to show the attributes
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
@@ -152,14 +148,12 @@ describe('logsTableRow', () => {
 
     // Check that the attribute values are rendered
     expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();
-    expect(screen.getByText('456')).toBeInTheDocument();
+    expect(screen.getByText('error')).toBeInTheDocument();
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
-    expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
-      'severity_number'
-    );
+    expect(screen.getByTestId('tree-key-severity')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-severity')).toHaveTextContent('severity');
 
     // Check that the custom renderer works
     expect(screen.getByTestId('tree-key-trace')).toHaveTextContent('trace');

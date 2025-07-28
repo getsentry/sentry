@@ -17,7 +17,7 @@ const OrganizationRegionInformationWrapper = styled('div')`
 `;
 
 const OrganizationFlag = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 export function OrganizationRegionAction({organization, ...props}: Props) {

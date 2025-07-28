@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -92,7 +92,7 @@ const ApplicationName = styled(Link)`
 
 const ClientId = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 export default Row;

@@ -14,12 +14,13 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 
 class TestWorkflowValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.organization,
             "request": self.make_request(),
@@ -38,7 +39,7 @@ class TestWorkflowValidator(TestCase):
             },
         }
 
-    def test_valid_data(self):
+    def test_valid_data(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
@@ -87,27 +88,27 @@ class TestWorkflowValidator(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
-    def test_invalid_data__no_name(self):
+    def test_invalid_data__no_name(self) -> None:
         self.valid_data["name"] = ""
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
-    def test_invalid_data__incorrect_config(self):
+    def test_invalid_data__incorrect_config(self) -> None:
         self.valid_data["config"] = {"foo": "bar"}
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
-    def test_invalid_data__invalid_trigger(self):
+    def test_invalid_data__invalid_trigger(self) -> None:
         self.valid_data["triggers"] = {"foo": "bar"}
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
 
 class TestWorkflowValidatorCreate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": self.make_request(user=self.user),
         }
 
         self.valid_data = {
@@ -123,7 +124,7 @@ class TestWorkflowValidatorCreate(TestCase):
             },
         }
 
-    def test_create__simple(self):
+    def test_create__simple(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
         workflow = validator.create(validator.validated_data)
@@ -134,8 +135,9 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.enabled == self.valid_data["enabled"]
         assert workflow.config == self.valid_data["config"]
         assert workflow.organization_id == self.organization.id
+        assert workflow.created_by_id == self.user.id
 
-    def test_create__validate_triggers_empty(self):
+    def test_create__validate_triggers_empty(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
@@ -144,7 +146,7 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 0
 
-    def test_create__validate_triggers_with_conditions(self):
+    def test_create__validate_triggers_with_conditions(self) -> None:
         self.valid_data["triggers"] = {
             "logicType": "any",
             "conditions": [
@@ -238,7 +240,7 @@ class TestWorkflowValidatorCreate(TestCase):
         assert action_group.action.type == Action.Type.SLACK
         assert action_group.condition_group.logic_type == "any"
 
-    def test_create__exceeds_workflow_limit(self):
+    def test_create__exceeds_workflow_limit(self) -> None:
         REGULAR_LIMIT = 2
         with self.settings(MAX_WORKFLOWS_PER_ORG=REGULAR_LIMIT):
             # Create first workflow - should succeed
@@ -267,7 +269,7 @@ class TestWorkflowValidatorCreate(TestCase):
                 )
             ]
 
-    def test_create__exceeds_more_workflow_limit(self):
+    def test_create__exceeds_more_workflow_limit(self) -> None:
         REGULAR_LIMIT = 2
         MORE_LIMIT = 4
         with self.settings(
@@ -320,7 +322,7 @@ class TestWorkflowValidatorCreate(TestCase):
 
 
 class TestWorkflowValidatorUpdate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {
             "organization": self.organization,
             "request": self.make_request(),
@@ -378,7 +380,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         attrs = serializer.get_attrs([self.workflow], self.user)
         self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
 
-    def test_update_property(self):
+    def test_update_property(self) -> None:
         self.valid_data["name"] = "Update Test"
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
 
@@ -388,7 +390,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
 
-    def test_update__remove_trigger_conditions(self):
+    def test_update__remove_trigger_conditions(self) -> None:
         assert self.workflow.when_condition_group
 
         self.valid_saved_data["triggers"] = {
@@ -406,7 +408,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group is not None
         assert self.workflow.when_condition_group.conditions.count() == 0
 
-    def test_update__hack_attempt_to_override_different_trigger_condition(self):
+    def test_update__hack_attempt_to_override_different_trigger_condition(self) -> None:
         fake_dcg = DataConditionGroup.objects.create(
             organization=self.organization,
             logic_type="any",
@@ -424,7 +426,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         with pytest.raises(ValidationError):
             validator.update(self.workflow, validator.validated_data)
 
-    def test_update__remove_action_filter(self):
+    def test_update__remove_action_filter(self) -> None:
         self.valid_saved_data["actionFilters"] = []
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
@@ -435,16 +437,16 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         assert self.workflow.workflowdataconditiongroup_set.count() == 0
 
-    def test_update__add_new_filter(self):
+    def test_update__add_new_filter(self) -> None:
         self.valid_saved_data["actionFilters"].append(
             {
                 "actions": [
                     {
                         "type": Action.Type.SLACK,
                         "config": {
-                            "target_identifier": "foo",
-                            "target_display": "bar",
-                            "target_type": 0,
+                            "targetIdentifier": "bar",
+                            "targetDisplay": "baz",
+                            "targetType": 0,
                         },
                         "data": {},
                         "integrationId": 1,
@@ -463,8 +465,28 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.workflow.refresh_from_db()
 
         assert self.workflow.workflowdataconditiongroup_set.count() == 2
+        new_action_filter = (
+            WorkflowDataConditionGroup.objects.filter(workflow=self.workflow)
+            .order_by("-date_added")
+            .first()
+        )
 
-    def test_update__remove_one_filter(self):
+        assert new_action_filter is not None
+        assert new_action_filter.condition_group is not None
+
+        new_actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=[new_action_filter.condition_group.id]
+        )
+
+        assert new_actions.count() == 1
+        assert new_actions[0].type == Action.Type.SLACK
+        assert new_actions[0].config == {
+            "target_identifier": "bar",
+            "target_display": "baz",
+            "target_type": 0,
+        }
+
+    def test_update__remove_one_filter(self) -> None:
         # Configuration for the test
         self.workflow.workflowdataconditiongroup_set.create(
             condition_group=DataConditionGroup.objects.create(
@@ -498,7 +520,7 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         return first_condition
 
-    def test_update__data_condition(self):
+    def test_update__data_condition(self) -> None:
         first_condition = self._get_first_trigger_condition(self.workflow)
         assert first_condition.comparison == 1
 
@@ -514,7 +536,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         first_condition = self._get_first_trigger_condition(self.workflow)
         assert first_condition.comparison == updated_condition["comparison"]
 
-    def test_update__remove_one_data_condition(self):
+    def test_update__remove_one_data_condition(self) -> None:
         # Setup the test
         assert self.workflow.when_condition_group
         assert self.workflow.when_condition_group.conditions.count() == 1
@@ -541,14 +563,14 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group.conditions.count() == 1
         assert self.workflow.when_condition_group.conditions.first() == dc
 
-    def test_update__add_new_action(self):
+    def test_update__add_new_action(self) -> None:
         self.valid_saved_data["actionFilters"][0]["actions"].append(
             {
                 "type": Action.Type.SLACK,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_display": "bar",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetDisplay": "bar",
+                    "targetType": 0,
                 },
                 "data": {},
                 "integrationId": 1,
@@ -559,7 +581,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert validator.is_valid() is True
         validator.update(self.workflow, validator.validated_data)
 
-    def test_update__modify_action(self):
+    def test_update__modify_action(self) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
         assert workflow_condition_group is not None
         action_condition_group = (
@@ -576,8 +598,8 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "id": action.id,
                 "type": Action.Type.EMAIL,
                 "config": {
-                    "target_identifier": "foo",
-                    "target_type": 0,
+                    "targetIdentifier": "foo",
+                    "targetType": 0,
                 },
                 "data": {},
             }
@@ -601,7 +623,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert updated_action.id == action.id
         assert updated_action.type == Action.Type.EMAIL
 
-    def test_update__remove_one_action(self):
+    def test_update__remove_one_action(self) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
         assert workflow_condition_group is not None
         new_action = Action.objects.create(
@@ -634,7 +656,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert action_condition_group.action.id != new_action.id
         assert action_condition_group.action.type == Action.Type.SLACK
 
-    def test_update__remove_all_actions(self):
+    def test_update__remove_all_actions(self) -> None:
         self.valid_saved_data["actionFilters"][0]["actions"] = []
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True

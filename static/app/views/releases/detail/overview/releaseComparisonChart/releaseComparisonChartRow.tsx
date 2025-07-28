@@ -106,7 +106,7 @@ const Cell = styled('div')`
   text-align: right;
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const NumericCell = styled(Cell)`
@@ -157,7 +157,7 @@ const ChartTableRow = styled('label')<{
   role: ReleaseComparisonRow['role'];
 }>`
   display: contents;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: 0;
 
   > * {

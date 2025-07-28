@@ -27,7 +27,7 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('NewWidgetBuiler', function () {
+describe('NewWidgetBuilder', function () {
   const onCloseMock = jest.fn();
   const onSaveMock = jest.fn();
 
@@ -127,7 +127,7 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
-    expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Description')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
     expect(screen.getByText('Errors')).toBeInTheDocument();

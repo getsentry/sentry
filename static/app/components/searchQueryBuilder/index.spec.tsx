@@ -1,5 +1,7 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -134,6 +136,11 @@ describe('SearchQueryBuilder', function () {
     destroyAnnouncer();
 
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+    });
   });
 
   afterEach(function () {
@@ -173,6 +180,10 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(getLastInput());
+
+      expect(mockOnChange).not.toHaveBeenCalled();
+      expect(mockOnSearch).not.toHaveBeenCalled();
+
       await userEvent.keyboard('b{enter}');
 
       const expectedQueryState = expect.objectContaining({
@@ -3505,6 +3516,30 @@ describe('SearchQueryBuilder', function () {
         await screen.findByText('Invalid key. "foo" is not a supported search key.')
       ).toBeInTheDocument();
     });
+
+    describe('secondary aliases provided', function () {
+      it('should not mark secondary aliases as invalid', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            disallowUnsupportedFilters
+            initialQuery="foo:bar"
+            filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
+          />
+        );
+
+        expect(screen.getByRole('row', {name: 'foo:bar'})).toHaveAttribute(
+          'aria-invalid',
+          'false'
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('{ArrowLeft}');
+        expect(
+          screen.queryByText('Invalid key. "foo" is not a supported search key.')
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('invalidMessages', function () {
@@ -4231,6 +4266,386 @@ describe('SearchQueryBuilder', function () {
           expect(mockOnChange).toHaveBeenCalledTimes(1);
         });
       });
+    });
+
+    describe('rendering wildcarded values', function () {
+      describe('single value', function () {
+        it('renders content without asterisk', async function () {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:*firefox*"
+              onChange={mockOnChange}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          // ensure that we're rendering with wildcard value
+          // this is async because there's things going on in the background where some state updates are happening and RTL is complaining that we're not waiting for act's
+          expect(
+            await within(
+              screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+            ).findByText('contains')
+          ).toBeInTheDocument();
+
+          expect(
+            within(screen.getByRole('row', {name: 'browser.name:*firefox*'})).getByText(
+              'firefox'
+            )
+          ).toBeInTheDocument();
+        });
+      });
+
+      describe('multiple values', function () {
+        describe('all values are wildcarded', function () {
+          it('renders content without asterisk', async function () {
+            const mockOnChange = jest.fn();
+            render(
+              <SearchQueryBuilder
+                {...defaultProps}
+                initialQuery="browser.name:[*firefox*,*chrome*,*random*value*]"
+                onChange={mockOnChange}
+              />,
+              {organization: {features: ['search-query-builder-wildcard-operators']}}
+            );
+
+            expect(
+              await within(
+                screen.getByRole('button', {
+                  name: 'Edit operator for filter: browser.name',
+                })
+              ).findByText('contains')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('firefox')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('chrome')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {
+                  name: 'browser.name:[*firefox*,*chrome*,*random*value*]',
+                })
+              ).getByText('random*value')
+            ).toBeInTheDocument();
+          });
+        });
+
+        describe('some values are wildcarded', function () {
+          it('renders content with asterisk', async function () {
+            const mockOnChange = jest.fn();
+            render(
+              <SearchQueryBuilder
+                {...defaultProps}
+                initialQuery="browser.name:[*firefox*,chrome]"
+                onChange={mockOnChange}
+              />,
+              {organization: {features: ['search-query-builder-wildcard-operators']}}
+            );
+
+            expect(
+              await within(
+                screen.getByRole('button', {
+                  name: 'Edit operator for filter: browser.name',
+                })
+              ).findByText('is')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {name: 'browser.name:[*firefox*,chrome]'})
+              ).getByText('*firefox*')
+            ).toBeInTheDocument();
+
+            expect(
+              within(
+                screen.getByRole('row', {name: 'browser.name:[*firefox*,chrome]'})
+              ).getByText('chrome')
+            ).toBeInTheDocument();
+          });
+        });
+      });
+    });
+  });
+
+  describe('replaceRawSearchKeys', function () {
+    it('should replace raw search keys with defined key:value', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-raw-search-replacement',
+              'search-query-builder-wildcard-operators',
+            ],
+          },
+        }
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:randomValue'})
+      ).toBeInTheDocument();
+    });
+
+    it('should replace raw search keys with defined key:*value*', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-raw-search-replacement',
+              'search-query-builder-wildcard-operators',
+            ],
+          },
+        }
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:*randomValue*'})
+      ).toBeInTheDocument();
+    });
+
+    it('can handle values with spaces', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-raw-search-replacement',
+              'search-query-builder-wildcard-operators',
+            ],
+          },
+        }
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+      expect(
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:"random value"'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('ask seer', function () {
+    it('renders ask seer button when user has given consent', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+        }),
+      });
+
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+
+      const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+      expect(askSeer).toBeInTheDocument();
+    });
+
+    it('renders enable ai button when user has not given consent', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+        }),
+      });
+
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+
+      const enableAi = await screen.findByText(/Enable Gen AI/);
+      expect(enableAi).toBeInTheDocument();
+    });
+
+    describe('user clicks on enable gen ai button', () => {
+      it('calls promptsUpdate', async () => {
+        const organization = OrganizationFixture({
+          slug: 'org-slug',
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        });
+        const promptsUpdateMock = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/prompts-activity/`,
+          method: 'PUT',
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/seer/setup-check/`,
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: false,
+              userHasAcknowledged: false,
+            },
+          }),
+        });
+
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
+
+        await userEvent.click(getLastInput());
+
+        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
+        expect(enableAi).toBeInTheDocument();
+
+        await userEvent.hover(enableAi);
+        await userEvent.keyboard('{enter}');
+
+        await waitFor(() => {
+          expect(promptsUpdateMock).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+              data: {
+                feature: 'seer_autofix_setup_acknowledged',
+                organization_id: organization.id,
+                project_id: undefined,
+                status: 'dismissed',
+              },
+            })
+          );
+        });
+      });
+    });
+
+    describe('free text', function () {
+      it('displays ask seer button when searching free text', async function () {
+        const mockOnSearch = jest.fn();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/seer/setup-check/',
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: true,
+              userHasAcknowledged: true,
+            },
+          }),
+        });
+
+        render(
+          <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+              ],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+        expect(screen.getByRole('option', {name: /Ask Seer/i})).toBeInTheDocument();
+      });
+    });
+
+    it('displays enable ai button when searching free text and user has not given consent', async function () {
+      const mockOnSearch = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/seer/setup-check/',
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+        }),
+      });
+
+      render(
+        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+        {
+          organization: {
+            features: [
+              'gen-ai-features',
+              'gen-ai-explore-traces',
+              'gen-ai-explore-traces-consent-ui',
+            ],
+          },
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+      expect(screen.getByRole('option', {name: /Enable Gen AI/})).toBeInTheDocument();
     });
   });
 });

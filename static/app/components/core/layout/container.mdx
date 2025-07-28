@@ -1,0 +1,190 @@
+---
+title: Container
+description: A foundational layout component that provides responsive CSS properties through props, serving as the building block for other layout components.
+source: 'sentry/components/core/layout/container'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
+---
+
+import {Container, Flex} from 'sentry/components/core/layout';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/container';
+
+export const types = {Container: APIReference.Container};
+
+The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
+
+You can specialize the `Container` component yourself and tailor it to your use case if neither `Grid` nor `Flex` are sufficient, but that should be an exception and you should try to use the higher order components instead.
+
+## Usage
+
+The simplest usage renders a `div` element with enhanced layout properties:
+
+```jsx
+<Container padding="md" background="secondary">
+  Basic container content
+</Container>
+```
+
+## Spacing
+
+The `padding` prop uses the theme's spacing system with shorthand support:
+
+<Storybook.Demo>
+  <Flex gap="md">
+    {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+      <Container key={size} background="tertiary" padding={size} border="primary">
+        <strong>{size} padding</strong> -{' '}
+        {size === 'xs'
+          ? '4px'
+          : size === 'sm'
+            ? '6px'
+            : size === 'md'
+              ? '8px'
+              : size === 'lg'
+                ? '12px'
+                : size === 'xl'
+                  ? '16px'
+                  : '24px'}
+      </Container>
+    ))}
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Container padding="md">8px padding on all sides</Container>
+<Container padding="md lg">8px top/bottom, 12px left/right</Container>
+<Container padding="xs sm md lg">2px top, 6px right, 8px bottom, 12px left</Container>
+```
+
+### Border Radius
+
+Apply rounded corners using theme radius values:
+
+<Storybook.Demo>
+  <Flex gap="md">
+    <Container background="secondary" padding="md" radius="sm" border="primary">
+      Small radius
+    </Container>
+    <Container background="secondary" padding="md" radius="md" border="primary">
+      Medium radius
+    </Container>
+    <Container background="secondary" padding="md" radius="lg" border="primary">
+      Large radius
+    </Container>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Container background="secondary" padding="md" radius="md">
+  Rounded corners
+</Container>
+```
+
+### Position
+
+Set positioning for absolute/relative layouts:
+
+<Storybook.Demo>
+  <Container position="relative" height="100px" background="primary" border="primary">
+    <Container
+      position="absolute"
+      padding="xs"
+      background="tertiary"
+      style={{top: '12px', right: '8px'}}
+      border="primary"
+    >
+      Absolute positioned
+    </Container>
+    Relative container
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container position="relative" height="100px" background="primary">
+  <Container
+    position="absolute"
+    padding="xs"
+    background="tertiary"
+    style={{top: '12px', right: '8px'}}
+  >
+    Absolute positioned
+  </Container>
+  Relative container
+</Container>
+```
+
+## Responsive Example
+
+<Storybook.Demo>
+  <Flex
+    padding={{xs: 'sm', lg: 'xl'}}
+    background={{xs: 'primary', sm: 'secondary', lg: 'tertiary'}}
+    radius={{xs: '0', sm: 'md'}}
+    border="primary"
+  >
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
+      Item 1
+    </Container>
+    <Container padding="sm" background="secondary" style={{flex: 1}} border="primary">
+      Item 2
+    </Container>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Container
+  // Padding increases at lg breakpoint
+  padding={{xs: 'sm', lg: 'xl'}}
+  // Background changes at sm and lg breakpoints
+  background={{xs: 'primary', sm: 'secondary', lg: 'tertiary'}}
+  // Adds border="primary" radius at sm breakpoint
+  radius={{xs: '0', sm: 'md'}}
+>
+  <div>Responsive layout content</div>
+</Container>
+```
+
+## Grid Integration
+
+The `area` prop supports CSS Grid integration:
+
+<Storybook.Demo>
+  <Container
+    display="grid"
+    style={{
+      gridTemplateAreas: '"header header" "sidebar content"',
+      gridTemplateColumns: '200px 1fr',
+      gridTemplateRows: 'auto 1fr',
+      gap: '8px',
+      height: '200px',
+    }}
+  >
+    <Container area="header" background="tertiary" padding="sm" border="primary">
+      Header
+    </Container>
+    <Container area="sidebar" background="secondary" padding="sm" border="primary">
+      Sidebar
+    </Container>
+    <Container area="content" background="primary" padding="sm" border="primary">
+      Content
+    </Container>
+  </Container>
+</Storybook.Demo>
+```jsx
+<Container
+  display="grid"
+  style={{
+    gridTemplateAreas: '"header header" "sidebar content"',
+    gridTemplateColumns: '200px 1fr',
+    gridTemplateRows: 'auto 1fr',
+  }}
+>
+  <Container area="header" background="tertiary" padding="sm">
+    Header
+  </Container>
+  <Container area="sidebar" background="secondary" padding="sm">
+    Sidebar
+  </Container>
+  <Container area="content" background="primary" padding="sm">
+    Content
+  </Container>
+</Container>
+```

@@ -2,7 +2,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
   type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
@@ -17,8 +17,10 @@ type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function SearchBarSection({query, index}: Props) {
   const {selection} = usePageFilters();
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
@@ -36,6 +38,8 @@ export function SearchBarSection({query, index}: Props) {
         searchSource="explore"
         numberTags={numberTags}
         stringTags={stringTags}
+        numberSecondaryAliases={numberSecondaryAliases}
+        stringSecondaryAliases={stringSecondaryAliases}
       />
     </Section>
   );

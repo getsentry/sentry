@@ -1,27 +1,21 @@
 from collections import namedtuple
-from datetime import datetime, timedelta
 from unittest.mock import ANY, patch
 
 import pytest
 import responses
-from django.core import mail
-from django.test import override_settings
 from django.urls import reverse
-from requests.exceptions import Timeout
+from requests import HTTPError
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
-from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import SentryAppStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.types import EventStreamEventType
-from sentry.integrations.models.utils import get_redis_key
-from sentry.integrations.notify_disable import notify_disable
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -48,9 +42,8 @@ from sentry.testutils.asserts import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -77,6 +70,10 @@ def raiseStatusTrue():
 
 def raiseException():
     raise Exception
+
+
+def raiseHTTPError():
+    raise HTTPError()
 
 
 class RequestMock:
@@ -107,10 +104,13 @@ MockResponseWithHeadersInstance = MockResponse(
 )
 MockResponseInstance = MockResponse({}, b"{}", "", True, 200, raiseStatusFalse, None)
 MockResponse404 = MockResponse({}, b'{"bruh": "bruhhhhhhh"}', "", False, 404, raiseException, None)
+MockResponse504 = MockResponse(headers, json_content, "", False, 504, raiseStatusFalse, None)
+MockResponse503 = MockResponse(headers, json_content, "", False, 503, raiseStatusFalse, None)
+MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPError, None)
 
 
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
         self.install = self.create_sentry_app_installation(
@@ -202,9 +202,12 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert_halt_metric(
             mock_record=mock_record, error_msg=SentryAppWebhookHaltReason.MISSING_INSTALLATION
         )
-        # PREPARE_WEBHOOK (failure)
+        # APP_CREATE (success) -> PREPARE_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
@@ -528,7 +531,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             organization=self.organization, events=["issue.created"]
         )
@@ -575,6 +578,224 @@ class TestProcessResourceChange(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
 
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_restricted_ip_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = RestrictedIPAddress("12.8391.231")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without retrying when RestrictedIPAddress is raised
+        # because it's in the ignore list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's ignored
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_timeout_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = Timeout()
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when Timeout is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_api_host_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse503
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ApiHostError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_api_timeout_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse504
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ApiTimeoutError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_connection_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = ConnectionError()
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ConnectionError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_http_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse502
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when HTTPError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_silently_retries_chunked_encoding_error_unpublished(
+        self, capture_exception, safe_urlopen
+    ):
+        """
+        Test that a chunked encoding error is ignored when the sentry app is unpublished
+        """
+        with assume_test_silo_mode_of(SentryApp):
+            SentryApp.objects.all().delete()
+            SentryAppInstallation.objects.all().delete()
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+        safe_urlopen.side_effect = ChunkedEncodingError("Connection reset by peer")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.call_count == 1
+
+    @patch("sentry_sdk.capture_exception")
+    def test_silently_retries_chunked_encoding_error_published(
+        self, capture_exception, safe_urlopen
+    ):
+        """
+        Test that a chunked encoding error raises a retry error
+        """
+        with assume_test_silo_mode_of(SentryApp):
+            SentryApp.objects.all().delete()
+            SentryAppInstallation.objects.all().delete()
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization, published=True, events=["issue.created"]
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+        safe_urlopen.side_effect = ChunkedEncodingError("Connection reset by peer")
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Just 1 from the RetryError
+        assert len(capture_exception.mock_calls) == 1
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_process_no_event(self, mock_record, safe_urlopen):
         process_resource_change_bound(
@@ -617,13 +838,13 @@ class TestProcessResourceChange(TestCase):
         assert len(safe_urlopen.mock_calls) == 0
         assert_success_metric(mock_record)
 
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success)
         # Our SentryAppInstallation test fixture automatically runs GrantExchanger to get a valid token
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
 
     @with_feature("organizations:integrations-event-hooks")
@@ -676,12 +897,13 @@ class TestProcessResourceChange(TestCase):
 
         assert_success_metric(mock_record)
 
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) ->
+        # SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=7
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=7
         )
 
     @responses.activate
@@ -755,10 +977,22 @@ class TestProcessResourceChange(TestCase):
         assert safe_urlopen.called
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
+        issue_data = data["data"]["issue"]
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == self.install.uuid
-        assert data["data"]["issue"]["id"] == str(event.group.id)
-
+        assert issue_data["id"] == str(event.group.id)
+        assert (
+            issue_data["url"]
+            == f"http://testserver/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/"
+        )
+        assert (
+            issue_data["web_url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/"
+        )
+        assert (
+            issue_data["project_url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/?project={event.project_id}"
+        )
         # SLO assertions
         assert_success_metric(mock_record)
         # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
@@ -852,7 +1086,7 @@ class TestProcessResourceChange(TestCase):
 
 
 class TestSendResourceChangeWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
@@ -953,12 +1187,13 @@ class TestSendResourceChangeWebhook(TestCase):
         assert self.sentry_app_1.webhook_url in call_urls
         assert self.sentry_app_2.webhook_url in call_urls
 
-        # GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (halt) x2
+        # APP_CREATE (success) x 2 -> UPDATE_WEBHOOK (success) x2 -> GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success)
+        # -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (halt) x2
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=9
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=13
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=7
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=11
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
@@ -1023,12 +1258,13 @@ class TestSendResourceChangeWebhook(TestCase):
         assert self.sentry_app_2.webhook_url in call_urls
 
         assert_success_metric(mock_record)
-        # GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2
+        # APP_CREATE (success) x 2 -> UPDATE_WEBHOOK (success) x2 -> GRANT_EXCHANGER (success) x 2 -> PREPARE_WEBHOOK (success)
+        # -> SEND_WEBHOOK (success) x 2 -> SEND_WEBHOOK (success) x2 -> SEND_WEBHOOK (success) x2
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=9
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=13
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=9
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=13
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1078,12 +1314,12 @@ class TestSendResourceChangeWebhook(TestCase):
         assert_failure_metric(
             mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
         )
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
@@ -1092,7 +1328,7 @@ class TestSendResourceChangeWebhook(TestCase):
 
 @control_silo_test
 class TestInstallationWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
         self.rpc_user = user_service.get_user(user_id=self.user.id)
@@ -1170,7 +1406,7 @@ class TestInstallationWebhook(TestCase):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
 
@@ -1273,7 +1509,7 @@ class TestCommentWebhook(TestCase):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
 
@@ -1344,12 +1580,12 @@ class TestWorkflowNotification(TestCase):
         assert_failure_metric(
             mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         )
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
@@ -1372,12 +1608,12 @@ class TestWorkflowNotification(TestCase):
         assert_failure_metric(
             mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
         )
-        # GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
@@ -1385,7 +1621,7 @@ class TestWorkflowNotification(TestCase):
 
 
 class TestWebhookRequests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user, id=1)
         self.sentry_app = self.create_sentry_app(
             name="Test App",
@@ -1401,117 +1637,6 @@ class TestWebhookRequests(TestCase):
         )
         self.issue = self.create_group(project=self.project)
         self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
-        self.integration_buffer = IntegrationRequestBuffer(
-            get_redis_key(self.sentry_app, self.organization.id)
-        )
-
-    @patch(
-        "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
-    )
-    def test_saves_error_if_webhook_request_fails(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-
-        with pytest.raises(ClientError):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-        requests = self.buffer.get_requests()
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert len(requests) == 1
-        assert first_request["response_code"] == 400
-        assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization_id
-        assert self.integration_buffer._get_all_from_buffer() == []
-        assert self.integration_buffer.is_integration_broken() is False
-
-    @patch(
-        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
-        return_value=MockFailureHTMLContentResponseInstance,
-    )
-    def test_saves_error_if_webhook_request_with_html_content_fails(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-
-        with pytest.raises(ClientError):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-
-        requests = self.buffer.get_requests()
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert len(requests) == 1
-        assert first_request["response_code"] == 400
-        assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization_id
-        assert first_request["response_body"] == html_content
-        assert self.integration_buffer._get_all_from_buffer() == []
-        assert self.integration_buffer.is_integration_broken() is False
-
-    @patch(
-        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
-        return_value=MockFailureJSONContentResponseInstance,
-    )
-    def test_saves_error_if_webhook_request_with_json_content_fails(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-
-        with pytest.raises(ClientError):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-
-        requests = self.buffer.get_requests()
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert len(requests) == 1
-        assert first_request["response_code"] == 400
-        assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization_id
-        assert (
-            first_request["response_body"]
-            and json.loads(first_request["response_body"]) == json_content
-        )
-        assert self.integration_buffer._get_all_from_buffer() == []
-        assert self.integration_buffer.is_integration_broken() is False
-
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
-    def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
-
-        requests = self.buffer.get_requests()
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert len(requests) == 1
-        assert first_request["response_code"] == 200
-        assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization_id
-        assert self.integration_buffer._get_all_from_buffer() == []
-        assert self.integration_buffer.is_integration_broken() is False
-
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
-    def test_saves_error_for_request_timeout(self, safe_urlopen):
-        data = {"issue": serialize(self.issue)}
-        # we don't log errors for unpublished and internal apps
-        with pytest.raises(Timeout):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-
-        requests = self.buffer.get_requests()
-        first_request = requests[0]
-
-        assert safe_urlopen.called
-        assert len(requests) == 1
-        assert first_request["response_code"] == 0
-        assert first_request["event_type"] == "issue.assigned"
-        assert first_request["organization_id"] == self.install.organization_id
-        assert self.integration_buffer._get_all_from_buffer() == []
-        assert self.integration_buffer.is_integration_broken() is False
 
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen",
@@ -1534,141 +1659,3 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
-
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
-    def test_does_not_raise_error_if_unpublished(self, safe_urlopen):
-        """
-        Tests that buffer records when unpublished app has a timeout but error is not raised
-        """
-        with assume_test_silo_mode_of(SentryApp):
-            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
-        events = self.sentry_app.events
-        data = {"issue": serialize(self.issue)}
-        # we don't raise errors for unpublished and internal apps
-        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
-
-        requests = self.buffer.get_requests()
-
-        assert safe_urlopen.called
-        assert len(requests) == 1
-        assert (self.integration_buffer._get_all_from_buffer()[0]["timeout_count"]) == "1"
-        assert self.integration_buffer.is_integration_broken() is False
-        self.sentry_app.refresh_from_db()  # reload to get updated events
-        assert self.sentry_app.events == events  # check that events are the same / app is enabled
-
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
-    @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
-    @pytest.mark.skip(reason="Feature is temporarily disabled")
-    def test_timeout_disable(self, safe_urlopen):
-        """
-        Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
-        """
-        with assume_test_silo_mode_of(SentryApp):
-            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
-        data = {"issue": serialize(self.issue)}
-        # we don't raise errors for unpublished and internal apps
-        for i in range(3):
-            send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
-            )
-        assert safe_urlopen.called
-        assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
-        assert len(self.integration_buffer._get_all_from_buffer()) == 0
-        self.sentry_app.refresh_from_db()  # reload to get updated events
-        assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
-
-    @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_ignore_issue_alert(self, mock_record, safe_urlopen):
-        """
-        Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
-        """
-        with assume_test_silo_mode_of(SentryApp):
-            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
-        data = {"issue": serialize(self.issue)}
-        # event.alert is not in the servicehook events
-        with pytest.raises(ValueError):
-            for i in range(3):
-                send_webhooks(
-                    installation=self.install, event="event.alert", data=data, actor=self.user
-                )
-
-        assert not safe_urlopen.called
-        assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
-        assert len(self.integration_buffer._get_all_from_buffer()) == 0
-        self.sentry_app.refresh_from_db()  # reload to get updated events
-        assert len(self.sentry_app.events) == 3  # check we didn't disable the webhooks
-
-    @patch(
-        "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
-    )
-    @pytest.mark.skip(reason="Feature is temporarily disabled")
-    def test_slow_should_disable(self, safe_urlopen):
-        """
-        Tests that the integration is broken after 7 days of errors and disabled
-        Slow shut off
-        """
-        with assume_test_silo_mode_of(SentryApp):
-            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
-        data = {"issue": serialize(self.issue)}
-        now = datetime.now() + timedelta(hours=1)
-        for i in reversed(range(7)):
-            with freeze_time(now - timedelta(days=i)):
-                send_webhooks(
-                    installation=self.install, event="issue.assigned", data=data, actor=self.user
-                )
-
-        # Flush audit logs
-        with outbox_runner():
-            pass
-
-        assert safe_urlopen.called
-        assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
-        self.sentry_app.refresh_from_db()  # reload to get updated events
-        assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
-        assert len(self.integration_buffer._get_all_from_buffer()) == 0
-
-        with assume_test_silo_mode_of(AuditLogEntry):
-            assert AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
-                organization_id=self.organization.id,
-            ).exists()
-
-    def test_notify_disabled_email(self):
-        with self.tasks():
-            notify_disable(
-                self.organization,
-                self.sentry_app.name,
-                get_redis_key(self.sentry_app, self.organization.id),
-                self.sentry_app.slug,
-                self.sentry_app.webhook_url,
-            )
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.subject == f"Action required: Fix your {self.sentry_app.name} integration"
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}"
-            )
-            in msg.body
-        )
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/?referrer=disabled-sentry-app"
-            )
-            in msg.body
-        )
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard"
-            )
-            in msg.body
-        )
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/developer-settings/{self.sentry_app.slug}/dashboard/?referrer=disabled-sentry-app/"
-            )
-            in msg.body
-        )
-        assert (self.sentry_app.webhook_url) in msg.body

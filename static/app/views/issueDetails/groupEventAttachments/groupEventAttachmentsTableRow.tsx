@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';

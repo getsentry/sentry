@@ -176,7 +176,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APDEX),
       fields: ['apdex()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[4] : WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.P50_DURATION_AREA]: {
@@ -240,7 +240,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       fields: ['p75(measurements.app_start_cold)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[4] : WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.WARM_STARTUP_AREA]: {
@@ -264,7 +264,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
       fields: ['p75(measurements.frames_frozen_rate)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[5] : WIDGET_PALETTE[5],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(5)[5] : WIDGET_PALETTE[5],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: {
@@ -369,7 +369,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.TIME_TO_INITIAL_DISPLAY),
       fields: ['p75(measurements.time_to_initial_display)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[4] : WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY]: {
@@ -377,7 +377,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.TIME_TO_FULL_DISPLAY),
       fields: ['p75(measurements.time_to_full_display)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[4] : WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {

@@ -162,7 +162,7 @@ const ExpandButton = styled('button')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: bold;
   padding: 12px 12px 0 12px;
 `;

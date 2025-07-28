@@ -17,13 +17,18 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.models import ActionGroupStatus, IncidentGroupOpenPeriod
+from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 
 @freeze_time("2024-12-11 03:21:34")
 class TestWorkflowEngineSerializer(TestCase):
     @assume_test_silo_mode(SiloMode.REGION)
     def setUp(self) -> None:
+        # XXX: do this so that DCGA and Action IDs aren't one to one
+        other_action = self.create_action()
+        other_action.delete()
+
         self.now = timezone.now()
         self.alert_rule = self.create_alert_rule()
         self.critical_trigger = self.create_alert_rule_trigger(
@@ -39,6 +44,7 @@ class TestWorkflowEngineSerializer(TestCase):
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
             self.alert_rule
         )
+
         self.expected_critical_action = [
             {
                 "id": str(self.critical_trigger_action.id),
@@ -133,7 +139,10 @@ class TestWorkflowEngineSerializer(TestCase):
 
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
-        ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
+        workflow = self.create_workflow()
+        WorkflowActionGroupStatus.objects.create(
+            action=self.critical_action, group=self.group, workflow=workflow
+        )
         self.group_open_period = GroupOpenPeriod.objects.get(
             group=self.group, project=self.detector.project
         )

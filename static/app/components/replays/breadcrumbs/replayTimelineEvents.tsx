@@ -51,6 +51,8 @@ export default function ReplayTimelineEvents({
 }
 
 const EventColumn = styled(Timeline.Col)`
+  pointer-events: auto;
+
   place-items: stretch;
   display: grid;
   align-items: center;
@@ -105,7 +107,7 @@ function Event({
     max-width: 291px !important;
     width: 291px;
 
-    @media screen and (max-width: ${theme.breakpoints.small}) {
+    @media screen and (max-width: ${theme.breakpoints.sm}) {
       max-width: 220px !important;
     }
   `;
@@ -157,7 +159,7 @@ function Event({
 
 const IconPosition = styled('div')`
   position: absolute;
-  transform: translate(-50%);
+  translate: -50% 0;
 `;
 
 const getBackgroundGradient = ({

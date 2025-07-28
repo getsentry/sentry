@@ -493,6 +493,8 @@ def fire_rules(
     alert_rules: list[Rule],
     project: Project,
 ) -> None:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     now = datetime.now(tz=timezone.utc)
     project_id = project.id
     with track_batch_performance(
@@ -596,17 +598,19 @@ def fire_rules(
                         is_post_process=False,
                     ).values()
 
-                    # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-                    for callback, futures in callback_and_futures:
-                        try:
-                            callback(groupevent, futures)
-                        except SoftTimeLimitExceeded:
-                            # If we're out of time, we don't want to continue.
-                            # Raise so we can retry.
-                            raise
-                        except Exception as e:
-                            func_name = getattr(callback, "__name__", str(callback))
-                            logger.exception("%s.process_error", func_name, extra={"exception": e})
+                    if not should_fire_workflow_actions(group.organization, group.type):
+                        for callback, futures in callback_and_futures:
+                            try:
+                                callback(groupevent, futures)
+                            except SoftTimeLimitExceeded:
+                                # If we're out of time, we don't want to continue.
+                                # Raise so we can retry.
+                                raise
+                            except Exception as e:
+                                func_name = getattr(callback, "__name__", str(callback))
+                                logger.exception(
+                                    "%s.process_error", func_name, extra={"exception": e}
+                                )
 
                     if log_config.num_events_issue_debugging:
                         logger.info(

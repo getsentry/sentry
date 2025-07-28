@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -84,7 +84,7 @@ const Badge = styled('div')<{status: PerformanceScore}>`
   color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(1)};
   display: inline-block;
   height: 17px;
@@ -92,6 +92,6 @@ const Badge = styled('div')<{status: PerformanceScore}>`
 `;
 
 const SubHeading = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;

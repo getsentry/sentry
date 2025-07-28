@@ -47,7 +47,7 @@ class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
@@ -172,7 +172,7 @@ class GithubCommentTestCase(IntegrationTestCase):
 
 
 class TestPrToIssueQuery(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -182,7 +182,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner.group_id]
 
-    def test_multiple_issues(self):
+    def test_multiple_issues(self) -> None:
         """one pr with multiple issues"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -194,7 +194,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner_1.group_id, groupowner_2.group_id, groupowner_3.group_id]
 
-    def test_multiple_prs(self):
+    def test_multiple_prs(self) -> None:
         """multiple eligible PRs with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -209,7 +209,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         results = self.pr_comment_workflow.get_issue_ids_from_pr(pr=pr_2)
         assert results == [groupowner_2.group_id]
 
-    def test_multiple_commits(self):
+    def test_multiple_commits(self) -> None:
         """Multiple eligible commits with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -222,7 +222,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
 
 class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group1 = [
             self.store_event(
                 {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
@@ -249,7 +249,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2, group3, group1]
 
-    def test_over_5_issues(self):
+    def test_over_5_issues(self) -> None:
         issue_ids = [
             self.store_event(
                 {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
@@ -260,7 +260,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         res = self.pr_comment_workflow.get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
-    def test_ignore_info_level_issues(self):
+    def test_ignore_info_level_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -295,7 +295,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2]
 
-    def test_do_not_ignore_other_issues(self):
+    def test_do_not_ignore_other_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -336,9 +336,14 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
 
 
 class TestGetCommentBody(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         ev1 = self.store_event(
-            data={"message": "issue 1", "culprit": "issue1", "fingerprint": ["group-1"]},
+            data={
+                "message": "issue 1",
+                "culprit": "issue1",
+                "fingerprint": ["group-1"],
+                "environment": "dev",
+            },
             project_id=self.project.id,
         )
         assert ev1.group is not None
@@ -348,7 +353,12 @@ class TestGetCommentBody(GithubCommentTestCase):
         )
         assert ev2.group is not None
         ev3 = self.store_event(
-            data={"message": "issue 3", "culprit": "issue3", "fingerprint": ["group-3"]},
+            data={
+                "message": "issue 3",
+                "culprit": "issue3",
+                "fingerprint": ["group-3"],
+                "environment": "prod",
+            },
             project_id=self.project.id,
         )
         assert ev3.group is not None
@@ -359,16 +369,19 @@ class TestGetCommentBody(GithubCommentTestCase):
         expected_comment = f"""## Suspect Issues
 This pull request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{ev1.group.id}/?referrer=github-pr-bot)
-- ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/foo/issues/{ev2.group.id}/?referrer=github-pr-bot)
-- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/foo/issues/{ev3.group.id}/?referrer=github-pr-bot)
+* ‼️ [**issue 1**](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=github-pr-bot) in `dev`
+
+* ‼️ [**issue 2**](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=github-pr-bot)
+
+* ‼️ [**issue 3**](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=github-pr-bot) in `prod`
+
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
         assert formatted_comment == expected_comment
 
 
 class TestCommentWorkflow(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -384,7 +397,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
-        culprits = [g.culprit for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
@@ -397,7 +409,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -413,7 +425,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
-        groups = [g.id for g in Group.objects.all()]
+        group_objs = Group.objects.order_by("id").all()
+        groups = [g.id for g in group_objs]
+        titles = [g.title for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
         pull_request_comment = PullRequestComment.objects.create(
             external_id=1,
@@ -443,11 +457,11 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n* \\u203c\\ufe0f [**{titles[0]}**](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n\\n* \\u203c\\ufe0f [**{titles[1]}**](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
             in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
-        assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
+        assert pull_request_comment.group_ids == groups
         assert pull_request_comment.updated_at == timezone.now()
         mock_metrics.incr.assert_called_with("github.pr_comment.comment_updated")
 
@@ -641,7 +655,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"

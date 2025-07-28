@@ -1,26 +1,45 @@
-import {useCallback, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
+import {useInfiniteRepositoryBranches} from 'sentry/components/codecov/branchSelector/useInfiniteRepositoryBranches';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {Button} from 'sentry/components/core/button';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
-const SAMPLE_BRANCH_ITEMS = ['main', 'master'];
-
 export function BranchSelector() {
-  const {branch} = useCodecovContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {branch, repository, changeContextValue} = useCodecovContext();
+  const [searchValue, setSearchValue] = useState<string | undefined>();
+  const {data} = useInfiniteRepositoryBranches({term: searchValue});
+  const branches = data.branches;
+  const defaultBranch = data.defaultBranch;
+
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({branch: selectedOption.value});
+    },
+    [changeContextValue]
+  );
+
+  const handleOnSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setSearchValue(value);
+      }, 500),
+    [setSearchValue]
+  );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
       ...(branch ? [branch] : []),
-      ...(SAMPLE_BRANCH_ITEMS.length ? SAMPLE_BRANCH_ITEMS : []),
+      ...(branches.length > 0 ? branches.map(item => item.name) : []),
     ]);
 
     const makeOption = (value: string): SelectOption<string> => {
@@ -32,25 +51,50 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch]);
+  }, [branch, branches]);
 
-  const handleChange = useCallback(
-    (newBranch: SelectOption<string>) => {
-      const currentParams = Object.fromEntries(searchParams.entries());
-      const updatedParams = {
-        ...currentParams,
-        branch: newBranch.value,
-      };
-      setSearchParams(updatedParams);
+  useEffect(() => {
+    // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
+    return () => {
+      handleOnSearch.cancel();
+    };
+  }, [handleOnSearch]);
+
+  const branchResetButton = useCallback(
+    ({closeOverlay}: any) => {
+      if (!defaultBranch || !branch || branch === defaultBranch) {
+        return null;
+      }
+
+      return (
+        <ResetButton
+          onClick={() => {
+            changeContextValue({branch: defaultBranch});
+            closeOverlay();
+          }}
+          size="zero"
+          borderless
+        >
+          {t('Reset to default')}
+        </ResetButton>
+      );
     },
-    [searchParams, setSearchParams]
+    [branch, changeContextValue, defaultBranch]
   );
+
+  const disabled = !repository;
 
   return (
     <CompactSelect
+      searchable
+      onSearch={handleOnSearch}
+      searchPlaceholder={t('search by branch name')}
       options={options}
       value={branch ?? ''}
       onChange={handleChange}
+      menuHeaderTrailingItems={branchResetButton}
+      disabled={disabled}
+      emptyMessage={'No branches found'}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
         return (
@@ -60,12 +104,12 @@ export function BranchSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <FlexContainer>
+              <Flex align="center" gap="sm">
                 <IconContainer>
                   <IconBranch />
                 </IconContainer>
                 <TriggerLabel>{branch || t('Select branch')}</TriggerLabel>
-              </FlexContainer>
+              </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -95,13 +139,18 @@ const OptionLabel = styled('span')`
   }
 `;
 
-const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
 const IconContainer = styled('div')`
   flex: 1 0 14px;
   height: 14px;
+`;
+
+const ResetButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: ${p =>
+    p.theme.isChonk
+      ? `-${space(0.5)} -${space(0.5)}`
+      : `-${space(0.25)} -${space(0.25)}`};
 `;

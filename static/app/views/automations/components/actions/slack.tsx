@@ -1,13 +1,13 @@
-import {Flex} from 'sentry/components/container/flex';
-import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
   RowLine,
 } from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {BannerLink, InfoBanner} from 'sentry/components/workflowEngine/ui/infoBanner';
+import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
@@ -31,17 +31,15 @@ export function SlackDetails({
     {
       logo: ActionMetadata[ActionType.SLACK]?.icon,
       workspace: integrationName,
-      channel: action.config.target_display
-        ? `${action.config.target_display}`
-        : action.config.target_identifier,
+      channel: action.config.targetDisplay || action.config.targetIdentifier,
       tagsAndNotes: SlackTagsAndNotes(action),
     }
   );
 }
 
 function SlackTagsAndNotes(action: Action) {
-  const notes = String(action.data.notes);
-  const tags = String(action.data.tags);
+  const notes = action.data.notes;
+  const tags = action.data.tags;
 
   if (notes && tags) {
     return tct(', and in the message show tags [tags] and notes [notes]', {tags, notes});
@@ -57,7 +55,7 @@ function SlackTagsAndNotes(action: Action) {
 
 export function SlackNode() {
   return (
-    <Flex column gap={space(1)} flex="1">
+    <Flex direction="column" gap="md" flex="1">
       <RowLine>
         {tct('Send a [logo] Slack message to [workspace] workspace, to [channel]', {
           logo: ActionMetadata[ActionType.SLACK]?.icon,
@@ -71,18 +69,16 @@ export function SlackNode() {
           notes: <NotesField />,
         })}
       </OptionalRowLine>
-      <InfoBanner>
-        <Flex gap={space(0.5)}>
-          {tct(
-            'Having rate limiting problems? Enter a channel or user ID. Get help [link:here]',
-            {
-              link: (
-                <BannerLink href="https://docs.sentry.io/organization/integrations/notification-incidents/slack/#rate-limiting-error" />
-              ),
-            }
-          )}
-        </Flex>
-      </InfoBanner>
+      <DismissableInfoAlert>
+        {tct(
+          'Having rate limiting problems? Enter a channel or user ID. Get help [link:here].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/organization/integrations/notification-incidents/slack/#rate-limiting-error" />
+            ),
+          }
+        )}
+      </DismissableInfoAlert>
     </Flex>
   );
 }
@@ -90,15 +86,26 @@ export function SlackNode() {
 function NotesField() {
   const {action, actionId, onUpdate} = useActionNodeContext();
   return (
-    <AutomationBuilderInputField
+    <AutomationBuilderInput
       name={`${actionId}.data.notes`}
+      aria-label={t('Notes')}
       placeholder={t('example notes')}
-      value={action.data.tags}
-      onChange={(value: string) => {
+      value={action.data.notes}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({
-          data: {tags: value},
+          data: {...action.data, notes: e.target.value},
         });
       }}
     />
   );
+}
+
+export function validateSlackAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Slack workspace.');
+  }
+  if (!action.config.targetDisplay) {
+    return t('You must specify a channel name or ID.');
+  }
+  return undefined;
 }

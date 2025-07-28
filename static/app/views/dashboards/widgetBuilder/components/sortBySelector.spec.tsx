@@ -5,12 +5,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
-import {ELLIPSIS} from 'sentry/views/insights/common/utils/centerTruncate';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
@@ -48,12 +48,32 @@ describe('WidgetBuilderSortBySelector', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders for spans', async function () {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+    expect(await screen.findByText('High to low')).toBeInTheDocument();
+    expect(await screen.findByText('(Required)')).toBeInTheDocument();
+  });
+
+  it('renders for logs', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -79,9 +99,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router: tableRouter,
@@ -101,9 +121,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -142,9 +162,9 @@ describe('WidgetBuilderSortBySelector', function () {
   it('renders the correct limit options', async function () {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -169,9 +189,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router: moreAggregatesRouter,
@@ -190,9 +210,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
@@ -250,9 +270,9 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,

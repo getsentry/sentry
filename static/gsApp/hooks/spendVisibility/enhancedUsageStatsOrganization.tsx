@@ -210,6 +210,7 @@ interface EnhancedUsageStatsOrganizationProps
   isSingleProject: boolean;
   projects: Project[];
   subscription: Subscription;
+  chartTransform?: string;
   spikeCursor?: string;
 }
 /**
@@ -233,6 +234,7 @@ function EnhancedUsageStatsOrganization({
   spikeCursor,
   clientDiscard,
   handleChangeState,
+  chartTransform,
 }: EnhancedUsageStatsOrganizationProps) {
   const project = projects.find(p => p.id === `${projectIds[0]}`);
   const endpointQueryDatetime = getEndpointQueryDatetime(dataDatetime);
@@ -342,6 +344,7 @@ function EnhancedUsageStatsOrganization({
       endpointQuery={newEndpointQuery}
       handleChangeState={handleChangeState}
       clientDiscard={clientDiscard}
+      chartTransform={chartTransform}
     >
       {usageStats => {
         const loadingStatuses = [usageStats.orgStats.isPending];
@@ -490,7 +493,7 @@ function EnhancedUsageStatsOrganization({
 const DroppedFromSpikesStat = styled('div')`
   display: inline-block;
   color: ${p => p.theme.success};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default withRouteAnalytics(

@@ -1,20 +1,19 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
-import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedInspector from 'sentry/views/replays/detail/useVirtualizedInspector';
@@ -28,7 +27,8 @@ const cellMeasurer = {
 };
 
 export default function Breadcrumbs() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
   const [showSnippetSet, setShowSnippetSet] = useState<Set<number>>(new Set());
 
@@ -111,7 +111,7 @@ export default function Breadcrumbs() {
   };
 
   return (
-    <PaddedFluidHeight>
+    <Flex direction="column" wrap="nowrap">
       <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
@@ -155,10 +155,6 @@ export default function Breadcrumbs() {
           />
         ) : null}
       </TabItemContainer>
-    </PaddedFluidHeight>
+    </Flex>
   );
 }
-
-const PaddedFluidHeight = styled(FluidHeight)`
-  padding-top: ${space(1)};
-`;

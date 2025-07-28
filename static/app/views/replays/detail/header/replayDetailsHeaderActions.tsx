@@ -58,7 +58,7 @@ const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   flex-direction: row;
   justify-content: flex-end;
   gap: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin-bottom: 0;
   }
 `;

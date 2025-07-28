@@ -25,7 +25,7 @@ from sentry_plugins.trello.plugin import TrelloPlugin
 class OrganizationAvailableActionAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-available-action-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -238,7 +238,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         # plugins that are not enabled should not be returned
         self.plugin_registry.register(PagerDutyPlugin)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.setup_email()
 
         response = self.get_success_response(
@@ -255,7 +255,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             }
         ]
 
-    def test_simple_integrations(self):
+    def test_simple_integrations(self) -> None:
         self.setup_integrations()
 
         response = self.get_success_response(
@@ -286,7 +286,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
-    def test_integrations_with_services(self):
+    def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
         response = self.get_success_response(
             self.organization.slug,
@@ -376,7 +376,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
-    def test_webhooks(self):
+    def test_webhooks(self) -> None:
         self.setup_webhooks()
 
         response = self.get_success_response(

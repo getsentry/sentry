@@ -48,8 +48,8 @@ export const ListWrap = styled('ul')`
 
 export const ListLabel = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
@@ -94,8 +94,8 @@ export const SectionHeader = styled('div')`
 
 export const SectionTitle = styled('p')`
   display: inline-block;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
   white-space: nowrap;
@@ -107,8 +107,8 @@ export const SectionTitle = styled('p')`
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
 
@@ -178,7 +178,7 @@ export const SizeLimitMessage = styled('li')`
   margin: ${space(0.5)} ${space(1.5)} ${space(0.5)};
   padding: ${space(0.75)} ${space(1)} 0;
 
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   list-style-type: none;
   white-space: nowrap;

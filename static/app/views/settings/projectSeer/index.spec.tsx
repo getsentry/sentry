@@ -42,6 +42,22 @@ describe('ProjectSeer', function () {
       features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
     });
 
+    // Mock the seer setup check endpoint
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       query: {status: 'active'},
@@ -51,13 +67,15 @@ describe('ProjectSeer', function () {
           id: '1',
           name: 'getsentry/sentry',
           externalId: '101',
-          provider: {id: 'github', name: 'GitHub'},
+          provider: {id: 'integrations:github', name: 'GitHub'},
+          integrationId: '201',
         }),
         RepositoryFixture({
           id: '2',
           name: 'getsentry/seer',
           externalId: '102',
-          provider: {id: 'github', name: 'GitHub'},
+          provider: {id: 'integrations:github', name: 'GitHub'},
+          integrationId: '202',
         }),
       ],
     });
@@ -151,6 +169,8 @@ describe('ProjectSeer', function () {
                 name: 'sentry',
                 owner: 'getsentry',
                 provider: 'github',
+                integration_id: '201',
+                branch_overrides: [],
               },
               {
                 branch_name: '',
@@ -159,6 +179,8 @@ describe('ProjectSeer', function () {
                 name: 'seer',
                 owner: 'getsentry',
                 provider: 'github',
+                integration_id: '202',
+                branch_overrides: [],
               },
             ],
           },
@@ -207,6 +229,8 @@ describe('ProjectSeer', function () {
                 provider: 'github',
                 branch_name: 'develop',
                 instructions: 'Use Conventional Commits',
+                integration_id: '201',
+                branch_overrides: [],
               },
             ],
           },
@@ -255,7 +279,8 @@ describe('ProjectSeer', function () {
   it('can update the autofix autorun threshold setting', async function () {
     const initialProject: Project = {
       ...project,
-      autofixAutomationTuning: 'medium', // Start from medium
+      autofixAutomationTuning: 'high', // Start from high
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
@@ -267,24 +292,30 @@ describe('ProjectSeer', function () {
     const projectPutRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {},
+      body: {
+        autofixAutomationTuning: 'high',
+      },
     });
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Automate Issue Fixes/i,
+      name: /Auto-Triggered Fixes/i,
     });
 
     act(() => {
       select.focus();
     });
 
-    // Open the menu and select a new value (e.g., 'Minimally Actionable and Above')
+    // Open the menu and select a new value
     await userEvent.click(select);
+
     const option = await screen.findByText('Minimally Actionable and Above');
     await userEvent.click(option);
+
+    const option2 = await screen.findByText('Highly Actionable and Above');
+    await userEvent.click(option2);
 
     // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {
@@ -293,7 +324,7 @@ describe('ProjectSeer', function () {
     await waitFor(() => {
       expect(projectPutRequest).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({data: {autofixAutomationTuning: 'high'}})
+        expect.objectContaining({data: {autofixAutomationTuning: 'low'}})
       );
     });
   });
@@ -320,7 +351,7 @@ describe('ProjectSeer', function () {
 
     // Find the toggle for Automate Issue Scans
     const toggle = await screen.findByRole('checkbox', {
-      name: /Automate Issue Scans/i,
+      name: /Scan Issues/i,
     });
     expect(toggle).toBeInTheDocument();
     expect(toggle).not.toBeChecked();
@@ -344,6 +375,7 @@ describe('ProjectSeer', function () {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
@@ -365,9 +397,9 @@ describe('ProjectSeer', function () {
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
-    // Find the select menu for Stopping Point for Automatic Fixes
+    // Find the select menu for Stopping Point for Auto-Triggered Fixes
     const select = await screen.findByRole('textbox', {
-      name: /Stopping Point for Automatic Fixes/i,
+      name: /Stopping Point for Auto-Triggered Fixes/i,
     });
 
     act(() => {

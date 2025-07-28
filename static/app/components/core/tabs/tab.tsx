@@ -7,8 +7,9 @@ import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 import {isChonkTheme, withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -33,6 +34,7 @@ interface TabProps extends AriaTabProps {
   state: TabListState<any>;
   as?: React.ElementType;
   ref?: React.Ref<HTMLLIElement>;
+  tooltipProps?: TooltipProps;
   variant?: BaseTabProps['variant'];
 }
 
@@ -156,6 +158,7 @@ export function Tab({
   variant,
   size,
   as = 'li',
+  tooltipProps,
 }: TabProps) {
   const objectRef = useObjectRef(ref);
 
@@ -166,6 +169,28 @@ export function Tab({
   } = item;
 
   const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, objectRef);
+
+  if (tooltipProps) {
+    return (
+      <Tooltip {...tooltipProps}>
+        <BaseTab
+          tabProps={tabProps}
+          isSelected={isSelected}
+          to={to}
+          hidden={hidden}
+          disabled={disabled}
+          orientation={orientation}
+          overflowing={overflowing}
+          ref={objectRef}
+          variant={variant}
+          as={as}
+          size={size}
+        >
+          {rendered}
+        </BaseTab>
+      </Tooltip>
+    );
+  }
 
   return (
     <BaseTab
@@ -191,7 +216,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='true'] {
     ${p => css`
       color: ${p.theme.purple400};
-      font-weight: ${p.theme.fontWeightBold};
+      font-weight: ${p.theme.fontWeight.bold};
       background-color: ${p.theme.purple100};
     `}
   }

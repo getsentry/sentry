@@ -302,7 +302,7 @@ function AllocationForm({
                 displayType: showPrice ? 'Spend' : 'Amount',
               })}
             </Title>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button
                 aria-label="reduce-allocation"
                 size="sm"
@@ -435,12 +435,12 @@ function AllocationForm({
         </div>
       </SubSectionBody>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           {((exhaustedEvents && !overBudgetedEvents) ||
             (initializedData && allocationVolume < initializedData.consumedQuantity)) && (
             // attempting to increase, but remaining available events have been exhausted (but still under budget)
             // OR attempting to decrease below consumed events
-            <Alert type="error">
+            <Alert type="error" showIcon={false}>
               <div>
                 {t(
                   'Cannot apply this change to your current period due to consumed amounts.'
@@ -450,7 +450,7 @@ function AllocationForm({
           )}
           {overBudgetedEvents && (
             // attempting to increase over the total available amount
-            <Alert type="error">
+            <Alert type="error" showIcon={false}>
               <div>
                 {t('Cannot allocate more than your subscription Reserved Quota.')}
               </div>
@@ -458,7 +458,7 @@ function AllocationForm({
             </Alert>
           )}
           {!rootAllocation && (
-            <Alert type="error">
+            <Alert type="error" showIcon={false}>
               <div>
                 {t(
                   'There is currently no organization-level allocation for this billing metric.'
@@ -503,7 +503,7 @@ const InputWrapper = styled('div')`
 
 const FancyInput = styled('input')`
   line-height: 1.4;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => 'solid ' + p.theme.border};
   padding: ${space(1)} ${space(2)};
@@ -522,7 +522,7 @@ const Toggle = styled(NewBooleanField)`
 const OffsetBody = styled(PanelBody)`
   margin: -${space(3)} -${space(4)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(3)};
   }
 `;
@@ -532,7 +532,7 @@ const SubSectionBody = styled(PanelTable)`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
   display: flex;
   justify-content: space-between;

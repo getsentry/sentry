@@ -4,25 +4,22 @@ import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {
-  useMetrics,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -84,7 +81,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
       field: 'avg(measurements.app_start_cold)' as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getColdAppStartPerformance,
     },
     {
@@ -104,7 +101,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
       field: 'avg(measurements.app_start_warm)' as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getWarmAppStartPerformance,
     },
     {
@@ -121,7 +118,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
       field: `division(mobile.slow_frames,mobile.total_frames)` as const,
-      dataset: DiscoverDatasets.SPANS_METRICS,
+      dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -138,7 +135,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
       field: `division(mobile.frozen_frames,mobile.total_frames)` as const,
-      dataset: DiscoverDatasets.SPANS_METRICS,
+      dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -157,7 +154,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
       field: `avg(mobile.frames_delay)` as const,
-      dataset: DiscoverDatasets.SPANS_METRICS,
+      dataset: 'spansMetrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -175,7 +172,7 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
       field: `avg(measurements.time_to_initial_display)` as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
     {
@@ -193,17 +190,17 @@ function ScreensLandingPage() {
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
       field: `avg(measurements.time_to_full_display)` as const,
-      dataset: DiscoverDatasets.METRICS,
+      dataset: 'metrics',
       getStatus: getDefaultMetricPerformance,
     },
   ] satisfies VitalItem[];
 
   const metricsFields = vitalItems
-    .filter(item => item.dataset === DiscoverDatasets.METRICS)
+    .filter(item => item.dataset === 'metrics')
     .map(item => item.field);
 
   const spanMetricsFields = vitalItems
-    .filter(item => item.dataset === DiscoverDatasets.SPANS_METRICS)
+    .filter(item => item.dataset === 'spansMetrics')
     .map(item => item.field);
 
   const [state, setState] = useState<{
@@ -216,7 +213,8 @@ function ScreensLandingPage() {
     query.addFilterValue('os.name', selectedPlatform);
   }
 
-  const metricsResult = useMetrics(
+  // TODO: combine these two queries into one, see DAIN-780
+  const metricsResult = useSpans(
     {
       search: query,
       limit: 25,
@@ -225,13 +223,13 @@ function ScreensLandingPage() {
     Referrer.SCREENS_METRICS
   );
 
-  const spanMetricsResult = useSpanMetrics(
+  const spanMetricsResult = useSpans(
     {
       search: query,
       limit: 25,
       fields: spanMetricsFields,
     },
-    Referrer.SCREENS_METRICS
+    Referrer.SCREENS_SPAN_METRICS
   );
 
   const metricsData = {...metricsResult.data[0], ...spanMetricsResult.data[0]};
@@ -274,47 +272,49 @@ function ScreensLandingPage() {
               <Layout.Main fullWidth>
                 <Container>
                   <PageFilterBar condensed>
-                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <InsightsProjectSelector onChange={handleProjectChange} />
                     <EnvironmentPageFilter />
                     <DatePageFilter />
                   </PageFilterBar>
                 </Container>
                 <PageAlert />
-                <ErrorBoundary mini>
-                  <Container>
-                    <Flex data-test-id="mobile-vitals-top-metrics">
-                      {vitalItems.map(item => {
-                        const metricValue: MetricValue = {
-                          type: metaFields?.[item.field],
-                          value: metricsData?.[item.field],
-                          unit: metaUnits?.[item.field],
-                        };
+                <ModulesOnboarding moduleName={moduleName}>
+                  <ErrorBoundary mini>
+                    <Container>
+                      <Flex data-test-id="mobile-vitals-top-metrics">
+                        {vitalItems.map(item => {
+                          const metricValue: MetricValue = {
+                            type: metaFields?.[item.field],
+                            value: metricsData?.[item.field],
+                            unit: metaUnits?.[item.field],
+                          };
 
-                        const status =
-                          (metricValue && item.getStatus(metricValue, item.field)) ??
-                          STATUS_UNKNOWN;
+                          const status =
+                            (metricValue && item.getStatus(metricValue, item.field)) ??
+                            STATUS_UNKNOWN;
 
-                        return (
-                          <VitalCard
-                            onClick={() => {
-                              setState({
-                                vital: item,
-                                status,
-                              });
-                            }}
-                            key={item.field}
-                            title={item.title}
-                            description={item.description}
-                            statusLabel={status.description}
-                            status={status.score}
-                            formattedValue={status.formattedValue}
-                          />
-                        );
-                      })}
-                    </Flex>
-                    <ScreensOverview />
-                  </Container>
-                </ErrorBoundary>
+                          return (
+                            <VitalCard
+                              onClick={() => {
+                                setState({
+                                  vital: item,
+                                  status,
+                                });
+                              }}
+                              key={item.field}
+                              title={item.title}
+                              description={item.description}
+                              statusLabel={status.description}
+                              status={status.score}
+                              formattedValue={status.formattedValue}
+                            />
+                          );
+                        })}
+                      </Flex>
+                      <ScreensOverview />
+                    </Container>
+                  </ErrorBoundary>
+                </ModulesOnboarding>
               </Layout.Main>
             </Layout.Body>
           </ModuleBodyUpsellHook>

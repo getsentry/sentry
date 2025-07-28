@@ -1,25 +1,64 @@
 import logging
+import uuid
 from collections.abc import Generator
-from typing import Any, TypedDict
+from hashlib import md5
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.dom_index import (
-    ReplayActionsEvent,
-    ReplayActionsEventPayload,
-    ReplayActionsEventPayloadClick,
-    _initialize_publisher,
-    encode_as_uuid,
-)
+from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer, publish_replay_event
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
 from sentry.replays.usecases.ingest.issue_creation import (
     report_hydration_error_issue_with_replay_event,
     report_rage_click_issue_with_replay_event,
 )
 from sentry.utils import json, metrics
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger()
+
+
+ReplayActionsEventPayloadClick = TypedDict(
+    "ReplayActionsEventPayloadClick",
+    {
+        "alt": str,
+        "aria_label": str,
+        "class": list[str],
+        "event_hash": str,
+        "id": str,
+        "node_id": int,
+        "component_name": str,
+        "role": str,
+        "tag": str,
+        "testid": str,
+        "text": str,
+        "timestamp": int,
+        "title": str,
+        "is_dead": int,
+        "is_rage": int,
+    },
+)
+
+
+class ReplayActionsEventPayload(TypedDict):
+    environment: str
+    clicks: list[ReplayActionsEventPayloadClick]
+    replay_id: str
+    type: Literal["replay_actions"]
+
+
+class ReplayActionsEvent(TypedDict):
+    payload: ReplayActionsEventPayload
+    project_id: int
+    replay_id: str
+    retention_days: int
+    start_time: float
+    type: Literal["replay_event"]
 
 
 @sentry_sdk.trace
@@ -70,12 +109,10 @@ def emit_click_events(
         "retention_days": retention_days,
         "start_time": start_time,
         "type": "replay_event",
-        "payload": list(json.dumps(payload).encode()),
+        "payload": payload,
     }
 
-    publisher = _initialize_publisher()
-    publisher.publish("ingest-replay-events", json.dumps(action))
-    publisher.flush()
+    publish_replay_event(json.dumps(action))
 
 
 @sentry_sdk.trace
@@ -230,6 +267,15 @@ def report_rage_click(
 
 
 @sentry_sdk.trace
+def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
+    """Emit trace-items to EAP."""
+    topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
+    for trace_item in trace_items:
+        payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
+        eap_producer.produce(ArroyoTopic(topic), payload)
+
+
+@sentry_sdk.trace
 def _should_report_hydration_error_issue(project: Project) -> bool:
     """
     Checks the project option, controlled by a project owner.
@@ -243,3 +289,7 @@ def _should_report_rage_click_issue(project: Project) -> bool:
     Checks the project option, controlled by a project owner.
     """
     return project.get_option("sentry:replay_rage_click_issues")
+
+
+def encode_as_uuid(message: str) -> str:
+    return str(uuid.UUID(md5(message.encode()).hexdigest()))

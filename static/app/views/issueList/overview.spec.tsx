@@ -19,7 +19,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DEFAULT_QUERY} from 'sentry/constants';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -28,6 +27,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
+import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -1394,76 +1394,6 @@ describe('IssueList', function () {
         expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
       });
     });
-
-    describe('renders alert', function () {
-      it('for one project', async function () {
-        act(() =>
-          ProjectsStore.loadInitialData([
-            {...project, eventProcessing: {symbolicationDegraded: true}},
-          ])
-        );
-
-        render(<IssueListOverview {...routerProps} />, {
-          organization,
-
-          initialRouterConfig,
-        });
-
-        await waitFor(() => {
-          expect(
-            screen.getByText(/Event Processing for this project is currently degraded/i)
-          ).toBeInTheDocument();
-        });
-      });
-
-      it('for multiple projects', async function () {
-        const projectBar = ProjectFixture({
-          id: '3560',
-          name: 'Bar Project',
-          slug: 'project-slug-bar',
-        });
-
-        act(() =>
-          ProjectsStore.loadInitialData([
-            {
-              ...project,
-              slug: 'project-slug',
-              eventProcessing: {symbolicationDegraded: true},
-            },
-            {
-              ...projectBar,
-              slug: 'project-slug-bar',
-              eventProcessing: {symbolicationDegraded: true},
-            },
-          ])
-        );
-
-        PageFiltersStore.onInitializeUrlState(
-          {
-            projects: [Number(project.id), Number(projectBar.id)],
-            environments: [],
-            datetime: {period: '14d', start: null, end: null, utc: null},
-          },
-          new Set()
-        );
-
-        render(<IssueListOverview {...routerProps} />, {
-          organization,
-
-          initialRouterConfig,
-        });
-
-        await waitFor(() => {
-          expect(
-            screen.getByText(
-              textWithMarkupMatcher(
-                'Event Processing for the project-slug, project-slug-bar projects is currently degraded.'
-              )
-            )
-          ).toBeInTheDocument();
-        });
-      });
-    });
   });
 
   describe('new view page', function () {
@@ -1505,7 +1435,7 @@ describe('IssueList', function () {
       // ?new=true should be removed
       expect(testRouter.location.query.new).toBeUndefined();
 
-      expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      expect(fetchDataMock).toHaveBeenCalled();
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });

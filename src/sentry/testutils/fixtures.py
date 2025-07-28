@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from django.db.utils import IntegrityError
@@ -15,8 +16,11 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -51,7 +55,7 @@ from sentry.uptime.models import (
     UptimeSubscriptionRegion,
     create_detector_from_project_subscription,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -142,7 +146,7 @@ class Fixtures:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def integration(self):
         integration = Integration.objects.create(
-            provider="github",
+            provider=IntegrationProviderSlug.GITHUB.value,
             name="GitHub",
             external_id="github:1",
             metadata={
@@ -311,16 +315,28 @@ class Fixtures:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
+    def create_n_groups_with_hashes(
+        self, number_of_groups: int, project: Project, group_type: int | None = None
+    ) -> list[Group]:
+        groups = []
+        for _ in range(number_of_groups):
+            if group_type:
+                group = self.create_group(
+                    project=project, status=GroupStatus.RESOLVED, type=group_type
+                )
+            else:
+                group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+            hash = uuid4().hex
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+            groups.append(group)
+
+        return groups
+
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
 
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
-
-    def create_event_attachment(self, event=None, *args, **kwargs):
-        if event is None:
-            event = self.event
-        return Factories.create_event_attachment(event, *args, **kwargs)
 
     def create_dif_file(self, project: Project | None = None, *args, **kwargs):
         if project is None:
@@ -498,6 +514,9 @@ class Fixtures:
         return Factories.create_external_team(
             team=team, organization=team.organization, integration_id=integration.id, **kwargs
         )
+
+    def create_data_access_grant(self, **kwargs):
+        return Factories.create_data_access_grant(**kwargs)
 
     def create_codeowners(self, project=None, code_mapping=None, **kwargs):
         if not project:
@@ -760,7 +779,7 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
-        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,

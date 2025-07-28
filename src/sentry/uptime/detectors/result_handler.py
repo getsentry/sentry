@@ -17,7 +17,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_detector,
     update_project_uptime_subscription,
 )
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.workflow_engine.models.detector import Detector
@@ -31,7 +31,7 @@ ONBOARDING_MONITOR_PERIOD = timedelta(days=3)
 ONBOARDING_FAILURE_THRESHOLD = 3
 
 # The TTL of the redis key used to track the failure counts for a subscription in
-# `ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING` mode. Must be >= the
+# `UptimeMonitorMode.AUTO_DETECTED_ONBOARDING` mode. Must be >= the
 # ONBOARDING_MONITOR_PERIOD.
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 
@@ -90,7 +90,8 @@ def handle_onboarding_result(
             update_project_uptime_subscription(
                 project_subscription,
                 interval_seconds=int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+                ensure_assignment=True,
             )
             create_system_audit_entry(
                 organization=detector.project.organization,

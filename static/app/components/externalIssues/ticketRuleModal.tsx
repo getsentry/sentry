@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import {ExternalLink} from 'sentry/components/core/link';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -19,12 +20,11 @@ import {
 import type {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
@@ -40,7 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 const IGNORED_FIELDS = ['Sprint'];
 
 interface TicketRuleModalProps extends ModalRenderProps {
-  instance: IssueAlertRuleAction;
+  instance: TicketActionData;
   link: string | null;
   onSubmitAction: (
     data: Record<string, string>,
@@ -183,12 +183,12 @@ export default function TicketRuleModal({
               integrationId: instance.integration,
               query: initialConfigQuery,
             }),
-            existingData => (data ? data : existingData)
+            (existingData: IntegrationIssueConfig | undefined) =>
+              data ? data : existingData
           );
           setIsDynamicallyRefetching(false);
         },
         error: (err: any) => {
-          // This behavior comes from the DeprecatedAsyncComponent
           if (err?.responseText) {
             Sentry.addBreadcrumb({
               message: err.responseText,

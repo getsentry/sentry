@@ -67,7 +67,7 @@ const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
   padding: ${p =>
     p.size === 'sm' ? `${space(0.75)} ${space(1)}` : `${space(1.5)} ${space(2)}`};
   max-width: ${p => (p.size === 'sm' ? '220px' : 'none')};
-  font-size: ${p => (p.size === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium)};
+  font-size: ${p => (p.size === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
 
   p {
     margin: 0;
@@ -79,7 +79,7 @@ const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
 `;
 
 const DescriptionKeyLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   word-break: break-all;
 `;
 
@@ -97,7 +97,7 @@ const DescriptionList = styled('dl')`
 
 const Term = styled('dt')`
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const Details = styled('dd')``;

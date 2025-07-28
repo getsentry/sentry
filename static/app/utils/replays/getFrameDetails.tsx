@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
@@ -96,8 +96,8 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconLocation size="xs" />,
   }),
   feedback: (frame: FeedbackFrame) => ({
-    colorGraphicsToken: 'accent',
-    description: frame.data.projectSlug,
+    colorGraphicsToken: 'promotion',
+    description: frame.message,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),
     icon: <IconMegaphone size="xs" />,
@@ -169,7 +169,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     colorGraphicsToken: 'warning',
     description: frame.data.limit
       ? tct(
-          'Significant mutations detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          'Significant mutations detected: [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
           {
             count: frame.data.count,
             link: (
@@ -180,7 +180,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
           }
         )
       : tct(
-          'Significant mutations detected [count]. This can slow down the Replay SDK, impacting your customers. [link]',
+          'Significant mutations detected: [count]. This can slow down the Replay SDK, impacting your customers. [link]',
           {
             count: frame.data.count,
             link: (
@@ -470,7 +470,11 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
 
 export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   // Override title for User Feedback frames
-  if ('message' in frame && frame.message === 'User Feedback') {
+  if (
+    'message' in frame &&
+    typeof frame.message === 'string' &&
+    frame.category === 'feedback'
+  ) {
     return t('User Feedback');
   }
   if ('category' in frame && frame.category) {

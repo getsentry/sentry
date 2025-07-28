@@ -2,16 +2,13 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  makeReleaseDrawerPathname,
-  makeReleasesPathname,
-} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -32,6 +29,10 @@ type Props = {
    * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
+  /**
+   * Should the version be formatted or not
+   */
+  shouldFormatVersion?: boolean;
   /**
    * Should the release text break and wrap onto the next line
    */
@@ -60,10 +61,13 @@ function Version({
   truncate,
   shouldWrapText = false,
   className,
+  shouldFormatVersion = true,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const versionToDisplay = formatVersion(version, withPackage);
+  const versionToDisplay = shouldFormatVersion
+    ? formatVersion(version, withPackage)
+    : version;
   const theme = useTheme();
 
   let releaseDetailProjectId: null | undefined | string | string[];
@@ -78,22 +82,12 @@ function Version({
   const renderVersion = () => {
     if (anchor && organization?.slug) {
       const props = {
-        to: organization.features.includes('release-bubbles-ui')
-          ? makeReleaseDrawerPathname({
-              location,
-              release: version,
-              projectId: releaseDetailProjectId,
-              source: 'release-version-link',
-            })
-          : {
-              pathname: makeReleasesPathname({
-                path: `/${encodeURIComponent(version)}/`,
-                organization,
-              }),
-              query: releaseDetailProjectId
-                ? {project: releaseDetailProjectId}
-                : undefined,
-            },
+        to: makeReleaseDrawerPathname({
+          location,
+          release: version,
+          projectId: releaseDetailProjectId,
+          source: 'release-version-link',
+        }),
         className,
       };
       if (preservePageFilters) {
@@ -144,7 +138,7 @@ function Version({
     }
 
     return css`
-      @media (min-width: ${theme.breakpoints.small}) {
+      @media (min-width: ${theme.breakpoints.sm}) {
         max-width: 500px;
       }
     `;

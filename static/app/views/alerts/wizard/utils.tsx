@@ -1,5 +1,10 @@
 import type {Organization} from 'sentry/types/organization';
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'sentry/views/alerts/rules/metric/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
@@ -42,11 +47,8 @@ const alertTypeIdentifiers: Record<
   [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
     trace_item_throughput: 'count(span.duration)',
     trace_item_duration: 'span.duration',
-    trace_item_apdex: 'apdex',
     trace_item_failure_rate: 'failure_rate()',
     trace_item_lcp: 'measurements.lcp',
-    trace_item_fid: 'measurements.fid',
-    trace_item_cls: 'measurements.cls',
   },
 };
 
@@ -58,8 +60,10 @@ const alertTypeIdentifiers: Record<
 export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
+  eventTypes,
   organization,
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'> & {
+  eventTypes?: EventTypes[];
   organization?: Organization;
 }): MetricAlertType {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -71,10 +75,37 @@ export function getAlertTypeFromAggregateDataset({
     matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as MetricAlertType);
 
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+    if (
+      organization &&
+      hasLogAlerts(organization) &&
+      traceItemType === TraceItemDataset.LOGS
+    ) {
+      return 'trace_item_logs';
+    }
     if (organization && deprecateTransactionAlerts(organization)) {
       return alertType ?? 'eap_metrics';
     }
     return 'eap_metrics';
   }
   return alertType ? alertType : 'custom_transactions';
+}
+
+export function hasLogAlerts(organization: Organization): boolean {
+  return (
+    organization.features.includes('ourlogs-alerts') &&
+    organization.features.includes('ourlogs-enabled')
+  );
+}
+
+export function getTraceItemTypeForDatasetAndEventType(
+  dataset: Dataset,
+  eventTypes?: EventTypes[]
+) {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
+      ? TraceItemDataset.LOGS
+      : TraceItemDataset.SPANS;
+  }
+  return null;
 }

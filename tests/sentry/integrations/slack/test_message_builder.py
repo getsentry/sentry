@@ -8,7 +8,6 @@ import orjson
 from django.urls import reverse
 from urllib3.response import HTTPResponse
 
-from sentry.autofix.utils import SeerAutomationSource
 from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -54,6 +53,7 @@ from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.notifications.utils.actions import MessageAction
 from sentry.seer.anomaly_detection.types import StoreDataResponse
+from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
@@ -268,7 +268,7 @@ def build_test_message_blocks(
 
 
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
-    def test_build_group_block(self):
+    def test_build_group_block(self) -> None:
         release = self.create_release(project=self.project)
         event = self.store_event(
             data={
@@ -355,7 +355,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @with_feature("organizations:workflow-engine-trigger-actions")
-    def test_build_group_block_noa(self):
+    def test_build_group_block_noa(self) -> None:
         rule = self.create_project_rule(project=self.project, action_data=[{"legacy_rule_id": 123}])
         release = self.create_release(project=self.project)
         event = self.store_event(
@@ -444,7 +444,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
-    def test_build_group_block_with_message(self):
+    def test_build_group_block_with_message(self) -> None:
         event_data = {
             "event_id": "a" * 32,
             "message": "IntegrationError",
@@ -473,7 +473,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
         )
 
-    def test_build_group_block_with_empty_string_message(self):
+    def test_build_group_block_with_empty_string_message(self) -> None:
         event_data = {
             "event_id": "a" * 32,
             "message": "IntegrationError",
@@ -519,14 +519,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert len(team_option_groups["options"]) == 2
         assert len(member_option_groups["options"]) == 2
 
-    def test_build_group_attachment_issue_alert(self):
+    def test_build_group_attachment_issue_alert(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()
         assert isinstance(ret, dict)
         for section in ret["blocks"]:
             assert section["type"] != "actions"
 
-    def test_issue_alert_with_suspect_commits(self):
+    def test_issue_alert_with_suspect_commits(self) -> None:
         self.login_as(user=self.user)
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -591,7 +591,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suggested_assignees=commit_author.email,
         )
 
-    def test_issue_alert_with_suspect_commits_unknown_provider(self):
+    def test_issue_alert_with_suspect_commits_unknown_provider(self) -> None:
         self.login_as(user=self.user)
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -656,7 +656,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suggested_assignees=commit_author.email,
         )
 
-    def test_issue_alert_with_suggested_assignees(self):
+    def test_issue_alert_with_suggested_assignees(self) -> None:
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
         event = self.store_event(
@@ -761,7 +761,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             == expected_blocks
         )
 
-    def test_team_recipient(self):
+    def test_team_recipient(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(
             issue_alert_group, recipient=Actor.from_object(self.team)
@@ -775,7 +775,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert has_actions
 
-    def test_team_recipient_already_assigned(self):
+    def test_team_recipient_already_assigned(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
         GroupAssignee.objects.create(
             project=self.project, group=issue_alert_group, user_id=self.user.id
@@ -790,7 +790,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert ret["blocks"][2]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
 
-    def test_build_group_generic_issue_block(self):
+    def test_build_group_generic_issue_block(self) -> None:
         """Test that a generic issue type's Slack alert contains the expected values"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -816,7 +816,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             if section["type"] == "text":
                 assert ":red_circle:" in section["text"]["text"]
 
-    def test_build_group_generic_issue_block_no_escaping(self):
+    def test_build_group_generic_issue_block_no_escaping(self) -> None:
         """Test that a generic issue type's Slack alert contains the expected values"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -849,14 +849,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert blocks["blocks"][1]["text"]["text"] == f"```{escaped_text}```"
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
-    def test_build_error_issue_fallback_text(self):
+    def test_build_error_issue_fallback_text(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         blocks = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
         assert isinstance(blocks, dict)
         assert blocks["text"] == f"[{self.project.slug}] {event.group.title}"
 
-    def test_build_performance_issue(self):
+    def test_build_performance_issue(self) -> None:
         event = self.create_performance_issue()
         with self.feature("organizations:performance-issues"):
             blocks = SlackIssuesMessageBuilder(event.group, event).build()
@@ -869,7 +869,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
-    def test_truncates_long_query(self):
+    def test_truncates_long_query(self) -> None:
         event = self.store_event(
             data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id
         )
@@ -905,7 +905,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         truncated_text = "a" * 1497 + "..."
         assert blocks["blocks"][1]["text"]["text"] == f"```{truncated_text}```"
 
-    def test_escape_slack_message(self):
+    def test_escape_slack_message(self) -> None:
         group = self.create_group(
             project=self.project,
             data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
@@ -914,7 +914,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert isinstance(ret, dict)
         assert "<https://example.com/|*Click Here*>" in ret["blocks"][1]["text"]["text"]
 
-    def test_no_description_in_notification(self):
+    def test_no_description_in_notification(self) -> None:
         alert_rule = self.create_alert_rule(description="yeehaw")
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         title = f"Critical: {alert_rule.name}"
@@ -1274,7 +1274,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
 
 
 class BuildIncidentAttachmentTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         title = f"Resolved: {alert_rule.name}"
@@ -1314,7 +1314,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "text": f"<{link}|*{title}*>",
         }
 
-    def test_metric_value(self):
+    def test_metric_value(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
 
@@ -1358,7 +1358,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "text": f"<{link}|*{title}*>",
         }
 
-    def test_chart(self):
+    def test_chart(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         title = f"Resolved: {alert_rule.name}"
@@ -1401,7 +1401,6 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1455,7 +1454,7 @@ class BuildIncidentAttachmentTest(TestCase):
 
 
 class BuildMetricAlertAttachmentTest(TestCase):
-    def test_metric_alert_without_incidents(self):
+    def test_metric_alert_without_incidents(self) -> None:
         alert_rule = self.create_alert_rule()
         title = f"Resolved: {alert_rule.name}"
         link = (
@@ -1483,7 +1482,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             ],
         }
 
-    def test_metric_alert_with_selected_incident(self):
+    def test_metric_alert_with_selected_incident(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -1516,7 +1515,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             ],
         }
 
-    def test_metric_alert_with_active_incident(self):
+    def test_metric_alert_with_active_incident(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -1549,7 +1548,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             ],
         }
 
-    def test_metric_value(self):
+    def test_metric_value(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
 
@@ -1588,7 +1587,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             ],
         }
 
-    def test_metric_alert_chart(self):
+    def test_metric_alert_chart(self) -> None:
         alert_rule = self.create_alert_rule()
         title = f"Resolved: {alert_rule.name}"
         link = (
@@ -1618,7 +1617,6 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1664,7 +1662,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
 
 
 class ActionsTest(TestCase):
-    def test_identity_and_action(self):
+    def test_identity_and_action(self) -> None:
         # returns True to indicate to use the white circle emoji
         group = self.create_group(project=self.project)
         MOCKIDENTITY = Mock()
@@ -1679,7 +1677,7 @@ class ActionsTest(TestCase):
         ]
         assert expected in actions_dict
 
-    def test_ignore_has_escalating(self):
+    def test_ignore_has_escalating(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.IGNORED
         group.save()
@@ -1697,7 +1695,7 @@ class ActionsTest(TestCase):
             expected,
         )
 
-    def test_ignore_does_not_have_escalating(self):
+    def test_ignore_does_not_have_escalating(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.IGNORED
         group.save()
@@ -1714,7 +1712,7 @@ class ActionsTest(TestCase):
             expected,
         )
 
-    def test_ignore_unresolved_no_escalating(self):
+    def test_ignore_unresolved_no_escalating(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.UNRESOLVED
         group.save()
@@ -1731,7 +1729,7 @@ class ActionsTest(TestCase):
             expected,
         )
 
-    def test_ignore_unresolved_has_escalating(self):
+    def test_ignore_unresolved_has_escalating(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.UNRESOLVED
         group.save()
@@ -1748,13 +1746,13 @@ class ActionsTest(TestCase):
             expected,
         )
 
-    def test_no_ignore_if_feedback(self):
+    def test_no_ignore_if_feedback(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
         res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         # no ignore action if feedback issue, so only assign and resolve
         assert len(res[0]) == 2
 
-    def test_resolve_resolved(self):
+    def test_resolve_resolved(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.RESOLVED
         group.save()
@@ -1771,7 +1769,7 @@ class ActionsTest(TestCase):
             },
         )
 
-    def test_resolve_unresolved_no_releases(self):
+    def test_resolve_unresolved_no_releases(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.UNRESOLVED
         group.save()
@@ -1789,7 +1787,7 @@ class ActionsTest(TestCase):
             },
         )
 
-    def test_resolve_unresolved_has_releases(self):
+    def test_resolve_unresolved_has_releases(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.UNRESOLVED
         group.save()
@@ -1807,7 +1805,7 @@ class ActionsTest(TestCase):
             },
         )
 
-    def test_assign(self):
+    def test_assign(self) -> None:
         group = self.create_group(project=self.project)
         group.status = GroupStatus.UNRESOLVED
         group.save()
@@ -1824,7 +1822,7 @@ class ActionsTest(TestCase):
 
 class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     @freeze_time("2024-02-23")
-    def setUp(self):
+    def setUp(self) -> None:
         self.endpoint_regression_issue = self.create_group(
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )
@@ -1856,7 +1854,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
 
-    def test_get_context_error_user_count(self):
+    def test_get_context_error_user_count(self) -> None:
         event = self.store_event(
             data={},
             project_id=self.project.id,
@@ -1881,7 +1879,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
         )
 
-    def test_get_context_users_affected(self):
+    def test_get_context_users_affected(self) -> None:
         env = self.create_environment(project=self.project)
         env2 = self.create_environment(project=self.project)
         rule = IssueAlertRule.objects.create(project=self.project, label="my rule")
@@ -1927,7 +1925,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
         )
 
-    def test_get_tags(self):
+    def test_get_tags(self) -> None:
         # don't use default tags. if we don't pass in tags to get_tags, we don't return any
         tags = get_tags(
             self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()

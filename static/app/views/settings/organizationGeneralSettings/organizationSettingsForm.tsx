@@ -75,7 +75,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     formsConfig[0]!.fields = [
       ...formsConfig[0]!.fields.slice(0, 2),
       organizationIdField,
-      ...formsConfig[0]!.fields.slice(2),
+      ...formsConfig[0]!.fields.slice(2, 3),
       makeHideAiFeaturesField(organization),
       {
         name: 'codecovAccess',
@@ -120,6 +120,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
+      ...formsConfig[0]!.fields.slice(3),
     ];
     return formsConfig;
   }, [access, organization]);
@@ -150,7 +151,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
         supportedTypes={['upload', 'letter_avatar']}
         endpoint={`${endpoint}avatar/`}
         model={initialData}
-        uploadDomain={initialData.links.regionUrl}
         onSave={updateOrganization}
         disabled={!access.has('org:write')}
       />

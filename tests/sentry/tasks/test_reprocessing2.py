@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from io import BytesIO
 from time import time
 from unittest import mock
 
@@ -9,6 +8,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.attachments import attachment_cache
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
@@ -16,13 +16,11 @@ from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
@@ -37,16 +35,14 @@ pytestmark = [requires_snuba]
 
 
 def _create_event_attachment(evt, type):
-    file = File.objects.create(name="foo", type=type)
-    file.putfile(BytesIO(b"hello world"))
     EventAttachment.objects.create(
         event_id=evt.event_id,
         group_id=evt.group_id,
         project_id=evt.project_id,
-        file_id=file.id,
-        type=file.type,
+        type=type,
         name="foo",
-        size=file.size,
+        size=len("hello world"),
+        blob_path=":hello world",
     )
 
 
@@ -489,7 +485,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    mock_logger.error.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
+    mock_logger.warning.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
 @django_db_all

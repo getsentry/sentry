@@ -12,7 +12,7 @@ from sentry.uptime.subscriptions.regions import (
 
 
 class TestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.test_regions = [
             UptimeRegionConfig(
                 slug="us",
@@ -36,7 +36,7 @@ class TestBase(TestCase):
 
 
 class GetActiveRegionsTest(TestBase):
-    def test_returns_only_enabled_regions(self):
+    def test_returns_only_enabled_regions(self) -> None:
         with (
             override_settings(UPTIME_REGIONS=self.test_regions),
             override_options(
@@ -73,7 +73,7 @@ class GetActiveRegionsTest(TestBase):
 
 
 class GetRegionConfigTest(TestBase):
-    def test_returns_existing_region(self):
+    def test_returns_existing_region(self) -> None:
         with override_settings(UPTIME_REGIONS=self.test_regions):
             region = get_region_config("us")
             assert region is not None

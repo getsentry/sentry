@@ -2,6 +2,7 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
+import {Link} from 'sentry/components/core/link';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -13,14 +14,19 @@ import type {
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getShortEventId} from 'sentry/utils/events';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -35,6 +41,7 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
+  renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
@@ -46,6 +53,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -170,7 +178,13 @@ export const SpansConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, _organization) => {
+  getCustomFieldRenderer: (field, meta, widget, _organization) => {
+    if (field === 'id') {
+      return renderEventInTraceView;
+    }
+    if (field === 'trace') {
+      return renderTraceAsLinkable(widget);
+    }
     return getFieldRenderer(field, meta, false);
   },
 };
@@ -269,18 +283,13 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
-    dataset: DiscoverDatasets.SPANS_EAP,
+    dataset: DiscoverDatasets.SPANS,
     ...queryExtras,
   };
 
   if (query.orderby) {
     params.sort = toArray(query.orderby);
   }
-
-  // Filtering out all spans with op like 'ui.interaction*' which aren't
-  // embedded under transactions. The trace view does not support rendering
-  // such spans yet.
-  eventView.query = `${eventView.query} !transaction.span_id:00`;
 
   return doDiscoverQuery<EventsTableData>(
     api,
@@ -336,14 +345,9 @@ function getSeriesRequest(
     queryIndex,
     organization,
     pageFilters,
-    DiscoverDatasets.SPANS_EAP,
+    DiscoverDatasets.SPANS,
     referrer
   );
-
-  // Filtering out all spans with op like 'ui.interaction*' which aren't
-  // embedded under transactions. The trace view does not support rendering
-  // such spans yet.
-  requestData.query = `${requestData.query} !transaction.span_id:00`;
 
   if (samplingMode) {
     requestData.sampling = samplingMode;
@@ -361,4 +365,34 @@ function filterSeriesSortOptions(columns: Set<string>) {
 
     return columns.has(option.value.meta.name);
   };
+}
+
+function renderEventInTraceView(
+  data: EventData,
+  {location, organization}: RenderFunctionBaggage
+) {
+  const spanId = data.id;
+  if (!spanId || typeof spanId !== 'string') {
+    return <Container>{emptyStringValue}</Container>;
+  }
+
+  if (!data.trace) {
+    return <Container>{getShortEventId(spanId)}</Container>;
+  }
+
+  const target = generateLinkToEventInTraceView({
+    traceSlug: data.trace,
+    timestamp: data.timestamp,
+    targetId: data['transaction.span_id'],
+    organization,
+    location,
+    spanId,
+    source: TraceViewSources.DASHBOARDS,
+  });
+
+  return (
+    <Link to={target}>
+      <Container>{getShortEventId(spanId)}</Container>
+    </Link>
+  );
 }

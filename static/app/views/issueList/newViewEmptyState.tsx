@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconWarning} from 'sentry/icons';
@@ -70,9 +70,15 @@ function Query({label, query}: SearchSuggestion) {
 
 export function NewViewEmptyState() {
   const organization = useOrganization();
-  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg({
-    orgSlug: organization.slug,
-  });
+  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg(
+    {
+      orgSlug: organization.slug,
+    },
+    {
+      // Force this to be enabled even with the new navigation
+      enabled: true,
+    }
+  );
 
   const personalSavedSearches = savedSearches.filter(
     search => search.visibility === SavedSearchVisibility.OWNER
@@ -132,7 +138,7 @@ export function NewViewEmptyState() {
 }
 
 const Bold = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const TooltipSubLink = styled(Link)`
@@ -159,8 +165,8 @@ const Card = styled(Panel)`
 `;
 
 const CardHeading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
   display: flex;
   align-items: center;
@@ -200,7 +206,7 @@ const QueryButton = styled('button')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1/-1;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   background: none;
   border: none;
   margin: 0;

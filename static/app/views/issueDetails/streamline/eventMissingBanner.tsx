@@ -2,12 +2,11 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
-import {Flex} from 'sentry/components/container/flex';
-import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -77,9 +76,9 @@ export function EventMissingBanner() {
 
   return (
     <Flex align="center" justify="center">
-      <Flex align="center" gap={36}>
+      <Flex align="center" gap="3xl">
         <img src={compassImage} alt="Compass illustration" height={122} />
-        <Flex justify="center" column gap={space(1)}>
+        <Flex justify="center" direction="column" gap="md">
           <MainText>
             {tct("We couldn't track down [prep] event", {
               prep: isReservedEventId ? 'an' : 'that',
@@ -103,13 +102,13 @@ export function EventMissingBanner() {
 }
 
 const MainText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const SubText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const EventIdText = styled(SubText)`

@@ -33,8 +33,8 @@ const PanelHeader = styled('div')<Props>`
   > *:not(:has([data-overlay], button, a[role='button']), button, a[role='button']),
   &:not(:has(> *)) {
     color: ${p => (p.lightText ? p.theme.subText : p.theme.textColor)};
-    font-size: ${p => p.theme.fontSizeSmall};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-size: ${p => p.theme.fontSize.sm};
+    font-weight: ${p => p.theme.fontWeight.bold};
     text-transform: uppercase;
     line-height: 1;
   }

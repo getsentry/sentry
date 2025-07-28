@@ -19,7 +19,7 @@ export default function coaleseIssueStatsPeriodQuery<
   // the user wants to see fresher content (like, after the page has been open
   // for a while) they can trigger that specifically.
 
-  // The issues endpoint cannot handle when statsPeroid has a value of "", so
+  // The issues endpoint cannot handle when statsPeriod has a value of "", so
   // we remove that from the rest and do not use it to query.
 
   // Usually we want to fetch starting from `now` and looking back in time.

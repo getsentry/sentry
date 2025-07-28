@@ -1,6 +1,6 @@
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import localStorage from 'sentry/utils/localStorage';

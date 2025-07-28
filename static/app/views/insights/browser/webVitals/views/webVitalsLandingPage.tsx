@@ -1,17 +1,19 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import WebVitalMetersWithIssues from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
@@ -24,24 +26,21 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {
-  ModuleName,
-  SpanMetricsField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
 
 function WebVitalsLandingPage() {
+  const organization = useOrganization();
   const location = useLocation();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const browserTypes = decodeBrowserTypes(location.query[SpanMetricsField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
   const {data: projectData, isPending} = useProjectRawWebVitalsQuery({
@@ -69,6 +68,10 @@ function WebVitalsLandingPage() {
       openVitalsDrawer();
     }
   });
+
+  const useWebVitalsIssues = organization.features.includes(
+    'performance-web-vitals-issues'
+  );
 
   return (
     <React.Fragment>
@@ -98,11 +101,19 @@ function WebVitalsLandingPage() {
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
-                  <WebVitalMeters
-                    projectData={projectData}
-                    projectScore={projectScore}
-                    onClick={webVital => setState({...state, webVital})}
-                  />
+                  {useWebVitalsIssues ? (
+                    <WebVitalMetersWithIssues
+                      projectData={projectData}
+                      projectScore={projectScore}
+                      onClick={webVital => setState({...state, webVital})}
+                    />
+                  ) : (
+                    <WebVitalMeters
+                      projectData={projectData}
+                      projectScore={projectScore}
+                      onClick={webVital => setState({...state, webVital})}
+                    />
+                  )}
                 </WebVitalMetersContainer>
                 <PagePerformanceTable />
                 <PagesTooltipContainer>
@@ -199,7 +210,7 @@ const LoadingBox = styled('div')`
 `;
 
 const PagesTooltip = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   text-decoration: underline dotted ${p => p.theme.gray300};
 `;

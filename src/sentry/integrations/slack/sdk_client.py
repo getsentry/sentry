@@ -8,11 +8,10 @@ from slack_sdk.web import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.integrations.base import is_response_error, is_response_success
 from sentry.integrations.models import Integration
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
@@ -34,7 +33,7 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
     )
 
     extra = {
-        "integration": "slack",
+        "integration": IntegrationProviderSlug.SLACK.value,
         "status_string": str(code),
         "error": error,
         "method": method,
@@ -47,31 +46,6 @@ def is_response_fatal(response: SlackResponse) -> bool:
         if "account_inactive" == response.get("error", ""):
             return True
     return False
-
-
-# TODO: add this to the client somehow
-def record_response_for_disabling_integration(response: SlackResponse, integration_id: int) -> None:
-    redis_key = f"sentry-integration-error:{integration_id}"
-
-    buffer = IntegrationRequestBuffer(redis_key)
-    if is_response_fatal(response):
-        buffer.record_fatal()
-    else:
-        if is_response_success(response):
-            buffer.record_success()
-            return
-        if is_response_error(response):
-            buffer.record_error()
-    if buffer.is_integration_broken():
-        # TODO(ecosystem): We should delete this feature of fix it
-        # disable_integration(buffer, redis_key, integration_id)
-        logger.info(
-            "integration.should_disable",
-            extra={
-                "integration_id": integration_id,
-                "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-            },
-        )
 
 
 def wrapper(method: FunctionType):

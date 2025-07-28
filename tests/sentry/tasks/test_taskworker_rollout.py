@@ -7,13 +7,12 @@ from sentry.taskworker.registry import TaskRegistry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
-registry = TaskRegistry()
-
 
 class TestTaskworkerRollout(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.namespace = registry.create_namespace(name="test_namespace")
+        self.registry = TaskRegistry()
+        self.namespace = self.registry.create_namespace(name="test_namespace")
         self.config = TaskworkerConfig(
             namespace=self.namespace,
             retry=None,
@@ -40,7 +39,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_with_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task():
+        def test_task() -> str:
             return "done"
 
         assert test_task.name == "test.test_with_taskworker_rollout"
@@ -155,7 +154,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_taskworker_no_rollout_configured",
             taskworker_config=self.config,
         )
-        def test_task():
+        def test_task() -> str:
             return "done"
 
         assert test_task.name == "test.test_taskworker_no_rollout_configured"

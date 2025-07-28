@@ -12,6 +12,7 @@ from sentry.api.utils import handle_query_errors, update_snuba_params_with_times
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import ourlogs
 from sentry.snuba.referrer import Referrer
@@ -81,14 +82,15 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             query = f"{base_query} and {additional_query}"
         else:
             query = base_query
-        results = ourlogs.query(
-            selected_columns=selected_columns,
-            query=query,
-            snuba_params=snuba_params,
-            orderby=orderby,
-            offset=offset,
-            limit=limit,
-            referrer=Referrer.API_TRACE_VIEW_LOGS.value,
+        results = ourlogs.run_table_query(
+            snuba_params,
+            query,
+            selected_columns,
+            orderby,
+            offset,
+            limit,
+            Referrer.API_TRACE_VIEW_LOGS.value,
+            SearchResolverConfig(use_aggregate_conditions=False),
         )
         return results
 
@@ -120,5 +122,5 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            max_per_page=1000,
+            max_per_page=9999,
         )

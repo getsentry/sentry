@@ -8,6 +8,7 @@ import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 type RegistrationFunction = (chart: EChartsType) => void;
 
 interface WidgetSyncContext {
+  groupName: string;
   register: RegistrationFunction;
 }
 
@@ -35,6 +36,7 @@ export function WidgetSyncContextProvider({
     <_WidgetSyncProvider
       value={{
         register,
+        groupName,
       }}
     >
       {children}
@@ -49,6 +51,7 @@ export function useWidgetSyncContext(): WidgetSyncContext {
     // The provider was not registered, return a dummy function
     return {
       register: (_p: any) => null,
+      groupName: '',
     };
   }
 

@@ -1,4 +1,4 @@
-import type {LocationRange} from 'peggy';
+import type {Location, LocationRange} from 'peggy';
 
 import {defined} from 'sentry/utils';
 
@@ -10,6 +10,7 @@ export enum TokenKind {
   FREE_TEXT = 'str',
   ATTRIBUTE = 'attr',
   FUNCTION = 'func',
+  LITERAL = 'lit',
 }
 
 export abstract class Token {
@@ -17,9 +18,11 @@ export abstract class Token {
 
   key = '';
   location: LocationRange;
+  text = '';
 
-  constructor(location: LocationRange) {
+  constructor(location: LocationRange, text: string) {
     this.location = location;
+    this.text = text;
   }
 }
 
@@ -32,7 +35,7 @@ export abstract class TokenParenthesis extends Token {
   parenthesis: Parenthesis;
 
   constructor(location: LocationRange, parenthesis: Parenthesis) {
-    super(location);
+    super(location, parenthesis);
     this.parenthesis = parenthesis;
   }
 }
@@ -66,7 +69,7 @@ export class TokenOperator extends Token {
   operator: Operator;
 
   constructor(location: LocationRange, operator: Operator) {
-    super(location);
+    super(location, operator);
     this.operator = operator;
   }
 }
@@ -78,16 +81,10 @@ export class TokenAttribute extends Token {
   type?: string;
 
   constructor(location: LocationRange, attribute: string, type?: string) {
-    super(location);
+    const text = defined(type) ? `tags[${attribute},${type}]` : attribute;
+    super(location, text);
     this.attribute = attribute;
     this.type = type;
-  }
-
-  format(): string {
-    if (defined(this.type)) {
-      return `tags[${this.attribute},${this.type}]`;
-    }
-    return this.attribute;
   }
 }
 
@@ -98,26 +95,16 @@ export class TokenFunction extends Token {
   attributes: TokenAttribute[];
 
   constructor(location: LocationRange, func: string, attributes: TokenAttribute[]) {
-    super(location);
+    const args = attributes.map(attr => attr.text);
+    const text = `${func}(${args.join(',')})`;
+    super(location, text);
     this.function = func;
     this.attributes = attributes;
-  }
-
-  format(): string {
-    const args = this.attributes.map(attr => attr.format());
-    return `${this.function}(${args.join(',')})`;
   }
 }
 
 export class TokenFreeText extends Token {
   kind: TokenKind = TokenKind.FREE_TEXT;
-
-  text: string;
-
-  constructor(location: LocationRange, text: string) {
-    super(location);
-    this.text = text;
-  }
 
   merge(token: TokenFreeText) {
     // Assumes `this` and `token` are adjacent tokens with 0 more spaces between them.
@@ -125,6 +112,53 @@ export class TokenFreeText extends Token {
     const spaces = token.location.start.offset - this.location.end.offset;
     this.location.end = token.location.end;
     this.text = `${this.text}${' '.repeat(spaces)}${token.text}`;
+  }
+}
+
+export class TokenLiteral extends Token {
+  kind: TokenKind = TokenKind.LITERAL;
+
+  value: number;
+
+  constructor(location: LocationRange, text: string) {
+    super(location, text);
+    const value = +text;
+    if (isNaN(value)) {
+      throw new Error(`Unable to initialize TokenLiteral with ${text}`);
+    }
+    this.value = value;
+  }
+
+  get sign(): '+' | '-' | null {
+    if (this.text.startsWith('-')) {
+      return '-';
+    }
+    if (this.text.startsWith('+')) {
+      return '+';
+    }
+    return null;
+  }
+
+  split(): [TokenOperator, TokenLiteral] {
+    const sign = this.sign;
+    if (!defined(sign)) {
+      throw new Error('Literal does not contain a sign to be split.');
+    }
+
+    const pos: Location = {
+      offset: this.location.start.offset + 1,
+      line: this.location.start.line,
+      column: this.location.start.column + 1,
+    };
+    const op = new TokenOperator(
+      {source: undefined, start: this.location.start, end: pos},
+      sign === '-' ? Operator.MINUS : Operator.PLUS
+    );
+    const lit = new TokenLiteral(
+      {source: undefined, start: pos, end: this.location.end},
+      this.text.substring(1)
+    );
+    return [op, lit];
   }
 }
 
@@ -147,4 +181,8 @@ export function isTokenFreeText(token: Token | null | undefined): token is Token
 
 export function isTokenFunction(token: Token | null | undefined): token is TokenFunction {
   return token?.kind === TokenKind.FUNCTION;
+}
+
+export function isTokenLiteral(token: Token | null | undefined): token is TokenLiteral {
+  return token?.kind === TokenKind.LITERAL;
 }

@@ -6,6 +6,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
@@ -196,7 +197,7 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
           label: t('Search issues where this flag value is TRUE'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `flags["${key}"]:"true"`},
+            query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
           },
         },
         {
@@ -204,7 +205,7 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
           label: t('Search issues where this flag value is FALSE'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `flags["${key}"]:"false"`},
+            query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
           },
         },
         {
@@ -224,7 +225,7 @@ const Table = styled('div')`
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     column-gap: ${space(2)};
   }
 `;
@@ -232,7 +233,7 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Body = styled('div')`

@@ -2,13 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import getTransformedData from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {
   type StructedEventDataConfig,
   StructuredData,
@@ -288,7 +288,7 @@ const Monospace = styled('span')`
 const Path = styled('span')`
   color: ${p => p.theme.textColor};
   text-transform: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   & strong {
     margin-right: ${space(0.5)};

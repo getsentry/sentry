@@ -5,7 +5,7 @@ import {duration} from 'moment-timezone';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 const defaultValues = {
   has_viewed: false,
@@ -92,7 +92,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
  * @deprecated Once the backend returns the corrected timestamps, this is not needed.
  */
 export function replayTimestamps(
-  replayRecord: ReplayRecord,
+  replayRecord: HydratedReplayRecord,
   rrwebEvents: Array<{timestamp: number}>,
   rawCrumbs: Array<{timestamp: number}>,
   rawSpanData: Array<{endTimestamp: number; op: string; startTimestamp: number}>

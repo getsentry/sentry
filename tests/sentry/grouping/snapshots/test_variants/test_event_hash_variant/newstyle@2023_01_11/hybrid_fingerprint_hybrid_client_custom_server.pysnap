@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:22:07.441352+00:00'
+created: '2025-07-18T18:34:35.801984+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   contributing component: exception
   component:
-    app (custom fingerprint takes precedence)
+    app (custom server fingerprint takes precedence)
       exception*
         stacktrace*
           frame* (marked in-app by the client)
@@ -170,14 +170,14 @@ app:
 --------------------------------------------------------------------------
 custom_fingerprint:
   hash: "554e214208f0372603dc9fa6c1c0965f"
-  info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
+  fingerprint_info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
   values: ["soft-timelimit-exceeded"]
 --------------------------------------------------------------------------
 system:
   hash: null
   contributing component: exception
   component:
-    system (custom fingerprint takes precedence)
+    system (custom server fingerprint takes precedence)
       exception*
         stacktrace*
           frame*

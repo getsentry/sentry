@@ -47,6 +47,8 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -97,6 +99,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
@@ -243,16 +246,34 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
+        "enablePrReviewTestGeneration",
+        "sentry:enable_pr_review_test_generation",
+        bool,
+        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ),
+    (
         "ingestThroughTrustedRelaysOnly",
         "sentry:ingest-through-trusted-relays-only",
-        bool,
+        str,
         INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+    ),
+    (
+        "enabledConsolePlatforms",
+        "sentry:enabled_console_platforms",
+        list,
+        ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     ),
 )
 
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
+
+CONSOLE_PLATFORMS = {
+    "playstation": "PlayStation",
+    "xbox": "Xbox",
+    "nintendo-switch": "Nintendo Switch",
+}
 
 UNSAVED = object()
 DEFERRED = object()
@@ -311,12 +332,20 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
     defaultAutofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "super_low", "low", "medium", "high", "always"],
+        choices=[item.value for item in AutofixAutomationTuningSettings],
         required=False,
         help_text="The default automation tuning setting for new projects.",
     )
     defaultSeerScannerAutomation = serializers.BooleanField(required=False)
-    ingestThroughTrustedRelaysOnly = serializers.BooleanField(required=False)
+    enabledConsolePlatforms = serializers.ListField(
+        child=serializers.ChoiceField(choices=list(CONSOLE_PLATFORMS.keys())),
+        required=False,
+        allow_empty=True,
+    )
+    enablePrReviewTestGeneration = serializers.BooleanField(required=False)
+    ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
+        choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -402,6 +431,26 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(
                 "Organization does not have the ingest through trusted relays only feature enabled."
             )
+        return value
+
+    def validate_enabledConsolePlatforms(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        if not is_active_staff(request):
+            raise serializers.ValidationError("Only staff members can toggle console platforms.")
+
+        if not features.has(
+            "organizations:project-creation-games-tab", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the project creation games tab feature enabled."
+            )
+
+        # Remove duplicates by converting to set and back to list
+        if value is not None:
+            value = list(set(value))
+
         return value
 
     def validate_accountRateLimit(self, value):
@@ -500,6 +549,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             # get what we already have
             existing = OrganizationOption.objects.get(organization=organization, key=option_key)
 
+            assert existing.value is not None
             key_dict = {val.get("public_key"): val for val in existing.value}
             original_number_of_keys = len(existing.value)
         except OrganizationOption.DoesNotExist:
@@ -690,6 +740,33 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+def create_console_platform_audit_log(
+    request, organization, previously_enabled_platforms, currently_requested_platforms
+):
+    """Create a single audit log entry for console platform changes."""
+    prev = set(previously_enabled_platforms or [])
+    curr = set(currently_requested_platforms or [])
+    added = curr - prev
+    removed = prev - curr
+    enabled = [CONSOLE_PLATFORMS[p] for p in sorted(added) if p in CONSOLE_PLATFORMS]
+    disabled = [CONSOLE_PLATFORMS[p] for p in sorted(removed) if p in CONSOLE_PLATFORMS]
+
+    changes = []
+    if enabled:
+        changes.append(f"Enabled platforms: {', '.join(enabled)}")
+    if disabled:
+        changes.append(f"Disabled platforms: {', '.join(disabled)}")
+
+    if changes:
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            data={"console_platforms": "; ".join(changes)},
+        )
+
+
 @extend_schema_serializer(
     exclude_fields=[
         "accountRateLimit",
@@ -699,6 +776,7 @@ def post_org_pending_deletion(
         "defaultAutofixAutomationTuning",
         "defaultSeerScannerAutomation",
         "ingestThroughTrustedRelaysOnly",
+        "enabledConsolePlatforms",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -1014,6 +1092,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             slug_change_requested = "slug" in request.data and request.data["slug"]
 
+            # Capture previous console platforms before serializer.save() updates them
+            previous_console_platforms = None
+            if "enabledConsolePlatforms" in request.data:
+                previous_console_platforms = organization.get_option(
+                    "sentry:enabled_console_platforms", []
+                )
+
             # Attempt slug change first as it's a more complex, control-silo driven workflow.
             if slug_change_requested:
                 slug = request.data["slug"]
@@ -1089,13 +1174,24 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 )
                 RegionScheduledDeletion.cancel(organization)
             elif changed_data:
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=organization.id,
-                    event=audit_log.get_event_id("ORG_EDIT"),
-                    data=changed_data,
-                )
+                if "enabledConsolePlatforms" in changed_data:
+                    create_console_platform_audit_log(
+                        request,
+                        organization,
+                        previous_console_platforms,
+                        serializer.validated_data.get("enabledConsolePlatforms", []),
+                    )
+
+                    del changed_data["enabledConsolePlatforms"]
+
+                if changed_data:
+                    self.create_audit_entry(
+                        request=request,
+                        organization=organization,
+                        target_object=organization.id,
+                        event=audit_log.get_event_id("ORG_EDIT"),
+                        data=changed_data,
+                    )
 
             context = serialize(
                 organization,

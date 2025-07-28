@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -26,7 +26,7 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -37,14 +37,9 @@ import {
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {
-  ModuleName,
-  SpanMetricsField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
-  SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
 type Props = {
   primaryRelease?: string;
@@ -68,13 +63,13 @@ export function SpanOperationTable({
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
-  const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const spanOp = decodeScalar(location.query[SpanFields.SPAN_OP]) ?? '';
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
-  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
+  const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]) ?? '';
 
   const searchQuery = new MutableSearch([
     // Exclude root level spans because they're comprised of nested operations
@@ -88,14 +83,14 @@ export function SpanOperationTable({
     'transaction.op:[ui.load,navigation]',
     `transaction:${transaction}`,
     'has:ttid',
-    `${SpanMetricsField.APP_START_TYPE}:${
+    `${SpanFields.APP_START_TYPE}:${
       startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     }`,
-    `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
-    ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
-    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
+    `${SpanFields.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
+    ...(spanOp ? [`${SpanFields.SPAN_OP}:${spanOp}`] : []),
+    ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
     ...(subregions.length > 0
-      ? [`${SpanMetricsField.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
+      ? [`${SpanFields.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
       : []),
   ]);
 
@@ -114,7 +109,7 @@ export function SpanOperationTable({
     field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
 
-  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+  const {data, meta, isPending, pageLinks} = useSpans(
     {
       cursor,
       fields: [
@@ -154,15 +149,15 @@ export function SpanOperationTable({
     }
 
     if (column.key === SPAN_DESCRIPTION) {
-      const label = row[SpanMetricsField.SPAN_DESCRIPTION];
+      const label = row[SpanFields.SPAN_DESCRIPTION];
 
       const query = {
         ...location.query,
         transaction,
-        spanOp: row[SpanMetricsField.SPAN_OP],
-        spanGroup: row[SpanMetricsField.SPAN_GROUP],
-        spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
-        appStartType: row[SpanMetricsField.APP_START_TYPE],
+        spanOp: row[SpanFields.SPAN_OP],
+        spanGroup: row[SpanFields.SPAN_GROUP],
+        spanDescription: row[SpanFields.SPAN_DESCRIPTION],
+        appStartType: row[SpanFields.APP_START_TYPE],
       };
 
       return (

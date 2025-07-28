@@ -12,7 +12,7 @@ const IssueStreamHeaderLabel = styled('div')<{
   display: inline-block;
   margin-right: ${space(2)};
   font-size: 13px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
   white-space: nowrap;
 

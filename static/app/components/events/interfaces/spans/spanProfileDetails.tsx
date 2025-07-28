@@ -253,7 +253,7 @@ export function SpanProfileDetails({
           )}
         />
         <SpanDetailsItem>
-          <ButtonBar merged>
+          <ButtonBar merged gap="0">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -474,5 +474,5 @@ const SpanDetailsItem = styled('span')<{grow?: boolean}>`
 
 const SectionSubtext = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

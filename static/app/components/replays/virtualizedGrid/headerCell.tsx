@@ -63,8 +63,8 @@ const HeaderButton = styled('button')`
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
 
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 16px;
   text-align: unset;
   text-transform: uppercase;

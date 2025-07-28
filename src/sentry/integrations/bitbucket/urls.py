@@ -23,12 +23,12 @@ urlpatterns = [
         name="sentry-extensions-bitbucket-uninstalled",
     ),
     re_path(
-        r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
+        r"^organizations/(?P<organization_id>[^/]+)/webhook/$",
         BitbucketWebhookEndpoint.as_view(),
         name="sentry-extensions-bitbucket-webhook",
     ),
     re_path(
-        r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
+        r"^search/(?P<organization_id_or_slug>[^/]+)/(?P<integration_id>\d+)/$",
         BitbucketSearchEndpoint.as_view(),
         name="sentry-extensions-bitbucket-search",
     ),

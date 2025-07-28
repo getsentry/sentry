@@ -5,7 +5,7 @@ import re
 from collections.abc import Sequence
 from typing import Any
 
-from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -56,6 +56,7 @@ EXCLUDED_KEYWORDS = [
 ]
 
 EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
+PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
 
 class SQLInjectionDetector(PerformanceDetector):
@@ -91,6 +92,9 @@ class SQLInjectionDetector(PerformanceDetector):
             request_data.extend(self.request_body.items())
 
         for query_pair in request_data:
+            # Skip None values or pairs that don't have at least 2 elements
+            if not query_pair or not isinstance(query_pair, Sequence) or len(query_pair) < 2:
+                continue
             query_value = query_pair[1]
             query_key = query_pair[0]
 
@@ -99,7 +103,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 not isinstance(query_value, str)
                 or not isinstance(query_key, str)
                 or not query_value
-                or len(query_value) < 3
+                or len(query_value) < self.settings["query_value_length_threshold"]
             ):
                 continue
             if query_key == query_value:
@@ -119,25 +123,49 @@ class SQLInjectionDetector(PerformanceDetector):
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
 
-        for parameter in self.request_parameters:
-            value = parameter[1]
-            key = parameter[0]
-            if re.search(f"\\b{re.escape(key)}\\b", description) and re.search(
-                f"\\b{re.escape(value)}\\b", description
+        for key, value in self.request_parameters:
+            regex_key = rf'(?<![\w.$])"?{re.escape(key)}"?(?![\w.$"])'
+            regex_value = rf"(?<![\w.$])(['\"]?){re.escape(value)}\1(?![\w.$'\"])"
+            where_index = description.upper().find("WHERE")
+            # Search for comments only in the portion after WHERE clause
+            description_after_where = description[where_index:]
+            comment_index = description_after_where.find("--")
+            if comment_index != -1:
+                description_to_search = description_after_where[:comment_index]
+                description_after_comment = description_after_where[comment_index:]
+            else:
+                description_to_search = description_after_where
+                description_after_comment = ""
+            if re.search(regex_key, description_to_search) and re.search(
+                regex_value, description_to_search
             ):
-                description = description.replace(value, "?")
-                vulnerable_parameters.append(key)
+                description = (
+                    description[:where_index]
+                    + re.sub(regex_value, "[UNTRUSTED_INPUT]", description_to_search)
+                    + description_after_comment
+                )
+                vulnerable_parameters.append((key, value))
 
         if len(vulnerable_parameters) == 0:
             return
 
-        fingerprint = self._fingerprint(description)
+        parameterized_description = span.get("sentry_tags", {}).get("description")
+        # If the query description is not parameterized, use the original description with replacements
+        if not parameterized_description:
+            parameterized_description = description
+        vulnerable_keys = [key for key, _ in vulnerable_parameters]
+        fingerprint_description = f"{'-'.join(vulnerable_keys)}-{parameterized_description}"
+        fingerprint = self._fingerprint(fingerprint_description)
+
+        issue_description = (
+            f"Untrusted Inputs [{', '.join(vulnerable_keys)}] in `{parameterized_description}`"
+        )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
-            type=DBQueryInjectionVulnerabilityGroupType,
+            type=QueryInjectionVulnerabilityGroupType,
             fingerprint=fingerprint,
             op=op,
-            desc=description[:MAX_EVIDENCE_VALUE_LENGTH],
+            desc=issue_description[:MAX_EVIDENCE_VALUE_LENGTH],
             cause_span_ids=[],
             parent_span_ids=[],
             offender_span_ids=spans_involved,
@@ -147,7 +175,7 @@ class SQLInjectionDetector(PerformanceDetector):
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
                 "transaction_name": self._event.get("transaction", ""),
-                "vulnerable_parameters": list(set(vulnerable_parameters)),
+                "vulnerable_parameters": vulnerable_parameters,
                 "request_url": self.request_url,
             },
             evidence_display=[
@@ -176,7 +204,21 @@ class SQLInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
-        if not op or not op.startswith("db") or op.startswith("db.redis"):
+        if (
+            not op
+            or not op.startswith("db")
+            or op.startswith("db.redis")
+            or op == "db.sql.active_record"
+        ):
+            return False
+
+        # Auto-generated rails queries can contain interpolated values
+        if span.get("origin") == "auto.db.rails":
+            return False
+
+        # If bindings are present, we can assume the query is safe
+        span_data = span.get("data", {})
+        if span_data and span_data.get("db.sql.bindings"):
             return False
 
         description = span.get("description", None)
@@ -184,7 +226,17 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         description = description.strip()
-        if description[:6].upper() != "SELECT":
+        if (
+            description[:6].upper() != "SELECT"
+            or "WHERE" not in description.upper()
+            or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
+        ):
+            return False
+
+        # Laravel queries with this pattern can contain interpolated values
+        if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
+            r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description.upper()
+        ):
             return False
 
         return True
@@ -203,4 +255,4 @@ class SQLInjectionDetector(PerformanceDetector):
     def _fingerprint(self, description: str) -> str:
         signature = description.encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
-        return f"1-{DBQueryInjectionVulnerabilityGroupType.type_id}-{full_fingerprint}"
+        return f"1-{QueryInjectionVulnerabilityGroupType.type_id}-{full_fingerprint}"

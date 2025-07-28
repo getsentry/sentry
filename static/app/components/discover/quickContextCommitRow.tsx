@@ -4,8 +4,8 @@ import CommitLink from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
@@ -71,12 +71,12 @@ const CommitLinks = styled('div')`
 `;
 
 const LinkToPullRequest = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
 `;
 
 const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
-  font-size: ${p => (p.hasPrTitle ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  font-size: ${p => (p.hasPrTitle ? p.theme.fontSize.sm : p.theme.fontSize.lg)};
   color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.textColor)};
   line-height: 1.5;
   margin: 0;

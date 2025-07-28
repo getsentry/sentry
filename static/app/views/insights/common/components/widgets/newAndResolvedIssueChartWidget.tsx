@@ -21,7 +21,7 @@ export default function NewAndResolvedIssueChartWidget(props: LoadableChartWidge
     resolved_issues_count: 'resolved_issues',
   };
 
-  const colorPalette = theme.chart.getColorPalette(series.length - 2);
+  const colorPalette = theme.chart.getColorPalette(series.length - 1);
 
   const plottables = series.map(
     (ts, index) =>

@@ -105,7 +105,7 @@ const StyledLayoutBody = styled('div')<{
   background-color: ${p => p.theme.background};
   grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     flex-grow: 1;
     flex-direction: column;
@@ -116,10 +116,10 @@ const GroupContent = styled('section')`
   background: ${p => p.theme.backgroundSecondary};
   display: flex;
   flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
   }
 `;

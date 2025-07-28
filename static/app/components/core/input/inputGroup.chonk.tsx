@@ -28,7 +28,7 @@ const chonkItemsPadding = {
   md: 8,
   sm: 6,
   xs: 4,
-} satisfies Record<FormSize, number>;
+} satisfies Record<NonNullable<InputStyleProps['size']>, number>;
 
 const chonkInputStyles = ({
   leadingWidth,
@@ -62,7 +62,7 @@ export const ChonkStyledTextArea = chonkStyled(TextArea)<InputStyleProps>`
 `;
 
 export const ChonkStyledLeadingItemsWrap = chonkStyled(InputItemsWrap)<{
-  size: FormSize;
+  size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
     left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
@@ -70,7 +70,7 @@ export const ChonkStyledLeadingItemsWrap = chonkStyled(InputItemsWrap)<{
   `;
 
 export const ChonkStyledTrailingItemsWrap = chonkStyled(InputItemsWrap)<{
-  size: FormSize;
+  size: NonNullable<InputStyleProps['size']>;
   disablePointerEvents?: boolean;
 }>`
     right: ${p => p.theme.formPadding[p.size].paddingRight + 1}px;

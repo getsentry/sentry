@@ -1,16 +1,18 @@
 import jsonschema
 import orjson
 import sentry_sdk
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -18,6 +20,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -73,14 +76,32 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
+    enforce_rate_limit = True
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                limit=100, window=60
+            ),  # 100 requests per minute per org
+        }
+    }
+
     def post(self, request: Request, project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
-        if not features.has(
+
+        analytics.record(
+            PreprodArtifactApiAssembleEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                user_id=request.user.id,
+            )
+        )
+
+        if not settings.IS_DEV and not features.has(
             "organizations:preprod-artifact-assemble", project.organization, actor=request.user
         ):
-            return Response({"error": "Feature not enabled"}, status=404)
+            return Response({"error": "Feature not enabled"}, status=403)
 
         with sentry_sdk.start_span(op="preprod_artifact.assemble"):
             data, error_message = validate_preprod_artifact_schema(request.body)

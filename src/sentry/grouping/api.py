@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 import sentry_sdk
 
 from sentry import options
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
@@ -18,7 +19,7 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.enhancer import Enhancements, get_enhancements_version
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
     expand_title_template,
@@ -129,7 +130,7 @@ class GroupingConfigLoader:
                 referrer="project_rules",
             ).base64_string
         except InvalidEnhancerConfig:
-            enhancements = get_default_enhancements()
+            enhancements = _get_default_enhancements()
         cache.set(cache_key, enhancements)
         return enhancements
 
@@ -144,6 +145,7 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
         return project.get_option(
             self.option_name,
             validate=lambda x: isinstance(x, str) and x in CONFIGURATIONS,
+            default=DEFAULT_GROUPING_CONFIG,
         )
 
 
@@ -188,19 +190,17 @@ def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) ->
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id: str | None = None) -> str:
-    base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
-    if config_id is not None:
+def _get_default_enhancements(config_id: str | None = None) -> str:
+    base: str | None = DEFAULT_ENHANCEMENTS_BASE
+    if config_id is not None and config_id in CONFIGURATIONS.keys():
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
 
-def get_projects_default_fingerprinting_bases(
+def _get_default_fingerprinting_bases_for_project(
     project: Project, config_id: str | None = None
 ) -> Sequence[str] | None:
     """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
-    from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-
     config_id = (
         config_id
         # TODO: add fingerprinting config to GroupingConfigLoader and use that here
@@ -215,10 +215,8 @@ def get_projects_default_fingerprinting_bases(
 def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
-        from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-
         config_id = DEFAULT_GROUPING_CONFIG
-    return {"id": config_id, "enhancements": get_default_enhancements(config_id)}
+    return {"id": config_id, "enhancements": _get_default_enhancements(config_id)}
 
 
 def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyConfiguration:
@@ -233,7 +231,7 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
     return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
 
 
-def load_default_grouping_config() -> StrategyConfiguration:
+def _load_default_grouping_config() -> StrategyConfiguration:
     return load_grouping_config(config_dict=None)
 
 
@@ -247,7 +245,7 @@ def get_fingerprinting_config_for_project(
 
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
-    bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
+    bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")
     if not raw_rules:
         return FingerprintingRules([], bases=bases)
@@ -268,9 +266,21 @@ def get_fingerprinting_config_for_project(
     return rules
 
 
-def apply_server_fingerprinting(
+def apply_server_side_fingerprinting(
     event: MutableMapping[str, Any], fingerprinting_config: FingerprintingRules
 ) -> None:
+    """
+    Check the given event against the given rules and set various event values. Note that this does
+    not resolve fingerprint variables, except in the event title (if applicable).
+
+    If there is a client fingerprint, add it to `event["_fingprint_info"]`.
+
+    If a rule match is found:
+        - Set `event["fingerprint"]` to the raw (unresolved) fingerprint given by the matching rule.
+        - Add the matched rule to `event["_fingprint_info"]`.
+        - Set `event["title"]` if the rule includes title information.
+    """
+
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint", [])
@@ -412,7 +422,7 @@ def get_grouping_variants_for_event(
 
     # Run all of the event-data-based grouping strategies. Any which apply will create grouping
     # components, which will then be grouped into variants by variant type (system, app, default).
-    context = GroupingContext(config or load_default_grouping_config(), event)
+    context = GroupingContext(config or _load_default_grouping_config(), event)
     strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
         event, context
     )
@@ -422,21 +432,28 @@ def get_grouping_variants_for_event(
     additional_variants: dict[str, BaseVariant] = {}
 
     # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
-    # we need to create an addiional fingerprint variant and mark the existing variants as
-    # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
-    # versions which include the fingerprint.
+    # we need to create a fingerprint variant and mark the existing variants as non-contributing.
+    # If it's hybrid, we'll replace the existing variants with "salted" versions which include
+    # the fingerprint.
     if fingerprint_type == "custom":
-        for variant in strategy_component_variants.values():
-            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
+        matched_rule = fingerprint_info.get("matched_rule", {})
 
-        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
+        if matched_rule and matched_rule.get("is_builtin") is True:
             additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "built-in"
         else:
             additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
+            fingerprint_source = "custom server" if matched_rule else "custom client"
+
+        hint = f"{fingerprint_source} fingerprint takes precedence"
+
+        for variant in strategy_component_variants.values():
+            variant.component.update(contributes=False, hint=hint)
+
     elif fingerprint_type == "hybrid":
         for variant_name, variant in strategy_component_variants.items():
             # Since we're reusing the variant names, when all of the variants are combined, these
@@ -461,6 +478,10 @@ def get_grouping_variants_for_event(
 def get_contributing_variant_and_component(
     variants: dict[str, BaseVariant],
 ) -> tuple[BaseVariant, ContributingComponent | None]:
+    """
+    Given the full set of variants, pick out the one which contributes, along with its contributing
+    component.
+    """
     if len(variants) == 1:
         contributing_variant = list(variants.values())[0]
     else:

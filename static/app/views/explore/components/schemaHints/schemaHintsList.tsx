@@ -30,7 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
-  removeHiddenKeys,
+  removeHiddenSchemaHintsKeys,
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -40,7 +40,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
@@ -75,9 +75,9 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
     .map(key => {
       if (key === USER_IDENTIFIER_KEY) {
         return (
-          tags[SpanIndexedField.USER_EMAIL] ||
-          tags[SpanIndexedField.USER_USERNAME] ||
-          tags[SpanIndexedField.USER_ID]
+          tags[SpanFields.USER_EMAIL] ||
+          tags[SpanFields.USER_USERNAME] ||
+          tags[SpanFields.USER_ID]
         );
       }
       return tags[key];
@@ -162,7 +162,7 @@ function SchemaHintsList({
 
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
-    const filterTags = removeHiddenKeys({
+    const filterTags = removeHiddenSchemaHintsKeys({
       ...functionTags,
       ...numberTags,
       ...stringTags,
@@ -489,7 +489,7 @@ export const SchemaHintsSection = styled('div')`
   margin-top: -4px;
   height: fit-content;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
@@ -503,16 +503,16 @@ const HintTextContainer = styled('div')`
 `;
 
 const HintName = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
 `;
 
 const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
 const HintValue = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.purple400};
 `;

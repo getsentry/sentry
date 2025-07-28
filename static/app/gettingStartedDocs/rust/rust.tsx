@@ -1,9 +1,9 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportBackendInstallStep,
   getCrashReportModalConfigDescription,
@@ -45,14 +45,17 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To add Sentry to your Rust project you just need to add a new dependency to your [code:Cargo.toml]:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'To add Sentry to your Rust project you just need to add a new dependency to your [code:Cargo.toml]:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'toml',
-          partialLoading: params.sourcePackageRegistries.isLoading,
           code: getInstallSnippet(params),
         },
       ],
@@ -61,12 +64,16 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        '[code:sentry::init()] will return you a guard that when freed, will prevent process exit until all events have been sent (within a timeout):',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            '[code:sentry::init()] will return you a guard that when freed, will prevent process exit until all events have been sent (within a timeout):',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'rust',
           code: getConfigureSnippet(params),
         },
@@ -76,11 +83,15 @@ const onboarding: OnboardingConfig = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'The quickest way to verify Sentry in your Rust application is to cause a panic:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'The quickest way to verify Sentry in your Rust application is to cause a panic:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'rust',
           code: getVerifySnippet(params),
         },

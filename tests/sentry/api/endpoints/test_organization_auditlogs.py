@@ -15,11 +15,11 @@ from sentry.testutils.silo import control_silo_test
 class OrganizationAuditLogsTest(APITestCase):
     endpoint = "sentry-api-0-organization-audit-logs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         now = timezone.now()
 
         org2 = self.create_organization(owner=self.user)
@@ -29,18 +29,21 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         entry2 = AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org2.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(self.organization.slug)
@@ -48,7 +51,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert response.data["rows"][0]["id"] == str(entry2.id)
         assert response.data["rows"][1]["id"] == str(entry1.id)
 
-    def test_filter_by_event(self):
+    def test_filter_by_event(self) -> None:
         now = timezone.now()
 
         entry1 = AuditLogEntry.objects.create(
@@ -56,12 +59,14 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(
@@ -70,7 +75,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_filter_by_user(self):
+    def test_filter_by_user(self) -> None:
         now = timezone.now()
 
         org = self.create_organization(owner=self.user)
@@ -84,19 +89,21 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=user2,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(org.slug, qs_params={"actor": self.user.id})
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_filter_by_user_and_event(self):
+    def test_filter_by_user_and_event(self) -> None:
         now = timezone.now()
 
         org = self.create_organization(owner=self.user)
@@ -110,18 +117,21 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=user2,
             datetime=now,
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=org.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(
@@ -130,7 +140,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_invalid_event(self):
+    def test_invalid_event(self) -> None:
         now = timezone.now()
 
         AuditLogEntry.objects.create(
@@ -138,12 +148,13 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(self.organization.slug, qs_params={"event": "wrong"})
         assert response.data["rows"] == []
 
-    def test_user_out_of_bounds(self):
+    def test_user_out_of_bounds(self) -> None:
         now = timezone.now()
 
         AuditLogEntry.objects.create(
@@ -151,6 +162,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         response = self.get_error_response(
@@ -165,7 +177,7 @@ class OrganizationAuditLogsTest(APITestCase):
             ]
         }
 
-    def test_options_data_included(self):
+    def test_options_data_included(self) -> None:
         now = timezone.now()
 
         AuditLogEntry.objects.create(
@@ -173,6 +185,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
         audit_log_api_names = set(audit_log.get_api_names())
 
@@ -182,7 +195,7 @@ class OrganizationAuditLogsTest(APITestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_write_can_see_audit_logs(self):
+    def test_superuser_read_write_can_see_audit_logs(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
 
@@ -191,13 +204,14 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=timezone.now(),
+            data={"thing": "to True"},
         )
         self.get_success_response(self.organization.slug)
 
         self.add_user_permission(superuser, "superuser.write")
         self.get_success_response(self.organization.slug)
 
-    def test_filter_by_date(self):
+    def test_filter_by_date(self) -> None:
         now = timezone.now()
 
         entry1 = AuditLogEntry.objects.create(
@@ -205,12 +219,14 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now - timedelta(days=1),
+            data={"thing": "to True"},
         )
         AuditLogEntry.objects.create(
             organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now,
+            data={"thing": "to True"},
         )
 
         start_time = now - timedelta(days=1)
@@ -227,7 +243,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert len(response.data["rows"]) == 1
         assert response.data["rows"][0]["id"] == str(entry1.id)
 
-    def test_filter_by_stats_period(self):
+    def test_filter_by_stats_period(self) -> None:
         now = timezone.now()
 
         # old entry
@@ -236,6 +252,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now - timedelta(days=2),
+            data={"thing": "to True"},
         )
 
         recent_entry = AuditLogEntry.objects.create(
@@ -243,6 +260,7 @@ class OrganizationAuditLogsTest(APITestCase):
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now - timedelta(hours=12),
+            data={"thing": "to True"},
         )
 
         response = self.get_success_response(

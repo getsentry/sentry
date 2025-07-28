@@ -4,9 +4,10 @@ import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import type {Flatten} from 'sentry/utils/types/flatten';
 import useProjects from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 interface Props {
   isStarred: boolean;
@@ -14,8 +15,9 @@ interface Props {
   segmentName: string;
 }
 
-type TableRow = Partial<EAPSpanResponse> &
-  Pick<EAPSpanResponse, 'is_starred_transaction' | 'transaction'>;
+type TableRow = Flatten<
+  Partial<SpanResponse> & Pick<SpanResponse, 'is_starred_transaction' | 'transaction'>
+>;
 
 type TableResponse = [{confidence: any; data: TableRow[]; meta: EventsMetaType}];
 
@@ -39,9 +41,9 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
       {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
-      (oldResponse: TableResponse) => {
+      (oldResponse: TableResponse): TableResponse => {
         const oldTableData = oldResponse[0]?.data || [];
-        const newData = oldTableData.map(row => {
+        const newData = oldTableData.map((row): TableRow => {
           if (row.transaction === segmentName) {
             return {
               ...row,
@@ -50,7 +52,7 @@ export function StarredSegmentCell({segmentName, isStarred, projectSlug}: Props)
           }
           return row;
         });
-        return [{...oldResponse[0], data: newData}] satisfies TableResponse;
+        return [{...oldResponse[0], data: newData}];
       }
     );
   };

@@ -17,9 +17,11 @@ from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowEndpoint,
 )
-from sentry.workflow_engine.endpoints.serializers import WorkflowGroupHistorySerializer
+from sentry.workflow_engine.endpoints.serializers import (
+    WorkflowGroupHistorySerializer,
+    fetch_workflow_groups_paginated,
+)
 from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.processors.workflow_fire_history import fetch_workflow_groups_paginated
 
 
 @region_silo_endpoint

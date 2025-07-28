@@ -1,19 +1,28 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from datetime import datetime, timedelta, timezone
+from typing import Any, NotRequired, TypedDict, cast
 
+from django.db.models import Count, Max, OuterRef, Subquery
+from django.db.models.functions import TruncHour
+
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleDetector,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -44,7 +53,7 @@ class ActionSerializer(Serializer):
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": obj.data,
-            "config": obj.config,
+            "config": convert_dict_key_case(obj.config, snake_to_camel_case),
         }
 
 
@@ -302,6 +311,17 @@ class DetectorSerializer(Serializer):
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
+        # Fetch alert rule mappings
+        # TODO: Remove alert rule mappings as they're deprecated
+        alert_rule_mappings = list(AlertRuleDetector.objects.filter(detector__in=item_list))
+        alert_rule_map = {
+            mapping.detector_id: {
+                "alert_rule_id": mapping.alert_rule_id,
+                "rule_id": mapping.rule_id,
+            }
+            for mapping in alert_rule_mappings
+        }
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -323,6 +343,13 @@ class DetectorSerializer(Serializer):
                 str(item.workflow_condition_group_id)
             )
             attrs[item]["workflow_ids"] = workflows_map[item.id]
+            attrs[item]["alert_rule_mapping"] = alert_rule_map.get(
+                item.id,
+                {
+                    "alert_rule_id": None,
+                    "rule_id": None,
+                },
+            )
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -334,6 +361,7 @@ class DetectorSerializer(Serializer):
         return attrs
 
     def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+        alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -346,13 +374,18 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": attrs.get("config"),
+            "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
+            "enabled": obj.enabled,
+            "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
+            "ruleId": alert_rule_mapping.get("rule_id"),
         }
 
 
 @register(Workflow)
 class WorkflowSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Workflow, dict[str, Any]]:
+    def get_attrs(
+        self, item_list: Sequence[Workflow], user, **kwargs
+    ) -> MutableMapping[Workflow, dict[str, Any]]:
         attrs: MutableMapping[Workflow, dict[str, Any]] = defaultdict(dict)
         trigger_conditions = list(
             DataConditionGroup.objects.filter(
@@ -365,6 +398,14 @@ class WorkflowSerializer(Serializer):
                 trigger_conditions, serialize(trigger_conditions, user=user)
             )
         }
+
+        last_triggered_map: dict[int, datetime] = dict(
+            WorkflowFireHistory.objects.filter(
+                workflow__in=item_list,
+            )
+            .annotate(last_triggered=Max("date_added"))
+            .values_list("workflow_id", "last_triggered")
+        )
 
         wdcg_list = list(WorkflowDataConditionGroup.objects.filter(workflow__in=item_list))
         condition_groups = {wdcg.condition_group for wdcg in wdcg_list}
@@ -392,6 +433,7 @@ class WorkflowSerializer(Serializer):
                 item.id, []
             )  # The data condition groups for filtering actions
             attrs[item]["detectorIds"] = detectors_map[item.id]
+            attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
         return attrs
 
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
@@ -405,8 +447,10 @@ class WorkflowSerializer(Serializer):
             "triggers": attrs.get("triggers"),
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
-            "config": obj.config,
+            "config": convert_dict_key_case(obj.config, snake_to_camel_case),
             "detectorIds": attrs.get("detectorIds"),
+            "enabled": obj.enabled,
+            "lastTriggered": attrs.get("lastTriggered"),
         }
 
 
@@ -416,6 +460,7 @@ class WorkflowGroupHistory:
     count: int
     last_triggered: datetime
     event_id: str
+    detector: Detector | None
 
 
 class WorkflowFireHistoryResponse(TypedDict):
@@ -423,28 +468,140 @@ class WorkflowFireHistoryResponse(TypedDict):
     count: int
     lastTriggered: datetime
     eventId: str
+    detector: NotRequired[dict[str, Any]]
+
+
+class _Result(TypedDict):
+    group: int
+    count: int
+    last_triggered: datetime
+    event_id: str
+    detector_id: int | None
+
+
+def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory]:
+    group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
+
+    detector_ids = [r["detector_id"] for r in results if r["detector_id"] is not None]
+    detector_lookup = {}
+    if detector_ids:
+        detector_lookup = {d.id: d for d in Detector.objects.filter(id__in=detector_ids)}
+
+    return [
+        WorkflowGroupHistory(
+            group=group_lookup[r["group"]],
+            count=r["count"],
+            last_triggered=r["last_triggered"],
+            event_id=r["event_id"],
+            detector=(
+                detector_lookup.get(r["detector_id"]) if r["detector_id"] is not None else None
+            ),
+        )
+        for r in results
+    ]
+
+
+def fetch_workflow_groups_paginated(
+    workflow: Workflow,
+    start: datetime,
+    end: datetime,
+    cursor: Cursor | None = None,
+    per_page: int = 25,
+) -> CursorResult[Group]:
+    filtered_history = WorkflowFireHistory.objects.filter(
+        workflow=workflow,
+        date_added__gte=start,
+        date_added__lt=end,
+        is_single_written=True,
+    )
+
+    # subquery that retrieves row with the largest date in a group
+    group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
+    qs = (
+        filtered_history.select_related("group", "detector")
+        .values("group")
+        .annotate(count=Count("group"))
+        .annotate(event_id=Subquery(group_max_dates.values("event_id")))
+        .annotate(last_triggered=Max("date_added"))
+        .annotate(detector_id=Subquery(group_max_dates.values("detector_id")))
+    )
+
+    return cast(
+        CursorResult[Group],
+        OffsetPaginator(
+            qs, order_by=("-count", "-last_triggered"), on_results=convert_results
+        ).get_result(per_page, cursor),
+    )
+
+
+def fetch_workflow_hourly_stats(
+    workflow: Workflow, start: datetime, end: datetime
+) -> Sequence[TimeSeriesValue]:
+    start = start.replace(tzinfo=timezone.utc)
+    end = end.replace(tzinfo=timezone.utc)
+    qs = (
+        WorkflowFireHistory.objects.filter(
+            workflow=workflow,
+            date_added__gte=start,
+            date_added__lt=end,
+            is_single_written=True,
+        )
+        .annotate(bucket=TruncHour("date_added"))
+        .order_by("bucket")
+        .values("bucket")
+        .annotate(count=Count("id"))
+    )
+    existing_data = {row["bucket"]: TimeSeriesValue(row["bucket"], row["count"]) for row in qs}
+
+    results = []
+    current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    while current <= end.replace(minute=0, second=0, microsecond=0):
+        results.append(existing_data.get(current, TimeSeriesValue(current, 0)))
+        current += timedelta(hours=1)
+    return results
 
 
 class WorkflowGroupHistorySerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[WorkflowFireHistory], user: Any, **kwargs: Any
+        self, item_list: Sequence[WorkflowGroupHistory], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         serialized_groups = {
             g["id"]: g for g in serialize([item.group for item in item_list], user)
         }
-        return {
-            history: {"group": serialized_groups[str(history.group.id)]} for history in item_list
-        }
+
+        # Get detectors that are not None
+        detectors = [item.detector for item in item_list if item.detector is not None]
+        serialized_detectors = {}
+        if detectors:
+            serialized_detectors = {
+                str(d.id): serialized
+                for d, serialized in zip(detectors, serialize(detectors, user))
+            }
+
+        attrs = {}
+        for history in item_list:
+            item_attrs = {"group": serialized_groups[str(history.group.id)]}
+            if history.detector:
+                item_attrs["detector"] = serialized_detectors[str(history.detector.id)]
+
+            attrs[history] = item_attrs
+
+        return attrs
 
     def serialize(
         self, obj: WorkflowGroupHistory, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> WorkflowFireHistoryResponse:
-        return {
+        result: WorkflowFireHistoryResponse = {
             "group": attrs["group"],
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
             "eventId": obj.event_id,
         }
+
+        if "detector" in attrs:
+            result["detector"] = attrs["detector"]
+
+        return result
 
 
 class TimeSeriesValueResponse(TypedDict):

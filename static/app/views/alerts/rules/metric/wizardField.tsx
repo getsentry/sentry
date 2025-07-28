@@ -11,7 +11,7 @@ import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -19,6 +19,7 @@ import {
   AlertWizardRuleTemplates,
   DEPRECATED_TRANSACTION_ALERTS,
 } from 'sentry/views/alerts/wizard/options';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -40,6 +41,7 @@ type Props = Omit<FormFieldProps, 'children'> & {
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
+  eventTypes?: EventTypes[];
   inFieldLabels?: boolean;
   isEditing?: boolean;
 };
@@ -49,6 +51,7 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
+  eventTypes,
   ...fieldProps
 }: Props) {
   const isDeprecatedTransactionAlertType =
@@ -98,24 +101,12 @@ export default function WizardField({
       value: 'trace_item_duration',
     },
     {
-      label: AlertWizardAlertNames.trace_item_apdex,
-      value: 'trace_item_apdex',
-    },
-    {
       label: AlertWizardAlertNames.trace_item_failure_rate,
       value: 'trace_item_failure_rate',
     },
     {
       label: AlertWizardAlertNames.trace_item_lcp,
       value: 'trace_item_lcp',
-    },
-    {
-      label: AlertWizardAlertNames.trace_item_fid,
-      value: 'trace_item_fid',
-    },
-    {
-      label: AlertWizardAlertNames.trace_item_cls,
-      value: 'trace_item_cls',
     },
   ];
 
@@ -176,6 +167,19 @@ export default function WizardField({
           : []),
       ],
     },
+    ...(hasLogAlerts(organization)
+      ? [
+          {
+            label: t('LOGS'),
+            options: [
+              {
+                label: AlertWizardAlertNames.trace_item_logs,
+                value: 'trace_item_logs' as const,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       label: t('CUSTOM'),
       options: [
@@ -243,6 +247,7 @@ export default function WizardField({
             {isEapAlertType(alertType) ? (
               <EAPField
                 aggregate={aggregate}
+                eventTypes={eventTypes ?? []}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});
                 }}

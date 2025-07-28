@@ -1,22 +1,23 @@
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKey} from 'sentry/utils/fields';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const USER_IDENTIFIER_KEY = 'user.key';
 
-const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, USER_IDENTIFIER_KEY];
+const FRONTEND_HINT_KEYS = [SpanFields.BROWSER_NAME, USER_IDENTIFIER_KEY];
 
 const MOBILE_HINT_KEYS = [FieldKey.OS_NAME, FieldKey.DEVICE_FAMILY, USER_IDENTIFIER_KEY];
 
 const COMMON_HINT_KEYS = [
-  SpanIndexedField.IS_TRANSACTION,
-  SpanIndexedField.SPAN_OP,
-  SpanIndexedField.SPAN_DESCRIPTION,
-  SpanIndexedField.SPAN_DURATION,
-  SpanIndexedField.TRANSACTION,
+  SpanFields.IS_TRANSACTION,
+  SpanFields.SPAN_OP,
+  SpanFields.SPAN_DESCRIPTION,
+  SpanFields.SPAN_DURATION,
+  SpanFields.TRANSACTION,
   FieldKey.HTTP_STATUS_CODE,
-  SpanIndexedField.RELEASE,
+  SpanFields.RELEASE,
   'url',
 ];
 
@@ -67,12 +68,8 @@ export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
   return SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE;
 };
 
-export const removeHiddenKeys = (tagCollection: TagCollection): TagCollection => {
-  const result: TagCollection = {};
-  for (const key in tagCollection) {
-    if (key && !SCHEMA_HINTS_HIDDEN_KEYS.includes(key) && tagCollection[key]) {
-      result[key] = tagCollection[key];
-    }
-  }
-  return result;
+export const removeHiddenSchemaHintsKeys = (
+  tagCollection: TagCollection
+): TagCollection => {
+  return removeHiddenKeys(tagCollection, SCHEMA_HINTS_HIDDEN_KEYS);
 };

@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import useResizable from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
+  NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -56,7 +57,13 @@ export function SecondarySidebar() {
       description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
       title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      <ResizeWrapper ref={resizableContainerRef} onMouseDown={handleStartResize}>
+      <ResizeWrapper
+        ref={resizableContainerRef}
+        onMouseDown={handleStartResize}
+        {...{
+          [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+        }}
+      >
         <AnimatePresence mode="wait" initial={false}>
           <MotionDiv
             key={activeNavGroup}

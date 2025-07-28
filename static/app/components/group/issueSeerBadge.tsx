@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import Link from 'sentry/components/links/link';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -50,7 +50,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
           query: {...location.query, seerDrawer: true},
         }}
       >
-        <SeerIcon size="sm" />
+        <IconSeer size="sm" />
         {seerFixable && <p>{t('Quick Fix')}</p>}
       </SeerLink>
     </Tooltip>

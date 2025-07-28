@@ -8,23 +8,23 @@ class ProjectProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCase):
     endpoint = "sentry-api-0-project-processing-errors-index"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_no_error_type(self):
+    def test_no_error_type(self) -> None:
         resp = self.get_error_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 400
         assert resp.content == b'["Invalid error type"]'
 
-    def test_invalid_error_type(self):
+    def test_invalid_error_type(self) -> None:
         resp = self.get_error_response(
             self.organization.slug, self.project.slug, qs_params={"errortype": "17"}
         )
         assert resp.status_code == 400
         assert resp.content == b'["Invalid error type"]'
 
-    def test(self):
+    def test(self) -> None:
         monitor_errors = [
             build_checkin_processing_error(
                 [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],

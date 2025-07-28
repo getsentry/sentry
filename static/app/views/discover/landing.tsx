@@ -46,7 +46,9 @@ function NoAccess() {
   return (
     <Layout.Page withPadding>
       <Alert.Container>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert type="warning" showIcon={false}>
+          {t("You don't have access to this feature")}
+        </Alert>
       </Alert.Container>
     </Layout.Page>
   );
@@ -266,7 +268,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 
@@ -281,7 +283,7 @@ const StyledActions = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;

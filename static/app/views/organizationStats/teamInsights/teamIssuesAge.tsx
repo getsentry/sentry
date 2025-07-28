@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -194,7 +194,7 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   box-shadow: unset;
 
   > * {

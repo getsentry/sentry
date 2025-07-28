@@ -22,7 +22,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestGrantExchanger(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.code = self.install.api_grant.code
         assert self.install.sentry_app.application is not None
@@ -80,9 +80,9 @@ class TestGrantExchanger(TestCase):
             mock_record=mock_record, error_msg=SentryAppIntegratorError(message="Forbidden grant")
         )
 
-        # GRANT_EXCHANGER (halt)
+        # APP_CREATE (success) -> INSTALLATION_CREATE (success) -> GRANT_EXCHANGER (halt)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1

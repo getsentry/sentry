@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {Dot} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -14,7 +14,7 @@ interface WebVitalsWeightListProps {
 }
 export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
   const theme = useTheme();
-  const segmentColors = theme.chart.getColorPalette(3);
+  const segmentColors = theme.chart.getColorPalette(4);
 
   return (
     <Content>
@@ -39,7 +39,7 @@ export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
 }
 
 const Content = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const List = styled('ul')`

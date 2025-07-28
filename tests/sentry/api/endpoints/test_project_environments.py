@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectEnvironmentsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
 
         env1 = Environment.objects.create(
@@ -31,7 +31,7 @@ class ProjectEnvironmentsTest(APITestCase):
         assert response.data[0]["name"] == "production"
         assert response.data[1]["name"] == "staging"
 
-    def test_visibility_filtering(self):
+    def test_visibility_filtering(self) -> None:
         project = self.create_project()
 
         env1 = Environment.objects.create(

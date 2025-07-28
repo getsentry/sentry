@@ -4,12 +4,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from 'sentry/components/container/flex';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
@@ -427,7 +427,7 @@ const StyledSidebarItem = styled(Link, {
     `;
   }}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     &:before {
       top: auto;
       left: 5px;
@@ -474,7 +474,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boole
   ${p => p.hasNewNav && 'flex-direction: column;'}
   ${p => !p.collapsed && `padding-right: ${space(1)};`}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding-right: 0;
   }
 `;
@@ -495,7 +495,7 @@ const SidebarItemIcon = styled('span')<{hasNewNav?: boolean}>`
   ${p =>
     p.hasNewNav &&
     css`
-      @media (max-width: ${p.theme.breakpoints.medium}) {
+      @media (max-width: ${p.theme.breakpoints.md}) {
         display: none;
       }
     `};

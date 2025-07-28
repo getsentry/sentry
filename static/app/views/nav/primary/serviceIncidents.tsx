@@ -62,7 +62,7 @@ export function PrimaryNavigationServiceIncidents() {
 const IncidentItemWrapper = styled('div')`
   line-height: 1.5;
   background: ${p => p.theme.background};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(3)};
 
   :not(:first-child) {

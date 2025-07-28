@@ -1,18 +1,21 @@
 from unittest.mock import Mock, patch
 
 import pytest
-from django.test import TestCase
 from jsonschema import ValidationError
 
 from sentry.eventstore.models import GroupEvent
+from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 
 class TestAction(TestCase):
-    def setUp(self):
-        self.mock_event = WorkflowEventData(event=Mock(spec=GroupEvent))
+    def setUp(self) -> None:
+        mock_group_event = Mock(spec=GroupEvent)
+        self.group = self.create_group()
+
+        self.mock_event = WorkflowEventData(event=mock_group_event, group=self.group)
         self.mock_detector = Mock(name="detector")
         self.action = Action(type=Action.Type.SLACK)
         self.config_schema = {
@@ -32,7 +35,7 @@ class TestAction(TestCase):
             "data": {"foo": "bar"},
         }
 
-    def test_get_handler_notification_type(self):
+    def test_get_handler_notification_type(self) -> None:
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
             mock_handler = Mock(spec=ActionHandler)
             mock_get.return_value = mock_handler
@@ -42,7 +45,7 @@ class TestAction(TestCase):
             mock_get.assert_called_once_with(Action.Type.SLACK)
             assert handler == mock_handler
 
-    def test_get_handler_webhook_type(self):
+    def test_get_handler_webhook_type(self) -> None:
         self.action = Action(type=Action.Type.WEBHOOK)
 
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
@@ -54,7 +57,7 @@ class TestAction(TestCase):
             mock_get.assert_called_once_with(Action.Type.WEBHOOK)
             assert handler == mock_handler
 
-    def test_get_handler_unregistered_type(self):
+    def test_get_handler_unregistered_type(self) -> None:
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
             mock_get.side_effect = NoRegistrationExistsError(
                 "No handler registered for notification type"
@@ -68,7 +71,7 @@ class TestAction(TestCase):
             # Verify the registry was queried with the correct action type
             mock_get.assert_called_once_with(Action.Type.SLACK)
 
-    def test_trigger_calls_handler_execute(self):
+    def test_trigger_calls_handler_execute(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
@@ -78,7 +81,7 @@ class TestAction(TestCase):
                 self.mock_event, self.action, self.mock_detector
             )
 
-    def test_trigger_with_failing_handler(self):
+    def test_trigger_with_failing_handler(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.execute.side_effect = Exception("Handler failed")
 
@@ -86,7 +89,20 @@ class TestAction(TestCase):
             with pytest.raises(Exception, match="Handler failed"):
                 self.action.trigger(self.mock_event, self.mock_detector)
 
-    def test_config_schema(self):
+    @patch("sentry.utils.metrics.incr")
+    def test_trigger_metrics(self, mock_incr):
+        mock_handler = Mock(spec=ActionHandler)
+
+        with patch.object(self.action, "get_handler", return_value=mock_handler):
+            self.action.trigger(self.mock_event, self.mock_detector)
+
+            mock_handler.execute.assert_called_once()
+            mock_incr.assert_called_once_with(
+                "workflow_engine.action.trigger",
+                tags={"action_type": self.action.type, "detector_type": self.mock_detector.type},
+            )
+
+    def test_config_schema(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
         mock_handler.data_schema = self.config_schema
@@ -97,7 +113,7 @@ class TestAction(TestCase):
             result = Action.objects.create(**params)
             assert result is not None
 
-    def test_config_schema__invalid(self):
+    def test_config_schema__invalid(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
         mock_handler.data_schema = self.config_schema
@@ -108,7 +124,7 @@ class TestAction(TestCase):
                 params["config"] = {"baz": 42}
                 Action.objects.create(**params)
 
-    def test_data_schema(self):
+    def test_data_schema(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
         mock_handler.data_schema = self.config_schema
@@ -120,7 +136,7 @@ class TestAction(TestCase):
 
             assert result is not None
 
-    def test_data_schema__invalid(self):
+    def test_data_schema__invalid(self) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.config_schema = self.config_schema
         mock_handler.data_schema = self.config_schema

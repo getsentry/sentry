@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction} from 'sentry/types/event';
@@ -54,7 +54,6 @@ function renderSpanSamples(
       to={generateLinkToEventInTraceView({
         organization,
         traceSlug: trace,
-        projectSlug: project.slug,
         eventId: transaction,
         timestamp,
         location: {

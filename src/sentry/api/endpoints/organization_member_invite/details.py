@@ -27,7 +27,6 @@ ERR_EDIT_WHEN_REINVITING = (
 )
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-ERR_INVITE_UNAPPROVED = "You cannot resend an invitation that has not been approved."
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 

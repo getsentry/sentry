@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ConfigStore from 'sentry/stores/configStore';
@@ -46,6 +47,7 @@ export function FeedbackOnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isLogsSelected: false,
       isFeedbackSelected: true,
       isPerformanceSelected: false,
       isProfilingSelected: false,

@@ -128,7 +128,7 @@ class MessagingIntegrationSpec(ABC):
 
         def build_path(operation_slug: str, view_cls: type[View]) -> URLPattern:
             return re_path(
-                route=rf"^{operation_slug}/(?P<signed_params>[^\/]+)/$",
+                route=rf"^{operation_slug}/(?P<signed_params>[^/]+)/$",
                 view=view_cls.as_view(),
                 name=f"sentry-integration-{self.provider_slug}-{operation_slug}",
             )

@@ -34,7 +34,11 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
 from sentry.notifications.services import notifications_service
-from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
+from sentry.organizations.absolute_url import (
+    api_absolute_url,
+    has_customer_domain,
+    organization_absolute_url,
+)
 from sentry.roles.manager import Role
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
@@ -476,6 +480,21 @@ class Organization(ReplicatedRegionModel):
         """
         return organization_absolute_url(
             has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+
+    def absolute_api_url(
+        self, path: str, query: str | None = None, fragment: str | None = None
+    ) -> str:
+        """
+        Get an absolute URL to `path` for this organization for APIs
+
+        e.g https://sentry.io/api/0/organizations/<org_slug><path>
+        """
+        return api_absolute_url(
             slug=self.slug,
             path=path,
             query=query,

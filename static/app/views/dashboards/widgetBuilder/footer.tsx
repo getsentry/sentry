@@ -4,7 +4,7 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -25,7 +25,7 @@ export function Footer({
 }: Props) {
   return (
     <Wrapper>
-      <Actions gap={1}>
+      <Actions>
         <LinkButton to={goBackLocation}>{t('Cancel')}</LinkButton>
         {isEditing && onDelete && (
           <Confirm
@@ -61,7 +61,7 @@ const Actions = styled(ButtonBar)`
   /* to match Layout.Main padding + Field padding-right */
   padding-right: calc(${space(2)} + ${space(2)});
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(4)};
 
     /* to match Layout.Main padding + Field padding-right */

@@ -10,7 +10,7 @@ import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   type ReadableExploreQueryParts,
@@ -21,6 +21,7 @@ import {
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {
   index: number;
@@ -28,8 +29,8 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
-  const {tags: stringTags} = useSpanTags('string');
-  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
 
   const parsedFunction = findFirstFunction(query.yAxes);
 
@@ -37,6 +38,7 @@ export function VisualizeSection({query, index}: Props) {
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const updateYAxis = useUpdateQueryAtIndex(index);

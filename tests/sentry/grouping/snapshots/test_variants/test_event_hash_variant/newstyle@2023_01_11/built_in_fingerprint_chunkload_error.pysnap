@@ -1,5 +1,5 @@
 ---
-created: '2025-04-25T21:21:48.378124+00:00'
+created: '2025-07-18T18:34:02.043165+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   contributing component: null
   component:
-    app (custom fingerprint takes precedence)
+    app (built-in fingerprint takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
@@ -24,14 +24,14 @@ app:
 --------------------------------------------------------------------------
 built_in_fingerprint:
   hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
-  info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
+  fingerprint_info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
   values: ["chunkloaderror"]
 --------------------------------------------------------------------------
 system:
   hash: null
   contributing component: exception
   component:
-    system (custom fingerprint takes precedence)
+    system (built-in fingerprint takes precedence)
       exception*
         stacktrace*
           frame*

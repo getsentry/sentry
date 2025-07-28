@@ -1,11 +1,13 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
@@ -17,7 +19,6 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -124,6 +125,38 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
     [formModel, navigate, organization, projects, rule]
   );
 
+  // When mutating the name field manually, we'll disable automatic name
+  // generation from the URL
+  const [hasCustomName, setHasCustomName] = useState(false);
+  const disposeNameSetter = useRef<IReactionDisposer>(null);
+  const hasRule = !!rule;
+
+  // Suggest rule name from URL
+  useEffect(() => {
+    if (hasRule || hasCustomName) {
+      return () => {};
+    }
+    disposeNameSetter.current = autorun(() => {
+      const url = formModel.getValue('url');
+
+      if (typeof url !== 'string') {
+        return;
+      }
+
+      try {
+        const parsedUrl = new URL(url);
+        const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
+        const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
+
+        formModel.setValue('name', t('Uptime check for %s', urlName));
+      } catch {
+        // Nothing to do if we failed to parse the URL
+      }
+    });
+
+    return disposeNameSetter.current;
+  }, [formModel, hasRule, hasCustomName]);
+
   return (
     <Form
       model={formModel}
@@ -197,6 +230,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         </ListItemSubText>
         <Configuration>
           <ConfigurationPanel>
+            <TextField
+              name="url"
+              label={t('URL')}
+              placeholder={t('The URL to monitor')}
+              flexibleControlStateSize
+              monospace
+              required
+            />
+            <SelectField
+              name="method"
+              label={t('Method')}
+              defaultValue="GET"
+              options={HTTP_METHOD_OPTIONS.map(option => ({
+                value: option,
+                label: option,
+              }))}
+              flexibleControlStateSize
+              required
+            />
             <SelectField
               options={VALID_INTERVALS_SEC.map(value => ({
                 value,
@@ -240,25 +292,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
               required
             />
-            <TextField
-              name="url"
-              label={t('URL')}
-              placeholder={t('The URL to monitor')}
-              flexibleControlStateSize
-              monospace
-              required
-            />
-            <SelectField
-              name="method"
-              label={t('Method')}
-              defaultValue="GET"
-              options={HTTP_METHOD_OPTIONS.map(option => ({
-                value: option,
-                label: option,
-              }))}
-              flexibleControlStateSize
-              required
-            />
             <UptimeHeadersField
               name="headers"
               label={t('Headers')}
@@ -291,7 +324,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             />
           </ConfigurationPanel>
           <Alert.Container>
-            <Alert type="muted" showIcon>
+            <Alert type="muted">
               {tct(
                 'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
                 {
@@ -325,6 +358,14 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="name"
             label={t('Uptime rule name')}
             placeholder={t('Uptime rule name')}
+            onChange={() => {
+              // Immediately dispose of the autorun name setter, since it won't
+              // receive the hasCustomName state before the autorun is ran
+              // again after this change (overriding whatever change the user
+              // just made)
+              disposeNameSetter.current?.();
+              setHasCustomName(true);
+            }}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -350,8 +391,8 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.3;
 `;
 

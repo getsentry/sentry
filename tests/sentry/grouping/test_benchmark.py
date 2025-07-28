@@ -1,7 +1,15 @@
+from types import ModuleType
+from typing import Any
+
 import pytest
 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from tests.sentry.grouping import GROUPING_INPUTS_DIR, GroupingInput, get_grouping_inputs
+from tests.sentry.grouping import (
+    GROUPING_INPUTS_DIR,
+    NO_MSG_PARAM_CONFIG,
+    GroupingInput,
+    get_grouping_inputs,
+)
 
 GROUPING_INPUTS = get_grouping_inputs(GROUPING_INPUTS_DIR)
 
@@ -18,13 +26,14 @@ def benchmark_available() -> bool:
 @pytest.mark.skipif(not benchmark_available(), reason="requires pytest-benchmark")
 @pytest.mark.parametrize(
     "config_name",
-    sorted(CONFIGURATIONS.keys()),
+    # NO_MSG_PARAM_CONFIG is only used in tests, so no need to benchmark it
+    sorted(set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG}),
     ids=lambda config_name: config_name.replace("-", "_"),
 )
-def test_benchmark_grouping(config_name, benchmark):
+def test_benchmark_grouping(config_name: str, benchmark: ModuleType) -> None:
     input_iter = iter(GROUPING_INPUTS)
 
-    def setup():
+    def setup() -> tuple[tuple[GroupingInput, str], dict[str, Any]]:
         return (next(input_iter), config_name), {}
 
     benchmark.pedantic(run_configuration, setup=setup, rounds=len(GROUPING_INPUTS))

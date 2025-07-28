@@ -1,6 +1,5 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 
-import hydrateFeedbackTags from 'sentry/components/feedback/hydrateFeedbackTags';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -33,11 +32,6 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     }
   );
 
-  const tags = useMemo(
-    () => hydrateFeedbackTags(eventData, issueData, organization),
-    [eventData, issueData, organization]
-  );
-
   const {markAsRead} = useMutateFeedback({
     feedbackIds: [feedbackId],
     organization,
@@ -62,6 +56,5 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     eventResult,
     issueData,
     issueResult,
-    tags,
   };
 }

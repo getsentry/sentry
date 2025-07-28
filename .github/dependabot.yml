@@ -20,7 +20,10 @@ updates:
           - '@babel/*'
       sentry-dependencies:
         patterns:
-          - '@sentry/*'
+          - '@sentry/core'
+          - '@sentry/node'
+          - '@sentry/react'
+          - '@sentry/profiling-node'
       spectrum-dependencies:
         patterns:
           - '@react-stately/*'

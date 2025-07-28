@@ -1126,6 +1126,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         ]
         assert frames[6].post_context == ["        }", "    }", "}", ""]
 
+    @pytest.mark.skip(reason="flaky: #93951")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_source_lookup_with_proguard(self):
@@ -1421,6 +1422,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
 
+    @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_invalid_exception(self):

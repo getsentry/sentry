@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {
   autofixAutomatingTuningField,
   seerScannerAutomationField,
@@ -25,13 +25,14 @@ export function SeerAutomationDefault() {
   const orgDefaultScannerAutomation: FieldObject = {
     ...seerScannerAutomationField,
     name: 'defaultSeerScannerAutomation',
-    label: <SeerSelectLabel>{t('Default for Automatic Issue Scans')}</SeerSelectLabel>,
+    label: <SeerSelectLabel>{t('Default for Issue Scans')}</SeerSelectLabel>,
   };
 
   const orgDefaultAutomationTuning = {
     ...autofixAutomatingTuningField,
     name: 'defaultAutofixAutomationTuning',
-    label: <SeerSelectLabel>{t('Default for Automatic Issue Fixes')}</SeerSelectLabel>,
+    label: <SeerSelectLabel>{t('Default for Auto-Triggered Fixes')}</SeerSelectLabel>,
+    visible: ({model}) => model?.getValue('defaultSeerScannerAutomation') === true,
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -52,39 +53,15 @@ export function SeerAutomationDefault() {
           organization.defaultAutofixAutomationTuning ?? 'off',
       }}
     >
-      {({model}) => {
-        const defaultSeerScannerAutomation = model.getValue(
-          'defaultSeerScannerAutomation'
-        );
-        const defaultAutofixAutomationTuning = model.getValue(
-          'defaultAutofixAutomationTuning'
-        );
-        const showWarning =
-          defaultSeerScannerAutomation === false &&
-          defaultAutofixAutomationTuning !== 'off';
-        return (
-          <JsonForm
-            forms={seerFormGroups}
-            disabled={!canWrite}
-            renderHeader={() => (
-              <React.Fragment>
-                <Alert type="info" system>
-                  {t(
-                    'Set the default automation level for newly-created projects. This setting can be overridden on a per-project basis.'
-                  )}
-                </Alert>
-                {showWarning && (
-                  <Alert type="warning" system showIcon>
-                    {t(
-                      'Automatic Issue Scans must be enabled for Issue Fixes to be triggered automatically.'
-                    )}
-                  </Alert>
-                )}
-              </React.Fragment>
-            )}
-          />
-        );
-      }}
+      <JsonForm
+        forms={seerFormGroups}
+        disabled={!canWrite}
+        renderHeader={() => (
+          <React.Fragment>
+            {!canWrite && <OrganizationPermissionAlert system />}
+          </React.Fragment>
+        )}
+      />
     </Form>
   );
 }

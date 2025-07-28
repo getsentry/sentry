@@ -17,6 +17,8 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils.errors import (
     CHANNEL_NOT_FOUND,
     RATE_LIMITED,
+    USER_NOT_FOUND,
+    USER_NOT_VISIBLE,
     unpack_slack_api_error,
 )
 from sentry.integrations.slack.utils.users import get_slack_user_list
@@ -81,6 +83,74 @@ def get_channel_id(
     return get_channel_id_with_timeout(integration, channel_name, timeout)
 
 
+def is_input_a_user_id(input_id: str) -> bool:
+    """
+    Determines whether a given ID represents a user ID. If not, it's meant for a channel.
+    https://docs.slack.dev/enterprise-grid/developing-for-enterprise-grid#user_ids
+    """
+    return input_id.startswith("U") or input_id.startswith("W")
+
+
+def validate_slack_entity_id(*, integration_id: int, input_name: str, input_id: str) -> None:
+    """
+    Accepts a name and input ID that could correspond to a user or channel.
+    """
+    if is_input_a_user_id(input_id):
+        validate_user_id(
+            input_name=input_name, input_user_id=input_id, integration_id=integration_id
+        )
+    else:
+        validate_channel_id(
+            name=input_name, input_channel_id=input_id, integration_id=integration_id
+        )
+
+
+def validate_user_id(*, input_name: str, input_user_id: str, integration_id: int) -> None:
+    """
+    Validates that a user-input name and ID correspond to the same valid slack user.
+    Functionally identical to validate_channel_id, but for users.
+    """
+    client = SlackSdkClient(integration_id=integration_id)
+    try:
+        results = client.users_info(user=input_user_id).data
+
+    except SlackApiError as e:
+        _logger.exception(
+            "rule.slack.user_info_failed",
+            extra={
+                "integration_id": integration_id,
+                "channel_name": input_name,
+                "input_channel_id": input_user_id,
+            },
+        )
+        if unpack_slack_api_error(e) == USER_NOT_FOUND:
+            raise ValidationError("User not found. Invalid ID provided.") from e
+        elif unpack_slack_api_error(e) == USER_NOT_VISIBLE:
+            # XXX(ecosystem): I wasn't able to find great documentation on what 'not visible' means
+            # for slack, but I'm assuming this could mean the account is deactivated, or the user
+            # ID has been reserved for an account that hasn't accepted an invite yet.
+            raise ValidationError(
+                "User not visible, you may need to modify your Slack settings."
+            ) from e
+        elif unpack_slack_api_error(e) == RATE_LIMITED:
+            raise ValidationError("Rate limited") from e
+        raise ValidationError("Could not retrieve Slack user information.") from e
+
+    if not isinstance(results, dict):
+        raise IntegrationError("Bad slack user list response.")
+
+    stripped_user_name = strip_channel_name(input_name)
+    possible_name_matches = [
+        results.get("user", {}).get("name"),
+        results.get("user", {}).get("profile", {}).get("display_name"),
+        results.get("user", {}).get("profile", {}).get("display_name_normalized"),
+    ]
+    if not any(possible_name_matches):
+        raise ValidationError("Did not receive user name from API results")
+    if stripped_user_name not in possible_name_matches:
+        raise ValidationError("Slack username from ID does not match input username.")
+
+
 def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name
@@ -125,10 +195,7 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
     if not results_channel_name:
         raise ValidationError("Did not receive channel name from API results")
     if stripped_channel_name != results_channel_name:
-        channel_name = results_channel_name
-        raise ValidationError(
-            f"Received channel name {channel_name} does not match inputted channel name {stripped_channel_name}."
-        )
+        raise ValidationError("Slack channel name from ID does not match input channel name.")
 
 
 def get_channel_id_with_timeout(

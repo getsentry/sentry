@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {
+  BaseDetectorUpdatePayload,
+  Detector,
+} from 'sentry/types/workflowEngine/detectors';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {
   useApiQueries,
   useApiQuery,
@@ -10,7 +13,6 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 
 interface UseDetectorsQueryKeyOptions {
   cursor?: string;
@@ -21,7 +23,7 @@ interface UseDetectorsQueryKeyOptions {
   sortBy?: string;
 }
 
-const makeDetectorListQueryKey = ({
+export const makeDetectorListQueryKey = ({
   orgSlug,
   query,
   sortBy,
@@ -42,14 +44,10 @@ const makeDetectorListQueryKey = ({
   {query: {query, sortBy, project: projects, per_page: limit, cursor, id: ids}},
 ];
 
-export function useDetectorsQuery({
-  ids,
-  query,
-  sortBy,
-  projects,
-  limit = DETECTOR_LIST_PAGE_LIMIT,
-  cursor,
-}: UseDetectorsQueryKeyOptions = {}) {
+export function useDetectorsQuery(
+  {ids, query, sortBy, projects, limit, cursor}: UseDetectorsQueryKeyOptions = {},
+  queryOptions: Partial<UseApiQueryOptions<Detector[]>> = {}
+) {
   const org = useOrganization();
 
   return useApiQuery<Detector[]>(
@@ -65,6 +63,7 @@ export function useDetectorsQuery({
     {
       staleTime: 0,
       retry: false,
+      ...queryOptions,
     }
   );
 }
@@ -74,7 +73,7 @@ export function useCreateDetector() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, Detector>({
+  return useMutation<Detector, void, BaseDetectorUpdatePayload>({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/`, {
         method: 'POST',
@@ -87,6 +86,31 @@ export function useCreateDetector() {
     },
     onError: _ => {
       AlertStore.addAlert({type: 'error', message: t('Unable to create monitor')});
+    },
+  });
+}
+
+export function useUpdateDetector() {
+  const org = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  return useMutation<Detector, void, {detectorId: string} & BaseDetectorUpdatePayload>({
+    mutationFn: data =>
+      api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/detectors/`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${org.slug}/detectors/${data.detectorId}/`],
+      });
+    },
+    onError: _ => {
+      AlertStore.addAlert({type: 'error', message: t('Unable to update monitor')});
     },
   });
 }

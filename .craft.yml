@@ -6,17 +6,19 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'self-hosted'
+      - 'self-hosted-ubuntu-24.04-amd64'
+      - 'self-hosted-ubuntu-24.04-arm-arm64'
+      - 'assemble'
 artifactProvider:
   name: none
 targets:
   - id: release
     name: docker
-    source: ghcr.io/getsentry/sentry-self-hosted
+    source: ghcr.io/getsentry/sentry
     target: getsentry/sentry
   - id: latest
     name: docker
-    source: ghcr.io/getsentry/sentry-self-hosted
+    source: ghcr.io/getsentry/sentry
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
   - name: github

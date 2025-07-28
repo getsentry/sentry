@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AvatarList from 'sentry/components/core/avatar/avatarList';
+import AvatarList from './avatarList';
 
 function renderComponent({
   users,

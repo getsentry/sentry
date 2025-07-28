@@ -130,7 +130,7 @@ export function ProjectInstallPlatform({
               }
               return (
                 <Alert.Container>
-                  <StyledAlert type="info" showIcon>
+                  <StyledAlert type="info">
                     {t(
                       `Your selected platform supports performance, but your organization does not have performance enabled.`
                     )}
@@ -140,7 +140,7 @@ export function ProjectInstallPlatform({
             }}
           </Feature>
         )}
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar>
           <Button
             priority="primary"
             onClick={() => {
@@ -167,7 +167,7 @@ const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
   width: max-content;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: auto;
     grid-row-gap: ${space(1)};
     grid-auto-flow: row;

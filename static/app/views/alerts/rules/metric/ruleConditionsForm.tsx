@@ -11,6 +11,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -26,12 +27,10 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -44,12 +43,7 @@ import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  DEVICE_CLASS_TAG_VALUES,
-  FieldKind,
-  isDeviceClass,
-} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
@@ -71,8 +65,12 @@ import {
   DEPRECATED_TRANSACTION_ALERTS,
   getSupportedAndOmittedTags,
 } from 'sentry/views/alerts/wizard/options';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -84,6 +82,7 @@ import {
   DEFAULT_TRANSACTION_AGGREGATE,
   getTimeWindowOptions,
 } from './constants';
+import type {EventTypes} from './types';
 import {AlertRuleComparisonType, Dataset, Datasource} from './types';
 
 type Props = {
@@ -93,6 +92,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  eventTypes: EventTypes[];
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid: any) => void;
@@ -464,6 +464,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       onTimeWindowChange,
       isEditing,
+      eventTypes,
     } = this.props;
 
     return (
@@ -495,6 +496,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               alertType={alertType}
               required
               isEditing={isEditing}
+              eventTypes={eventTypes}
               disabledReason={
                 this.disableTransactionAlertType
                   ? this.transactionAlertDisabledMessage
@@ -532,6 +534,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       comparisonType,
       isLowConfidenceChartData,
       isOnDemandLimitReached,
+      eventTypes,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -545,6 +548,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     ];
 
     const confidenceEnabled = hasEAPAlerts(organization);
+
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
     return (
       <Fragment>
@@ -561,7 +566,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Fragment>
             <TraceItemAttributeProvider
               projects={[project]}
-              traceItemType={TraceItemDataset.SPANS}
+              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
               enabled={
                 organization.features.includes('visibility-explore-view') &&
                 isEapAlertType(alertType)
@@ -576,7 +581,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
                 <Alert.Container>
-                  <Alert showIcon type="warning">
+                  <Alert type="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}
@@ -634,20 +639,18 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
                     return isEapAlertType(alertType) ? (
-                      <EAPSpanSearchQueryBuilderWithContext
+                      <EAPSearchQueryBuilderWithContext
                         initialQuery={value ?? ''}
                         onSearch={(query, {parsedQuery}) => {
                           onFilterSearch(query, parsedQuery);
                           onChange(query, {});
                         }}
                         project={project}
+                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
-                          searchOnChange={organization.features.includes(
-                            'ui-search-on-change'
-                          )}
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
                           placeholder={this.searchPlaceholder}
@@ -764,30 +767,37 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 }
 
-interface EAPSpanSearchQueryBuilderWithContextProps {
+interface EAPSearchQueryBuilderWithContextProps {
   initialQuery: string;
   onSearch: (query: string, isQueryValid: any) => void;
   project: Project;
+  traceItemType: TraceItemDataset;
 }
 
-function EAPSpanSearchQueryBuilderWithContext({
+function EAPSearchQueryBuilderWithContext({
   initialQuery,
   onSearch,
   project,
-}: EAPSpanSearchQueryBuilderWithContextProps) {
-  const {tags: numberTags} = useSpanTags('number');
-  const {tags: stringTags} = useSpanTags('string');
-  return (
-    <EAPSpanSearchQueryBuilder
-      numberTags={numberTags}
-      stringTags={stringTags}
-      initialQuery={initialQuery}
-      searchSource="alerts"
-      onSearch={onSearch}
-      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      projects={[parseInt(project.id, 10)]}
-    />
-  );
+  traceItemType,
+}: EAPSearchQueryBuilderWithContextProps) {
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery,
+    searchSource: 'alerts',
+    onSearch,
+    numberAttributes,
+    stringAttributes,
+    itemType: traceItemType,
+    projects: [parseInt(project.id, 10)],
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+  };
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
 const StyledListTitle = styled('div')`
@@ -830,7 +840,7 @@ const SearchContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: 1.3;
 `;
 

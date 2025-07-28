@@ -10,7 +10,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
@@ -185,7 +185,7 @@ export default function CreateAlertButton({
 
   const permissionTooltipText = tct(
     'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
   );
 
   const renderButton = (hasAccess: boolean) => (

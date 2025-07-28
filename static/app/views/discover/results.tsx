@@ -13,8 +13,8 @@ import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -581,9 +581,7 @@ export class Results extends Component<Props, State> {
     }
     return (
       <Alert.Container>
-        <Alert type="error" showIcon>
-          {error}
-        </Alert>
+        <Alert type="error">{error}</Alert>
       </Alert.Container>
     );
   }
@@ -600,7 +598,7 @@ export class Results extends Component<Props, State> {
     ) {
       return (
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {t(
               "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
             )}
@@ -611,7 +609,7 @@ export class Results extends Component<Props, State> {
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {tct(
               'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
               {
@@ -634,7 +632,6 @@ export class Results extends Component<Props, State> {
         <Alert.Container>
           <Alert
             type="warning"
-            showIcon
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -670,7 +667,6 @@ export class Results extends Component<Props, State> {
         <Alert.Container>
           <Alert
             type="warning"
-            showIcon
             trailingItems={
               <StyledCloseButton
                 icon={<IconClose size="sm" />}
@@ -699,7 +695,7 @@ export class Results extends Component<Props, State> {
     if (tips) {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
-          <Alert type="info" showIcon key={`tip-${index}`}>
+          <Alert type="info" key={`tip-${index}`}>
             <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
@@ -904,7 +900,7 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-auto-flow: row;
   }

@@ -1,4 +1,3 @@
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -52,7 +51,12 @@ import {
   formatReservedWithUnits,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  hasCategoryFeature,
+  isByteCategory,
+  isPartOfReservedBudget,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
   calculateCategoryOnDemandUsage,
@@ -62,8 +66,8 @@ import {
 const USAGE_CHART_OPTIONS_DATACATEGORY = [
   ...CHART_OPTIONS_DATACATEGORY,
   {
-    label: DATA_CATEGORY_INFO.spanIndexed.titleName,
-    value: DATA_CATEGORY_INFO.spanIndexed.plural,
+    label: DATA_CATEGORY_INFO.span_indexed.titleName,
+    value: DATA_CATEGORY_INFO.span_indexed.plural,
     yAxisMinInterval: 100,
   },
 ];
@@ -99,15 +103,6 @@ interface ReservedUsageChartProps {
   usagePeriodEnd: string;
   usagePeriodStart: string;
   usageStats: CustomerUsage['stats'];
-}
-
-function getCategoryColors(theme: Theme) {
-  return [
-    theme.outcome.accepted,
-    theme.outcome.filtered,
-    theme.outcome.dropped,
-    theme.chartOther, // Projected
-  ];
 }
 
 function selectedCategory(location: Location, categoryOptions: CategoryOption[]) {
@@ -194,7 +189,7 @@ function mapReservedToChart(reserved: number | null, category: DataCategory) {
     return 0;
   }
 
-  if (category === DataCategory.ATTACHMENTS) {
+  if (isByteCategory(category)) {
     return typeof reserved === 'number' ? reserved * GIGABYTE : 0;
   }
   return reserved || 0;
@@ -461,12 +456,14 @@ function ReservedUsageChart({
   const currentHistory: BillingMetricHistory | undefined =
     subscription.categories[category];
   const categoryStats = usageStats[category];
-  const isReservedBudgetCategory =
-    subscription.reservedBudgetCategories?.includes(category) ?? false;
+  const shouldDisplayBudgetStats = isPartOfReservedBudget(
+    category,
+    subscription.reservedBudgets ?? []
+  );
 
   // For sales-led customers (canSelfServe: false), force cost view for reserved budget categories
   // since they don't have access to the usage/cost toggle
-  if (isReservedBudgetCategory && !subscription.canSelfServe) {
+  if (shouldDisplayBudgetStats && !subscription.canSelfServe) {
     displayMode = 'cost';
   }
 
@@ -490,7 +487,7 @@ function ReservedUsageChart({
     };
 
     if (categoryStats) {
-      if (isReservedBudgetCategory && displayMode === 'cost') {
+      if (shouldDisplayBudgetStats && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
         if (
           budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
@@ -686,7 +683,6 @@ function ReservedUsageChart({
       usageStats={chartData}
       usageDateShowUtc={false}
       categoryOptions={categoryOptions}
-      categoryColors={getCategoryColors(theme)}
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [
@@ -758,6 +754,6 @@ function ReservedUsageChart({
 export default ReservedUsageChart;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
 `;

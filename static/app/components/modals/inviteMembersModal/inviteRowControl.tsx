@@ -222,9 +222,9 @@ function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
 
 const Heading = styled('label')`
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const RowWrapper = styled('div')`

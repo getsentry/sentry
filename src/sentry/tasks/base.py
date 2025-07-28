@@ -9,6 +9,7 @@ from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from celery import Task
+from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry
 from django.conf import settings
 from django.db.models import Model
 
@@ -16,7 +17,7 @@ from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.retry import retry_task
+from sentry.taskworker.retry import RetryError, retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -207,6 +208,7 @@ def instrumented_task(
                 processing_deadline_duration=taskworker_config.processing_deadline_duration,
                 at_most_once=taskworker_config.at_most_once,
                 wait_for_delivery=taskworker_config.wait_for_delivery,
+                compression_type=taskworker_config.compression_type,
             )(func)
 
             task = override_task(task, taskworker_task, taskworker_config, name)
@@ -226,6 +228,7 @@ def instrumented_task(
 def retry(
     func: Callable[..., Any] | None = None,
     on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
+    on_silent: type[Exception] | tuple[type[Exception], ...] = (),
     exclude: type[Exception] | tuple[type[Exception], ...] = (),
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
     ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
@@ -244,6 +247,10 @@ def retry(
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
+                # We shouldn't interfere with exceptions that exist to communicate
+                # retry state.
+                raise
             except ignore:
                 return
             except ignore_and_capture:
@@ -251,6 +258,9 @@ def retry(
                 return
             except exclude:
                 raise
+            except on_silent as exc:
+                logger.info("silently retrying %s due to %s", func.__name__, exc)
+                retry_task(exc)
             except on as exc:
                 sentry_sdk.capture_exception()
                 retry_task(exc)

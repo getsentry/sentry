@@ -59,7 +59,7 @@ function Content({
     );
   }
 
-  const colors = (data && theme.chart.getColorPalette(data.length - 2)) || [];
+  const colors = (data && theme.chart.getColorPalette(data.length - 1)) || [];
 
   // Create a list of series based on the order of the fields,
   const series = data

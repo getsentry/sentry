@@ -31,6 +31,16 @@ export interface FilterValueItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
+export interface RawSearchFilterIsValueItem extends SelectOptionWithKey<string> {
+  type: 'raw-search-filter-is-value';
+  value: string;
+}
+
+export interface RawSearchFilterHasValueItem extends SelectOptionWithKey<string> {
+  type: 'raw-search-filter-has-value';
+  value: string;
+}
+
 interface RecentFilterItem extends SelectOptionWithKey<string> {
   type: 'recent-filter';
   value: string;
@@ -42,7 +52,26 @@ export interface RecentQueryItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export type SearchKeyItem = KeySectionItem | KeyItem | RawSearchItem | FilterValueItem;
+export interface AskSeerItem extends SelectOptionWithKey<string> {
+  hideCheck: boolean;
+  type: 'ask-seer';
+  value: string;
+}
+
+export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
+  type: 'ask-seer-consent';
+  value: string;
+}
+
+export type SearchKeyItem =
+  | KeySectionItem
+  | KeyItem
+  | RawSearchItem
+  | FilterValueItem
+  | RawSearchFilterIsValueItem
+  | RawSearchFilterHasValueItem
+  | AskSeerItem
+  | AskSeerConsentItem;
 
 export type FilterKeyItem =
   | KeyItem
@@ -50,7 +79,11 @@ export type FilterKeyItem =
   | KeySectionItem
   | RecentQueryItem
   | RawSearchItem
-  | FilterValueItem;
+  | FilterValueItem
+  | RawSearchFilterIsValueItem
+  | RawSearchFilterHasValueItem
+  | AskSeerItem
+  | AskSeerConsentItem;
 
 export type Section = {
   label: ReactNode;

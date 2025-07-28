@@ -68,7 +68,7 @@ const SearchBarWithButtonContainer = styled('div')`
   align-items: stretch;
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex-basis: 35rem;
   }
 `;
@@ -77,7 +77,7 @@ const StyledButton = styled(Button)`
   /* Hide this button on small screens */
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: center;
     height: 100%;
@@ -102,7 +102,7 @@ const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
   ${p =>
     !p.roundCorners &&
     css`
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
       }

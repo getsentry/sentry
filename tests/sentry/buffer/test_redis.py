@@ -48,10 +48,10 @@ class TestRedisBuffer:
     def setup_buffer(self, buffer):
         self.buf = buffer
 
-    def test_coerce_val_handles_foreignkeys(self):
+    def test_coerce_val_handles_foreignkeys(self) -> None:
         assert self.buf._coerce_val(Project(id=1)) == b"1"
 
-    def test_coerce_val_handles_unicode(self):
+    def test_coerce_val_handles_unicode(self) -> None:
         assert self.buf._coerce_val("\u201d") == "”".encode()
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
@@ -146,7 +146,7 @@ class TestRedisBuffer:
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
 
-    def test_get(self):
+    def test_get(self) -> None:
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = ["times_seen"]
@@ -158,7 +158,7 @@ class TestRedisBuffer:
         self.buf.incr(model, {"times_seen": 5}, filters)
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
-    def test_incr_saves_to_redis(self):
+    def test_incr_saves_to_redis(self) -> None:
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         model = mock.Mock()
@@ -219,7 +219,7 @@ class TestRedisBuffer:
                 project_ids_to_rule_data[int(proj_id[0])].append({k: v})
         return project_ids_to_rule_data
 
-    def test_enqueue(self):
+    def test_enqueue(self) -> None:
         project_id = 1
         rule_id = 2
         group_id = 3
@@ -234,8 +234,7 @@ class TestRedisBuffer:
         event4_id = 11
 
         # store the project ids
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id)
-        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_id2)
+        self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=[project_id, project_id2])
 
         # store the rules and group per project
         self.buf.push_to_hash(
@@ -282,7 +281,7 @@ class TestRedisBuffer:
         result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
         assert result.get("event_id") == event4_id
 
-    def test_buffer_hook_registry(self):
+    def test_buffer_hook_registry(self) -> None:
         """Test that we can add an event to the registry and that the callback is invoked"""
         mock = Mock()
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
@@ -296,14 +295,14 @@ class TestRedisBuffer:
         self.buf.process_batch()
         assert mock_metrics_timer.call_count == 1
 
-    def test_process_batch(self):
+    def test_process_batch(self) -> None:
         """Test that the registry's callbacks are invoked when we process a batch"""
         mock = Mock()
         redis_buffer_registry._registry[BufferHookEvent.FLUSH] = mock
         self.buf.process_batch()
         assert mock.call_count == 1
 
-    def test_delete_batch(self):
+    def test_delete_batch(self) -> None:
         """Test that after we add things to redis we can clean it up"""
         project_id = 1
         rule_id = 2
@@ -381,7 +380,7 @@ class TestRedisBuffer:
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    def test_get_hash_length(self):
+    def test_get_hash_length(self) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         data: Mapping[str | bytes, bytes | float | int | str] = {
             "f": '{"pk": ["i","1"]}',
@@ -395,7 +394,7 @@ class TestRedisBuffer:
         assert buffer_length == len(data)
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    def test_push_to_hash_bulk(self):
+    def test_push_to_hash_bulk(self) -> None:
         def decode_dict(d):
             return {k: v.decode("utf-8") if isinstance(v, bytes) else v for k, v in d.items()}
 

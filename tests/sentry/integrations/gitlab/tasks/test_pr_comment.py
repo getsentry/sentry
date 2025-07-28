@@ -29,7 +29,7 @@ from sentry.utils.cache import cache
 
 
 class GitlabCommentTestCase(GitLabTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitlabIntegration, integration=self.integration, org_id=self.organization.id
@@ -133,7 +133,7 @@ class GitlabCommentTestCase(GitLabTestCase):
 
 
 class TestPrToIssueQuery(GitlabCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -143,7 +143,7 @@ class TestPrToIssueQuery(GitlabCommentTestCase):
 
         assert results == [groupowner.group_id]
 
-    def test_multiple_issues(self):
+    def test_multiple_issues(self) -> None:
         """one pr with multiple issues"""
         commit = self.add_commit_to_repo(self.repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -155,7 +155,7 @@ class TestPrToIssueQuery(GitlabCommentTestCase):
 
         assert results == [groupowner_1.group_id, groupowner_2.group_id, groupowner_3.group_id]
 
-    def test_multiple_prs(self):
+    def test_multiple_prs(self) -> None:
         """multiple eligible PRs with one issue each"""
         commit_1 = self.add_commit_to_repo(self.repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.repo, self.user, self.project)
@@ -170,7 +170,7 @@ class TestPrToIssueQuery(GitlabCommentTestCase):
         results = self.pr_comment_workflow.get_issue_ids_from_pr(pr=pr_2)
         assert results == [groupowner_2.group_id]
 
-    def test_multiple_commits(self):
+    def test_multiple_commits(self) -> None:
         """Multiple eligible commits with one issue each"""
         commit_1 = self.add_commit_to_repo(self.repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.repo, self.user, self.project)
@@ -183,7 +183,7 @@ class TestPrToIssueQuery(GitlabCommentTestCase):
 
 
 class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group1 = [
             self.store_event(
                 {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
@@ -210,7 +210,7 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2, group3, group1]
 
-    def test_over_5_issues(self):
+    def test_over_5_issues(self) -> None:
         issue_ids = [
             self.store_event(
                 {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
@@ -221,7 +221,7 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
         res = self.pr_comment_workflow.get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
-    def test_ignore_info_level_issues(self):
+    def test_ignore_info_level_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -256,7 +256,7 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2]
 
-    def test_do_not_ignore_other_issues(self):
+    def test_do_not_ignore_other_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -297,9 +297,14 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
 
 
 class TestGetCommentBody(GitlabCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         ev1 = self.store_event(
-            data={"message": "issue 1", "culprit": "issue1", "fingerprint": ["group-1"]},
+            data={
+                "message": "issue 1",
+                "culprit": "issue1",
+                "fingerprint": ["group-1"],
+                "environment": "dev",
+            },
             project_id=self.project.id,
         )
         assert ev1.group is not None
@@ -309,7 +314,12 @@ class TestGetCommentBody(GitlabCommentTestCase):
         )
         assert ev2.group is not None
         ev3 = self.store_event(
-            data={"message": "issue 3", "culprit": "issue3", "fingerprint": ["group-3"]},
+            data={
+                "message": "issue 3",
+                "culprit": "issue3",
+                "fingerprint": ["group-3"],
+                "environment": "prod",
+            },
             project_id=self.project.id,
         )
         assert ev3.group is not None
@@ -320,14 +330,17 @@ class TestGetCommentBody(GitlabCommentTestCase):
         expected_comment = f"""## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{ev1.group.id}/?referrer=gitlab-pr-bot)
-- ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/baz/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
-- ‼️ **issue 3** `issue3` [View Issue](http://testserver/organizations/baz/issues/{ev3.group.id}/?referrer=gitlab-pr-bot)"""
+* ‼️ [**{ev1.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/?referrer=gitlab-pr-bot) in `dev`
+
+* ‼️ [**{ev2.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
+
+* ‼️ [**{ev3.group.title}**](http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/?referrer=gitlab-pr-bot) in `prod`
+"""
         assert formatted_comment == expected_comment
 
 
 class TestCommentWorkflow(GitlabCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -343,7 +356,6 @@ class TestCommentWorkflow(GitlabCommentTestCase):
         group_objs = Group.objects.order_by("id").all()
         groups = [g.id for g in group_objs]
         titles = [g.title for g in group_objs]
-        culprits = [g.culprit for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
@@ -360,8 +372,10 @@ class TestCommentWorkflow(GitlabCommentTestCase):
 ## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/baz/issues/{groups[0]}/?referrer=gitlab-pr-bot)
-- ‼️ **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=gitlab-pr-bot)"""
+* ‼️ [**{titles[0]}**](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
+
+* ‼️ [**{titles[1]}**](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
+"""
         }
 
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -377,7 +391,9 @@ This merge request was deployed and Sentry observed the following issues:
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
-        groups = [g.id for g in Group.objects.all()]
+        group_objs = Group.objects.order_by("id").all()
+        groups = [g.id for g in group_objs]
+        titles = [g.title for g in group_objs]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
         pull_request_comment = PullRequestComment.objects.create(
             external_id=1,
@@ -411,12 +427,14 @@ This merge request was deployed and Sentry observed the following issues:
 ## Suspect Issues
 This merge request was deployed and Sentry observed the following issues:
 
-- ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{groups[0]}/?referrer=gitlab-pr-bot)
-- ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=gitlab-pr-bot)"""
+* ‼️ [**{titles[0]}**](http://testserver/organizations/{self.organization.slug}/issues/{groups[0]}/?referrer=gitlab-pr-bot)
+
+* ‼️ [**{titles[1]}**](http://testserver/organizations/{self.another_organization.slug}/issues/{groups[1]}/?referrer=gitlab-pr-bot)
+"""
         }
 
         pull_request_comment.refresh_from_db()
-        assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
+        assert pull_request_comment.group_ids == groups
         assert pull_request_comment.updated_at == timezone.now()
         mock_metrics.incr.assert_called_with("gitlab.pr_comment.comment_updated")
 

@@ -4,9 +4,12 @@ import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
+  type DataCondition,
   type DataConditionGroup,
   DataConditionGroupLogicType,
+  DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {MatchType} from 'sentry/views/automations/components/actionFilters/constants';
 
 export function AutomationFixture(params: Partial<Automation> = {}): Automation {
   return {
@@ -16,8 +19,8 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
     lastTriggered: '2025-01-01T00:00:00.000Z',
-    config: {},
-    disabled: false,
+    config: {frequency: 1440},
+    enabled: true,
     actionFilters: [ActionFilterFixture()],
     detectorIds: ['1'],
     environment: 'production',
@@ -35,19 +38,32 @@ function ActionFilterFixture(
 ): DataConditionGroup {
   return {
     id: '1',
-    conditions: [],
+    conditions: [DataConditionFixture()],
     actions: [ActionFixture()],
     logicType: DataConditionGroupLogicType.ANY,
     ...params,
   };
 }
 
-function ActionFixture(params: Partial<Action> = {}): Action {
+export function DataConditionFixture(params: Partial<DataCondition> = {}): DataCondition {
+  return {
+    id: '1',
+    type: DataConditionType.TAGGED_EVENT,
+    comparison: {
+      key: 'name',
+      match: MatchType.CONTAINS,
+      value: 'moo deng',
+    },
+    ...params,
+  };
+}
+
+export function ActionFixture(params: Partial<Action> = {}): Action {
   return {
     id: '1000',
     type: ActionType.SLACK,
     config: {
-      target_type: ActionTarget.SPECIFIC,
+      targetType: ActionTarget.SPECIFIC,
     },
     data: {},
     ...params,

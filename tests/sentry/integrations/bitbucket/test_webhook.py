@@ -22,7 +22,7 @@ BITBUCKET_IP = "34.198.178.64"
 class WebhookBaseTest(APITestCase):
     endpoint = "sentry-extensions-bitbucket-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         project = self.project  # force creation
         self.organization_id = project.organization.id
@@ -72,14 +72,14 @@ class WebhookBaseTest(APITestCase):
 
 
 class WebhookGetTest(WebhookBaseTest):
-    def test_get_request_fails(self):
+    def test_get_request_fails(self) -> None:
         self.get_error_response(self.organization_id, status_code=405)
 
 
 class WebhookTest(WebhookBaseTest):
     method = "post"
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         self.get_success_response(
             self.organization_id,
             raw_data=PUSH_EVENT_EXAMPLE,
@@ -99,7 +99,7 @@ class WebhookTest(WebhookBaseTest):
             status_code=204,
         )
 
-    def test_invalid_signature_ip(self):
+    def test_invalid_signature_ip(self) -> None:
         self.get_error_response(
             self.organization_id,
             raw_data=PUSH_EVENT_EXAMPLE,
@@ -143,7 +143,7 @@ class PushEventWebhookTest(WebhookBaseTest):
 
         assert_failure_metric(mock_record, error)
 
-    def test_anonymous_lookup(self):
+    def test_anonymous_lookup(self) -> None:
         self.create_repository()
 
         CommitAuthor.objects.create(
@@ -157,7 +157,7 @@ class PushEventWebhookTest(WebhookBaseTest):
         # should be skipping the #skipsentry commit
         self.assert_commit()
 
-    def test_update_repo_name(self):
+    def test_update_repo_name(self) -> None:
         repo_out_of_date_name = self.create_repository(
             name="maxbittker/newssames",  # out of date
             url="https://bitbucket.org/maxbittker/newsdiffs",
@@ -170,7 +170,7 @@ class PushEventWebhookTest(WebhookBaseTest):
         repo_out_of_date_name.refresh_from_db()
         assert repo_out_of_date_name.name == "maxbittker/newsdiffs"
 
-    def test_update_repo_config_name(self):
+    def test_update_repo_config_name(self) -> None:
         repo_out_of_date_config_name = self.create_repository(
             name="maxbittker/newsdiffs",
             url="https://bitbucket.org/maxbittker/newsdiffs",
@@ -182,7 +182,7 @@ class PushEventWebhookTest(WebhookBaseTest):
         repo_out_of_date_config_name.refresh_from_db()
         assert repo_out_of_date_config_name.config["name"] == "maxbittker/newsdiffs"
 
-    def test_update_repo_url(self):
+    def test_update_repo_url(self) -> None:
         repo_out_of_date_url = self.create_repository(
             name="maxbittker/newsdiffs",
             url="https://bitbucket.org/maxbittker/newssames",  # out of date
@@ -199,7 +199,7 @@ class PushEventWebhookTest(WebhookBaseTest):
 class WebhookSignatureTest(WebhookBaseTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -224,7 +224,7 @@ class WebhookSignatureTest(WebhookBaseTest):
             ),
         )
 
-    def test_is_valid_signature(self):
+    def test_is_valid_signature(self) -> None:
         # https://support.atlassian.com/bitbucket-cloud/docs/manage-webhooks/#Examples
         assert is_valid_signature(
             b"Hello World!",
@@ -232,24 +232,24 @@ class WebhookSignatureTest(WebhookBaseTest):
             "a4771c39fbe90f317c7824e83ddef3caae9cb3d976c214ace1f2937e133263c9",
         )
 
-    def test_success(self):
+    def test_success(self) -> None:
         self.signature = "sha256=ee07bac3b2fa849cf4346113dc5f6b9738660673aca6fa8f07ce459e7543f980"
         response = self.send_signed_webhook()
         assert response.status_code == 204
 
-    def test_missing_signature(self):
+    def test_missing_signature(self) -> None:
         self.signature = ""
         response = self.send_signed_webhook()
         assert response.status_code == 400
         assert response.data["detail"]["message"] == "Missing webhook signature"
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         self.signature = "sha256=definitely-invalid"
         response = self.send_signed_webhook()
         assert response.status_code == 400
         assert response.data["detail"]["message"] == "Webhook signature is invalid"
 
-    def test_invalid_method(self):
+    def test_invalid_method(self) -> None:
         self.signature = "sha1=b842d7b7d535c446133bcf18cf085fb9472175c7"
         response = self.send_signed_webhook()
         assert response.status_code == 400

@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T22:03:16.451923+00:00'
+created: '2025-06-23T19:43:17.133621+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -36,5 +36,5 @@ variants:
   default:
     component:
       contributes: false
-      hint: custom fingerprint takes precedence
+      hint: custom server fingerprint takes precedence
     type: component

@@ -7,7 +7,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-from sentry.identity.vercel import VercelIdentityProvider
+from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
@@ -108,19 +108,19 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_team_flow(self):
+    def test_team_flow(self) -> None:
         self.assert_setup_flow(is_team=True)
 
     @responses.activate
-    def test_user_flow(self):
+    def test_user_flow(self) -> None:
         self.assert_setup_flow(is_team=False)
 
     @responses.activate
-    def test_no_name(self):
+    def test_no_name(self) -> None:
         self.assert_setup_flow(no_name=True)
 
     @responses.activate
-    def test_use_existing_installation(self):
+    def test_use_existing_installation(self) -> None:
         sentry_app = self.create_internal_integration(
             webhook_url=None,
             name="Vercel Internal Integration",
@@ -136,7 +136,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert SentryAppInstallation.objects.count() == 1
 
     @responses.activate
-    def test_update_organization_config(self):
+    def test_update_organization_config(self) -> None:
         """Test that Vercel environment variables are created"""
         with self.tasks():
             self.assert_setup_flow()
@@ -246,7 +246,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "system"
 
     @responses.activate
-    def test_update_org_config_vars_exist(self):
+    def test_update_org_config_vars_exist(self) -> None:
         """Test the case wherein the secret and env vars already exist"""
 
         with self.tasks():
@@ -371,7 +371,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "system"
 
     @responses.activate
-    def test_upgrade_org_config_no_dsn(self):
+    def test_upgrade_org_config_no_dsn(self) -> None:
         """Test that the function doesn't progress if there is no active DSN"""
 
         with self.tasks():
@@ -391,7 +391,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
-    def test_get_dynamic_display_information(self):
+    def test_get_dynamic_display_information(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -403,7 +403,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert "configure your repositories." in instructions[0]
 
     @responses.activate
-    def test_uninstall(self):
+    def test_uninstall(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
             responses.add(
@@ -430,7 +430,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
 class VercelIntegrationMetadataTest(TestCase):
 
-    def test_asdict(self):
+    def test_asdict(self) -> None:
         assert metadata.asdict() == {
             "description": "Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.",
             "features": [

@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   renderGlobalModal,
@@ -57,6 +58,11 @@ const numberTags: TagCollection = {
     name: 'span.self_time',
     kind: FieldKind.MEASUREMENT,
   },
+  'tags[foo,number]': {
+    key: 'tags[foo,number]',
+    name: 'foo',
+    kind: FieldKind.MEASUREMENT,
+  },
 };
 
 describe('AggregateColumnEditorModal', function () {
@@ -70,7 +76,7 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: ''}, new Visualize([DEFAULT_VISUALIZATION])]}
+            columns={[{groupBy: ''}, new Visualize(DEFAULT_VISUALIZATION)]}
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
@@ -98,8 +104,8 @@ describe('AggregateColumnEditorModal', function () {
             columns={[
               {groupBy: 'geo.country'},
               {groupBy: 'geo.region'},
-              new Visualize(['count(span.duration)']),
-              new Visualize(['avg(span.self_time)']),
+              new Visualize('count(span.duration)'),
+              new Visualize('avg(span.self_time)'),
             ]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
@@ -116,8 +122,8 @@ describe('AggregateColumnEditorModal', function () {
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
       {groupBy: 'geo.region'},
-      new Visualize(['count(span.duration)']),
-      new Visualize(['avg(span.self_time)']),
+      new Visualize('count(span.duration)'),
+      new Visualize('avg(span.self_time)'),
     ]);
 
     await userEvent.click(screen.getAllByLabelText('Remove Column')[0]!);
@@ -125,8 +131,8 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.region'},
-      new Visualize(['count(span.duration)']),
-      new Visualize(['avg(span.self_time)']),
+      new Visualize('count(span.duration)'),
+      new Visualize('avg(span.self_time)'),
     ]);
 
     // only 1 group by remaining, disable the delete option
@@ -137,7 +143,7 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.region'},
-      new Visualize(['avg(span.self_time)']),
+      new Visualize('avg(span.self_time)'),
     ]);
 
     // 1 group by and visualize remaining so both should be disabled
@@ -148,7 +154,7 @@ describe('AggregateColumnEditorModal', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onColumnsChange).toHaveBeenCalledWith([
       {groupBy: 'geo.region'},
-      new Visualize(['avg(span.self_time)']),
+      {yAxes: ['avg(span.self_time)']},
     ]);
   });
 
@@ -162,7 +168,7 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize([DEFAULT_VISUALIZATION])]}
+            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
@@ -177,35 +183,41 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize(['count(span.duration)']),
+      new Visualize('count(span.duration)'),
     ]);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add a Group By'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Group By / Attribute'})
+    );
 
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize(['count(span.duration)']),
+      new Visualize('count(span.duration)'),
       {groupBy: ''},
     ]);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add an Aggregation'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Visualize / Function'})
+    );
 
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize(['count(span.duration)']),
+      new Visualize('count(span.duration)'),
       {groupBy: ''},
-      new Visualize(['count(span.duration)']),
+      new Visualize('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
     expect(onColumnsChange).toHaveBeenCalledWith([
       {groupBy: 'geo.country'},
-      new Visualize(['count(span.duration)']),
+      {yAxes: ['count(span.duration)']},
       {groupBy: ''},
-      new Visualize(['count(span.duration)']),
+      {yAxes: ['count(span.duration)']},
     ]);
   });
 
@@ -219,7 +231,7 @@ describe('AggregateColumnEditorModal', function () {
         modalProps => (
           <AggregateColumnEditorModal
             {...modalProps}
-            columns={[{groupBy: 'geo.country'}, new Visualize([DEFAULT_VISUALIZATION])]}
+            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
             onColumnsChange={onColumnsChange}
             stringTags={stringTags}
             numberTags={numberTags}
@@ -234,7 +246,7 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.country'},
-      new Visualize(['count(span.duration)']),
+      new Visualize('count(span.duration)'),
     ]);
 
     const options: string[] = ['\u2014', 'geo.city', 'geo.country', 'project', 'span.op'];
@@ -248,13 +260,54 @@ describe('AggregateColumnEditorModal', function () {
     rows = await screen.findAllByTestId('editor-row');
     expectRows(rows).toHaveAggregateFields([
       {groupBy: 'geo.city'},
-      new Visualize(['count(span.duration)']),
+      new Visualize('count(span.duration)'),
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
     expect(onColumnsChange).toHaveBeenCalledWith([
       {groupBy: 'geo.city'},
-      new Visualize(['count(span.duration)']),
+      {yAxes: ['count(span.duration)']},
+    ]);
+  });
+
+  it('allows adding an equation', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['visibility-explore-equations'],
+      },
+    });
+
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal({organization});
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[{groupBy: 'geo.country'}, new Visualize(DEFAULT_VISUALIZATION)]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Equation'}));
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a term'}));
+
+    await userEvent.keyboard('avg(foo{Enter}*5{Escape}');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'geo.country'},
+      {yAxes: ['count(span.duration)']},
+      {yAxes: ['equation|avg(tags[foo,number]) * 5']},
     ]);
   });
 });
@@ -273,8 +326,7 @@ function expectRows(rows: HTMLElement[]) {
             new RegExp(`Group By${field.groupBy}`)
           );
         } else {
-          expect(field.yAxes).toHaveLength(1);
-          const parsedFunction = parseFunction(field.yAxes[0]!)!;
+          const parsedFunction = parseFunction(field.yAxis)!;
           expect(parsedFunction).not.toBeNull();
           expect(parsedFunction.arguments.filter(Boolean)).toHaveLength(1);
 
@@ -284,7 +336,7 @@ function expectRows(rows: HTMLElement[]) {
           );
 
           const argsRegexOverride =
-            field.yAxes[0] === 'count(span.duration)' ? /spans/ : undefined;
+            field.yAxis === 'count(span.duration)' ? /spans/ : undefined;
           const argumentElement = within(row).getByTestId('editor-visualize-argument');
           expect(argumentElement).toHaveTextContent(
             argsRegexOverride ?? new RegExp(parsedFunction.arguments[0]!)

@@ -12,7 +12,11 @@ from django.db import models
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.services.import_export import import_export_service
-from sentry.backup.services.import_export.impl import fixup_array_fields, get_existing_import_chunk
+from sentry.backup.services.import_export.impl import (
+    fixup_array_fields,
+    fixup_json_fields,
+    get_existing_import_chunk,
+)
 from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
@@ -45,7 +49,7 @@ class RpcImportRetryTests(TestCase):
     Ensure that retries don't duplicate writes.
     """
 
-    def test_good_local_retry_idempotent(self):
+    def test_good_local_retry_idempotent(self) -> None:
         # If the response gets lost on the way to the caller, it will try again. Make sure it is
         # clever enough to not try to write the data twice if its already been committed.
         import_uuid = str(uuid4().hex)
@@ -119,7 +123,7 @@ class RpcImportRetryTests(TestCase):
         # and should not result in multiple `RegionImportChunk`s being written.
         assert verify_option_write() == verify_option_write()
 
-    def test_good_remote_retry_idempotent(self):
+    def test_good_remote_retry_idempotent(self) -> None:
         # If the response gets lost on the way to the caller, it will try again. Make sure it is
         # clever enough to not try to write the data twice if its already been committed.
         import_uuid = str(uuid4().hex)
@@ -196,7 +200,7 @@ class RpcImportRetryTests(TestCase):
 
     # This is a bit of a hacky way in which to "simulate" a race that occurs between when we first
     # try to detect the duplicate chunk and when we try to send our actual write.
-    def test_good_handles_racing_imports(self):
+    def test_good_handles_racing_imports(self) -> None:
         mock_call_count = 0
 
         # First call returns `None`, but then, by the time we get around to trying to commit the
@@ -316,7 +320,7 @@ class RpcImportErrorTests(TestCase):
     def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
-    def test_bad_invalid_min_ordinal(self):
+    def test_bad_invalid_min_ordinal(self) -> None:
         result = import_export_service.import_by_model(
             import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
@@ -330,7 +334,7 @@ class RpcImportErrorTests(TestCase):
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.InvalidMinOrdinal
 
-    def test_bad_unknown_model(self):
+    def test_bad_unknown_model(self) -> None:
         result = import_export_service.import_by_model(
             import_model_name="sentry.doesnotexist",
             scope=RpcImportScope.Global,
@@ -345,7 +349,7 @@ class RpcImportErrorTests(TestCase):
         assert result.get_kind() == RpcImportErrorKind.UnknownModel
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
-    def test_bad_incorrect_silo_mode_for_model(self):
+    def test_bad_incorrect_silo_mode_for_model(self) -> None:
         result = import_export_service.import_by_model(
             import_model_name=str(PROJECT_MODEL_NAME),
             scope=RpcImportScope.Global,
@@ -359,7 +363,7 @@ class RpcImportErrorTests(TestCase):
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.IncorrectSiloModeForModel
 
-    def test_bad_unspecified_scope(self):
+    def test_bad_unspecified_scope(self) -> None:
         result = import_export_service.import_by_model(
             import_model_name=str(USER_MODEL_NAME),
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
@@ -372,7 +376,7 @@ class RpcImportErrorTests(TestCase):
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.UnspecifiedScope
 
-    def test_bad_missing_import_uuid(self):
+    def test_bad_missing_import_uuid(self) -> None:
         result = import_export_service.import_by_model(
             import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
@@ -386,7 +390,7 @@ class RpcImportErrorTests(TestCase):
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.MissingImportUUID
 
-    def test_bad_invalid_json(self):
+    def test_bad_invalid_json(self) -> None:
         result = import_export_service.import_by_model(
             import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
@@ -400,7 +404,7 @@ class RpcImportErrorTests(TestCase):
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.DeserializationFailed
 
-    def test_bad_validation(self):
+    def test_bad_validation(self) -> None:
         models = self.json_of_exhaustive_user_with_minimum_privileges()
 
         # Username too long - will fail deserialization.
@@ -425,7 +429,7 @@ class RpcImportErrorTests(TestCase):
         assert isinstance(result, RpcImportError)
         assert result.get_kind() == RpcImportErrorKind.ValidationError
 
-    def test_bad_unexpected_model(self):
+    def test_bad_unexpected_model(self) -> None:
         models = self.json_of_exhaustive_user_with_minimum_privileges()
         json_data = orjson.dumps(
             [m for m in models if self.is_user_model(m)],
@@ -449,7 +453,7 @@ class RpcImportErrorTests(TestCase):
 class RpcExportErrorTests(TestCase):
     """Validate errors related to the `export_by_model()` RPC method."""
 
-    def test_bad_unknown_model(self):
+    def test_bad_unknown_model(self) -> None:
         result = import_export_service.export_by_model(
             export_model_name="sentry.doesnotexist",
             scope=RpcExportScope.Global,
@@ -462,7 +466,7 @@ class RpcExportErrorTests(TestCase):
         assert isinstance(result, RpcExportError)
         assert result.get_kind() == RpcExportErrorKind.UnknownModel
 
-    def test_bad_unexportable_model(self):
+    def test_bad_unexportable_model(self) -> None:
         result = import_export_service.export_by_model(
             export_model_name="sentry.controloutbox",
             scope=RpcExportScope.Global,
@@ -476,7 +480,7 @@ class RpcExportErrorTests(TestCase):
         assert result.get_kind() == RpcExportErrorKind.UnexportableModel
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
-    def test_bad_incorrect_silo_mode_for_model(self):
+    def test_bad_incorrect_silo_mode_for_model(self) -> None:
         result = import_export_service.export_by_model(
             export_model_name=str(PROJECT_MODEL_NAME),
             scope=RpcExportScope.Global,
@@ -489,7 +493,7 @@ class RpcExportErrorTests(TestCase):
         assert isinstance(result, RpcExportError)
         assert result.get_kind() == RpcExportErrorKind.IncorrectSiloModeForModel
 
-    def test_bad_unspecified_scope(self):
+    def test_bad_unspecified_scope(self) -> None:
         result = import_export_service.export_by_model(
             export_model_name=str(USER_MODEL_NAME),
             scope=None,
@@ -507,3 +511,9 @@ def test_fixup_array_fields() -> None:
     before = '[{"model":"sentry.dashboardwidgetquery","fields":{"aggregates":"[\'a\',\'b\']"}}]'
     expect = '[{"model":"sentry.dashboardwidgetquery","fields":{"aggregates":"[\\"a\\",\\"b\\"]"}}]'
     assert fixup_array_fields(before) == expect
+
+
+def test_fixup_json_fields() -> None:
+    before = r'[{"model":"sentry.releaseactivity","fields":{"data":"\"double\""}}]'
+    expect = r'[{"model":"sentry.releaseactivity","fields":{"data":"double"}}]'
+    assert fixup_json_fields(before) == expect

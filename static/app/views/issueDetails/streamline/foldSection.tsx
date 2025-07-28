@@ -10,8 +10,8 @@ import {
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -185,6 +185,9 @@ export function FoldSection({
             hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
+          <IconWrapper preventCollapse={preventCollapse}>
+            <IconChevron direction={isCollapsed ? 'right' : 'down'} size="xs" />
+          </IconWrapper>
           <TitleWithActions preventCollapse={preventCollapse}>
             <TitleWrapper>{title}</TitleWrapper>
             {!isCollapsed && (
@@ -197,9 +200,6 @@ export function FoldSection({
               </div>
             )}
           </TitleWithActions>
-          <IconWrapper preventCollapse={preventCollapse}>
-            <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
-          </IconWrapper>
         </SectionExpander>
         {isCollapsed ? null : (
           <ErrorBoundary mini>
@@ -221,7 +221,7 @@ export const SectionDivider = styled('hr')`
 `;
 
 export const SidebarFoldSection = styled(FoldSection)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: -${space(1)};
 `;
 
@@ -231,11 +231,13 @@ const Section = styled('section')<{scrollMargin: number}>`
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr;
+  column-gap: ${p => p.theme.space.xs};
   align-items: center;
   padding: ${space(0.5)} ${space(1.5)};
   margin: 0 -${space(0.75)};
@@ -245,8 +247,8 @@ const SectionExpander = styled('div')<{preventCollapse: boolean}>`
 `;
 
 const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   user-select: none;
 `;
 

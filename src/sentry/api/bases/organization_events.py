@@ -18,6 +18,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
+from sentry.api.helpers.error_upsampling import (
+    are_any_projects_error_upsampled,
+    convert_fields_for_upsampling,
+)
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -63,9 +67,12 @@ def get_query_columns(columns, rollup):
 
 
 def resolve_axis_column(
-    column: str, index: int = 0, transform_alias_to_input_format: bool = False
+    column: str,
+    index: int = 0,
+    transform_alias_to_input_format: bool = False,
+    use_rpc: bool = False,
 ) -> str:
-    if is_equation(column):
+    if is_equation(column) and not use_rpc:
         return f"equation[{index}]"
 
     # Function columns on input have names like `"p95(duration)"`. By default, we convert them to their aliases like `"p95_duration"`. Here, we want to preserve the original name, so we return the column as-is
@@ -87,10 +94,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         )
 
-    def get_equation_list(self, organization: Organization, request: Request) -> list[str]:
+    def get_equation_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         return [
-            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+            strip_equation(field)
+            for field in request.GET.getlist(param_name)[:]
+            if is_equation(field)
         ]
 
     def get_field_list(
@@ -156,6 +167,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
+                debug=request.user.is_superuser and "debug" in request.GET,
             )
 
             if check_global_views:
@@ -308,9 +320,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         elif field_type in DURATION_UNITS:
             return field_type, "duration"
         elif field_type == "rate":
-            if field in ["eps()", "sps()", "tps()"]:
+            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
                 return "1/second", field_type
-            elif field in ["epm()", "spm()", "tpm()"]:
+            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
                 return "1/minute", field_type
             else:
                 return None, field_type
@@ -414,6 +426,17 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     del result[key]
 
         return results
+
+    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
+        """
+        If the query is for error upsampled projects, we convert various functions under the hood.
+        We need to rename these fields before returning the results to the client, to hide the conversion.
+        This is done here to work around a limitation in how aliases are handled in the SnQL parser.
+        """
+        if are_any_projects_error_upsampled(project_ids):
+            data = results.get("data", [])
+            fields_meta = results.get("meta", {}).get("fields", {})
+            convert_fields_for_upsampling(data, fields_meta)
 
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
@@ -546,6 +569,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                             transform_alias_to_input_format=transform_alias_to_input_format,
+                            use_rpc=use_rpc,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
@@ -553,7 +577,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             )
                     else:
                         column = resolve_axis_column(
-                            query_columns[0], 0, transform_alias_to_input_format
+                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
                         )
                         results[key] = serializer.serialize(
                             event_result,
@@ -586,6 +610,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -593,7 +618,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
-                column = resolve_axis_column(query_columns[0], 0, transform_alias_to_input_format)
+                column = resolve_axis_column(
+                    query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                )
                 serialized_result = serializer.serialize(
                     result,
                     column=column,
@@ -643,6 +670,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
@@ -658,7 +686,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, equations, transform_alias_to_input_format),
+                resolve_axis_column(
+                    query_column, equations, transform_alias_to_input_format, use_rpc
+                ),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=zerofill_results,

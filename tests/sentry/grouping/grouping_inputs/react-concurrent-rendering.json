@@ -1,0 +1,26 @@
+{
+  "exception": {
+    "values": [
+      {
+        "type": "TypeError",
+        "value": "Load failed",
+        "mechanism": {
+          "type": "onerror",
+          "handled": false,
+          "source": "cause",
+          "exception_id": 1,
+          "parent_id": 0
+        }
+      },
+      {
+        "type": "Error",
+        "value": "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+        "mechanism": {
+          "type": "generic",
+          "handled": true,
+          "exception_id": 0
+        }
+      }
+    ]
+  }
+}

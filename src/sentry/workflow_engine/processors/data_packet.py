@@ -1,12 +1,14 @@
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors.data_source import process_data_sources
+from sentry.workflow_engine.processors.data_source import process_data_source
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorGroupKey
 
 
-def process_data_packets(
-    data_packets: list[DataPacket], query_type: str
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+def process_data_packet[
+    T
+](data_packet: DataPacket[T], query_type: str) -> list[
+    tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]
+]:
     """
     This method ties the two main pre-processing methods together to process
     the incoming data and create issue occurrences.
@@ -26,13 +28,5 @@ def process_data_packets(
     TODO - saponifi3d - Create a monitoring dashboard for the workflow engine and link it here
          - the dashboard should show the funnel as we process data.
     """
-    processed_sources = process_data_sources(data_packets, query_type)
-
-    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
-    for data_packet, detectors in processed_sources:
-        detector_results = process_detectors(data_packet, detectors)
-
-        for detector, detector_state in detector_results:
-            results.append((detector, detector_state))
-
-    return results
+    data_packet, detectors = process_data_source(data_packet, query_type)
+    return process_detectors(data_packet, detectors)

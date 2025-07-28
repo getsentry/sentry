@@ -9,7 +9,7 @@ from typing import Any, Generic, TypeVar
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
@@ -29,11 +29,8 @@ EventData = dict[str, Any]
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
     detector_id: int
-    data_source_ids: list[int]
-    data_condition_ids: list[int]
-    data_condition_type: Condition
-    # Represents the actual value that we are comparing against
-    data_condition_comparison_value: DataPacketEvaluationType
+    data_packet_source_id: int
+    conditions: list[dict[str, Any]]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -78,14 +75,21 @@ class DetectorOccurrence:
         )
 
 
+# TODO - @saponifi3d - Change this class to be a pure ABC and remove the `__init__` method.
+# TODO - @saponifi3d - Once the change is made, we should introduce a `BaseDetector` class to evaluate simple cases
 class DetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
             try:
-                group = DataConditionGroup.objects.get_from_cache(
-                    id=detector.workflow_condition_group_id
-                )
+                # Check if workflow_condition_group is already prefetched
+                if Detector.workflow_condition_group.is_cached(detector):
+                    group = detector.workflow_condition_group
+                else:
+                    group = DataConditionGroup.objects.get_from_cache(
+                        id=detector.workflow_condition_group_id
+                    )
+
                 self.condition_group: DataConditionGroup | None = group
             except DataConditionGroup.DoesNotExist:
                 logger.exception(

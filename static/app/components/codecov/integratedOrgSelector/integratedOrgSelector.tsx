@@ -1,19 +1,22 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {Link, useSearchParams} from 'react-router-dom';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
+import {integratedOrgIdToName} from 'sentry/components/codecov/integratedOrgSelector/utils';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Integration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {IconIntegratedOrg} from './iconIntegratedOrg';
-
-const SAMPLE_ORG_ITEMS = ['codecov', 'getsentry'];
 
 function AddIntegratedOrgButton() {
   return (
@@ -33,7 +36,7 @@ function OrgFooterMessage() {
     <Fragment>
       <AddIntegratedOrgButton />
       <MenuFooterDivider />
-      <FlexContainer>
+      <Flex justify="start" gap="md">
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
@@ -43,48 +46,52 @@ function OrgFooterMessage() {
             Ensure you log in to the same <Link to="placeholder">GitHub identity</Link>
           </FooterInfoSubheading>
         </div>
-      </FlexContainer>
+      </Flex>
     </Fragment>
   );
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrg} = useCodecovContext();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {integratedOrgId, changeContextValue} = useCodecovContext();
+  const organization = useOrganization();
+
+  const {data: integrations = []} = useApiQuery<Integration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {staleTime: 0}
+  );
+
+  const handleChange = useCallback(
+    (selectedOption: SelectOption<string>) => {
+      changeContextValue({integratedOrgId: selectedOption.value});
+    },
+    [changeContextValue]
+  );
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
-      ...(integratedOrg ? [integratedOrg] : []),
-      ...(SAMPLE_ORG_ITEMS.length ? SAMPLE_ORG_ITEMS : []),
+      ...(integratedOrgId ? [integratedOrgId] : []),
+      ...(integrations.length > 0 ? integrations.map(item => item.id) : []),
     ]);
 
     const makeOption = (value: string): SelectOption<string> => {
+      const integratedOrgName = integratedOrgIdToName(value, integrations);
       return {
         value,
-        label: <OptionLabel>{value}</OptionLabel>,
-        textValue: value,
+        label: <OptionLabel>{integratedOrgName}</OptionLabel>,
+        textValue: integratedOrgName,
       };
     };
 
     return [...optionSet].map(makeOption);
-  }, [integratedOrg]);
-
-  const handleChange = useCallback(
-    (selectedOption: SelectOption<string>) => {
-      const currentParams = Object.fromEntries(searchParams.entries());
-      const updatedParams = {
-        ...currentParams,
-        integratedOrg: selectedOption.value,
-      };
-      setSearchParams(updatedParams);
-    },
-    [searchParams, setSearchParams]
-  );
+  }, [integratedOrgId, integrations]);
 
   return (
     <CompactSelect
       options={options}
-      value={integratedOrg ?? ''}
+      value={integratedOrgId ?? ''}
       onChange={handleChange}
       closeOnSelect
       trigger={(triggerProps, isOpen) => {
@@ -95,14 +102,15 @@ export function IntegratedOrgSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <TriggerFlexContainer>
+              <Flex justify="start" gap="sm" align="center">
                 <IconContainer>
                   <IconIntegratedOrg />
                 </IconContainer>
                 <TriggerLabel>
-                  {integratedOrg || t('Select integrated organization')}
+                  {integratedOrgIdToName(integratedOrgId, integrations) ||
+                    t('Select integrated organization')}
                 </TriggerLabel>
-              </TriggerFlexContainer>
+              </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
         );
@@ -134,13 +142,13 @@ const OptionLabel = styled('span')`
 `;
 
 const FooterInfoHeading = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.4;
   margin: 0;
 `;
 
 const FooterInfoSubheading = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
   margin: 0;
 `;
@@ -158,21 +166,6 @@ const MenuFooterDivider = styled('div')`
     right: 0;
     background: ${p => p.theme.border};
   }
-`;
-
-const FlexContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: ${space(1)};
-`;
-
-const TriggerFlexContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: ${space(0.75)};
-  align-items: center;
 `;
 
 const IconContainer = styled('div')`

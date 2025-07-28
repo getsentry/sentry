@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.vendor="Functional Software, Inc."
 LABEL org.opencontainers.image.authors="oss@sentry.io"
 
 # add our user and group first to make sure their IDs get assigned consistently
-RUN groupadd -r sentry && useradd -r -m -g sentry sentry
+RUN groupadd -r sentry --gid 999 && useradd -r -m -g sentry --uid 999 sentry
 
 RUN : \
     && apt-get update \
@@ -79,7 +79,7 @@ RUN : double-check some built files are available \
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT

@@ -266,7 +266,7 @@ const Wrapper = styled('div')`
   display: grid;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 200px 1fr;
   }
 `;

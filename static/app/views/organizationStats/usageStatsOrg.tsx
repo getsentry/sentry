@@ -9,10 +9,10 @@ import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
@@ -20,7 +20,12 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory, DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {
+  DataCategory,
+  DataCategoryExact,
+  DataCategoryInfo,
+  IntervalPeriod,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {shouldUse24Hours} from 'sentry/utils/dates';
@@ -52,6 +57,7 @@ type ChartData = {
   cardStats: {
     accepted?: string;
     accepted_stored?: string;
+    clientDiscard?: string;
     filtered?: string;
     invalid?: string;
     rateLimited?: string;
@@ -144,6 +150,7 @@ export function getChartProps({
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
     | 'chartStats'
+    | 'cardStats'
   >;
   dataCategory: DataCategory;
   error: RequestError | null;
@@ -221,8 +228,14 @@ export function getChartProps({
         </InlineContainer>
         <InlineContainer>
           {(chartData.chartStats.clientDiscard ?? []).length > 0 && (
-            <Flex align="center" gap={space(1)}>
-              <strong>{t('Show client-discarded data:')}</strong>
+            <Flex align="center" gap="md">
+              <strong>
+                {chartData.cardStats.clientDiscard
+                  ? tct('Show client-discarded data ([count]):', {
+                      count: chartData.cardStats.clientDiscard,
+                    })
+                  : t('Show client-discarded data:')}
+              </strong>
               <Switch
                 onChange={() => {
                   handleChangeState({clientDiscard: !clientDiscard});
@@ -292,8 +305,8 @@ function ChartContainer({children}: {children: React.ReactNode}) {
 
 export interface UsageStatsOrganizationProps {
   dataCategory: DataCategory;
-  dataCategoryApiName: DataCategoryInfo['apiName'];
-  dataCategoryName: string;
+  dataCategoryApiName: DataCategoryExact;
+  dataCategoryName: DataCategoryInfo['titleName'];
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
     clientDiscard?: boolean;
@@ -477,6 +490,7 @@ function UsageStatsOrganization({
     cardStats: {
       accepted?: string;
       accepted_stored?: string;
+      clientDiscard?: string;
       filtered?: string;
       invalid?: string;
       rateLimited?: string;
@@ -661,10 +675,10 @@ const PageGrid = styled('div')`
   grid-template-columns: 1fr;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(5, 1fr);
   }
 `;
@@ -701,8 +715,8 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: ${p => p.theme.fontWeightNormal};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-weight: ${p => p.theme.fontWeight.normal};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 

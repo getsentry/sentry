@@ -68,7 +68,10 @@ function TraceErrorAlerts({
 
   return (
     <AlertContainer>
-      <Alert type={getCumulativeAlertLevelFromErrors(traceErrors) ?? 'info'}>
+      <Alert
+        type={getCumulativeAlertLevelFromErrors(traceErrors) ?? 'info'}
+        showIcon={false}
+      >
         <ErrorLabel>{label}</ErrorLabel>
 
         <TraceErrorList
@@ -166,7 +169,7 @@ const Container = styled('div')<{hasErrors: boolean}>`
     `
   padding: ${space(2)} 0;
 
-  @media (min-width: ${p.theme.breakpoints.small}) {
+  @media (min-width: ${p.theme.breakpoints.sm}) {
     padding: ${space(3)} 0 0 0;
   }
   `}

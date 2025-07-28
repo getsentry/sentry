@@ -27,6 +27,11 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import (
     EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
@@ -105,25 +110,29 @@ class SentryAppUpdater:
     features: list[int] | None = None
 
     def run(self, user: User | RpcUser) -> SentryApp:
-        with transaction.atomic(router.db_for_write(User)):
-            self._update_name()
-            self._update_author()
-            self._update_features(user=user)
-            self._update_status(user=user)
-            self._update_scopes()
-            self._update_events()
-            self._update_webhook_url()
-            self._update_redirect_url()
-            self._update_is_alertable()
-            self._update_verify_install()
-            self._update_overview()
-            self._update_allowed_origins()
-            new_schema_elements = self._update_schema()
-            self._update_popularity(user=user)
-            self.sentry_app.save()
-        self._update_service_hooks()
-        self.record_analytics(user, new_schema_elements)
-        return self.sentry_app
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.MANAGEMENT,
+            event_type=SentryAppEventType.APP_UPDATE,
+        ).capture():
+            with transaction.atomic(router.db_for_write(User)):
+                self._update_name()
+                self._update_author()
+                self._update_features(user=user)
+                self._update_status(user=user)
+                self._update_scopes()
+                self._update_events()
+                self._update_webhook_url()
+                self._update_redirect_url()
+                self._update_is_alertable()
+                self._update_verify_install()
+                self._update_overview()
+                self._update_allowed_origins()
+                new_schema_elements = self._update_schema()
+                self._update_popularity(user=user)
+                self.sentry_app.save()
+            self._update_service_hooks()
+            self.record_analytics(user, new_schema_elements)
+            return self.sentry_app
 
     def _update_features(self, user: User | RpcUser) -> None:
         if self.features is not None:
@@ -313,22 +322,29 @@ class SentryAppCreator:
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
-        with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
-            slug = self._generate_and_validate_slug()
-            proxy = self._create_proxy_user(slug=slug)
-            api_app = self._create_api_application(proxy=proxy)
-            sentry_app = self._create_sentry_app(user=user, slug=slug, proxy=proxy, api_app=api_app)
-            self._create_ui_components(sentry_app=sentry_app)
-            self._create_integration_feature(sentry_app=sentry_app)
 
-            if self.is_internal:
-                install = self._install(slug=slug, user=user, request=request)
-                if not skip_default_auth_token:
-                    self._create_access_token(user=user, install=install, request=request)
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.MANAGEMENT,
+            event_type=SentryAppEventType.APP_CREATE,
+        ).capture():
+            with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
+                slug = self._generate_and_validate_slug()
+                proxy = self._create_proxy_user(slug=slug)
+                api_app = self._create_api_application(proxy=proxy)
+                sentry_app = self._create_sentry_app(
+                    user=user, slug=slug, proxy=proxy, api_app=api_app
+                )
+                self._create_ui_components(sentry_app=sentry_app)
+                self._create_integration_feature(sentry_app=sentry_app)
 
-            self.audit(request=request, sentry_app=sentry_app)
-        self.record_analytics(user=user, sentry_app=sentry_app)
-        return sentry_app
+                if self.is_internal:
+                    install = self._install(slug=slug, user=user, request=request)
+                    if not skip_default_auth_token:
+                        self._create_access_token(user=user, install=install, request=request)
+
+                self.audit(request=request, sentry_app=sentry_app)
+            self.record_analytics(user=user, sentry_app=sentry_app)
+            return sentry_app
 
     def _generate_and_validate_slug(self) -> str:
         # sentry_slugify ensures the slug is not entirely numeric
@@ -350,7 +366,11 @@ class SentryAppCreator:
 
     def _create_proxy_user(self, slug: str) -> User:
         # need a proxy user name that will always be unique
-        return User.objects.create(username=f"{slug}-{default_uuid()}", is_sentry_app=True)
+        username = f"{slug}-{default_uuid()}"
+        proxy_user = User.objects.create(
+            username=username, email=f"{username}@proxy-user.sentry.io", is_sentry_app=True
+        )
+        return proxy_user
 
     def _create_api_application(self, proxy: User) -> ApiApplication:
         return ApiApplication.objects.create(

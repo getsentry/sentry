@@ -1,15 +1,16 @@
 import type React from 'react';
 
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
+
 export interface UserAvatarProps extends BaseAvatarProps {
+  user: Actor | AvatarUser | undefined;
   gravatar?: boolean;
   ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
   renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
-  user?: Actor | AvatarUser;
 }
 
 export function UserAvatar({

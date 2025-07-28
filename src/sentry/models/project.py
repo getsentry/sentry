@@ -104,20 +104,22 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",
+    "javascript-nuxt",
     "javascript-react",
+    "javascript-react-router",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-tanstackstart-react",
-    "javascript-nuxt",
     "javascript-vue",
     "kotlin",
     "minidump",
     "native",
     "native-qt",
     "nintendo-switch",
+    "nintendo-switch-2",
     "node",
     "node-awslambda",
     "node-azurefunctions",
@@ -133,6 +135,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "php",
     "php-laravel",
     "php-symfony",
+    "playstation",
     "powershell",
     "python",
     "python-aiohttp",
@@ -164,6 +167,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "rust",
     "unity",
     "unreal",
+    "xbox",
 ]
 
 
@@ -345,8 +349,16 @@ class Project(Model):
         # This Project has sent feature flags
         has_flags: bool
 
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
+
+        # This Project has sent insight MCP spans
+        has_insights_mcp: bool
+
+        # This project has sent logs
+        has_logs: bool
+
         bitfield_default = 10
-        bitfield_null = True
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
@@ -438,8 +450,14 @@ class Project(Model):
 
         return self.option_manager.get_value(self, key, default, validate)
 
-    def update_option(self, key: str, value: Any) -> bool:
-        return self.option_manager.set_value(self, key, value)
+    def update_option(self, key: str, value: Any, reload_cache: bool = True) -> bool:
+        """
+        Updates a project option for this project.
+        :param reload_cache: Invalidate the project config and reload the
+        cache. Do not call this with `False` unless you know for sure that
+        it's fine to keep the cached project config.
+        """
+        return self.option_manager.set_value(self, key, value, reload_cache=reload_cache)
 
     def delete_option(self, key: str) -> None:
         self.option_manager.unset_value(self, key)

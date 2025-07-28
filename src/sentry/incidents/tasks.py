@@ -53,7 +53,7 @@ def handle_snuba_query_update(
             times=5,
             delay=60,
         ),
-        processing_deadline_duration=30,
+        processing_deadline_duration=60,
     ),
 )
 def handle_trigger_action(

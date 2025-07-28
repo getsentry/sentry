@@ -73,7 +73,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.models import Detector
 
@@ -275,8 +275,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         uptime_rules = ProjectUptimeSubscription.objects.filter(
             project__in=projects,
             mode__in=(
-                ProjectUptimeSubscriptionMode.MANUAL,
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                UptimeMonitorMode.MANUAL,
+                UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
             ),
         )
         crons_rules = (

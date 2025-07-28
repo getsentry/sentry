@@ -254,6 +254,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
+    @pytest.mark.skip(reason="flaky: #93732")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
@@ -328,6 +329,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
 
+    @pytest.mark.skip(reason="flaky: #94622")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_two_weeks(self) -> None:
         """

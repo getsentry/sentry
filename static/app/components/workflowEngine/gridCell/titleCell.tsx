@@ -1,62 +1,35 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {defined} from 'sentry/utils';
 
 export type TitleCellProps = {
   link: string;
   name: string;
   className?: string;
-  createdBy?: string | null;
-  details?: string[];
+  details?: React.ReactNode;
   disabled?: boolean;
-  projectId?: string;
+  systemCreated?: boolean;
 };
 
 export function TitleCell({
   name,
-  createdBy,
-  projectId,
+  systemCreated,
   details,
   link,
   disabled = false,
   className,
 }: TitleCellProps) {
-  const project = useProjectFromId({project_id: projectId});
   return (
     <TitleWrapper to={link} disabled={disabled} className={className}>
       <Name disabled={disabled}>
-        <strong>{name}</strong>
-        {!createdBy && (
-          <IconSentry size="xs" color="subText" style={{alignSelf: 'center'}} />
-        )}
+        <NameText>{name}</NameText>
+        {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
         {disabled && <span>&mdash; Disabled</span>}
       </Name>
-      <DetailsWrapper>
-        {project && (
-          <StyledProjectBadge
-            css={css`
-              && img {
-                box-shadow: none;
-              }
-            `}
-            project={project}
-            avatarSize={16}
-            disableLink
-          />
-        )}
-        {details?.map((detail, index) => (
-          <Fragment key={index}>
-            <Separator />
-            {detail}
-          </Fragment>
-        ))}
-      </DetailsWrapper>
+      {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
     </TitleWrapper>
   );
 }
@@ -64,14 +37,18 @@ export function TitleCell({
 const Name = styled('div')<{disabled: boolean}>`
   color: ${p => p.theme.textColor};
   display: flex;
-  flex-direction: row;
+  align-items: center;
   gap: ${space(0.5)};
+`;
 
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.disabled};
-    `}
+const NameText = styled('span')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  ${p => p.theme.overflowEllipsis};
+  width: auto;
+`;
+
+const CreatedBySentryIcon = styled(IconSentry)`
+  flex-shrink: 0;
 `;
 
 const TitleWrapper = styled(Link)<{disabled: boolean}>`
@@ -79,15 +56,13 @@ const TitleWrapper = styled(Link)<{disabled: boolean}>`
   flex-direction: column;
   gap: ${space(0.5)};
   flex: 1;
+  overflow: hidden;
 
-  ${p =>
-    !p.disabled &&
-    css`
-      &:hover ${Name} {
-        color: ${p.theme.textColor};
-        text-decoration: underline;
-      }
-    `};
+  &:hover {
+    ${Name} {
+      text-decoration: underline;
+    }
+  }
 `;
 
 const DetailsWrapper = styled('div')`
@@ -98,20 +73,4 @@ const DetailsWrapper = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   white-space: nowrap;
-  line-height: 1.2;
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    line-height: 1;
-  }
-`;
-
-const StyledProjectBadge = styled(ProjectBadge)`
-  color: ${p => p.theme.subText};
-`;
-
-const Separator = styled('span')`
-  height: 10px;
-  width: 1px;
-  background-color: ${p => p.theme.innerBorder};
-  border-radius: 1px;
 `;

@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {MenuListItem} from 'sentry/components/core/menuListItem';
+import {MenuListItem, type MenuListItemProps} from 'sentry/components/core/menuListItem';
 import {ChonkCheckWrap} from 'sentry/components/core/select/index.chonk';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
-import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
@@ -89,7 +88,11 @@ export function SelectOption(props: Props) {
 }
 
 const CheckWrap = withChonk(
-  styled('div')<{isMultiple: boolean; isSelected: boolean; size: FormSize}>`
+  styled('div')<{
+    isMultiple: boolean;
+    isSelected: boolean;
+    size: MenuListItemProps['size'];
+  }>`
     display: flex;
     justify-content: center;
     align-items: center;

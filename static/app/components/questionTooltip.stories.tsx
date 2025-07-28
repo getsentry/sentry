@@ -63,7 +63,7 @@ export default Storybook.story('QuestionTooltip', story => {
             "xl" <QuestionTooltip size="xl" title="xl" />
           </div>
           <div>
-            "xxl" <QuestionTooltip size="xxl" title="xxl" />
+            "2xl" <QuestionTooltip size="2xl" title="2xl" />
           </div>
         </IconExamples>
       </Fragment>

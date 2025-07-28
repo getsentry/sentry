@@ -57,6 +57,8 @@ class RpcProjectFlags(RpcModel):
     has_insights_queues: bool
     has_insights_llm_monitoring: bool
     has_flags: bool
+    has_insights_agent_monitoring: bool
+    has_insights_mcp: bool
 
 
 class RpcProject(RpcModel):

@@ -95,7 +95,7 @@ const Highlight = styled('div')<{size: 'small' | 'normal'}>`
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 24px;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
 `;
 
@@ -113,7 +113,7 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   line-height: 25px;
   margin-bottom: -1px;
   background: transparent;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.familyMono};
   caret-color: ${p => p.theme.subText};
   color: transparent;

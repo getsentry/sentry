@@ -84,7 +84,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             message={
               <Fragment>
                 <Alert.Container>
-                  <Alert type="error" showIcon>
+                  <Alert type="error">
                     {tct('Disconnect Your [provider] Identity?', {
                       provider: identity.provider.name,
                     })}
@@ -247,7 +247,7 @@ const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   margin-left: ${space(1.5)};
 `;
 const IdentityName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const IdentityDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSizeRelativeSmall};

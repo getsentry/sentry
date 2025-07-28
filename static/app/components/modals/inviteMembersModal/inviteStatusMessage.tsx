@@ -107,7 +107,7 @@ export const StatusMessage = styled('div')<{
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p =>
     p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
 `;

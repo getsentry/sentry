@@ -1,19 +1,18 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
+  type BasePlatformOptions,
   type Configuration,
+  type ContentBlock,
+  type DocsParams,
+  type OnboardingConfig,
   StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  BasePlatformOptions,
-  DocsParams,
-  OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 function BrowserProfilingBetaWarning() {
   return (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
         `Browser profiling is currently in Beta as we wait for the JS Self Profiling spec to gain wider support. You can read the detailed explanation [explainer].`,
         {
@@ -75,23 +74,28 @@ response.sendFile("index.html");
 export const getJavascriptProfilingOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink,
 }: {
   docsLink: string;
-  getInstallConfig: (params: DocsParams<PlatformOptions>) => Configuration[];
+  installSnippetBlock: ContentBlock;
 }): OnboardingConfig<PlatformOptions> => ({
   introduction: () => <BrowserProfilingBetaWarning />,
-  install: params => [
+  install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install our SDK using your preferred package manager, the minimum version that supports profiling is [code:7.60.0].',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params),
+          type: 'text',
+          text: tct(
+            'Install our SDK using your preferred package manager, the minimum version that supports profiling is [code:7.60.0].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [

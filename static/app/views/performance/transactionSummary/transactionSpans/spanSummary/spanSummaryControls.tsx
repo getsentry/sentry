@@ -22,7 +22,7 @@ const FilterActions = styled('div')`
   margin-bottom: ${space(2)};
   flex-direction: column;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: row;
   }
 `;

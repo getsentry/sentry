@@ -92,6 +92,7 @@ export interface EventsLogsResult {
 
 export type OurLogsAggregate =
   | AggregationKey.COUNT
+  | AggregationKey.COUNT_UNIQUE
   | AggregationKey.SUM
   | AggregationKey.AVG
   | AggregationKey.P50

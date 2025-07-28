@@ -77,7 +77,7 @@ function Content({
     );
   }
 
-  const colors = (data && theme.chart.getColorPalette(data.length - 2)) || [];
+  const colors = (data && theme.chart.getColorPalette(data.length - 1)) || [];
 
   // Create a list of series based on the order of the fields,
   // We need to flip it at the end to ensure the series stack right.

@@ -51,7 +51,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.lg})`);
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
 
   if (!shouldDisplaySidebar) {
@@ -87,32 +87,26 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         )}
         <StreamlinedActivitySection group={group} />
         {showPeopleSection && (
-          <Fragment>
-            <StyledBreak />
-            <PeopleSection
-              userParticipants={userParticipants}
-              teamParticipants={teamParticipants}
-              viewers={viewers}
-            />
-          </Fragment>
+          <PeopleSection
+            userParticipants={userParticipants}
+            teamParticipants={teamParticipants}
+            viewers={viewers}
+          />
         )}
         {issueTypeConfig.similarIssues.enabled && (
           <Fragment>
-            <StyledBreak />
             <SimilarIssuesSidebarSection />
+            <StyledBreak />
           </Fragment>
         )}
         {issueTypeConfig.mergedIssues.enabled && (
           <Fragment>
-            <StyledBreak />
             <MergedIssuesSidebarSection />
+            <StyledBreak />
           </Fragment>
         )}
         {issueTypeConfig.detector.enabled && (
-          <Fragment>
-            <StyledBreak />
-            <DetectorSection group={group} project={project} />
-          </Fragment>
+          <DetectorSection group={group} project={project} />
         )}
       </Side>
     </SharedTourElement>
@@ -133,7 +127,11 @@ export const SidebarSectionTitle = styled(SidebarSection.Title)`
 const Side = styled(Layout.Side)`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-top: 1px solid ${p => p.theme.border};
+  }
+
+  > div {
+    margin-left: ${p => p.theme.space.xl};
   }
 `;

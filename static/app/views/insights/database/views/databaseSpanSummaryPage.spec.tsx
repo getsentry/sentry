@@ -15,12 +15,13 @@ jest.mock('sentry/utils/usePageFilters');
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table', 'insights-initial-modules'],
+    features: ['insights-initial-modules'],
   });
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';
@@ -166,6 +167,12 @@ describe('DatabaseSpanSummaryPage', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug//releases/1.0.0/`,
+      method: 'GET',
+      body: [],
+    });
+
     const issuesRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       method: 'GET',
@@ -191,7 +198,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'span.op',
@@ -208,6 +215,7 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           referrer: 'api.starfish.span-summary-page-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -220,11 +228,11 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansIndexed',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
-            'project_id',
-            'transaction.id',
+            'project.id',
             'span.description',
             'db.system',
             'code.filepath',
@@ -253,7 +261,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -280,7 +289,8 @@ describe('DatabaseSpanSummaryPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -306,7 +316,7 @@ describe('DatabaseSpanSummaryPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: [],
           field: [
             'transaction',
@@ -322,6 +332,7 @@ describe('DatabaseSpanSummaryPage', function () {
           query: 'span.group:1756baf8fd19c116',
           sort: '-sum(span.self_time)',
           referrer: 'api.starfish.span-transaction-metrics',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
       })
@@ -346,26 +357,6 @@ describe('DatabaseSpanSummaryPage', function () {
           environment: [],
           limit: 100,
           project: [],
-          statsPeriod: '10d',
-        },
-      })
-    );
-
-    // Span details for query source. This runs after the indexed span has loaded
-    expect(eventsRequestMock).toHaveBeenNthCalledWith(
-      2,
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          dataset: 'spansIndexed',
-          environment: [],
-          field: ['timestamp', 'transaction.id', 'project', 'span_id', 'span.self_time'],
-          per_page: 1,
-          project: [],
-          query: 'span.group:1756baf8fd19c116',
-          sort: '-span.self_time',
-          referrer: 'api.starfish.full-span-from-trace',
           statsPeriod: '10d',
         },
       })

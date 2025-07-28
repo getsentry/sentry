@@ -32,11 +32,11 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: HttpRequest, helper) -> HttpResponse:  # type: ignore[explicit-override]
-        with FlyClient(helper.fetch_state("data")["access_token"]) as client:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponse:
+        with FlyClient(pipeline.fetch_state("data")["access_token"]) as client:
             """
             Utilize the access token to make final request to token introspection endpoint
-            helper.fetch_state -> base pipeline _fetch_state
+            pipeline.fetch_state -> base pipeline _fetch_state
 
             Validate whether the authenticated user is authorized to access the configured SSO org
             """
@@ -47,11 +47,11 @@ class FetchUser(AuthView):
                     logger.warning(
                         "SSO attempt no org access", extra={"org": self.org, "user_orgs": user_orgs}
                     )
-                    return helper.error(ERR_NO_ORG_ACCESS)
+                    return pipeline.error(ERR_NO_ORG_ACCESS)
 
-            helper.bind_state("user", info)
+            pipeline.bind_state("user", info)
 
-            return helper.next_step()
+            return pipeline.next_step()
 
 
 def fly_configure_view(

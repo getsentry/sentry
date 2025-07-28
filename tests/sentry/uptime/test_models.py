@@ -13,13 +13,13 @@ from sentry.uptime.models import (
     get_detector,
     get_top_hosting_provider_names,
 )
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, UptimeMonitorMode
 from sentry.workflow_engine.models import Condition, DataSourceDetector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class GetActiveMonitorCountForOrgTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         assert get_active_auto_monitor_count_for_org(self.organization) == 0
         self.create_project_uptime_subscription()
         assert get_active_auto_monitor_count_for_org(self.organization) == 1
@@ -36,7 +36,7 @@ class GetActiveMonitorCountForOrgTest(UptimeTestCase):
 
 
 class GetTopHostingProviderNamesTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         self.create_uptime_subscription(host_provider_name="prov1")
         self.create_uptime_subscription(host_provider_name="prov1")
         self.create_uptime_subscription(host_provider_name="prov2")
@@ -54,7 +54,7 @@ class GetTopHostingProviderNamesTest(UptimeTestCase):
 
 
 class UptimeSubscriptionDataSourceHandlerTest(UptimeTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",
@@ -65,11 +65,11 @@ class UptimeSubscriptionDataSourceHandlerTest(UptimeTestCase):
             source_id=str(self.uptime_subscription.id),
         )
 
-    def test_bulk_get_query_object(self):
+    def test_bulk_get_query_object(self) -> None:
         result = UptimeSubscriptionDataSourceHandler.bulk_get_query_object([self.data_source])
         assert result[self.data_source.id] == self.uptime_subscription
 
-    def test_bulk_get_query_object__incorrect_data_source(self):
+    def test_bulk_get_query_object__incorrect_data_source(self) -> None:
         self.ds_with_invalid_subscription_id = self.create_data_source(
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             source_id="not_uuid",
@@ -90,7 +90,7 @@ class UptimeSubscriptionDataSourceHandlerTest(UptimeTestCase):
 
 
 class GetDetectorTest(UptimeTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",
         )
@@ -105,14 +105,14 @@ class GetDetectorTest(UptimeTestCase):
             name="My Uptime Monitor",
             config={
                 "environment": "production",
-                "mode": ProjectUptimeSubscriptionMode.MANUAL.value,
+                "mode": UptimeMonitorMode.MANUAL.value,
             },
         )
         DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 
         assert get_detector(uptime_subscription) == detector
 
-    def test_no_detector(self):
+    def test_no_detector(self) -> None:
         uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",
         )
@@ -120,7 +120,7 @@ class GetDetectorTest(UptimeTestCase):
 
 
 class CreateDetectorTest(UptimeTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self.create_project_uptime_subscription()
         detector = get_detector(monitor.uptime_subscription)
         assert detector

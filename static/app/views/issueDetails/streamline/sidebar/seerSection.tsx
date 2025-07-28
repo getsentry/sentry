@@ -2,11 +2,11 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -87,13 +87,13 @@ export default function SeerSection({
   }
 
   const showCtaButton =
-    aiConfig.needsGenAiAcknowledgement ||
+    aiConfig.orgNeedsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
   const onlyHasResources =
     issueTypeDoesntHaveSeer ||
-    (!aiConfig.needsGenAiAcknowledgement &&
+    (!aiConfig.orgNeedsGenAiAcknowledgement &&
       !aiConfig.hasSummary &&
       !aiConfig.hasAutofix &&
       aiConfig.hasResources);
@@ -103,7 +103,7 @@ export default function SeerSection({
   ) : (
     <HeaderContainer>
       {t('Seer')}
-      <SeerIcon />
+      <IconSeer />
     </HeaderContainer>
   );
 
@@ -188,7 +188,7 @@ const ExpandButton = styled(Button)`
   position: absolute;
   bottom: -${space(1)};
   right: 0;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   border: none;
   box-shadow: none;
@@ -199,7 +199,7 @@ const ExpandButton = styled(Button)`
 `;
 
 const HeaderContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

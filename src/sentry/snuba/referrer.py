@@ -173,8 +173,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
     )
-    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
-    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
     API_PERFORMANCE_EVENTS_FACETS_STATS = (
         "api.organization-events-facets-stats-performance.top-tags"
     )
@@ -206,6 +204,9 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
     API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
         "api.performance.browser.web-vitals.project-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.browser.web-vitals.project-scores.metrics-enhanced.primary"
     )
     API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
         "api.performance.browser.web-vitals.transaction"
@@ -488,6 +489,7 @@ class Referrer(StrEnum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
     API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
     API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
     API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
@@ -692,6 +694,48 @@ class Referrer(StrEnum):
     API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
         "api.performance.backend.overview.web-vitals-chart"
     )
+    API_PERFORMANCE_BACKEND_OVERVIEW_NEXTJS_API_TREE = "api.performance.nextjs.overview.api-tree"
+
+    # Performance Agent Monitoring Module
+    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOOLS_TABLE = "api.performance.agent-monitoring.tools-table"
+    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
+    API_PERFORMANCE_AGENT_MONITORING_TRACES_TABLE = "api.performance.agent-monitoring.traces-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOKEN_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.token-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_TOOL_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.tool-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_LLM_GENERATIONS_WIDGET = (
+        "api.performance.agent-monitoring.llm-generations-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_RUNS_WIDGET = (
+        "api.performance.agent-monitoring.agent-runs-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_DURATION_WIDGET = (
+        "api.performance.agent-monitoring.agent-duration-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_ONBOARDING = "api.performance.agent-monitoring.onboarding"
+
+    # Performance MCP Module
+    API_PERFORMANCE_MCP_TRAFFIC_WIDGET = "api.performance.mcp.traffic-widget"
+    API_PERFORMANCE_MCP_TRANSPORT_WIDGET = "api.performance.mcp.transport-widget"
+    API_PERFORMANCE_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.performance.mcp.traffic-by-client-widget"
+    API_PERFORMANCE_MCP_TOOL_TRAFFIC_WIDGET = "api.performance.mcp.tool-traffic-widget"
+    API_PERFORMANCE_MCP_PROMPT_TRAFFIC_WIDGET = "api.performance.mcp.prompt-traffic-widget"
+    API_PERFORMANCE_MCP_RESOURCE_TRAFFIC_WIDGET = "api.performance.mcp.resource-traffic-widget"
+    API_PERFORMANCE_MCP_TOOL_DURATION_WIDGET = "api.performance.mcp.tool-duration-widget"
+    API_PERFORMANCE_MCP_PROMPT_DURATION_WIDGET = "api.performance.mcp.prompt-duration-widget"
+    API_PERFORMANCE_MCP_RESOURCE_DURATION_WIDGET = "api.performance.mcp.resource-duration-widget"
+    API_PERFORMANCE_MCP_TOOL_ERROR_RATE_WIDGET = "api.performance.mcp.tool-error-rate-widget"
+    API_PERFORMANCE_MCP_PROMPT_ERROR_RATE_WIDGET = "api.performance.mcp.prompt-error-rate-widget"
+    API_PERFORMANCE_MCP_RESOURCE_ERROR_RATE_WIDGET = (
+        "api.performance.mcp.resource-error-rate-widget"
+    )
+    API_PERFORMANCE_MCP_TOOL_TABLE = "api.performance.mcp.tool-table"
+    API_PERFORMANCE_MCP_PROMPT_TABLE = "api.performance.mcp.prompt-table"
+    API_PERFORMANCE_MCP_RESOURCE_TABLE = "api.performance.mcp.resource-table"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -892,6 +936,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
+    REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
@@ -978,6 +1023,7 @@ class Referrer(StrEnum):
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
     TAGSTORE_GET_TAG_VALUE_PAGINATOR_FOR_PROJECTS = "tagstore.get_tag_value_paginator_for_projects"
     TASKS_MONITOR_RELEASE_ADOPTION = "tasks.monitor_release_adoption"
+    TASKS_UPDATE_USER_REPORTS = "tasks.update_user_reports"
     TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET = "tasks.performance.split_discover_dataset"
     TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET_METRICS_ENHANCED = (
         "tasks.performance.split_discover_dataset.metrics-enhanced"

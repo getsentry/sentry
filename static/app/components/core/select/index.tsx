@@ -179,7 +179,7 @@ const getStylesConfig = ({
 }: {
   isInsideModal: boolean | undefined;
   maxMenuWidth: string | number | undefined;
-  size: FormSize | undefined;
+  size: ControlProps['size'];
   theme: Theme;
 }) => {
   // TODO(epurkhiser): The loading indicator should probably also be our loading

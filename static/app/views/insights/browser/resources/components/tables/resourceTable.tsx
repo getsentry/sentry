@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -39,8 +39,8 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {
   NORMALIZED_DESCRIPTION,
@@ -49,7 +49,7 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   PROJECT_ID,
   SPAN_GROUP,
-} = SpanMetricsField;
+} = SpanFields;
 
 const {EPM} = SpanFunction;
 
@@ -58,7 +58,7 @@ const RESOURCE_SIZE_ALERT = t(
 );
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'
@@ -143,10 +143,10 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     if (key === NORMALIZED_DESCRIPTION) {
       const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
       const extraLinkQueryParams = {};
-      if (filters[SpanMetricsField.USER_GEO_SUBREGION]) {
+      if (filters[SpanFields.USER_GEO_SUBREGION]) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        extraLinkQueryParams[SpanMetricsField.USER_GEO_SUBREGION] =
-          filters[SpanMetricsField.USER_GEO_SUBREGION];
+        extraLinkQueryParams[SpanFields.USER_GEO_SUBREGION] =
+          filters[SpanFields.USER_GEO_SUBREGION];
       }
       return (
         <DescriptionWrapper>

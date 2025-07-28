@@ -264,7 +264,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>
-        <OpenInButtonBar gap={1}>
+        <OpenInButtonBar>
           <LinkButton
             data-test-id="issues-open"
             size="xs"
@@ -308,7 +308,7 @@ const ControlsWrapper = styled('div')`
 const OpenInButtonBar = styled(ButtonBar)`
   margin-top: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
   }
 `;

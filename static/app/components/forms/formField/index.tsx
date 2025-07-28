@@ -123,6 +123,15 @@ interface BaseProps {
   onKeyDown?: (value: any, event: any) => void;
   placeholder?: ObservedFnOrValue<React.ReactNode>;
 
+  /**
+   * If this is true, the field value is preserved in the form model when the
+   * field is unmounted. This is useful for fields that might disappear and
+   * reappear.
+   *
+   * see {@link FormModel.softRemoveField}
+   */
+  preserveOnUnmount?: boolean;
+
   resetOnError?: boolean;
   /**
    * The message to display when saveOnBlur is false

@@ -3,7 +3,7 @@ from urllib.parse import parse_qs, urlparse
 import responses
 from django.db import router
 
-from sentry.identity.vercel import VercelIdentityProvider
+from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
@@ -17,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class VercelExtensionConfigurationTest(TestCase):
     path = "/extensions/vercel/configure/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 
@@ -57,7 +57,7 @@ class VercelExtensionConfigurationTest(TestCase):
 
     @responses.activate
     @with_feature("organizations:integrations-deployment")
-    def test_logged_in_one_org(self):
+    def test_logged_in_one_org(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path, self.params)
@@ -74,7 +74,7 @@ class VercelExtensionConfigurationTest(TestCase):
         assert resp.headers["Location"].endswith("?next=https%3A%2F%2Fexample.com")
 
     @responses.activate
-    def test_logged_in_as_member(self):
+    def test_logged_in_as_member(self) -> None:
         with (
             assume_test_silo_mode(SiloMode.REGION),
             unguarded_write(using=router.db_for_write(OrganizationMember)),
@@ -97,7 +97,7 @@ class VercelExtensionConfigurationTest(TestCase):
         assert parse_qs(parsed_url.query) == expected_query_string
 
     @responses.activate
-    def test_logged_in_many_orgs(self):
+    def test_logged_in_many_orgs(self) -> None:
         self.login_as(self.user)
 
         org = self.create_organization()
@@ -117,7 +117,7 @@ class VercelExtensionConfigurationTest(TestCase):
         assert parse_qs(parsed_url.query) == expected_query_string
 
     @responses.activate
-    def test_choose_org(self):
+    def test_choose_org(self) -> None:
         self.login_as(self.user)
 
         org = self.create_organization()
@@ -139,7 +139,7 @@ class VercelExtensionConfigurationTest(TestCase):
         assert parse_qs(parsed_url.query) == expected_query_string
 
     @responses.activate
-    def test_logged_out(self):
+    def test_logged_out(self) -> None:
         resp = self.client.get(self.path, self.params)
 
         assert resp.status_code == 302
@@ -153,7 +153,7 @@ class VercelExtensionConfigurationTest(TestCase):
 
     @responses.activate
     @with_feature("organizations:integrations-deployment")
-    def test_logged_in_one_org_customer_domain(self):
+    def test_logged_in_one_org_customer_domain(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(

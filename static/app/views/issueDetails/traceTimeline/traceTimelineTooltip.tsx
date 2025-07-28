@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -159,22 +159,22 @@ const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
 const EventItemsTitle = styled('div')`
   padding-left: ${space(1)};
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
 `;
 
 const YouAreHere = styled('div')`
   padding: ${space(1)} ${space(2)};
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const YouAreHereItem = styled('div')`
   padding: ${space(1)} ${space(2)};
   text-align: center;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const EventItemRoot = styled(Link)`
@@ -185,7 +185,7 @@ const EventItemRoot = styled(Link)`
   width: 100%;
   padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background-color: ${p => p.theme.surface200};
@@ -201,7 +201,7 @@ const EventTitleWrapper = styled('div')`
 
 const EventTitle = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const EventDescription = styled('div')`

@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.models.organization import Organization
 from sentry.users.models.identity import IdentityProvider
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
@@ -24,7 +24,7 @@ class AccountIdentityAssociateView(ControlSiloOrganizationView):
         except IdentityProvider.DoesNotExist:
             return self.redirect(reverse("sentry-account-settings-identities"))
 
-        pipeline = IdentityProviderPipeline(
+        pipeline = IdentityPipeline(
             organization=organization,
             provider_key=provider_key,
             provider_model=provider_model,

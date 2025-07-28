@@ -29,15 +29,16 @@ from sentry.integrations.base import (
 from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import ResolveSyncAction
-from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, IssueSyncIntegration
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
-from sentry.integrations.pipeline_types import IntegrationPipelineT, IntegrationPipelineViewT
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -211,12 +212,12 @@ class InstallationForm(forms.Form):
         return data
 
 
-class InstallationConfigView(IntegrationPipelineViewT):
+class InstallationConfigView:
     """
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -234,14 +235,14 @@ class InstallationConfigView(IntegrationPipelineViewT):
         )
 
 
-class OAuthLoginView(IntegrationPipelineViewT):
+class OAuthLoginView:
     """
     Start the OAuth dance by creating a request token
     and redirecting the user to approve it.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -266,9 +267,10 @@ class OAuthLoginView(IntegrationPipelineViewT):
 
         pipeline.bind_state("request_token", request_token)
         if not request_token.get("oauth_token"):
+            data_keys = list(request_token.keys())
             logger.info(
                 "identity.jira-server.oauth-token",
-                extra={"url": config.get("url")},
+                extra={"url": config.get("url"), "data_keys": data_keys},
             )
             return pipeline.error("Missing oauth_token")
 
@@ -277,14 +279,14 @@ class OAuthLoginView(IntegrationPipelineViewT):
         return HttpResponseRedirect(authorize_url)
 
 
-class OAuthCallbackView(IntegrationPipelineViewT):
+class OAuthCallbackView:
     """
     Complete the OAuth dance by exchanging our request token
     into an access token.
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipelineT) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         config = pipeline.fetch_state("installation_data")
         if config is None:
             return pipeline.error("Missing installation_data")
@@ -562,7 +564,11 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         default_comment = "Linked Sentry Issue: [{}|{}]".format(
             group.qualified_short_id,
-            absolute_uri(group.get_absolute_url(params={"referrer": "jira_server"})),
+            absolute_uri(
+                group.get_absolute_url(
+                    params={"referrer": IntegrationProviderSlug.JIRA_SERVER.value}
+                )
+            ),
         )
         fields.append(
             {
@@ -1267,30 +1273,32 @@ class JiraServerIntegration(IssueSyncIntegration):
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
-                    "jira.assignee-not-found",
+                    "jira_server.assignee-not-found",
                     extra=logging_context,
                 )
-                raise IntegrationError("Failed to assign user to Jira Server issue")
+                raise IntegrationSyncTargetNotFound("No matching Jira Server user found")
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
-        except ApiUnauthorized:
+        except ApiUnauthorized as e:
             logger.info(
-                "jira.user-assignment-unauthorized",
+                "jira_server.user-assignment-unauthorized",
                 extra={
                     **logging_context,
                 },
             )
-            raise IntegrationError("Insufficient permissions to assign user to Jira Server issue")
+            raise IntegrationInstallationConfigurationError(
+                "Insufficient permissions to assign user to Jira Server issue"
+            ) from e
         except ApiError as e:
             logger.info(
-                "jira.user-assignment-request-error",
+                "jira_server.user-assignment-request-error",
                 extra={
                     **logging_context,
                     "error": str(e),
                 },
             )
-            raise IntegrationError("Failed to assign user to Jira Server issue")
+            raise IntegrationError("Failed to assign user to Jira Server issue") from e
 
     def sync_status_outbound(
         self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
@@ -1389,7 +1397,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def get_pipeline_views(self) -> list[IntegrationPipelineViewT]:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
@@ -1413,7 +1421,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
         return {
             "name": install["consumer_key"],
-            "provider": "jira_server",
+            "provider": IntegrationProviderSlug.JIRA_SERVER.value,
             "external_id": external_id,
             "metadata": {
                 "base_url": install["url"],
@@ -1422,7 +1430,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 "webhook_secret": webhook_secret,
             },
             "user_identity": {
-                "type": "jira_server",
+                "type": IntegrationProviderSlug.JIRA_SERVER.value,
                 "external_id": external_id,
                 "scopes": [],
                 "data": credentials,

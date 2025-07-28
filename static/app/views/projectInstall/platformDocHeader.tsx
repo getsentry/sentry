@@ -91,7 +91,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       <h2>
         {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
       </h2>
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <Button
           size="sm"
           icon={<IconChevron direction="left" size="xs" />}
@@ -118,7 +118,7 @@ const StyledPageHeader = styled('div')`
     margin: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: flex-start;
 

@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -52,7 +51,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
           />
           <KeyValueTableRow
             keyName={
-              <Flex gap={space(0.75)} align="center">
+              <Flex gap="sm" align="center">
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
@@ -181,7 +180,7 @@ const ButtonContainer = styled('div')`
 `;
 
 const FinalizeButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding-inline: ${space(0.5)};
 `;
 

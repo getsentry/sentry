@@ -5,7 +5,6 @@ import {Radio, type RadioProps} from 'sentry/components/core/radio';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/radio';
 
 export default Storybook.story('Radio', (story, APIReference) => {

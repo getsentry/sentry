@@ -21,16 +21,16 @@ class TestLatestReleaseCondition(ConditionTestCase):
         "id": LatestReleaseFilter.id,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -39,7 +39,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         self.dc.comparison = False
         self.dc.save()
 
@@ -51,7 +51,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_latest_release(self):
+    def test_latest_release(self) -> None:
         old_release = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
@@ -69,7 +69,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         self.event.data["tags"] = (("release", new_release.version),)
         self.assert_passes(self.dc, self.event_data)
 
-    def test_latest_release_no_match(self):
+    def test_latest_release_no_match(self) -> None:
         old_release = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
@@ -87,7 +87,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         self.event.data["tags"] = (("release", old_release.version),)
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_caching(self):
+    def test_caching(self) -> None:
         old_release = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
@@ -118,7 +118,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         # rule should pass again because the latest release is oldRelease
         self.assert_passes(self.dc, self.event_data)
 
-    def test_latest_release_with_environment(self):
+    def test_latest_release_with_environment(self) -> None:
         self.create_release(
             project=self.event.group.project,
             version="1",
@@ -139,7 +139,9 @@ class TestLatestReleaseCondition(ConditionTestCase):
             date_added=datetime(2020, 9, 3, 3, 8, 24, 880386, tzinfo=UTC),
         )
 
-        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group_event.group
+        )
 
         self.event.data["tags"] = (("release", new_release.version),)
         self.assert_passes(self.dc, self.event_data)

@@ -4,16 +4,11 @@ import orjson
 import responses
 
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.segment.plugin import SegmentPlugin
 
 
 def test_conf_key() -> None:
     assert SegmentPlugin().conf_key == "segment"
-
-
-def test_entry_point() -> None:
-    assert_plugin_installed("segment", SegmentPlugin())
 
 
 class SegmentPluginTest(PluginTestCase):

@@ -1,4 +1,5 @@
 import logging
+import random
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -38,9 +39,11 @@ class EventLifecycleMetric(ABC):
         """Get extra data to log."""
         return {}
 
-    def capture(self, assume_success: bool = True) -> "EventLifecycle":
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> "EventLifecycle":
         """Open a context to measure the event."""
-        return EventLifecycle(self, assume_success)
+        return EventLifecycle(self, assume_success, sample_log_rate)
 
 
 class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
@@ -102,9 +105,15 @@ class EventLifecycle:
     that inserting `record_failure` calls is still a dev to-do item.
     """
 
-    def __init__(self, payload: EventLifecycleMetric, assume_success: bool = True) -> None:
+    def __init__(
+        self,
+        payload: EventLifecycleMetric,
+        assume_success: bool = True,
+        sample_log_rate: float = 1.0,
+    ) -> None:
         self.payload = payload
         self.assume_success = assume_success
+        self.sample_log_rate = sample_log_rate
         self._state: EventLifecycleOutcome | None = None
         self._extra = dict(self.payload.get_extras())
 
@@ -123,7 +132,11 @@ class EventLifecycle:
         self._extra.update(extras)
 
     def record_event(
-        self, outcome: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
+        self,
+        outcome: EventLifecycleOutcome,
+        outcome_reason: BaseException | str | None = None,
+        create_issue: bool = False,
+        sample_log_rate: float | None = None,
     ) -> None:
         """Record a starting or halting event.
 
@@ -146,32 +159,56 @@ class EventLifecycle:
         }
 
         if isinstance(outcome_reason, BaseException):
-            # (iamrajjoshi): Log the full exception and the repr of the exception
-            # This is an experiment to dogfood Sentry logs
-            #  Logs are paid by bytes, we save money by mking optimizations like this - we should try to dogfood from a similar perspective
-            log_params["exc_info"] = outcome_reason
+            # Capture exception in Sentry if create_issue is True
+            if create_issue:
+                # If the outcome is halted, we want to set the level to warning
+                if outcome == EventLifecycleOutcome.HALTED:
+                    sentry_sdk.set_level("warning")
+
+                event_id = sentry_sdk.capture_exception(
+                    outcome_reason,
+                )
+
+                log_params["extra"]["slo_event_id"] = event_id
+
+            # Add exception summary but don't include full stack trace in logs
+            # TODO(iamrajjoshi): Phase this out once everyone is comfortable with just using the sentry issue
             log_params["extra"]["exception_summary"] = repr(outcome_reason)
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
-        if outcome == EventLifecycleOutcome.FAILURE:
-            logger.error(key, **log_params)
-        elif outcome == EventLifecycleOutcome.HALTED:
-            logger.warning(key, **log_params)
+        if outcome == EventLifecycleOutcome.FAILURE or outcome == EventLifecycleOutcome.HALTED:
+            # Use provided sample_log_rate or fall back to instance default
+            effective_sample_log_rate = (
+                sample_log_rate if sample_log_rate is not None else self.sample_log_rate
+            )
+
+            should_log = (
+                effective_sample_log_rate >= 1.0 or random.random() < effective_sample_log_rate
+            )
+            if should_log:
+                if outcome == EventLifecycleOutcome.FAILURE:
+                    logger.warning(key, **log_params)
+                elif outcome == EventLifecycleOutcome.HALTED:
+                    logger.info(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
         logger.error("EventLifecycle flow error: %s", message)
 
     def _terminate(
-        self, new_state: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
+        self,
+        new_state: EventLifecycleOutcome,
+        outcome_reason: BaseException | str | None = None,
+        create_issue: bool = False,
+        sample_log_rate: float | None = None,
     ) -> None:
         if self._state is None:
             self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
             self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
-        self.record_event(new_state, outcome_reason)
+        self.record_event(new_state, outcome_reason, create_issue, sample_log_rate)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.
@@ -184,14 +221,21 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(
-        self, failure_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+        self,
+        failure_reason: BaseException | str | None = None,
+        extra: dict[str, Any] | None = None,
+        create_issue: bool = True,
+        sample_log_rate: float | None = None,
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
 
         Calling it means that the feature is broken and requires immediate attention.
 
-        An error will be reported to Sentry.
+        An error will be reported to Sentry if create_issue is True (default).
+        The default is True because we want to create an issue for all failures
+        because it will provide a stack trace and help us debug the issue.
+        There needs to be a compelling reason to not create an issue for a failure
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -201,34 +245,56 @@ class EventLifecycle:
         example, if we receive an error status from a remote service and gracefully
         display an error response to the user, it would be necessary to manually call
         `record_failure` on the context object.
+
+        Args:
+            failure_reason: The reason for the failure (exception or string)
+            extra: Additional data to include in logs
+            create_issue: Whether to create a Sentry issue (default True)
+            sample_log_rate: Rate at which to sample logs (0.0-1.0). If None, uses instance default.
         """
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.FAILURE, failure_reason)
+        self._terminate(
+            EventLifecycleOutcome.FAILURE, failure_reason, create_issue, sample_log_rate
+        )
 
     def record_halt(
-        self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
+        self,
+        halt_reason: BaseException | str | None = None,
+        extra: dict[str, Any] | None = None,
+        create_issue: bool = False,
+        sample_log_rate: float | None = None,
     ) -> None:
         """Record that the event halted in an ambiguous state.
 
-        It will be logged to GCP but no Sentry error will be reported.
+        It will be logged to GCP but no Sentry error will be reported by default.
+        The default is False because we don't want to create an issue for all halts.
+        However for certain debugging cases, we may want to create an issue.
 
         This method can be called in response to a sufficiently ambiguous exception
         or other error condition, where it may have been caused by a user error or
         other expected condition, but there is some substantial chance that it
         represents a bug.
 
+        Set create_issue=True if you want to create a Sentry issue for this halt.
+
         Such cases usually mean that we want to:
           (1) document the ambiguity;
           (2) monitor it for sudden spikes in frequency; and
           (3) investigate whether more detailed error information is available
               (but probably later, as a backlog item).
+
+        Args:
+            halt_reason: The reason for the halt (exception or string)
+            extra: Additional data to include in logs
+            create_issue: Whether to create a Sentry issue (default False)
+            sample_log_rate: Rate at which to sample logs (0.0-1.0). If None, uses instance default.
         """
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.HALTED, halt_reason)
+        self._terminate(EventLifecycleOutcome.HALTED, halt_reason, create_issue, sample_log_rate)
 
     def __enter__(self) -> Self:
         if self._state is not None:
@@ -250,7 +316,8 @@ class EventLifecycle:
 
         if exc_value is not None:
             # We were forced to exit the context by a raised exception.
-            self.record_failure(exc_value)
+            # Default to creating a Sentry issue for unhandled exceptions
+            self.record_failure(exc_value, create_issue=True)
         else:
             # We exited the context without record_success or record_failure being
             # called. Assume success if we were told to do so. Else, log a halt
@@ -265,7 +332,7 @@ class EventLifecycle:
 class IntegrationPipelineViewType(StrEnum):
     """A specific step in an integration's pipeline that is not a static page."""
 
-    # IdentityProviderPipeline
+    # IdentityPipeline
     IDENTITY_LOGIN = "identity_login"
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"
@@ -287,6 +354,12 @@ class IntegrationPipelineViewType(StrEnum):
 
     # Jira Server
     WEBHOOK_CREATION = "webhook_creation"
+
+    # All Integrations
+    FINISH_PIPELINE = "finish_pipeline"
+
+    # Opsgenie
+    INSTALLATION_CONFIGURATION = "installation_configuration"
 
 
 class IntegrationPipelineErrorReason(StrEnum):

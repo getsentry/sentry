@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -70,24 +71,29 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
     </Fragment>
   );
   return (
-    <SentryDocumentTitle title={title}>
-      <FullViewport>
-        {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {content}
-          </ReplayDetailsProviders>
-        ) : (
-          content
-        )}
-      </FullViewport>
-    </SentryDocumentTitle>
+    <AnalyticsArea name="details">
+      <SentryDocumentTitle title={title}>
+        <FullViewport>
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {content}
+            </ReplayDetailsProviders>
+          ) : (
+            content
+          )}
+        </FullViewport>
+      </SentryDocumentTitle>
+    </AnalyticsArea>
   );
 }
 
 const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }

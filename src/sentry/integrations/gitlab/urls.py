@@ -5,7 +5,7 @@ from .webhooks import GitlabWebhookEndpoint
 
 urlpatterns = [
     re_path(
-        r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
+        r"^search/(?P<organization_id_or_slug>[^/]+)/(?P<integration_id>\d+)/$",
         GitlabIssueSearchEndpoint.as_view(),
         name="sentry-extensions-gitlab-search",
     ),

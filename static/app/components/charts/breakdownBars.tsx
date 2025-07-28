@@ -63,7 +63,7 @@ const BreakdownGrid = styled('div')`
 `;
 
 const Percentage = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   text-align: right;
 `;
 
@@ -80,7 +80,7 @@ const Label = styled('span')`
   position: relative;
   color: ${p => p.theme.textColor};
   z-index: 2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const Bar = styled('div')<{active?: boolean}>`

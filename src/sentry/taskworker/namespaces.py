@@ -21,7 +21,7 @@ crons_tasks = taskregistry.create_namespace("crons", app_feature="crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 4,
+    processing_deadline_duration=60 * 10,
     app_feature="shared",
 )
 
@@ -33,6 +33,10 @@ deletion_control_tasks = taskregistry.create_namespace(
 )
 
 demomode_tasks = taskregistry.create_namespace("demomode", app_feature="shared")
+
+ai_agent_monitoring_tasks = taskregistry.create_namespace(
+    "ai_agent_monitoring", app_feature="ai_agent_monitoring"
+)
 
 digests_tasks = taskregistry.create_namespace("digests", app_feature="shared")
 
@@ -67,6 +71,10 @@ ingest_attachments_tasks = taskregistry.create_namespace(
 )
 
 ingest_errors_tasks = taskregistry.create_namespace("ingest.errors", app_feature="errors")
+
+ingest_errors_postprocess_tasks = taskregistry.create_namespace(
+    "ingest.errors.postprocess", app_feature="errors"
+)
 
 issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
 
@@ -130,6 +138,10 @@ telemetry_experience_tasks = taskregistry.create_namespace(
 tempest_tasks = taskregistry.create_namespace("tempest", app_feature="errors")
 
 uptime_tasks = taskregistry.create_namespace("uptime", app_feature="crons")
+
+workflow_engine_tasks = taskregistry.create_namespace(
+    "workflow_engine", app_feature="workflow_engine"
+)
 
 
 # Namespaces for testing taskworker tasks

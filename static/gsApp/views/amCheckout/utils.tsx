@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {
@@ -330,7 +331,7 @@ export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
 }
 
-function getAttachmentsWithUnit(gigabytes: number): string {
+function getWithBytes(gigabytes: number): string {
   return `${gigabytes.toLocaleString()} GB`;
 }
 
@@ -345,8 +346,8 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS) {
-    return getAttachmentsWithUnit(events).replace(' ', '');
+  if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
+    return getWithBytes(events).replace(' ', '');
   }
 
   if (events >= 1_000_000_000) {
@@ -362,6 +363,14 @@ export function getEventsWithUnit(
   return events;
 }
 
+type CheckoutData = {
+  plan: string;
+} & Partial<Record<DataCategory, number>>;
+
+type PreviousData = {
+  previous_plan: string;
+} & Partial<Record<`previous_${DataCategory}`, number>>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -370,36 +379,36 @@ function recordAnalytics(
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
-  const currentData = {
-    // TODO(data categories): check if these can be parsed
+  const currentData: CheckoutData = {
     plan: data.plan,
-    errors: data.reservedErrors,
-    transactions: data.reservedTransactions,
-    attachments: data.reservedAttachments,
-    replays: data.reservedReplays,
-    monitorSeats: data.reservedMonitorSeats,
-    spans: data.reservedSpans,
-    profileDuration: data.reservedProfileDuration,
-    uptime: data.reservedUptime,
   };
 
-  const previousData = {
-    plan: subscription.plan,
-    errors: subscription.categories.errors?.reserved || undefined,
-    transactions: subscription.categories.transactions?.reserved || undefined,
-    attachments: subscription.categories.attachments?.reserved || undefined,
-    replays: subscription.categories.replays?.reserved || undefined,
-    monitorSeats: subscription.categories.monitorSeats?.reserved || undefined,
-    profileDuration: subscription.categories.profileDuration?.reserved || undefined,
-    spans: subscription.categories.spans?.reserved || undefined,
-    uptime: subscription.categories.uptime?.reserved || undefined,
+  Object.keys(data).forEach(key => {
+    if (key.startsWith('reserved')) {
+      const targetKey = key.charAt(8).toLowerCase() + key.slice(9);
+      (currentData as any)[targetKey] = data[key as keyof CheckoutAPIData];
+    }
+  });
+
+  const previousData: PreviousData = {
+    previous_plan: subscription.plan,
   };
 
-  // TODO(data categories): in future, we should just be able to pass data.selectedProducts
+  Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
+    if (
+      subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
+      metricHistory.reserved !== null &&
+      metricHistory.reserved !== undefined
+    ) {
+      (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+    }
+  });
+
+  // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
     [SelectableProduct.SEER]: {
       enabled: data.seer ?? false,
-      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+      previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial budgets
         ? false
         : (subscription.reservedBudgets?.some(
             budget =>
@@ -412,15 +421,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
-    previous_plan: previousData.plan,
-    previous_errors: previousData.errors,
-    previous_transactions: previousData.transactions,
-    previous_attachments: previousData.attachments,
-    previous_replays: previousData.replays,
-    previous_monitorSeats: previousData.monitorSeats,
-    previous_profileDuration: previousData.profileDuration,
-    previous_spans: previousData.spans,
-    previous_uptime: previousData.uptime,
+    ...previousData,
     ...currentData,
   });
 
@@ -443,16 +444,17 @@ function recordAnalytics(
     );
   }
 
+  // TODO: remove this analytic event; this can be inferred from the `checkout.upgrade` event
   if (
     currentData.transactions &&
-    previousData.transactions &&
-    currentData.transactions > previousData.transactions
+    previousData.previous_transactions &&
+    currentData.transactions > previousData.previous_transactions
   ) {
     trackGetsentryAnalytics('checkout.transactions_upgrade', {
       organization,
       subscription,
       plan: data.plan,
-      previous_transactions: previousData.transactions,
+      previous_transactions: previousData.previous_transactions,
       transactions: currentData.transactions,
     });
   }
@@ -510,20 +512,14 @@ export function getCheckoutAPIData({
 }: APIDataProps) {
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
-  const reservedData = {
-    // TODO(data categories): check if these can be parsed
-    reservedErrors: formatReservedData(formData.reserved.errors),
-    reservedTransactions: formatReservedData(formData.reserved.transactions),
-    reservedAttachments: formatReservedData(formData.reserved.attachments),
-    reservedReplays: formatReservedData(formData.reserved.replays),
-    reservedMonitorSeats: formatReservedData(formData.reserved.monitorSeats),
-    reservedProfileDuration: formatReservedData(formData.reserved.profileDuration),
-    reservedSpans: formatReservedData(formData.reserved.spans),
-    reservedUptime: formatReservedData(formData.reserved.uptime),
-  } satisfies Partial<
-    // Enforce plural spelling against the enums in DataCategory
-    Record<`reserved${Capitalize<DataCategory>}`, number | undefined>
-  >;
+  const reservedData = Object.fromEntries(
+    Object.entries(formData.reserved).map(([category, value]) => [
+      `reserved${toTitleCase(category, {
+        allowInnerUpperCase: true,
+      })}`,
+      formatReservedData(value),
+    ])
+  ) satisfies Partial<Record<`reserved${Capitalize<DataCategory>}`, number>>;
 
   const onDemandMaxSpend = shouldUpdateOnDemand
     ? (formData.onDemandMaxSpend ?? 0)
@@ -625,6 +621,15 @@ export async function submitCheckout(
     addSuccessMessage(t('Success'));
     recordAnalytics(organization, subscription, data, isMigratingPartnerAccount);
 
+    const alreadyHasSeer =
+      !isTrialPlan(subscription.plan) &&
+      subscription.reservedBudgets?.some(
+        budget =>
+          (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+          budget.reservedBudget > 0
+      );
+    const justBoughtSeer = data.seer && !alreadyHasSeer;
+
     // refresh org and subscription state
     // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
     // request doesn't get cancelled
@@ -632,7 +637,9 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+          justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+        }`
       )
     );
   } catch (error) {

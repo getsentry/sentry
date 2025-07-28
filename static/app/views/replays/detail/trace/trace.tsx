@@ -5,7 +5,6 @@ import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -21,7 +20,7 @@ import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {useReplayTraces} from './useReplayTraces';
 
@@ -61,7 +60,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 
 const REPLAY_TRACE_WATERFALL_PREFERENCES_KEY = 'replay-trace-waterfall-preferences';
 
-export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
+export function NewTraceView({replay}: {replay: undefined | HydratedReplayRecord}) {
   const preferences = useMemo(
     () =>
       getInitialTracePreferences(
@@ -81,7 +80,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   );
 }
 
-function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
+function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
@@ -185,5 +184,4 @@ const TraceViewWaterfallWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-top: ${space(0.5)};
 `;

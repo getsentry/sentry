@@ -1,4 +1,4 @@
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 
 export default function useDrawerTab({enabled}: {enabled: boolean}) {

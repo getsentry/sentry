@@ -14,6 +14,7 @@ def make_exception_snapshot(insta_snapshot):
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("exception")
+        assert interface is not None
 
         snapshot_values = {
             "errors": evt.data.get("errors"),
@@ -260,7 +261,7 @@ def test_context_with_two_exceptions_having_mechanism(make_exception_snapshot):
     )
 
 
-def test_iteration():
+def test_iteration() -> None:
     inst = Exception.to_python({"values": [None, {"type": "ValueError"}, None]})
 
     assert len(inst) == 1

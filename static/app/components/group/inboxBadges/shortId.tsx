@@ -27,7 +27,7 @@ export const Wrapper = styled('div')`
   align-items: center;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 const AvatarWrapper = styled('div')`
   margin-right: 3px;

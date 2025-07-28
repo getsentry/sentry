@@ -53,18 +53,18 @@ class InviteRequestBase(APITestCase):
 
 
 class OrganizationInviteRequestGetTest(InviteRequestBase):
-    def test_get_invalid(self):
+    def test_get_invalid(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug, "123")
         assert resp.status_code == 404
 
-    def test_me_not_supported(self):
+    def test_me_not_supported(self) -> None:
         self.login_as(user=self.user)
         # the serializer allows this value but it makes no sense for this view
         resp = self.get_response(self.org.slug, "me")
         assert resp.status_code == 404
 
-    def test_get_invite_request(self):
+    def test_get_invite_request(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug, self.invite_request.id)
 
@@ -84,7 +84,7 @@ class OrganizationInviteRequestGetTest(InviteRequestBase):
 class OrganizationInviteRequestDeleteTest(InviteRequestBase):
     method = "delete"
 
-    def test_owner_can_delete_invite_request(self):
+    def test_owner_can_delete_invite_request(self) -> None:
         self.login_as(user=self.user)
         with outbox_runner():
             resp = self.get_response(self.org.slug, self.invite_request.id)
@@ -100,7 +100,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
             )
         assert audit_log_entry.data == self.invite_request.get_audit_log_data()
 
-    def test_member_cannot_delete_invite_request(self):
+    def test_member_cannot_delete_invite_request(self) -> None:
         self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.invite_request.id)
 
@@ -111,7 +111,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
 class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
-    def test_owner_can_update_role(self):
+    def test_owner_can_update_role(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug, self.invite_request.id, role="manager")
 
@@ -123,7 +123,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
         member = OrganizationMember.objects.get(id=self.invite_request.id, role="manager")
         self.assert_org_member_mapping(org_member=member)
 
-    def test_owner_can_update_teams(self):
+    def test_owner_can_update_teams(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug, self.invite_request.id, teams=[self.team.slug])
 
@@ -135,7 +135,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
             organizationmember=self.invite_request.id, team=self.team
         ).exists()
 
-    def test_teams_with_partial_update(self):
+    def test_teams_with_partial_update(self) -> None:
         OrganizationMemberTeam.objects.create(
             organizationmember=self.invite_request, team=self.team
         )
@@ -153,7 +153,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
         ).exists()
         self.assert_org_member_mapping(org_member=self.invite_request)
 
-    def test_can_remove_teams(self):
+    def test_can_remove_teams(self) -> None:
         OrganizationMemberTeam.objects.create(
             organizationmember=self.invite_request, team=self.team
         )
@@ -168,7 +168,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixi
             organizationmember=self.invite_request.id, team=self.team
         ).exists()
 
-    def test_member_cannot_update_invite_request(self):
+    def test_member_cannot_update_invite_request(self) -> None:
         self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.request_to_join.id, role="manager")
         assert resp.status_code == 403
@@ -199,7 +199,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
 
         assert audit_log_entry.data == member.get_audit_log_data()
 
-    def test_member_cannot_approve_invite_request(self):
+    def test_member_cannot_approve_invite_request(self) -> None:
         self.invite_request.inviter_id = self.member.user_id
         self.invite_request.save()
 
@@ -299,7 +299,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         ).exists()
         assert mock_invite_email.call_count == 0
 
-    def test_manager_can_approve_manager(self):
+    def test_manager_can_approve_manager(self) -> None:
         self.login_as(user=self.manager)
         invite_request = self.create_member(
             email="hello@example.com",

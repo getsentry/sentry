@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined, generateQueryWithTag} from 'sentry/utils';
+import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -40,7 +40,7 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import Filter, {
   decodeFilterFromLocation,
@@ -75,7 +75,6 @@ import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
-import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
@@ -108,7 +107,7 @@ function OTelSummaryContentInner({
   const theme = useTheme();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
-  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -220,15 +219,11 @@ function OTelSummaryContentInner({
   if (spanCategory) {
     eventView = eventView.clone();
     eventView.query =
-      `${eventView.query} ${SpanIndexedField.SPAN_CATEGORY}:${spanCategory}`.trim();
+      `${eventView.query} ${SpanFields.SPAN_CATEGORY}:${spanCategory}`.trim();
     transactionsListEventView = eventView.clone();
   }
 
   transactionsListEventView.fields = fields;
-
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
 
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
@@ -270,22 +265,6 @@ function OTelSummaryContentInner({
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
-
-        {!hasNewSpansUIFlag && (
-          <SuspectSpans
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            totals={
-              defined(totalValues?.['count()'])
-                ? {'count()': totalValues['count()']}
-                : null
-            }
-            projectId={projectId}
-            transactionName={transactionName}
-          />
-        )}
-
         <TagExplorer
           eventView={eventView}
           organization={organization}
@@ -295,7 +274,6 @@ function OTelSummaryContentInner({
           currentFilter={spanOperationBreakdownFilter}
           domainViewFilters={domainViewFilters}
         />
-
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"
@@ -561,10 +539,6 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
-
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
   function renderSearchBar() {
@@ -621,7 +595,7 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionIdLink(transactionName, domainViewFilters.view),
+              id: generateTransactionIdLink(domainViewFilters.view),
               trace: generateTraceLink(
                 eventView.normalizeDateSelection(location),
                 domainViewFilters.view
@@ -640,22 +614,6 @@ function SummaryContent({
             supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
-
-        {!hasNewSpansUIFlag && (
-          <SuspectSpans
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            totals={
-              defined(totalValues?.['count()'])
-                ? {'count()': totalValues['count()']}
-                : null
-            }
-            projectId={projectId}
-            transactionName={transactionName}
-          />
-        )}
-
         <TagExplorer
           eventView={eventView}
           organization={organization}
@@ -815,22 +773,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr;
   }
 `;
 
 const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/4;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

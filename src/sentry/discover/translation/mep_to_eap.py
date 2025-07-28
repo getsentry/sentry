@@ -1,10 +1,14 @@
+import re
 from typing import TypedDict
 
 from parsimonious import NodeVisitor
 
 from sentry.api.event_search import event_search_grammar
+from sentry.discover import arithmetic
 from sentry.search.events import fields
 from sentry.snuba.metrics import parse_mri
+
+APDEX_USER_MISERY_PATTERN = r"(apdex|user_misery)\((\d+)\)"
 
 
 class QueryParts(TypedDict):
@@ -12,6 +16,63 @@ class QueryParts(TypedDict):
     query: str
     equations: list[str] | None
     orderby: list[str] | None
+
+
+COLUMNS_TO_DROP = (
+    "any",
+    "count_miserable",
+    "count_web_vitals",
+    "last_seen",
+    "total.count",
+)
+
+
+def format_percentile_term(term):
+    function, args, alias = fields.parse_function(term)
+
+    percentile_replacement_function = {
+        0.5: "p50",
+        0.75: "p75",
+        0.90: "p90",
+        0.95: "p95",
+        0.99: "p99",
+        1.0: "p100",
+    }
+    try:
+        translated_column = column_switcheroo(args[0])[0]
+        percentile_value = args[1]
+        numeric_percentile_value = float(percentile_value)
+        supported_percentiles = [0.5, 0.75, 0.90, 0.95, 0.99, 1.0]
+        smallest_percentile_difference = 1.0
+        nearest_percentile = 0.5
+
+        for percentile in supported_percentiles:
+            percentile_difference = abs(numeric_percentile_value - percentile)
+            # we're rounding up to the nearest supported percentile if it's the midpoint of two supported percentiles
+            if percentile_difference <= smallest_percentile_difference:
+                nearest_percentile = percentile
+                smallest_percentile_difference = percentile_difference
+
+        new_function = percentile_replacement_function.get(nearest_percentile)
+    except (IndexError, ValueError, NameError):
+        return term
+
+    return f"{new_function}({translated_column})"
+
+
+def drop_unsupported_columns(columns):
+    final_columns = []
+    dropped_columns = []
+    for column in columns:
+        if column.startswith(COLUMNS_TO_DROP):
+            dropped_columns.append(column)
+        else:
+            final_columns.append(column)
+    # if no columns are left, leave the original columns but keep track of the "dropped" columns
+    if len(final_columns) == 0:
+        return columns, dropped_columns
+
+    return final_columns, dropped_columns
 
 
 def apply_is_segment_condition(query: str) -> str:
@@ -33,6 +94,13 @@ def column_switcheroo(term):
         "url": "request.url",
         "http.url": "request.url",
         "transaction.status": "trace.status",
+        "geo.city": "user.geo.city",
+        "geo.country_code": "user.geo.country_code",
+        "geo.region": "user.geo.region",
+        "geo.subdivision": "user.geo.subdivision",
+        "geo.subregion": "user.geo.subregion",
+        "timestamp.to_day": "timestamp",
+        "timestamp.to_hour": "timestamp",
     }
 
     swapped_term = column_swap_map.get(term, term)
@@ -45,6 +113,16 @@ def function_switcheroo(term):
     swapped_term = term
     if term == "count()":
         swapped_term = "count(span.duration)"
+    elif term.startswith("percentile("):
+        swapped_term = format_percentile_term(term)
+    elif term == "apdex()":
+        swapped_term = "apdex(span.duration,300)"
+    elif term == "user_misery()":
+        swapped_term = "user_misery(span.duration,300)"
+
+    match = re.match(APDEX_USER_MISERY_PATTERN, term)
+    if match:
+        swapped_term = f"{match.group(1)}(span.duration,{match.group(2)})"
 
     return swapped_term, swapped_term != term
 
@@ -131,7 +209,35 @@ def translate_columns(columns):
         new_arg = ",".join(translated_arguments)
         translated_columns.append(f"{raw_function}({new_arg})")
 
-    return translated_columns
+    # need to drop columns after they have been translated to avoid issues with percentile()
+    final_columns, dropped_columns = drop_unsupported_columns(translated_columns)
+
+    return final_columns, dropped_columns
+
+
+def translate_equations(equations):
+    if equations is None:
+        return None
+
+    translated_equations = []
+
+    for equation in equations:
+        if arithmetic.is_equation(equation):
+            arithmetic_equation = arithmetic.strip_equation(equation)
+        else:
+            arithmetic_equation = equation
+
+        # TODO: add column and function swaps to equation fields and functions
+        operation, fields, functions = arithmetic.parse_arithmetic(arithmetic_equation)
+        new_fields, dropped_fields = drop_unsupported_columns(fields)
+        new_functions, dropped_functions = drop_unsupported_columns(functions)
+
+        if len(dropped_fields) > 0 or len(dropped_functions) > 0:
+            continue
+
+        translated_equations.append(equation)
+
+    return translated_equations
 
 
 def translate_mep_to_eap(query_parts: QueryParts):
@@ -144,12 +250,13 @@ def translate_mep_to_eap(query_parts: QueryParts):
     datamodels to store EAP compatible EQS queries.
     """
     new_query = translate_query(query_parts["query"])
-    new_columns = translate_columns(query_parts["selected_columns"])
+    new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
+    new_equations = translate_equations(query_parts["equations"])
 
     eap_query = QueryParts(
         query=new_query,
         selected_columns=new_columns,
-        equations=query_parts["equations"],
+        equations=new_equations,
         orderby=query_parts["orderby"],
     )
 

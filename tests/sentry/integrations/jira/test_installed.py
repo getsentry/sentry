@@ -86,10 +86,10 @@ class JiraInstalledTest(APITestCase):
             ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
         )
 
-    def test_missing_token(self):
+    def test_missing_token(self) -> None:
         self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
@@ -121,7 +121,7 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @patch("sentry_sdk.set_tag")
     @responses.activate

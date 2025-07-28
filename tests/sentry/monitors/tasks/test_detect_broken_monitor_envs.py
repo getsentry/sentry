@@ -28,7 +28,7 @@ from sentry.users.models.useremail import UserEmail
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
@@ -117,7 +117,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
         assert builder.call_count == 1
 
-    def test_does_not_create_broken_detection_insufficient_duration(self):
+    def test_does_not_create_broken_detection_insufficient_duration(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -147,7 +147,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_broken_detection_insufficient_checkins(self):
+    def test_does_not_create_broken_detection_insufficient_checkins(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -177,7 +177,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_for_disabled_monitor(self):
+    def test_does_not_create_for_disabled_monitor(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
         monitor.status = ObjectStatus.DISABLED
         monitor.save()
@@ -235,7 +235,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
             },
             {
                 "broken_monitors": [
@@ -252,7 +252,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "broken_monitors": [
@@ -269,7 +269,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
         expected_subjects = [
@@ -374,7 +374,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
@@ -391,7 +391,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
@@ -408,7 +408,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
         expected_subjects = [
@@ -495,7 +495,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
@@ -506,7 +506,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
 

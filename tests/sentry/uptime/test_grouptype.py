@@ -1,9 +1,15 @@
 from datetime import datetime, timedelta
+from itertools import cycle
 from unittest import mock
 
 import pytest
 from jsonschema import ValidationError
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+    CheckResult,
+    CheckStatus,
+)
 
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.testutils.cases import TestCase, UptimeTestCase
@@ -18,14 +24,14 @@ from sentry.uptime.grouptype import (
     build_fingerprint,
 )
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
-from sentry.uptime.types import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class BuildDetectorFingerprintComponentTest(UptimeTestCase):
-    def test_build_detector_fingerprint_component(self):
+    def test_build_detector_fingerprint_component(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
         assert detector
@@ -35,7 +41,7 @@ class BuildDetectorFingerprintComponentTest(UptimeTestCase):
 
 
 class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
-    def test_build_fingerprint_for_project_subscription(self):
+    def test_build_fingerprint_for_project_subscription(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
         assert detector
@@ -46,7 +52,7 @@ class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
 
 
 class BuildEvidenceDisplayTest(UptimeTestCase):
-    def test_build_evidence_display(self):
+    def test_build_evidence_display(self) -> None:
         result = self.create_uptime_result()
         assert build_evidence_display(result) == [
             IssueEvidence(name="Failure reason", value="timeout - it timed out", important=True),
@@ -58,7 +64,7 @@ class BuildEvidenceDisplayTest(UptimeTestCase):
 
 @freeze_time()
 class BuildEventDataTest(UptimeTestCase):
-    def test_build_event_data(self):
+    def test_build_event_data(self) -> None:
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
@@ -97,7 +103,7 @@ class TestUptimeHandler(UptimeTestCase):
 
         return evaluation[None]
 
-    def test_simple_evaluate(self):
+    def test_simple_evaluate(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
@@ -146,7 +152,7 @@ class TestUptimeHandler(UptimeTestCase):
             # we'll just use the DetectorState models to represent this
             assert uptime_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_issue_creation_disabled(self):
+    def test_issue_creation_disabled(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
@@ -217,24 +223,59 @@ class TestUptimeHandler(UptimeTestCase):
             )
             assert evaluation is None
 
+    def test_flapping_evaluate(self) -> None:
+        """
+        Test that a uptime monitor that flaps between failure, success success,
+        failure, etc does not produce any evaluations.
+        """
+        project_subscription = self.create_project_uptime_subscription()
+        uptime_subscription = project_subscription.uptime_subscription
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
+
+        assert uptime_subscription.uptime_status == UptimeStatus.OK
+
+        now = datetime.now()
+
+        features = [
+            "organizations:uptime-create-issues",
+            "organizations:uptime-detector-create-issues",
+        ]
+
+        with (
+            self.feature(features),
+            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=3),
+        ):
+            status_cycle: cycle[CheckStatus] = cycle(
+                [CHECKSTATUS_FAILURE, CHECKSTATUS_SUCCESS, CHECKSTATUS_SUCCESS]
+            )
+
+            for idx in range(12, 0, -1):
+                result = self.create_uptime_result(
+                    status=next(status_cycle),
+                    scheduled_check_time=now - timedelta(minutes=idx),
+                )
+                evaluation = self.handle_result(detector, uptime_subscription, result)
+                assert evaluation is None
+
 
 class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.uptime_monitor = self.create_project_uptime_subscription()
 
-    def test_detector_correct_schema(self):
+    def test_detector_correct_schema(self) -> None:
         self.create_detector(
             name=self.uptime_monitor.name,
             project_id=self.project.id,
             type=UptimeDomainCheckFailure.slug,
             config={
-                "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                "mode": UptimeMonitorMode.MANUAL,
                 "environment": "hi",
             },
         )
 
-    def test_incorrect_config(self):
+    def test_incorrect_config(self) -> None:
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.uptime_monitor.name,
@@ -243,7 +284,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 config=["some", "stuff"],
             )
 
-    def test_mismatched_schema(self):
+    def test_mismatched_schema(self) -> None:
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.uptime_monitor.name,
@@ -260,7 +301,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                     "environment": 1,
                 },
             )
@@ -281,7 +322,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "bad_mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "bad_mode": UptimeMonitorMode.MANUAL,
                     "environment": "hi",
                 },
             )
@@ -291,13 +332,13 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                     "environment": "hi",
                     "junk": "hi",
                 },
             )
 
-    def test_missing_required(self):
+    def test_missing_required(self) -> None:
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.uptime_monitor.name,
@@ -319,7 +360,7 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 project_id=self.project.id,
                 type=UptimeDomainCheckFailure.slug,
                 config={
-                    "mode": ProjectUptimeSubscriptionMode.MANUAL,
+                    "mode": UptimeMonitorMode.MANUAL,
                 },
             )
 

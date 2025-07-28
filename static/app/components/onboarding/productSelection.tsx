@@ -6,8 +6,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -31,6 +31,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
+  const hasLogs = organization.features.includes('ourlogs-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -68,6 +69,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
       onClick: createClickHandler('organizations:profiling-view', 'Profiling'),
     };
   }
+  if (!hasLogs) {
+    disabledProducts[ProductSolution.LOGS] = {
+      reason,
+      onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
+    };
+  }
   return disabledProducts;
 }
 
@@ -98,7 +105,11 @@ export const platformProductAvailability = {
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
-  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  flutter: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [ProductSolution.PERFORMANCE_MONITORING],
   'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
@@ -118,18 +129,26 @@ export const platformProductAvailability = {
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
+  'javascript-react-router': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
   ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -138,6 +157,7 @@ export const platformProductAvailability = {
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -146,6 +166,7 @@ export const platformProductAvailability = {
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -154,6 +175,7 @@ export const platformProductAvailability = {
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-azurefunctions': [
@@ -243,6 +265,7 @@ function Product({
   docLink,
   description,
 }: ProductProps) {
+  const isDisabled = !!disabled && !disabled.requiresUpgrade;
   return (
     <Tooltip
       title={
@@ -260,7 +283,7 @@ function Product({
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
         priority={!!disabled || checked ? 'primary' : 'default'}
-        disabled={!!disabled && !disabled.requiresUpgrade}
+        disabled={isDisabled}
         aria-label={label}
       >
         <ProductButtonInner>
@@ -273,6 +296,7 @@ function Product({
             role="presentation"
             checked={checked}
             aria-label={label}
+            disabled={isDisabled}
           />
           {label}
           <IconQuestion size="xs" />
@@ -294,7 +318,10 @@ export type ProductSelectionProps = {
   /**
    * Fired when the product selection changes
    */
-  onChange?: (products: ProductSolution[]) => void;
+  onChange?: (params: {
+    previousProducts: ProductSolution[];
+    products: ProductSolution[];
+  }) => void;
   /**
    * Triggered when the component is loaded
    */
@@ -361,7 +388,10 @@ export function ProductSelection({
 
       const selectedProducts = Array.from(newProduct);
 
-      onChange?.(selectedProducts);
+      onChange?.({
+        previousProducts: urlProducts as ProductSolution[],
+        products: selectedProducts,
+      });
       setParams({product: selectedProducts});
     },
     [products, setParams, urlProducts, onChange]
@@ -379,6 +409,30 @@ export function ProductSelection({
         disabled={{reason: t("Let's admit it, we all have errors.")}}
         checked
       />
+      {products.includes(ProductSolution.LOGS) && (
+        <Product
+          label={t('Logs')}
+          description={t(
+            'Structured application logs for debugging and troubleshooting. Automatically gets associated with errors and traces.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/logs/"
+          onClick={() => handleClickProduct(ProductSolution.LOGS)}
+          disabled={disabledProducts[ProductSolution.LOGS]}
+          checked={urlProducts.includes(ProductSolution.LOGS)}
+        />
+      )}
+      {products.includes(ProductSolution.SESSION_REPLAY) && (
+        <Product
+          label={t('Session Replay')}
+          description={t(
+            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/session-replay/"
+          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+        />
+      )}
       {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
         <Product
           label={t('Tracing')}
@@ -404,18 +458,6 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
           checked={urlProducts.includes(ProductSolution.PROFILING)}
-        />
-      )}
-      {products.includes(ProductSolution.SESSION_REPLAY) && (
-        <Product
-          label={t('Session Replay')}
-          description={t(
-            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-          )}
-          docLink="https://docs.sentry.io/product/explore/session-replay/"
-          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
         />
       )}
     </Products>

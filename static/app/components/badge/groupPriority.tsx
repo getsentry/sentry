@@ -232,7 +232,7 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   border: none;
   padding: 0;
   height: unset;
@@ -280,7 +280,7 @@ const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};

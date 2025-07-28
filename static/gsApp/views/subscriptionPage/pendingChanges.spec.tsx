@@ -2,7 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
+import {
+  PendingReservedBudgetFixture,
+  SeerReservedBudgetFixture,
+} from 'getsentry-test/fixtures/reservedBudget';
 import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
@@ -34,14 +37,15 @@ describe('Subscription > PendingChanges', function () {
   });
 
   it('renders mm2 plan and ondemand changes', function () {
-    // const planDetails = PlanDetailsLookupFixture();
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_ac',
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'mm2_b_100k',
-        reservedEvents: 100000,
+        reserved: {
+          errors: 100_000,
+        },
         onDemandMaxSpend: 0,
         effectiveDate: '2021-02-01',
         onDemandEffectiveDate: '2021-02-01',
@@ -49,6 +53,7 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           contractInterval: MONTHLY,
           budgetTerm: 'on-demand',
+          categories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
         }),
       }),
     });
@@ -75,9 +80,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         effectiveDate: '2021-02-01',
@@ -122,9 +124,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'am2_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         effectiveDate: '2021-02-01',
@@ -166,9 +165,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team_auf',
-      reservedErrors: 100_000,
-      reservedTransactions: 100_000,
-      reservedAttachments: 25,
       categories: {
         errors: MetricHistoryFixture({reserved: 100_000}),
         transactions: MetricHistoryFixture({reserved: 100_000}),
@@ -176,9 +172,6 @@ describe('Subscription > PendingChanges', function () {
       onDemandMaxSpend: 10_000,
       pendingChanges: PendingChangesFixture({
         plan: 'am2_business',
-        reservedErrors: 100_000,
-        reservedTransactions: 250_000,
-        reservedAttachments: 50,
         reserved: {errors: 100_000, transactions: 250_000, attachments: 50},
         onDemandMaxSpend: 5_000,
         effectiveDate: '2021-02-01',
@@ -222,7 +215,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization: org,
       plan: 'am1_business',
-      reservedErrors: 500000,
       categories: {
         errors: MetricHistoryFixture({reserved: 500000}),
       },
@@ -235,9 +227,6 @@ describe('Subscription > PendingChanges', function () {
       },
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         onDemandBudgets: {
@@ -277,7 +266,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization: org,
       plan: 'am1_business',
-      reservedErrors: 500000,
       onDemandMaxSpend: 10000,
       onDemandBudgets: {
         enabled: true,
@@ -287,18 +275,11 @@ describe('Subscription > PendingChanges', function () {
       },
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
-        reservedErrors: 100000,
-        reservedTransactions: 250000,
-        reservedAttachments: 50,
         reserved: {errors: 100000, transactions: 250000, attachments: 50},
         onDemandMaxSpend: 5000,
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 1000,
-          transactionsBudget: 2000,
-          attachmentsBudget: 3000,
-          replaysBudget: 0,
           budgets: {errors: 1000, transactions: 2000, attachments: 3000},
         },
         effectiveDate: '2021-02-01',
@@ -335,13 +316,9 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
-      reservedErrors: 500000,
       onDemandMaxSpend: 0,
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team_auf',
-        reservedErrors: null,
-        reservedTransactions: null,
-        reservedAttachments: null,
         onDemandMaxSpend: 0,
         effectiveDate: '2021-02-01',
         planDetails: PlanFixture({
@@ -370,7 +347,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
-      reservedErrors: 500000,
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'am1_team',
@@ -412,12 +388,10 @@ describe('Subscription > PendingChanges', function () {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        replaysBudget: 0,
-        transactionsBudget: 0,
-        attachmentsBudget: 0,
         budgets: {
           errors: 1000,
+          transactions: 0,
+          attachments: 0,
         },
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -458,7 +432,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
-      reservedErrors: 500000,
       onDemandMaxSpend: 10000,
       planDetails: undefined,
       pendingChanges: PendingChangesFixture({
@@ -578,11 +551,10 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
   });
 
-  it('renders fixed budget changes', function () {
+  it('renders fixed reserved budget changes for disabling', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      hasReservedBudgets: true,
       reservedBudgets: [SeerReservedBudgetFixture({})],
       pendingChanges: PendingChangesFixture({
         planDetails: PlanDetailsLookupFixture('am3_team'),
@@ -594,21 +566,53 @@ describe('Subscription > PendingChanges', function () {
         },
       }),
     });
-    sub.categories = {
-      ...sub.categories,
-      seerAutofix: MetricHistoryFixture({
-        ...sub.categories.seerAutofix,
-        reserved: RESERVED_BUDGET_QUOTA,
-      }),
-      seerScanner: MetricHistoryFixture({
-        ...sub.categories.seerScanner,
-        reserved: RESERVED_BUDGET_QUOTA,
-      }),
-    };
 
     render(<PendingChanges organization={organization} subscription={sub} />);
 
     expect(screen.getByText('Seer product access will be disabled')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer product access will be enabled')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
+  });
+
+  it('renders fixed reserved budget changes for enabling', function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      reservedBudgets: [],
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanDetailsLookupFixture('am3_team'),
+        plan: 'am3_team',
+        planName: 'Team',
+        reserved: {
+          seerAutofix: RESERVED_BUDGET_QUOTA,
+          seerScanner: RESERVED_BUDGET_QUOTA,
+        },
+        reservedBudgets: [
+          PendingReservedBudgetFixture({
+            categories: {
+              seerAutofix: true,
+              seerScanner: true,
+            },
+            reservedBudget: SeerReservedBudgetFixture({}).reservedBudget,
+          }),
+        ],
+        reservedCpe: {
+          seerAutofix: 1_00,
+          seerScanner: 1,
+        },
+      }),
+    });
+
+    render(<PendingChanges organization={organization} subscription={sub} />);
+
+    expect(screen.getByText('Seer product access will be enabled')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer product access will be disabled')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
     expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();

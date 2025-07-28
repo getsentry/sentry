@@ -692,6 +692,10 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
+    def get_absolute_api_url(self):
+        path = f"/issues/{self.id}/"
+        return self.organization.absolute_api_url(path=path)
+
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
@@ -708,9 +712,6 @@ class Group(Model):
 
     def is_unresolved(self):
         return self.get_status() == GroupStatus.UNRESOLVED
-
-    # TODO(dcramer): remove in 9.0 / after plugins no long ref
-    is_muted = is_ignored
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -141,7 +141,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
-  const taxNumber = invoice?.taxNumber || billingDetails?.taxNumber;
+  const taxNumber = invoice?.taxNumber;
   const countryCode = invoice?.countryCode || billingDetails?.countryCode;
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
@@ -272,7 +272,7 @@ const SenderContainer = styled('div')`
   padding-left: ${space(1)};
 
   /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
     grid-template-rows: auto auto;
   }
@@ -284,7 +284,7 @@ const AttributeGroup = styled('div')`
   gap: ${space(2)};
 
   /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
     grid-template-rows: auto auto;
   }
@@ -344,6 +344,6 @@ const RefundRow = styled('tr')`
 
 const FinePrint = styled('div')`
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.gray300};
 `;

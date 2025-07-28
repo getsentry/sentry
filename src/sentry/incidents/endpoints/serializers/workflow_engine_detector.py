@@ -3,7 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
+from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
@@ -24,13 +24,15 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
     Action,
-    ActionGroupStatus,
     AlertRuleDetector,
     DataCondition,
+    DataConditionGroup,
     DataConditionGroupAction,
     DataSourceDetector,
     Detector,
+    DetectorWorkflow,
 )
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -177,20 +179,22 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for action_ids in detector_to_action_ids.values():
             all_action_ids.extend(action_ids)
 
-        action_group_statuses = ActionGroupStatus.objects.filter(action_id__in=all_action_ids)
+        wf_action_group_statuses = WorkflowActionGroupStatus.objects.filter(
+            action_id__in=all_action_ids
+        )
 
-        detector_to_group_ids = defaultdict(list)
-        for action_group_status in action_group_statuses:
+        detector_to_group_ids = defaultdict(set)
+        for wf_action_group_status in wf_action_group_statuses:
             for detector, action_ids in detector_to_action_ids.items():
-                if action_group_status.action_id in action_ids:
-                    detector_to_group_ids[detector].append(action_group_status.group_id)
+                if wf_action_group_status.action_id in action_ids:
+                    detector_to_group_ids[detector].add(wf_action_group_status.group_id)
 
         open_periods = None
-        group_ids = [action_group_status.group_id for action_group_status in action_group_statuses]
+        group_ids = {
+            wf_action_group_status.group_id for wf_action_group_status in wf_action_group_statuses
+        }
         if group_ids:
-            open_periods = GroupOpenPeriod.objects.filter(
-                group__in=[group_id for group_id in group_ids]
-            )
+            open_periods = GroupOpenPeriod.objects.filter(group__in=group_ids)
 
         for detector in detectors.values():
             # TODO: this serializer is half baked
@@ -207,6 +211,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[Detector, dict[str, Any]]:
         detectors = {item.id: item for item in item_list}
+        detector_ids = [item.id for item in item_list]
         result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
 
         detector_workflow_condition_group_ids = [
@@ -218,13 +223,20 @@ class WorkflowEngineDetectorSerializer(Serializer):
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
         )
-
+        workflow_dcg_ids = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow__in=Subquery(
+                DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
+                    "workflow_id", flat=True
+                )
+            )
+        ).values_list("id", flat=True)
         action_filter_data_condition_groups = DataCondition.objects.filter(
             comparison__in=[
                 detector_trigger.condition_result
                 for detector_trigger in detector_trigger_data_conditions
             ],
-        ).exclude(condition_group__in=detector_workflow_condition_group_ids)
+            condition_group__in=Subquery(workflow_dcg_ids),
+        )
 
         dcgas = DataConditionGroupAction.objects.filter(
             condition_group__in=[
@@ -263,31 +275,28 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # skipping snapshot data
 
         if "latestIncident" in self.expand:
-            # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
-            detector_to_workflow_condition_group_ids = {
-                detector: detector.workflow_condition_group.id
-                for detector in detectors.values()
-                if detector.workflow_condition_group
-            }
-            detector_to_detector_triggers = defaultdict(list)
-            for trigger in detector_trigger_data_conditions:
-                for detector, wcg_id in detector_to_workflow_condition_group_ids.items():
-                    if trigger.condition_group.id is wcg_id:
-                        detector_to_detector_triggers[detector].append(trigger)
+            # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
+            detector_workflow_values = DetectorWorkflow.objects.filter(
+                detector__in=detector_ids
+            ).values_list("detector_id", "workflow_id")
+            detector_id_to_workflow_ids = defaultdict(list)
+            for detector_id, workflow_id in detector_workflow_values:
+                detector_id_to_workflow_ids[detector_id].append(workflow_id)
 
-            detector_to_action_filters = defaultdict(list)
-            for action_filter in action_filter_data_condition_groups:
-                for detector, detector_triggers in detector_to_detector_triggers.items():
-                    for trigger in detector_triggers:
-                        if action_filter.comparison is trigger.condition_result:
-                            detector_to_action_filters[detector].append(action_filter)
+            workflow_action_values = dcgas.values_list(
+                "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
+            )
+
+            workflow_id_to_action_ids = defaultdict(list)
+            for workflow_id, action_id in workflow_action_values:
+                workflow_id_to_action_ids[workflow_id].append(action_id)
 
             detector_to_action_ids = defaultdict(list)
-            for dcga in dcgas:
-                for detector, action_filters in detector_to_action_filters.items():
-                    for action_filter in action_filters:
-                        if action_filter.condition_group.id is dcga.condition_group.id:
-                            detector_to_action_ids[detector].append(dcga.action.id)
+            for detector_id in detectors:
+                for workflow_id in detector_id_to_workflow_ids.get(detector_id, []):
+                    detector_to_action_ids[detectors[detector_id]].extend(
+                        workflow_id_to_action_ids.get(workflow_id, [])
+                    )
 
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 

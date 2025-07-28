@@ -36,7 +36,7 @@ export default SessionRow;
 
 const IpAddress = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const CountryCode = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};

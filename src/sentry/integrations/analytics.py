@@ -1,127 +1,94 @@
 from sentry import analytics
 
 
+@analytics.eventclass("integration.added")
 class IntegrationAddedEvent(analytics.Event):
-    type = "integration.added"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-    )
+    provider: str
+    id: int
+    organization_id: int
+    user_id: int | None = None
+    default_user_id: int
 
 
+@analytics.eventclass("integration.disabled.notified")
 class IntegrationDisabledNotified(analytics.Event):
-    type = "integration.disabled.notified"
-
-    attributes = (
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("provider"),
-        analytics.Attribute("integration_type"),
-        analytics.Attribute("integration_id"),
-        analytics.Attribute("user_id", required=False),
-    )
+    organization_id: int
+    provider: str
+    integration_type: str
+    integration_id: int
+    user_id: int | None = None
 
 
+@analytics.eventclass("integration.issue.created")
 class IntegrationIssueCreatedEvent(analytics.Event):
-    type = "integration.issue.created"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-    )
+    provider: str
+    id: int
+    organization_id: int
+    user_id: int | None = None
+    default_user_id: int
 
 
+@analytics.eventclass("integration.issue.linked")
 class IntegrationIssueLinkedEvent(analytics.Event):
-    type = "integration.issue.linked"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-    )
+    provider: str
+    id: int
+    organization_id: int
+    user_id: int | None = None
+    default_user_id: int
 
 
+@analytics.eventclass("integration.issue.status.synced")
 class IntegrationIssueStatusSyncedEvent(analytics.Event):
-    type = "integration.issue.status.synced"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-    )
+    provider: str
+    id: int
+    organization_id: int
 
 
+@analytics.eventclass("integration.issue.assignee.synced")
 class IntegrationIssueAssigneeSyncedEvent(analytics.Event):
-    type = "integration.issue.assignee.synced"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-    )
+    provider: str
+    id: int
+    organization_id: int
 
 
+@analytics.eventclass("integration.issue.comments.synced")
 class IntegrationIssueCommentsSyncedEvent(analytics.Event):
-    type = "integration.issue.comments.synced"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-    )
+    provider: str
+    id: int
+    organization_id: int
 
 
+@analytics.eventclass("integration.repo.added")
 class IntegrationRepoAddedEvent(analytics.Event):
-    type = "integration.repo.added"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-    )
+    provider: str
+    id: int | None = None
+    organization_id: int
 
 
+@analytics.eventclass("integration.resolve.commit")
 class IntegrationResolveCommitEvent(analytics.Event):
-    type = "integration.resolve.commit"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-    )
+    provider: str | None
+    id: int
+    organization_id: int
 
 
+@analytics.eventclass("integration.resolve.pr")
 class IntegrationResolvePREvent(analytics.Event):
-    type = "integration.resolve.pr"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("id"),
-        analytics.Attribute("organization_id"),
-    )
+    provider: str | None
+    id: int
+    organization_id: int
 
 
+@analytics.eventclass("integration.stacktrace.linked")
 class IntegrationStacktraceLinkEvent(analytics.Event):
-    type = "integration.stacktrace.linked"
-
-    attributes = (
-        analytics.Attribute("provider"),
-        analytics.Attribute("config_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("filepath"),
-        analytics.Attribute("status"),
-        analytics.Attribute("link_fetch_iterations"),
-        analytics.Attribute("platform", required=False),
-    )
+    provider: str
+    config_id: int
+    project_id: int
+    organization_id: int
+    filepath: str
+    status: str
+    link_fetch_iterations: int
+    platform: str | None = None
 
 
 def register_analytics() -> None:

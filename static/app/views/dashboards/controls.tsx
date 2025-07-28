@@ -11,6 +11,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +22,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -41,6 +43,7 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
@@ -56,6 +59,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
+  isSaving,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const queryClient = useQueryClient();
@@ -80,7 +84,7 @@ function Controls({
   const api = useApi();
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
-      <StyledButtonBar gap={1} key="edit-controls">
+      <StyledButtonBar key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -109,7 +113,7 @@ function Controls({
 
   if (dashboardState === DashboardState.CREATE) {
     return (
-      <StyledButtonBar gap={1} key="create-controls">
+      <StyledButtonBar key="create-controls">
         {renderCancelButton()}
         <Button
           data-test-id="dashboard-commit"
@@ -128,7 +132,7 @@ function Controls({
 
   if (dashboardState === DashboardState.PREVIEW) {
     return (
-      <StyledButtonBar gap={1} key="preview-controls">
+      <StyledButtonBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
         <Button
           data-test-id="dashboard-commit"
@@ -176,7 +180,7 @@ function Controls({
       : null
     : t('You do not have permission to edit this dashboard');
   return (
-    <StyledButtonBar gap={1} key="controls">
+    <StyledButtonBar key="controls">
       <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (
@@ -241,12 +245,14 @@ function Controls({
                 e.preventDefault();
                 onEdit();
               }}
-              icon={<IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
+              icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
               title={
-                hasEditAccess
-                  ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
-                  : t('You do not have permission to edit this dashboard')
+                isSaving
+                  ? DASHBOARD_SAVING_MESSAGE
+                  : hasEditAccess
+                    ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                    : t('You do not have permission to edit this dashboard')
               }
               priority="default"
               size="sm"
@@ -311,7 +317,7 @@ function DashboardEditFeature({
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
     width: 100%;

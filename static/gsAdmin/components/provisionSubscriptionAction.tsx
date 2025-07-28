@@ -42,6 +42,7 @@ import {
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
+  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
@@ -201,7 +202,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 plan.id === 'mm2_b') &&
               !plan.id.endsWith('_ac') &&
               !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id)
+              !isTrialPlan(plan.id) &&
+              !plan.isTestPlan
             ) {
               acc[plan.id] = plan;
             }
@@ -838,8 +840,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             title: true,
                             hadCustomDynamicSampling: isAm3Ds,
                           });
-                          const suffix =
-                            category === DataCategory.ATTACHMENTS ? ' (in GB)' : '';
+                          const suffix = isByteCategory(category) ? ' (in GB)' : '';
                           const capitalizedApiName = this.capitalizeForApiName(
                             categoryInfo.plural
                           );

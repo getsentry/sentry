@@ -89,6 +89,7 @@ def assert_webhook_payloads_for_mailbox(
         assert message.request_body == expected_payload["request_body"]
         assert message.schedule_for == THE_PAST
         assert message.attempts == 0
+        assert message.region_name is not None
         try:
             region_names_set.remove(message.region_name)
         except KeyError:

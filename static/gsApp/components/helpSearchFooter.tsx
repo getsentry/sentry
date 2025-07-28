@@ -21,10 +21,10 @@ function HelpSearchFooter({organization, closeModal}: Props) {
         organization={organization}
         Component={({href, onClick}) => (
           <LinkButton
-            href={href}
+            href={href ?? ''}
             size="sm"
             onClick={e => {
-              onClick(e);
+              onClick?.(e);
               closeModal();
             }}
           >
@@ -43,7 +43,7 @@ const Container = styled('div')`
   padding: ${space(2)};
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export default HelpSearchFooter;

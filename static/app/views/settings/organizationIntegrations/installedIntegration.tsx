@@ -68,9 +68,7 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {t('Deleting this integration has consequences!')}
-          </Alert>
+          <Alert type="error">{t('Deleting this integration has consequences!')}</Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -88,9 +86,7 @@ export default class InstalledIntegration extends Component<Props> {
     const message = (
       <Fragment>
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {t('This integration cannot be removed in Sentry')}
-          </Alert>
+          <Alert type="error">{t('This integration cannot be removed in Sentry')}</Alert>
         </Alert.Container>
         {body}
       </Fragment>
@@ -241,7 +237,7 @@ function IntegrationStatus(
           ? t('This integration can be disabled by clicking the Uninstall button')
           : status === 'disabled'
             ? t('This integration has been disconnected from the external provider')
-            : t('This integration is pending deletion.')
+            : t('Deletion takes a few minutes to complete.')
       }
     >
       {inner}
@@ -259,7 +255,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

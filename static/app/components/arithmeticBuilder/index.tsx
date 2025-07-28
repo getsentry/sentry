@@ -6,27 +6,38 @@ import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/ac
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import type {
-  AggregateFunction,
-  FunctionArgument,
-} from 'sentry/components/arithmeticBuilder/types';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {Input} from 'sentry/components/core/input';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 interface ArithmeticBuilderProps {
-  aggregateFunctions: AggregateFunction[];
+  aggregations: string[];
   expression: string;
   functionArguments: FunctionArgument[];
+  getFieldDefinition: (key: string) => FieldDefinition | null;
   className?: string;
+  'data-test-id'?: string;
   disabled?: boolean;
+  /**
+   * This is used when a user types in a search key and submits the token.
+   * The submission happens when the user types a colon or presses enter.
+   * When this happens, this function is used to try to map the user input
+   * to a known column.
+   */
+  getSuggestedKey?: (key: string) => string | null;
   setExpression?: (expression: Expression) => void;
 }
 
 export function ArithmeticBuilder({
+  'data-test-id': dataTestId,
   expression,
   setExpression,
-  aggregateFunctions,
+  aggregations,
   functionArguments,
+  getFieldDefinition,
+  getSuggestedKey,
   className,
   disabled,
 }: ArithmeticBuilderProps) {
@@ -39,10 +50,21 @@ export function ArithmeticBuilder({
     return {
       dispatch,
       focusOverride: state.focusOverride,
-      aggregateFunctions,
+      aggregations: aggregations.filter(aggregation => {
+        return getFieldDefinition(aggregation)?.kind === FieldKind.FUNCTION;
+      }),
       functionArguments,
+      getFieldDefinition,
+      getSuggestedKey,
     };
-  }, [state, dispatch, aggregateFunctions, functionArguments]);
+  }, [
+    state,
+    dispatch,
+    aggregations,
+    functionArguments,
+    getFieldDefinition,
+    getSuggestedKey,
+  ]);
 
   return (
     <PanelProvider>
@@ -50,7 +72,7 @@ export function ArithmeticBuilder({
         <Wrapper
           className={className}
           aria-disabled={disabled}
-          data-test-id="arithmetic-builder"
+          data-test-id={dataTestId ?? 'arithmetic-builder'}
           state={state.expression.isValid ? 'valid' : 'invalid'}
         >
           <TokenGrid tokens={state.expression.tokens} />
@@ -66,7 +88,7 @@ const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>
   height: auto;
   width: 100%;
   position: relative;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   cursor: text;
 
   ${p =>
