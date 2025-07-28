@@ -244,7 +244,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ),
                         sampling_mode=snuba_params.sampling_mode,
                         equations=self.get_equation_list(organization, request),
-                        debug=snuba_params.debug,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=final_columns,
@@ -281,7 +280,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     ),
                     sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
-                    debug=snuba_params.debug,
                 )
 
             return scoped_dataset.timeseries_query(

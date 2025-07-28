@@ -495,7 +495,6 @@ def run_top_events_timeseries_query(
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
     equations: list[str] | None = None,
-    debug: bool = False,
 ) -> Any:
     """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
     functions that both would call
@@ -574,7 +573,7 @@ def run_top_events_timeseries_query(
         full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
 
-    if debug:
+    if params.debug:
         final_meta["query"] = json.loads(MessageToJson(rpc_request))
 
     for resolved_field in aggregates + groupbys:

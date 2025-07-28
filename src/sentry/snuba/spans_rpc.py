@@ -46,7 +46,6 @@ def run_table_query(
     sampling_mode: SAMPLING_MODES | None = None,
     equations: list[str] | None = None,
     search_resolver: SearchResolver | None = None,
-    debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         rpc_dataset_common.TableQuery(
@@ -60,7 +59,7 @@ def run_table_query(
             sampling_mode=sampling_mode,
             resolver=search_resolver or get_resolver(params, config),
         ),
-        debug,
+        params.debug,
     )
 
 
@@ -73,7 +72,6 @@ def run_timeseries_query(
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
     comparison_delta: timedelta | None = None,
-    debug: bool = False,
 ) -> SnubaTSResult:
     """Make the query"""
     rpc_dataset_common.validate_granularity(params)
@@ -91,7 +89,7 @@ def run_timeseries_query(
         full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
 
-    if debug:
+    if params.debug:
         final_meta["query"] = json.loads(MessageToJson(rpc_request))
 
     for resolved_field in aggregates + groupbys:
@@ -166,7 +164,6 @@ def run_top_events_timeseries_query(
     config: SearchResolverConfig,
     sampling_mode: SAMPLING_MODES | None,
     equations: list[str] | None = None,
-    debug: bool = False,
 ) -> Any:
     return rpc_dataset_common.run_top_events_timeseries_query(
         get_resolver=get_resolver,
@@ -180,7 +177,6 @@ def run_top_events_timeseries_query(
         config=config,
         sampling_mode=sampling_mode,
         equations=equations,
-        debug=debug,
     )
 
 
