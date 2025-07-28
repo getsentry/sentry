@@ -33,15 +33,18 @@ export function DebugNotificationsLanding() {
       </StoryDarkModeProvider>
       <FeatureContainer>
         <Heading as="h2" variant="success">
-          🚧 Features coming soon
+          Coming Soon
         </Heading>
-        <ul>
-          <li>Fields to enter custom rendered template data</li>
-          <li>Viewing all registered templates</li>
-          <li>Mobile/Desktop email previews</li>
-          <li>Integration raw payload previews (e.g. BlockKit, Teams Blocks)</li>
-          <li>Custom renderer templates</li>
-        </ul>
+        <Text size="lg">
+          <ul>
+            <li>Dynamic forms to preview a brand new notification</li>
+            <li>Previewing all registered notification templates</li>
+            <li>Example code to get started setting up your notification</li>
+            <li>Integration payload previews (e.g. View BlockKit, View Teams Blocks)</li>
+            <li>Resizable Email previews for mobile/desktop</li>
+            <li>Internal documentation on Notification Platform concepts</li>
+          </ul>
+        </Text>
       </FeatureContainer>
     </Fragment>
   );
