@@ -95,6 +95,16 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     options?.enabled,
   ]);
 
+  // if summaryData exists and status is complete OR status is error
+  // and waitingForNextRun is true, reset waitingForNextRun to false
+  if (
+    ((summaryData?.data && summaryData?.status === ReplaySummaryStatus.COMPLETED) ||
+      summaryData?.status === ReplaySummaryStatus.ERROR) &&
+    waitingForNextRun
+  ) {
+    setWaitingForNextRun(false);
+  }
+
   return {
     summaryData,
     isPolling: isPolling(summaryData, waitingForNextRun),
@@ -105,9 +115,12 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
 }
 
 /** Will not poll when the replay summary is in an error state or has completed */
-const isPolling = (summaryData: SummaryResponse | undefined, runStarted: boolean) => {
+const isPolling = (
+  summaryData: SummaryResponse | undefined,
+  waitingForNextRun: boolean
+) => {
   // Poll if we have no data but a run was started
-  if (!summaryData && runStarted) {
+  if (!summaryData && waitingForNextRun) {
     return true;
   }
 
