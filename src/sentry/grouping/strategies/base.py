@@ -95,6 +95,27 @@ def strategy(
 
 
 class GroupingContext:
+    """
+    A key-value store used for passing state between strategy functions and other helpers used
+    during grouping.
+
+    Has a dictionary-like interface, along with a context manager which allows values to be
+    temporarily overwritten:
+
+        context = GroupingContext()
+        context["some_key"] = "original_value"
+
+        value_at_some_key = context["some_key"] # will be "original_value"
+
+        value_at_another_key = context["another_key"] # will raise a KeyError
+
+        with context:
+            context["some_key"] = "some_other_value"
+            value_at_some_key = context["some_key"] # will be "some_other_value"
+
+        value_at_some_key = context["some_key"] # will be "original_value"
+    """
+
     def __init__(self, strategy_config: StrategyConfiguration, event: Event):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
