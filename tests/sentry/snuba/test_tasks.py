@@ -31,6 +31,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
+    SubscriptionError,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -503,6 +504,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_query_that_raises_invalid_search_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        with pytest.raises(SubscriptionError):
+            sub = self.create_subscription(
+                QuerySubscription.Status.DELETING,
+                dataset=Dataset.Metrics,
+                subscription_id=subscription_id,
+                query="project:foo",
+                aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            )
+            delete_subscription_from_snuba(sub.id)
 
 
 class BuildSnqlQueryTest(TestCase):
