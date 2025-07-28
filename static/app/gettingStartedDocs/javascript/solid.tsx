@@ -285,7 +285,9 @@ const onboarding: OnboardingConfig = {
       {
         id: 'solid-features',
         name: t('Solid Features'),
-        description: t('Learn about our first class integration with the Solid framework.'),
+        description: t(
+          'Learn about our first class integration with the Solid framework.'
+        ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
       },
     ];
