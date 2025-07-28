@@ -207,7 +207,7 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
 
   const handleMouseEnter = useCallback(() => {
     if (shouldLoad) {
-      return () => {};
+      return;
     }
 
     if (hoverTimeoutRef.current) {
@@ -217,24 +217,14 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
     hoverTimeoutRef.current = setTimeout(() => {
       setShouldLoad(true);
     }, hoverTimeout);
-
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
   }, [hoverTimeout, shouldLoad]);
 
   const handleMouseLeave = useCallback(() => {
-    if (shouldLoad) {
-      return;
-    }
-
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
     }
-  }, [shouldLoad]);
+  }, []);
 
   useEffect(() => {
     return () => {
