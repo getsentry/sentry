@@ -1598,6 +1598,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -1611,7 +1612,6 @@ function buildRoutes(): RouteObject[] {
               deprecatedRouteProps: true,
             },
           ],
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1621,6 +1621,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          deprecatedRouteProps: true,
           children: [
             {
               path: ':ruleId/',
@@ -1628,7 +1629,6 @@ function buildRoutes(): RouteObject[] {
               deprecatedRouteProps: true,
             },
           ],
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1638,6 +1638,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          deprecatedRouteProps: true,
           children: [
             {
               path: ':monitorSlug/',
@@ -1645,7 +1646,6 @@ function buildRoutes(): RouteObject[] {
               deprecatedRouteProps: true,
             },
           ],
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -2302,6 +2302,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'profile/:projectId/',
       component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
+      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
@@ -2310,18 +2311,17 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: 'profile/:projectId/:eventId/',
       component: make(() => import('sentry/views/profiling/transactionProfileProvider')),
+      deprecatedRouteProps: true,
       children: [
         {
           path: 'flamegraph/',
           component: make(() => import('sentry/views/profiling/profileFlamechart')),
         },
       ],
-      deprecatedRouteProps: true,
     },
   ];
   const profilingRoutes: SentryRouteObject = {
@@ -2745,7 +2745,6 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
         },
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: 'status/mail/',
@@ -2978,7 +2977,6 @@ function buildRoutes(): RouteObject[] {
   const legacyOrgRedirects: SentryRouteObject = {
     path: '/:orgId/:projectId/',
     children: legacyOrgRedirectChildren,
-    deprecatedRouteProps: true,
   };
 
   const organizationRoutes: SentryRouteObject = {

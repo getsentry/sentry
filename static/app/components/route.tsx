@@ -71,13 +71,13 @@ type NoRouteProps = {
 
 interface DeprecatedPropRoute extends BaseRouteObject {
   /**
+   * A react component that accepts legacy router props (location, params, router, etc.)
+   */
+  component: React.ComponentType<any>;
+  /**
    * Passes legacy route props to the component.
    */
   deprecatedRouteProps: true;
-  /**
-   * A react component that accepts legacy router props (location, params, router, etc.)
-   */
-  component?: React.ComponentType<any>;
 }
 
 interface RouteObject extends BaseRouteObject {
@@ -85,11 +85,11 @@ interface RouteObject extends BaseRouteObject {
    * A react component to render or a import promise that will be lazily loaded.
    * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
    */
-  component?: React.ComponentType<NoRouteProps>;
-  /**
-   * Passes legacy route props to the component.
-   */
-  deprecatedRouteProps?: never;
+  component: React.ComponentType<NoRouteProps>;
 }
 
-export type SentryRouteObject = RouteObject | DeprecatedPropRoute;
+interface NoComponentRoute extends BaseRouteObject {
+  component?: never;
+}
+
+export type SentryRouteObject = RouteObject | DeprecatedPropRoute | NoComponentRoute;
