@@ -852,6 +852,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       component: make(() => import('sentry/views/organizationStats/teamInsights')),
+      deprecatedRouteProps: true,
       children: [
         {
           path: 'issues/',
@@ -1525,6 +1526,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':projectId/',
           component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+          deprecatedRouteProps: true,
           children: [
             {
               index: true,
@@ -1538,7 +1540,6 @@ function buildRoutes(): RouteObject[] {
               deprecatedRouteProps: true,
             },
           ],
-          deprecatedRouteProps: true,
         },
         {
           path: ':projectId/:ruleId/details/',
@@ -1555,6 +1556,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'uptime/',
           component: make(() => import('sentry/views/alerts/rules/uptime')),
+          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:uptimeRuleId/details/',
@@ -1573,6 +1575,7 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'crons/',
           component: make(() => import('sentry/views/alerts/rules/crons')),
+          deprecatedRouteProps: true,
           children: [
             {
               path: ':projectId/:monitorSlug/details/',
