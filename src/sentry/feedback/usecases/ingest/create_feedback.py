@@ -158,9 +158,7 @@ def validate_issue_platform_event_schema(event_data):
             raise
 
 
-def should_filter_feedback(
-    event: dict, project_id: int, platform: str, source: FeedbackCreationSource
-) -> tuple[bool, str | None]:
+def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
     """Returns a tuple of (should_filter, reason)."""
 
     # Right now all unreal error events without a feedback
@@ -172,75 +170,26 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={
-                "platform": platform,
-                "reason": "missing_context",
-                "referrer": source.value,
-            },
-        )
-        return True, "Missing Feedback Context"
+        return True, "missing_context"
 
     message = event["contexts"]["feedback"]["message"]
 
     if message == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={
-                "reason": "unreal.unattended",
-                "referrer": source.value,
-            },
-        )
-        return True, "Sent in Unreal Unattended Mode"
+        return True, "unreal.unattended"
 
     if message.strip() == "":
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={
-                "platform": platform,
-                "reason": "empty",
-                "referrer": source.value,
-            },
-        )
-        return True, "Empty Feedback Message"
+        return True, "empty"
 
     if len(message) > options.get("feedback.message.max-size"):
         # Note options are cached.
-        metrics.distribution(
-            "feedback.large_message",
-            len(message),
-            tags={
-                "entrypoint": "create_feedback_issue",
-                "referrer": source.value,
-            },
-        )
-        if random.random() < 0.1:
-            logger.info(
-                "Feedback message exceeds max size.",
-                extra={
-                    "project_id": project_id,
-                    "entrypoint": "create_feedback_issue",
-                    "referrer": source.value,
-                    "length": len(message),
-                    "feedback_message": message[:100],
-                },
-            )
-        return True, "Too Large"
+        return True, "too_large"
 
     associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
     if associated_event_id:
         try:
             UUID(str(associated_event_id))
         except ValueError:
-            metrics.incr(
-                "feedback.create_feedback_issue.filtered",
-                tags={
-                    "reason": "invalid_associated_event_id",
-                    "referrer": source.value,
-                },
-            )
-            return True, "Invalid Event ID"
+            return True, "invalid_associated_event_id"
 
     return False, None
 
@@ -294,10 +243,39 @@ def create_feedback_issue(
         },
     )
 
-    should_filter, filter_reason = should_filter_feedback(
-        event, project.id, project.platform, source
-    )
+    should_filter, filter_reason = should_filter_feedback(event)
     if should_filter:
+        if filter_reason == "too_large":
+            feedback_message = event["contexts"]["feedback"]["message"]
+            metrics.distribution(
+                "feedback.large_message",
+                len(feedback_message),
+                tags={
+                    "entrypoint": "create_feedback_issue",
+                    "referrer": source.value,
+                },
+            )
+            if random.random() < 0.1:
+                logger.info(
+                    "Feedback message exceeds max size.",
+                    extra={
+                        "project_id": project.id,
+                        "entrypoint": "create_feedback_issue",
+                        "referrer": source.value,
+                        "length": len(feedback_message),
+                        "feedback_message": feedback_message[:100],
+                    },
+                )
+        else:
+            metrics.incr(
+                "feedback.create_feedback_issue.filtered",
+                tags={
+                    "platform": project.platform,
+                    "reason": filter_reason,
+                    "referrer": source.value,
+                },
+            )
+
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -330,6 +308,8 @@ def create_feedback_issue(
             sample_rate=1.0,
         )
 
+    # Prepare the data for issue platform processing and attach useful tags.
+
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
@@ -359,7 +339,7 @@ def create_feedback_issue(
         "project_id": project.id,
         "received": now.isoformat(),
         "tags": event.get("tags", {}),
-        **event,
+        **event,  # TODO: should the above fields override the event fields?
     }
     event_fixed = fix_for_issue_platform(event_data)
 
