@@ -47,7 +47,7 @@ export default function TestsPage() {
     cursor: location.query?.cursor as string | undefined,
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
   });
-  const defaultBranch = response.data.defaultBranch;
+  const defaultBranch = response.data?.defaultBranch;
 
   const shouldDisplayContent = integratedOrgId && repository && branch && codecovPeriod;
 
@@ -84,7 +84,7 @@ function Content({response}: TestResultsContentData) {
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
-  const defaultBranch = response.data.defaultBranch;
+  const defaultBranch = response.data?.defaultBranch;
 
   const handleCursor = useCallback(
     (

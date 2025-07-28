@@ -78,7 +78,9 @@ export function useInfiniteTestResults({
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';
-  const testSuites = searchParams.getAll('testSuites') || null;
+  const testSuites = searchParams.has('testSuites')
+    ? searchParams.getAll('testSuites')
+    : null;
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -185,7 +187,7 @@ export function useInfiniteTestResults({
   return {
     data: {
       testResults: memoizedData,
-      defaultBranch: data?.pages?.[0]?.[0].defaultBranch,
+      defaultBranch: data?.pages?.[0]?.[0]?.defaultBranch,
     },
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
