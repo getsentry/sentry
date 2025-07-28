@@ -355,6 +355,9 @@ class Project(Model):
         # This Project has sent insight MCP spans
         has_insights_mcp: bool
 
+        # This project has sent logs
+        has_logs: bool
+
         bitfield_default = 10
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
