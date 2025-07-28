@@ -947,7 +947,7 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
 
 
 @django_db_all
-def test_create_feedback_adds_ai_labels_when_generation_succeeds(
+def test_create_feedback_adds_ai_labels(
     default_project, mock_produce_occurrence_to_kafka, monkeypatch
 ):
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
@@ -976,9 +976,11 @@ def test_create_feedback_adds_ai_labels_when_generation_succeeds(
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        assert tags["ai_categorization.label.0"] == "User Interface"
-        assert tags["ai_categorization.label.1"] == "Authentication"
-        assert tags["ai_categorization.label.2"] == "Performance"
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith("ai_categorization.label.")
+        ]
+        assert len(ai_labels) == 3
+        assert set(ai_labels) == {"User Interface", "Authentication", "Performance"}
 
 
 @django_db_all
