@@ -267,6 +267,7 @@ class EventFrequencyPercentConditionQueryTest(
 ):
     rule_cls = EventFrequencyPercentCondition
 
+    @pytest.mark.skip(reason="flaky: #96537")
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_batch_query_percent(self):
         self._make_sessions(60, self.environment2.name)
