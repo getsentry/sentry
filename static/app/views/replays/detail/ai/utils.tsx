@@ -20,13 +20,13 @@ export interface SummaryResponse {
   created_at: string | null;
   data: {
     summary: string;
-    time_ranges: TimeRange;
+    time_ranges: TimeRanges;
   } | null;
   num_segments: number | null;
   status: ReplaySummaryStatus;
 }
 
-export type TimeRange = Array<{
+export type TimeRanges = Array<{
   error: boolean;
   feedback: boolean;
   period_end: number;

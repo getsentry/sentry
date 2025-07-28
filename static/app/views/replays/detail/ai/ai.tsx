@@ -58,14 +58,11 @@ export default function Ai() {
 
   const segmentsIncreased =
     summaryData?.num_segments && segmentCount > summaryData.num_segments;
-  const summaryIsOld =
-    summaryData?.created_at &&
-    new Date(summaryData.created_at) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
   useEffect(() => {
     if (
-      (segmentsIncreased || summaryIsOld || needsInitialGeneration) &&
+      (segmentsIncreased || needsInitialGeneration) &&
       !isSummaryPending &&
       !isPolling &&
       !isError
@@ -74,7 +71,6 @@ export default function Ai() {
     }
   }, [
     segmentsIncreased,
-    summaryIsOld,
     needsInitialGeneration,
     isSummaryPending,
     isPolling,

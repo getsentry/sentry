@@ -17,12 +17,12 @@ import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurr
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TimeRange} from 'sentry/views/replays/detail/ai/utils';
+import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
-  timeRanges: TimeRange;
+  timeRanges: TimeRanges;
 }
 
 export function ChapterList({timeRanges}: Props) {
