@@ -156,6 +156,7 @@ export const platformProductAvailability = {
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
