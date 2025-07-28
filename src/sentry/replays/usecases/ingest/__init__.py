@@ -187,7 +187,7 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
             recording.replay_event,
         )
 
-    emit_trace_items_to_eap(recording.context["project_id"], recording.trace_items)
+    emit_trace_items_to_eap(recording.trace_items)
 
 
 @sentry_sdk.trace

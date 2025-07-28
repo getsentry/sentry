@@ -24,9 +24,11 @@ export const AI_GENERATION_OPS = [
   'gen_ai.generate_object',
   'gen_ai.stream_text',
   'gen_ai.stream_object',
-  'gen_ai.embed',
-  'gen_ai.embed_many',
+  'gen_ai.embed', // AI SDK
+  'gen_ai.embed_many', // AI SDK
+  'gen_ai.embeddings', // Python OpenAI
   'gen_ai.text_completion',
+  'gen_ai.responses',
 ];
 
 // AI Tool Calls - equivalent to OTEL Execute tool span

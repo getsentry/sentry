@@ -1,8 +1,4 @@
-import type {
-  IndexRouteProps,
-  RedirectProps,
-  RouteProps,
-} from 'sentry/types/legacyReactRouter';
+import type {RouteProps} from 'sentry/types/legacyReactRouter';
 
 // This module contains the "fake" react components that are used as we migrade
 // off of react-router 3 to 6. The shims in the utils/reactRouter6Compat module
@@ -79,15 +75,3 @@ export function Route(_props: SentryRouteProps) {
   return null;
 }
 Route.displayName = 'Route';
-
-export function IndexRoute(_props: IndexRouteProps & CustomProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-IndexRoute.displayName = 'IndexRoute';
-
-export function Redirect(_props: RedirectProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-Redirect.displayName = 'Redirect';

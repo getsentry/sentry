@@ -278,6 +278,81 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('option', {name: 'Last 7 days'})).toBeInTheDocument();
     });
 
+    it('includes comparisonDelta in events-stats request when using percent change detection', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      const eventsStatsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        body: {data: []},
+      });
+
+      const updateRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'PUT',
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/monitors/${mockDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      // Switch to percent change detection
+      await userEvent.click(screen.getByRole('radio', {name: 'Change'}));
+
+      // Set % change value to 10%
+      const newThresholdValue = '22';
+      await userEvent.clear(screen.getByLabelText('Initial threshold'));
+      await userEvent.type(screen.getByLabelText('Initial threshold'), newThresholdValue);
+
+      // Wait for the events-stats request to be made with comparisonDelta
+      // Default comparisonDelta is 1 hour (3600 seconds)
+      await waitFor(() => {
+        expect(eventsStatsRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-stats/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              comparisonDelta: 3600,
+            }),
+          })
+        );
+      });
+
+      // Save changes and verify the update request includes comparisonDelta
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(updateRequest).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/1/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: expect.objectContaining({
+              config: expect.objectContaining({
+                detectionType: 'percent',
+                comparisonDelta: 3600,
+              }),
+            }),
+          })
+        );
+      });
+      const updateBody = updateRequest.mock.calls[0][1];
+      expect(updateBody.data.conditionGroup.conditions[0]).toEqual({
+        comparison: Number(newThresholdValue),
+        conditionResult: 75,
+        type: 'gt',
+      });
+    });
+
     it('hides detection type options when dataset is changed to releases', async () => {
       const testDetector = MetricDetectorFixture({
         name: 'Test Detector',

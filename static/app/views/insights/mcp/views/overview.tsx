@@ -51,8 +51,8 @@ import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTr
 import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
-import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -193,7 +193,7 @@ function McpOverviewPage() {
         module={ModuleName.MCP}
         headerTitle={
           <Fragment>
-            {MODULE_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }
