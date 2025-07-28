@@ -52,11 +52,11 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
+  // TODO: Wireup sizeMode
   const content =
     selectedContent === 'treemap' ? (
-      <AppSizeTreemap treemapData={appSizeData.treemap} />
+      <AppSizeTreemap treemapData={appSizeData.treemap} sizeMode="install" />
     ) : (
-      // TODO: Wireup sizeMode
       <AppSizeCategories treemapData={appSizeData.treemap} sizeMode="install" />
     );
 

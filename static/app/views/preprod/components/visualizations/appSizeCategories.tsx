@@ -54,9 +54,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
         value: size,
         category,
         itemStyle: {
-          color:
-            APP_SIZE_CATEGORY_INFO[category]?.color ||
-            APP_SIZE_CATEGORY_INFO[TreemapType.OTHER]?.color,
+          color: categoryInfo.color,
         },
       };
     })
