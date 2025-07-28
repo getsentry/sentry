@@ -276,19 +276,19 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         if "latestIncident" in self.expand:
             # to get the actions for a detector, we need to go from detector -> workflow -> action filters for that workflow -> actions
-            detector_workflows = DetectorWorkflow.objects.filter(
+            detector_workflow_values = DetectorWorkflow.objects.filter(
                 detector__in=detector_ids
             ).values_list("detector_id", "workflow_id")
             detector_id_to_workflow_ids = defaultdict(list)
-            for detector_id, workflow_id in detector_workflows:
+            for detector_id, workflow_id in detector_workflow_values:
                 detector_id_to_workflow_ids[detector_id].append(workflow_id)
 
-            data_condition_group_actions = dcgas.values_list(
+            workflow_action_values = dcgas.values_list(
                 "condition_group__workflowdataconditiongroup__workflow_id", "action_id"
             )
 
             workflow_id_to_action_ids = defaultdict(list)
-            for workflow_id, action_id in data_condition_group_actions:
+            for workflow_id, action_id in workflow_action_values:
                 workflow_id_to_action_ids[workflow_id].append(action_id)
 
             detector_to_action_ids = defaultdict(list)
