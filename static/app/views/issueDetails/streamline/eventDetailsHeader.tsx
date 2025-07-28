@@ -158,9 +158,6 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   }
                   triggerProps={{
                     borderless: true,
-                    style: {
-                      borderRadius: 0,
-                    },
                   }}
                 />
                 <SearchFilter
@@ -248,9 +245,6 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       css={environmentCss}
       triggerProps={{
         borderless: true,
-        style: {
-          borderRadius: 0,
-        },
       }}
     />
   );
@@ -309,7 +303,7 @@ const DateFilter = styled(TimeRangeSelector)`
 const GraphSection = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.md};
-  & > div {
+  & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.translucentBorder};

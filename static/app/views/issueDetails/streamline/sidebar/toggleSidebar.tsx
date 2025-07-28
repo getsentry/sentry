@@ -15,9 +15,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
   const direction = isSidebarOpen ? 'right' : 'left';
   const theme = useTheme();
 
-  const props = theme.isChonk
-    ? ({size: 'xs'} as const)
-    : ({style: {height: size === 'lg' ? '40px' : '26px'}} as const);
+  const props = {style: {height: size === 'lg' ? '40px' : '26px'}};
 
   return (
     <ToggleContainer sidebarOpen={isSidebarOpen ?? true}>
@@ -47,7 +45,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
 const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
   width: ${p => (p.theme.isChonk ? undefined : p.sidebarOpen ? '30px' : '50px')};
   position: relative;
-  margin-right: -12px;
+  margin-right: -${p => p.theme.space.lg};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
