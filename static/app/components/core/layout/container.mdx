@@ -6,7 +6,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
 ---
 
-import {Container} from 'sentry/components/core/layout/container';
+import {Container, Flex} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/layout/container';
@@ -32,9 +32,9 @@ The simplest usage renders a `div` element with enhanced layout properties:
 The `padding` prop uses the theme's spacing system with shorthand support:
 
 <Storybook.Demo>
-  <Container display="flex" direction="column" gap="md">
+  <Flex gap="md">
     {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
-      <Container key={size} background="tertiary" padding={size}>
+      <Container key={size} background="tertiary" padding={size} border="primary">
         <strong>{size} padding</strong> -{' '}
         {size === 'xs'
           ? '4px'
@@ -49,7 +49,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
                   : '24px'}
       </Container>
     ))}
-  </Container>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 <Container padding="md">8px padding on all sides</Container>
@@ -62,17 +62,17 @@ The `padding` prop uses the theme's spacing system with shorthand support:
 Apply rounded corners using theme radius values:
 
 <Storybook.Demo>
-  <Container display="flex" gap="md">
-    <Container background="secondary" padding="md" radius="sm">
+  <Flex gap="md">
+    <Container background="secondary" padding="md" radius="sm" border="primary">
       Small radius
     </Container>
-    <Container background="secondary" padding="md" radius="md">
+    <Container background="secondary" padding="md" radius="md" border="primary">
       Medium radius
     </Container>
-    <Container background="secondary" padding="md" radius="lg">
+    <Container background="secondary" padding="md" radius="lg" border="primary">
       Large radius
     </Container>
-  </Container>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 <Container background="secondary" padding="md" radius="md">
@@ -85,12 +85,13 @@ Apply rounded corners using theme radius values:
 Set positioning for absolute/relative layouts:
 
 <Storybook.Demo>
-  <Container position="relative" height="100px" background="secondary">
+  <Container position="relative" height="100px" background="primary" border="primary">
     <Container
       position="absolute"
       padding="xs"
       background="tertiary"
       style={{top: '12px', right: '8px'}}
+      border="primary"
     >
       Absolute positioned
     </Container>
@@ -98,7 +99,7 @@ Set positioning for absolute/relative layouts:
   </Container>
 </Storybook.Demo>
 ```jsx
-<Container position="relative" height="100px" background="secondary">
+<Container position="relative" height="100px" background="primary">
   <Container
     position="absolute"
     padding="xs"
@@ -114,29 +115,27 @@ Set positioning for absolute/relative layouts:
 ## Responsive Example
 
 <Storybook.Demo>
-  <Container
-    display={{xs: 'block', sm: 'flex'}}
+  <Flex
     padding={{xs: 'sm', lg: 'xl'}}
     background={{xs: 'primary', sm: 'secondary', lg: 'tertiary'}}
     radius={{xs: '0', sm: 'md'}}
+    border="primary"
   >
-    <Container padding="sm" background="primary" style={{flex: 1}}>
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 1
     </Container>
-    <Container padding="sm" background="secondary" style={{flex: 1}}>
+    <Container padding="sm" background="secondary" style={{flex: 1}} border="primary">
       Item 2
     </Container>
-  </Container>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 <Container
-  // Changes from block to flex layout at sm breakpoint
-  display={{xs: 'block', sm: 'flex'}}
   // Padding increases at lg breakpoint
   padding={{xs: 'sm', lg: 'xl'}}
   // Background changes at sm and lg breakpoints
   background={{xs: 'primary', sm: 'secondary', lg: 'tertiary'}}
-  // Adds border radius at sm breakpoint
+  // Adds border="primary" radius at sm breakpoint
   radius={{xs: '0', sm: 'md'}}
 >
   <div>Responsive layout content</div>
@@ -158,13 +157,13 @@ The `area` prop supports CSS Grid integration:
       height: '200px',
     }}
   >
-    <Container area="header" background="tertiary" padding="sm">
+    <Container area="header" background="tertiary" padding="sm" border="primary">
       Header
     </Container>
-    <Container area="sidebar" background="secondary" padding="sm">
+    <Container area="sidebar" background="secondary" padding="sm" border="primary">
       Sidebar
     </Container>
-    <Container area="content" background="primary" padding="sm">
+    <Container area="content" background="primary" padding="sm" border="primary">
       Content
     </Container>
   </Container>

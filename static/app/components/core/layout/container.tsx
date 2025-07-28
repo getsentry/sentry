@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import type {Theme} from 'sentry/utils/theme';
 
 import {
+  type Border,
+  getBorder,
   getRadius,
   getSpacing,
   type RadiusSize,
@@ -38,6 +40,8 @@ interface BaseContainerProps {
   height?: Responsive<React.CSSProperties['height']>;
   minHeight?: Responsive<React.CSSProperties['minHeight']>;
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
+
+  border?: Responsive<Border>;
 
   area?: Responsive<React.CSSProperties['gridArea']>;
 }
@@ -118,6 +122,8 @@ export const Container = styled(
   ${p => rc('max-height', p.maxHeight, p.theme)};
 
   ${p => rc('grid-area', p.area, p.theme)};
+
+  ${p => rc('border', p.border, p.theme, getBorder)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
