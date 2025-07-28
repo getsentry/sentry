@@ -25,7 +25,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
     def now(self):
         return datetime.now(UTC).replace(microsecond=0)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

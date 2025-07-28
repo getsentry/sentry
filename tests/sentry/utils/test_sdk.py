@@ -365,7 +365,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
 
 class BindOrganizationContextTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
     def test_simple(self) -> None:

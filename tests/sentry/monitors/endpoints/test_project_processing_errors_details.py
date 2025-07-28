@@ -8,7 +8,7 @@ class ProjectProcessingErrorsDetailsEndpointTest(MonitorTestCase, APITestCase):
     endpoint = "sentry-api-0-project-processing-errors-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

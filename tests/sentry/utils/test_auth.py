@@ -20,7 +20,7 @@ from sentry.utils.auth import (
 
 @control_silo_test
 class EmailAuthBackendTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = User(username="foo", email="baz@example.com")
         self.user.set_password("bar")
         self.user.save()

@@ -5,7 +5,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestWorkflowFireHistory(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,

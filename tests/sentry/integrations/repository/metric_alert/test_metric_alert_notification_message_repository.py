@@ -62,7 +62,7 @@ class TestGetParentNotificationMessage(TestCase):
 
 
 class TestCreateNotificationMessage(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.incident = self.create_incident()
         self.trigger_action = self.create_alert_rule_trigger_action()
         self.repository = MetricAlertNotificationMessageRepository.default()

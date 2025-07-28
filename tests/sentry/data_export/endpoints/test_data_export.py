@@ -14,7 +14,7 @@ class DataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("user1@example.com")
         self.org = self.create_organization(name="Test")
         self.team = self.create_team(organization=self.org, name="Data Export Team")

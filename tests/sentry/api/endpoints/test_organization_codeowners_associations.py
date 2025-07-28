@@ -10,7 +10,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
     method = "GET"
     endpoint = "sentry-api-0-organization-codeowners-associations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_1 = self.create_user("walter.mitty@life.com")
         self.user_2 = self.create_user("exec@life.com")
         self.organization = self.create_organization(name="Life")

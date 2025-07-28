@@ -84,7 +84,7 @@ class CreateEventTestCase(TestCase):
 
 
 class TestSafeForComment(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -226,7 +226,7 @@ class TestSafeForComment(GithubCommentTestCase):
 
 
 class TestGetFilenames(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 
@@ -367,7 +367,7 @@ class TestGetCommentIssues(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.installation = get_installation_of_type(
@@ -778,7 +778,7 @@ class TestFormatComment(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
@@ -940,7 +940,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_id = "user_1"
         self.app_id = "app_1"
         self.group_1 = [self._create_event(culprit="issue1", user_id=str(i)) for i in range(5)][

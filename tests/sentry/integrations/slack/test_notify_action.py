@@ -50,7 +50,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
         return mock_slack_response("chat_deleteScheduledMessage", {"ok": True})
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.get_event().project.organization
         self.integration, self.org_integration = self.create_provider_integration_for(
             organization=self.organization,

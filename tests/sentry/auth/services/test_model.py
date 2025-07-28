@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestRpcApiToken(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 
@@ -22,7 +22,7 @@ class TestRpcApiToken(TestCase):
 
 @control_silo_test
 class TestRpcApiKey(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 

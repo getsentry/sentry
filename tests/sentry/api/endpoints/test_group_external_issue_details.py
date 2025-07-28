@@ -3,7 +3,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class GroupExternalIssueDetailsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.group = self.create_group()

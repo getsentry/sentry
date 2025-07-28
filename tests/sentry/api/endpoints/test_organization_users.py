@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationMemberListTest(APITestCase):
     endpoint = "sentry-api-0-organization-users"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
         self.user_3 = self.create_user("unrelated@localhost", username="unrelated")

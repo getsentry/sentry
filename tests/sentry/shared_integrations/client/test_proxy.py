@@ -26,7 +26,7 @@ class IntegrationProxyClientTest(TestCase):
     base_url = "https://example.com"
     test_url = f"{base_url}/get?query=1&user=me"
 
-    def setUp(self):
+    def setUp(self) -> None:
         class TestClient(IntegrationProxyClient):
             integration_type = "integration"
             integration_name = "test"

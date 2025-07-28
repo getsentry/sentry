@@ -18,7 +18,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SlackRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.request = mock.Mock()
@@ -113,7 +113,7 @@ class SlackRequestTest(TestCase):
 
 
 class SlackEventRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.request = mock.Mock()
@@ -196,7 +196,7 @@ class SlackEventRequestTest(TestCase):
 
 
 class SlackActionRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.request = mock.Mock()

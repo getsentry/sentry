@@ -19,7 +19,7 @@ def additional_attachment_generator_block_kit(integration, organization):
 
 
 class SlackNotificationsTest(SlackActivityNotificationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification = DummyNotification(self.organization)
 

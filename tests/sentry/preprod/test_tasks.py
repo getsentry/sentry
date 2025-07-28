@@ -296,7 +296,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
 
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
@@ -373,7 +373,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED

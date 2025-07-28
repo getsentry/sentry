@@ -14,7 +14,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
         "value": "10",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group.times_seen_pending = 0
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)

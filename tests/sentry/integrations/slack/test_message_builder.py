@@ -1822,7 +1822,7 @@ class ActionsTest(TestCase):
 
 class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     @freeze_time("2024-02-23")
-    def setUp(self):
+    def setUp(self) -> None:
         self.endpoint_regression_issue = self.create_group(
             type=PerformanceP95EndpointRegressionGroupType.type_id
         )

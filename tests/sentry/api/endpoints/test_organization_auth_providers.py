@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase, PermissionTestCase
 
 
 class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.path = reverse(
             "sentry-api-0-organization-auth-providers", args=[self.organization.slug]
@@ -23,7 +23,7 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
 class OrganizationAuthProviders(APITestCase):
     endpoint = "sentry-api-0-organization-auth-providers"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

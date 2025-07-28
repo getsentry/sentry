@@ -20,7 +20,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-viewed-by"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.replay_id = uuid4().hex

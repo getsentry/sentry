@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BitbucketRepositoryProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
@@ -155,7 +155,7 @@ class BitbucketRepositoryProviderTest(TestCase):
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"

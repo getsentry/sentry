@@ -11,7 +11,7 @@ from sentry.types.region import get_region_for_organization
 
 @control_silo_test
 class SentryAppInstallationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.proxy = self.create_user()
         self.org = self.create_organization()

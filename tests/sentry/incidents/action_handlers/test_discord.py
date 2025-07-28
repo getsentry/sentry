@@ -19,7 +19,7 @@ from . import FireTest
 @freeze_time()
 class DiscordActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.spec = DiscordMessagingSpec()
         self.handler = MessagingActionHandler(self.spec)
         self.guild_id = "guild-id"

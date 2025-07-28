@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
 class IntegrationRepositoryTestCase(TestCase):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization, provider="github", external_id="654321"

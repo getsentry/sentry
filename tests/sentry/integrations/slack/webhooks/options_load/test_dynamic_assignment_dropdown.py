@@ -9,7 +9,7 @@ pytestmark = [requires_snuba]
 
 
 class DynamicAssignmentDropdownTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = {
             "event_id": "a" * 32,

@@ -13,7 +13,7 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 
 
 class SlackClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.access_token = "xoxb-access-token"
         self.integration, self.organization_integration = self.create_provider_integration_for(
             organization=self.organization,

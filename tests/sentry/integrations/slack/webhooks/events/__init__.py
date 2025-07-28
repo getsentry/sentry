@@ -48,7 +48,7 @@ def build_test_block(link):
 
 
 class BaseEventTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = install_slack(self.organization)
 

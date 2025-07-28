@@ -35,7 +35,7 @@ from sentry.utils.committers import (
 
 
 class CommitTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
@@ -103,7 +103,7 @@ class ScorePathMatchLengthTest(unittest.TestCase):
 
 
 class GetFramePathsTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = Mock()
         self.event.data = {}
 
@@ -125,7 +125,7 @@ class GetFramePathsTestCase(unittest.TestCase):
 
 
 class GetCommitFileChangesTestCase(CommitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
         file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
@@ -235,7 +235,7 @@ class GetPreviousReleasesTestCase(TestCase):
 
 
 class GetEventFileCommitters(CommitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.release = self.create_release(project=self.project, version="v12")
         self.group = self.create_group(
@@ -1025,7 +1025,7 @@ class GetEventFileCommitters(CommitTestCase):
 
 
 class DedupeCommits(CommitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_dedupe_with_same_commit(self) -> None:

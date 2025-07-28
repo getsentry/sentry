@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppFeaturesTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
 
         self.sentry_app = self.create_sentry_app(

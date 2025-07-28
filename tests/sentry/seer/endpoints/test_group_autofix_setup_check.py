@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         integration = self.create_integration(organization=self.organization, external_id="1")

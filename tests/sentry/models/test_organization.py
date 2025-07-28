@@ -183,7 +183,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
 
 
 class Require2fa(TestCase, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user("foo@example.com")
         with assume_test_silo_mode(SiloMode.CONTROL):
             TotpInterface().enroll(self.owner)

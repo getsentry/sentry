@@ -16,7 +16,7 @@ class AssistantActivityTest(APITestCase):
     def guides(self):
         return manager.all()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)
@@ -57,7 +57,7 @@ class AssistantActivityUpdateTest(APITestCase):
     def guides(self):
         return manager.all()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_organization(owner=self.user)
         self.login_as(user=self.user)

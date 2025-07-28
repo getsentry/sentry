@@ -59,7 +59,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class TestAlertRuleSerializerBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,

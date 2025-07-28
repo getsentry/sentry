@@ -31,7 +31,7 @@ from tests.sentry.api.endpoints.test_organization_member_index import (
 class OrganizationMemberTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -169,7 +169,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.curr_user = self.create_user("member@example.com")
@@ -913,7 +913,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.curr_user = self.create_user("member@example.com")
@@ -1224,7 +1224,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
 
 class ResetOrganizationMember2faTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
 

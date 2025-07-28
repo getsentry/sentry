@@ -9,7 +9,7 @@ pytestmark = [requires_snuba, requires_kafka]
 
 
 class ProjectOwnershipEndpointTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.user2 = self.create_user("user2@example.com")
         self.user3 = self.create_user("user3@example.com")

@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 
 
 class BitbucketIssueTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"

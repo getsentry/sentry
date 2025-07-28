@@ -3,7 +3,7 @@ from tests.sentry.api.bases.test_organization import PermissionBaseTestCase
 
 
 class MemberPermissionTest(PermissionBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission_cls = MemberPermission
 
@@ -69,7 +69,7 @@ class MemberPermissionTest(PermissionBaseTestCase):
 
 
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission_cls = MemberAndStaffPermission
 

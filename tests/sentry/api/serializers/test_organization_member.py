@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 
 
 class OrganizationMemberSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
 

@@ -26,7 +26,7 @@ pytestmark = requires_snuba
 
 
 class GroupTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
 
@@ -389,7 +389,7 @@ class GroupIsOverResolveAgeTest(TestCase):
 
 
 class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.two_min_ago = before_now(minutes=2).isoformat()

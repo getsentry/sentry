@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 class UserNotificationDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notifications"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
 

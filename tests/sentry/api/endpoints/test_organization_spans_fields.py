@@ -13,7 +13,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = False
     view = "sentry-api-0-organization-spans-fields"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -202,7 +202,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = False
     view = "sentry-api-0-organization-spans-fields-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

@@ -490,7 +490,7 @@ class IssueSyncIntegration(TestCase):
 
 
 class IssueSyncIntegrationWebhookTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # Generate the issue, integration, sentry app, and installation
         self.group = self.create_group(project=self.project)
         assert self.group.status == GroupStatus.UNRESOLVED
@@ -599,7 +599,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
 
 
 class IssueDefaultTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group.status = GroupStatus.RESOLVED
         self.group.substatus = None
         self.group.save()

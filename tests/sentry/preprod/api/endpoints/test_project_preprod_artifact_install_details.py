@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectPreprodInstallDetailsEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(
             name="test_installable.ipa",

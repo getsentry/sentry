@@ -8,7 +8,7 @@ COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 class SentryAppInteractionTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-interaction"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.published_app = self.create_sentry_app(
@@ -52,7 +52,7 @@ class SentryAppInteractionAuthTest(SentryAppInteractionTest):
 
 
 class GetSentryAppInteractionTest(SentryAppInteractionTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -80,7 +80,7 @@ class GetSentryAppInteractionTest(SentryAppInteractionTest):
 class PostSentryAppInteractionTest(SentryAppInteractionTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

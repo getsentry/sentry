@@ -75,7 +75,7 @@ class GetAuthForUserTest(TestCase):
 
 
 class IssuePlugin2GroupActionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")

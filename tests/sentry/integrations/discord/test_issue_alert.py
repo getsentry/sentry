@@ -31,7 +31,7 @@ pytestmark = [requires_snuba]
 class DiscordIssueAlertTest(RuleTestCase):
     rule_cls = DiscordNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.guild_id = "guild-id"
         self.channel_id = "12345678910"
         self.discord_user_id = "user1234"
@@ -297,7 +297,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
 
 class DiscordNotifyServiceFormTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.guild_id = "guild-id"
         self.channel_id = "12345678910"
         self.discord_integration = self.create_integration(

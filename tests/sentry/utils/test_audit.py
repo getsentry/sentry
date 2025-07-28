@@ -29,7 +29,7 @@ def fake_http_request(user):
 
 @all_silo_test
 class CreateAuditEntryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(username=username)
         self.req = fake_http_request(self.user)
         self.org = self.create_organization(owner=self.user)

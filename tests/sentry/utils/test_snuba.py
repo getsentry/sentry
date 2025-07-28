@@ -27,7 +27,7 @@ from sentry.utils.snuba import (
 
 
 class SnubaUtilsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.now = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
@@ -303,7 +303,7 @@ class PrepareQueryParamsTest(TestCase):
 
 
 class QuantizeTimeTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.now = timezone.now().replace(microsecond=0)
 
     def test_quantizes_with_duration(self) -> None:

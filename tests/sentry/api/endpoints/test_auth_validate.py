@@ -8,7 +8,7 @@ from sentry.types.token import AuthTokenType
 
 @control_silo_test
 class AuthenticatedTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user()

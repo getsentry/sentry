@@ -9,7 +9,7 @@ from sentry.users.models.useremail import UserEmail
 
 @control_silo_test
 class UserEmailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="foo@example.com")
         self.login_as(user=self.user)

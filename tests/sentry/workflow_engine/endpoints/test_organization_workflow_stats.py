@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 class WorkflowStatsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-workflow-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.workflow = self.create_workflow(organization=self.organization)

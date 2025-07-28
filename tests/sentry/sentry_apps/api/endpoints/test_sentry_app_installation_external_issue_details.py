@@ -6,7 +6,7 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-external-issue-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)

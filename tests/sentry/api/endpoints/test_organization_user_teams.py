@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationUserTeamsTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-teams"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.foo = self.create_user("foo@example.com")
         self.bar = self.create_user("bar@example.com", is_superuser=True)
         self.org = self.create_organization(owner=self.user)

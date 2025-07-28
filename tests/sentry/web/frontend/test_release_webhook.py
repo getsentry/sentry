@@ -13,7 +13,7 @@ from sentry.utils import json
 class ReleaseWebhookTestBase(TestCase):
     plugin_id: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
@@ -42,7 +42,7 @@ class ReleaseWebhookTestBase(TestCase):
 
 
 class ReleaseWebhookTest(ReleaseWebhookTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin_id = "dummy"
 
@@ -101,7 +101,7 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
 
 
 class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin_id = "builtin"
 

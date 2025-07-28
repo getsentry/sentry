@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseThresholdDetailsGETTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
 
@@ -74,7 +74,7 @@ class ReleaseThresholdDetailsGETTest(APITestCase):
 
 
 class ReleaseThresholdDetailsDELETETest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
 
@@ -136,7 +136,7 @@ class ReleaseThresholdDetailsDELETETest(APITestCase):
 
 
 class ReleaseThresholdDetailsPUTTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
 

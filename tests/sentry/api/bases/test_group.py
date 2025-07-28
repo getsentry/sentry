@@ -9,7 +9,7 @@ from sentry.testutils.requests import drf_request_from_request
 
 
 class GroupAiPermissionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission = GroupAiPermission()
         self.project = self.create_project()
@@ -65,7 +65,7 @@ class GroupAiPermissionTest(TestCase):
 
 
 class GroupAiEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.endpoint = GroupAiEndpoint()
         self.project = self.create_project()

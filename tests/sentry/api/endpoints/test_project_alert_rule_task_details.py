@@ -13,7 +13,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 
 
 class ProjectAlertRuleTaskDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)

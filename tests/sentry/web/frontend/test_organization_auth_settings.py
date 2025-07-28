@@ -38,7 +38,7 @@ from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 @control_silo_test
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.auth_provider_inst = AuthProvider.objects.create(
@@ -636,7 +636,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
 
@@ -728,7 +728,7 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
     provider = DummyGenericSAML2Provider
     provider_name = "saml2_generic_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")

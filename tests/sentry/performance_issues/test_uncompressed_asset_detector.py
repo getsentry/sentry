@@ -42,7 +42,7 @@ def create_compressed_asset_span():
 
 @pytest.mark.django_db
 class UncompressedAssetsDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

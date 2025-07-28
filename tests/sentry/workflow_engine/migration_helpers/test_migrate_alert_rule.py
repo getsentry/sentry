@@ -488,7 +488,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
 
 
 class DualWriteAlertRuleTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.metric_alert = self.create_alert_rule(resolve_threshold=2)
 
@@ -532,7 +532,7 @@ class DualWriteAlertRuleTest(APITestCase):
 
 
 class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         (
             self.data_source,
@@ -660,7 +660,7 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         (
             self.data_source,
@@ -735,7 +735,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
 
 
 class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule(resolve_threshold=2)
         self.metric_alert_no_resolve = self.create_alert_rule()
         self.create_migrated_metric_alert_objects(self.metric_alert)
@@ -826,7 +826,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
 
 
 class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
@@ -882,7 +882,7 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
 
 
 class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical", alert_threshold=200
@@ -932,7 +932,7 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
 
 
 class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         # set up legacy objects
         METADATA = {
             "api_key": "1234-ABCD",
@@ -1076,7 +1076,7 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
 
 class DualDeleteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
@@ -1125,7 +1125,7 @@ class DualDeleteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
 
 class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         METADATA = {
             "api_key": "1234-ABCD",
             "base_url": "https://api.opsgenie.com/",
@@ -1307,7 +1307,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
     if none is explicitly specified.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
@@ -1346,7 +1346,7 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
     objects corresponding to an AlertRuleTrigger.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="critical"
@@ -1414,7 +1414,7 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
     objects for an alert rule, its triggers, and its actions.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         # rule for testing SPE create
         self.metric_alert = self.create_alert_rule(resolve_threshold=100)
         self.alert_rule_trigger = self.create_alert_rule_trigger(

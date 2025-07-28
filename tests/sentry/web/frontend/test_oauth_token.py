@@ -49,7 +49,7 @@ class OAuthTokenCodeTest(TestCase):
     def path(self):
         return "/oauth/token/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -393,7 +393,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def path(self):
         return "/oauth/token/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
@@ -503,7 +503,7 @@ class OAuthTokenOrganizationScopedTest(TestCase):
     def path(self):
         return "/oauth/token/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user,

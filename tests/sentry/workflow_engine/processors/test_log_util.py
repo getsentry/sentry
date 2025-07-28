@@ -11,7 +11,7 @@ from sentry.workflow_engine.processors.log_util import (
 
 
 class TestBatchPerformanceTracker(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.logger = Mock(spec=logging.Logger)
         self.time_func = Mock(return_value=0)

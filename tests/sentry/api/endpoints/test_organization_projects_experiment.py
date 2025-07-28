@@ -25,7 +25,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     p1 = "project-one"
     p2 = "project-two"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.email_username = fetch_slugifed_email_username(self.user.email)

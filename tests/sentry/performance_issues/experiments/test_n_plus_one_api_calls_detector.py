@@ -28,7 +28,7 @@ from sentry.testutils.performance_issues.event_generators import (
 class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
     type_id = PerformanceNPlusOneAPICallsExperimentalGroupType.type_id
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

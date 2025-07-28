@@ -36,7 +36,7 @@ SERVICES = [
 class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.project_rule = self.create_project_rule(name="Check #project-channel")
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration, org_integration = self.create_provider_integration_for(

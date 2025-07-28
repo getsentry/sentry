@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         # Create a test file

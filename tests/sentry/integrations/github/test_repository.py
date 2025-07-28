@@ -22,7 +22,7 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 
 @control_silo_test
 class GitHubAppsProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         ten_hours = timezone.now() + datetime.timedelta(hours=10)
         self.integration = self.create_integration(

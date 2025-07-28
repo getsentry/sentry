@@ -219,7 +219,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         cursor.execute("select abs(hashtext(cast(%s as varchar))) %% %s", [project.id, num_workers])
         return cursor.fetchone()[0]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         bulk_data = self.create_group_event_rows(5)
         self.event = bulk_data["events"][0]

@@ -23,7 +23,7 @@ from . import FireTest
 
 @freeze_time()
 class SentryAppActionHandlerTest(FireTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             name="foo",
             organization=self.organization,
@@ -190,7 +190,7 @@ class SentryAppActionHandlerTest(FireTest):
 
 @freeze_time()
 class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             name="foo",
             organization=self.organization,

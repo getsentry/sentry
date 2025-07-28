@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationAvatarTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-avatar"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

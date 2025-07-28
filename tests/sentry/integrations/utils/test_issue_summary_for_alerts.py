@@ -8,7 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class FetchIssueSummaryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

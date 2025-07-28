@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 class SentryAppAvatarTestBase(APITestCase):
     endpoint = "sentry-api-0-sentry-app-avatar"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.unpublished_app = self.create_sentry_app(name="Meow", organization=self.organization)
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app, color=True, avatar_type=0)

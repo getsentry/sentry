@@ -17,7 +17,7 @@ class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
 
 
 class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.url = reverse(
@@ -84,7 +84,7 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
 
 
 class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.url = reverse(

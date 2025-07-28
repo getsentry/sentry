@@ -68,7 +68,7 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
 
 @pytest.mark.django_db
 class HTTPOverheadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

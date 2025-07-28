@@ -15,7 +15,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.data_condition_group = self.create_data_condition_group()
         self.data_condition = self.create_data_condition(condition_group=self.data_condition_group)
         self.snuba_query = self.create_snuba_query()

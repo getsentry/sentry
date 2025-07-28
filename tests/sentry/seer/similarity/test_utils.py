@@ -844,7 +844,7 @@ class SeerUtilsTest(TestCase):
 
 
 class HasTooManyFramesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # The `in_app` and `contributes` values of these frames will be determined by the project
         # stacktrace rules we'll add below
         self.contributing_system_frame = {

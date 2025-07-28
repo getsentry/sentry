@@ -32,7 +32,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class WebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
@@ -82,7 +82,7 @@ class WebhookTest(APITestCase):
 class InstallationEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
@@ -153,7 +153,7 @@ class InstallationEventWebhookTest(APITestCase):
 class InstallationDeleteEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
@@ -235,7 +235,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
 
 
 class PushEventWebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
@@ -567,7 +567,7 @@ class PushEventWebhookTest(APITestCase):
 
 
 class PullRequestEventWebhook(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)

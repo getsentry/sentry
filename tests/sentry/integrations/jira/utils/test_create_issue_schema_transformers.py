@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestDataTransformer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # TODO(Gabe): Add an interface for the Jira client to share among the different impls
         self.client: Any = StubJiraApiClient()
 

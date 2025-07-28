@@ -16,7 +16,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class ErrorsQueryBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.projects = [self.project.id]
 
     @pytest.mark.querybuilder

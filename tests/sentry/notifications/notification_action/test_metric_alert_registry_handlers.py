@@ -145,7 +145,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             group=self.group,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_models()
 
     def create_issue_occurrence(
@@ -273,7 +273,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
 
 @apply_feature_flag_on_cls("organizations:issue-open-periods")
 class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.action = self.create_action(
             type=Action.Type.DISCORD,

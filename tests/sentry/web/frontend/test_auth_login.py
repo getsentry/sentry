@@ -628,7 +628,7 @@ class AuthLoginCustomerDomainTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def disable_registration(self):

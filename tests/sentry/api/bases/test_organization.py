@@ -51,7 +51,7 @@ class MockSuperUser:
 
 
 class PermissionBaseTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         # default to the organization permission class
         self.permission_cls = OrganizationPermission
@@ -313,7 +313,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
 
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.permission_cls = OrganizationAndStaffPermission
 
@@ -378,7 +378,7 @@ class BaseOrganizationEndpointTest(TestCase):
 
 
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.team_1 = self.create_team(organization=self.org)
         self.team_2 = self.create_team(organization=self.org)
         self.team_3 = self.create_team(organization=self.org)
@@ -601,7 +601,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project(organization=self.org)
         self.env_1 = self.create_environment(project=self.project)
         self.env_2 = self.create_environment(project=self.project)
@@ -628,7 +628,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
 
 
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.team_1 = self.create_team(organization=self.org)
         self.project_1 = self.create_project(organization=self.org, teams=[self.team_1])
         self.project_2 = self.create_project(organization=self.org, teams=[self.team_1])

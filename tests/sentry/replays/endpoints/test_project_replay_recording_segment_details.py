@@ -27,7 +27,7 @@ class EnvironmentBase(APITestCase):
     def init_environment(self) -> None:
         raise NotImplementedError
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.replay_id = uuid.uuid4().hex
         self.segment_id = 0

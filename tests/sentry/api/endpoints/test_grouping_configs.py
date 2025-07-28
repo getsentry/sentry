@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 class GroupingConfigsNoSlugTest(APITestCase):
     endpoint = "sentry-api-0-grouping-configs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
@@ -24,7 +24,7 @@ class GroupingConfigsNoSlugTest(APITestCase):
 class GroupingConfigsWithSlugTest(APITestCase):
     endpoint = "sentry-api-0-organization-grouping-configs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)

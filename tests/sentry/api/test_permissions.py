@@ -49,7 +49,7 @@ class PermissionsTest(DRFPermissionTestCase):
 class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
     user_permission = SentryIsAuthenticated()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.normal_user = self.create_user(id=1)
         self.readonly_user = self.create_user(id=2)
@@ -74,7 +74,7 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
 class DemoSafePermissionsTest(DRFPermissionTestCase):
     user_permission = DemoSafePermission()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.normal_user = self.create_user(
             id=1,

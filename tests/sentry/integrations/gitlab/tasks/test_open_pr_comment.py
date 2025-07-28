@@ -87,7 +87,7 @@ index 0000001..0000002 100644
 
 
 class TestSafeForComment(GitlabCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.pr = self.create_pr_issues()
@@ -349,7 +349,7 @@ class TestOpenPRCommentWorkflow(GitlabCommentTestCase):
             project_id=project_id,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.pr = self.create_pr_issues()
 

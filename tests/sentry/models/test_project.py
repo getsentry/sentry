@@ -452,7 +452,7 @@ class ProjectOptionsTests(TestCase):
     If a project has an option set, it will override the template option.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.option_key = "sentry:test_data"
         self.project = self.create_project()
@@ -501,7 +501,7 @@ class ProjectOptionsTests(TestCase):
 
 
 class CopyProjectSettingsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

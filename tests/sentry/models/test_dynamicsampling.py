@@ -32,7 +32,7 @@ def _create_rule_for_env(
 
 @freeze_time("2023-09-18")
 class TestCustomDynamicSamplingRuleProject(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.second_project = self.create_project()
         self.second_organization = self.create_organization(owner=self.user)

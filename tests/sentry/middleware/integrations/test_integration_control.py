@@ -28,7 +28,7 @@ class IntegrationControlMiddlewareTest(TestCase):
     integration_cls = IntegrationClassification(response_handler=get_response)
     plugin_cls = PluginClassification(response_handler=get_response)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
 
     def validate_mock_ran_with_noop(self, request, mock):

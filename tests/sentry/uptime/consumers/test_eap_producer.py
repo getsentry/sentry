@@ -12,7 +12,7 @@ from sentry.uptime.types import IncidentStatus
 
 
 class EAPProducerIntegrationTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.subscription = self.create_uptime_subscription(subscription_id=str(uuid.uuid4()))
 

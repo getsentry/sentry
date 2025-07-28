@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class OrganizationMemberInviteSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.email = "user@email.com"
 

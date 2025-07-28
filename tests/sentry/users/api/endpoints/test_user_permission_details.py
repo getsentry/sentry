@@ -11,7 +11,7 @@ from sentry.users.models.userpermission import UserPermission
 class UserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-user-permission-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.add_user_permission(self.superuser, "users.admin")

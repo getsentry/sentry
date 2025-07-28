@@ -11,7 +11,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestNotificationActionHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)

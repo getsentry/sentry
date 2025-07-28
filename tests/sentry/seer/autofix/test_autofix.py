@@ -1169,7 +1169,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1273,7 +1273,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1313,7 +1313,7 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1631,7 +1631,7 @@ class TestBuildSpansTree(TestCase):
 
 
 class TestGetLogsForEvent(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

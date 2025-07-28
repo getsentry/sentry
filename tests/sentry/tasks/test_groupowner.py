@@ -20,7 +20,7 @@ pytestmark = [requires_snuba]
 
 
 class TestGroupOwners(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id

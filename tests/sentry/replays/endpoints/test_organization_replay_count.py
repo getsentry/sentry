@@ -27,7 +27,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationReplayCountEndpointTest(
     APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
         self.min_ago = before_now(minutes=2)

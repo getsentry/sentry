@@ -33,7 +33,7 @@ class MockSession(SessionBase):
 
 
 class SessionSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.serializer = SessionSerializer()
 
     def test_serialize_with_full_session_data(self) -> None:
@@ -82,7 +82,7 @@ class SessionSerializerTest(TestCase):
 
 
 class SessionBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.request = Mock(spec=Request)
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)

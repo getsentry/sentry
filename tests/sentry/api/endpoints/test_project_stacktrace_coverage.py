@@ -12,7 +12,7 @@ from tests.sentry.issues.endpoints.test_project_stacktrace_link import BaseProje
 class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-coverage"
 
-    def setUp(self):
+    def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
         options.set("codecov.client-secret", "supersecrettoken")
         self.code_mapping1 = self.create_code_mapping(

@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 class CommitFileChangeTest(APITestCase):
     endpoint = "sentry-api-0-release-commitfilechange"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project(name="foo")

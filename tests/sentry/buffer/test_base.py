@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 
 
 class BufferTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         create_default_projects()
         self.buf = Buffer()
 

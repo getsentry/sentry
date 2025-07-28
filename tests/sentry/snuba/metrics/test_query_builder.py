@@ -1565,7 +1565,7 @@ class QueryDefinitionTestCase(TestCase):
 
 
 class ResolveTagsTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = ORG_ID
         self.use_case_id = UseCaseID.TRANSACTIONS
 

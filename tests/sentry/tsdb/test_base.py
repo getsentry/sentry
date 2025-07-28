@@ -7,7 +7,7 @@ from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, BaseTSDB
 
 
 class BaseTSDBTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tsdb = BaseTSDB(
             rollups=(
                 # time in seconds, samples to keep

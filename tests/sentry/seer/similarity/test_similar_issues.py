@@ -26,7 +26,7 @@ from sentry.utils import json
 
 
 class GetSimilarityDataFromSeerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         self.similar_event_hash = self.similar_event.get_primary_hash()
         self.request_params: SimilarIssuesEmbeddingsRequest = {

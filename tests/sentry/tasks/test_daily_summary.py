@@ -98,7 +98,7 @@ class DailySummaryTest(
             group.save()
         return group
 
-    def setUp(self):
+    def setUp(self) -> None:
         responses.add_passthru(settings.SENTRY_SNUBA)
         super().setUp()
         self.now = datetime.now(UTC)

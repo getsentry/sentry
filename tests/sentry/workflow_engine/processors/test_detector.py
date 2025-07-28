@@ -40,7 +40,7 @@ from tests.sentry.workflow_engine.handlers.detector.test_base import (
 
 
 class TestInit(BaseDetectorHandlerTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(
             type=self.handler_type.slug,
@@ -65,7 +65,7 @@ class TestInit(BaseDetectorHandlerTest):
 
 @freeze_time()
 class TestProcessDetectors(BaseDetectorHandlerTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def build_data_packet(self, **kwargs):
@@ -838,7 +838,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
 
 
 class TestGetDetectorByEvent(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
         self.detector = self.create_detector(project=self.project, type="metric_issue")
@@ -920,7 +920,7 @@ class TestGetDetectorByEvent(TestCase):
 
 
 class TestGetDetectorsByGroupEventsBulk(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project1 = self.create_project()
         self.project2 = self.create_project()

@@ -22,7 +22,7 @@ if GitHubEnterpriseCreateTicketAction.id not in default_rules:
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

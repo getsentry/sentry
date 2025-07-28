@@ -2,7 +2,7 @@ from tests.sentry.integrations.slack.webhooks.actions import BaseEventTest
 
 
 class LinkClickedActionTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.original_message = {
             "blocks": [

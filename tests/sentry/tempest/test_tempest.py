@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TempestTasksTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.credentials = self.create_tempest_credentials(self.project)

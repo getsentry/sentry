@@ -187,7 +187,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
 
 
 class RegisterSubscriberTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.orig_registry = deepcopy(subscriber_registry)
 
     def tearDown(self):

@@ -897,7 +897,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 class OrganizationReleasesStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-releases-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project(teams=[self.team], organization=self.organization)
         self.project2 = self.create_project(teams=[self.team], organization=self.organization)
         self.project3 = self.create_project(teams=[self.team], organization=self.organization)
@@ -2108,7 +2108,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
@@ -2274,7 +2274,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
 
 
 class OrganizationReleaseListEnvironmentsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org, members=[self.user])
@@ -2522,7 +2522,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 
 class ReleaseSerializerWithProjectsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"
@@ -2685,7 +2685,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
 
 
 class ReleaseHeadCommitSerializerTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.repo_name = "repo/name"
         self.commit = "b" * 40

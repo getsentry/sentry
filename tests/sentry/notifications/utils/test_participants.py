@@ -138,7 +138,7 @@ class GetSendToMemberTest(_ParticipantsTest):
 
 
 class GetSendToTeamTest(_ParticipantsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingProvider.objects.create(
@@ -266,7 +266,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
     def store_event_owners(self, filename: str) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=self.project.id)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
         self.user_suspect_committer = self.create_user(
@@ -634,7 +634,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
 
 
 class GetOwnersCase(_ParticipantsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user_1 = self.create_user(email="paul@atreides.space")
         self.user_2 = self.create_user(email="leto@atreides.space")
         self.user_3 = self.create_user(email="lady@jessica.space")
@@ -760,7 +760,7 @@ class GetOwnersCase(_ParticipantsTest):
 
 
 class GetSendToFallthroughTest(_ParticipantsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
 

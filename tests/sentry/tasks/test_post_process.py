@@ -1433,7 +1433,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         "commitAuthorEmail": "admin@localhost",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.created_event = self.create_event(
             data={
                 "message": "Kaboom!",
@@ -2934,7 +2934,7 @@ class PostProcessGroupErrorTest(
     ProcessSimilarityTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         clear_replay_publisher()
 

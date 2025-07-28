@@ -28,7 +28,7 @@ from sentry.users.models.identity import Identity, IdentityProvider, IdentitySta
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.config = {
             "url": "https://github.example.org",

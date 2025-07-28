@@ -28,7 +28,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
     def setup_pd_service(self) -> PagerDutyServiceDict:
@@ -154,7 +154,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.workflow = self.create_workflow()

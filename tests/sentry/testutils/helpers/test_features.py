@@ -7,7 +7,7 @@ from sentry.testutils.helpers import with_feature
 
 
 class TestTestUtilsFeatureHelper(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
     def test_without_feature(self) -> None:

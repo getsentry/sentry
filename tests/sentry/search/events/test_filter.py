@@ -36,7 +36,7 @@ def with_type(type, argument):
 
 
 class DiscoverFunctionTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.fn_wo_optionals = DiscoverFunction(
             "wo_optionals",
             required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
@@ -1192,7 +1192,7 @@ def test_snql_malformed_boolean_search(description, query, expected_message):
 
 
 class SnQLBooleanSearchQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project()
         self.project2 = self.create_project()
         self.project3 = self.create_project()
@@ -1338,7 +1338,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
 class DetectorFilterTest(TestCase):
     """Tests for the detector filter functionality."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.organization = self.project.organization

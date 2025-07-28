@@ -74,7 +74,7 @@ class MockOrganizationRoles:
 class SentryAppsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
@@ -189,7 +189,7 @@ class SentryAppsTest(APITestCase):
 
 @control_silo_test
 class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.setup_apps()
 
@@ -270,7 +270,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
 
 @control_silo_test
 class GetSentryAppsTest(SentryAppsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.setup_apps()
         self.login_as(self.user)
@@ -393,7 +393,7 @@ class GetSentryAppsTest(SentryAppsTest):
 class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
@@ -442,7 +442,7 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
 
 @control_silo_test
 class PostWithTokenSentryAppsTest(SentryAppsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.setup_internal_app()
@@ -492,7 +492,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
 class PostSentryAppsTest(SentryAppsTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

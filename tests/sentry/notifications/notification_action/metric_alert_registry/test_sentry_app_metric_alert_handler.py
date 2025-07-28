@@ -25,7 +25,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 
 
 class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.sentry_app = self.create_sentry_app(
             name="foo",

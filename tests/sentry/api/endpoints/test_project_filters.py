@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 class ProjectFiltersTest(APITestCase):
     endpoint = "sentry-api-0-project-filters"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

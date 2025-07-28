@@ -261,7 +261,7 @@ class ReleaseDeleteTest(APITestCase):
 
 
 class ReleaseSerializerTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.commits = [{"id": "a" * 40}, {"id": "b" * 40}]
         self.ref = "master"

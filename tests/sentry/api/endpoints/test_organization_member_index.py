@@ -181,7 +181,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
 class OrganizationMemberListTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.create_member(organization=self.organization, user=self.user2)
         self.external_user = self.create_external_user(self.user2, self.organization)

@@ -58,7 +58,7 @@ class FetchForOrganizationTest(TestCase):
 
 
 class ActiveIncidentClearCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
@@ -150,7 +150,7 @@ class ActiveIncidentClearCacheTest(TestCase):
 
 
 class IncidentTriggerClearCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
         self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])

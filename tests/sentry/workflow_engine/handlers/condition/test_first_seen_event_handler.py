@@ -14,7 +14,7 @@ class TestFirstSeenEventCondition(ConditionTestCase):
     condition = Condition.FIRST_SEEN_EVENT
     payload = {"id": FirstSeenEventCondition.id}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(
             event=self.group_event,

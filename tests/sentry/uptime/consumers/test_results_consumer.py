@@ -74,7 +74,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def strategy_processing_mode(self) -> Literal["batched-parallel", "parallel", "serial"]:
         pass
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
         self.subscription = self.create_uptime_subscription(

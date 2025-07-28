@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class TeamMembersTest(APITestCase):
     endpoint = "sentry-api-0-team-members"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org)
         self.member = self.create_member(organization=self.org, user=self.create_user(), teams=[])

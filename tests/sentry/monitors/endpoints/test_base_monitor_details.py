@@ -30,7 +30,7 @@ from sentry.utils.outcomes import Outcome
 class BaseMonitorDetailsTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -217,7 +217,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 class BaseUpdateMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -895,7 +895,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 class BaseDeleteMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         super().setUp()
 

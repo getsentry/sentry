@@ -7,7 +7,7 @@ from sentry.testutils.requests import drf_request_from_request
 
 
 class TeamPermissionBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         super().setUp()
@@ -151,7 +151,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
 
 class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.org.flags.allow_joinleave = False

@@ -8,7 +8,7 @@ pytestmark = [requires_snuba]
 class IssueOccurrencesTest(RuleTestCase):
     rule_cls = IssueOccurrencesFilter
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event.group.times_seen_pending = 0
 

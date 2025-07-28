@@ -11,7 +11,7 @@ from sentry.utils import jwt
 
 @override_settings(CODECOV_API_BASE_URL="http://example.com")
 class TestCodecovApiClient(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.test_git_provider_org = "test-org"
         self.test_secret = "test-secret-" + "a" * 20
 

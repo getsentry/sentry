@@ -91,7 +91,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.create_project_rule(project=self.project)
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)

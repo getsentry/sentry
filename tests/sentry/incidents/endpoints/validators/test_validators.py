@@ -31,7 +31,7 @@ from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidator
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "type": Condition.GREATER,
@@ -113,7 +113,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
 
 
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(

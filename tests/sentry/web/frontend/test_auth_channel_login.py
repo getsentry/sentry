@@ -14,7 +14,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
             organization_id=sentry_org_id, provider="fly", config=config_data
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="test org", owner=self.user)
         self.create_auth_provider("fly-test-org", self.organization.id)
         self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])
@@ -76,7 +76,7 @@ class AuthNonPartnerOrganizationChannelLoginTest(TestCase):
             organization_id=sentry_org_id, provider="fly-non-partner", config=config_data
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="test org", owner=self.user)
         self.create_auth_provider("fly-test-org", self.organization.id)
         self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])

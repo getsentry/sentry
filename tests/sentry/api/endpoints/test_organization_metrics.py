@@ -40,7 +40,7 @@ MOCKED_DERIVED_METRICS.update(
 class OrganizationMetricsPermissionTest(APITestCase):
     (method, endpoint) = ("get", "sentry-api-0-organization-metrics-data")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)
 
     def send_request(self, organization, token, method, endpoint, *args):

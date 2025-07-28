@@ -9,7 +9,7 @@ from social_auth.models import UserSocialAuth
 
 
 class UserIdentityConfigTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.superuser = self.create_user(is_superuser=True)

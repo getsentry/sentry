@@ -15,7 +15,7 @@ pytestmark = [requires_snuba]
 
 
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(teams=[self.team])
         self.path = reverse("sentry-api-0-accept-project-transfer")
@@ -25,7 +25,7 @@ class AcceptTransferProjectPermissionTest(PermissionTestCase):
 
 
 class AcceptTransferProjectTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="example@example.com", is_superuser=False)
         self.from_organization = self.create_organization(owner=self.owner)

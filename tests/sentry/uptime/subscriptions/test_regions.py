@@ -12,7 +12,7 @@ from sentry.uptime.subscriptions.regions import (
 
 
 class TestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.test_regions = [
             UptimeRegionConfig(
                 slug="us",

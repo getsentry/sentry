@@ -23,7 +23,7 @@ from sentry.testutils.performance_issues.experiments import exclude_experimental
 @pytest.mark.django_db
 @exclude_experimental_detectors
 class MNPlusOneDBDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

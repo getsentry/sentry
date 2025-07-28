@@ -28,7 +28,7 @@ class MsTeamsRequestParserTest(TestCase):
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}msteams/webhook/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
         self.user = self.create_user()

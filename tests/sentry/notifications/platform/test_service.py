@@ -18,7 +18,7 @@ from sentry.testutils.notifications.platform import (
 
 
 class NotificationServiceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.target = GenericNotificationTarget(
             provider_key=NotificationProviderKey.EMAIL,
             resource_type=NotificationTargetResourceType.EMAIL,

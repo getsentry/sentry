@@ -52,7 +52,7 @@ IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 @control_silo_test
 @freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.current_datetime = timezone.now()
         self.default_token = "abcdefghjiklmnog"

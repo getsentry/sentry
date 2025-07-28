@@ -58,7 +58,7 @@ class TestSeerRpc(APITestCase):
 class TestSeerRpcMethods(APITestCase):
     """Test individual RPC methods"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 

@@ -20,7 +20,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 @all_silo_test
 class TestCodecovIntegration(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider="github",

@@ -15,7 +15,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-release-resolved"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()

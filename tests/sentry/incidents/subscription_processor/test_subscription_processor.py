@@ -83,7 +83,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
         self.email_action_handler = Mock()
@@ -3731,7 +3731,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
 
     format = "v2"  # TODO: remove once subscriptions migrated
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         for status in ["exited", "crashed"]:
             self.store_session(

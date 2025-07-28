@@ -1097,7 +1097,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
 @control_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)
         self.user = self.create_user("bar@example.com", is_managed=False, password="")
@@ -1270,7 +1270,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 @control_silo_test
 class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.demo_user = self.create_user(id=1)
         self.demo_org = self.create_organization(id=1, owner=self.demo_user)
 

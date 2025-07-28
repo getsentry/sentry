@@ -39,7 +39,7 @@ class PagerDutyClientTest(APITestCase):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
         self.integration, _ = self.create_provider_integration_for(
             self.organization,

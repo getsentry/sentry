@@ -11,7 +11,7 @@ class UserPasswordTest(APITestCase):
     endpoint = "sentry-api-0-user-password"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="a@example.com", is_managed=False, name="example name")
         self.user.set_password("helloworld!")
         self.user.save()

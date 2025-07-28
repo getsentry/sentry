@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 class OrganizationIntegrationsListTest(APITestCase):
     endpoint = "sentry-api-0-organization-integrations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.integration = self.create_integration(

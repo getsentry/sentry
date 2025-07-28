@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class UpdateProjectKeyTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.superuser = self.create_user(is_superuser=True)
@@ -341,7 +341,7 @@ class UpdateProjectKeyTest(APITestCase):
 
 
 class DeleteProjectKeyTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.superuser = self.create_user(is_superuser=True)

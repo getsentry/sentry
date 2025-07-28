@@ -18,7 +18,7 @@ pytestmark = requires_snuba
 class BaseListMonitorCheckInsTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

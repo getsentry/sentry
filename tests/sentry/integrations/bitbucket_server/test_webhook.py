@@ -22,7 +22,7 @@ PROVIDER = "bitbucket_server"
 class WebhookTestBase(APITestCase):
     endpoint = "sentry-extensions-bitbucketserver-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.base_url = "https://api.bitbucket.org"

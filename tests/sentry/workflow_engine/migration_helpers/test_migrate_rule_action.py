@@ -29,7 +29,7 @@ from sentry.workflow_engine.typings.notification_action import (
 
 
 class TestNotificationActionMigrationUtils(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
 

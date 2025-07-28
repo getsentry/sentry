@@ -30,7 +30,7 @@ from . import FireTest
 
 @freeze_time()
 class PagerDutyActionHandlerTest(FireTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
         self.handler = PagerDutyActionHandler()
         service = [

@@ -12,7 +12,7 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 class OrganizationApiKeyDetailsBase(APITestCase):
     endpoint = "sentry-api-0-organization-api-key-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.api_key = ApiKey.objects.create(

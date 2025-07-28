@@ -54,7 +54,7 @@ def override_org_id(new_org_id: int):
 @control_silo_test
 @freeze_time(BASETIME)
 class StaffTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.current_datetime = timezone.now()
         self.default_token = "abcdefghijklmnog"

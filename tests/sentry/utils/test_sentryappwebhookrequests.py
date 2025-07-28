@@ -3,7 +3,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestSentryAppWebhookRequests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             name="Test App", events=["issue.resolved", "issue.ignored", "issue.assigned"]
         )
