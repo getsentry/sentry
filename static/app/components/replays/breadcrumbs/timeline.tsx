@@ -11,12 +11,17 @@ import styled from '@emotion/styled';
  * </Columns>
  */
 export const Columns = styled('ul')<{remainder: number; totalColumns: number}>`
+  pointer-events: none;
+
   /* Reset defaults for <ul> */
   list-style: none;
   margin: 0;
   padding: 0;
 
   /* Layout of the lines */
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(${p => p.totalColumns}, 1fr) ${p => p.remainder}fr;
 `;
