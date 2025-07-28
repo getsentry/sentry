@@ -4,7 +4,7 @@ import orjson
 import pytest
 from django.urls import reverse
 
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
@@ -112,13 +112,6 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_code == 404
         assert response.status_text == "Not Found"
 
-    def test_get_grouping_info_unkown_grouping_config(self) -> None:
-        data = load_data(platform="javascript")
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        with pytest.raises(ResourceDoesNotExist):
-            get_grouping_info("fake-config", self.project, event)
-
     @mock.patch("sentry.grouping.grouping_info.logger")
     @mock.patch("sentry.grouping.grouping_info.metrics")
     def test_get_grouping_info_hash_mismatch(self, mock_metrics, mock_logger):
@@ -140,7 +133,9 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry.eventstore.models.BaseEvent.get_grouping_variants"
         ) as mock_get_grouping_variants:
             mock_get_grouping_variants.return_value = python_grouping_variants
-            get_grouping_info(None, self.project, javascript_event)
+
+            grouping_config = load_grouping_config(get_default_grouping_config_dict())
+            get_grouping_info(grouping_config, self.project, javascript_event)
 
         mock_metrics.incr.assert_called_with("event_grouping_info.hash_mismatch")
         mock_logger.error.assert_called_with(
