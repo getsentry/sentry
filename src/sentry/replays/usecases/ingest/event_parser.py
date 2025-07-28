@@ -510,6 +510,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(payload["startTimestamp"]),
             }
+        case EventType.NAVIGATION_SPAN:
+            return None
 
 
 def as_string_strict(value: Any) -> str:
