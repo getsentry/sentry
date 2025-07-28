@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Heading} from 'sentry/components/core/text';
-import {DebugNotificationsEmptyState} from 'sentry/debug/notifications/components/debugNotificationsEmptyState';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
+import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
 import {DebugNotificationsSidebar} from 'sentry/debug/notifications/components/debugNotificationsSidebar';
 import {notificationCategories} from 'sentry/debug/notifications/data';
 import {DiscordPreview} from 'sentry/debug/notifications/previews/discordPreview';
@@ -49,7 +49,7 @@ export default function DebugNotificationsIndex() {
                 <TeamsPreview />
               </Fragment>
             ) : (
-              <DebugNotificationsEmptyState />
+              <DebugNotificationsLanding />
             )}
           </BodyContainer>
         </Layout>
@@ -65,7 +65,6 @@ const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};
-  padding: ${p => p.theme.space['2xl']};
 `;
 
 // const SourceTitle = styled('h2')`
