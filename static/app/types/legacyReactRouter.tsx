@@ -54,7 +54,7 @@ type RouteHook = (nextLocation?: Location) => any;
 type ComponentCallback = (err: any, component: RouteComponent) => any;
 type ComponentsCallback = (err: any, components: RouteComponents) => any;
 
-export interface IndexRouteProps<Props = any> {
+interface IndexRouteProps<Props = any> {
   component?: RouteComponent | undefined;
   components?: RouteComponents | undefined;
   getComponent?(nextState: RouterState, callback: ComponentCallback): void;
