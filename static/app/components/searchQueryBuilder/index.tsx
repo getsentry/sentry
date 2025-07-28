@@ -103,6 +103,19 @@ export interface SearchQueryBuilderProps {
    */
   invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
+  /**
+   * Allows for key suggestions to be rendered when the value matches the pattern.
+   * This is useful for keys that have a specific format, such as trace IDs or IDs.
+   *
+   * @example
+   * ```tsx
+   * <SearchQueryBuilder
+   *   // ...
+   *   matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+   * />
+   * ```
+   */
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * Called when the query value changes
@@ -125,6 +138,7 @@ export interface SearchQueryBuilderProps {
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
+
   /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input
