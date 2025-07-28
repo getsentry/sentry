@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/explore/constants';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
 
 type TypedTraceItemAttributes = {
   number: TagCollection;
@@ -113,7 +114,10 @@ export function TraceItemAttributeProvider({
   );
 }
 
-export function useTraceItemAttributes(type?: 'number' | 'string') {
+export function useTraceItemAttributes(
+  type?: 'number' | 'string',
+  hiddenKeys?: string[]
+) {
   const typedAttributesResult = useContext(TraceItemAttributeContext);
 
   if (typedAttributesResult === undefined) {
@@ -124,14 +128,22 @@ export function useTraceItemAttributes(type?: 'number' | 'string') {
 
   if (type === 'number') {
     return {
-      attributes: typedAttributesResult.number,
-      secondaryAliases: typedAttributesResult.numberSecondaryAliases,
+      attributes: hiddenKeys
+        ? removeHiddenKeys(typedAttributesResult.number, hiddenKeys)
+        : typedAttributesResult.number,
+      secondaryAliases: hiddenKeys
+        ? removeHiddenKeys(typedAttributesResult.numberSecondaryAliases, hiddenKeys)
+        : typedAttributesResult.numberSecondaryAliases,
       isLoading: typedAttributesResult.numberAttributesLoading,
     };
   }
   return {
-    attributes: typedAttributesResult.string,
-    secondaryAliases: typedAttributesResult.stringSecondaryAliases,
+    attributes: hiddenKeys
+      ? removeHiddenKeys(typedAttributesResult.string, hiddenKeys)
+      : typedAttributesResult.string,
+    secondaryAliases: hiddenKeys
+      ? removeHiddenKeys(typedAttributesResult.stringSecondaryAliases, hiddenKeys)
+      : typedAttributesResult.stringSecondaryAliases,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
 }

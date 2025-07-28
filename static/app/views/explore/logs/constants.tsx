@@ -34,6 +34,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
   OurLogKnownFieldKey.PROJECT,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
@@ -56,6 +57,8 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
 ];
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
+
+export const HiddenLogSearchFields: string[] = [...AlwaysHiddenLogFields];
 
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',
