@@ -191,5 +191,6 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 lifecycle.record_halt(e)
                 if rule_id == TEST_NOTIFICATION_ID:
                     raise
-
-        create_link(integration, installation, event, response)
+            # If we successfully created the issue, we want to create the link
+            else:
+                create_link(integration, installation, event, response)
