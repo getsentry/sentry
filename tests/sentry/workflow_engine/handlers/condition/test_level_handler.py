@@ -21,7 +21,7 @@ class TestLevelCondition(ConditionTestCase):
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event = self.store_event(data={"level": "info"}, project_id=self.project.id)
         self.group = self.create_group(project=self.project)

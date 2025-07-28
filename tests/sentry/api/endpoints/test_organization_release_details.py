@@ -29,7 +29,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class ReleaseDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user1 = self.create_user(is_staff=False, is_superuser=False)
 
@@ -1273,7 +1273,7 @@ class ReleaseDeleteTest(APITestCase):
 
 
 class ReleaseSerializerTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"

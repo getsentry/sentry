@@ -15,7 +15,7 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
     condition = Condition.EXISTING_HIGH_PRIORITY_ISSUE
     payload = {"id": ExistingHighPriorityIssueCondition.id}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(
             event=self.group_event,

@@ -13,7 +13,7 @@ TEST_DATE_UPDATED = datetime(2023, 1, 23, 1, 24, 45, tzinfo=timezone.utc)
 
 @freeze_time(TEST_DATE_UPDATED)
 class RelocationSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True

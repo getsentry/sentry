@@ -94,7 +94,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             max_batch_size=1,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 1234
         self.stale_id = 2001
         self.fresh_id = 2002

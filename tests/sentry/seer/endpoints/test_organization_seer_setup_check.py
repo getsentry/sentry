@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 class OrganizationSeerSetupCheckTestBase(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-seer-setup-check"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

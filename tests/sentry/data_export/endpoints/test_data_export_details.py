@@ -14,7 +14,7 @@ from sentry.testutils.cases import APITestCase
 class DataExportDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)

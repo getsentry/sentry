@@ -4,7 +4,7 @@ from sentry.workflow_engine.models import Condition, DataConditionGroup
 
 
 class TestBaseDataConditionGroupValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.context = {"organization": self.organization, "request": self.make_request()}
 
         self.valid_data = {

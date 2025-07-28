@@ -28,7 +28,7 @@ pytestmark = [requires_snuba]
 
 
 class StatusActionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=False)
         owner = self.create_user()

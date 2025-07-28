@@ -19,7 +19,7 @@ from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPrior
 
 
 class BaseMetricIssueTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector_group_key = None
         self.detector = self.create_detector(

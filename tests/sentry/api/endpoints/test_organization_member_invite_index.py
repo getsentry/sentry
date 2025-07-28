@@ -23,7 +23,7 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
 class OrganizationMemberInviteListTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.approved_invite = self.create_member_invite(
             organization=self.organization, email="user1@email.com"
         )
@@ -53,7 +53,7 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
     def invite_all_helper(self, role):
@@ -202,7 +202,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
     def test_forbid_qq(self) -> None:

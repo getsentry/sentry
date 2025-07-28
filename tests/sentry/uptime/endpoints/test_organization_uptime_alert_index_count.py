@@ -7,7 +7,7 @@ from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 class OrganizationUptimeAlertCountTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-organization-uptime-alert-index-count"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

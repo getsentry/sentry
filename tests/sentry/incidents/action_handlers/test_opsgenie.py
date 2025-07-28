@@ -34,7 +34,7 @@ METADATA = {
 @freeze_time()
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.handler = OpsgenieActionHandler()
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.integration = self.create_provider_integration(

@@ -23,7 +23,7 @@ from sentry.testutils.cases import TestCase
 
 class SyncArtifactBundlesTest(TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.source_org = self.create_organization(slug="source_org")
         self.target_org = self.create_organization(slug="target_org")
         self.unrelated_org = self.create_organization(slug="unrelated_org")

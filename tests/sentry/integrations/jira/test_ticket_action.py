@@ -28,7 +28,7 @@ pytestmark = [requires_snuba]
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project_name = "Jira Cloud"
         self.integration, _ = self.create_provider_integration_for(

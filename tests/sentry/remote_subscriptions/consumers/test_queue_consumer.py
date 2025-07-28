@@ -27,7 +27,7 @@ from sentry.utils import json
 
 
 class TestOffsetTracker(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.partition1 = Partition(Topic("test"), 0)
         self.partition2 = Partition(Topic("test"), 1)
         self.tracker = OffsetTracker()
@@ -73,7 +73,7 @@ class TestOffsetTracker(TestCase):
 
 
 class TestFixedQueuePool(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_items: list[tuple[str, str]] = []
         self.process_lock = threading.Lock()
         self.process_complete_event = threading.Event()
@@ -208,7 +208,7 @@ class TestFixedQueuePool(TestCase):
 
 
 class TestSimpleQueueProcessingStrategy(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_results: list[Any] = []
         self.committed_offsets: dict[Partition, int] = {}
         self.process_lock = threading.Lock()
@@ -428,7 +428,7 @@ class TestThreadQueueParallelIntegration(TestCase):
 class TestRebalancing(TestCase):
     """Test rebalancing scenarios for thread-queue-parallel consumer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_results: list[tuple[str, dict]] = []
         self.process_lock = threading.Lock()
         self.process_condition = threading.Condition(self.process_lock)

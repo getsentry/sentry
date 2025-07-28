@@ -15,7 +15,7 @@ pytestmark = [requires_snuba]
 
 
 class GitlabIssuesTest(GitLabTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
