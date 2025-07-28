@@ -415,8 +415,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       platformicons:
-        specifier: ^8.0.8
-        version: 8.0.8(react@19.1.0)
+        specifier: ^8.0.9
+        version: 8.0.9(react@19.1.0)
       po-catalog-loader:
         specifier: 2.1.0
         version: 2.1.0(gettext-parser@7.0.1)
@@ -516,10 +516,6 @@ importers:
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
-    optionalDependencies:
-      fsevents:
-        specifier: ^2.3.2
-        version: 2.3.3
     devDependencies:
       '@codecov/webpack-plugin':
         specifier: ^1.9.0
@@ -656,6 +652,10 @@ importers:
       typescript-eslint:
         specifier: ^8.26.0
         version: 8.26.0(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.3)
+    optionalDependencies:
+      fsevents:
+        specifier: ^2.3.2
+        version: 2.3.3
 
 packages:
 
@@ -7156,8 +7156,8 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  platformicons@8.0.8:
-    resolution: {integrity: sha512-FPZAxLqt+k61tHTFUbGeUt86Am4q5cJoFUq4zIFVyvf+FJDwz6OYGxH9QnhP9l425059Mw7FSUnctX9ES6sEzQ==}
+  platformicons@8.0.9:
+    resolution: {integrity: sha512-/fxEmDF49cYik0Sc+9BJVuh+eRe51YLJ1CWUodH+jP0EcdWY+QTY6mNO+dR4Gffme6VZ80+XD7OW+FV1erfa8Q==}
     peerDependencies:
       react: '*'
 
@@ -17201,7 +17201,7 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  platformicons@8.0.8(react@19.1.0):
+  platformicons@8.0.9(react@19.1.0):
     dependencies:
       '@types/node': 22.15.21
       '@types/react': 19.1.0
