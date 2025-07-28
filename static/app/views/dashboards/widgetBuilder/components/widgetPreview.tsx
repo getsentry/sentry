@@ -137,7 +137,6 @@ function WidgetPreview({
       showLoadingText
       onWidgetTableSort={handleWidgetTableSort}
       onWidgetTableResizeColumn={handleWidgetTableResizeColumn}
-      isPreview
     />
   );
 }

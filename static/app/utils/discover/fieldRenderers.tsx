@@ -379,8 +379,6 @@ type SpecialFieldRenderFunc = (
 type SpecialField = {
   renderFunc: SpecialFieldRenderFunc;
   sortField: string | null;
-  // Whether a field allows for cell actions. Every field should, except some fields with internal links
-  useCellActions: boolean;
 };
 
 const DownloadCount = styled('span')`
@@ -410,7 +408,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </NumberContainer>
       );
     },
-    useCellActions: true,
   },
   attachments: {
     sortField: null,
@@ -447,7 +444,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </RightAlignedContainer>
       );
     },
-    useCellActions: false,
   },
   minidump: {
     sortField: null,
@@ -479,7 +475,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </RightAlignedContainer>
       );
     },
-    useCellActions: false,
   },
   id: {
     sortField: 'id',
@@ -490,7 +485,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
       return <Container>{getShortEventId(id)}</Container>;
     },
-    useCellActions: false,
   },
   span_id: {
     sortField: 'span_id',
@@ -502,7 +496,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{getShortEventId(id)}</Container>;
     },
-    useCellActions: false,
   },
   [SpanFields.SPAN_DESCRIPTION]: {
     sortField: SpanFields.SPAN_DESCRIPTION,
@@ -544,7 +537,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Tooltip>
       );
     },
-    useCellActions: true,
   },
   trace: {
     sortField: 'trace',
@@ -556,7 +548,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{getShortEventId(id)}</Container>;
     },
-    useCellActions: false,
   },
   'issue.id': {
     sortField: 'issue.id',
@@ -573,7 +564,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
-    useCellActions: false,
   },
   replayId: {
     sortField: 'replayId',
@@ -596,7 +586,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
-    useCellActions: false,
   },
   'profile.id': {
     sortField: 'profile.id',
@@ -608,7 +597,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{getShortEventId(id)}</Container>;
     },
-    useCellActions: true,
   },
   issue: {
     sortField: null,
@@ -641,7 +629,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
-    useCellActions: false,
   },
   project: {
     sortField: 'project',
@@ -674,7 +661,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
-    useCellActions: false,
   },
   // Two different project ID fields are being used right now. `project_id` is shared between all datasets, but `project.id` is the new one used in spans
   project_id: {
@@ -683,7 +669,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const projectId = data.project_id;
       return getProjectIdLink(projectId, baggage);
     },
-    useCellActions: false,
   },
   'project.id': {
     sortField: 'project.id',
@@ -691,7 +676,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const projectId = data['project.id'];
       return getProjectIdLink(projectId, baggage);
     },
-    useCellActions: false,
   },
   user: {
     sortField: 'user',
@@ -714,7 +698,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{emptyValue}</Container>;
     },
-    useCellActions: true,
   },
   'user.display': {
     sortField: 'user.display',
@@ -734,7 +717,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{emptyValue}</Container>;
     },
-    useCellActions: true,
   },
   'count_unique(user)': {
     sortField: 'count_unique(user)',
@@ -753,7 +735,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{emptyValue}</Container>;
     },
-    useCellActions: true,
   },
   device: {
     sortField: 'device',
@@ -764,7 +745,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{emptyValue}</Container>;
     },
-    useCellActions: true,
   },
   adoption_stage: {
     sortField: 'adoption_stage',
@@ -778,7 +758,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <Container>{emptyValue}</Container>
       );
     },
-    useCellActions: true,
   },
   release: {
     sortField: 'release',
@@ -796,7 +775,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       ) : (
         <Container>{emptyValue}</Container>
       ),
-    useCellActions: false,
   },
   'error.handled': {
     sortField: 'error.handled',
@@ -813,7 +791,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
-    useCellActions: true,
   },
   [SpanFields.IS_STARRED_TRANSACTION]: {
     sortField: null,
@@ -824,7 +801,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         isStarred={data.is_starred_transaction}
       />
     ),
-    useCellActions: true,
   },
   team_key_transaction: {
     sortField: null,
@@ -836,7 +812,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         transactionName={data.transaction}
       />
     ),
-    useCellActions: true,
   },
   'trend_percentage()': {
     sortField: 'trend_percentage()',
@@ -847,7 +822,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           : emptyValue}
       </NumberContainer>
     ),
-    useCellActions: true,
   },
   timestamp: {
     sortField: 'timestamp',
@@ -865,7 +839,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
-    useCellActions: true,
   },
   'timestamp.to_hour': {
     sortField: 'timestamp.to_hour',
@@ -877,7 +850,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         })}
       </Container>
     ),
-    useCellActions: true,
   },
   'timestamp.to_day': {
     sortField: 'timestamp.to_day',
@@ -889,7 +861,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         })}
       </Container>
     ),
-    useCellActions: true,
   },
   'span.status_code': {
     sortField: 'span.status_code',
@@ -902,7 +873,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         )}
       </Container>
     ),
-    useCellActions: true,
   },
   'performance_score(measurements.score.total)': {
     sortField: 'performance_score(measurements.score.total)',
@@ -917,7 +887,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </RightAlignedContainer>
       );
     },
-    useCellActions: true,
   },
   'browser.name': {
     sortField: 'browser.name',
@@ -934,7 +903,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </IconContainer>
       );
     },
-    useCellActions: true,
   },
   browser: {
     sortField: 'browser',
@@ -951,7 +919,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </IconContainer>
       );
     },
-    useCellActions: true,
   },
   'os.name': {
     sortField: 'os.name',
@@ -968,7 +935,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </IconContainer>
       );
     },
-    useCellActions: true,
   },
   os: {
     sortField: 'os',
@@ -993,7 +959,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </IconContainer>
       );
     },
-    useCellActions: true,
   },
 };
 
@@ -1147,19 +1112,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     );
   },
 };
-
-/**
- * Given a current field returns whether true if cell actions should be used, false otherwise. For example, fields with internal links should not have cell actions enabled.
- * If a field is not special, it is true by default to be true.
- * @param field column field to check
- */
-export function shouldUseCellActions(field: string): boolean {
-  if (Object.hasOwn(SPECIAL_FIELDS, field)) {
-    return !!SPECIAL_FIELDS[field]!.useCellActions;
-  }
-
-  return true;
-}
 
 /**
  * Get the sort field name for a given field if it is special or fallback
