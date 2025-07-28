@@ -147,6 +147,7 @@ export const platformProductAvailability = {
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
