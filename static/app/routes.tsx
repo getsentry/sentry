@@ -2283,17 +2283,6 @@ function buildRoutes(): RouteObject[] {
           path: 'new/',
           component: make(() => import('sentry/views/codecov/coverage/onboarding')),
         },
-        //  Render AI page with layout wrapper
-        {
-          path: 'ai/',
-          component: make(() => import('sentry/views/codecov/ai/aiWrapper')),
-          children: [
-            {
-              index: true,
-              component: make(() => import('sentry/views/codecov/ai/ai')),
-            },
-          ],
-        },
         codecovCommitRoutes,
         codecovPRRoutes,
       ],
@@ -2321,6 +2310,17 @@ function buildRoutes(): RouteObject[] {
               component: make(() => import('sentry/views/codecov/tests/onboarding')),
             },
           ],
+        },
+      ],
+    },
+    //  Render AI page with layout wrapper
+    {
+      path: 'ai/',
+      component: make(() => import('sentry/views/codecov/ai/aiWrapper')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/codecov/ai/ai')),
         },
       ],
     },
