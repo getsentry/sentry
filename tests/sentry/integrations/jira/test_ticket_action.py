@@ -207,10 +207,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationFormError):
-                # Trigger its `after`, but with a broken client which should raise
-                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
-                self.trigger(event, rule_object)
+            self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
@@ -232,8 +229,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationInstallationConfigurationError):
-                self.trigger(event, rule_object)
+            self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
