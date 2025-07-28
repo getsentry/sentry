@@ -253,7 +253,7 @@ class TitleRequest(TypedDict):
     """Corresponds to SummarizeFeedbackRequest in Seer."""
 
     organization_id: int
-    feedback_message: list[str]
+    feedback_message: str
 
 
 def get_ai_feedback_title(feedback_message: str, organization: Organization) -> str | None:
