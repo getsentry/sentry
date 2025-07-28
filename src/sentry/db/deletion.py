@@ -22,6 +22,23 @@ class BulkDeleteQuery:
         self.order_by = order_by
         self.using = router.db_for_write(model)
 
+    def _is_group_model(self):
+        """Check if the model is the Group model."""
+        # Import here to avoid circular imports
+        try:
+            from sentry.models.group import Group
+            return self.model is Group
+        except ImportError:
+            return False
+
+    def _get_group_status_exclusions(self):
+        """Get the group statuses that should be excluded from cleanup deletion."""
+        try:
+            from sentry.models.group import GroupStatus
+            return [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+        except ImportError:
+            return []
+
     def execute(self, chunk_size=10000):
         quote_name = connections[self.using].ops.quote_name
 
@@ -37,6 +54,13 @@ class BulkDeleteQuery:
             where.append(f"project_id = {self.project_id}")
         if self.organization_id:
             where.append(f"organization_id = {self.organization_id}")
+
+        # Exclude groups with deletion statuses from cleanup
+        if self._is_group_model():
+            excluded_statuses = self._get_group_status_exclusions()
+            if excluded_statuses:
+                status_list = ",".join(str(status) for status in excluded_statuses)
+                where.append(f"status NOT IN ({status_list})")
 
         if where:
             where_clause = "where {}".format(" and ".join(where))
@@ -108,6 +132,13 @@ class BulkDeleteQuery:
                         where.append(("project_id = %s", [self.project_id]))
                     if self.organization_id:
                         where.append(("organization_id = %s", [self.organization_id]))
+
+                    # Exclude groups with deletion statuses from cleanup
+                    if self._is_group_model():
+                        excluded_statuses = self._get_group_status_exclusions()
+                        if excluded_statuses:
+                            status_placeholders = ",".join(["%s"] * len(excluded_statuses))
+                            where.append((f"status NOT IN ({status_placeholders})", excluded_statuses))
 
                     if self.order_by[0] == "-":
                         direction = "desc"
