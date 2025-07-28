@@ -24,7 +24,6 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -382,7 +381,7 @@ type SpecialField = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const RightAlignedContainer = styled('span')`
@@ -899,7 +898,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(browserName)}
-          {browserName}
+          <Container>{browserName}</Container>
         </IconContainer>
       );
     },
@@ -915,7 +914,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(dropVersion(browser))}
-          {browser}
+          <Container>{browser}</Container>
         </IconContainer>
       );
     },
@@ -931,7 +930,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(osName)}
-          {osName}
+          <Container>{osName}</Container>
         </IconContainer>
       );
     },
@@ -950,11 +949,11 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <IconContainer>
           {getContextIcon(dropVersion(os))}
           {hasUserAgentLocking ? (
-            <Tooltip title={userAgentLocking} showUnderline>
-              {os}
-            </Tooltip>
+            <StyledTooltip title={userAgentLocking} showUnderline>
+              <Container>{os}</Container>
+            </StyledTooltip>
           ) : (
-            os
+            <Container>{os}</Container>
           )}
         </IconContainer>
       );
@@ -1279,6 +1278,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
   ${BadgeDisplayName} {
     max-width: 100%;
   }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 /**
