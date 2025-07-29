@@ -164,6 +164,7 @@ const gaming: Set<PlatformKey> = new Set([
   'godot',
   'native',
   'nintendo-switch',
+  'nintendo-switch-2',
   'playstation',
   'unity',
   'unreal',
