@@ -13,7 +13,7 @@ from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 class OrganizationDetectorWorkflowAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-workflow-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

@@ -10,7 +10,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ApiInviteHelperTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

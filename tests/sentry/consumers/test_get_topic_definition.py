@@ -4,7 +4,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_topic_definition
 
 
-def test_get_topic_definition_without_slice_id():
+def test_get_topic_definition_without_slice_id() -> None:
     with override_settings(
         KAFKA_TOPIC_TO_CLUSTER={"events": "default"},
         KAFKA_TOPIC_OVERRIDES={"events": "custom-events-topic"},
@@ -14,7 +14,7 @@ def test_get_topic_definition_without_slice_id():
         assert topic_def["real_topic_name"] == "custom-events-topic"
 
 
-def test_get_topic_definition_no_override():
+def test_get_topic_definition_no_override() -> None:
     with override_settings(
         KAFKA_TOPIC_TO_CLUSTER={"events": "default"},
         KAFKA_TOPIC_OVERRIDES={},
@@ -24,7 +24,7 @@ def test_get_topic_definition_no_override():
         assert topic_def["real_topic_name"] == "events"
 
 
-def test_get_topic_definition_with_slice_id():
+def test_get_topic_definition_with_slice_id() -> None:
     with override_settings(
         KAFKA_TOPIC_TO_CLUSTER={"events": "default"},
         KAFKA_TOPIC_OVERRIDES={"events": "custom-events-topic"},

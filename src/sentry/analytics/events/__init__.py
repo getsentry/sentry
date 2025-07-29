@@ -6,6 +6,7 @@ from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
 from .alert_sent import *  # noqa: F401,F403
 from .api_token_created import *  # noqa: F401,F403
 from .api_token_deleted import *  # noqa: F401,F403
+from .auth_v2 import *  # noqa: F401,F403
 from .checkin_processing_error_stored import *  # noqa: F401,F403
 from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
@@ -30,7 +31,6 @@ from .first_replay_sent import *  # noqa: F401,F403
 from .first_sourcemaps_sent import *  # noqa: F401,F403
 from .first_transaction_sent import *  # noqa: F401,F403
 from .first_user_context_sent import *  # noqa: F401,F403
-from .grouping_parameterization_experiment import *  # noqa: F401,F403
 from .groupowner_assignment import *  # noqa: F401,F403
 from .inapp_request import *  # noqa: F401,F403
 from .integration_commit_context_all_frames import *  # noqa: F401,F403
@@ -60,7 +60,6 @@ from .member_invited import *  # noqa: F401,F403
 from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
 from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
-from .notifications_settings_updated import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .open_pr_comment import *  # noqa: F401,F403

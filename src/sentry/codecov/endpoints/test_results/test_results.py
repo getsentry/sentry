@@ -97,7 +97,7 @@ class TestResultsEndpoint(CodecovEndpoint):
             "owner": owner_slug,
             "repo": repository,
             "filters": {
-                "branch": request.query_params.get("branch", "main"),
+                "branch": request.query_params.get("branch"),
                 "parameter": request.query_params.get("filterBy"),
                 "interval": (
                     request.query_params.get("interval", MeasurementInterval.INTERVAL_30_DAY.value)

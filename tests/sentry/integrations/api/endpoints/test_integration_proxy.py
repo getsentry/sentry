@@ -61,7 +61,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-integration-proxy"
     secret = SENTRY_SUBNET_SECRET
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
         self.proxy_path = "chat.postMessage"
         self.endpoint_cls = InternalIntegrationProxyEndpoint()

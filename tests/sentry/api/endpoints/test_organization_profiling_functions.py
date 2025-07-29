@@ -19,7 +19,7 @@ PROFILING_FEATURES = {
 class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-function-trends"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.ten_mins_ago = before_now(minutes=10)
@@ -314,7 +314,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             assert isinstance(data["examples"], list)
 
 
-def test_get_rollup_from_range_max_buckets():
+def test_get_rollup_from_range_max_buckets() -> None:
     max_buckets = int(MAX_ROLLUP_POINTS / TOP_FUNCTIONS_LIMIT)
 
     for days in range(90):

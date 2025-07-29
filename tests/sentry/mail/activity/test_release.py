@@ -23,7 +23,7 @@ from sentry.users.services.user.service import user_service
 
 
 class ReleaseTestCase(ActivityTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user5_alt_email = "privateEmail@gmail.com"

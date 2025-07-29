@@ -1,9 +1,8 @@
-import styled from '@emotion/styled';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
@@ -28,35 +27,27 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (isBuildDetailsPending) {
     return (
-      <HeaderContainer>
+      <Flex direction="column" style={{padding: `0 0 ${space(2)} 0`}}>
         <Placeholder height="20px" width="200px" style={{marginBottom: space(2)}} />
-        <HeaderContent>
+        <Flex align="center" justify="between" gap="md">
           <Heading as="h1">
             <Placeholder height="32px" width="300px" />
           </Heading>
-          <Actions>
+          <Flex align="center" gap="sm" style={{flexShrink: 0}}>
             <Placeholder height="32px" width="120px" style={{marginRight: space(1)}} />
             <Placeholder height="32px" width="40px" />
-          </Actions>
-        </HeaderContent>
-      </HeaderContainer>
+          </Flex>
+        </Flex>
+      </Flex>
     );
   }
 
   if (isBuildDetailsError) {
-    return (
-      <HeaderContainer>
-        <Alert type="error">{buildDetailsError?.message}</Alert>
-      </HeaderContainer>
-    );
+    return <Alert type="error">{buildDetailsError?.message}</Alert>;
   }
 
   if (!buildDetailsData) {
-    return (
-      <HeaderContainer>
-        <Alert type="error">No build details found</Alert>
-      </HeaderContainer>
-    );
+    return <Alert type="error">No build details found</Alert>;
   }
 
   // TODO: Implement proper breadcrumbs once release connection is implemented
@@ -85,13 +76,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   };
 
   return (
-    <HeaderContainer>
+    <Flex direction="column" style={{padding: `0 0 ${space(2)} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
-      <HeaderContent>
+      <Flex align="center" justify="between" gap="md">
         <Heading as="h1">
           v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
         </Heading>
-        <Actions>
+        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
           <Button
             size="sm"
             priority="default"
@@ -108,26 +99,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             onClick={handleMoreActions}
             aria-label={'More actions'}
           />
-        </Actions>
-      </HeaderContent>
-    </HeaderContainer>
+        </Flex>
+      </Flex>
+    </Flex>
   );
 }
-
-const HeaderContainer = styled('div')`
-  padding: 0 0 ${space(2)} 0;
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(2)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  flex-shrink: 0;
-`;

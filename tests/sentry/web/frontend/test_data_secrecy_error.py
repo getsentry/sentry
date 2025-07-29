@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class DataSecrecyErrorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)

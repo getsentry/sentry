@@ -1,27 +1,22 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {useTimePeriodSelection} from 'sentry/views/detectors/hooks/useTimePeriodSelection';
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
+  statsPeriod: TimePeriod;
 }
 
-export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
+export function MetricDetectorDetailsChart({
+  detector,
+  statsPeriod,
+}: MetricDetectorDetailsChartProps) {
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
-
-  const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
-    useTimePeriodSelection({
-      dataset: snubaQuery?.dataset ?? Dataset.ERRORS,
-      interval: snubaQuery?.timeWindow,
-    });
 
   if (!snubaQuery) {
     // Unlikely, helps narrow types
@@ -35,15 +30,11 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   const interval = snubaQuery.timeWindow;
   const conditions = detector.conditionGroup?.conditions || [];
   const detectionType = detector.config.detectionType;
+  const comparisonDelta =
+    detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
 
   return (
-    <Flex direction="column" gap={space(2)}>
-      <CompactSelect
-        size="sm"
-        options={timePeriodOptions}
-        value={selectedTimePeriod}
-        onChange={opt => setSelectedTimePeriod(opt.value)}
-      />
+    <Flex direction="column" gap="xl">
       <ChartContainer>
         <ChartContainerBody>
           <MetricDetectorChart
@@ -55,7 +46,8 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
             projectId={detector.projectId}
             conditions={conditions}
             detectionType={detectionType}
-            statsPeriod={selectedTimePeriod}
+            statsPeriod={statsPeriod}
+            comparisonDelta={comparisonDelta}
           />
         </ChartContainerBody>
       </ChartContainer>

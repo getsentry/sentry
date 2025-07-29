@@ -54,7 +54,7 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
 
 @control_silo_test
 class PipelineTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
             self.org = serialize_rpc_organization(self.create_organization())

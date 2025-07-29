@@ -32,7 +32,7 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class OrganizationDetectorIndexBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.environment = Environment.objects.create(
@@ -469,7 +469,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.connected_workflow = self.create_workflow(
             organization_id=self.organization.id,
@@ -804,7 +804,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 class ConvertAssigneeValuesTest(APITestCase):
     """Test the convert_assignee_values function"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.team = self.create_team(organization=self.organization)
