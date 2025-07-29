@@ -4,7 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
-from sentry.issues.services.issue.model import RpcGroupShareMetadata
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.services.issue.model import RpcGroupShareMetadata, RpcLinkedIssueSummary
 from sentry.issues.services.issue.service import IssueService
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -45,3 +46,25 @@ class DatabaseBackedIssueService(IssueService):
         # Call the task synchronously so that the outbox retry works
         # correctly should this fail.
         process_inbound_email(from_email, group_id, text)
+
+    def get_linked_issues(
+        self,
+        *,
+        region_name: str,
+        integration_id: int,
+        organization_ids: list[int],
+        external_issue_key: str,
+    ) -> list[RpcLinkedIssueSummary]:
+
+        # Filtering on organization_id and integration_id is analogous to
+        # querying by integration installations.
+        external_issues = ExternalIssue.objects.filter(
+            key=external_issue_key,
+            organization_id__in=organization_ids,
+            integration_id=integration_id,
+        ).order_by("date_added")
+
+        return [
+            RpcLinkedIssueSummary.from_external_issue(external_issue)
+            for external_issue in external_issues
+        ]

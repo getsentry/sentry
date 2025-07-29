@@ -8,7 +8,7 @@ from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationSlug, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.issues.services.issue.model import RpcGroupShareMetadata
+from sentry.issues.services.issue.model import RpcGroupShareMetadata, RpcLinkedIssueSummary
 from sentry.silo.base import SiloMode
 
 
@@ -52,6 +52,30 @@ class IssueService(RpcService):
     def upsert_issue_email_reply(
         self, *, organization_id: int, group_id: int, from_email: str, text: str
     ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_linked_issues(
+        self,
+        *,
+        region_name: str,
+        integration_id: int,
+        organization_ids: list[int],
+        external_issue_key: str,
+    ) -> list[RpcLinkedIssueSummary]:
+        """
+        Returns a list of linked issue summaries for a given integration ID +
+        org ID combination.
+
+        This is intended to be used for control to fan out to individual regions
+        in order to surface linked issue data related to a given set of
+        integration installations.
+
+        `organization_ids` may be a little superfluous here, but allows us to
+        filter, if necessary, and validate that the issue data we're surfacing
+        _does_ belong to the integration installation.
+        """
         pass
 
 
