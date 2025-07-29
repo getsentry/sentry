@@ -1,6 +1,7 @@
 import {useCallback, useEffect} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
+import {ALL_BRANCHES} from 'sentry/components/codecov/branchSelector/branchSelector';
 import type {
   CodecovContextData,
   CodecovContextDataParams,
@@ -99,7 +100,7 @@ export default function CodecovQueryParamsProvider({
 
   const repository = _defineParam('repository');
   const integratedOrgId = _defineParam('integratedOrgId');
-  const branch = _defineParam('branch');
+  const branch = _defineParam('branch', ALL_BRANCHES);
   const codecovPeriod = _defineParam('codecovPeriod', '24h') as CodecovPeriodOptions;
 
   const params: CodecovContextData = {
