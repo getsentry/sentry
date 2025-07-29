@@ -10,7 +10,7 @@ from sentry.workflow_engine.models.detector import Detector
 
 
 class TestErrorDetectorValidator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(
@@ -27,6 +27,9 @@ class TestErrorDetectorValidator(TestCase):
             "fingerprinting_rules": """message:"hello world 1" -> hw1 title="HW1""",
             "resolve_age": 30,
         }
+        self.existing_error_detector = Detector.objects.create(
+            name="Existing Detector", type="error", project_id=self.project.id, config={}
+        )
 
     @patch("sentry.workflow_engine.endpoints.validators.error_detector.create_audit_entry")
     def test_create_with_valid_data(self, mock_audit):
@@ -78,3 +81,16 @@ class TestErrorDetectorValidator(TestCase):
         assert validator.errors.get("resolveAge") == [
             ErrorDetail(string="Resolve age must be a non-negative number", code="invalid")
         ]
+
+    def test_update_existing_with_valid_data(self) -> None:
+        data = {**self.valid_data, "name": "Updated Detector"}
+        validator = ErrorDetectorValidator(
+            data=data, context=self.context, instance=self.existing_error_detector
+        )
+        assert validator.is_valid()
+        with self.tasks():
+            detector = validator.save()
+        assert detector.name == "Updated Detector"
+        assert detector.type == "error"
+        assert detector.project_id == self.project.id
+        assert detector.workflow_condition_group is None

@@ -6,7 +6,7 @@ pytestmark = [requires_snuba]
 
 
 class EventReprocessableEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

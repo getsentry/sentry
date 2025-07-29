@@ -26,7 +26,7 @@ from sentry.utils.http import absolute_uri
 
 
 class BuildMetricAlertAttachmentTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule()
 

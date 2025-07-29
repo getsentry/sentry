@@ -27,10 +27,14 @@ export default function Ai() {
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {
+    areAiFeaturesAllowed,
+    setupAcknowledgement,
+    isPending: isOrgSeerSetupPending,
+  } = useOrganizationSeerSetup();
   const {
     data: summaryData,
-    isPending,
+    isPending: isSummaryPending,
     isError,
     isRefetching,
     refetch,
@@ -58,7 +62,8 @@ export default function Ai() {
     );
   }
 
-  if (isPending || isRefetching) {
+  // check for org seer setup first before attempting to fetch summary
+  if (isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -90,6 +95,16 @@ export default function Ai() {
             </div>
           </CallToActionContainer>
         </EmptySummaryContainer>
+      </Wrapper>
+    );
+  }
+
+  if (isSummaryPending || isRefetching) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
       </Wrapper>
     );
   }

@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 
 
 class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(

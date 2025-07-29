@@ -36,7 +36,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def test_multi_fanout():
+def test_multi_fanout() -> None:
     clusterer = TreeClusterer(merge_threshold=3)
     transaction_names = [
         "/a/b0/c/d0/e",
@@ -54,7 +54,7 @@ def test_multi_fanout():
     assert clusterer.get_rules() == ["/a/*/c/*/**", "/a/*/**"]
 
 
-def test_single_leaf():
+def test_single_leaf() -> None:
     clusterer = TreeClusterer(merge_threshold=2)
     transaction_names = [
         "/a/b1/c/",
@@ -64,7 +64,7 @@ def test_single_leaf():
     assert clusterer.get_rules() == ["/a/*/**"]
 
 
-def test_deep_tree():
+def test_deep_tree() -> None:
     clusterer = TreeClusterer(merge_threshold=1)
     transaction_names = [
         1001 * "/.",
@@ -75,7 +75,7 @@ def test_deep_tree():
     clusterer.get_rules()
 
 
-def test_clusterer_doesnt_generate_invalid_rules():
+def test_clusterer_doesnt_generate_invalid_rules() -> None:
     clusterer = TreeClusterer(merge_threshold=1)
     all_stars = ["/a/b", "/b/c", "/c/d"]
     clusterer.add_input(all_stars)
@@ -88,7 +88,7 @@ def test_clusterer_doesnt_generate_invalid_rules():
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
-def test_collection():
+def test_collection() -> None:
     org = Organization(pk=666)
     project1 = Project(id=101, name="p1", organization=org)
     project2 = Project(id=102, name="project2", organization=org)
@@ -111,7 +111,7 @@ def test_collection():
     assert set() == set(get_transaction_names(project3))
 
 
-def test_clear_redis():
+def test_clear_redis() -> None:
     project = Project(id=101, name="p1", organization=Organization(pk=66))
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "foo")
     assert set(get_transaction_names(project)) == {"foo"}
@@ -123,7 +123,7 @@ def test_clear_redis():
     clear_samples(ClustererNamespace.TRANSACTIONS, project2)
 
 
-def test_clear_redis_projects():
+def test_clear_redis_projects() -> None:
     project1 = Project(id=101, name="p1", organization=Organization(pk=66))
     project2 = Project(id=102, name="p2", organization=Organization(pk=66))
     client = get_redis_client()
@@ -159,7 +159,7 @@ def test_clear_redis_projects():
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
-def test_distribution():
+def test_distribution() -> None:
     """Make sure that the redis set prefers newer entries"""
     project = Project(id=103, name="", organization=Organization(pk=66))
     for i in range(1000):
@@ -198,7 +198,7 @@ def test_record_transactions(mocked_record, default_organization, source, txname
     assert len(mocked_record.mock_calls) == expected
 
 
-def test_sort_rules():
+def test_sort_rules() -> None:
     rules = {
         ReplacementRule("/a/*/**"): 1,
         ReplacementRule("/a/**"): 2,
@@ -411,7 +411,7 @@ def test_clusterer_skips_deleted_projects(mock_update_rules, default_project):
 
 
 @django_db_all
-def test_get_deleted_project():
+def test_get_deleted_project() -> None:
     deleted_project = Project(pk=666, organization=Organization(pk=666))
     _record_sample(ClustererNamespace.TRANSACTIONS, deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.TRANSACTIONS)) == []
@@ -567,7 +567,7 @@ def test_stale_rules_arent_saved(default_project):
     ]
 
 
-def test_bump_last_used():
+def test_bump_last_used() -> None:
     """Redis update works and does not delete other keys in the set."""
     project1 = Project(id=123, name="project1")
     RedisRuleStore(namespace=ClustererNamespace.TRANSACTIONS).write(

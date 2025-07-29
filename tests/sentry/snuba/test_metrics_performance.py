@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 @pytest.mark.snuba_ci
 class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # We want to always consider 7 days for simplicity.
         self.start = datetime.datetime.now(tz=timezone.utc).replace(

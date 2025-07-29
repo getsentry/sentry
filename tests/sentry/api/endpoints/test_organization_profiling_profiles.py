@@ -22,7 +22,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         "organizations:profiling": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
         self.ten_mins_ago = before_now(minutes=10)
@@ -926,7 +926,7 @@ class OrganizationProfilingChunksTest(APITestCase):
         "organizations:global-views": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 

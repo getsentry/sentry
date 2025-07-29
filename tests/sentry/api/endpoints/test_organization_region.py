@@ -10,7 +10,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 class OrganizationRegionTest(APITestCase):
     endpoint = "sentry-api-0-organization-region"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org_owner = self.create_user()
         us_region = get_region_by_name("us")

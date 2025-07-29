@@ -8,7 +8,7 @@ pytestmark = requires_snuba
 
 
 class ExternalIssueManagerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)
         self.integration1 = self.create_integration(
             organization=self.organization, external_id="example:1", provider="example"

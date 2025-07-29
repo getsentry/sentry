@@ -37,7 +37,7 @@ TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 class ProjectSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()
@@ -283,7 +283,7 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")
@@ -734,7 +734,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
 
 class DetailedProjectSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")

@@ -58,7 +58,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
     provider = DummyOAuth2Provider
     provider_name = "oauth2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization_id=self.organization.id

@@ -8,7 +8,7 @@ from sentry.users.models.user import User
 
 
 class DiscoverSavedQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         with assume_test_silo_mode_of(User):

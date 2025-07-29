@@ -18,7 +18,7 @@ from sentry.testutils.performance_issues.event_generators import create_event, c
 
 @pytest.mark.django_db
 class LargeHTTPPayloadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 

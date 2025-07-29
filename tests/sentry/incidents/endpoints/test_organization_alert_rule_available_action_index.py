@@ -42,7 +42,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     pagerduty = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.PAGERDUTY)
     opsgenie = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.OPSGENIE)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
