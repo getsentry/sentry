@@ -9,6 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
+import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DetectorBaseFields() {
   return (
@@ -43,6 +44,8 @@ export function DetectorBaseFields() {
 
 function ProjectField() {
   const {projects, fetching} = useProjects();
+  const projectId = useFormField<string>('projectId')!;
+  const hasDetectorPermissions = useCanEditDetector({projectId});
 
   return (
     <StyledProjectField
@@ -60,6 +63,17 @@ function ProjectField() {
       aria-label={t('Select Project')}
       disabled={fetching}
       size="sm"
+      validate={() => {
+        if (!hasDetectorPermissions) {
+          return [
+            [
+              'projectId',
+              t('You do not have permission to create or edit monitors in this project'),
+            ],
+          ];
+        }
+        return [];
+      }}
     />
   );
 }
