@@ -378,15 +378,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration__provider=provider,
             status=status,
         )
-        ois_to_update: list[int] = list(current_org_ois.values_list("id", flat=True))
+        ois_to_update = list(current_org_ois.values_list("id", flat=True))
 
         if skip_oldest:
-            # Get all OrganizationIntegrations for the Integrations used by this org
-            all_ois = OrganizationIntegration.objects.filter(
-                integration__in=current_org_ois.values_list("integration_id", flat=True),
-                status=status,
-                integration__provider=provider,
-            )
             # Get all associated OrganizationIntegrations for the Integrations used by this org
             all_ois = (
                 OrganizationIntegration.objects.filter(
@@ -399,14 +393,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
             )
 
             # Create mapping of integration_id to list of OrganizationIntegrations
-            integration_to_ois: dict[int, list[OrganizationIntegration]] = defaultdict(list)
+            integration_to_ois = defaultdict(list)
             for oi in all_ois:
                 integration_to_ois[oi.integration_id].append(oi)
 
             # Sort the OrganizationIntegrations for each Integration
             for integration, ois in integration_to_ois.items():
                 integration_to_ois[integration] = sorted(
-                    ois, key=lambda oi: oi.date_added, reverse=False
+                    ois, key=lambda oi: oi.date_added or oi.date_updated
                 )
 
                 # Check if the oldest OrganizationIntegration for this Integration belongs to THIS organization
@@ -414,11 +408,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 if integration_to_ois[integration][0].organization_id == organization_id:
                     ois_to_update.remove(integration_to_ois[integration][0].id)
 
-        ois = self.update_organization_integrations(
+        updated_ois = self.update_organization_integrations(
             org_integration_ids=ois_to_update,
             grace_period_end=grace_period_end,
         )
-        return [serialize_organization_integration(oi) for oi in ois]
+
+        return updated_ois
 
     def add_organization(self, *, integration_id: int, org_ids: list[int]) -> RpcIntegration | None:
         try:

@@ -7,6 +7,7 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
@@ -118,6 +119,31 @@ class IntegrationService(RpcService):
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
         return ois[0] if len(ois) > 0 else None
+
+    @rpc_method
+    @abstractmethod
+    def start_grace_period_for_provider(
+        self,
+        *,
+        organization_id: int,
+        provider: str,
+        grace_period_end: datetime,
+        status: int = ObjectStatus.ACTIVE,
+        skip_oldest: bool = True,
+    ) -> list[RpcOrganizationIntegration]:
+        """
+        Start grace period for all OrganizationIntegrations of a given provider for an organization
+
+        Args:
+            organization_id (int): The Organization whose OrganizationIntegrations will be grace perioded
+            provider (str): The provider key - e.g. "github"
+            grace_period_end (datetime): The grace period end date
+            status (int, optional): The status of the OrganizationIntegrations. Defaults to ObjectStatus.ACTIVE.
+            skip_oldest (bool, optional): Flag for if we want to skip grace period for the oldest OrganizationIntegration per Integration. Defaults to True.
+
+        Returns:
+            list[RpcOrganizationIntegration]: The updated OrganizationIntegrations
+        """
 
     @rpc_method
     @abstractmethod
