@@ -18,8 +18,6 @@ class CacheVersionBase(Model):
     def incr_version(cls, key: str) -> int:
         if in_random_rollout("sentry.hybridcloud.cacheversion.rollout"):
             with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
-                if random.random() < 0.01:
-                    logger.info("cacheversion.incr_version", extra={"key": key})
                 obj, created = cls.objects.select_for_update().get_or_create(
                     key=key, defaults=dict(version=1)
                 )
