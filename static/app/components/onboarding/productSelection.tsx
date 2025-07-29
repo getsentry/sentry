@@ -153,6 +153,7 @@ export const platformProductAvailability = {
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
