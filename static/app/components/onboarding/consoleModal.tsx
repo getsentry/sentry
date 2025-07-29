@@ -96,8 +96,12 @@ export function ConsoleModal({
   selectedPlatform,
   closeModal,
 }: ConsoleModalProps) {
-  const platformKey = selectedPlatform.key as keyof typeof consoleConfig;
-  const config = consoleConfig[platformKey];
+  const platformKey =
+    selectedPlatform.key === 'nintendo-switch-2'
+      ? 'nintendo-switch'
+      : selectedPlatform.key;
+
+  const config = consoleConfig[platformKey as keyof typeof consoleConfig];
 
   if (!config) {
     return null;
