@@ -233,7 +233,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   };
 
   const filePath =
-    frame.filename && frame.lineNo ? frame.filename + ':' + frame.lineNo : '';
+    frame.filename && frame.lineNo ? `${frame.filename}:${frame.lineNo}` : '';
 
   const {onClick: handleCopyPath} = useCopyToClipboard({
     text: filePath,
