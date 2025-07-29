@@ -106,8 +106,14 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   );
 
   const openForm = useFeedbackForm();
-  const {setDisplaySeerResults, autoSubmitSeer, setAutoSubmitSeer} =
-    useSearchQueryBuilder();
+
+  const {
+    setDisplayAskSeer,
+    setDisplayAskSeerFeedback,
+    askSeerNLQueryRef,
+    autoSubmitSeer,
+    setAutoSubmitSeer,
+  } = useSearchQueryBuilder();
   const {rawResult, submitQuery, isPending} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
@@ -184,6 +190,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           <div
             onClick={() => {
               state.close();
+              askSeerNLQueryRef.current = searchQuery;
               applySeerSearchQuery(item);
             }}
           >
@@ -233,7 +240,8 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
-              setDisplaySeerResults(false);
+              setDisplayAskSeerFeedback(false);
+              setDisplayAskSeer(false);
             }
 
             state.close();
@@ -265,6 +273,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 organization,
                 natural_language_query: searchQuery.trim(),
               });
+              askSeerNLQueryRef.current = searchQuery.trim();
               submitQuery(searchQuery.trim());
               state.open();
               return;
@@ -357,7 +366,8 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               organization,
               action: 'closed',
             });
-            setDisplaySeerResults(false);
+            setDisplayAskSeerFeedback(false);
+            setDisplayAskSeer(false);
           }}
           aria-label={t('Close Seer Search')}
           borderless
