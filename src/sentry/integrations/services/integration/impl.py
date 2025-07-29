@@ -364,15 +364,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int = ObjectStatus.ACTIVE,
         skip_oldest: bool = True,
     ) -> list[RpcOrganizationIntegration]:
-        # 1. Get OrganizationIntegrations associated with the providers, organization and status
-        # 2. If skip_oldest if true we need to get all OIs associated with the Integrations used by this org to check if the oldest OrganizationIntegration for an Integration belongs to THIS organization
-        # 3. If skip_oldest is false we want to start grace period for all OrganizationIntegrations belonging to THIS organization
-        # 4. Get all OrganizationIntegrations for the Integrations used by this org
-        # 5. Sort the OrganizationIntegrations for each Integration to determine the oldest
-        # 6. If the oldest OrganizationIntegration for an Integration does not belong to THIS organization we want to start the grace period for this OrganizationIntegration
-        # 7. Update the OrganizationIntegrations with the grace period end
-        # 8. Return the updated OrganizationIntegrations
-        # Get all OrganizationIntegrations for Integrations used by this org
         current_org_ois = OrganizationIntegration.objects.filter(
             organization_id=organization_id,
             integration__provider=provider,
