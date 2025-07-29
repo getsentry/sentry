@@ -109,7 +109,14 @@ export function useFindPreviousTrace({
   id?: string;
   trace?: string;
 } {
-  const {projectId, environment, previousTraceAttribute} = useMemo(() => {
+  const {
+    projectId,
+    environment,
+    previousTraceId,
+    previousTraceSpanId,
+    hasPreviousTraceLink,
+    previousTraceSampled,
+  } = useMemo(() => {
     let _projectId: number | undefined = undefined;
     let _environment: string | undefined = undefined;
     let _previousTraceAttribute: TraceItemResponseAttribute | undefined = undefined;
@@ -124,26 +131,41 @@ export function useFindPreviousTrace({
       }
     }
 
+    const _hasPreviousTraceLink = typeof _previousTraceAttribute?.value === 'string';
+
+    // In case the attribute value does not conform to `[traceId]-[spanId]-[sampledFlag]`,
+    // the split operation will return an array with different length or unexpected contents.
+    // For cases where we only get partial, empty or too long arrays, we should be safe because we
+    // only take the first three elements. If any of the elements are empty or undefined, we'll
+    // disable the query (see below).
+    // Worst-case, we get invalid ids and query for those. Since we check for `isError` below,
+    // we handle that case gracefully. Likewise we handle the case of getting an empty result.
+    // So all in all, this should be safe and we don't have to do further validation on the
+    // attribute content.
+    const [_previousTraceId, _previousTraceSpanId, _previousTraceSampledFlag] =
+      _hasPreviousTraceLink ? _previousTraceAttribute?.value.split('-') || [] : [];
+
     return {
       projectId: _projectId,
       environment: _environment,
-      previousTraceAttribute: _previousTraceAttribute,
+      hasPreviousTraceLink: _hasPreviousTraceLink,
+      previousTraceSampled: _previousTraceSampledFlag === '1',
+      previousTraceId: _previousTraceId,
+      previousTraceSpanId: _previousTraceSpanId,
     };
   }, [attributes]);
-
-  const hasPreviousTraceLink = typeof previousTraceAttribute?.value === 'string';
-
-  const [previousTraceId, previousTraceSpanId, previousTraceSampledFlag] =
-    hasPreviousTraceLink ? previousTraceAttribute?.value.split('-') || [] : [];
-
-  const sampled = previousTraceSampledFlag === '1';
 
   const {data, isError, isPending} = useSpans(
     {
       search: `id:${previousTraceSpanId} trace:${previousTraceId}`,
       fields: ['id', 'trace'],
       limit: 1,
-      enabled: direction === 'previous' && hasPreviousTraceLink && sampled,
+      enabled:
+        direction === 'previous' &&
+        hasPreviousTraceLink &&
+        previousTraceSampled &&
+        !!previousTraceSpanId &&
+        !!previousTraceId,
       projectIds: projectId ? [projectId] : [],
       pageFilters: {
         environments: environment ? [environment] : [],
@@ -164,7 +186,7 @@ export function useFindPreviousTrace({
     trace: previousTraceId,
     id: previousTraceSpanId,
     available: !!data?.[0]?.id && !isError,
-    sampled,
+    sampled: previousTraceSampled,
     isLoading: isPending,
   };
 }
