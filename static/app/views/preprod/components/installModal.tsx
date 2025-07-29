@@ -6,6 +6,7 @@ import {QRCodeCanvas} from 'qrcode.react';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -41,7 +42,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     return (
       <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
         <LoadingIndicator />
-        <div>{t('Loading install details...')}</div>
+        <Text>{t('Loading install details...')}</Text>
       </Flex>
     );
   }
@@ -49,7 +50,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   if (isError) {
     return (
       <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
-        <div>{t('Error: %s', error?.message || 'Failed to fetch install details')}</div>
+        <Text>{t('Error: %s', error?.message || 'Failed to fetch install details')}</Text>
         <Button onClick={() => refetch()}>{t('Retry')}</Button>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
@@ -59,7 +60,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   if (!installDetails) {
     return (
       <Flex direction="column" align="center" gap="md" style={{padding: space(4)}}>
-        <div>{t('No install details available')}</div>
+        <Text>{t('No install details available')}</Text>
         <Button onClick={closeModal}>{t('Close')}</Button>
       </Flex>
     );
@@ -68,14 +69,14 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   const details = installDetails.is_code_signature_valid !== undefined && (
     <CodeSignatureInfo>
       {installDetails.profile_name && (
-        <CodeSignatureValue>
+        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
           {t('Profile: %s', installDetails.profile_name)}
-        </CodeSignatureValue>
+        </Text>
       )}
       {installDetails.codesigning_type && (
-        <CodeSignatureValue>
+        <Text size="sm" variant="muted" style={{marginBottom: space(0.5)}}>
           {t('Type: %s', installDetails.codesigning_type)}
-        </CodeSignatureValue>
+        </Text>
       )}
     </CodeSignatureInfo>
   );
@@ -83,7 +84,7 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
   return (
     <Fragment>
       <Flex direction="column" align="center" gap="lg" style={{padding: space(4)}}>
-        <Title>{t('Install App')}</Title>
+        <Heading as="h3">{t('Install App')}</Heading>
 
         {installDetails.install_url && (
           <Fragment>
@@ -97,14 +98,16 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
 
             {details}
 
-            <Instructions>
-              <InstructionTitle>{t('Instructions:')}</InstructionTitle>
+            <Flex direction="column" style={{textAlign: 'left', maxWidth: '300px'}}>
+              <Text bold style={{marginBottom: space(1)}}>
+                {t('Instructions:')}
+              </Text>
               <InstructionList>
                 <li>{t('Scan the QR code with your device')}</li>
                 <li>{t('Follow the installation prompts')}</li>
                 <li>{t('The install link will expire in 12 hours')}</li>
               </InstructionList>
-            </Instructions>
+            </Flex>
           </Fragment>
         )}
 
@@ -115,12 +118,6 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     </Fragment>
   );
 }
-
-const Title = styled('h3')`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-`;
 
 const QRCodeContainer = styled('div')`
   background: white;
@@ -139,22 +136,6 @@ const CodeSignatureInfo = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${space(1)};
   border: 1px solid ${p => p.theme.border};
-`;
-
-const CodeSignatureValue = styled('div')`
-  font-size: 14px;
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(0.5)};
-`;
-
-const Instructions = styled('div')`
-  text-align: left;
-  max-width: 300px;
-`;
-
-const InstructionTitle = styled('div')`
-  font-weight: 600;
-  margin-bottom: ${space(1)};
 `;
 
 const InstructionList = styled('ul')`
