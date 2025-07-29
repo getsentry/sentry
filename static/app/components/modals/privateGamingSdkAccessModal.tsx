@@ -68,6 +68,7 @@ export function PrivateGamingSdkAccessModal({
     trackAnalytics('gaming.private_sdk_access_modal_submitted', {
       platforms: gamingPlatforms,
       project_id: projectId,
+      platform: gamingPlatform,
       organization,
     });
 
