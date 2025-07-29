@@ -1,5 +1,5 @@
 {
-  "platform": "playstation",
+  "platform": "native",
   "title": "PlayStation Error Example",
   "tags": [
     ["Configuration", "Development"],
