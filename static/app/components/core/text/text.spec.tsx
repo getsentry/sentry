@@ -44,6 +44,11 @@ describe('Text', () => {
     );
     expect(ref.current?.tagName).toBe('P');
   });
+
+  it('does not allow color prop', () => {
+    // @ts-expect-error: color is not a valid prop for Text
+    render(<Text color="red">Hello World</Text>);
+  });
 });
 
 describe('Heading', () => {
