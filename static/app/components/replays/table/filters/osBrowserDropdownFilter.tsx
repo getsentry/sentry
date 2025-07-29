@@ -29,8 +29,8 @@ export default function OSBrowserDropdownFilter({
               {
                 key: 'name',
                 label: tct('[type] name: [name]', {
-                  type: <b>{type}</b>,
-                  name: <b>{name}</b>,
+                  type: <strong>{type}</strong>,
+                  name: <strong>{name}</strong>,
                 }),
                 children: [
                   {
@@ -64,8 +64,8 @@ export default function OSBrowserDropdownFilter({
               {
                 key: 'version',
                 label: tct('[type] version: [version]', {
-                  type: <b>{type}</b>,
-                  version: <b>{version}</b>,
+                  type: <strong>{type}</strong>,
+                  version: <strong>{version}</strong>,
                 }),
                 children: [
                   {
