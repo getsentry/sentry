@@ -52,11 +52,11 @@ export function PrivateGamingSdkAccessModal({
 
   useEffect(() => {
     trackAnalytics('gaming.private_sdk_access_modal_opened', {
-      platforms: gamingPlatforms,
+      platform: gamingPlatform,
       project_id: projectId,
       organization,
     });
-  }, [gamingPlatforms, organization, projectId]);
+  }, [gamingPlatform, organization, projectId]);
 
   function handleSubmit() {
     if (!isFormValid) {
