@@ -689,7 +689,18 @@ const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props}: any) {
+interface ErrorChartProps extends React.ComponentProps<'div'> {
+  isAllowIndexed: boolean;
+  isQueryValid: boolean;
+  errorMessage?: string | React.ReactNode;
+}
+
+export function ErrorChart({
+  isAllowIndexed,
+  isQueryValid,
+  errorMessage,
+  ...props
+}: ErrorChartProps) {
   return (
     <ChartErrorWrapper {...props}>
       <PanelAlert type="error">
