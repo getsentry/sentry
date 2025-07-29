@@ -1,17 +1,29 @@
+import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import {type Theme, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import heroImg from 'sentry-images/debug/notifications/hero.png';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading, Text} from 'sentry/components/core/text';
-import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
+// Mimicking useStoriesDarkMode -> Don't use these elsewhere please 🙏
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme} from 'sentry/utils/theme';
+import {DO_NOT_USE_darkChonkTheme} from 'sentry/utils/theme/theme.chonk';
+
+function DarkModeProvider(props: PropsWithChildren) {
+  const theme = useTheme();
+  const appliedDarkTheme: Theme = theme.isChonk
+    ? (DO_NOT_USE_darkChonkTheme as any)
+    : darkTheme;
+  return <ThemeProvider theme={appliedDarkTheme}>{props.children}</ThemeProvider>;
+}
 
 export function DebugNotificationsLanding() {
   return (
     <Fragment>
-      <StoryDarkModeProvider>
+      <DarkModeProvider>
         <Hero>
           <Flex direction="column" gap="md">
             <Squiggle />
@@ -30,7 +42,7 @@ export function DebugNotificationsLanding() {
             src={heroImg}
           />
         </Hero>
-      </StoryDarkModeProvider>
+      </DarkModeProvider>
       <FeatureContainer>
         <Heading as="h2" variant="success">
           Coming Soon
