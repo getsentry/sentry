@@ -77,6 +77,8 @@ export function isDisabledGamingPlatform({
 }) {
   return (
     platform.type === 'console' &&
-    !enabledConsolePlatforms?.includes(platform.id.replace(/-2$/, ''))
+    !enabledConsolePlatforms?.includes(
+      platform.id === 'nintendo-switch-2' ? 'nintendo-switch' : platform.id
+    )
   );
 }
