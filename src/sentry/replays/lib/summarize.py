@@ -272,8 +272,9 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.NAVIGATION_SPAN:
+                timestamp_ms = timestamp * 1000
                 to = event["data"]["payload"]["description"]
-                return f"User navigated to: {to} at {timestamp}"
+                return f"User navigated to: {to} at {timestamp_ms}"
             case EventType.CONSOLE:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
