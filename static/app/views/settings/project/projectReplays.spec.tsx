@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectReplays from 'sentry/views/settings/project/projectReplays';
 
 describe('ProjectReplays', function () {
-  const {routerProps, organization, project} = initializeOrg();
+  const {organization, project} = initializeOrg();
   const initialRouterConfig = {
     location: {
       pathname: `/settings/projects/${project.slug}/replays/`,
@@ -30,7 +30,7 @@ describe('ProjectReplays', function () {
   });
 
   it('can toggle rage click issue creation', async function () {
-    render(<ProjectReplays {...routerProps} project={project} />, {
+    render(<ProjectReplays project={project} />, {
       initialRouterConfig,
       organization,
     });
