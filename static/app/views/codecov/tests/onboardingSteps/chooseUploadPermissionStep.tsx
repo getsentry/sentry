@@ -3,7 +3,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
-interface ChooseUploadPermissionProps {
+interface ChooseUploadPermissionStepProps {
   selectedUploadPermission: UploadPermission;
   setSelectedUploadPermission: (permission: UploadPermission) => void;
   step: string;
@@ -37,11 +37,11 @@ const CHOICE_OPTIONS: Array<
   ],
 ];
 
-export function ChooseUploadPermission({
+export function ChooseUploadPermissionStep({
   step,
   selectedUploadPermission,
   setSelectedUploadPermission,
-}: ChooseUploadPermissionProps) {
+}: ChooseUploadPermissionStepProps) {
   const headerText = tct(`Step [step]: Choose an upload permission`, {step});
 
   const handleRadioChange = (value: UploadPermission) => {
