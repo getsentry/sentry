@@ -14,7 +14,6 @@ export function useNavPrompts({
   } = usePrompt({
     feature: 'stacked_navigation_banner',
     organization,
-    options: {enabled: true},
   });
 
   const {
@@ -23,7 +22,6 @@ export function useNavPrompts({
   } = usePrompt({
     feature: 'stacked_navigation_help_menu',
     organization,
-    options: {enabled: true},
   });
 
   const shouldShowHelpMenuDot =
