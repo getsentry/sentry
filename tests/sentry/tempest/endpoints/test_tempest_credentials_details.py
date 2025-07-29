@@ -44,9 +44,9 @@ class TestTempestCredentialsDetails(APITestCase):
                 method="DELETE",
             )
 
-            assert response.status_code == 204
-            assert not TempestCredentials.objects.filter(id=self.tempest_credentials.id).exists()
-            create_audit_entry.assert_called()
+        assert response.status_code == 204
+        assert not TempestCredentials.objects.filter(id=self.tempest_credentials.id).exists()
+        create_audit_entry.assert_called()
 
     @patch(
         "sentry.tempest.endpoints.tempest_credentials_details.TempestCredentialsDetailsEndpoint.create_audit_entry"
