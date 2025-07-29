@@ -1,0 +1,175 @@
+---
+title: Grid
+description: A flexible layout component that provides CSS grid functionality with responsive props and spacing controls.
+source: 'sentry/components/core/layout/grid'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/grid.tsx
+---
+
+import {Container, Grid} from 'sentry/components/core/layout';
+import * as Storybook from 'sentry/stories';
+
+import APIReference from '!!type-loader!sentry/components/core/layout/grid';
+
+export const types = {Grid: APIReference.Grid};
+
+The `Grid` component is a layout component that extends the `Container` component with CSS grid properties.
+
+## Basic Usage
+
+To create a basic grid container, wrap elements in `<Grid>` and define columns using `columns`.
+
+```jsx
+<Grid columns="repeat(3, 1fr)" gap="md">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</Grid>
+```
+
+### Grid Areas
+
+<Storybook.Demo>
+  <Grid
+    areas={`
+      "header header"
+      "sidebar main"
+      "footer footer"`}
+    columns="100px 1fr"
+    rows="60px 1fr 60px"
+    gap="md"
+    padding="md"
+    height="300px"
+  >
+    <Container
+      area="header"
+      border="primary"
+      padding="md"
+      background="primary"
+      radius="md"
+    >
+      Header
+    </Container>
+    <Container
+      area="sidebar"
+      border="primary"
+      padding="md"
+      background="primary"
+      radius="md"
+    >
+      Sidebar
+    </Container>
+    <Container
+      area="main"
+      border="primary"
+      padding="md"
+      minWidth="300px"
+      background="primary"
+      radius="md"
+    >
+      Main Content
+    </Container>
+    <Container
+      area="footer"
+      border="primary"
+      padding="md"
+      background="primary"
+      radius="md"
+    >
+      Footer
+    </Container>
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid
+  areas="
+    header header
+    sidebar main
+    footer footer"
+  columns="200px 1fr"
+  rows="60px 1fr 60px"
+  gap="md"
+>
+  <Container area="header">Header</Container>
+  <Container area="sidebar">Sidebar</Container>
+  <Container area="main">Main Content</Container>
+  <Container area="footer">Footer</Container>
+</Grid>
+```
+
+### Alignment
+
+Grid provides fine-grained control over alignment using `justify`, `align`, `justifyItems`, and `alignContent`.
+
+<Storybook.Demo>
+  <Grid columns="repeat(1, 1fr)" gap="md" padding="md" width="100%">
+    {[
+      {justify: 'start', align: 'start', label: 'start'},
+      {justify: 'center', align: 'center', label: 'center'},
+      {justify: 'end', align: 'end', label: 'end'},
+      {justify: 'between', align: 'between', label: 'between'},
+      {justify: 'around', align: 'around', label: 'around'},
+      {justify: 'evenly', align: 'evenly', label: 'evenly'},
+    ].map(({justify, align, label}) => (
+      <Grid key={label} columns="repeat(2, 25%)" gap="sm" justify={justify} align={align}>
+        <Container padding="md" background="primary" radius="md" border="primary">
+          {label}
+        </Container>
+        <Container padding="md" background="primary" radius="md" border="primary">
+          alignment
+        </Container>
+      </Grid>
+    ))}
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid columns="repeat(2, 1fr)" justify="center" align="center">
+  <div>Centered Item</div>
+  <div>Another Item</div>
+</Grid>
+```
+
+### Responsive Props
+
+All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+
+Example of a responsive grid container that changes from single column on small screens to multiple columns on larger screens.
+
+<Storybook.Demo>
+  <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} gap="md" p="md">
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Responsive
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Grid
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Layout
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Items
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      🔥
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Awesome
+    </Container>
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid
+  // Single column on xs, 2 columns on sm, 3 columns on md+
+  columns={{xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}}
+  gap="md"
+>
+  <Container>Responsive</Container>
+  <Container>Grid</Container>
+  <Container>Layout</Container>
+  <Container>Items</Container>
+  <Container>🔥</Container>
+  <Container>Awesome</Container>
+</Grid>
+```
+
+If a prop is not specified for a breakpoint, the value will **not** be inherited from the previous breakpoint.
