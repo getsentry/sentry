@@ -1,4 +1,5 @@
 import pytest
+
 from sentry.hybridcloud.models.cacheversion import RegionCacheVersion
 from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
