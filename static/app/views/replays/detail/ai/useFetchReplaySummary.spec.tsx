@@ -68,7 +68,7 @@ describe('useFetchReplaySummary', () => {
         },
       };
 
-      MockApiClient.addMockResponse({
+      const mockRequest = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: mockSummaryData,
       });
@@ -83,6 +83,7 @@ describe('useFetchReplaySummary', () => {
       expect(result.current.isPolling).toBe(false);
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
+      expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
     it('should handle API errors gracefully', async () => {
