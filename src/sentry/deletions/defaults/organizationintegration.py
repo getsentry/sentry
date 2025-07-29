@@ -28,13 +28,14 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
                 organization_integration_id=instance.id,
                 integration_id=instance.integration_id,
             )
+
+            # Delete all actions for the organization integration
+            action_service.delete_actions_for_organization_integration(
+                organization_id=instance.organization_id, integration_id=instance.integration_id
+            )
+
         except RegionMappingNotFound:
             # This can happen when an organization has been deleted already.
             pass
-
-        # Delete all actions for the organization integration
-        action_service.delete_actions_for_organization_integration(
-            organization_id=instance.organization_id, integration_id=instance.integration_id
-        )
 
         return super().delete_instance(instance)
