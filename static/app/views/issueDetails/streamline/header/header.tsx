@@ -404,4 +404,5 @@ const Title = styled('div')`
   display: grid;
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
+  column-gap: ${p => p.theme.space.sm};
 `;
