@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
@@ -27,7 +27,6 @@ export default function GroupingInfo({
   showGroupingConfig,
   group,
 }: GroupingSummaryProps) {
-  const [configOverride] = useState<string | null>(null);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -35,7 +34,7 @@ export default function GroupingInfo({
       event,
       group,
       projectSlug,
-      query: configOverride ? {config: configOverride} : {},
+      query: {},
     });
 
   const variants = groupInfo
