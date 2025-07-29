@@ -30,6 +30,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
@@ -424,14 +425,17 @@ export function CreateProject() {
       }
 
       if (
-        value.type === 'console' &&
-        !organization.enabledConsolePlatforms?.includes(value.id)
+        isDisabledGamingPlatform({
+          platform: value,
+          enabledConsolePlatforms: organization.enabledConsolePlatforms,
+        })
       ) {
         // By selecting a console platform, we don't want to jump to another category when its closed
         updateFormData('platform', {
           category: formData.platform?.category,
         });
         openConsoleModal({
+          organization,
           selectedPlatform: {
             key: value.id,
             name: value.name,
@@ -460,7 +464,7 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
-      organization.enabledConsolePlatforms,
+      organization,
     ]
   );
 
@@ -481,6 +485,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
+            key={formData.platform?.category}
             platform={formData.platform?.key}
             defaultCategory={formData.platform?.category}
             setPlatform={handlePlatformChange}

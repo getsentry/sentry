@@ -27,7 +27,7 @@ from sentry.utils.http import absolute_uri
 @control_silo_test
 class TestVSTSOAuthCallbackView(TestCase):
     @responses.activate
-    def test_exchange_token(self):
+    def test_exchange_token(self) -> None:
         view = VSTSOAuth2CallbackView(
             access_token_url="https://app.vssps.visualstudio.com/oauth2/token",
             client_id="vsts-client-id",
@@ -71,7 +71,7 @@ class TestVSTSOAuthCallbackView(TestCase):
 @override_options({"vsts.consent-prompt": True})
 class TestVSTSNewOAuth2CallbackView(TestCase):
     @responses.activate
-    def test_exchange_token(self):
+    def test_exchange_token(self) -> None:
         view = VSTSNewOAuth2CallbackView(
             access_token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
             client_id="vsts-new-client-id",
@@ -121,7 +121,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
         assert result["refresh_token"] == "zzzzzzzzzz"
 
     @responses.activate
-    def test_exchange_token_without_consent_prompt(self):
+    def test_exchange_token_without_consent_prompt(self) -> None:
         view = VSTSNewOAuth2CallbackView(
             access_token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
             client_id="vsts-new-client-id",
@@ -172,7 +172,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
 
 @control_silo_test
 class TestAccountConfigView(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.reset()
         account_id = "1234567-8910"
         self.base_url = "http://sentry2.visualstudio.com/"
@@ -220,7 +220,7 @@ class TestAccountConfigView(TestCase):
         )
 
     @responses.activate
-    def test_dispatch(self):
+    def test_dispatch(self) -> None:
         view = AccountConfigView()
         request = HttpRequest()
         request.POST.update({"account": "1234567-8910"})
@@ -239,7 +239,7 @@ class TestAccountConfigView(TestCase):
         assert pipeline.next_step.call_count == 1
 
     @responses.activate
-    def test_get_accounts(self):
+    def test_get_accounts(self) -> None:
         view = AccountConfigView()
         accounts = view.get_accounts("access-token", 123)
         assert accounts is not None
@@ -247,7 +247,7 @@ class TestAccountConfigView(TestCase):
         assert accounts["value"][1]["accountName"] == "sentry2"
 
     @responses.activate
-    def test_account_form(self):
+    def test_account_form(self) -> None:
         account_form = AccountForm(self.accounts)
         field = account_form.fields["account"]
         assert isinstance(field, ChoiceField)
@@ -287,7 +287,7 @@ class TestAccountConfigView(TestCase):
 class VstsIdentityProviderTest(TestCase):
     client_secret = "12345678"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.identity_provider_model = self.create_identity_provider(type="vsts")
         self.identity = Identity.objects.create(
             idp=self.identity_provider_model,
@@ -310,7 +310,7 @@ class VstsIdentityProviderTest(TestCase):
             yield
 
     @responses.activate
-    def test_refresh_identity(self):
+    def test_refresh_identity(self) -> None:
         refresh_data = {
             "access_token": "access token for this user",
             "token_type": "type of token",

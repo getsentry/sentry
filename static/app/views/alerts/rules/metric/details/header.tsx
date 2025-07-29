@@ -15,8 +15,15 @@ import type {Project} from 'sentry/types/project';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardAlertNames,
+  DEPRECATED_TRANSACTION_ALERTS,
+} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 type Props = {
   hasMetricRuleDetailsError: boolean;
@@ -70,6 +77,11 @@ function DetailsHeader({
       organization,
     });
 
+  const deprecateTransactionsAlerts =
+    deprecateTransactionAlerts(organization) &&
+    ruleType &&
+    DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
+
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -118,7 +130,21 @@ function DetailsHeader({
               )}
             </Access>
           )}
-          <LinkButton size="sm" icon={<IconCopy />} to={duplicateLink}>
+          <LinkButton
+            size="sm"
+            icon={<IconCopy />}
+            to={duplicateLink}
+            disabled={deprecateTransactionsAlerts}
+            title={
+              deprecateTransactionsAlerts
+                ? hasEAPAlerts(organization)
+                  ? t(
+                      'Transaction alerts are being deprecated. Please create Span alerts instead.'
+                    )
+                  : t('Transaction alerts are being deprecated.')
+                : undefined
+            }
+          >
             {t('Duplicate')}
           </LinkButton>
           <LinkButton size="sm" icon={<IconEdit />} to={settingsLink}>

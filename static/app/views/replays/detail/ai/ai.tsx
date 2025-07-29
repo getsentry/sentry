@@ -12,10 +12,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {isSpanFrame} from 'sentry/utils/replays/types';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
 import {useFetchReplaySummary} from './useFetchReplaySummary';
@@ -25,10 +27,14 @@ export default function Ai() {
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {
+    areAiFeaturesAllowed,
+    setupAcknowledgement,
+    isPending: isOrgSeerSetupPending,
+  } = useOrganizationSeerSetup();
   const {
     data: summaryData,
-    isPending,
+    isPending: isSummaryPending,
     isError,
     isRefetching,
     refetch,
@@ -56,7 +62,8 @@ export default function Ai() {
     );
   }
 
-  if (isPending || isRefetching) {
+  // check for org seer setup first before attempting to fetch summary
+  if (isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -92,6 +99,16 @@ export default function Ai() {
     );
   }
 
+  if (isSummaryPending || isRefetching) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      </Wrapper>
+    );
+  }
+
   if (replayRecord?.project_id && !project) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -108,7 +125,7 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load replay summary')}</Alert>
+          <Alert type="error">{t('Failed to load replay summary.')}</Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
@@ -124,6 +141,29 @@ export default function Ai() {
         </EmptySummaryContainer>
       </Wrapper>
     );
+  }
+
+  if (summaryData.data.time_ranges.length <= 1) {
+    if (
+      replay
+        ?.getChapterFrames()
+        ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init')
+        .length === 0
+    ) {
+      return (
+        <Wrapper data-test-id="replay-details-ai-summary-tab">
+          <EmptySummaryContainer>
+            <Alert type="info" showIcon={false}>
+              {
+                NO_REPLAY_SUMMARY_MESSAGES[
+                  Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+                ]
+              }
+            </Alert>
+          </EmptySummaryContainer>
+        </Wrapper>
+      );
+    }
   }
 
   return (

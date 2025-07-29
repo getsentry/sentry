@@ -24,7 +24,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         def get_interaction_type(self) -> str:
             return "my_interaction"
 
-    def test_key_and_tag_assignment(self):
+    def test_key_and_tag_assignment(self) -> None:
         metric_obj = self.TestLifecycleMetric()
 
         key = metric_obj.get_metric_key(EventLifecycleOutcome.STARTED)

@@ -96,7 +96,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc
     ) + datetime.timedelta(minutes=1)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=0, second=0, microsecond=0
@@ -171,13 +171,13 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
     @pytest.mark.querybuilder
-    def test_default_conditions(self):
+    def test_default_conditions(self) -> None:
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
         )
         self.assertCountEqual(query.where, self.default_conditions)
 
-    def test_column_resolution(self):
+    def test_column_resolution(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="",
@@ -192,7 +192,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_simple_aggregates(self):
+    def test_simple_aggregates(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="",
@@ -232,7 +232,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_custom_percentile_throws_error(self):
+    def test_custom_percentile_throws_error(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
@@ -243,7 +243,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ],
             )
 
-    def test_percentile_function(self):
+    def test_percentile_function(self) -> None:
         self.maxDiff = None
         query = MetricsQueryBuilder(
             self.params,
@@ -295,7 +295,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_metric_condition_dedupe(self):
+    def test_metric_condition_dedupe(self) -> None:
         org_id = 1
         query = MetricsQueryBuilder(
             self.params,
@@ -317,7 +317,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_p100(self):
+    def test_p100(self) -> None:
         """While p100 isn't an actual quantile in the distributions table, its equivalent to max"""
         query = MetricsQueryBuilder(
             self.params,
@@ -363,7 +363,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_grouping(self):
+    def test_grouping(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="",
@@ -393,7 +393,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.distributions, [_metric_percentile_definition(self.organization.id, "95")]
         )
 
-    def test_transaction_filter(self):
+    def test_transaction_filter(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="transaction:foo_transaction",
@@ -413,7 +413,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_transaction_in_filter(self):
+    def test_transaction_in_filter(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="transaction:[foo_transaction, bar_transaction]",
@@ -436,7 +436,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_incorrect_parameter_for_metrics(self):
+    def test_incorrect_parameter_for_metrics(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
@@ -445,7 +445,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 selected_columns=["transaction", "count_unique(test)"],
             )
 
-    def test_project_filter(self):
+    def test_project_filter(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query=f"project:{self.project.slug}",
@@ -461,7 +461,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_limit_validation(self):
+    def test_limit_validation(self) -> None:
         # 51 is ok
         MetricsQueryBuilder(self.params, limit=51)
         # None is ok, defaults to 50
@@ -472,7 +472,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(self.params, limit=10_000)
 
-    def test_granularity(self):
+    def test_granularity(self) -> None:
         # Need to pick granularity based on the period
         def get_granularity(start, end):
             params = {
@@ -535,7 +535,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 18, 10, 15, 34, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 60, "less than a minute"
 
-    def test_granularity_boundaries(self):
+    def test_granularity_boundaries(self) -> None:
         # Need to pick granularity based on the period
         def get_granularity(start, end):
             params = {
@@ -598,7 +598,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             get_granularity(start, end) == 60
         ), "12h at boundary, but 15 min after the boundary for start"
 
-    def test_get_snql_query(self):
+    def test_get_snql_query(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="",
@@ -622,7 +622,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_get_snql_query_errors_with_multiple_dataset(self):
+    def test_get_snql_query_errors_with_multiple_dataset(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="",
@@ -632,14 +632,14 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         with pytest.raises(NotImplementedError):
             query.get_snql_query()
 
-    def test_get_snql_query_errors_with_no_functions(self):
+    def test_get_snql_query_errors_with_no_functions(self) -> None:
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=["project"]
         )
         with pytest.raises(IncompatibleMetricsQuery):
             query.get_snql_query()
 
-    def test_run_query(self):
+    def test_run_query(self) -> None:
         self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
@@ -687,7 +687,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_multiple_tables(self):
+    def test_run_query_multiple_tables(self) -> None:
         self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
@@ -729,7 +729,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_multiple_groupby_orderby_distribution(self):
+    def test_run_query_with_multiple_groupby_orderby_distribution(self) -> None:
         self.setup_orderby_data()
         query = MetricsQueryBuilder(
             self.params,
@@ -775,7 +775,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_multiple_groupby_orderby_set(self):
+    def test_run_query_with_multiple_groupby_orderby_set(self) -> None:
         self.setup_orderby_data()
         query = MetricsQueryBuilder(
             self.params,
@@ -821,7 +821,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_project_orderby(self):
+    def test_run_query_with_project_orderby(self) -> None:
         project_1 = self.create_project(slug="aaaaaa")
         project_2 = self.create_project(slug="zzzzzz")
         for project in [project_1, project_2]:
@@ -895,7 +895,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p95_transaction_duration": 100,
         }
 
-    def test_run_query_with_transactions_orderby(self):
+    def test_run_query_with_transactions_orderby(self) -> None:
         for transaction_name in ["aaa", "zzz", "bbb"]:
             self.store_transaction_metric(
                 100,
@@ -937,7 +937,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     # TODO: multiple groupby with counter
 
-    def test_run_query_with_events_per_aggregates(self):
+    def test_run_query_with_events_per_aggregates(self) -> None:
         for i in range(5):
             self.store_transaction_metric(
                 100, timestamp=self.start + datetime.timedelta(minutes=i * 15)
@@ -962,7 +962,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["tpm"] == 5 / ((self.end - self.start).total_seconds() / 60)
         assert data["tpm"] / 60 == data["tps"]
 
-    def test_count(self):
+    def test_count(self) -> None:
         for _ in range(3):
             self.store_transaction_metric(
                 150,
@@ -984,7 +984,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["count"] == 6
 
-    def test_avg_duration(self):
+    def test_avg_duration(self) -> None:
         for _ in range(3):
             self.store_transaction_metric(
                 150,
@@ -1006,7 +1006,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["avg_transaction_duration"] == 100
 
-    def test_avg_span_http(self):
+    def test_avg_span_http(self) -> None:
         for _ in range(3):
             self.store_transaction_metric(
                 150,
@@ -1030,7 +1030,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["avg_spans_http"] == 100
 
-    def test_failure_rate(self):
+    def test_failure_rate(self) -> None:
         for _ in range(3):
             self.store_transaction_metric(
                 100,
@@ -1056,7 +1056,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["failure_rate"] == 0.5
         assert data["failure_count"] == 3
 
-    def test_run_function_without_having_or_groupby(self):
+    def test_run_function_without_having_or_groupby(self) -> None:
         self.store_transaction_metric(
             1,
             metric="user",
@@ -1075,7 +1075,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         primary, result = query._create_query_framework()
         assert primary == "set"
 
-    def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
+    def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self) -> None:
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""
         self.setup_orderby_data()
@@ -1141,7 +1141,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
     @pytest.mark.skip(
         reason="Currently cannot handle the case where null values are in the first entity"
     )
-    def test_run_query_with_multiple_groupby_orderby_null_values_in_first_entity(self):
+    def test_run_query_with_multiple_groupby_orderby_null_values_in_first_entity(self) -> None:
         """But if the null value is in the first entity, it won't show up in the groupby values, which means the
         transaction will be missing"""
         self.setup_orderby_data()
@@ -1190,7 +1190,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 2,
         }
 
-    def test_multiple_entity_orderby_fails(self):
+    def test_multiple_entity_orderby_fails(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
@@ -1206,7 +1206,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
             query.run_query("test_query")
 
-    def test_multiple_entity_query_fails(self):
+    def test_multiple_entity_query_fails(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
@@ -1223,7 +1223,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ),
             )
 
-    def test_query_entity_does_not_match_orderby(self):
+    def test_query_entity_does_not_match_orderby(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
@@ -1241,7 +1241,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ),
             )
 
-    def test_aggregate_query_with_multiple_entities_without_orderby(self):
+    def test_aggregate_query_with_multiple_entities_without_orderby(self) -> None:
         self.store_transaction_metric(
             200,
             tags={"transaction": "baz_transaction"},
@@ -1304,7 +1304,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_aggregate_query_with_multiple_entities_with_orderby(self):
+    def test_aggregate_query_with_multiple_entities_with_orderby(self) -> None:
         self.store_transaction_metric(
             200,
             tags={"transaction": "baz_transaction"},
@@ -1360,7 +1360,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_invalid_column_arg(self):
+    def test_invalid_column_arg(self) -> None:
         for function in [
             "count_unique(transaction.duration)",
             "count_miserable(measurements.fcp)",
@@ -1375,7 +1375,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     selected_columns=[function],
                 )
 
-    def test_orderby_field_alias(self):
+    def test_orderby_field_alias(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1404,7 +1404,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             self.organization.id, "95", "transaction.duration", "test"
         )
 
-    def test_error_if_aggregates_disallowed(self):
+    def test_error_if_aggregates_disallowed(self) -> None:
         def run_query(query, use_aggregate_conditions):
             with pytest.raises(IncompatibleMetricsQuery):
                 MetricsQueryBuilder(
@@ -1431,7 +1431,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             for use_aggregate_conditions in [True, False]:
                 run_query(query, use_aggregate_conditions)
 
-    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
+    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self) -> None:
         MetricsQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1462,7 +1462,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ),
         )
 
-    def test_multiple_dataset_but_no_data(self):
+    def test_multiple_dataset_but_no_data(self) -> None:
         """When there's no data from the primary dataset we shouldn't error out"""
         result = MetricsQueryBuilder(
             self.params,
@@ -1513,7 +1513,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         self.assertCountEqual(mock_indexer.mock_calls, expected)
 
-    def test_custom_measurement_allowed(self):
+    def test_custom_measurement_allowed(self) -> None:
         MetricsQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1539,7 +1539,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ),
         )
 
-    def test_group_by_not_in_select(self):
+    def test_group_by_not_in_select(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="",
@@ -1569,7 +1569,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             [project, self.build_transaction_transform("transaction")],
         )
 
-    def test_missing_function(self):
+    def test_missing_function(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
@@ -1583,7 +1583,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 ],
             )
 
-    def test_event_type_query_condition(self):
+    def test_event_type_query_condition(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             query="event.type:transaction",
@@ -1592,7 +1592,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(query.where, self.default_conditions)
 
-    def test_invalid_event_type_query_condition(self):
+    def test_invalid_event_type_query_condition(self) -> None:
         with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
@@ -1631,7 +1631,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         assert str(err.value) == "The functions provided do not match the requested metric type"
 
-    def test_free_text_search(self):
+    def test_free_text_search(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
             dataset=None,
@@ -1676,7 +1676,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     @pytest.mark.querybuilder
-    def test_get_query(self):
+    def test_get_query(self) -> None:
         orig_query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1698,7 +1698,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert query.match.name == "generic_metrics_distributions"
         assert query.granularity.granularity == 60
 
-    def test_default_conditions(self):
+    def test_default_conditions(self) -> None:
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1708,7 +1708,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(query.where, self.default_conditions)
 
-    def test_granularity(self):
+    def test_granularity(self) -> None:
         # Need to pick granularity based on the period and interval for timeseries
         def get_granularity(start, end, interval):
             query = TimeseriesMetricQueryBuilder(
@@ -1757,7 +1757,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end, 3600) == 3600, "less than a minute, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "less than a minute, 1d interval"
 
-    def test_transaction_in_filter(self):
+    def test_transaction_in_filter(self) -> None:
         query = TimeseriesMetricQueryBuilder(
             self.params,
             interval=900,
@@ -1782,7 +1782,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_project_filter(self):
+    def test_project_filter(self) -> None:
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1799,7 +1799,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_meta(self):
+    def test_meta(self) -> None:
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1816,7 +1816,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_with_aggregate_filter(self):
+    def test_with_aggregate_filter(self) -> None:
         query = TimeseriesMetricQueryBuilder(
             self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -1830,7 +1830,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         # Aggregate conditions should be dropped
         assert query.having == []
 
-    def test_run_query(self):
+    def test_run_query(self) -> None:
         for i in range(5):
             self.store_transaction_metric(
                 100, timestamp=self.start + datetime.timedelta(minutes=i * 15)
@@ -1884,7 +1884,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_hour_interval(self):
+    def test_run_query_with_hour_interval(self) -> None:
         # See comment on resolve_time_column for explanation of this test
         self.start = datetime.datetime.now(timezone.utc).replace(
             hour=15, minute=30, second=0, microsecond=0
@@ -1924,7 +1924,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_granularity_larger_than_interval(self):
+    def test_run_query_with_granularity_larger_than_interval(self) -> None:
         """The base MetricsQueryBuilder with a perfect 1d query will try to use granularity 86400 which is larger than
         the interval of 3600, in this case we want to make sure to use a smaller granularity to get the correct
         result"""
@@ -1966,7 +1966,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_filter(self):
+    def test_run_query_with_filter(self) -> None:
         for i in range(5):
             self.store_transaction_metric(
                 100,
@@ -2013,7 +2013,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_error_if_aggregates_disallowed(self):
+    def test_error_if_aggregates_disallowed(self) -> None:
         def run_query(query):
             with pytest.raises(IncompatibleMetricsQuery):
                 TimeseriesMetricQueryBuilder(
@@ -2035,7 +2035,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         for query in queries:
             run_query(query)
 
-    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self):
+    def test_no_error_if_aggregates_disallowed_but_no_aggregates_included(self) -> None:
         TimeseriesMetricQueryBuilder(
             self.params,
             interval=900,
@@ -2047,7 +2047,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ),
         )
 
-    def test_run_query_with_on_demand_count(self):
+    def test_run_query_with_on_demand_count(self) -> None:
         field = "count()"
         query_s = "transaction.duration:>0"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -2105,7 +2105,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     # Once we delete the current spec version this test will fail and we can delete it
-    def test_on_demand_builder_with_new_spec(self):
+    def test_on_demand_builder_with_new_spec(self) -> None:
         field = "count()"
         query = "transaction.duration:>0"
         spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
@@ -2137,7 +2137,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             # This proves that we're picking up the new spec version
             assert spec_in_use.spec_version.flags == {"include_environment_tag"}
 
-    def test_on_demand_builder_with_not_event_type_error(self):
+    def test_on_demand_builder_with_not_event_type_error(self) -> None:
         field = "count()"
         query = "!event.type:error"
         spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
@@ -2161,7 +2161,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert query_builder.dataset.name == "PerformanceMetrics"
         assert query_builder.dataset.value == "generic_metrics"
 
-    def test_on_demand_builder_with_event_type_error(self):
+    def test_on_demand_builder_with_event_type_error(self) -> None:
         field = "count()"
         query = "event.type:error"
         spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
@@ -2181,7 +2181,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 ),
             )
 
-    def test_run_query_with_on_demand_distribution_and_environment(self):
+    def test_run_query_with_on_demand_distribution_and_environment(self) -> None:
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
         spec = OnDemandMetricSpec(
@@ -2241,7 +2241,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_failure_count(self):
+    def test_run_query_with_on_demand_failure_count(self) -> None:
         field = "failure_count()"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -2271,7 +2271,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "failure_count", "type": "Float64"},
         ]
 
-    def test_run_query_with_on_demand_failure_rate(self):
+    def test_run_query_with_on_demand_failure_rate(self) -> None:
         field = "failure_rate()"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -2340,7 +2340,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_apdex(self):
+    def test_run_query_with_on_demand_apdex(self) -> None:
         field = "apdex(10)"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -2407,7 +2407,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_count_web_vitals(self):
+    def test_run_query_with_on_demand_count_web_vitals(self) -> None:
         field = "count_web_vitals(measurements.lcp, good)"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -2488,7 +2488,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_run_query_with_on_demand_epm(self):
+    def test_run_query_with_on_demand_epm(self) -> None:
         """Test events per minute for 1 event within an hour."""
         field = "epm()"
         query_s = "transaction.duration:>=100"
@@ -2519,7 +2519,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "epm", "type": "Float64"},
         ]
 
-    def test_run_query_with_on_demand_eps(self):
+    def test_run_query_with_on_demand_eps(self) -> None:
         """Test event per second for 1 event within an hour."""
         field = "eps()"
         query_s = "transaction.duration:>=100"
@@ -2550,7 +2550,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"name": "eps", "type": "Float64"},
         ]
 
-    def test_run_top_timeseries_query_with_on_demand_columns(self):
+    def test_run_top_timeseries_query_with_on_demand_columns(self) -> None:
         field = "count()"
         field_two = "count_web_vitals(measurements.lcp, good)"
         groupbys = ["customtag1", "customtag2"]
@@ -2649,7 +2649,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_on_demand_top_timeseries_simple_metric_spec_with_environment_set(self):
+    def test_on_demand_top_timeseries_simple_metric_spec_with_environment_set(self) -> None:
         field = "count()"
         groupbys = ["customtag1", "customtag2"]
         query_s = "transaction.duration:>=100"
@@ -2758,7 +2758,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_on_demand_top_timeseries_dynamic_metric_spec_with_environment_set(self):
+    def test_on_demand_top_timeseries_dynamic_metric_spec_with_environment_set(self) -> None:
         field = "count()"
         groupbys = ["customtag1", "customtag2"]
         query_s = "transaction.duration:>=100"
@@ -2868,7 +2868,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_on_demand_map_with_multiple_selected(self):
+    def test_on_demand_map_with_multiple_selected(self) -> None:
         query_str = "transaction.duration:>=100"
         query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -2885,7 +2885,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert query._on_demand_metric_spec_map["epm()"]
         assert "not_on_demand" not in query._on_demand_metric_spec_map
 
-    def test_on_demand_map_with_multiple_percentiles(self):
+    def test_on_demand_map_with_multiple_percentiles(self) -> None:
         field = "p75(measurements.fcp)"
         field_two = "p75(measurements.lcp)"
         query_str = "transaction.duration:>=100"
@@ -3029,7 +3029,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
-    def test_histogram_columns_set_on_builder(self):
+    def test_histogram_columns_set_on_builder(self) -> None:
         builder = HistogramMetricQueryBuilder(
             params=self.params,
             dataset=Dataset.PerformanceMetrics,
@@ -3055,7 +3055,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-    def test_get_query(self):
+    def test_get_query(self) -> None:
         self.store_transaction_metric(
             100,
             tags={"transaction": "foo_transaction"},
@@ -3098,7 +3098,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             (400.0, 500.0, 1),
         ]
 
-    def test_query_normal_distribution(self):
+    def test_query_normal_distribution(self) -> None:
         for i in range(5):
             for _ in range((5 - abs(i - 2)) ** 2):
                 self.store_transaction_metric(
@@ -3133,7 +3133,7 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
-    def test_run_query_with_on_demand_distribution(self):
+    def test_run_query_with_on_demand_distribution(self) -> None:
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -3169,7 +3169,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "d:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_count_and_environments(self):
+    def test_run_query_with_on_demand_count_and_environments(self) -> None:
         field = "count(measurements.fp)"
         query_s = "transaction.duration:>=100"
 
@@ -3233,7 +3233,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             assert len(meta) == 1
             assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_failure_rate(self):
+    def test_run_query_with_on_demand_failure_rate(self) -> None:
         field = "failure_rate()"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -3279,7 +3279,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_apdex(self):
+    def test_run_query_with_on_demand_apdex(self) -> None:
         field = "apdex(10)"
         query_s = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
@@ -3325,7 +3325,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert len(meta) == 1
         assert meta[0]["name"] == "c:transactions/on_demand@none"
 
-    def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self):
+    def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self) -> None:
         params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
@@ -3416,7 +3416,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         assert query_hash_clause in snql_query.where
 
-    def test_get_snql_query_with_on_demand_count_and_time_range_required_and_supplied(self):
+    def test_get_snql_query_with_on_demand_count_and_time_range_required_and_supplied(self) -> None:
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
@@ -3472,7 +3472,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where
 
-    def test_run_query_with_spm_and_time_range_not_required_and_not_supplied(self):
+    def test_run_query_with_spm_and_time_range_not_required_and_not_supplied(self) -> None:
         params = {
             "organization_id": self.organization.id,
             "project_id": self.projects,

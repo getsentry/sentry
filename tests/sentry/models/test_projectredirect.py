@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectRedirectTest(TestCase):
-    def test_record(self):
+    def test_record(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         ProjectRedirect.record(project, "old_slug")

@@ -3,15 +3,18 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
+import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -29,12 +32,15 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  queryOptions: QueryKeyEndpointOptions | undefined;
+  queryOptions:
+    | QueryKeyEndpointOptions<unknown, Record<string, string>, unknown>
+    | undefined;
   replays: ReplayListRecord[];
   selectedIds: 'all' | string[];
 }
 
 export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+  const analyticsArea = useAnalyticsArea();
   const {project: projectIds} = useLocationQuery({
     fields: {
       project: decodeList,
@@ -52,6 +58,11 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
   const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
+
+  const {refetch: refetchAuditLog} = useReplayBulkDeleteAuditLog({
+    projectSlug: project?.slug ?? '',
+    query: {referrer: analyticsArea},
+  });
 
   return (
     <Tooltip
@@ -90,12 +101,15 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
               ),
               onConfirm: () => {
                 bulkDelete([deletePayload], {
-                  onSuccess: () =>
+                  onSuccess: () => {
                     addSuccessMessage(
-                      tct('Replays are being deleted. [link:View progress]', {
+                      tct('Replays are being deleted. [settings:View progress]', {
                         settings: <LinkWithUnderline to={settingsPath} />,
                       })
-                    ),
+                    );
+                    // TODO: get the list to refetch
+                    refetchAuditLog();
+                  },
                   onError: () =>
                     addErrorMessage(
                       tn(
@@ -140,6 +154,9 @@ function ReplayQueryPreview({
         {t('Replays matching the following query will be deleted')}
       </Title>
       <KeyValueData.Card contentItems={contentItems} />
+      <Text size="sm" variant="muted">
+        All dates and times are in UTC.
+      </Text>
     </Fragment>
   );
 }
@@ -182,7 +199,7 @@ function ReplayPreviewTable({
                   size={24}
                 />
                 <SubText>
-                  <Flex gap="xs" align="flex-start">
+                  <Flex gap="xs" align="start">
                     <DisplayName>
                       {replay.user.display_name || t('Anonymous User')}
                     </DisplayName>
@@ -197,7 +214,7 @@ function ReplayPreviewTable({
                 </SubText>
               </Flex>
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="flex-end">
+            <SimpleTable.RowCell justify="end">
               <Duration
                 duration={[replay.duration.asMilliseconds() ?? 0, 'ms']}
                 precision="sec"

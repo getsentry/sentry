@@ -624,7 +624,7 @@ LOG_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         processor=count_processor,
-        default_search_type="string",
+        default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={

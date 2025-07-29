@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseDeploysListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
         release = Release.objects.create(
             organization_id=project.organization_id,
@@ -71,7 +71,7 @@ class ReleaseDeploysListTest(APITestCase):
         assert response.data[0]["environment"] == "staging"
         assert response.data[1]["environment"] == "production"
 
-    def test_with_project(self):
+    def test_with_project(self) -> None:
         project = self.create_project(name="bar")
         project2 = self.create_project(name="baz")
 
@@ -138,7 +138,7 @@ class ReleaseDeploysListTest(APITestCase):
 
 
 class ReleaseDeploysCreateTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
         self.org.save()
@@ -149,7 +149,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
 
@@ -187,7 +187,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_project_slugs(self):
+    def test_with_project_slugs(self) -> None:
         project_bar = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
@@ -238,7 +238,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_multiple_projects(self):
+    def test_with_multiple_projects(self) -> None:
         """
         Test that when a release is associated with multiple projects the user is still able to create
         a deploy to only one project
@@ -292,7 +292,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_project_ids(self):
+    def test_with_project_ids(self) -> None:
         project_bar = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
@@ -343,7 +343,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_invalid_project_slug(self):
+    def test_with_invalid_project_slug(self) -> None:
         bar_project = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
@@ -370,7 +370,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         assert "Invalid projects" in response.data["detail"]["message"]
         assert 0 == Deploy.objects.count()
 
-    def test_environment_validation_failure(self):
+    def test_environment_validation_failure(self) -> None:
         release = Release.objects.create(
             organization_id=self.org.id, version="123", total_deploys=0
         )

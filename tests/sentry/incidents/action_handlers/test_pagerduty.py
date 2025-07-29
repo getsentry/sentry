@@ -30,7 +30,7 @@ from . import FireTest
 
 @freeze_time()
 class PagerDutyActionHandlerTest(FireTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
         self.handler = PagerDutyActionHandler()
         service = [
@@ -64,7 +64,7 @@ class PagerDutyActionHandlerTest(FireTest):
             integration=self.integration,
         )
 
-    def test_build_incident_attachment(self):
+    def test_build_incident_attachment(self) -> None:
         from sentry.integrations.pagerduty.utils import build_incident_attachment
 
         alert_rule = self.create_alert_rule()
@@ -201,10 +201,10 @@ class PagerDutyActionHandlerTest(FireTest):
 
         assert json.loads(data) == expected_payload
 
-    def test_fire_metric_alert(self):
+    def test_fire_metric_alert(self) -> None:
         self.run_fire_test()
 
-    def test_fire_metric_alert_no_org_integration(self):
+    def test_fire_metric_alert_no_org_integration(self) -> None:
         # We've had orgs in prod that have alerts referencing
         # pagerduty integrations that no longer attached to the org.
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -213,7 +213,7 @@ class PagerDutyActionHandlerTest(FireTest):
         with pytest.raises(Http404):
             self.run_fire_test()
 
-    def test_fire_metric_alert_multiple_services(self):
+    def test_fire_metric_alert_multiple_services(self) -> None:
         service = [
             {
                 "type": "service",
@@ -231,11 +231,11 @@ class PagerDutyActionHandlerTest(FireTest):
             )
         self.run_fire_test()
 
-    def test_resolve_metric_alert(self):
+    def test_resolve_metric_alert(self) -> None:
         self.run_fire_test("resolve")
 
     @responses.activate
-    def test_rule_snoozed(self):
+    def test_rule_snoozed(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
@@ -274,18 +274,18 @@ class PagerDutyActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def test_custom_severity(self):
+    def test_custom_severity(self) -> None:
         # default closed incident severity is info, custom set to critical
         self.action.update(sentry_app_config={"priority": "critical"})
         self.run_fire_test()
 
     @responses.activate
-    def test_custom_severity_resolved(self):
+    def test_custom_severity_resolved(self) -> None:
         self.action.update(sentry_app_config={"priority": "critical"})
         self.run_fire_test("resolve")
 
     @responses.activate
-    def test_custom_severity_with_default_severity(self):
+    def test_custom_severity_with_default_severity(self) -> None:
         # default closed incident severity is info, setting severity to default should be ignored
         self.action.update(sentry_app_config={"priority": "default"})
         self.run_fire_test(status=IncidentStatus.CRITICAL)

@@ -14,7 +14,7 @@ class UserEmailsConfirmTest(APITestCase):
     endpoint = "sentry-api-0-user-emails-confirm"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -53,7 +53,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_signed_url(self):
+    def test_confirm_email_signed_url(self) -> None:
         from sentry import options
 
         EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
@@ -87,7 +87,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_invalid_signed_url(self):
+    def test_confirm_email_invalid_signed_url(self) -> None:
         self.login_as(self.user)
 
         new_email = "newemailfromsignedurl@example.com"
@@ -121,7 +121,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_already_verified(self):
+    def test_confirm_email_already_verified(self) -> None:
         from sentry import options
 
         EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
@@ -161,7 +161,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_expired_signature(self):
+    def test_confirm_email_expired_signature(self) -> None:
         from datetime import timedelta
 
         from django.utils import timezone
@@ -199,7 +199,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_signed_urls_disabled(self):
+    def test_confirm_email_signed_urls_disabled(self) -> None:
         self.login_as(self.user)
 
         new_email = "newemailfromsignedurl@example.com"

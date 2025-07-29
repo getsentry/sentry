@@ -51,7 +51,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class DerivedMetricSnQLTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 666
         self.metric_ids = []
         for metric_name in [
@@ -95,7 +95,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             }
         )
 
-    def test_counter_sum_aggregation_on_session_status(self):
+    def test_counter_sum_aggregation_on_session_status(self) -> None:
         for status, func in [
             ("init", all_sessions),
             ("crashed", crashed_sessions),
@@ -128,7 +128,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                 status,
             )
 
-    def test_set_uniq_aggregation_on_session_status(self):
+    def test_set_uniq_aggregation_on_session_status(self) -> None:
         for status, func in [
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
@@ -160,7 +160,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                 status,
             )
 
-    def test_set_uniq_aggregation_all_users(self):
+    def test_set_uniq_aggregation_all_users(self) -> None:
         assert all_users(self.org_id, self.metric_ids, alias="foo") == Function(
             "uniqIf",
             [
@@ -170,7 +170,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="foo",
         )
 
-    def test_set_sum_aggregation_for_errored_sessions(self):
+    def test_set_sum_aggregation_for_errored_sessions(self) -> None:
         alias = "whatever"
         assert uniq_aggregation_on_metric(self.metric_ids, alias) == Function(
             "uniqIf",
@@ -187,7 +187,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias,
         )
 
-    def test_dist_count_aggregation_on_tx_status(self):
+    def test_dist_count_aggregation_on_tx_status(self) -> None:
         expected_all_txs = Function(
             "countIf",
             [
@@ -281,7 +281,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             == expected_failed_txs
         )
 
-    def test_set_count_aggregation_on_tx_satisfaction(self):
+    def test_set_count_aggregation_on_tx_satisfaction(self) -> None:
         alias = "transaction.miserable_user"
 
         assert miserable_users(self.org_id, self.metric_ids, alias) == uniq_if_column_snql(
@@ -293,7 +293,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias=alias,
         )
 
-    def test_dist_count_aggregation_on_tx_satisfaction(self):
+    def test_dist_count_aggregation_on_tx_satisfaction(self) -> None:
         assert satisfaction_count_transaction(
             [self.project.id], self.org_id, self.metric_ids, "transaction.satisfied"
         ) == Function(
@@ -457,7 +457,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             assert threshold_override.call_count == 3
             assert threshold.call_count == 3
 
-    def test_project_thresholds_are_cached(self):
+    def test_project_thresholds_are_cached(self) -> None:
         ProjectTransactionThresholdOverride.objects.create(
             transaction="foo_transaction",
             project=self.project,
@@ -510,11 +510,11 @@ class DerivedMetricSnQLTestCase(TestCase):
         assert cache.get(threshold_override_cache_key) == expected_threshold_override_config
         assert cache.get(threshold_cache_key) == expected_threshold_config
 
-    def test_complement_in_sql(self):
+    def test_complement_in_sql(self) -> None:
         alias = "foo.complement"
         assert complement(0.64, alias=alias) == Function("minus", [1, 0.64], alias)
 
-    def test_addition_in_snql(self):
+    def test_addition_in_snql(self) -> None:
         alias = "session.crashed_and_abnormal_user"
         arg1_snql = crashed_users(self.org_id, self.metric_ids, alias="session.crashed_user")
         arg2_snql = abnormal_users(self.org_id, self.metric_ids, alias="session.abnormal_user")
@@ -524,7 +524,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias=alias,
         ) == Function("plus", [arg1_snql, arg2_snql], alias=alias)
 
-    def test_subtraction_in_snql(self):
+    def test_subtraction_in_snql(self) -> None:
         arg1_snql = all_users(self.org_id, self.metric_ids, alias="session.all_user")
         arg2_snql = errored_all_users(
             self.org_id, self.metric_ids, alias="session.errored_user_all"
@@ -536,7 +536,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="session.healthy_user",
         ) == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
 
-    def test_division_in_snql(self):
+    def test_division_in_snql(self) -> None:
         alias = "transactions.failure_rate"
         failed = failure_count_transaction(self.org_id, self.metric_ids, "transactions.failed")
         all = all_transactions([self.project.id], self.org_id, self.metric_ids, "transactions.all")
@@ -547,7 +547,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias=alias,
         )
 
-    def test_session_duration_filters(self):
+    def test_session_duration_filters(self) -> None:
         assert session_duration_filters(self.org_id) == [
             Function(
                 "equals",
@@ -560,7 +560,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             )
         ]
 
-    def test_rate_snql(self):
+    def test_rate_snql(self) -> None:
         assert rate_snql_factory(
             aggregate_filter=Function(
                 "equals",
@@ -598,7 +598,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="rate_alias",
         )
 
-    def test_count_web_vitals_snql(self):
+    def test_count_web_vitals_snql(self) -> None:
         assert count_web_vitals_snql_factory(
             aggregate_filter=Function(
                 "equals",

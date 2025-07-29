@@ -351,7 +351,7 @@ class ReleaseHealthBackend(Service):
         Inputs:
             * project_id
             * release
-            * org_id: Organisation Id
+            * org_id: Organization Id
             * environments
         Return:
             Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that

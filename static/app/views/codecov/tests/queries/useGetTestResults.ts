@@ -50,9 +50,12 @@ type TestResultItem = {
 };
 
 interface TestResults {
+  defaultBranch: string;
   pageInfo: {
     endCursor: string;
     hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string;
   };
   results: TestResultItem[];
   totalCount: number;
@@ -60,7 +63,13 @@ interface TestResults {
 
 type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 
-export function useInfiniteTestResults() {
+export function useInfiniteTestResults({
+  cursor,
+  navigation,
+}: {
+  cursor?: string | null;
+  navigation?: 'next' | 'prev';
+}) {
   const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
@@ -69,6 +78,9 @@ export function useInfiniteTestResults() {
   const signedSortBy = sortValueToSortKey(sortBy);
 
   const term = searchParams.get('term') || '';
+  const testSuites = searchParams.has('testSuites')
+    ? searchParams.getAll('testSuites')
+    : null;
 
   const filterBy = searchParams.get('filterBy') as SummaryFilterKey;
   let mappedFilterBy = null;
@@ -84,7 +96,18 @@ export function useInfiniteTestResults() {
   >({
     queryKey: [
       `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results/`,
-      {query: {branch, codecovPeriod, signedSortBy, mappedFilterBy, term}},
+      {
+        query: {
+          branch,
+          codecovPeriod,
+          signedSortBy,
+          mappedFilterBy,
+          term,
+          cursor,
+          navigation,
+          testSuites,
+        },
+      },
     ],
     queryFn: async ({
       queryKey: [url],
@@ -105,6 +128,9 @@ export function useInfiniteTestResults() {
               branch,
               term,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
+              ...(testSuites ? {testSuites} : {}),
+              ...(cursor ? {cursor} : {}),
+              ...(navigation ? {navigation} : {}),
             },
           },
         ],
@@ -118,7 +144,13 @@ export function useInfiniteTestResults() {
     getNextPageParam: ([lastPage]) => {
       return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
     },
+    getPreviousPageParam: ([firstPage]) => {
+      return firstPage.pageInfo?.hasPreviousPage
+        ? firstPage.pageInfo.startCursor
+        : undefined;
+    },
     initialPageParam: null,
+    enabled: !!(integratedOrgId && repository && branch && codecovPeriod),
   });
 
   const memoizedData = useMemo(
@@ -153,9 +185,16 @@ export function useInfiniteTestResults() {
   );
 
   return {
-    data: memoizedData,
+    data: {
+      testResults: memoizedData,
+      defaultBranch: data?.pages?.[0]?.[0]?.defaultBranch,
+    },
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
+    startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
+    endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
     // TODO: only provide the values that we're interested in
     ...rest,
   };
 }
+
+export type UseInfiniteTestResultsResult = ReturnType<typeof useInfiniteTestResults>;

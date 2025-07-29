@@ -21,7 +21,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
 class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.critical_action, self.warning_action = self.create_metric_issue_workflow(self.detector)
 
@@ -31,9 +31,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             {
                 "organizations:issue-metric-issue-ingest": True,
                 "organizations:issue-metric-issue-post-process-group": True,
-                "organizations:workflow-engine-metric-alert-processing": True,
-                "organizations:workflow-engine-process-metric-issue-workflows": True,
-                "organizations:workflow-engine-trigger-actions": True,
+                "organizations:workflow-engine-single-process-metric-issues": True,
                 "organizations:issue-open-periods": True,
             }
         ):

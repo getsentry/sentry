@@ -56,7 +56,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("rick@onehundredyears.com")
         self.organization = self.create_organization(owner=self.user, name="saml2-org")
         self.auth_provider_inst = AuthProvider.objects.create(
@@ -92,7 +92,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def setup_path(self):
         return reverse("sentry-organization-auth-provider-settings", args=["saml2-org"])
 
-    def test_redirects_to_idp(self):
+    def test_redirects_to_idp(self) -> None:
         resp = self.client.post(self.login_path, {"init": True})
 
         assert resp.status_code == 302
@@ -116,7 +116,7 @@ class AuthSAML2Test(AuthProviderTestCase):
                 self.acs_path, {"SAMLResponse": saml_response}, follow=follow, **kwargs
             )
 
-    def test_auth_sp_initiated(self):
+    def test_auth_sp_initiated(self) -> None:
         # Start auth process from SP side
         self.client.post(self.login_path, {"init": True})
         auth = self.accept_auth()
@@ -124,7 +124,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
 
-    def test_auth_sp_initiated_login(self):
+    def test_auth_sp_initiated_login(self) -> None:
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
             user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
@@ -139,7 +139,7 @@ class AuthSAML2Test(AuthProviderTestCase):
             ("/organizations/saml2-org/issues/", 302),
         ]
 
-    def test_auth_sp_initiated_customer_domain(self):
+    def test_auth_sp_initiated_customer_domain(self) -> None:
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
             user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
@@ -155,7 +155,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         ]
 
     @with_feature("system:multi-region")
-    def test_auth_sp_initiated_login_customer_domain_feature(self):
+    def test_auth_sp_initiated_login_customer_domain_feature(self) -> None:
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
             user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
@@ -170,13 +170,13 @@ class AuthSAML2Test(AuthProviderTestCase):
             ("http://saml2-org.testserver/issues/", 302),
         ]
 
-    def test_auth_idp_initiated(self):
+    def test_auth_idp_initiated(self) -> None:
         auth = self.accept_auth()
 
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
 
-    def test_auth_idp_initiated_invalid_flow_from_session(self):
+    def test_auth_idp_initiated_invalid_flow_from_session(self) -> None:
         original_is_valid = AuthHelperSessionStore.is_valid
 
         def side_effect(self):
@@ -194,7 +194,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
 
-    def test_auth_sp_initiated_invalid_step_index_from_session(self):
+    def test_auth_sp_initiated_invalid_step_index_from_session(self) -> None:
         from sentry.auth.helper import AuthHelper
 
         # Start auth process from SP side
@@ -260,7 +260,7 @@ class AuthSAML2Test(AuthProviderTestCase):
             "Require 2fa disabled during sso setup", extra={"organization_id": self.organization.id}
         )
 
-    def test_auth_idp_initiated_no_provider(self):
+    def test_auth_idp_initiated_no_provider(self) -> None:
         self.auth_provider_inst.delete()
         auth = self.accept_auth(follow=True)
 
@@ -270,14 +270,14 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert len(messages) == 1
         assert messages[0] == "The organization does not exist or does not have SAML SSO enabled."
 
-    def test_saml_metadata(self):
+    def test_saml_metadata(self) -> None:
         path = reverse("sentry-auth-organization-saml-metadata", args=["saml2-org"])
         resp = self.client.get(path)
 
         assert resp.status_code == 200
         assert resp.get("content-type") == "text/xml"
 
-    def test_logout_request(self):
+    def test_logout_request(self) -> None:
         saml_request = self.load_fixture("saml2_slo_request.xml")
         saml_request = base64.b64encode(saml_request)
 

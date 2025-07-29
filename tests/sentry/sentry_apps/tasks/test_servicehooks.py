@@ -12,7 +12,7 @@ pytestmark = [requires_snuba]
 
 
 class TestServiceHooks(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.hook = self.create_service_hook(project=self.project, events=("issue.created",))
 
     @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
@@ -99,7 +99,7 @@ class TestServiceHooks(TestCase):
         }
 
     @responses.activate
-    def test_v0_payload(self):
+    def test_v0_payload(self) -> None:
         responses.add(responses.POST, "https://example.com/sentry/webhook")
 
         event = self.store_event(

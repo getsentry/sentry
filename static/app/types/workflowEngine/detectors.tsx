@@ -123,6 +123,7 @@ type BaseDetector = Readonly<{
 }>;
 
 export interface MetricDetector extends BaseDetector {
+  readonly alertRuleId: number | null;
   readonly conditionGroup: DataConditionGroup | null;
   readonly config: MetricDetectorConfig;
   readonly dataSources: [SnubaQueryDataSource];
@@ -174,6 +175,7 @@ export interface BaseDetectorUpdatePayload {
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
+  type: Detector['type'];
   workflowIds: string[];
 }
 

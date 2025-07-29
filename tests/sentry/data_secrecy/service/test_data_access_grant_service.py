@@ -10,11 +10,11 @@ from sentry.testutils.silo import all_silo_test, create_test_regions
 @all_silo_test(regions=create_test_regions("us"))
 @freeze_time("2025-07-08 00:00:00")
 class TestDataAccessGrantService(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.organization_2 = self.create_organization()
 
-    def test_get_effective_waiver_status_with_active_grant(self):
+    def test_get_effective_waiver_status_with_active_grant(self) -> None:
         now = datetime.now(tz=timezone.utc)
         grant_start = now - timedelta(hours=1)
         grant_end = now + timedelta(hours=1)
@@ -36,13 +36,13 @@ class TestDataAccessGrantService(TestCase):
         assert result.access_start == grant_start
         assert result.access_end == grant_end
 
-    def test_get_effective_waiver_status_with_no_grants(self):
+    def test_get_effective_waiver_status_with_no_grants(self) -> None:
         result = data_access_grant_service.get_effective_grant_status(
             organization_id=self.organization.id
         )
         assert result is None
 
-    def test_get_effective_waiver_status_with_expired_grant(self):
+    def test_get_effective_waiver_status_with_expired_grant(self) -> None:
         now = datetime.now(tz=timezone.utc)
         grant_start = now - timedelta(hours=2)
         grant_end = now - timedelta(hours=1)  # Expired
@@ -60,7 +60,7 @@ class TestDataAccessGrantService(TestCase):
         )
         assert result is None
 
-    def test_get_effective_waiver_status_with_future_grant(self):
+    def test_get_effective_waiver_status_with_future_grant(self) -> None:
         now = datetime.now(tz=timezone.utc)
         grant_start = now + timedelta(hours=1)  # Future
         grant_end = now + timedelta(hours=2)
@@ -78,7 +78,7 @@ class TestDataAccessGrantService(TestCase):
         )
         assert result is None
 
-    def test_get_effective_waiver_status_with_revoked_grant(self):
+    def test_get_effective_waiver_status_with_revoked_grant(self) -> None:
         now = datetime.now(tz=timezone.utc)
         grant_start = now - timedelta(hours=1)
         grant_end = now + timedelta(hours=1)
@@ -98,7 +98,7 @@ class TestDataAccessGrantService(TestCase):
         )
         assert result is None
 
-    def test_get_effective_waiver_status_with_multiple_grants(self):
+    def test_get_effective_waiver_status_with_multiple_grants(self) -> None:
         now = datetime.now(tz=timezone.utc)
 
         # Grant 1: Earlier start, earlier end

@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,6 +14,8 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
@@ -50,7 +54,10 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
       typeof condition.comparison === 'number'
         ? String(condition.comparison)
         : String(condition.comparison || '0');
-    const thresholdSuffix = getMetricDetectorSuffix(detector);
+    const thresholdSuffix = getMetricDetectorSuffix(
+      detector.config?.detectionType || 'static',
+      detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+    );
 
     return `${typeLabel} ${comparisonValue}${thresholdSuffix}`;
   };
@@ -83,7 +90,10 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const mainCondition = conditions.find(
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
-  const thresholdSuffix = getMetricDetectorSuffix(detector);
+  const thresholdSuffix = getMetricDetectorSuffix(
+    detector.config?.detectionType || 'static',
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
 
   const description = getResolutionDescription({
     detectionType,
@@ -94,6 +104,26 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   });
 
   return <div>{description}</div>;
+}
+
+function GoToMetricAlert({detector}: {detector: MetricDetector}) {
+  const organization = useOrganization();
+  const user = useUser();
+  if (!user.isSuperuser || !detector.alertRuleId) {
+    return null;
+  }
+
+  return (
+    <div>
+      <Tooltip title="Superuser only">
+        <Link
+          to={`/organizations/${organization.slug}issues/alerts/rules/details/${detector.alertRuleId}/`}
+        >
+          View Metric Alert
+        </Link>
+      </Tooltip>
+    </div>
+  );
 }
 
 export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarProps) {
@@ -115,6 +145,7 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
         <DetectorExtraDetails.LastModified detector={detector} />
         <DetectorExtraDetails.Environment detector={detector} />
       </DetectorExtraDetails>
+      <GoToMetricAlert detector={detector} />
     </Fragment>
   );
 }
