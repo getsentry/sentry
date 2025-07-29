@@ -275,6 +275,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             GroupSimilarIssuesEmbeddingsCountEvent(
                 organization_id=self.org.id,
                 project_id=self.project.id,
+                hash=self.event.get_primary_hash(),
                 group_id=self.group.id,
                 count_over_threshold=2,
                 user_id=self.user.id,
@@ -508,6 +509,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             GroupSimilarIssuesEmbeddingsCountEvent(
                 organization_id=self.org.id,
                 project_id=self.project.id,
+                hash=self.event.get_primary_hash(),
                 group_id=self.group.id,
                 count_over_threshold=0,
                 user_id=self.user.id,

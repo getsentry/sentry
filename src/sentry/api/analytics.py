@@ -20,6 +20,7 @@ class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     organization_id: int
     project_id: int
     group_id: int
+    hash: str
     user_id: int | None
     count_over_threshold: int | None = None
 
