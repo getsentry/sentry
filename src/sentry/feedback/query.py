@@ -15,22 +15,32 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
+from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
 
 
 # TODO: abstract out the reusable parts of this query into helpers (e.g., getting first tuple element, etc.)
+# And do we need to add a filter so its only feedback types that are counted? how to do...
+# This seems to work (at least locally), with real ingested feedbacks, but changing the dataset to events doesn't work. Why? It worked in testing when I ran factory's store_event and queried the event dataset.
 def query_top_10_ai_labels_by_feedback_count(
     organization_id: int,
     project_ids: list[int],
     start: datetime,
     end: datetime,
 ):
+    """
+    Query the top 10 AI-generated labels by feedback count.
+    """
+
+    dataset = Dataset.IssuePlatform
+
     snuba_request = Request(
-        dataset="events",
+        dataset=dataset.value,
         app_id="replay-backend-web",
         tenant_ids={"organization_id": organization_id},
         query=Query(
-            match=Entity("events"),
+            match=Entity(dataset.value),
             select=[
                 Function("count", [], "count"),
                 Function(
@@ -55,7 +65,7 @@ def query_top_10_ai_labels_by_feedback_count(
                                         Lambda(
                                             ["tup"],
                                             Function(
-                                                "startsWith",  # Checks if the tag's key starts with "foo"
+                                                "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
                                                 parameters=[
                                                     Function(
                                                         "tupleElement",
@@ -64,7 +74,7 @@ def query_top_10_ai_labels_by_feedback_count(
                                                             1,
                                                         ],  # Returns the first tuple element (tag's key)
                                                     ),
-                                                    "ai_categorization.label",
+                                                    AI_LABEL_TAG_PREFIX,
                                                 ],
                                             ),
                                         ),
@@ -98,6 +108,6 @@ def query_top_10_ai_labels_by_feedback_count(
 
     return raw_snql_query(
         snuba_request,
-        referrer="feedback.query.query_top_10_ai_labels_by_feedback_count",
-        use_cache=True,
+        referrer="api.organization-issue-replay-count",
+        # use_cache=True,
     )

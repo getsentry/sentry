@@ -4,15 +4,44 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconThumb} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function FeedbackSummary() {
   const {isError, isPending, summary, tooFewFeedbacks, numFeedbacksUsed} =
     useFeedbackSummary();
+
+  const organization = useOrganization();
+
+  const {selection} = usePageFilters();
+
+  const normalizedDateRange = normalizeDateTimeParams(selection.datetime);
+
+  const {data: newData} = useApiQuery<any>(
+    [
+      `/organizations/${organization.slug}/feedback-categories/`,
+      {
+        query: {
+          ...normalizedDateRange,
+          project: selection.projects,
+        },
+      },
+    ],
+    {
+      staleTime: 5000,
+      enabled: Boolean(normalizedDateRange),
+      retry: 1,
+    }
+  );
+
+  void newData;
 
   const openForm = useFeedbackForm();
 

@@ -131,6 +131,8 @@ class SnubaEventStorage(EventStorage):
             [group_id],
         )
 
+        # print("OK THIS IS VERY IMPORTANT WE ARE MAKING A REQUEST NOW")
+
         snql_request = Request(
             dataset=dataset.value,
             app_id="eventstore",
@@ -152,6 +154,8 @@ class SnubaEventStorage(EventStorage):
         )
 
         result = raw_snql_query(snql_request, referrer, use_cache=False)
+
+        # print("\n\n\n\nTHIS IS THE VERY IMPORTANT RESULT", result["data"], "\n\n\n\n")
 
         if "error" not in result:
             events = [self.__make_event(evt) for evt in result["data"]]
