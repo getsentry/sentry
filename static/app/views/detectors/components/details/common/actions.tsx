@@ -9,7 +9,10 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DisableDetectorAction({detector}: {detector: Detector}) {
-  const canEdit = useCanEditDetector(detector);
+  const canEdit = useCanEditDetector({
+    detectorType: detector.type,
+    projectId: detector.projectId,
+  });
 
   if (!canEdit) {
     return null;
@@ -27,11 +30,14 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
 
 export function EditDetectorAction({detector}: {detector: Detector}) {
   const organization = useOrganization();
-  const canEdit = useCanEditDetector(detector);
+  const canEdit = useCanEditDetector({
+    detectorType: detector.type,
+    projectId: detector.projectId,
+  });
 
   const permissionTooltipText = tct(
     'You do not have permission to edit this monitor. Ask your organization owner or manager to [settingsLink:enable monitor access] for you.',
-    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
+    {settingsLink: <Link to={`/settings/${organization.slug}/#alertsMemberWrite`} />}
   );
 
   return (

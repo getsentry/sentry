@@ -2,6 +2,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
+  UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -66,7 +67,7 @@ describe('DetectorDetails', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
     });
   });
@@ -84,6 +85,12 @@ describe('DetectorDetails', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
         body: snubaQueryDetector,
+      });
+
+      // Metric detectors use different statsPeriod
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
+        body: [GroupFixture()],
       });
     });
 
@@ -192,6 +199,56 @@ describe('DetectorDetails', function () {
         expect.objectContaining({
           query: `is:unresolved detector:${snubaQueryDetector.id}`,
         })
+      );
+    });
+  });
+
+  describe('uptime detectors', function () {
+    const uptimeDetector = UptimeDetectorFixture({
+      id: '1',
+      projectId: project.id,
+      owner: `team:${ownerTeam.id}`,
+      workflowIds: ['1', '2'], // Add workflow IDs for connected automations
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${uptimeDetector.id}/`,
+        body: uptimeDetector,
+      });
+    });
+
+    it('displays correct detector details', async function () {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: uptimeDetector.name})
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('Three consecutive failed checks.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Three consecutive successful checks.')
+      ).toBeInTheDocument();
+
+      // Interval
+      expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
+      // URL
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
+      // Method
+      expect(screen.getByText('GET')).toBeInTheDocument();
+      // Environment
+      expect(screen.getByText('production')).toBeInTheDocument();
+
+      // Connected automation
+      expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+
+      // Edit button takes you to the edit page
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/monitors/1/edit/'
       );
     });
   });
