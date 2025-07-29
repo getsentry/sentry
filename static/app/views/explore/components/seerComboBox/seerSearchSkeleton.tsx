@@ -1,9 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
-import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';
-
 function generateThreeUniqueNumbers(): number[] {
   const numbers: Set<number> = new Set();
   const min = 35;
@@ -21,7 +18,6 @@ export function SeerSearchSkeleton() {
 
   return (
     <LoadingSkeleton>
-      <SeerSearchHeader title={t('Let me think about that...')} loading />
       <SkeletonCellsContainer>
         <SkeletonCell>
           <SkeletonLine width={`${numbers?.[0] ?? 95}%`} />
@@ -64,7 +60,7 @@ const SkeletonCell = styled('div')`
 const SkeletonLine = styled('div')<{width: string}>`
   height: 16px;
   width: ${p => p.width};
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.blue200};
   border-radius: 4px;
   animation: pulse 1.5s ease-in-out infinite;
 
@@ -73,7 +69,7 @@ const SkeletonLine = styled('div')<{width: string}>`
       opacity: 1;
     }
     50% {
-      opacity: 0.4;
+      opacity: 0.6;
     }
     100% {
       opacity: 1;

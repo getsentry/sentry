@@ -373,7 +373,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           overlayProps={overlayProps}
         >
           {isPending ? (
-            <SeerSearchSkeleton />
+            <Fragment>
+              <SeerSearchHeader title={t('Let me think about that...')} loading />
+              <SeerSearchSkeleton />
+            </Fragment>
           ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
             <Fragment>
               <SeerSearchHeader title={t('Do any of these look right to you?')} />
@@ -493,6 +496,10 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
+
+  &:nth-child(2) {
+    border-top: none;
+  }
 `;
 
 const SeerContent = styled('div')`

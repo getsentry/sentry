@@ -67,9 +67,9 @@ const HeaderWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-  background: ${p => p.theme.purple100};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   width: 100%;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const AnimatedExampleText = styled(Button)<{isAnimating: boolean}>`
