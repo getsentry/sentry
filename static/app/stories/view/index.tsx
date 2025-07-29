@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren} from 'react';
+import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -38,6 +38,7 @@ function StoriesLanding() {
 
 function StoryDetail() {
   useStoryRedirect();
+  useScrollToHash();
   const location = useLocation<{name: string; query?: string}>();
   const files = [location.state?.storyPath ?? location.query.name];
   const story = useStoriesLoader({files});
@@ -90,6 +91,25 @@ function StoriesLayout(props: PropsWithChildren) {
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
+}
+
+function useScrollToHash() {
+  const scrollToHash = () => {
+    if (window.location.hash) {
+      const hash = window.location.hash.replace(/^#/, '');
+
+      try {
+        const element = document.querySelector(`#${hash}`);
+        element?.scrollIntoView({behavior: 'instant', block: 'start'});
+      } catch {
+        // hash might be an invalid querySelector and lead to a DOMException
+      }
+    }
+  };
+
+  useEffect(() => {
+    setTimeout(() => scrollToHash(), 300);
+  }, []);
 }
 
 function GlobalStoryStyles() {
