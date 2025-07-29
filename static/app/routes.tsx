@@ -1986,6 +1986,7 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
           ),
+          deprecatedRouteProps: true,
         },
       ],
     },
