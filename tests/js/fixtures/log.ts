@@ -1,3 +1,4 @@
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -24,5 +25,22 @@ export function LogFixture({
     [OurLogKnownFieldKey.TRACE_ID]: traceId,
     [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
     ...rest,
+  };
+}
+
+// Incomplete, only provides type of field if it's a string or number.
+export function LogFixtureMeta(fixture: Partial<OurLogsResponseItem>): EventsMetaType {
+  return {
+    fields: Object.fromEntries(
+      Object.entries(fixture).map(([key, value]) => {
+        const valueType = typeof value;
+        if (!['string', 'number'].includes(valueType)) {
+          throw new Error(`Invalid value type: ${valueType}`);
+        }
+        const type = valueType === 'string' ? 'string' : 'number';
+        return [key, type];
+      })
+    ),
+    units: {},
   };
 }
