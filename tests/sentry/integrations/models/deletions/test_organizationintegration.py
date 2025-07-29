@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
@@ -8,12 +10,14 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
+from sentry.workflow_engine.models import Action
 
 
 @control_silo_test
@@ -115,3 +119,67 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             # We expect to delete all associated Code Owners and Code Mappings
             assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
+
+    @patch(
+        "sentry.workflow_engine.service.action.action_service.delete_actions_for_organization_integration"
+    )
+    def test_action_service_called_on_deletion(self, mock_delete_actions) -> None:
+        """Test that action service is called to delete actions when organization integration is deleted."""
+        org = self.create_organization()
+        integration, organization_integration = self.create_provider_integration_for(
+            org, self.user, provider="example", name="Example"
+        )
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        with self.tasks(), outbox_runner():
+            run_scheduled_deletions_control()
+
+        # Verify the action service was called with correct parameters
+        mock_delete_actions.assert_called_once_with(
+            organization_id=org.id, integration_id=integration.id
+        )
+
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+
+    def test_actions_deleted_on_organization_integration_deletion(self) -> None:
+        """Test that actions are actually deleted when organization integration is deleted."""
+        org = self.create_organization()
+        integration, organization_integration = self.create_provider_integration_for(
+            org, self.user, provider="slack", name="Test Integration"
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Create a data condition group
+            condition_group = self.create_data_condition_group(organization=org)
+
+            # Create an action linked to this integration
+            action = self.create_action(
+                type=Action.Type.SLACK,
+                integration_id=integration.id,
+                config={
+                    "target_type": ActionTarget.SPECIFIC,
+                    "target_identifier": "123",
+                    "target_display": "Test Integration",
+                },
+            )
+
+            # Link action to condition group
+            self.create_data_condition_group_action(condition_group=condition_group, action=action)
+
+            # Verify action exists before deletion
+            assert Action.objects.filter(id=action.id).exists()
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        with self.tasks(), outbox_runner():
+            run_scheduled_deletions_control()
+
+        # Verify organization integration is deleted
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Verify action is also deleted
+            assert not Action.objects.filter(id=action.id).exists()
