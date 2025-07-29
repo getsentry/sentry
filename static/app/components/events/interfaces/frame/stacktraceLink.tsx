@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -9,7 +10,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
+import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
@@ -230,6 +231,28 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     refetch();
   };
 
+  const handleCopyPath = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const filePath = frame.filename;
+    if (!filePath) {
+      return;
+    }
+
+    trackAnalytics('integrations.stacktrace_file_path_copied', {
+      view: 'stacktrace_issue_details',
+      organization,
+      group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+      ...getAnalyticsDataForEvent(event),
+    });
+
+    try {
+      await navigator.clipboard.writeText(filePath);
+      addSuccessMessage(t('File path copied to clipboard'));
+    } catch (err) {
+      addErrorMessage(t('Failed to copy file path'));
+    }
+  };
+
   if (!validFilePath) {
     return null;
   }
@@ -239,6 +262,11 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
       <StacktraceLinkWrapper>
+        <Tooltip title={t('Copy file path')} skipWrapper>
+          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
+            <IconCopy size="xs" />
+          </CopyButton>
+        </Tooltip>
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <OpenInLink
             onClick={e => onOpenLink(e, frame.sourceLink)}
@@ -267,6 +295,11 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     const label = t('Open this line in %s', match.config.provider.name);
     return (
       <StacktraceLinkWrapper>
+        <Tooltip title={t('Copy file path')} skipWrapper>
+          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
+            <IconCopy size="xs" />
+          </CopyButton>
+        </Tooltip>
         <OpenInLink
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
@@ -315,6 +348,11 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   ) {
     return (
       <StacktraceLinkWrapper>
+        <Tooltip title={t('Copy file path')} skipWrapper>
+          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
+            <IconCopy size="xs" />
+          </CopyButton>
+        </Tooltip>
         <Tooltip title={t('GitHub')} skipWrapper>
           <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
             <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
@@ -347,6 +385,11 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     );
     return (
       <StacktraceLinkWrapper>
+        <Tooltip title={t('Copy file path')} skipWrapper>
+          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
+            <IconCopy size="xs" />
+          </CopyButton>
+        </Tooltip>
         <FixMappingButton
           priority="link"
           icon={
@@ -403,6 +446,21 @@ const StacktraceLinkWrapper = styled('div')`
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
   padding: 0 ${space(1)};
+`;
+
+const CopyButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: ${p => p.theme.subText};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const FixMappingButton = styled(Button)`
