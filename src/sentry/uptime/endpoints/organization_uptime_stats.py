@@ -118,7 +118,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_project_uptime_subscription_id, formatted_response
         )
 
-        return self.respond(mapped_response)
+        response_with_filled_buckets = add_missing_buckets(
+            mapped_response,
+            timerange_args["rollup"],
+            timerange_args["start"],
+            timerange_args["end"],
+        )
+
+        return self.respond(response_with_filled_buckets)
 
     def _authorize_and_map_project_uptime_subscription_ids(
         self,
@@ -296,5 +303,46 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_project_uptime_subscription_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }
+
+
+def add_missing_buckets(
+    formatted_response: dict[int, list[tuple[int, dict[str, int]]]],
+    rollup: int,
+    start: datetime.datetime,
+    end: datetime.datetime | None,
+) -> dict[int, list[tuple[int, dict[str, int]]]]:
+    """
+    Add empty buckets to ensure the response spans the full requested time range.
+    This ensures consistent time series data even when there are gaps.
+    """
+    if not formatted_response:
+        return formatted_response
+
+    end = end or datetime.datetime.now(tz=datetime.UTC)
+
+    # Calculate the total number of buckets needed for the full time range
+    total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
+
+    result = {}
+
+    # Check if we need to add buckets by examining the first subscription's data
+    first_result = formatted_response[list(formatted_response.keys())[0]]
+    if len(first_result) >= total_buckets:
+        return formatted_response
+    
+    num_missing = total_buckets - len(first_result)
+
+    # Add missing buckets at the beginning for each subscription
+    for subscription_id, data in formatted_response.items():
+        missing_buckets = []
+        for i in range(num_missing):
+            ts = int(start.timestamp()) + (i * rollup)
+            missing_buckets.append(
+                (ts, {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0})
+            )
+
+        result[subscription_id] = missing_buckets + data
+
+    return result
 
 
