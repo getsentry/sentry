@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -10,12 +10,10 @@ import {useStoryBookFiles} from './useStoriesLoader';
 export function StorySidebar() {
   const {foundations, typography, layout, core, shared} = useStoryBookFilesByCategory();
   const sidebarEl = useRef<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    setTimeout(() => {
-      sidebarEl.current
-        ?.querySelector('[aria-current="page"]')
-        ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
-    }, 50);
+  useEffect(() => {
+    sidebarEl.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
   }, []);
 
   return (
