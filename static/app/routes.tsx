@@ -1417,6 +1417,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/dashboards/new/',
       component: make(() => import('sentry/views/dashboards/create')),
+      deprecatedRouteProps: true,
       withOrgPath: true,
       children: [
         // new widget builder routes
@@ -1442,11 +1443,11 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
         },
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: '/dashboards/new/:templateId',
       component: make(() => import('sentry/views/dashboards/create')),
+      deprecatedRouteProps: true,
       withOrgPath: true,
       children: [
         {
@@ -1455,7 +1456,6 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
         },
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: '/organizations/:orgId/dashboards/:dashboardId/',
@@ -1469,6 +1469,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/dashboard/:dashboardId/',
       component: make(() => import('sentry/views/dashboards/view')),
+      deprecatedRouteProps: true,
       withOrgPath: true,
       children: [
         {
@@ -1497,7 +1498,6 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
         },
       ],
-      deprecatedRouteProps: true,
     },
   ];
   const dashboardRoutes: SentryRouteObject = {
@@ -1664,6 +1664,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'new/',
       component: make(() => import('sentry/views/alerts/builder/projectProvider')),
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -1677,7 +1678,6 @@ function buildRoutes(): RouteObject[] {
           deprecatedRouteProps: true,
         },
       ],
-      deprecatedRouteProps: true,
     },
     {
       path: ':alertId/',
@@ -1753,6 +1753,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':release/',
       component: make(() => import('sentry/views/releases/detail')),
+      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -1771,7 +1772,6 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
-      deprecatedRouteProps: true,
     },
   ];
   const releasesRoutes: SentryRouteObject = {
@@ -2527,7 +2527,6 @@ function buildRoutes(): RouteObject[] {
     {
       index: true,
       component: make(() => import('sentry/views/feedback/feedbackListPage')),
-      deprecatedRouteProps: true,
     },
     traceView,
   ];
