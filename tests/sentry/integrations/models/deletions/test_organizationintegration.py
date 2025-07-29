@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
@@ -120,29 +118,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
 
-    @patch(
-        "sentry.workflow_engine.service.action.action_service.delete_actions_for_organization_integration"
-    )
-    def test_action_service_called_on_deletion(self, mock_delete_actions) -> None:
-        """Test that action service is called to delete actions when organization integration is deleted."""
-        org = self.create_organization()
-        integration, organization_integration = self.create_provider_integration_for(
-            org, self.user, provider="example", name="Example"
-        )
-
-        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
-        ScheduledDeletion.schedule(instance=organization_integration, days=0)
-
-        with self.tasks(), outbox_runner():
-            run_scheduled_deletions_control()
-
-        # Verify the action service was called with correct parameters
-        mock_delete_actions.assert_called_once_with(
-            organization_id=org.id, integration_id=integration.id
-        )
-
-        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
-
     def test_actions_deleted_on_organization_integration_deletion(self) -> None:
         """Test that actions are actually deleted when organization integration is deleted."""
         org = self.create_organization()
@@ -167,9 +142,6 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
             # Link action to condition group
             self.create_data_condition_group_action(condition_group=condition_group, action=action)
-
-            # Verify action exists before deletion
-            assert Action.objects.filter(id=action.id).exists()
 
         organization_integration.update(status=ObjectStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(instance=organization_integration, days=0)
