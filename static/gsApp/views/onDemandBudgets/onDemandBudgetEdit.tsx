@@ -12,7 +12,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryExact} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -121,49 +121,51 @@ class OnDemandBudgetEdit extends Component<Props> {
           {getOnDemandCategories({
             plan: activePlan,
             budgetMode: displayBudgetMode,
-          }).map(category => {
-            const categoryBudgetKey = `${category}Budget`;
-            const displayName = getPlanCategoryName({plan: activePlan, category});
-            return (
-              <Fragment key={category}>
-                <Tooltip
-                  disabled={onDemandSupported}
-                  title={this.onDemandUnsupportedCopy()}
-                >
-                  <InputDiv>
-                    <div>
-                      <MediumTitle>{displayName}</MediumTitle>
-                      <Description>{t('Monthly Budget')}</Description>
-                    </div>
-                    <Currency>
-                      <OnDemandInput
-                        disabled={!onDemandSupported}
-                        aria-label={`${displayName} budget`}
-                        name={categoryBudgetKey}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={7}
-                        placeholder="e.g. 50"
-                        value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const inputValue = parseInputValue(e);
-                          const updatedBudgets = {
-                            ...onDemandBudget.budgets,
-                            [category]: inputValue,
-                          };
-                          setOnDemandBudget({
-                            ...onDemandBudget,
-                            budgets: updatedBudgets,
-                          });
-                        }}
-                      />
-                    </Currency>
-                  </InputDiv>
-                </Tooltip>
-              </Fragment>
-            );
-          })}
+          })
+            .filter(category => category !== DataCategory.LOG_BYTE)
+            .map(category => {
+              const categoryBudgetKey = `${category}Budget`;
+              const displayName = getPlanCategoryName({plan: activePlan, category});
+              return (
+                <Fragment key={category}>
+                  <Tooltip
+                    disabled={onDemandSupported}
+                    title={this.onDemandUnsupportedCopy()}
+                  >
+                    <InputDiv>
+                      <div>
+                        <MediumTitle>{displayName}</MediumTitle>
+                        <Description>{t('Monthly Budget')}</Description>
+                      </div>
+                      <Currency>
+                        <OnDemandInput
+                          disabled={!onDemandSupported}
+                          aria-label={`${displayName} budget`}
+                          name={categoryBudgetKey}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={7}
+                          placeholder="e.g. 50"
+                          value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const inputValue = parseInputValue(e);
+                            const updatedBudgets = {
+                              ...onDemandBudget.budgets,
+                              [category]: inputValue,
+                            };
+                            setOnDemandBudget({
+                              ...onDemandBudget,
+                              budgets: updatedBudgets,
+                            });
+                          }}
+                        />
+                      </Currency>
+                    </InputDiv>
+                  </Tooltip>
+                </Fragment>
+              );
+            })}
           <CronsOnDemandStepWarning
             currentOnDemand={onDemandBudget.budgets[cronCategoryName] ?? 0}
             activePlan={activePlan}
@@ -203,7 +205,7 @@ class OnDemandBudgetEdit extends Component<Props> {
       categories: getOnDemandCategories({
         plan: activePlan,
         budgetMode: selectedBudgetMode,
-      }),
+      }).filter(category => category !== DataCategory.LOG_BYTE),
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
