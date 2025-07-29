@@ -14,6 +14,7 @@ import {
   useFindNextTrace,
   useFindPreviousTrace,
 } from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
+import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export type ConnectedTraceConnection = 'previous' | 'next';
@@ -69,6 +70,15 @@ export function TraceLinkNavigationButton({
     [location.query]
   );
 
+  const traceDispatch = useTraceStateDispatch();
+
+  function closeSpanDetailsDrawer() {
+    traceDispatch({
+      type: 'minimize drawer',
+      payload: false,
+    });
+  }
+
   if (direction === 'previous' && previousTraceId && !isPreviousTraceLoading) {
     if (isPreviousTraceAvailable) {
       return (
@@ -91,6 +101,7 @@ export function TraceLinkNavigationButton({
         >
           <TraceLink
             color="gray500"
+            onClick={() => closeSpanDetailsDrawer()}
             to={getTraceDetailsUrl({
               traceSlug: previousTraceId,
               spanId: previousTraceSpanId,
@@ -155,6 +166,7 @@ export function TraceLinkNavigationButton({
       >
         <TraceLink
           color="gray500"
+          onClick={closeSpanDetailsDrawer}
           to={getTraceDetailsUrl({
             traceSlug: nextTraceId,
             spanId: nextTraceSpanId,
