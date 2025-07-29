@@ -46,7 +46,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     return (
       <Feature features="organizations:gen-ai-explore-traces-consent-ui">
         <AskSeerPane>
-          <AskSeerListItem justifyContent="space-between">
+          <AskSeerListItem justifyContent="space-between" cursor="auto">
             <AskSeerFeedback />
           </AskSeerListItem>
         </AskSeerPane>

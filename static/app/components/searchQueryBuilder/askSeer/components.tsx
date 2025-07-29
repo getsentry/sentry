@@ -12,6 +12,7 @@ export const AskSeerPane = styled('div')`
 `;
 
 export const AskSeerListItem = styled('div')<{
+  cursor?: 'pointer' | 'auto';
   justifyContent?: 'flex-start' | 'space-between';
 }>`
   position: relative;
@@ -34,7 +35,7 @@ export const AskSeerListItem = styled('div')<{
 
   &:hover,
   &:focus {
-    cursor: pointer;
+    cursor: ${p => (p.cursor ? p.cursor : 'pointer')};
   }
 
   &[aria-selected='true'] {
