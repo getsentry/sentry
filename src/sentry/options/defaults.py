@@ -3653,14 +3653,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout for inferring project platform from events received
-register(
-    "sentry:infer_project_platform",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "sentry.hybridcloud.cacheversion.rollout",
     type=Float,

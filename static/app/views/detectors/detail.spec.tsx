@@ -3,6 +3,7 @@ import {
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
 } from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -48,6 +49,10 @@ describe('DetectorDetails', function () {
       match: [MockApiClient.matchQuery({id: ['1', '2']})],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/1/`,
       body: UserFixture(),
     });
@@ -59,6 +64,10 @@ describe('DetectorDetails', function () {
           [1543449601, [10, 5]],
         ],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
+      body: [GroupFixture()],
     });
   });
 
@@ -159,6 +168,31 @@ describe('DetectorDetails', function () {
         expect(screen.getByText('Last Triggered')).toBeInTheDocument();
         expect(screen.getByText('Actions')).toBeInTheDocument();
       });
+    });
+
+    it('displays ongoing issues for the detector', async function () {
+      const {router} = render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Verify ongoing issues section is displayed
+      expect(await screen.findByText('RequestError')).toBeInTheDocument();
+
+      // Verify the View All button links to the issues page with the correct query
+      const viewAllButton = screen.getByRole('button', {name: 'View All'});
+
+      await userEvent.click(viewAllButton);
+
+      // Check that navigation occurred to the issues page with the detector query
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/`
+      );
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          query: `is:unresolved detector:${snubaQueryDetector.id}`,
+        })
+      );
     });
   });
 });
