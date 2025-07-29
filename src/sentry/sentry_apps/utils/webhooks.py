@@ -7,8 +7,8 @@ class SentryAppActionType(StrEnum):
 
 
 class IssueActionType(SentryAppActionType):
-    CREATED = "created"
     ASSIGNED = "assigned"
+    CREATED = "created"
     IGNORED = "ignored"
     RESOLVED = "resolved"
     UNRESOLVED = "unresolved"
@@ -20,15 +20,15 @@ class ErrorActionType(SentryAppActionType):
 
 class CommentActionType(SentryAppActionType):
     CREATED = "created"
-    UPDATED = "updated"
     DELETED = "deleted"
+    UPDATED = "updated"
 
 
 class MetricAlertActionType(SentryAppActionType):
-    OPEN = "open"
     CRITICAL = "critical"
+    OPEN = "open"
+    CLOSED = "closed"
     WARNING = "warning"
-    CLOSED = "resolved"
 
 
 class IssueAlertActionType(SentryAppActionType):
