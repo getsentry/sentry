@@ -15,8 +15,8 @@ type CodecovQueryParamsProviderProps = {
 };
 
 const VALUES_TO_RESET_MAP = {
-  integratedOrgId: ['repository', 'branch'],
-  repository: ['branch'],
+  integratedOrgId: ['repository', 'branch', 'testSuites'],
+  repository: ['branch', 'testSuites'],
   branch: [],
   codecovPeriod: [],
 };

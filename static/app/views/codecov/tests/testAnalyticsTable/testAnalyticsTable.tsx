@@ -71,7 +71,9 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 
 interface Props {
   response: {
-    data: Row[];
+    data: {
+      testResults: Row[];
+    };
     isLoading: boolean;
   };
   sort: ValidSort;
@@ -81,6 +83,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
   const {data, isLoading} = response;
   const [searchParams] = useSearchParams();
   const wrapToggleValue = searchParams.get('wrap') === 'true';
+  const testResults = data.testResults;
 
   const selectorEmptyMessage = (
     <MessageContainer>
@@ -98,7 +101,7 @@ export default function TestAnalyticsTable({response, sort}: Props) {
     <GridEditable
       aria-label={t('Test Analytics')}
       isLoading={isLoading}
-      data={data ?? []}
+      data={testResults ?? []}
       emptyMessage={selectorEmptyMessage}
       columnOrder={COLUMNS_ORDER}
       // TODO: This isn't used as per the docs but is still required. Test if
