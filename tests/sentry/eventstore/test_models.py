@@ -604,7 +604,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
 
 
 @django_db_all
-def test_renormalization(monkeypatch, factories, task_runner, default_project):
+def test_renormalization(factories, task_runner, default_project):
     from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
@@ -614,9 +614,10 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 
-    monkeypatch.setattr("sentry_relay.processing.StoreNormalizer.normalize_event", normalize)
-
-    with task_runner():
+    with (
+        mock.patch("sentry_relay.processing.StoreNormalizer.normalize_event", normalize),
+        task_runner(),
+    ):
         factories.store_event(
             data={"event_id": "a" * 32, "environment": "production"}, project_id=default_project.id
         )
