@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 import {InlineCodeSnippet} from 'sentry/views/codecov/styles';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
-interface OutputCoverageFileProps {
+interface AddScriptToYamlStepProps {
   step: string;
 }
 
@@ -17,7 +17,7 @@ const SNIPPET = `- name: Upload test results to Codecov
     token: \${{ secrets.CODECOV_TOKEN }}
 `;
 
-export function AddScriptToYaml({step}: OutputCoverageFileProps) {
+export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
   const headerText = tct(
     'Step [step]: Add the script [actionName] to your CI YAML file',
     {
