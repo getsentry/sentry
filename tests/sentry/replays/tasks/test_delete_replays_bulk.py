@@ -5,8 +5,9 @@ import uuid
 from unittest.mock import patch
 
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
-from sentry.replays.tasks import fetch_rows_matching_pattern, run_bulk_replay_delete_job
+from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
+from sentry.replays.usecases.delete import fetch_rows_matching_pattern
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 
