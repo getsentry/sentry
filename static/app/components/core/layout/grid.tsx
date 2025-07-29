@@ -31,7 +31,9 @@ type GridProps<T extends ContainerElement = 'div'> = Omit<
    * Aligns grid items along the column axis within their grid cells.
    * Uses CSS align-content property.
    */
-  alignContent?: Responsive<CSSProperties['alignContent']>;
+  alignContent?: Responsive<
+    'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'stretch'
+  >;
   /**
    * Defines named grid areas for child components to reference.
    * Uses CSS grid-template-areas property.
@@ -73,7 +75,7 @@ type GridProps<T extends ContainerElement = 'div'> = Omit<
    * Aligns grid items along the row axis within their grid cells.
    * Uses CSS justify-items property.
    */
-  justifyItems?: Responsive<CSSProperties['justifyItems']>;
+  justifyItems?: Responsive<'start' | 'end' | 'center' | 'stretch'>;
   /**
    * Defines the row tracks of the grid.
    * Uses CSS grid-template-rows property.
@@ -126,24 +128,6 @@ export const Grid = styled(
     })};
 
   ${p =>
-    rc('align-items', p.align, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'start';
-        case 'end':
-          return 'end';
-        case 'center':
-          return 'center';
-        case 'baseline':
-          return 'baseline';
-        case 'stretch':
-          return 'stretch';
-        default:
-          return value;
-      }
-    })};
-
-  ${p =>
     rc('align-content', p.alignContent, p.theme, (value, _breakpoint, _theme) => {
       switch (value) {
         case 'start':
@@ -165,21 +149,8 @@ export const Grid = styled(
       }
     })};
 
-  ${p =>
-    rc('justify-items', p.justifyItems, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'start';
-        case 'end':
-          return 'end';
-        case 'center':
-          return 'center';
-        case 'stretch':
-          return 'stretch';
-        default:
-          return value;
-      }
-    })};
+  ${p => rc('align-items', p.align, p.theme)};
+  ${p => rc('justify-items', p.justifyItems, p.theme)};
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
