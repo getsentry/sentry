@@ -82,6 +82,28 @@ class TestErrorDetectorValidator(TestCase):
             ErrorDetail(string="Resolve age must be a non-negative number", code="invalid")
         ]
 
+    def test_invalid_condition_group(self) -> None:
+        data = {
+            **self.valid_data,
+            "condition_group": {
+                "logic_type": "any",
+                "conditions": [
+                    {
+                        "type": "eq",
+                        "comparison": 100,
+                        "condition_result": "high",
+                    }
+                ],
+            },
+        }
+        validator = ErrorDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup") == [
+            ErrorDetail(
+                string="Condition group is not supported for error detectors", code="invalid"
+            )
+        ]
+
     def test_update_existing_with_valid_data(self) -> None:
         data = {**self.valid_data, "name": "Updated Detector"}
         validator = ErrorDetectorValidator(
