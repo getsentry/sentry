@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -29,6 +29,8 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   const api = useApi();
   const queryClient = useQueryClient();
 
+  const [triggerPendingState, setTriggerPendingState] = useState(false);
+
   const {
     data: summaryData,
     isPending,
@@ -39,7 +41,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (isPolling(query.state.data?.[0] || undefined, isTriggerPending)) {
+        if (isPolling(query.state.data?.[0] || undefined, triggerPendingState)) {
           return POLL_INTERVAL;
         }
         return false;
@@ -61,6 +63,9 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
           method: 'POST',
         }
       ),
+    onMutate: () => {
+      setTriggerPendingState(true);
+    },
     onSuccess: () => {
       // invalidate the query when a summary is triggered
       // so the cached data is marked as stale.
@@ -71,6 +76,10 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
           replayRecord?.id ?? ''
         ),
       });
+      setTriggerPendingState(false);
+    },
+    onError: () => {
+      setTriggerPendingState(false);
     },
   });
 
