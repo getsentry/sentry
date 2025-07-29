@@ -161,6 +161,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
                 "workflow_engine.issue_platform.status_change_handler",
                 amount=len(group_status_update_registry.registrations.keys()),
                 tags={"activity_type": activity_type.value},
+                sample_rate=1.0,
             )
             for handler in group_status_update_registry.registrations.values():
                 logger.info(
