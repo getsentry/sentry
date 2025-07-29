@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests.exceptions
@@ -44,7 +44,7 @@ class TestCodecovIntegration(APITestCase):
         "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
-    def test_no_codecov_integration(self, mock_get_repositories):
+    def test_no_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/github/testgit",
@@ -60,7 +60,7 @@ class TestCodecovIntegration(APITestCase):
         "sentry.integrations.github.client.GitHubApiClient.get_repos",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
-    def test_has_codecov_integration(self, mock_get_repositories):
+    def test_has_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/github/testgit",

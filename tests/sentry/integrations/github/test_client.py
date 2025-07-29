@@ -106,7 +106,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_file(self, get_jwt):
+    def test_check_file(self, get_jwt: mock.MagicMock) -> None:
         path = "src/sentry/integrations/github/client.py"
         version = "master"
         url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -123,7 +123,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_check_no_file(self, get_jwt):
+    def test_check_no_file(self, get_jwt: mock.MagicMock) -> None:
         path = "src/santry/integrations/github/client.py"
         version = "master"
         url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
@@ -137,7 +137,9 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_stacktrace_link(self, mock_record, get_jwt):
+    def test_get_stacktrace_link(
+        self, mock_record: mock.MagicMock, get_jwt: mock.MagicMock
+    ) -> None:
         path = "/src/sentry/integrations/github/client.py"
         version = "master"
         url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
@@ -166,7 +168,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_with_pagination(self, get_jwt):
+    def test_get_with_pagination(self, get_jwt: mock.MagicMock) -> None:
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         responses.add(
@@ -202,7 +204,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_with_pagination_only_one_page(self, get_jwt):
+    def test_get_with_pagination_only_one_page(self, get_jwt: mock.MagicMock) -> None:
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         # No link in the headers because there are no more pages
@@ -218,7 +220,9 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_get_codeowner_file(self, mock_record, mock_jwt, mock_check_file):
+    def test_get_codeowner_file(
+        self, mock_record: mock.MagicMock, mock_jwt: mock.MagicMock, mock_check_file: mock.MagicMock
+    ) -> None:
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
@@ -286,7 +290,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_update_comment(self, get_jwt):
+    def test_update_comment(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url=f"https://api.github.com/repos/{self.repo.name}/issues/1/comments",
@@ -329,7 +333,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_update_pr_comment(self, get_jwt):
+    def test_update_pr_comment(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             method=responses.POST,
             url=f"https://api.github.com/repos/{self.repo.name}/issues/1/comments",
@@ -377,7 +381,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_comment_reactions(self, get_jwt):
+    def test_get_comment_reactions(self, get_jwt: mock.MagicMock) -> None:
         comment_reactions = {
             "reactions": {
                 "url": "abcdef",
@@ -399,7 +403,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_merge_commit_sha_from_commit(self, get_jwt):
+    def test_get_merge_commit_sha_from_commit(self, get_jwt: mock.MagicMock) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
         commit_sha = "asdf"
@@ -414,7 +418,7 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt):
+    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt: mock.MagicMock) -> None:
         merge_commit_sha = "jkl123"
         pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "open"}]
         commit_sha = "asdf"
@@ -475,7 +479,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test__refresh_access_token(self, mock_jwt):
+    def test__refresh_access_token(self, mock_jwt: mock.MagicMock) -> None:
         assert self.integration.metadata == {
             "access_token": None,
             "expires_at": None,
@@ -500,7 +504,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test__get_token(self, mock_jwt):
+    def test__get_token(self, mock_jwt: mock.MagicMock) -> None:
         access_token_request = Request(
             url=f"{self.gh_client.base_url}/repos/test-repo/issues"
         ).prepare()
@@ -535,7 +539,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_get_access_token(self, _):
+    def test_get_access_token(self, _: mock.MagicMock) -> None:
         self.gh_client.integration.metadata["access_token"] = "access_token_1"
         self.gh_client.integration.metadata["expires_at"] = "3000-01-01T00:00:00Z"
         self.gh_client.integration.metadata["permissions"] = {
@@ -559,7 +563,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.GithubProxyClient._get_token", return_value=None)
-    def test_authorize_request_invalid(self, mock_get_invalid_token):
+    def test_authorize_request_invalid(self, mock_get_invalid_token: mock.MagicMock) -> None:
         request = Request(url=f"{self.gh_client.base_url}/repos/test-repo/issues").prepare()
 
         self.gh_client.integration = None
@@ -573,7 +577,7 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
-    def test_authorize_request_valid(self, mock_jwt):
+    def test_authorize_request_valid(self, mock_jwt: mock.MagicMock) -> None:
         access_token_request = Request(
             url=f"{self.gh_client.base_url}/repos/test-repo/issues"
         ).prepare()
@@ -606,7 +610,7 @@ class GithubProxyClientTest(TestCase):
     @mock.patch(
         "sentry.integrations.github.client.GithubProxyClient._get_token", return_value=access_token
     )
-    def test_integration_proxy_is_active(self, mock_get_token):
+    def test_integration_proxy_is_active(self, mock_get_token: mock.MagicMock) -> None:
         class GithubProxyTestClient(GitHubApiClient):
             _use_proxy_url_for_tests = True
 
@@ -778,7 +782,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_same_repo(self, get_jwt):
+    def test_get_blame_for_files_same_repo(self, get_jwt: mock.MagicMock) -> None:
         """
         When all files are in the same repo, only one repository object should be
         queried and files blames within the repo should be deduped
@@ -868,7 +872,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_different_repos(self, get_jwt):
+    def test_get_blame_for_files_different_repos(self, get_jwt: mock.MagicMock) -> None:
         """
         When files are in different repos, multiple repository objects should be
         queried. Files within the same repo and branch should be deduped.
@@ -986,7 +990,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_different_refs(self, get_jwt):
+    def test_get_blame_for_files_different_refs(self, get_jwt: mock.MagicMock) -> None:
         """
         When files are in the same repo but different branches, query multiple
         ref objects. Files should still be deduped.
@@ -1083,7 +1087,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_trim_file_path_for_query(self, get_jwt):
+    def test_trim_file_path_for_query(self, get_jwt: mock.MagicMock) -> None:
         """
         When file path has hanging forward slashes, trims them for the request.
         The GitHub GraphQL API will return empty responses otherwise.
@@ -1238,7 +1242,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_full_response(self, get_jwt):
+    def test_get_blame_for_files_full_response(self, get_jwt: mock.MagicMock) -> None:
         """
         Tests that the correct commits are selected from the blame range when a full response is returned.
         """
@@ -1293,7 +1297,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_cached_blame_for_files_full_response(self, get_jwt):
+    def test_get_cached_blame_for_files_full_response(self, get_jwt: mock.MagicMock) -> None:
         """
         Tests that the cached commits are returned with full response
         """
@@ -1376,7 +1380,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_response_partial_data(self, get_jwt):
+    def test_get_blame_for_files_response_partial_data(self, get_jwt: mock.MagicMock) -> None:
         """
         Tests that commits are still returned when some data is missing from the response
         """
@@ -1464,7 +1468,9 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     @mock.patch("sentry.integrations.github.client.logger.error")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_blame_for_files_invalid_commit(self, get_jwt, mock_logger_error):
+    def test_get_blame_for_files_invalid_commit(
+        self, get_jwt: mock.MagicMock, mock_logger_error: mock.MagicMock
+    ) -> None:
         """
         Tests commits that have invalid data are skipped and logged
         """
@@ -1608,7 +1614,9 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     @mock.patch("sentry.integrations.github.client.logger.error")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_rate_limit_exceeded(self, get_jwt, mock_logger_error):
+    def test_rate_limit_exceeded(
+        self, get_jwt: mock.MagicMock, mock_logger_error: mock.MagicMock
+    ) -> None:
         with pytest.raises(ApiRateLimitedError):
             self.github_client.get_blame_for_files([self.file], extra={})
         mock_logger_error.assert_called_with(
@@ -1624,7 +1632,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_no_rate_limiting(self, get_jwt):
+    def test_no_rate_limiting(self, get_jwt: mock.MagicMock) -> None:
         """
         Tests that no error is thrown when GitHub isn't enforcing rate limits
         """

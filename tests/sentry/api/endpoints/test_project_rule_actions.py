@@ -53,7 +53,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
             )
 
     @mock.patch.object(NotifyEventAction, "after")
-    def test_actions(self, action):
+    def test_actions(self, action: mock.MagicMock) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -64,7 +64,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert action.called
 
     @mock.patch.object(PagerDutyClient, "send_trigger")
-    def test_name_action_default(self, mock_send_trigger):
+    def test_name_action_default(self, mock_send_trigger: mock.MagicMock) -> None:
         """
         Tests that label will be used as 'Test Alert' if not present. Uses PagerDuty since those
         notifications will differ based on the name of the alert.
@@ -85,7 +85,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert pagerduty_data["payload"]["summary"].startswith("[Test Alert]:")
 
     @mock.patch.object(PagerDutyClient, "send_trigger")
-    def test_name_action_with_custom_name(self, mock_send_trigger):
+    def test_name_action_with_custom_name(self, mock_send_trigger: mock.MagicMock) -> None:
         """
         Tests that custom names can be provided to the test notification. Uses PagerDuty since those
         notifications will differ based on the name of the alert.
@@ -110,7 +110,9 @@ class ProjectRuleActionsEndpointTest(APITestCase):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    def test_sample_event_raises_exceptions(self, mock_sdk_capture, mock_create_issue):
+    def test_sample_event_raises_exceptions(
+        self, mock_sdk_capture: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
@@ -185,7 +187,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
         return_value=PluginIssueAlertHandler,
     )
-    def test_actions(self, mock_get_handler, action):
+    def test_actions(self, mock_get_handler: mock.MagicMock, action: mock.MagicMock) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",

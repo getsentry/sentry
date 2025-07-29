@@ -1589,7 +1589,9 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         )
 
     @mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
-    def test_emit_function_regression_issue_mixed(self, mock_get_from_profiling_service):
+    def test_emit_function_regression_issue_mixed(
+        self, mock_get_from_profiling_service: mock.MagicMock
+    ) -> None:
         mock_value = mock.MagicMock()
         mock_value.status = 200
         mock_value.data = b'{"occurrences":2}'

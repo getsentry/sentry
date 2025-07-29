@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
@@ -149,7 +149,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert len(response.data["filters"]) == 9
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer):
+    def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer: MagicMock) -> None:
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         self.create_project(teams=[team], name="baz")

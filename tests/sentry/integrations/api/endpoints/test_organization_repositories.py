@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -337,7 +337,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_simple(self, mock_build_repository_config):
+    def test_simple(self, mock_build_repository_config: MagicMock) -> None:
 
         with patch.object(
             ExampleRepositoryProvider, "build_repository_config", return_value=self.repo_config_data
@@ -361,7 +361,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_floating_repo(self, mock_build_repository_config):
+    def test_floating_repo(self, mock_build_repository_config: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.org.id,
             name="getsentry/sentry",
@@ -392,7 +392,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_existing_repo(self, mock_build_repository_config):
+    def test_existing_repo(self, mock_build_repository_config: MagicMock) -> None:
         Repository.objects.create(
             organization_id=self.org.id,
             name="getsentry/sentry",

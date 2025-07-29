@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -112,7 +112,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert event
         return Group.objects.get(id=event.group_id)
 
-    def test_simple(self, mock_trigger):
+    def test_simple(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -122,7 +122,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
 
         assert mock_trigger.call_count == 2  # warning + critical actions
 
-    def test_escalation(self, mock_trigger):
+    def test_escalation(self, mock_trigger: MagicMock) -> None:
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -141,7 +141,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         self.call_post_process_group(occurrence)
         assert mock_trigger.call_count == 2  # warning + critical actions
 
-    def test_deescalation(self, mock_trigger):
+    def test_deescalation(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -162,7 +162,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert mock_trigger.call_count == 2  # both actions
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_resolution_from_critical(self, mock_trigger):
+    def test_resolution_from_critical(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)
@@ -189,7 +189,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             )
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_resolution_from_warning(self, mock_trigger):
+    def test_resolution_from_warning(self, mock_trigger: MagicMock) -> None:
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
         occurrence = self.process_packet_and_return_result(data_packet)

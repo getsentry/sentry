@@ -96,7 +96,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         "get_trigger_types",
         return_value=[(0, "teacher"), (1, "watcher"), (2, "beast")],
     )
-    def test_get_with_queries(self, mock_trigger_types):
+    def test_get_with_queries(self, mock_trigger_types: MagicMock) -> None:
         project = self.create_project(name="deepnest", organization=self.organization)
         no_team_project = self.create_project(
             name="waterways", organization=self.organization, teams=[]

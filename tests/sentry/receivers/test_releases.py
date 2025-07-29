@@ -1,5 +1,5 @@
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry.buffer.base import Buffer
@@ -27,7 +27,7 @@ from sentry.users.models.useremail import UserEmail
 
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
-    def test_simple(self, mock_delay):
+    def test_simple(self, mock_delay: MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
             release = Release.objects.create(
                 version="a", organization_id=self.project.organization_id

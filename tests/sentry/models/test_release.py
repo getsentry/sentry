@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -394,7 +394,7 @@ class SetCommitsTestCase(TestCase):
     @patch("sentry.models.Commit.update")
     @freeze_time()
     @receivers_raise_on_send()
-    def test_multiple_releases_only_updates_once(self, mock_update):
+    def test_multiple_releases_only_updates_once(self, mock_update: MagicMock) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
 
@@ -492,7 +492,9 @@ class SetCommitsTestCase(TestCase):
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()
-    def test_resolution_support_with_integration(self, mock_sync_status_outbound):
+    def test_resolution_support_with_integration(
+        self, mock_sync_status_outbound: MagicMock
+    ) -> None:
         org = self.create_organization(owner=Factories.create_user())
         integration = self.create_integration(
             organization=org,
@@ -588,7 +590,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_simple(self, mock_fetch_commit):
+    def test_simple(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -615,7 +617,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_invalid_repos(self, mock_fetch_commit):
+    def test_invalid_repos(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "unknown-repository-name",
@@ -637,7 +639,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_handle_commit_ranges(self, mock_fetch_commit):
+    def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",
@@ -666,7 +668,7 @@ class SetRefsTest(SetRefsTestCase):
 
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
-    def test_fetch_false(self, mock_fetch_commit):
+    def test_fetch_false(self, mock_fetch_commit: MagicMock) -> None:
         refs = [
             {
                 "repository": "test/repo",

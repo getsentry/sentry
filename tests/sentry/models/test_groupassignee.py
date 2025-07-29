@@ -124,7 +124,9 @@ class GroupAssigneeTestCase(TestCase):
         assert activity[1].data["assigneeType"] == "team"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
-    def test_assignee_sync_outbound_assign(self, mock_sync_assignee_outbound):
+    def test_assignee_sync_outbound_assign(
+        self, mock_sync_assignee_outbound: mock.MagicMock
+    ) -> None:
         group = self.group
         integration = self.create_integration(
             organization=group.organization,
@@ -244,7 +246,9 @@ class GroupAssigneeTestCase(TestCase):
                 assert activity.data["assigneeType"] == "user"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
-    def test_assignee_sync_outbound_unassign(self, mock_sync_assignee_outbound):
+    def test_assignee_sync_outbound_unassign(
+        self, mock_sync_assignee_outbound: mock.MagicMock
+    ) -> None:
         group = self.group
 
         integration = self.create_integration(
