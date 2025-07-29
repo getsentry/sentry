@@ -81,7 +81,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
         else:
             expanded_events.append(event)
 
-    return sorted(expanded_events)
+    return sorted(set(expanded_events))
 
 
 # TODO(schew2381): Delete this method after staff is GA'd and the options are removed

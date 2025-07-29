@@ -48,7 +48,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import MetricAlertActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -379,7 +379,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         try:
             new_status_str = INCIDENT_STATUS[IncidentStatus(new_status)].lower()
             event = SentryAppEventType(
-                f"{SentryAppResourceType.METRIC_ALERT}.{SentryAppActionType(new_status_str)}"
+                f"{SentryAppResourceType.METRIC_ALERT}.{MetricAlertActionType(new_status_str)}"
             )
         except ValueError as e:
             sentry_sdk.capture_exception(e)
@@ -409,7 +409,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
             app_platform_event = AppPlatformEvent(
                 resource=SentryAppResourceType.METRIC_ALERT,
-                action=SentryAppActionType(new_status_str),
+                action=MetricAlertActionType(new_status_str),
                 install=install,
                 data=json.loads(incident_attachment_json),
             )
