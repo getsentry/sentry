@@ -29,6 +29,11 @@ the latest list of integrations and serve them in your local Sentry install.
 
 def load_doc(path: str) -> dict[str, Any] | None:
     expected_commonpath = os.path.realpath(DOC_FOLDER)
+
+    # Handle special case for nintendo-switch-2 to load nintendo-switch.json
+    if path == "nintendo-switch-2":
+        path = "nintendo-switch"
+
     doc_path = os.path.join(DOC_FOLDER, f"{path}.json")
     doc_real_path = os.path.realpath(doc_path)
 
