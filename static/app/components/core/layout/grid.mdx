@@ -6,7 +6,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/grid.tsx
 ---
 
-import {Grid, Container} from 'sentry/components/core/layout';
+import {Container, Grid} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/layout/grid';
@@ -31,15 +31,15 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
 
 <Storybook.Demo>
   <Grid
-    areas='
+    areas={`
       "header header"
       "sidebar main"
-      "footer footer"'
+      "footer footer"`}
     columns="100px 1fr"
     rows="60px 1fr 60px"
     gap="md"
     padding="md"
-    style={{height: '300px'}}
+    height="300px"
   >
     <Container
       area="header"
