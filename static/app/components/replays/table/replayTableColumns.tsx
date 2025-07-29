@@ -19,6 +19,7 @@ import NumericDropdownFilter from 'sentry/components/replays/table/filters/numer
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import {IconNot} from 'sentry/icons';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -142,20 +143,36 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.browser;
+    if (!name && !version) {
+      return (
+        <DropdownContainer>
+          <Tooltip title={t('N/A')}>
+            <Flex justify="center" style={{width: '20px'}}>
+              <IconNot size="xs" color="gray300" />
+            </Flex>
+          </Tooltip>
+        </DropdownContainer>
+      );
+    }
+
     const icon = generatePlatformIconName(
       name ?? '',
       version && isLargeBreakpoint ? version : undefined
     );
 
-    const tooltipTitle =
-      name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
+    const nameOrUnknown = name ?? t('Unknown');
+    const versionOrBlank = version ?? '';
 
     return (
       <DropdownContainer key="browser">
-        <Tooltip title={tooltipTitle}>
+        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
-            <OSBrowserDropdownFilter type="browser" name={name} version={version} />
+            <OSBrowserDropdownFilter
+              type="browser"
+              name={nameOrUnknown}
+              version={versionOrBlank}
+            />
           ) : null}
         </Tooltip>
       </DropdownContainer>
@@ -359,15 +376,19 @@ export const ReplayOSColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
-    const tooltipTitle =
-      name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
+    const nameOrUnknown = name ?? t('Unknown');
+    const versionOrBlank = version ?? '';
 
     return (
       <DropdownContainer key="os">
-        <Tooltip title={tooltipTitle}>
+        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
-            <OSBrowserDropdownFilter type="os" name={name} version={version} />
+            <OSBrowserDropdownFilter
+              type="os"
+              name={nameOrUnknown}
+              version={versionOrBlank}
+            />
           ) : null}
         </Tooltip>
       </DropdownContainer>
