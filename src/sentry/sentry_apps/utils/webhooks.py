@@ -68,6 +68,15 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[str]]] = {
     SentryAppResourceType.ISSUE: _sentry_app_webhook_mapping[SentryAppResourceType.ISSUE],
     SentryAppResourceType.ERROR: _sentry_app_webhook_mapping[SentryAppResourceType.ERROR],
     SentryAppResourceType.COMMENT: _sentry_app_webhook_mapping[SentryAppResourceType.COMMENT],
+    SentryAppResourceType.METRIC_ALERT: _sentry_app_webhook_mapping[
+        SentryAppResourceType.METRIC_ALERT
+    ],
+    SentryAppResourceType.EVENT_ALERT: _sentry_app_webhook_mapping[
+        SentryAppResourceType.EVENT_ALERT
+    ],
+    SentryAppResourceType.INSTALLATION: _sentry_app_webhook_mapping[
+        SentryAppResourceType.INSTALLATION
+    ],
 }
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid

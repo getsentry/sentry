@@ -74,6 +74,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
 
     Can also be given a list of event types (e.g. ['issue.created', 'issue.resolved'])
     """
+
     expanded_events = []
     for event in rolled_up_events:
         if event in EVENT_EXPANSION:
