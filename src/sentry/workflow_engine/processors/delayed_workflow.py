@@ -795,6 +795,16 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
     return {repr(key): value for key, value in d.items()}
 
 
+def _summarize_by_first[
+    T1, T2: int | str
+](it: Iterable[tuple[T1, T2]],) -> dict[T1, list[T2]]:
+    "Logging helper to allow pairs to be summarized as a mapping from first to list of second"
+    result = defaultdict(set)
+    for key, value in it:
+        result[key].add(value)
+    return {key: sorted(values) for key, values in result.items()}
+
+
 @instrumented_task(
     name="sentry.workflow_engine.processors.delayed_workflow",
     queue="delayed_rules",
@@ -850,11 +860,23 @@ def process_delayed_workflows(
                 extra={"no_slow_condition_groups": sorted(no_slow_condition_groups)},
             )
 
+    # Ensure we have a record of the involved workflows in our logs.
     logger.info(
         "delayed_workflow.workflows",
         extra={
-            "data": redis_data,
-            "workflows": event_data.workflow_ids,
+            "workflows": sorted(event_data.workflow_ids),
+        },
+    )
+    # Ensure we log which groups/events being processed by which workflows.
+    # This is logged independently to avoid the risk of generating log messages that need to be
+    # truncated (and thus no longer valid JSON that we can query).
+    logger.info(
+        "delayed_workflow.group_events_to_workflow_ids",
+        extra={
+            "group_events_to_workflow_ids": _summarize_by_first(
+                (f"{event_key.group_id}:{instance.event_id}", event_key.workflow_id)
+                for event_key, instance in event_data.events.items()
+            ),
         },
     )
 
@@ -896,7 +918,12 @@ def process_delayed_workflows(
     )
     logger.info(
         "delayed_workflow.groups_to_fire",
-        extra={"groups_to_dcgs": groups_to_dcgs},
+        extra={
+            "groups_to_dcgs": {
+                group_id: sorted(dcg.id for dcg in dcgs)
+                for group_id, dcgs in groups_to_dcgs.items()
+            },
+        },
     )
 
     group_to_groupevent = get_group_to_groupevent(
