@@ -232,7 +232,11 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
   ],
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rails': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
