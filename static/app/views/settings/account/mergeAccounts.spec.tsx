@@ -24,7 +24,6 @@ describe('MergeAccounts', function () {
     });
   });
 
-
   it('renders single account', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
