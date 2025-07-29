@@ -77,16 +77,10 @@ def delete_groups_for_project(
     extra = {"project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
     logger.info("delete_groups.started", extra={"object_ids": object_ids, **extra})
-
     task = deletions.get(model=Group, query={"id__in": object_ids}, transaction_id=transaction_id)
-    has_more = task.chunk()
-
-    # XXX: Delete this block once I'm convince this is not happening
-    if has_more:
-        metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
-        sentry_sdk.capture_message(
-            "This should not be happening",
-            level="info",
-            # Use this to query the logs
-            tags={"transaction_id": transaction_id},
-        )
+    has_more = True
+    while has_more:
+        has_more = task.chunk()
+        if not has_more:
+            metrics.incr("deletions.groups.delete_groups_for_project.chunked", 1, sample_rate=1)
+            sentry_sdk.capture_message("delete_groups reached a state that should not happen")
