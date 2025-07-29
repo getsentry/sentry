@@ -59,7 +59,6 @@ from .member_invited import *  # noqa: F401,F403
 from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
 from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
-from .notifications_settings_updated import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .open_pr_comment import *  # noqa: F401,F403
