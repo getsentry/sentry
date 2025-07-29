@@ -686,7 +686,7 @@ function buildRoutes(): RouteObject[] {
       path: 'toolbar/',
       name: t('Developer Toolbar'),
       component: make(() => import('sentry/views/settings/project/projectToolbar')),
-      deprecatedRouteProps: true, // Can be false except for ProjectContext passed as `outletContext`
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'source-maps/',
