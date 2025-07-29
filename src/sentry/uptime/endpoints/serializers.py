@@ -104,7 +104,6 @@ failed as part of an uptime incident.
 
 class EapCheckEntrySerializerResponse(TypedDict):
     uptimeCheckId: str
-    uptimeSubscriptionId: int
     projectUptimeSubscriptionId: int
     timestamp: str
     scheduledCheckTime: str
@@ -137,8 +136,7 @@ class EapCheckEntrySerializer(Serializer):
 
         return {
             "uptimeCheckId": obj.uptime_check_id,
-            "uptimeSubscriptionId": obj.uptime_subscription_id,
-            "projectUptimeSubscriptionId": obj.uptime_subscription_id,
+            "projectUptimeSubscriptionId": obj.uptime_monitor_id,
             "timestamp": obj.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
