@@ -1,4 +1,5 @@
 export {IconAdd} from './iconAdd';
+export {IconAllProjects} from './iconAllProjects';
 export {IconArchive} from './iconArchive';
 export {IconArrow} from './iconArrow';
 export {IconAsana} from './iconAsana';
@@ -71,6 +72,7 @@ export {IconMenu} from './iconMenu';
 export {IconMobile} from './iconMobile';
 export {IconMoon} from './iconMoon';
 export {IconMute} from './iconMute';
+export {IconMyProjects} from './iconMyProjects';
 export {IconNext} from './iconNext';
 export {IconNot} from './iconNot';
 export {IconNumber} from './iconNumber';
