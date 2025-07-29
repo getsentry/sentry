@@ -107,6 +107,7 @@ def lookup_event(project_id: int, event_id: str) -> Event:
 
 @sentry_sdk.tracing.trace
 def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
+    # print("\n\n\n\nTHIS IS WHERE EVENTS ARE CREATED", event_data, "\n\n\n\n")
     return Event(
         event_id=event_id,
         project_id=project_id,

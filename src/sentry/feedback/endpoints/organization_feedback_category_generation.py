@@ -9,12 +9,14 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
+from sentry.api.bases.organization import OrganizationUserReportsPermission
+from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
 from sentry.feedback.query import query_top_10_ai_labels_by_feedback_count
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
+from sentry.snuba import issue_platform
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,9 @@ CATEGORIES_CACHE_TIMEOUT = 86400
 
 
 @region_silo_endpoint
-class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
+class OrganizationFeedbackCategoryGenerationEndpoint(
+    OrganizationEventsV2EndpointBase
+):  # TODO: change the inheritance, this is just done since this class has the get_snuba_params method.
     owner = ApiOwner.FEEDBACK
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -87,19 +91,39 @@ class OrganizationFeedbackCategoryGenerationEndpoint(OrganizationEndpoint):
                 }
             )
 
-        # print("THIS IS THE REQUEST", start, end, [project.id for project in projects])
-
+        # Getting from IssuePlatform seems to work for now, so we'll go with it
         # Get the top 10 labels by feedbacks, filtered by projects and date range
-        top_10_query = query_top_10_ai_labels_by_feedback_count(
+        top_10_labels = query_top_10_ai_labels_by_feedback_count(
             organization_id=organization.id,
             project_ids=[project.id for project in projects],
             start=start,
             end=end,
+        )["data"]
+
+        # print("\n\n\n\nQ1 RESULTS", top_10_labels, "\n\n\n\n")
+
+        # Use Discover query to get top 10 AI label values across all AI label keys
+        # This supports prefix matching on tag keys (ai_categorization.label.*)
+        snuba_params = self.get_snuba_params(
+            request,
+            organization,
+            check_global_views=False,
         )
 
-        # print("THIS IS THE TOP 10 QUERY SDFLJSKDJFSDHJKSKFSD", top_10_query["data"])
+        # Query for top tag values across all AI label keys with prefix matching
+        # This seems to work, but to be very honest I don't know how it does
+        issue_platform_results = issue_platform.query(
+            selected_columns=["count()", "tags_value"],
+            query="tags_key:ai_categorization.label.*",  # Prefix pattern for all AI labels
+            snuba_params=snuba_params,
+            orderby=["-count()"],
+            limit=10,
+            referrer="api.organization-issue-replay-count",
+        )["data"]
 
-        return Response(top_10_query)
+        # print("\n\n\n\nQ2 RESULTS", issue_platform_results, "\n\n\n\n")
+
+        return Response(top_10_labels, issue_platform_results)
 
         # # Do we have to get feedbacks another way since labels are not stored in the group? Maybe making a direct query to Snuba for the feedbacks and their labels? But is the message stored in Clickhouse? I think it is...
         # filters = {

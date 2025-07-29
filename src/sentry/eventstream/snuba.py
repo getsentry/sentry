@@ -414,6 +414,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if event_type == EventStreamEventType.Transaction:
             entity = "transactions"
         if event_type == EventStreamEventType.Generic:
+            # print("\n\n\n\nTHIS IS THE VERY IMPORTANT GENERIC DATA", data, "\n\n\n\n")
             entity = "search_issues"
 
         serialized_data = json.dumps(data)

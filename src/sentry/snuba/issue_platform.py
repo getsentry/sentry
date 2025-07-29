@@ -98,6 +98,7 @@ def query(
             skip_tag_resolution=skip_tag_resolution,
         ),
     )
+    # print("\n\n\n\nTHIS IS THE QUERY", builder.get_snql_query(), "\n\n\n\n")
     if conditions is not None:
         builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer, query_source=query_source))

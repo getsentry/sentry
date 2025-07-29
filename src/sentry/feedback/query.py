@@ -23,6 +23,7 @@ from sentry.utils.snuba import raw_snql_query
 # TODO: abstract out the reusable parts of this query into helpers (e.g., getting first tuple element, etc.)
 # And do we need to add a filter so its only feedback types that are counted? how to do...
 # This seems to work (at least locally), with real ingested feedbacks, but changing the dataset to events doesn't work. Why? It worked in testing when I ran factory's store_event and queried the event dataset.
+# Maybe store_event is not representative of how create_feedback_event works?
 def query_top_10_ai_labels_by_feedback_count(
     organization_id: int,
     project_ids: list[int],
@@ -108,6 +109,6 @@ def query_top_10_ai_labels_by_feedback_count(
 
     return raw_snql_query(
         snuba_request,
-        referrer="api.organization-issue-replay-count",
-        # use_cache=True,
+        referrer="api.organization-issue-replay-count",  # TODO: Change this
+        use_cache=True,
     )
