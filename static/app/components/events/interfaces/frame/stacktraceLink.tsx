@@ -2,7 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -22,6 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -231,27 +231,32 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     refetch();
   };
 
-  const handleCopyPath = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!frame.filename || !frame.lineNo) {
-      return;
-    }
+  const filePath =
+    frame.filename && frame.lineNo ? frame.filename + ':' + frame.lineNo : '';
 
-    const filePath = frame.filename + ':' + frame.lineNo;
+  const {onClick: handleCopyPath} = useCopyToClipboard({
+    text: filePath,
+    successMessage: t('File path copied to clipboard'),
+    errorMessage: t('Failed to copy file path'),
+    onCopy: () => {
+      trackAnalytics('integrations.stacktrace_file_path_copied', {
+        view: 'stacktrace_issue_details',
+        organization,
+        group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+        ...getAnalyticsDataForEvent(event),
+      });
+    },
+  });
 
-    trackAnalytics('integrations.stacktrace_file_path_copied', {
-      view: 'stacktrace_issue_details',
-      organization,
-      group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
-      ...getAnalyticsDataForEvent(event),
-    });
-
-    try {
-      await navigator.clipboard.writeText(filePath);
-      addSuccessMessage(t('File path copied to clipboard'));
-    } catch (err) {
-      addErrorMessage(t('Failed to copy file path'));
-    }
+  const copyButtonProps = {
+    size: 'zero' as const,
+    priority: 'transparent' as const,
+    'aria-label': t('Copy file path'),
+    icon: <IconCopy size="xs" />,
+    onClick: (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleCopyPath();
+    },
   };
 
   if (!validFilePath) {
@@ -264,9 +269,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
-            <IconCopy size="xs" />
-          </CopyButton>
+          <Button {...copyButtonProps} />
         </Tooltip>
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <OpenInLink
@@ -297,9 +300,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
-            <IconCopy size="xs" />
-          </CopyButton>
+          <Button {...copyButtonProps} />
         </Tooltip>
         <OpenInLink
           onClick={onOpenLink}
@@ -350,9 +351,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
-            <IconCopy size="xs" />
-          </CopyButton>
+          <Button {...copyButtonProps} />
         </Tooltip>
         <Tooltip title={t('GitHub')} skipWrapper>
           <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
@@ -387,9 +386,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <CopyButton onClick={handleCopyPath} aria-label={t('Copy file path')}>
-            <IconCopy size="xs" />
-          </CopyButton>
+          <Button {...copyButtonProps} />
         </Tooltip>
         <FixMappingButton
           priority="link"
@@ -447,21 +444,6 @@ const StacktraceLinkWrapper = styled('div')`
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
   padding: 0 ${space(1)};
-`;
-
-const CopyButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  color: ${p => p.theme.subText};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  &:hover {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 const FixMappingButton = styled(Button)`
