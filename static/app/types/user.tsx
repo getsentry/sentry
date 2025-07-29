@@ -56,7 +56,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     prefersIssueDetailsStreamlinedUI: boolean | null;
     prefersNextjsInsightsOverview: boolean;
     prefersStackedNavigation: boolean | null;
-    stacktraceOrder: number;
+    stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
   };
