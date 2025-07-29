@@ -23,7 +23,6 @@ import {hasNonContributingComponent} from './utils';
 
 interface GroupingVariantProps {
   event: Event;
-  showGroupingConfig: boolean;
   variant: EventGroupVariant;
 }
 
@@ -70,7 +69,7 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   }
 }
 
-function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantProps) {
+function GroupingVariant({event, variant}: GroupingVariantProps) {
   const [showNonContributing, setShowNonContributing] = useState(false);
 
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
@@ -105,10 +104,6 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
     switch (variant.type) {
       case EventGroupVariantType.COMPONENT:
         component = variant.component;
-
-        if (showGroupingConfig && variant.config?.id) {
-          data.push([t('Grouping Config'), variant.config.id]);
-        }
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
         addFingerprintInfo(data, variant);
@@ -119,9 +114,6 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
         addFingerprintInfo(data, variant);
-        if (showGroupingConfig && variant.config?.id) {
-          data.push([t('Grouping Config'), variant.config.id]);
-        }
         break;
       case EventGroupVariantType.PERFORMANCE_PROBLEM: {
         const spansToHashes = Object.fromEntries(

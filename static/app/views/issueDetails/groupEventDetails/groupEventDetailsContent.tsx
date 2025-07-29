@@ -424,10 +424,6 @@ export function EventDetailsContent({
         <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}
-          showGroupingConfig={
-            organization.features.includes('set-grouping-config') &&
-            'groupingConfig' in event
-          }
           group={group}
         />
       )}

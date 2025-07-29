@@ -18,15 +18,9 @@ interface GroupingSummaryProps {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
-  showGroupingConfig: boolean;
 }
 
-export default function GroupingInfo({
-  event,
-  projectSlug,
-  showGroupingConfig,
-  group,
-}: GroupingSummaryProps) {
+export default function GroupingInfo({event, projectSlug, group}: GroupingSummaryProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -72,11 +66,7 @@ export default function GroupingInfo({
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                variant={variant}
-                showGroupingConfig={showGroupingConfig}
-              />
+              <GroupingVariant event={event} variant={variant} />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))
@@ -88,7 +78,7 @@ export default function GroupingInfo({
 const ConfigHeader = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;

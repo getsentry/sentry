@@ -19,7 +19,6 @@ describe('EventGroupingInfo', function () {
   const defaultProps = {
     event,
     projectSlug: 'project-slug',
-    showGroupingConfig: false,
     group,
   };
 
