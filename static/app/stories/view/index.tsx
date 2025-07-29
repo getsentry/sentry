@@ -113,7 +113,7 @@ function useScrollToHash() {
     return true; // No hash to scroll to
   };
 
-  const attemptScrollWithRetry = () => {
+  useEffect(() => {
     let attempts = 0;
     const maxAttempts = 20; // Maximum number of attempts
     const baseDelay = 50; // Base delay in ms
@@ -140,10 +140,6 @@ function useScrollToHash() {
     requestAnimationFrame(() => {
       setTimeout(tryScroll, 100);
     });
-  };
-
-  useEffect(() => {
-    attemptScrollWithRetry();
   }, []);
 }
 
