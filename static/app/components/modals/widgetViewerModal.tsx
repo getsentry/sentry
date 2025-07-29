@@ -1394,6 +1394,7 @@ function ViewerTableV2({
             eventView,
           } satisfies RenderFunctionBaggage;
         }}
+        allowedCellActions={[]}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
