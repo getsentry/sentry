@@ -62,6 +62,7 @@ export default function ProjectCreationModal({
       !organization.enabledConsolePlatforms?.includes(selectedPlatform.id)
     ) {
       openConsoleModal({
+        organization,
         selectedPlatform: {
           ...selectedPlatform,
           key: selectedPlatform.id,

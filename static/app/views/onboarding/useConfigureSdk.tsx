@@ -97,7 +97,10 @@ export function useConfigureSdk({
         selectedPlatform.type === 'console' &&
         !organization.enabledConsolePlatforms?.includes(selectedPlatform.key)
       ) {
-        openConsoleModal({selectedPlatform});
+        openConsoleModal({
+          organization,
+          selectedPlatform,
+        });
         return;
       }
 

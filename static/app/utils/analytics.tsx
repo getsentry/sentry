@@ -11,6 +11,7 @@ import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {gamingEventMap} from 'sentry/utils/analytics/gamingAnalyticsEvents';
 import {
   logsAnalyticsEventMap,
   type LogsAnalyticsEventParameters,
@@ -142,6 +143,7 @@ const allEventMap: Record<string, string | null> = {
   ...workflowEventMap,
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
+  ...gamingEventMap,
   ...stackTraceEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
