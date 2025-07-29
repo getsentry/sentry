@@ -10,16 +10,9 @@ from rest_framework.exceptions import ParseError
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
-from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
-    GroupEvent,
-    as_log_message,
-    get_request_data,
-    parse_timestamp,
-)
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -31,7 +24,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
 ):
     endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.replay_id = uuid.uuid4().hex
@@ -95,7 +88,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get(self, make_seer_request):
+    def test_get_simple(self, make_seer_request):
         return_value = json.dumps({"hello": "world"}).encode()
         make_seer_request.return_value = return_value
 
@@ -132,7 +125,13 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
 
-    def test_get_feature_flag_disabled(self):
+        make_seer_request.assert_called_once()
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert seer_request["organization_id"] == self.organization.id
+        assert seer_request["replay_id"] == self.replay_id
+
+    def test_get_feature_flag_disabled(self) -> None:
         self.save_recording_segment(0, json.dumps([]).encode())
 
         features = [
@@ -243,10 +242,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert any("division by zero" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -310,10 +309,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url, {"enable_error_context": "false"})
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert not any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert not any("division by zero" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert not any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert not any("division by zero" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -330,10 +329,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url, {"enable_error_context": "true"})
 
         assert make_seer_request.call_count == 2
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert any("division by zero" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -407,10 +406,10 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ConnectionError" in log for log in call_args["logs"])
-        assert any("Failed to connect to database" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ConnectionError" in log for log in seer_request["logs"])
+        assert any("Failed to connect to database" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -506,12 +505,12 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("ZeroDivisionError" in log for log in call_args["logs"])
-        assert any("division by zero" in log for log in call_args["logs"])
-        assert any("ConnectionError" in log for log in call_args["logs"])
-        assert any("Failed to connect to database" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("ZeroDivisionError" in log for log in seer_request["logs"])
+        assert any("division by zero" in log for log in seer_request["logs"])
+        assert any("ConnectionError" in log for log in seer_request["logs"])
+        assert any("Failed to connect to database" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
@@ -568,281 +567,11 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
             response = self.client.get(self.url)
 
         make_seer_request.assert_called_once()
-        call_args = json.loads(make_seer_request.call_args[0][0])
-        assert "logs" in call_args
-        assert any("Great website!" in log for log in call_args["logs"])
-        assert any("User submitted feedback" in log for log in call_args["logs"])
+        seer_request = make_seer_request.call_args[0][0]
+        assert "logs" in seer_request
+        assert any("Great website!" in log for log in seer_request["logs"])
+        assert any("User submitted feedback" in log for log in seer_request["logs"])
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
         assert response.content == return_value
-
-
-@django_db_all
-def test_get_request_data(default_project):
-    def _faker():
-        yield 0, memoryview(
-            json.dumps(
-                [
-                    {
-                        "type": 5,
-                        "timestamp": 1.5,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {"category": "console", "message": "hello"},
-                        },
-                    },
-                    {
-                        "type": 5,
-                        "timestamp": 2.0,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {"category": "console", "message": "world"},
-                        },
-                    },
-                ]
-            ).encode()
-        )
-
-    error_events = [
-        GroupEvent(
-            category="error",
-            id="123",
-            title="ZeroDivisionError",
-            timestamp=3.0,
-            message="division by zero",
-        ),
-        GroupEvent(
-            category="error",
-            id="234",
-            title="BadError",
-            timestamp=1.0,
-            message="something else bad",
-        ),
-    ]
-
-    result = get_request_data(_faker(), error_events=error_events, project_id=default_project.id)
-    assert result == [
-        "User experienced an error: 'BadError: something else bad' at 1.0",
-        "Logged: hello at 1.5",
-        "Logged: world at 2.0",
-        "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
-    ]
-
-
-def test_as_log_message():
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "div"}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "category": "ui.slowClickDetected",
-                "message": "div",
-                "data": {
-                    "clickCount": 4,
-                    "endReason": "timeout",
-                    "timeAfterClickMs": 7000,
-                    "node": {"tagName": "button"},
-                },
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "category": "ui.slowClickDetected",
-                "message": "div",
-                "data": {
-                    "clickCount": 5,
-                    "endReason": "timeout",
-                    "timeAfterClickMs": 7000,
-                    "node": {"tagName": "button"},
-                },
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "navigation", "data": {"to": "/"}}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "t"}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.fetch",
-                "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 0.0,
-                "startTimestamp": 0.0,
-                "data": {
-                    "method": "GET",
-                    "statusCode": 404,
-                    "response": {"size": 0},
-                },
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.fetch",
-                "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 0.0,
-                "startTimestamp": 0.0,
-                "data": {
-                    "method": "GET",
-                    "statusCode": 404,
-                    "response": {"wrong": "wrong"},
-                },
-            },
-        },
-    }
-
-    result = as_log_message(event)
-    assert result is not None
-    assert "unknown" not in result
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.fetch",
-                "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 0.0,
-                "startTimestamp": 0.0,
-                "data": {
-                    "method": "GET",
-                    "statusCode": 200,
-                    "response": {"size": 0},
-                },
-            },
-        },
-    }
-
-    result = as_log_message(event)
-    assert result is None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
-    }
-    assert as_log_message(event) is None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "largest-contentful-paint",
-                "data": {"size": 0, "rating": "good"},
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "first-contentful-paint",
-                "data": {"size": 0, "rating": "good"},
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
-    }
-    assert as_log_message(event) is None
-    assert as_log_message({}) is None
-
-
-def test_parse_timestamp():
-    # Test None input
-    assert parse_timestamp(None, "ms") == 0.0
-    assert parse_timestamp(None, "s") == 0.0
-
-    # Test numeric input
-    assert parse_timestamp(123.456, "ms") == 123.456
-    assert parse_timestamp(123, "s") == 123.0
-
-    # Test string input with ISO format without timezone
-    assert parse_timestamp("2023-01-01T12:00:00", "ms") == 1672574400.0 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00", "s") == 1672574400.0
-
-    # Test string input with ISO format with timezone offset
-    assert parse_timestamp("2023-01-01T12:00:00+00:00", "ms") == 1672574400.0 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400.123 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00+00:00", "s") == 1672574400.0
-
-    # Test string input with ISO format with 'Z' timezone suffix
-    assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400.0
-    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1000
-
-    # Test invalid input
-    assert parse_timestamp("invalid timestamp", "ms") == 0.0
-    assert parse_timestamp("", "ms") == 0.0
-    assert parse_timestamp("2023-13-01T12:00:00Z", "ms") == 0.0

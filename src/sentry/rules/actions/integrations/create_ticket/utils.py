@@ -19,6 +19,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
@@ -120,7 +121,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
         action_id = None
-        if should_fire_workflow_actions(organization):
+        if should_fire_workflow_actions(organization, event.group.type):
             # In the Notification Action, we store the rule_id in the action_id field
             action_id = rule_id
             rule_id = data.get("legacy_rule_id")
@@ -186,7 +187,10 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.
+                # We only want to raise if the rule_id is -1 because that means we're testing the action
                 lifecycle.record_halt(e)
-                raise
-
-        create_link(integration, installation, event, response)
+                if rule_id == TEST_NOTIFICATION_ID:
+                    raise
+            # If we successfully created the issue, we want to create the link
+            else:
+                create_link(integration, installation, event, response)

@@ -66,19 +66,19 @@ def kafka_message(kafka_payload):
     )
 
 
-def test_retrieve_db_read_keys_meta_field_present_with_db_keys():
+def test_retrieve_db_read_keys_meta_field_present_with_db_keys() -> None:
     message = kafka_message(headerless_kafka_payload(mixed_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == {2000, 2001, 2002}
 
 
-def test_retrieve_db_read_keys_meta_field_not_present():
+def test_retrieve_db_read_keys_meta_field_not_present() -> None:
     message = kafka_message(headerless_kafka_payload(empty_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == set()
 
 
-def test_retrieve_db_read_keys_meta_field_bad_json():
+def test_retrieve_db_read_keys_meta_field_bad_json() -> None:
     message = kafka_message(headerless_kafka_payload(bad_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == set()
@@ -94,7 +94,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             max_batch_size=1,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 1234
         self.stale_id = 2001
         self.fresh_id = 2002
@@ -118,7 +118,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         self.table.objects.filter(id=self.fresh_id).delete()
         self.table.objects.filter(id=self.stale_id).delete()
 
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         # we can't use fixtures with unittest.TestCase
         commit = Mock()
         message = kafka_message(headerless_kafka_payload(mixed_payload()))
@@ -139,7 +139,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
         factory.shutdown()
 
-    def test_message_processes_after_bad_message(self):
+    def test_message_processes_after_bad_message(self) -> None:
         commit = Mock()
         ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
         bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
@@ -184,7 +184,7 @@ class TestFilterMethod:
 class TestCollectMethod(TestCase):
     table = StringIndexer
 
-    def test_last_seen_update_of_old_item(self):
+    def test_last_seen_update_of_old_item(self) -> None:
         update_time = timezone.now()
         stale_item = self.table.objects.create(
             organization_id=1234,
@@ -198,7 +198,7 @@ class TestCollectMethod(TestCase):
         reloaded_stale_item = self.table.objects.get(id=stale_item.id)
         assert reloaded_stale_item.last_seen == update_time
 
-    def test_last_seen_update_of_new_item_skips(self):
+    def test_last_seen_update_of_new_item_skips(self) -> None:
         last_seen_original = timezone.now()
         update_time = timezone.now() + timedelta(hours=1)
         fresh_item = self.table.objects.create(
@@ -213,7 +213,7 @@ class TestCollectMethod(TestCase):
         reloaded_fresh_item = self.table.objects.get(id=fresh_item.id)
         assert reloaded_fresh_item.last_seen == last_seen_original
 
-    def test_mixed_fresh_and_stale_items(self):
+    def test_mixed_fresh_and_stale_items(self) -> None:
         last_seen_original = timezone.now()
         update_time = timezone.now() + timedelta(hours=1)
 

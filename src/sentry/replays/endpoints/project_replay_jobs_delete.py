@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -35,18 +36,22 @@ class ReplayDeletionJobSerializer(Serializer):
         }
 
 
-class ReplayDeletionJobCreateSerializer(serializers.Serializer):
+class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     rangeStart = serializers.DateTimeField(required=True)
     rangeEnd = serializers.DateTimeField(required=True)
     environments = serializers.ListField(
         child=serializers.CharField(allow_null=False, allow_blank=False), required=True
     )
-    query = serializers.CharField(required=True, allow_blank=True)
+    query = serializers.CharField(required=True, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
         return data
+
+
+class ReplayDeletionJobCreateSerializer(serializers.Serializer):
+    data = ReplayDeletionJobCreateDataSerializer(required=True)  # type: ignore[assignment]
 
 
 @region_silo_endpoint
@@ -84,7 +89,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        data = serializer.validated_data
+        data = serializer.validated_data["data"]
 
         # Create the deletion job
         job = ReplayDeletionJobModel.objects.create(
@@ -93,13 +98,21 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             environments=data["environments"],
             organization_id=project.organization_id,
             project_id=project.id,
-            query=data["query"],
+            query=data["query"] or "",
             status="pending",
         )
 
         # We always start with an offset of 0 (obviously) but future work doesn't need to obey
         # this. You're free to start from wherever you want.
         run_bulk_replay_delete_job.delay(job.id, offset=0)
+
+        self.create_audit_entry(
+            request,
+            organization=project.organization,
+            target_object=job.id,
+            event=audit_log.get_event_id("REPLAYDELETIONJOBMODEL_START"),
+            data={},
+        )
 
         response_data = serialize(job, request.user, ReplayDeletionJobSerializer())
         response = {"data": response_data}

@@ -24,9 +24,7 @@ export const types = {Alert: APIReference.Alert};
 To create a basic alert, wrap your message in an `<Alert>` component and specify the appropriate type.
 
 ```jsx
-<Alert type="info" showIcon>
-  This is an informational message
-</Alert>
+<Alert type="info">This is an informational message</Alert>
 ```
 
 ### Types
@@ -35,40 +33,20 @@ Alerts come in five different types to convey different levels of importance and
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="muted" showIcon>
-      This is a muted alert for neutral information
-    </Alert>
-    <Alert type="info" showIcon>
-      This is an info alert for general information
-    </Alert>
-    <Alert type="warning" showIcon>
-      This is a warning alert for important notices
-    </Alert>
-    <Alert type="success" showIcon>
-      This is a success alert for positive feedback
-    </Alert>
-    <Alert type="error" showIcon>
-      This is an error alert for critical issues
-    </Alert>
+    <Alert type="muted">This is a muted alert for neutral information</Alert>
+    <Alert type="info">This is an info alert for general information</Alert>
+    <Alert type="warning">This is a warning alert for important notices</Alert>
+    <Alert type="success">This is a success alert for positive feedback</Alert>
+    <Alert type="error">This is an error alert for critical issues</Alert>
   </Alert.Container>
 </Storybook.Demo>
 ```jsx
 <Alert.Container>
-  <Alert type="muted" showIcon>
-    This is a muted alert for neutral information
-  </Alert>
-  <Alert type="info" showIcon>
-    This is an info alert for general information
-  </Alert>
-  <Alert type="warning" showIcon>
-    This is a warning alert for important notices
-  </Alert>
-  <Alert type="success" showIcon>
-    This is a success alert for positive feedback
-  </Alert>
-  <Alert type="error" showIcon>
-    This is an error alert for critical issues
-  </Alert>
+  <Alert type="muted">This is a muted alert for neutral information</Alert>
+  <Alert type="info">This is an info alert for general information</Alert>
+  <Alert type="warning">This is a warning alert for important notices</Alert>
+  <Alert type="success">This is a success alert for positive feedback</Alert>
+  <Alert type="error">This is an error alert for critical issues</Alert>
 </Alert.Container>
 ```
 
@@ -78,26 +56,22 @@ By default, alerts display appropriate icons based on their type. You can hide i
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="info" showIcon>
-      Default info icon
-    </Alert>
+    <Alert type="info">Default info icon</Alert>
     <Alert type="warning" showIcon={false}>
       No icon
     </Alert>
-    <Alert type="success" showIcon icon={<IconAdd />}>
+    <Alert type="success" icon={<IconAdd />}>
       Custom add icon
     </Alert>
   </Alert.Container>
 </Storybook.Demo>
 ```jsx
 <Alert.Container>
-  <Alert type="info" showIcon>
-    Default info icon
-  </Alert>
+  <Alert type="info">Default info icon</Alert>
   <Alert type="warning" showIcon={false}>
     No icon
   </Alert>
-  <Alert type="success" showIcon icon={<IconAdd />}>
+  <Alert type="success" icon={<IconAdd />}>
     Custom add icon
   </Alert>
 </Alert.Container>
@@ -110,7 +84,6 @@ Alerts can contain expandable content to provide additional details without over
 <Storybook.Demo>
   <Alert
     type="warning"
-    showIcon
     expand={
       <div>
         <p>This is additional content that was hidden by default.</p>
@@ -127,7 +100,6 @@ Alerts can contain expandable content to provide additional details without over
 ```jsx
 <Alert
   type="warning"
-  showIcon
   expand={
     <div>
       <p>This is additional content that was hidden by default.</p>
@@ -150,7 +122,6 @@ Add interactive elements like buttons or links to the right side of alerts using
   <Alert.Container>
     <Alert
       type="info"
-      showIcon
       trailingItems={
         <Button size="xs" priority="primary">
           Take Action
@@ -161,7 +132,6 @@ Add interactive elements like buttons or links to the right side of alerts using
     </Alert>
     <Alert
       type="error"
-      showIcon
       trailingItems={
         <div>
           <Button size="xs" priority="danger" icon={<IconDelete />}>
@@ -181,7 +151,6 @@ Add interactive elements like buttons or links to the right side of alerts using
 <Alert.Container>
   <Alert
     type="info"
-    showIcon
     trailingItems={
       <Button size="xs" priority="primary">
         Take Action
@@ -192,7 +161,6 @@ Add interactive elements like buttons or links to the right side of alerts using
   </Alert>
   <Alert
     type="error"
-    showIcon
     trailingItems={
       <div>
         <Button size="xs" priority="danger" icon={<IconDelete />}>
@@ -214,12 +182,12 @@ Add interactive elements like buttons or links to the right side of alerts using
 System alerts are full-width variants typically used for application-level notifications or banners.
 
 <Storybook.Demo>
-  <Alert type="warning" showIcon system>
+  <Alert type="warning" system>
     This is a system-wide alert that spans the full width of its container
   </Alert>
 </Storybook.Demo>
 ```jsx
-<Alert type="warning" showIcon system>
+<Alert type="warning" system>
   This is a system-wide alert that spans the full width of its container
 </Alert>
 ```
@@ -231,7 +199,6 @@ You can control the initial expansion state of alerts with expandable content.
 <Storybook.Demo>
   <Alert
     type="info"
-    showIcon
     defaultExpanded
     expand={
       <div>
@@ -246,7 +213,6 @@ You can control the initial expansion state of alerts with expandable content.
 ```jsx
 <Alert
   type="info"
-  showIcon
   defaultExpanded
   expand={
     <div>
@@ -265,28 +231,16 @@ Use `Alert.Container` to properly manage spacing between multiple alerts.
 
 <Storybook.Demo>
   <Alert.Container>
-    <Alert type="info" showIcon>
-      First alert in a container
-    </Alert>
-    <Alert type="warning" showIcon>
-      Second alert in a container
-    </Alert>
-    <Alert type="success" showIcon>
-      Third alert in a container
-    </Alert>
+    <Alert type="info">First alert in a container</Alert>
+    <Alert type="warning">Second alert in a container</Alert>
+    <Alert type="success">Third alert in a container</Alert>
   </Alert.Container>
 </Storybook.Demo>
 ```jsx
 <Alert.Container>
-  <Alert type="info" showIcon>
-    First alert in a container
-  </Alert>
-  <Alert type="warning" showIcon>
-    Second alert in a container
-  </Alert>
-  <Alert type="success" showIcon>
-    Third alert in a container
-  </Alert>
+  <Alert type="info">First alert in a container</Alert>
+  <Alert type="warning">Second alert in a container</Alert>
+  <Alert type="success">Third alert in a container</Alert>
 </Alert.Container>
 ```
 

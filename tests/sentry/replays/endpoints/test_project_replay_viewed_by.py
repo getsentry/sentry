@@ -20,7 +20,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-viewed-by"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.replay_id = uuid4().hex
@@ -28,7 +28,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test_get_replay_viewed_by(self):
+    def test_get_replay_viewed_by(self) -> None:
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
@@ -90,7 +90,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert viewed_by_user["isSuperuser"] == self.user.is_superuser
             assert viewed_by_user["isStaff"] == self.user.is_staff
 
-    def test_get_replay_viewed_by_nonexistent_user(self):
+    def test_get_replay_viewed_by_nonexistent_user(self) -> None:
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
@@ -106,7 +106,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert len(response.data["data"]["viewed_by"]) == 0
 
-    def test_get_replay_viewed_by_no_viewers(self):
+    def test_get_replay_viewed_by_no_viewers(self) -> None:
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
@@ -117,12 +117,12 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert len(response.data["data"]["viewed_by"]) == 0
 
-    def test_get_replay_viewed_by_not_found(self):
+    def test_get_replay_viewed_by_not_found(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 404
 
-    def test_get_replay_viewed_by_feature_flag_disabled(self):
+    def test_get_replay_viewed_by_feature_flag_disabled(self) -> None:
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
 
@@ -148,7 +148,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             # time should match the last replay segment with second-level precision
             assert int(payload["timestamp"]) == int(finished_at_dt.timestamp())
 
-    def test_post_replay_viewed_by_not_exist(self):
+    def test_post_replay_viewed_by_not_exist(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             response = self.client.post(self.url, data="")
             assert response.status_code == 404
@@ -163,7 +163,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 204
             assert not publish_replay_event.called
 
-    def test_get_replay_viewed_by_user_in_other_org(self):
+    def test_get_replay_viewed_by_user_in_other_org(self) -> None:
         other_org_member = self.create_member(
             organization=self.create_organization(), user=self.create_user()
         )
@@ -183,7 +183,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             assert len(response.data["data"]["viewed_by"]) == 0
 
-    def test_get_replay_viewed_by_denylist(self):
+    def test_get_replay_viewed_by_denylist(self) -> None:
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))

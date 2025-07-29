@@ -21,7 +21,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -118,9 +118,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Header>{'Action Required'}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="warning" showIcon>
-            {t('Your account has been suspended')}
-          </Alert>
+          <Alert type="warning">{t('Your account has been suspended')}</Alert>
         </Alert.Container>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
@@ -278,9 +276,7 @@ function NoticeModal({
       </Header>
       <Body>
         <Alert.Container>
-          <Alert type={alertType} showIcon>
-            {title}
-          </Alert>
+          <Alert type={alertType}>{title}</Alert>
         </Alert.Container>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
@@ -902,14 +898,10 @@ class GSBanner extends Component<Props, State> {
         .map(([key, _]) => key as EventType);
 
       // Make an exception for when only seat-based categories have an overage to disable the See Usage button
-      strictlySeatOverage =
-        eventTypes.length <= 2 &&
-        every(eventTypes, eventType =>
-          [
-            DATA_CATEGORY_INFO.monitor_seat.singular as EventType,
-            DATA_CATEGORY_INFO.uptime.singular as EventType,
-          ].includes(eventType)
-        );
+      strictlySeatOverage = every(
+        eventTypes,
+        eventType => getCategoryInfoFromEventType(eventType)?.tallyType === 'seat'
+      );
 
       // Make an exception for when only crons has an overage to change the language to be more fitting and hide See Usage
       if (strictlySeatOverage) {
@@ -946,18 +938,26 @@ class GSBanner extends Component<Props, State> {
       return null;
     }
 
+    // we should only ever specify an event type that has an external stats page
+    // in the stats link
+    const eventTypeForStatsPage = strictlySeatOverage
+      ? null
+      : (eventTypes.find(
+          eventType =>
+            getCategoryInfoFromEventType(eventType)?.statsInfo.showExternalStats
+        ) ?? null);
+
     return (
       <Alert
         system
         type={isWarning ? 'muted' : 'warning'}
-        showIcon
         data-test-id={'overage-banner-' + eventTypes.join('-')}
         trailingItems={
           <ButtonBar>
             {!strictlySeatOverage && (
               <LinkButton
                 size="xs"
-                to={`/organizations/${organization.slug}/stats/?dataCategory=${eventTypes[0]}s&pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
+                to={`/organizations/${organization.slug}/stats/?${eventTypeForStatsPage ? `dataCategory=${eventTypeForStatsPage}&` : ''}pageStart=${subscription.onDemandPeriodStart}&pageEnd=${subscription.onDemandPeriodEnd}&pageUtc=true`}
                 onClick={() => {
                   trackGetsentryAnalytics('quota_alert.clicked_see_usage', {
                     organization,

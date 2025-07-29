@@ -25,7 +25,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
             )
         )
 
-    def test_unassignment_block(self):
+    def test_unassignment_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
         and block kit is enabled.

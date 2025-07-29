@@ -102,8 +102,8 @@ export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: P
         )}
 
         <PreviewRow
-          align="flex-start"
-          justify="flex-start"
+          align="start"
+          justify="start"
           style={{
             gridArea: 'message',
           }}
@@ -112,7 +112,7 @@ export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: P
         </PreviewRow>
 
         <BottomGrid style={{gridArea: 'bottom'}}>
-          <Row justify="flex-start" gap={space(0.75)}>
+          <Row justify="start" gap="sm">
             {feedbackItem.project ? (
               <StyledProjectBadge
                 disableLink
@@ -125,7 +125,7 @@ export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: P
             <ShortId>{feedbackItem.shortId}</ShortId>
           </Row>
 
-          <Row justify="flex-end" gap={space(1)}>
+          <Row justify="end" gap="md">
             <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
             {hasComments && (

@@ -35,17 +35,8 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
-import type {
-  EAPSpanResponse,
-  SpanMetricsQueryFilters,
-  SpanQueryFilters,
-} from 'sentry/views/insights/types';
-import {
-  ModuleName,
-  SpanFields,
-  SpanFunction,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -84,7 +75,7 @@ export function CacheSamplePanel() {
     });
   };
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
     'project.id': query.project,
@@ -99,8 +90,8 @@ export function CacheSamplePanel() {
         fields: [
           `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
-          `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
-          `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
+          `sum(${SpanFields.SPAN_SELF_TIME})`,
+          `avg(${SpanFields.CACHE_ITEM_SIZE})`,
         ],
       },
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
@@ -124,10 +115,7 @@ export function CacheSamplePanel() {
     ['project.id']: query.project,
   };
 
-  const useIndexedCacheSpans = (
-    isCacheHit: EAPSpanResponse['cache.hit'],
-    limit: number
-  ) =>
+  const useIndexedCacheSpans = (isCacheHit: SpanResponse['cache.hit'], limit: number) =>
     useSpans(
       {
         search: MutableSearch.fromQueryObject({
@@ -292,11 +280,9 @@ export function CacheSamplePanel() {
             <ModuleLayout.Full>
               <ReadoutRibbon>
                 <MetricReadout
-                  title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
+                  title={DataTitles[`avg(${SpanFields.CACHE_ITEM_SIZE})`]}
                   value={
-                    cacheTransactionMetrics?.[0]?.[
-                      `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`
-                    ]
+                    cacheTransactionMetrics?.[0]?.[`avg(${SpanFields.CACHE_ITEM_SIZE})`]
                   }
                   unit={SizeUnit.BYTE}
                   isLoading={areCacheTransactionMetricsFetching}

@@ -3,7 +3,6 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.auth_merge_user_accounts import AuthMergeUserAccountsEndpoint
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
@@ -17,7 +16,6 @@ from sentry.api.endpoints.organization_dashboards_starred import (
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
-from sentry.api.endpoints.organization_feedback_summary import OrganizationFeedbackSummaryEndpoint
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_member_invite.details import (
@@ -67,12 +65,13 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.auth_v2.urls import AUTH_V2_URLS
-from sentry.codecov.endpoints.Branches.branches import RepositoryBranchesEndpoint
-from sentry.codecov.endpoints.Repositories.repositories import RepositoriesEndpoint
-from sentry.codecov.endpoints.TestResults.test_results import TestResultsEndpoint
-from sentry.codecov.endpoints.TestResultsAggregates.test_results_aggregates import (
+from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
+from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
+from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
+from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
 )
+from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -94,6 +93,11 @@ from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQue
 from sentry.explore.endpoints.explore_saved_query_starred_order import (
     ExploreSavedQueryStarredOrderEndpoint,
 )
+from sentry.feedback.endpoints.organization_feedback_summary import (
+    OrganizationFeedbackSummaryEndpoint,
+)
+from sentry.feedback.endpoints.organization_user_reports import OrganizationUserReportsEndpoint
+from sentry.feedback.endpoints.project_user_reports import ProjectUserReportsEndpoint
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
@@ -341,6 +345,9 @@ from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
+from sentry.seer.endpoints.organization_page_web_vitals_summary import (
+    OrganizationPageWebVitalsSummaryEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
 )
@@ -649,7 +656,6 @@ from .endpoints.organization_traces import (
     OrganizationTraceSpansEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
@@ -716,7 +722,6 @@ from .endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
 from .endpoints.project_transfer import ProjectTransferEndpoint
-from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
@@ -933,11 +938,6 @@ AUTH_URLS = [
         AuthValidateEndpoint.as_view(),
         name="sentry-api-0-auth-test",
     ),
-    re_path(
-        r"^merge-accounts/$",
-        AuthMergeUserAccountsEndpoint.as_view(),
-        name="sentry-api-0-auth-merge-accounts",
-    ),
 ]
 
 BROADCAST_URLS = [
@@ -1062,6 +1062,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
         TestResultsEndpoint.as_view(),
         name="sentry-api-0-test-results",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-suites/$",
+        TestSuitesEndpoint.as_view(),
+        name="sentry-api-0-test-suites",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
@@ -1757,6 +1762,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-summary/$",
         OrganizationTraceSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-trace-summary",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/page-web-vitals-summary/$",
+        OrganizationPageWebVitalsSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-page-web-vitals-summary",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/measurements-meta/$",

@@ -320,13 +320,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             limit: int,
             query: str | None,
         ):
-            transform_alias_to_input_format = True
             selected_columns = self.get_field_list(organization, request)
             if is_errors_query_for_error_upsampled_projects(
                 snuba_params, organization, dataset, request
             ):
-                selected_columns = transform_query_columns_for_error_upsampling(selected_columns)
-                transform_alias_to_input_format = False
+                selected_columns = transform_query_columns_for_error_upsampling(
+                    selected_columns, False
+                )
             query_source = self.get_request_source(request)
             return dataset_query(
                 selected_columns=selected_columns,
@@ -341,7 +341,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 auto_aggregations=True,
                 allow_metric_aggregates=allow_metric_aggregates,
                 use_aggregate_conditions=use_aggregate_conditions,
-                transform_alias_to_input_format=transform_alias_to_input_format,
+                transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
@@ -602,7 +602,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         limit=limit,
                         referrer=referrer,
                         config=config,
-                        debug=debug,
                         sampling_mode=snuba_params.sampling_mode,
                     )
 
@@ -624,30 +623,26 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         max_per_page = 9999 if dataset == ourlogs else None
 
+        def _handle_results(results):
+            # Apply error upsampling for regular Events API
+            self.handle_error_upsampling(snuba_params.project_ids, results)
+            return self.handle_results_with_meta(
+                request,
+                organization,
+                snuba_params.project_ids,
+                results,
+                standard_meta=True,
+                dataset=dataset,
+            )
+
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
             if request.GET.get("noPagination"):
-                return Response(
-                    self.handle_results_with_meta(
-                        request,
-                        organization,
-                        snuba_params.project_ids,
-                        data_fn(0, self.get_per_page(request)),
-                        standard_meta=True,
-                        dataset=dataset,
-                    )
-                )
+                return Response(_handle_results(data_fn(0, self.get_per_page(request))))
             else:
                 return self.paginate(
                     request=request,
                     paginator=GenericOffsetPaginator(data_fn=data_fn),
-                    on_results=lambda results: self.handle_results_with_meta(
-                        request,
-                        organization,
-                        snuba_params.project_ids,
-                        results,
-                        standard_meta=True,
-                        dataset=dataset,
-                    ),
+                    on_results=_handle_results,
                     max_per_page=max_per_page,
                 )

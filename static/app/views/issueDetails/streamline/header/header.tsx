@@ -8,14 +8,13 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo, IconMegaphone} from 'sentry/icons';
@@ -117,7 +116,7 @@ export default function StreamlinedGroupHeader({
   return (
     <Fragment>
       <Header>
-        <Flex justify="space-between">
+        <Flex justify="between">
           <Flex align="center">
             <Breadcrumbs
               crumbs={[
@@ -220,7 +219,7 @@ export default function StreamlinedGroupHeader({
               <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
-          <Flex gap={space(1)} align="center">
+          <Flex gap="md" align="center">
             {group.isUnhandled && (
               <Fragment>
                 <UnhandledTag />

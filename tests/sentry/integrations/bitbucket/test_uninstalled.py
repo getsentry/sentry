@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class BitbucketUnistalledEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -38,7 +38,7 @@ class BitbucketUnistalledEndpointTest(TestCase):
             integration_id=self.integration.id,
         )
 
-    def test_uninstall_missing_auth_header(self):
+    def test_uninstall_missing_auth_header(self) -> None:
         response = self.client.post(self.path)
 
         assert response.status_code == 400

@@ -11,7 +11,6 @@ from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -77,9 +76,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
             assert len(mail.outbox) == USER_COUNT
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
+        self.rule = self.create_project_rule(project=self.project)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
@@ -142,7 +141,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             },
         )
 
-    def test_sends_alert_rule_notification_to_each_member(self):
+    def test_sends_alert_rule_notification_to_each_member(self) -> None:
         """Test that if there is only one event it is sent as a regular alert rule notification"""
         self.run_test(event_count=1)
 
@@ -169,7 +168,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(project=self.project)
         event1 = self.store_event(
             data={
                 "timestamp": timestamp,

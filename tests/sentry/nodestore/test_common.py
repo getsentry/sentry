@@ -3,10 +3,13 @@ Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
 
+from collections.abc import Callable, Generator
 from contextlib import nullcontext
+from typing import ContextManager
 
 import pytest
 
+from sentry.nodestore.base import NodeStorage
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from sentry.testutils.helpers import override_options
 from tests.sentry.nodestore.bigtable.test_backend import (
@@ -18,9 +21,9 @@ from tests.sentry.nodestore.bigtable.test_backend import (
 @pytest.fixture(
     params=["bigtable-mocked", "bigtable-real", pytest.param("django", marks=pytest.mark.django_db)]
 )
-def ns(request):
+def ns(request: pytest.FixtureRequest) -> Generator[NodeStorage]:
     # backends are returned from context managers to support teardown when required
-    backends = {
+    backends: dict[str, Callable[[], ContextManager[NodeStorage]]] = {
         "bigtable-mocked": lambda: nullcontext(MockedBigtableNodeStorage(project="test")),
         "bigtable-real": lambda: get_temporary_bigtable_nodestorage(),
         "django": lambda: nullcontext(DjangoNodeStorage()),
@@ -33,7 +36,7 @@ def ns(request):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
-def test_get_multi(ns):
+def test_get_multi(ns: NodeStorage) -> None:
     nodes = [("a" * 32, {"foo": "a"}), ("b" * 32, {"foo": "b"})]
 
     ns.set(nodes[0][0], nodes[0][1])
@@ -44,7 +47,7 @@ def test_get_multi(ns):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
-def test_get_multi_with_duplicates(ns):
+def test_get_multi_with_duplicates(ns: NodeStorage) -> None:
     key = "a" * 32
     value = {"foo": "a"}
 
@@ -58,7 +61,7 @@ def test_get_multi_with_duplicates(ns):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
-def test_set(ns):
+def test_set(ns: NodeStorage) -> None:
     node_id = "d2502ebbd7df41ceba8d3275595cac33"
     data = {"foo": "bar"}
     ns.set(node_id, data)
@@ -66,7 +69,7 @@ def test_set(ns):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
-def test_delete(ns):
+def test_delete(ns: NodeStorage) -> None:
     node_id = "d2502ebbd7df41ceba8d3275595cac33"
     data = {"foo": "bar"}
     ns.set(node_id, data)
@@ -76,7 +79,7 @@ def test_delete(ns):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
-def test_delete_multi(ns):
+def test_delete_multi(ns: NodeStorage) -> None:
     nodes = [("node_1", {"foo": "a"}), ("node_2", {"foo": "b"})]
 
     for n in nodes:
@@ -88,7 +91,7 @@ def test_delete_multi(ns):
 
 
 @override_options({"nodestore.set-subkeys.enable-set-cache-item": False})
-def test_set_subkeys(ns):
+def test_set_subkeys(ns: NodeStorage) -> None:
     """
     Subkeys are used to store multiple JSON payloads under the same main key.
     The usual guarantee is that those payloads are compressed together and are

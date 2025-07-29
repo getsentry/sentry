@@ -27,7 +27,7 @@ pytestmark = [requires_snuba]
 
 
 class TestDetectorSerializer(TestCase):
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
         )
@@ -50,9 +50,11 @@ class TestDetectorSerializer(TestCase):
             },
             "owner": None,
             "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
         }
 
-    def test_serialize_full(self):
+    def test_serialize_full(self) -> None:
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -164,9 +166,11 @@ class TestDetectorSerializer(TestCase):
             },
             "owner": self.user.get_actor_identifier(),
             "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
         }
 
-    def test_serialize_bulk(self):
+    def test_serialize_bulk(self) -> None:
         detectors = [
             self.create_detector(
                 project_id=self.project.id,
@@ -183,7 +187,7 @@ class TestDetectorSerializer(TestCase):
 
 
 class TestDataSourceSerializer(TestCase):
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
             Dataset.Events,
@@ -229,7 +233,7 @@ class TestDataSourceSerializer(TestCase):
 
 
 class TestDataConditionGroupSerializer(TestCase):
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -245,7 +249,7 @@ class TestDataConditionGroupSerializer(TestCase):
             "actions": [],
         }
 
-    def test_serialize_full(self):
+    def test_serialize_full(self) -> None:
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -295,7 +299,7 @@ class TestDataConditionGroupSerializer(TestCase):
 
 
 class TestActionSerializer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             provider="slack",
@@ -305,7 +309,7 @@ class TestActionSerializer(TestCase):
             organization=self.organization,
         )
 
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         action = self.create_action(
             type=Action.Type.PLUGIN,
             data={},
@@ -321,7 +325,7 @@ class TestActionSerializer(TestCase):
             "config": {},
         }
 
-    def test_serialize_with_integration(self):
+    def test_serialize_with_integration(self) -> None:
 
         action = self.create_action(
             type=Action.Type.OPSGENIE,
@@ -343,7 +347,7 @@ class TestActionSerializer(TestCase):
             "config": {"targetType": 0, "targetIdentifier": "123"},
         }
 
-    def test_serialize_with_integration_and_config(self):
+    def test_serialize_with_integration_and_config(self) -> None:
         action2 = self.create_action(
             type=Action.Type.SLACK,
             data={"tags": "bar"},
@@ -371,7 +375,7 @@ class TestActionSerializer(TestCase):
 
 
 class TestWorkflowSerializer(TestCase):
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         workflow = self.create_workflow(
             name="hojicha",
             organization_id=self.organization.id,
@@ -396,7 +400,7 @@ class TestWorkflowSerializer(TestCase):
             "lastTriggered": None,
         }
 
-    def test_serialize_full(self):
+    def test_serialize_full(self) -> None:
         when_condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -509,7 +513,7 @@ class TestWorkflowSerializer(TestCase):
 
 
 class TimeSeriesValueSerializerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         time_series_value = TimeSeriesValue(datetime.now(), 30)
         result = serialize([time_series_value], self.user, TimeSeriesValueSerializer())
         assert result == [
@@ -522,7 +526,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowGroupsPaginatedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -543,6 +547,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     workflow=self.workflow,
                     group=self.group,
                     event_id=uuid4().hex,
+                    is_single_written=True,
                 )
             )
         self.group_2 = self.create_group()
@@ -556,6 +561,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 workflow=self.workflow,
                 group=self.group_2,
                 event_id=uuid4().hex,
+                is_single_written=True,
             )
         )
         self.group_3 = self.create_group()
@@ -570,8 +576,17 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     workflow=self.workflow,
                     group=self.group_3,
                     event_id=uuid4().hex,
+                    is_single_written=True,
                 )
             )
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            detector=self.detector_3,
+            workflow=self.workflow,
+            group=self.group_3,
+            event_id=uuid4().hex,
+            is_single_written=False,
+        )
         # this will be ordered after the WFH with self.detector_1
         self.detector_4 = self.create_detector(
             project_id=self.project.id,
@@ -584,6 +599,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 workflow=self.workflow_2,
                 group=self.group,
                 event_id=uuid4().hex,
+                is_single_written=True,
             )
         )
 
@@ -608,7 +624,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
         assert result.results == expected_results, (result.results, expected_results)
         return result
 
-    def test_workflow_groups_paginated__simple(self):
+    def test_workflow_groups_paginated__simple(self) -> None:
         self.assert_expected_results(
             workflow=self.workflow,
             start=before_now(days=6),
@@ -638,7 +654,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
             ],
         )
 
-    def test_workflow_groups_paginated__cursor(self):
+    def test_workflow_groups_paginated__cursor(self) -> None:
         result = self.assert_expected_results(
             workflow=self.workflow,
             start=before_now(days=6),
@@ -689,7 +705,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
             per_page=1,
         )
 
-    def test_workflow_groups_paginated__filters_counts(self):
+    def test_workflow_groups_paginated__filters_counts(self) -> None:
         # Test that the count is updated if the date range affects it
         self.assert_expected_results(
             workflow=self.workflow,
@@ -720,7 +736,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
             ],
         )
 
-    def test_workflow_groups_paginated__past_date_range(self):
+    def test_workflow_groups_paginated__past_date_range(self) -> None:
         self.assert_expected_results(
             workflow=self.workflow,
             start=before_now(days=3),
@@ -739,7 +755,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
 @freeze_time()
 class WorkflowHourlyStatsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -755,6 +771,7 @@ class WorkflowHourlyStatsTest(TestCase):
                     WorkflowFireHistory(
                         workflow=self.workflow,
                         group=self.group,
+                        is_single_written=True,
                     )
                 )
 
@@ -764,8 +781,16 @@ class WorkflowHourlyStatsTest(TestCase):
                 WorkflowFireHistory(
                     workflow=self.workflow_2,
                     group=self.group,
+                    is_single_written=True,
                 )
             )
+
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow_2,
+            group=self.group,
+            is_single_written=False,
+        )
 
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
 
@@ -783,7 +808,7 @@ class WorkflowHourlyStatsTest(TestCase):
 
         self.login_as(self.user)
 
-    def test_workflow_hourly_stats(self):
+    def test_workflow_hourly_stats(self) -> None:
         results = fetch_workflow_hourly_stats(self.workflow, before_now(hours=6), before_now())
         assert len(results) == 6
         assert [result.count for result in results] == [
@@ -795,7 +820,7 @@ class WorkflowHourlyStatsTest(TestCase):
             0,
         ]  # last zero is for the current hour
 
-    def test_workflow_hourly_stats__past_date_range(self):
+    def test_workflow_hourly_stats__past_date_range(self) -> None:
         results = fetch_workflow_hourly_stats(
             self.workflow_2, before_now(hours=6), before_now(hours=2)
         )

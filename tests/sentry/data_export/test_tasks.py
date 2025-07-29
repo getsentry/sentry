@@ -29,7 +29,7 @@ from sentry.utils.snuba import (
 
 
 class AssembleDownloadTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
@@ -62,7 +62,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
 
     @patch("sentry.data_export.models.ExportedData.email_success")
@@ -610,7 +610,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
@@ -686,5 +686,5 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
 
 
 class MergeExportBlobsTest(TestCase, SnubaTestCase):
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert merge_export_blobs.name == "sentry.data_export.tasks.merge_blobs"

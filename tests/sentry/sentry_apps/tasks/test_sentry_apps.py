@@ -4,7 +4,8 @@ from unittest.mock import ANY, patch
 import pytest
 import responses
 from django.urls import reverse
-from requests.exceptions import ChunkedEncodingError
+from requests import HTTPError
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
@@ -71,6 +72,10 @@ def raiseException():
     raise Exception
 
 
+def raiseHTTPError():
+    raise HTTPError()
+
+
 class RequestMock:
     def __init__(self):
         self.body = "blah blah"
@@ -99,10 +104,13 @@ MockResponseWithHeadersInstance = MockResponse(
 )
 MockResponseInstance = MockResponse({}, b"{}", "", True, 200, raiseStatusFalse, None)
 MockResponse404 = MockResponse({}, b'{"bruh": "bruhhhhhhh"}', "", False, 404, raiseException, None)
+MockResponse504 = MockResponse(headers, json_content, "", False, 504, raiseStatusFalse, None)
+MockResponse503 = MockResponse(headers, json_content, "", False, 503, raiseStatusFalse, None)
+MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPError, None)
 
 
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
         self.install = self.create_sentry_app_installation(
@@ -523,7 +531,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             organization=self.organization, events=["issue.created"]
         )
@@ -591,6 +599,126 @@ class TestProcessResourceChange(TestCase):
             )
 
         # Verify that the exception was not captured by Sentry since it's ignored
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_timeout_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = Timeout()
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when Timeout is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_api_host_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse503
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ApiHostError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_api_timeout_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse504
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ApiTimeoutError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_connection_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.side_effect = ConnectionError()
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when ConnectionError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
+        assert len(capture_exception.mock_calls) == 0
+        assert safe_urlopen.called
+
+    @patch("sentry_sdk.capture_exception")
+    def test_ignores_http_error(self, capture_exception, safe_urlopen):
+        safe_urlopen.return_value = MockResponse502
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        # The task should complete without reporting to sentry when HTTPError is raised
+        # because it's in the on_silent list of the retry decorator
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        # Verify that the exception was not captured by Sentry since it's on_silent
         assert len(capture_exception.mock_calls) == 0
         assert safe_urlopen.called
 
@@ -958,7 +1086,7 @@ class TestProcessResourceChange(TestCase):
 
 
 class TestSendResourceChangeWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         pass
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
@@ -1200,7 +1328,7 @@ class TestSendResourceChangeWebhook(TestCase):
 
 @control_silo_test
 class TestInstallationWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
         self.rpc_user = user_service.get_user(user_id=self.user.id)
@@ -1278,7 +1406,7 @@ class TestInstallationWebhook(TestCase):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
 
@@ -1381,7 +1509,7 @@ class TestCommentWebhook(TestCase):
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.user = self.create_user()
 
@@ -1493,7 +1621,7 @@ class TestWorkflowNotification(TestCase):
 
 
 class TestWebhookRequests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user, id=1)
         self.sentry_app = self.create_sentry_app(
             name="Test App",

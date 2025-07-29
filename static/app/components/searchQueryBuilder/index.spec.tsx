@@ -4389,21 +4389,60 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+        {
+          organization: {
+            features: [
+              'search-query-builder-raw-search-replacement',
+              'search-query-builder-wildcard-operators',
+            ],
+          },
+        }
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
 
       expect(
-        within(screen.getByRole('listbox')).getByText('span.description')
-      ).toBeInTheDocument();
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getByText('span.description')
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
         screen.getByRole('row', {name: 'span.description:randomValue'})
+      ).toBeInTheDocument();
+    });
+
+    it('should replace raw search keys with defined key:*value*', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-raw-search-replacement',
+              'search-query-builder-wildcard-operators',
+            ],
+          },
+        }
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+
+      expect(
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
+
+      await userEvent.click(
+        within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'span.description:*randomValue*'})
       ).toBeInTheDocument();
     });
 
@@ -4414,17 +4453,24 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {organization: {features: ['search-query-builder-raw-search-replacement']}}
+        {
+          organization: {
+            features: [
+              'search-query-builder-raw-search-replacement',
+              'search-query-builder-wildcard-operators',
+            ],
+          },
+        }
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'random value');
 
       expect(
-        within(screen.getByRole('listbox')).getByText('span.description')
-      ).toBeInTheDocument();
+        within(screen.getByRole('listbox')).getAllByText('span.description')
+      ).toHaveLength(2);
 
       await userEvent.click(
-        within(screen.getByRole('listbox')).getByText('span.description')
+        within(screen.getByRole('listbox')).getAllByText('span.description')[1]!
       );
 
       expect(
@@ -4446,7 +4492,13 @@ describe('SearchQueryBuilder', function () {
       });
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
       });
 
       await userEvent.click(getLastInput());
@@ -4467,7 +4519,13 @@ describe('SearchQueryBuilder', function () {
       });
 
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']},
+        organization: {
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
+        },
       });
 
       await userEvent.click(getLastInput());
@@ -4480,7 +4538,11 @@ describe('SearchQueryBuilder', function () {
       it('calls promptsUpdate', async () => {
         const organization = OrganizationFixture({
           slug: 'org-slug',
-          features: ['gen-ai-features', 'gen-ai-explore-traces'],
+          features: [
+            'gen-ai-features',
+            'gen-ai-explore-traces',
+            'gen-ai-explore-traces-consent-ui',
+          ],
         });
         const promptsUpdateMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -4537,7 +4599,15 @@ describe('SearchQueryBuilder', function () {
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-          {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+              ],
+            },
+          }
         );
 
         await userEvent.click(getLastInput());
@@ -4561,7 +4631,15 @@ describe('SearchQueryBuilder', function () {
 
       render(
         <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-        {organization: {features: ['gen-ai-features', 'gen-ai-explore-traces']}}
+        {
+          organization: {
+            features: [
+              'gen-ai-features',
+              'gen-ai-explore-traces',
+              'gen-ai-explore-traces-consent-ui',
+            ],
+          },
+        }
       );
 
       await userEvent.click(getLastInput());

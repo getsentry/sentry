@@ -22,7 +22,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.issues.grouptype import MetricIssuePOC
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -33,7 +32,6 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -117,8 +115,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @patch("sentry.incidents.subscription_processor.metrics")
-    @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_alert(self, create_metric_issue_mock, mock_metrics):
+    def test_alert(self, mock_metrics):
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
         rule = self.rule
@@ -146,7 +143,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 }
             ],
         )
-        create_metric_issue_mock.assert_not_called()
         mock_metrics.incr.assert_has_calls(
             [
                 call(
@@ -158,8 +154,7 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         )
 
     @patch("sentry.incidents.subscription_processor.metrics")
-    @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
-    def test_resolve(self, create_metric_issue_mock, mock_metrics):
+    def test_resolve(self, mock_metrics):
         # Verify that an alert rule that only expects a single update to be under the
         # resolve threshold triggers correctly
         rule = self.rule
@@ -201,7 +196,6 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
                 }
             ],
         )
-        create_metric_issue_mock.assert_not_called()
         mock_metrics.incr.assert_has_calls(
             [
                 call(
@@ -217,134 +211,27 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
             ]
         )
 
-    @with_feature("organizations:metric-issue-poc")
-    @with_feature("projects:metric-issue-creation")
-    @patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
-    def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
-        rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1)
-
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": uuid,
-                }
-            ],
-        )
-
-        # Verify that a metric issue is created when an alert fires
-        mock_produce_occurrence_to_kafka.assert_called_once()
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.issue_title == incident.title
-        assert occurrence.priority == PriorityLevel.HIGH
-        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
-
-    @with_feature("organizations:metric-issue-poc")
-    @with_feature("projects:metric-issue-creation")
-    @patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
-    def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
-        from sentry.models.group import GroupStatus
-
-        # Trigger an incident at critical status
-        rule = self.rule
-        trigger = self.trigger
-        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": mock.ANY,
-                }
-            ],
-        )
-
-        # Check that a metric issue is created
-        assert mock_produce_occurrence_to_kafka.call_count == 1
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.priority == PriorityLevel.HIGH
-        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
-        mock_produce_occurrence_to_kafka.reset_mock()
-
-        # Resolve the incident
-        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
-        self.assert_trigger_counts(processor, self.trigger, 0, 0)
-        self.assert_no_active_incident(rule)
-        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
-        self.assert_actions_resolved_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CLOSED,
-                    "metric_value": rule.resolve_threshold - 1,
-                    "notification_uuid": mock.ANY,
-                }
-            ],
-        )
-
-        # Verify that the metric issue is updated
-        assert mock_produce_occurrence_to_kafka.call_count == 2
-        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.priority == PriorityLevel.MEDIUM
-        assert occurrence.evidence_data["metric_value"] == rule.resolve_threshold - 1
-
-        status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
-        assert status_change.new_status == GroupStatus.RESOLVED
-        assert occurrence.fingerprint == status_change.fingerprint
-
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @patch("sentry.incidents.subscription_processor.process_data_packets")
-    def test_process_data_packets_called(self, mock_process_data_packets):
+    @patch("sentry.incidents.subscription_processor.process_data_packet")
+    def test_process_data_packet_called(self, mock_process_data_packet):
         rule = self.rule
         detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
         data_source = self.create_data_source(source_id=str(self.sub.id))
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
-        assert mock_process_data_packets.call_count == 1
+        assert mock_process_data_packet.call_count == 1
         assert (
-            mock_process_data_packets.call_args_list[0][0][1]
-            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            mock_process_data_packet.call_args_list[0][0][1] == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         )
-        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
-        assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet["values"] == {"value": 10}
+        data_packet = mock_process_data_packet.call_args_list[0][0][0]
+        assert data_packet.source_id == str(self.sub.id)
+        assert data_packet.packet.values == {"value": 10}
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @patch("sentry.incidents.subscription_processor.process_data_packets")
+    @patch("sentry.incidents.subscription_processor.process_data_packet")
     @patch("sentry.incidents.subscription_processor.get_comparison_aggregation_value")
-    def test_process_data_packets_not_called(
-        self, mock_get_comparison_aggregation_value, mock_process_data_packets
+    def test_process_data_packet_not_called(
+        self, mock_get_comparison_aggregation_value, mock_process_data_packet
     ):
         rule = self.comparison_rule_above
         trigger = self.trigger
@@ -357,7 +244,33 @@ class ProcessUpdateWorkflowEngineTest(ProcessUpdateComparisonAlertTest):
         self.send_update(
             rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
         )
-        assert mock_process_data_packets.call_count == 0
+        assert mock_process_data_packet.call_count == 0
+
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    @patch("sentry.incidents.subscription_processor.process_data_packet")
+    def test_single_processing_no_trigger(self, mock_process_data_packet):
+        """
+        If an organization is flagged into single processing, then data should not flow through
+        the legacy system.
+        """
+        rule = self.rule
+        trigger = self.trigger
+
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
+        data_source = self.create_data_source(source_id=str(self.sub.id))
+        data_source.detectors.set([detector])
+
+        processor = self.send_update(rule, trigger.alert_threshold + 1)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+
+        assert mock_process_data_packet.call_count == 1
+        assert (
+            mock_process_data_packet.call_args_list[0][0][1] == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        data_packet = mock_process_data_packet.call_args_list[0][0][0]
+        assert data_packet.source_id == str(self.sub.id)
+        assert data_packet.packet.values == {"value": trigger.alert_threshold + 1}
 
 
 @freeze_time()
@@ -426,62 +339,11 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-    @with_feature("organizations:metric-issue-poc")
-    @with_feature("projects:metric-issue-creation")
-    @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
-    )
-    @patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
-    def test_dynamic_alert_creates_metric_issue(
-        self, mock_produce_occurrence_to_kafka: MagicMock, mock_seer_request: MagicMock
-    ):
-        rule = self.dynamic_rule
-        trigger = self.trigger
-        seer_return_value = self.get_seer_return_value(
-            anomaly_score=0.9, value=10, anomaly_type=AnomalyType.HIGH_CONFIDENCE
-        )
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        processor = self.send_update(rule, trigger.alert_threshold + 1)
-
-        self.assert_trigger_counts(processor, trigger, 0, 0)
-        incident = self.assert_active_incident(rule)
-        assert incident.date_started == (
-            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
-        )
-        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
-        latest_activity = self.latest_activity(incident)
-        uuid = str(latest_activity.notification_uuid)
-        self.assert_actions_fired_for_incident(
-            incident,
-            [self.action],
-            [
-                {
-                    "action": self.action,
-                    "incident": incident,
-                    "project": self.project,
-                    "new_status": IncidentStatus.CRITICAL,
-                    "metric_value": trigger.alert_threshold + 1,
-                    "notification_uuid": uuid,
-                }
-            ],
-        )
-
-        # Verify that a metric issue is created when an alert fires
-        mock_produce_occurrence_to_kafka.assert_called_once()
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert occurrence.type == MetricIssuePOC
-        assert occurrence.issue_title == incident.title
-        assert occurrence.priority == PriorityLevel.HIGH
-        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
-
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
@@ -511,7 +373,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule
@@ -558,7 +419,6 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
         rule = self.dynamic_rule

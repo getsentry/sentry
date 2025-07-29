@@ -17,6 +17,7 @@ from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.utils import json
@@ -28,7 +29,7 @@ class SlackRequestParserTest(TestCase):
     factory = RequestFactory()
     timestamp = "123123123"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -87,7 +88,7 @@ class SlackRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @responses.activate
-    def test_django_view(self):
+    def test_django_view(self) -> None:
         # Retrieve the correct integration
         path = reverse(
             "sentry-integration-slack-link-identity",
@@ -157,7 +158,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert mock_slack_task.apply_async.call_count == 0
 
-    def test_async_request_payload(self):
+    def test_async_request_payload(self) -> None:
         data = {
             "payload": json.dumps(
                 {
@@ -179,3 +180,81 @@ class SlackRequestParserTest(TestCase):
         assert isinstance(result["headers"], dict)
         assert "body" in result
         assert result["body"] == request.body.decode("utf8")
+
+    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
+    def test_targeting_all_orgs(self) -> None:
+        # Install the integration on two organizations
+        other_organization = self.create_organization()
+        self.integration.add_organization(other_organization)
+
+        # Without passing an organization, we expect to filter to both.
+        for cmd in ["link team", "unlink team"]:
+            data = urlencode(
+                {
+                    "text": cmd,
+                    "team_id": self.integration.external_id,
+                }
+            ).encode("utf-8")
+            request = self.factory.post(
+                reverse("sentry-integration-slack-commands"),
+                data=data,
+                content_type="application/x-www-form-urlencoded",
+            )
+            parser = SlackRequestParser(request, self.get_response)
+            organizations = parser.get_organizations_from_integration(self.integration)
+            organization_ids = {org.id for org in organizations}
+            assert len(organization_ids) == 2
+            assert self.organization.id in organization_ids
+            assert other_organization.id in organization_ids
+
+    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
+    def test_targeting_specific_org(self) -> None:
+        # Install the integration on two organizations
+        other_organization = self.create_organization()
+        self.integration.add_organization(other_organization)
+
+        # When the organization slug is provided, filter to just that one.
+        for cmd in ["link team", "unlink team"]:
+            data = urlencode(
+                {
+                    "text": f"{cmd} {other_organization.slug}",
+                    "team_id": self.integration.external_id,
+                }
+            ).encode("utf-8")
+            request = self.factory.post(
+                reverse("sentry-integration-slack-commands"),
+                data=data,
+                content_type="application/x-www-form-urlencoded",
+            )
+            parser = SlackRequestParser(request, self.get_response)
+            organizations = parser.get_organizations_from_integration(self.integration)
+
+            assert len(organizations) == 1
+            assert organizations[0].id == other_organization.id
+
+    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
+    def test_targeting_irrelevant_org(self) -> None:
+        # Install the integration on two organizations
+        other_organization = self.create_organization()
+        self.integration.add_organization(other_organization)
+        # And add another, maybe the user belongs to it, maybe not
+        irrelevant_organization = self.create_organization()
+
+        # If the organization slug is irrelevant, ignore it and return all orgs
+        for cmd in ["link team", "unlink team"]:
+            data = urlencode(
+                {
+                    "text": f"{cmd} {irrelevant_organization.slug}",
+                    "team_id": self.integration.external_id,
+                }
+            ).encode("utf-8")
+            request = self.factory.post(
+                reverse("sentry-integration-slack-commands"),
+                data=data,
+                content_type="application/x-www-form-urlencoded",
+            )
+            parser = SlackRequestParser(request, self.get_response)
+            organizations = parser.get_organizations_from_integration(self.integration)
+            organization_ids = {org.id for org in organizations}
+            assert len(organization_ids) == 2
+            assert irrelevant_organization.id not in organization_ids

@@ -4,6 +4,7 @@ from django.core import mail
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
@@ -13,11 +14,13 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from social_auth.models import UserSocialAuth
 
 
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class FetchCommitsTest(TestCase):
     def _test_simple_action(self, user, org):
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -69,12 +72,12 @@ class FetchCommitsTest(TestCase):
         assert latest_repo_release_environment.release_id == release2.id
         assert latest_repo_release_environment.commit_id == commit_list[0].id
 
-    def test_simple(self):
+    def test_simple(self, mock_record):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
 
-    def test_duplicate_repositories(self):
+    def test_duplicate_repositories(self, mock_record):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         Repository.objects.create(
@@ -83,7 +86,7 @@ class FetchCommitsTest(TestCase):
         Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
 
-    def test_release_locked(self):
+    def test_release_locked(self, mock_record_event):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -113,7 +116,9 @@ class FetchCommitsTest(TestCase):
 
     @patch("sentry.tasks.commits.handle_invalid_identity")
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_invalid_identity(self, mock_compare_commits, mock_handle_invalid_identity):
+    def test_fetch_error_invalid_identity(
+        self, mock_compare_commits, mock_handle_invalid_identity, mock_record
+    ):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
@@ -141,8 +146,10 @@ class FetchCommitsTest(TestCase):
 
         mock_handle_invalid_identity.assert_called_once_with(identity=usa, commit_failure=True)
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_plugin_error(self, mock_compare_commits):
+    def test_fetch_error_plugin_error(self, mock_compare_commits, mock_record):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
@@ -177,8 +184,10 @@ class FetchCommitsTest(TestCase):
         assert msg.to == [self.user.email]
         assert "secrets" not in msg.body
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_plugin_error_for_sentry_app(self, mock_compare_commits):
+    def test_fetch_error_plugin_error_for_sentry_app(self, mock_compare_commits, mock_record):
         org = self.create_organization(owner=self.user, name="baz")
         sentry_app = self.create_sentry_app(
             organization=org, published=True, verify_install=False, name="Super Awesome App"
@@ -199,6 +208,8 @@ class FetchCommitsTest(TestCase):
 
         mock_compare_commits.side_effect = Exception("secrets")
 
+        mock_record.reset_mock()
+
         with self.tasks():
             fetch_commits(
                 release_id=release2.id,
@@ -212,8 +223,10 @@ class FetchCommitsTest(TestCase):
         assert msg.to == [self.user.email]
         assert "secrets" not in msg.body
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
-    def test_fetch_error_random_exception(self, mock_compare_commits):
+    def test_fetch_error_random_exception(self, mock_compare_commits, mock_record):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
@@ -248,7 +261,9 @@ class FetchCommitsTest(TestCase):
         assert msg.to == [self.user.email]
         assert "You can read me" in msg.body
 
-    def test_fetch_error_random_exception_integration(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
+    def test_fetch_error_random_exception_integration(self, mock_record):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
@@ -287,10 +302,12 @@ class FetchCommitsTest(TestCase):
         assert msg.to == [self.user.email]
         assert "Repository not found" in msg.body
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
 
 @control_silo_test
 class HandleInvalidIdentityTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         with self.tasks():
@@ -302,7 +319,7 @@ class HandleInvalidIdentityTest(TestCase):
         assert msg.subject == "Action Required"
         assert msg.to == [self.user.email]
 
-    def test_commit_failure(self):
+    def test_commit_failure(self) -> None:
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         with self.tasks():

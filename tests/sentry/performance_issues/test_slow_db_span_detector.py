@@ -22,7 +22,7 @@ from sentry.testutils.performance_issues.event_generators import (
 
 @pytest.mark.django_db
 class SlowDBQueryDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -31,7 +31,7 @@ class SlowDBQueryDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_calls_detect_slow_span(self):
+    def test_calls_detect_slow_span(self) -> None:
         no_slow_span_event = create_event([create_span("db", 499.0)] * 1)
         slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
@@ -57,11 +57,11 @@ class SlowDBQueryDetectorTest(TestCase):
             )
         ]
 
-    def test_skip_queries_without_select(self):
+    def test_skip_queries_without_select(self) -> None:
         event = create_event([create_span("db", 100000.0, "DELETE FROM table WHERE id = %s")] * 1)
         assert self.find_problems(event) == []
 
-    def test_calls_slow_span_threshold(self):
+    def test_calls_slow_span_threshold(self) -> None:
         http_span_event = create_event(
             [create_span("http.client", 1001.0, "http://example.com")] * 1
         )
@@ -87,7 +87,7 @@ class SlowDBQueryDetectorTest(TestCase):
             )
         ]
 
-    def test_detects_slow_span_in_solved_n_plus_one_query(self):
+    def test_detects_slow_span_in_solved_n_plus_one_query(self) -> None:
         n_plus_one_event = get_event("solved-n-plus-one-in-django-index-view")
 
         assert self.find_problems(n_plus_one_event) == [
@@ -109,7 +109,7 @@ class SlowDBQueryDetectorTest(TestCase):
             )
         ]
 
-    def test_skips_truncated_queries(self):
+    def test_skips_truncated_queries(self) -> None:
         slow_span_event_with_truncated_query = create_event(
             [create_span("db", 1005, "SELECT `product`.`id` FROM `products` ...")] * 1
         )
@@ -137,7 +137,7 @@ class SlowDBQueryDetectorTest(TestCase):
             )
         ]
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         slow_span_event = create_event(
             [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1

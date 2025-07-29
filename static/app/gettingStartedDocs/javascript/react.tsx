@@ -1,4 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -48,6 +48,12 @@ const getDynamicParts = (params: Params): string[] => {
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
   }
 
   if (params.isProfilingSelected) {
@@ -120,32 +126,6 @@ const getVerifySnippet = () => `
 return <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>;
 `;
 
-// TODO: Remove once the other product areas support content blocks
-const getInstallConfig = () => [
-  {
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/react',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/react',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/react',
-      },
-    ],
-  },
-];
-
 const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
@@ -205,7 +185,6 @@ const onboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
@@ -293,7 +272,7 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/react"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
 Reference the logger using \`const { logger } = Sentry\`
 Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
@@ -307,9 +286,7 @@ import * as Sentry from "@sentry/react";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 \`\`\`
 
@@ -364,7 +341,6 @@ logger.fatal("Database connection pool exhausted", {
           tabs: [
             {
               label: 'React',
-              value: 'react',
               language: 'javascript',
               code: getVerifySnippet(),
             },
@@ -373,33 +349,55 @@ logger.fatal("Database connection pool exhausted", {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'react-features',
-      name: t('React Features'),
-      description: t('Learn about our first class integration with the React framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
-    },
-    {
-      id: 'react-router',
-      name: t('React Router'),
-      description: t(
-        'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'react-features',
+        name: t('React Features'),
+        description: t(
+          'Learn about our first class integration with the React framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
+      },
+      {
+        id: 'react-router',
+        name: t('React Router'),
+        description: t(
+          'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -430,13 +428,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -496,12 +499,16 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          description: t(
+          type: 'text',
+          text: t(
             "Configuration should happen as early as possible in your application's lifecycle."
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
           code: `
 import React from "react";
 import ReactDOM from "react-dom";
@@ -525,7 +532,10 @@ ReactDOM.render(<App />, document.getElementById("root"));
 // Can also use with React Concurrent Mode
 // ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 `,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
@@ -541,9 +551,14 @@ ReactDOM.render(<App />, document.getElementById("root"));
             }
           ),
         },
+      ],
+    },
+    {
+      title: t('Add Distributed Tracing (Optional)'),
+      content: [
         {
-          language: 'javascript',
-          description: tct(
+          type: 'text',
+          text: tct(
             "If you're using the current version of our JavaScript SDK and have enabled the [code: BrowserTracing] integration, distributed tracing will work out of the box. To get around possible [link:Browser CORS] issues, define your [code:tracePropagationTargets].",
             {
               code: <code />,
@@ -552,6 +567,10 @@ ReactDOM.render(<App />, document.getElementById("root"));
               ),
             }
           ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
           code: `
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -566,21 +585,26 @@ Sentry.init({
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
 };
 
 const profilingOnboarding = getJavascriptProfilingOnboarding({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink:
     'https://docs.sentry.io/platforms/javascript/guides/react/profiling/browser-profiling/',
 });

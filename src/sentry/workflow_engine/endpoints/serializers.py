@@ -22,6 +22,7 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleDetector,
     DataCondition,
     DataConditionGroup,
     DataSource,
@@ -310,6 +311,17 @@ class DetectorSerializer(Serializer):
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
+        # Fetch alert rule mappings
+        # TODO: Remove alert rule mappings as they're deprecated
+        alert_rule_mappings = list(AlertRuleDetector.objects.filter(detector__in=item_list))
+        alert_rule_map = {
+            mapping.detector_id: {
+                "alert_rule_id": mapping.alert_rule_id,
+                "rule_id": mapping.rule_id,
+            }
+            for mapping in alert_rule_mappings
+        }
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -331,6 +343,13 @@ class DetectorSerializer(Serializer):
                 str(item.workflow_condition_group_id)
             )
             attrs[item]["workflow_ids"] = workflows_map[item.id]
+            attrs[item]["alert_rule_mapping"] = alert_rule_map.get(
+                item.id,
+                {
+                    "alert_rule_id": None,
+                    "rule_id": None,
+                },
+            )
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -342,6 +361,7 @@ class DetectorSerializer(Serializer):
         return attrs
 
     def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+        alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -356,6 +376,8 @@ class DetectorSerializer(Serializer):
             "conditionGroup": attrs.get("condition_group"),
             "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
             "enabled": obj.enabled,
+            "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
+            "ruleId": alert_rule_mapping.get("rule_id"),
         }
 
 
@@ -490,6 +512,7 @@ def fetch_workflow_groups_paginated(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
+        is_single_written=True,
     )
 
     # subquery that retrieves row with the largest date in a group
@@ -521,6 +544,7 @@ def fetch_workflow_hourly_stats(
             workflow=workflow,
             date_added__gte=start,
             date_added__lt=end,
+            is_single_written=True,
         )
         .annotate(bucket=TruncHour("date_added"))
         .order_by("bucket")

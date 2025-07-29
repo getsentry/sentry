@@ -48,11 +48,11 @@ import McpToolDurationWidget from 'sentry/views/insights/mcp/components/mcpToolD
 import McpToolErrorRateWidget from 'sentry/views/insights/mcp/components/mcpToolErrorRateWidget';
 import {McpToolsTable} from 'sentry/views/insights/mcp/components/mcpToolsTable';
 import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTrafficWidget';
+import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
-import {RequestsBySourceWidget} from 'sentry/views/insights/mcp/components/placeholders';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
-import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -150,8 +150,10 @@ function McpOverviewPage() {
     [activeView, location, navigate, organization]
   );
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -162,9 +164,18 @@ function McpOverviewPage() {
       searchSource: 'mcp-monitoring',
       numberTags,
       stringTags,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
       replaceRawSearchKeys: ['span.description'],
     }),
-    [searchQuery, numberTags, stringTags, setSearchQuery]
+    [
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -182,7 +193,7 @@ function McpOverviewPage() {
         module={ModuleName.MCP}
         headerTitle={
           <Fragment>
-            {MODULE_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }
@@ -216,7 +227,7 @@ function McpOverviewPage() {
                         <McpTrafficWidget />
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <RequestsBySourceWidget />
+                        <McpTrafficByClientWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
                         <McpTransportWidget />

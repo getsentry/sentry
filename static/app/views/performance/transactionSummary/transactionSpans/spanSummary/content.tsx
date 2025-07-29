@@ -17,10 +17,7 @@ import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHead
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import type {
-  SpanMetricsQueryFilters,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -144,7 +141,7 @@ function SpanSummaryContent(props: ContentProps) {
   const {spanSlug: spanParam} = useParams();
   const [spanOp, groupId] = spanParam!.split(':');
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     'span.op': spanOp,
     transaction: transactionName,
@@ -186,7 +183,7 @@ function SpanSummaryContent(props: ContentProps) {
   );
 }
 
-function parseSpanHeaderData(data: Array<Partial<SpanMetricsResponse>>) {
+function parseSpanHeaderData(data: Array<Partial<SpanResponse>>) {
   if (!data || data.length === 0) {
     return undefined;
   }

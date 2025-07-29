@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 
 @apply_feature_flag_on_cls("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -76,7 +76,7 @@ class AutoEnableCodecovTest(TestCase):
         assert not org.flags.codecov_access
 
     @responses.activate
-    def test_disables_codecov(self):
+    def test_disables_codecov(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.all().delete()
         self.organization.flags.codecov_access = True

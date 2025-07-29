@@ -74,7 +74,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def strategy_processing_mode(self) -> Literal["batched-parallel", "parallel", "serial"]:
         pass
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
         self.subscription = self.create_uptime_subscription(
@@ -102,13 +102,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             if consumer is None:
-                factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
+                factory = UptimeResultsStrategyFactory(
+                    consumer_group="test", mode=self.strategy_processing_mode
+                )
                 commit = mock.Mock()
                 consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
             consumer.submit(message)
 
-    def test(self):
+    def test(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -183,7 +185,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_detector_handler(self):
+    def test_detector_handler(self) -> None:
         """
         Simple test that the detector handler works as expected end-to-end.
         """
@@ -281,7 +283,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ]
             assert len(legacy_resolve_calls) == 0
 
-    def test_does_nothing_when_missing_project_subscription(self):
+    def test_does_nothing_when_missing_project_subscription(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -305,7 +307,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert not logger.exception.called
             mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
-    def test_restricted_host_provider_id(self):
+    def test_restricted_host_provider_id(self) -> None:
         """
         Test that we do NOT create an issue when the host provider identifier
         has been restricted using the
@@ -356,7 +358,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_reset_fail_count(self):
+    def test_reset_fail_count(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -458,7 +460,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
-    def test_no_create_issues_feature(self):
+    def test_no_create_issues_feature(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
@@ -491,7 +493,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.subscription.refresh_from_db()
         assert self.subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_resolve(self):
+    def test_resolve(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -587,7 +589,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
-    def test_no_subscription(self):
+    def test_no_subscription(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -613,7 +615,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
 
-    def test_organization_feature_disabled(self):
+    def test_organization_feature_disabled(self) -> None:
         """
         Tests that we do not process results for disabled project subscriptions
         """
@@ -637,7 +639,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-    def test_missed_check_false_positive(self):
+    def test_missed_check_false_positive(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
@@ -664,7 +666,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
     @override_options({"uptime.snuba_uptime_results.enabled": False})
-    def test_missed_check_updated_interval(self):
+    def test_missed_check_updated_interval(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
@@ -704,7 +706,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 1, **result},
             )
 
-    def test_missed_check_true_positive(self):
+    def test_missed_check_true_positive(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
@@ -730,7 +732,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 2, **result},
             )
 
-    def test_skip_already_processed(self):
+    def test_skip_already_processed(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -777,7 +779,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_skip_shadow_region(self):
+    def test_skip_shadow_region(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -816,7 +818,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
     @override_options({"uptime.snuba_uptime_results.enabled": False})
-    def test_missed(self):
+    def test_missed(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -851,7 +853,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_onboarding_failure(self):
+    def test_onboarding_failure(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -968,7 +970,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
             self.project_subscription.refresh_from_db()
 
-    def test_onboarding_success_ongoing(self):
+    def test_onboarding_success_ongoing(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -1021,7 +1023,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_onboarding_success_graduate(self):
+    def test_onboarding_success_graduate(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -1106,6 +1108,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1160,6 +1163,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1198,7 +1202,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_2 == [result_3]
 
     @override_options({"uptime.snuba_uptime_results.enabled": False})
-    def test_provider_stats(self):
+    def test_provider_stats(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -1394,7 +1398,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 self.assert_redis_config(expected_region, sub, expected_action, expected_mode)
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
-    def test_check_and_update_regions(self):
+    def test_check_and_update_regions(self) -> None:
         sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1"],
@@ -1425,7 +1429,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             5,
         )
 
-    def test_check_and_update_regions_active_shadow(self):
+    def test_check_and_update_regions_active_shadow(self) -> None:
         sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
@@ -1450,7 +1454,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             5,
         )
 
-    def test_check_and_update_regions_larger_interval(self):
+    def test_check_and_update_regions_larger_interval(self) -> None:
         # Create subscription with only one region
         hour_sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=4).hex,
@@ -1545,7 +1549,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=34,
         )
 
-    def test_check_and_update_regions_removes_disabled(self):
+    def test_check_and_update_regions_removes_disabled(self) -> None:
         sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
@@ -1593,6 +1597,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1648,6 +1653,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1691,6 +1697,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Validates that the consumer in thread-queue-parallel mode processes messages correctly
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1735,6 +1742,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Test that thread-queue-parallel mode preserves order within subscriptions.
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=3,
         )
@@ -1782,6 +1790,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Test that different subscriptions are processed concurrently in thread-queue-parallel mode.
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1831,6 +1840,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             committed_offsets.update(offsets)
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1881,6 +1891,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             committed_offsets.update(offsets)
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=2,
         )
@@ -1933,6 +1944,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             all_commits.append(dict(offsets))
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=1,
         )
@@ -1989,6 +2001,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         Test that the thread-queue-parallel consumer shuts down gracefully.
         """
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="thread-queue-parallel",
             max_workers=3,
         )
@@ -2054,6 +2067,7 @@ class ProcessResultThreadQueueParallelKafkaTest(UptimeTestCase):
             producer.flush()
 
             factory = UptimeResultsStrategyFactory(
+                consumer_group="test",
                 mode="thread-queue-parallel",
                 max_workers=2,
             )

@@ -202,7 +202,7 @@ export function OwnershipRulesTable({
         })}
       </StyledPanelTable>
       <PaginationWrapper>
-        <ButtonBar merged gap="none">
+        <ButtonBar merged gap="0">
           <Button
             icon={<IconChevron direction="left" size="sm" />}
             onClick={() => {

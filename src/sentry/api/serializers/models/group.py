@@ -14,7 +14,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
 from sentry import features, tagstore
-from sentry.api.helpers.error_upsampling import are_all_projects_error_upsampled
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -749,12 +749,9 @@ class GroupSerializerBase(Serializer, ABC):
         )
 
     @staticmethod
-    def _get_permalink(attrs, obj: Group):
-        if attrs["authorized"]:
-            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
-                return obj.get_absolute_url()
-        else:
-            return None
+    def _get_permalink(attrs, obj: Group) -> str:
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+            return obj.get_absolute_url()
 
     @staticmethod
     def _convert_seen_stats(attrs: SeenStats) -> SeenStatsResponse:
@@ -922,6 +919,7 @@ SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
         "substatus",
+        "detector",
         "bookmarked_by",
         "assigned_to",
         "for_review",
@@ -1074,8 +1072,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["max", "timestamp", "last_seen"],
             ["uniq", "tags[sentry:user]", "count"],
         ]
-        # Check if all projects are allowlisted for error upsampling
-        is_upsampled = are_all_projects_error_upsampled(project_ids)
+        # Check if any projects are allowlisted for error upsampling
+        is_upsampled = are_any_projects_error_upsampled(project_ids)
         if is_upsampled:
             aggregations[0] = ["upsampled_count", "", "times_seen"]
 

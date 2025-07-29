@@ -11,6 +11,7 @@ def make_ctx_snapshot(insta_snapshot):
         mgr.normalize()
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         interface = evt.interfaces.get("contexts")
+        assert interface is not None
 
         insta_snapshot(
             {
@@ -109,7 +110,7 @@ def test_gpu(make_ctx_snapshot):
     )
 
 
-def test_large_numbers():
+def test_large_numbers() -> None:
     data = {
         "large_numbers": {
             "decimal_number": 123456.789,
@@ -127,6 +128,7 @@ def test_large_numbers():
     mgr.normalize()
     evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
     interface = evt.interfaces.get("contexts")
+    assert interface is not None
     ctx_data = interface.to_json()["large_numbers"]
     for key in numeric_keys:
         assert isinstance(ctx_data[key], (int, float))
@@ -134,7 +136,7 @@ def test_large_numbers():
         assert isinstance(ctx_data[key], str)
 
 
-def test_large_nested_numbers():
+def test_large_nested_numbers() -> None:
     data = {
         "large_numbers": {
             "dictionary": {"key_1": 608548899684111178, "key_2": -123456789123456789},
@@ -159,6 +161,7 @@ def test_large_nested_numbers():
     mgr.normalize()
     evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
     interface = evt.interfaces.get("contexts")
+    assert interface is not None
     ctx_data = interface.to_json()["large_numbers"]
 
     expected_data = {

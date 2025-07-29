@@ -15,7 +15,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 class LatestReleaseFilterTest(RuleTestCase):
     rule_cls = LatestReleaseFilter
 
-    def test_latest_release(self):
+    def test_latest_release(self) -> None:
         event = self.get_event()
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
@@ -35,7 +35,7 @@ class LatestReleaseFilterTest(RuleTestCase):
         rule = self.get_rule()
         self.assertPasses(rule, event)
 
-    def test_latest_release_no_match(self):
+    def test_latest_release_no_match(self) -> None:
         event = self.get_event()
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
@@ -55,7 +55,7 @@ class LatestReleaseFilterTest(RuleTestCase):
         rule = self.get_rule()
         self.assertDoesNotPass(rule, event)
 
-    def test_caching(self):
+    def test_caching(self) -> None:
         event = self.get_event()
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
@@ -88,7 +88,7 @@ class LatestReleaseFilterTest(RuleTestCase):
         # rule should pass again because the latest release is oldRelease
         self.assertPasses(rule, event)
 
-    def test_latest_release_with_environment(self):
+    def test_latest_release_with_environment(self) -> None:
         event = self.get_event()
         self.create_release(
             project=event.group.project,

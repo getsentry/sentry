@@ -5,9 +5,11 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -18,10 +20,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -78,6 +76,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
@@ -120,19 +124,22 @@ root.render(<App />);
 const getVerifySnippet = () => `
 myUndefinedFunction();`;
 
-const getConfigureStep = (params: Params) => {
+const getConfigureStep = (params: Params): OnboardingStep => {
   return {
     type: StepType.CONFIGURE,
-    configurations: [
+    content: [
       {
-        description: tct(
+        type: 'text',
+        text: tct(
           'Register the [code:Sentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
           {code: <code />}
         ),
-        code: [
+      },
+      {
+        type: 'code',
+        tabs: [
           {
             label: 'JavaScript',
-            value: 'javascript',
             language: 'javascript',
             code: `module.exports = {
             plugins: [{
@@ -143,65 +150,69 @@ const getConfigureStep = (params: Params) => {
         ],
       },
       {
-        description: tct(
+        type: 'text',
+        text: tct(
           'Then, configure your [codeSentry:Sentry.init:]. For this, create a new file called [codeSentry:sentry.config.js] in the root of your project and add the following code:',
           {codeSentry: <code />}
         ),
-        code: [
+      },
+      {
+        type: 'code',
+        tabs: [
           {
             label: 'JavaScript',
-            value: 'javascript',
             language: 'javascript',
             filename: 'sentry.config.js',
             code: getSdkSetupSnippet(params),
           },
         ],
       },
-      ...(params.isProfilingSelected
-        ? [getProfilingDocumentHeaderConfigurationStep()]
-        : []),
     ],
   };
 };
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/gatsby',
-      },
-      {label: 'yarn', value: 'yarn', language: 'bash', code: 'yarn add @sentry/gatsby'},
-      {label: 'pnpm', value: 'pnpm', language: 'bash', code: 'pnpm add @sentry/gatsby'},
-    ],
-  },
-];
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/gatsby',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/gatsby',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/gatsby',
+    },
+  ],
+};
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
-    <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
-      <p>
-        {tct(
-          "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
-          {
-            strong: <strong />,
-          }
-        )}
-      </p>
-    </Fragment>
-  ),
+  introduction: () =>
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -214,15 +225,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getVerifySnippet(),
             },
@@ -231,18 +245,38 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version 7.27.0 of [code:@sentry/gatsby] in order to use Session Replay. You do not need to install any additional packages.',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'You need a minimum version 7.27.0 of [code:@sentry/gatsby] in order to use Session Replay. You do not need to install any additional packages.',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -271,11 +305,16 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/gatsby]) installed, minimum version 7.85.0.',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/gatsby]) installed, minimum version 7.85.0.',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -327,7 +366,7 @@ const crashReportOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptProfilingOnboarding({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink:
     'https://docs.sentry.io/platforms/javascript/guides/gatsby/profiling/browser-profiling/',
 });

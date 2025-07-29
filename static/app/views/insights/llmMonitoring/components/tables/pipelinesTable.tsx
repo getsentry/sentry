@@ -31,10 +31,10 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'project.id'
   | 'span.description'
   | 'span.group'

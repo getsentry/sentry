@@ -6,7 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
@@ -18,14 +18,12 @@ import FileSize from 'sentry/components/fileSize';
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -65,7 +63,7 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {ModuleName, SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -97,6 +95,13 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   theme: Theme;
+  /**
+   * If true, all fields that are not needed immediately will not be rendered lazily.
+   * This is useful for fields that require api calls or other side effects to render.
+   *
+   * eg. the code path field in logs requires a call to the stacktrace link api to render.
+   */
+  disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -322,7 +327,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   string: {
     isSortable: true,
-    renderFunc: (field, data) => {
+    renderFunc: (field, data, baggage) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
@@ -330,7 +335,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      if (isUrl(value)) {
+      // In the future, external linking will be done through CellAction component instead of the default renderer
+      if (
+        !baggage?.organization.features.includes('discover-cell-actions-v2') &&
+        isUrl(value)
+      ) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
@@ -379,7 +388,7 @@ type SpecialField = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const RightAlignedContainer = styled('span')`
@@ -496,7 +505,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   'span.description': {
     sortField: 'span.description',
-    renderFunc: data => {
+    renderFunc: (data, {organization}) => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
@@ -524,7 +533,8 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           maxWidth={400}
         >
           <Container>
-            {isUrl(value) ? (
+            {!organization.features.includes('discover-cell-actions-v2') &&
+            isUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)
@@ -895,7 +905,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(browserName)}
-          {browserName}
+          <Container>{browserName}</Container>
         </IconContainer>
       );
     },
@@ -911,7 +921,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(dropVersion(browser))}
-          {browser}
+          <Container>{browser}</Container>
         </IconContainer>
       );
     },
@@ -927,7 +937,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(osName)}
-          {osName}
+          <Container>{osName}</Container>
         </IconContainer>
       );
     },
@@ -946,11 +956,11 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <IconContainer>
           {getContextIcon(dropVersion(os))}
           {hasUserAgentLocking ? (
-            <Tooltip title={userAgentLocking} showUnderline>
-              {os}
-            </Tooltip>
+            <StyledTooltip title={userAgentLocking} showUnderline>
+              <Container>{os}</Container>
+            </StyledTooltip>
           ) : (
-            os
+            <Container>{os}</Container>
           )}
         </IconContainer>
       );
@@ -970,13 +980,14 @@ const getContextIcon = (value: string) => {
 };
 
 /**
- * Drops the last part of an operating system or browser string that contains version appended at the end
+ * Drops the last part of an operating system or browser string that contains version appended at the end.
+ * If the value string has no spaces, the original string will be returned.
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
- * @returns E.g., 'Safari 9.1.2' -> 'Safari'
+ * @returns E.g., 'Safari 9.1.2' -> 'Safari', 'Linux' -> 'Linux'
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  valueArray.pop();
+  if (valueArray.length > 1) valueArray.pop();
   return valueArray.join(' ');
 };
 
@@ -1093,10 +1104,10 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   },
   time_spent_percentage: fieldName => data => {
     const parsedFunction = parseFunction(fieldName);
-    let column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    let column = parsedFunction?.arguments?.[1] ?? SpanFields.SPAN_SELF_TIME;
     // TODO - remove with eap, in eap this function only has one arg
-    if (parsedFunction?.arguments?.[0] === SpanMetricsField.SPAN_DURATION) {
-      column = SpanMetricsField.SPAN_DURATION;
+    if (parsedFunction?.arguments?.[0] === SpanFields.SPAN_DURATION) {
+      column = SpanFields.SPAN_DURATION;
     }
     return (
       <TimeSpentCell
@@ -1274,6 +1285,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
   ${BadgeDisplayName} {
     max-width: 100%;
   }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 /**

@@ -219,7 +219,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         cursor.execute("select abs(hashtext(cast(%s as varchar))) %% %s", [project.id, num_workers])
         return cursor.fetchone()[0]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         bulk_data = self.create_group_event_rows(5)
         self.event = bulk_data["events"][0]
@@ -283,7 +283,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
 
-    def test_lookup_group_data_stacktrace_bulk_not_stacktrace_grouping(self):
+    def test_lookup_group_data_stacktrace_bulk_not_stacktrace_grouping(self) -> None:
         """
         Test that if a group does not use the stacktrace for grouping, its data is not included in
         the bulk lookup result
@@ -321,7 +321,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert nodestore_results["data"] == expected_group_data
         assert nodestore_results["stacktrace_list"] == expected_stacktraces
 
-    def test_lookup_group_data_stacktrace_bulk_no_stacktrace_exception(self):
+    def test_lookup_group_data_stacktrace_bulk_no_stacktrace_exception(self) -> None:
         """
         Test that if a group does not have a stacktrace, its data is not included in
         the bulk lookup result
@@ -422,7 +422,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
 
-    def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):
+    def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self) -> None:
         """Test successful bulk lookup with fallback, where the fallback isn't used"""
         rows, events, hashes = (
             self.bulk_rows,
@@ -530,7 +530,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
 
-    def test_get_data_from_snuba(self):
+    def test_get_data_from_snuba(self) -> None:
         """
         Test that all groups are queried when chunked and queried individually.
         """
@@ -1538,7 +1538,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    def test_make_postgres_call_with_filter_invalid(self):
+    def test_make_postgres_call_with_filter_invalid(self) -> None:
         """
         Test that invalid deleted group id not included in the batch to be backfilled, but its
         group id is saved to be used as the offset for the next batch query.

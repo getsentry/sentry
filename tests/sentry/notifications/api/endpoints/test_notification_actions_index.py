@@ -36,7 +36,7 @@ class _QueryResult(TypedDict):
 
 
 def _mock_register(
-    data: MutableMapping[str, Any]
+    data: MutableMapping[str, Any],
 ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
     trigger_type = ActionTrigger.get_value(data["triggerType"])
     service_type = ActionService.get_value(data["serviceType"])
@@ -55,7 +55,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
     @patch.dict(NotificationAction._registry, {})
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)
@@ -75,7 +75,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         }
         self.login_as(user=self.user)
 
-    def test_get_simple(self):
+    def test_get_simple(self) -> None:
         notif_actions = [
             self.create_notification_action(organization=self.organization),
             self.create_notification_action(organization=self.organization),
@@ -162,7 +162,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             for action in data["result"]:
                 assert serialize(action) in response.data
 
-    def test_post_missing_fields(self):
+    def test_post_missing_fields(self) -> None:
         required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
@@ -172,7 +172,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         for field in required_fields:
             assert field in response.data
 
-    def test_post_invalid_types(self):
+    def test_post_invalid_types(self) -> None:
         invalid_types = {
             "serviceType": "stag",
             "triggerType": "ascension",
@@ -190,7 +190,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             )
             assert type_key in response.data
 
-    def test_post_invalid_integration(self):
+    def test_post_invalid_integration(self) -> None:
         data = {**self.base_data}
 
         # Unknown integration
@@ -216,7 +216,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         assert "integrationId" in response.data
 
-    def test_post_invalid_projects(self):
+    def test_post_invalid_projects(self) -> None:
         data = {**self.base_data}
 
         # Unknown project
@@ -239,7 +239,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
         assert "projects" in response.data
 
-    def test_post_no_project_access(self):
+    def test_post_no_project_access(self) -> None:
         user = self.create_user("hornet@hk.com")
         self.create_member(user=user, organization=self.organization)
         self.login_as(user)
@@ -254,7 +254,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
 
-    def test_post_org_member(self):
+    def test_post_org_member(self) -> None:
         user = self.create_user("hornet@hk.com")
         self.create_member(user=user, organization=self.organization, teams=[self.team])
         self.login_as(user)
@@ -270,7 +270,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         )
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_raises_validation_from_registry(self):
+    def test_post_raises_validation_from_registry(self) -> None:
         error_message = "oops-idea-installed"
 
         class MockActionRegistration(ActionRegistration):
@@ -324,7 +324,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_with_pagerduty_validation(self):
+    def test_post_with_pagerduty_validation(self) -> None:
         class MockActionRegistration(ActionRegistration):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError
@@ -392,7 +392,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert response.data["targetDisplay"] == service["service_name"]
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_simple(self):
+    def test_post_simple(self) -> None:
 
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
@@ -423,7 +423,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert len(notif_action_projects) == len(self.projects)
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_org_admin(self):
+    def test_post_org_admin(self) -> None:
         user = self.create_user()
         self.create_member(organization=self.organization, user=user, role="admin")
         self.login_as(user)
@@ -431,7 +431,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         self.test_post_simple()
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_team_admin__success(self):
+    def test_post_team_admin__success(self) -> None:
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
         OrganizationMemberTeam.objects.create(
@@ -442,7 +442,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         self.test_post_simple()
 
     @patch.dict(NotificationAction._registry, {})
-    def test_post_team_admin__missing_access(self):
+    def test_post_team_admin__missing_access(self) -> None:
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
         OrganizationMemberTeam.objects.create(

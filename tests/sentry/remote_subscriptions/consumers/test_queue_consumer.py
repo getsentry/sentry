@@ -27,24 +27,25 @@ from sentry.utils import json
 
 
 class TestOffsetTracker(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.partition1 = Partition(Topic("test"), 0)
         self.partition2 = Partition(Topic("test"), 1)
         self.tracker = OffsetTracker()
         self.tracker.update_assignments({self.partition1, self.partition2})
 
-    def test_simple_tracking(self):
+    def test_simple_tracking(self) -> None:
         """Test basic offset tracking and committing."""
-        self.tracker.add_offset(self.partition1, 100)
-        self.tracker.add_offset(self.partition1, 101)
-        self.tracker.add_offset(self.partition1, 102)
+        now = datetime.now()
+        self.tracker.add_offset(self.partition1, 100, now)
+        self.tracker.add_offset(self.partition1, 101, now)
+        self.tracker.add_offset(self.partition1, 102, now)
 
         committable = self.tracker.get_committable_offsets()
         assert committable == {}
 
         self.tracker.complete_offset(self.partition1, 100)
         committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 100}
+        assert committable == {self.partition1: (100, now)}
 
         self.tracker.mark_committed(self.partition1, 100)
         self.tracker.complete_offset(self.partition1, 102)
@@ -53,25 +54,26 @@ class TestOffsetTracker(TestCase):
 
         self.tracker.complete_offset(self.partition1, 101)
         committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 102}
+        assert committable == {self.partition1: (102, now)}
 
-    def test_multiple_partitions(self):
+    def test_multiple_partitions(self) -> None:
         """Test tracking across multiple partitions."""
-        self.tracker.add_offset(self.partition1, 100)
-        self.tracker.add_offset(self.partition1, 101)
-        self.tracker.add_offset(self.partition2, 200)
-        self.tracker.add_offset(self.partition2, 201)
+        now = datetime.now()
+        self.tracker.add_offset(self.partition1, 100, now)
+        self.tracker.add_offset(self.partition1, 101, now)
+        self.tracker.add_offset(self.partition2, 200, now)
+        self.tracker.add_offset(self.partition2, 201, now)
 
         self.tracker.complete_offset(self.partition1, 100)
         self.tracker.complete_offset(self.partition2, 200)
         self.tracker.complete_offset(self.partition2, 201)
 
         committable = self.tracker.get_committable_offsets()
-        assert committable == {self.partition1: 100, self.partition2: 201}
+        assert committable == {self.partition1: (100, now), self.partition2: (201, now)}
 
 
 class TestFixedQueuePool(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_items: list[tuple[str, str]] = []
         self.process_lock = threading.Lock()
         self.process_complete_event = threading.Event()
@@ -89,6 +91,7 @@ class TestFixedQueuePool(TestCase):
             result_processor=result_processor,
             identifier="test",
             num_queues=3,
+            consumer_group="test",
         )
 
         self.commits: list[dict[Partition, int]] = []
@@ -102,7 +105,7 @@ class TestFixedQueuePool(TestCase):
     def tearDown(self):
         self.pool.shutdown()
 
-    def test_consistent_group_assignment(self):
+    def test_consistent_group_assignment(self) -> None:
         """Test that groups are consistently assigned to the same queue."""
         group_key = "group1"
         queue_index1 = self.pool.get_queue_for_group(group_key)
@@ -111,7 +114,7 @@ class TestFixedQueuePool(TestCase):
 
         assert queue_index1 == queue_index2 == queue_index3
 
-    def test_different_groups_distributed(self):
+    def test_different_groups_distributed(self) -> None:
         """Test that different groups are distributed across queues."""
         queue_indices = set()
         for i in range(20):
@@ -121,7 +124,7 @@ class TestFixedQueuePool(TestCase):
 
         assert len(queue_indices) == 3
 
-    def test_ordered_processing_within_group(self):
+    def test_ordered_processing_within_group(self) -> None:
         """Test that items within a group are processed in order."""
         partition = Partition(Topic("test"), 0)
         group_key = "ordered_group"
@@ -130,18 +133,12 @@ class TestFixedQueuePool(TestCase):
         self.process_complete_event.clear()
 
         for i in range(5):
+            now = datetime.now()
             work_item = WorkItem(
                 partition=partition,
                 offset=i,
+                timestamp=now,
                 result=f"item_{i}",
-                message=Message(
-                    BrokerValue(
-                        KafkaPayload(b"key", b"value", []),
-                        partition,
-                        i,
-                        datetime.now(),
-                    )
-                ),
             )
             self.pool.submit(group_key, work_item)
 
@@ -150,7 +147,7 @@ class TestFixedQueuePool(TestCase):
         group_items = [item for _, item in self.processed_items if item.startswith("item_")]
         assert group_items == ["item_0", "item_1", "item_2", "item_3", "item_4"]
 
-    def test_concurrent_processing_across_groups(self):
+    def test_concurrent_processing_across_groups(self) -> None:
         """Test that different groups are processed concurrently."""
         partition = Partition(Topic("test"), 0)
 
@@ -159,18 +156,12 @@ class TestFixedQueuePool(TestCase):
 
         for i in range(6):
             group_key = f"group_{i % 3}"
+            now = datetime.now()
             work_item = WorkItem(
                 partition=partition,
                 offset=i,
+                timestamp=now,
                 result=f"item_{group_key}_{i}",
-                message=Message(
-                    BrokerValue(
-                        KafkaPayload(b"key", b"value", []),
-                        partition,
-                        i,
-                        datetime.now(),
-                    )
-                ),
             )
             self.pool.submit(group_key, work_item)
 
@@ -188,7 +179,7 @@ class TestFixedQueuePool(TestCase):
 
         assert len(groups_seen) == 3
 
-    def test_stats_reporting(self):
+    def test_stats_reporting(self) -> None:
         """Test queue statistics reporting."""
         partition = Partition(Topic("test"), 0)
 
@@ -197,18 +188,12 @@ class TestFixedQueuePool(TestCase):
 
         for i in range(10):
             group_key = f"group_{i % 4}"
+            now = datetime.now()
             work_item = WorkItem(
                 partition=partition,
                 offset=i,
+                timestamp=now,
                 result=f"item_{i}",
-                message=Message(
-                    BrokerValue(
-                        KafkaPayload(b"key", b"value", []),
-                        partition,
-                        i,
-                        datetime.now(),
-                    )
-                ),
             )
             self.pool.submit(group_key, work_item)
 
@@ -223,7 +208,7 @@ class TestFixedQueuePool(TestCase):
 
 
 class TestSimpleQueueProcessingStrategy(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_results: list[Any] = []
         self.committed_offsets: dict[Partition, int] = {}
         self.process_lock = threading.Lock()
@@ -243,6 +228,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
             result_processor=result_processor,
             identifier="test",
             num_queues=2,
+            consumer_group="test",
         )
 
         def commit_function(offsets: dict[Partition, int]):
@@ -286,7 +272,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
             )
         )
 
-    def test_message_processing(self):
+    def test_message_processing(self) -> None:
         """Test basic message processing."""
         partition = 0
         message = self.create_message("sub1", partition, 100)
@@ -300,7 +286,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
         assert len(self.processed_results) == 1
         assert self.processed_results[0]["subscription_id"] == "sub1"
 
-    def test_offset_committing(self):
+    def test_offset_committing(self) -> None:
         """Test that offsets are committed after processing."""
         partition = Partition(Topic("test"), 0)
 
@@ -317,7 +303,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
         assert partition in self.committed_offsets
         assert self.committed_offsets[partition] == 104
 
-    def test_preserves_order_within_group(self):
+    def test_preserves_order_within_group(self) -> None:
         """Test that messages for the same subscription are processed in order."""
         self.expected_items = 5
         self.process_complete_event.clear()
@@ -329,7 +315,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
         assert self.process_complete_event.wait(timeout=2.0), "Processing did not complete in time"
         assert len(self.processed_results) == 5
 
-    def test_concurrent_processing_different_groups(self):
+    def test_concurrent_processing_different_groups(self) -> None:
         """Test that different subscriptions are processed concurrently."""
         self.expected_items = 4
         self.process_complete_event.clear()
@@ -342,7 +328,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
 
         assert len(self.processed_results) == 4
 
-    def test_handles_invalid_messages(self):
+    def test_handles_invalid_messages(self) -> None:
         """Test that invalid messages don't block offset commits."""
         partition = Partition(Topic("test"), 0)
 
@@ -366,7 +352,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
         assert self.commit_event.wait(timeout=2.0), "Commit did not happen in time"
         assert self.committed_offsets.get(partition) == 101
 
-    def test_offset_gaps_block_commits(self):
+    def test_offset_gaps_block_commits(self) -> None:
         """Test that gaps in offsets prevent committing past the gap."""
         partition = Partition(Topic("test"), 0)
 
@@ -393,7 +379,7 @@ class TestSimpleQueueProcessingStrategy(TestCase):
 class TestThreadQueueParallelIntegration(TestCase):
     """Integration test with the ResultsStrategyFactory."""
 
-    def test_factory_creates_thread_queue_parallel_strategy(self):
+    def test_factory_creates_thread_queue_parallel_strategy(self) -> None:
         """Test that the factory properly creates thread-queue-parallel strategy."""
         from sentry.remote_subscriptions.consumers.result_consumer import (
             ResultProcessor,
@@ -427,7 +413,7 @@ class TestThreadQueueParallelIntegration(TestCase):
             def identifier(self):
                 return "test"
 
-        factory = MockFactory(mode="thread-queue-parallel", max_workers=5)
+        factory = MockFactory(mode="thread-queue-parallel", max_workers=5, consumer_group="test")
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
         strategy = factory.create_with_partitions(commit, {partition: 0})
@@ -442,7 +428,7 @@ class TestThreadQueueParallelIntegration(TestCase):
 class TestRebalancing(TestCase):
     """Test rebalancing scenarios for thread-queue-parallel consumer."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.processed_results: list[tuple[str, dict]] = []
         self.process_lock = threading.Lock()
         self.process_condition = threading.Condition(self.process_lock)
@@ -509,7 +495,9 @@ class TestRebalancing(TestCase):
             def decode_payload(self, topic_for_codec, payload):
                 return json.loads(payload.value)
 
-        return TestFactory(mode="thread-queue-parallel", max_workers=3, commit_interval=0.01)
+        return TestFactory(
+            mode="thread-queue-parallel", max_workers=3, commit_interval=0.01, consumer_group="test"
+        )
 
     def create_commit_function(self):
         def commit(offsets: dict[Partition, int]):
@@ -533,7 +521,7 @@ class TestRebalancing(TestCase):
             )
         )
 
-    def test_initial_assignment(self):
+    def test_initial_assignment(self) -> None:
         """Test initial partition assignment."""
         factory = self.create_factory()
         commit = self.create_commit_function()
@@ -555,7 +543,7 @@ class TestRebalancing(TestCase):
         strategy.join(timeout=1.0)
         factory.shutdown()
 
-    def test_partition_revocation_and_reassignment(self):
+    def test_partition_revocation_and_reassignment(self) -> None:
         """Test revoking partitions and reassigning new ones."""
         factory = self.create_factory()
         commit = self.create_commit_function()
@@ -594,7 +582,7 @@ class TestRebalancing(TestCase):
         new_strategy.join(timeout=1.0)
         factory.shutdown()
 
-    def test_multiple_rebalances(self):
+    def test_multiple_rebalances(self) -> None:
         """Test multiple rebalances in succession."""
         factory = self.create_factory()
 
@@ -627,7 +615,7 @@ class TestRebalancing(TestCase):
 
         factory.shutdown()
 
-    def test_rebalance_with_pending_messages(self):
+    def test_rebalance_with_pending_messages(self) -> None:
         """Test rebalancing while messages are still being processed."""
         factory = self.create_factory()
         commit = self.create_commit_function()
@@ -656,7 +644,7 @@ class TestRebalancing(TestCase):
         new_strategy.join(timeout=1.0)
         factory.shutdown()
 
-    def test_commit_behavior_during_rebalance(self):
+    def test_commit_behavior_during_rebalance(self) -> None:
         """Test that commits work correctly during rebalances."""
         factory = self.create_factory()
 

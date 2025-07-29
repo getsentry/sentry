@@ -58,6 +58,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             {
               branch: repo.branch_name || '',
               instructions: repo.instructions || '',
+              branch_overrides: repo.branch_overrides || [],
             },
           ])
         );
@@ -69,6 +70,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           initialSettings[repo.externalId] = preferencesMap.get(repo.externalId) || {
             branch: '',
             instructions: '',
+            branch_overrides: [],
           };
         });
 
@@ -86,6 +88,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           initialSettings[repo.externalId] = {
             branch: '',
             instructions: '',
+            branch_overrides: [],
           };
         });
 
@@ -125,6 +128,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           external_id: repo.externalId,
           branch_name: settingsToUse[repo.externalId]?.branch || '',
           instructions: settingsToUse[repo.externalId]?.instructions || '',
+          branch_overrides: settingsToUse[repo.externalId]?.branch_overrides || [],
         };
       });
       updateProjectSeerPreferences({
@@ -220,7 +224,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   return (
     <Panel>
       <PanelHeader hasButtons>
-        <Flex align="center" gap={space(0.5)}>
+        <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
             title={tct(
@@ -279,7 +283,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
       </PanelHeader>
 
       {showSaveNotice && (
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'Changes will apply on future Seer runs. Hit "Start Over" in the Seer panel to start a new run and use your new selected repositories.'
           )}
@@ -300,7 +304,13 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             <AutofixRepoItem
               key={repo.id}
               repo={repo}
-              settings={repoSettings[repo.externalId] || {branch: '', instructions: ''}}
+              settings={
+                repoSettings[repo.externalId] || {
+                  branch: '',
+                  instructions: '',
+                  branch_overrides: [],
+                }
+              }
               onSettingsChange={settings => {
                 updateRepoSettings(repo.externalId, settings);
               }}

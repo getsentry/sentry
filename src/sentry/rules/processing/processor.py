@@ -12,6 +12,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics, buffer, features
+from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -390,11 +391,12 @@ class RuleProcessor:
 
         if randrange(10) == 0:
             analytics.record(
-                "issue_alert.fired",
-                issue_id=self.group.id,
-                project_id=rule.project.id,
-                organization_id=rule.project.organization.id,
-                rule_id=rule.id,
+                IssueAlertFiredEvent(
+                    issue_id=self.group.id,
+                    project_id=rule.project.id,
+                    organization_id=rule.project.organization.id,
+                    rule_id=rule.id,
+                )
             )
 
         if features.has(

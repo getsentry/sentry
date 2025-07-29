@@ -32,32 +32,32 @@ class ExampleRequestParser(BaseRequestParser):
 
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
-    region_config = (
+    region_config = [
         Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
         Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
-    )
+    ]
     factory = RequestFactory()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.request = self.factory.get("/extensions/slack/webhook/")
         self.parser = ExampleRequestParser(self.request, self.response_handler)
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
-    def test_fails_in_monolith_mode(self):
+    def test_fails_in_monolith_mode(self) -> None:
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_responses_from_region_silos(regions=self.region_config)
 
     @override_settings(SILO_MODE=SiloMode.REGION)
-    def test_fails_in_region_mode(self):
+    def test_fails_in_region_mode(self) -> None:
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_responses_from_region_silos(regions=self.region_config)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get_response_from_control_silo(self):
+    def test_get_response_from_control_silo(self) -> None:
         self.response_handler.reset_mock()
         response = self.parser.get_response_from_control_silo()
         assert self.response_handler.called
@@ -97,7 +97,7 @@ class BaseRequestParserTest(TestCase):
             assert type(response_map[region.name].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get_response_from_webhookpayload_creation(self):
+    def test_get_response_from_webhookpayload_creation(self) -> None:
         with pytest.raises(AttributeError):
             BaseRequestParser(self.request, self.response_handler).get_response_from_webhookpayload(
                 regions=self.region_config
@@ -120,7 +120,7 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_method
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_get_organizations_from_integration_success(self):
+    def test_get_organizations_from_integration_success(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="test_provider",
