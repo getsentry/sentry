@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -104,17 +105,20 @@ class ActionHandler(metaclass=abc.ABCMeta):
         external_id: int | str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
-        analytics.record(
-            AlertSentEvent(
-                organization_id=organization_id,
-                project_id=project_id,
-                provider=self.provider,
-                alert_id=alert_id,
-                alert_type="metric_alert",
-                external_id=str(external_id) if external_id is not None else "",
-                notification_uuid=notification_uuid or "",
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=organization_id,
+                    project_id=project_id,
+                    provider=self.provider,
+                    alert_id=alert_id,
+                    alert_type="metric_alert",
+                    external_id=str(external_id) if external_id is not None else "",
+                    notification_uuid=notification_uuid or "",
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class DefaultActionHandler(ActionHandler):

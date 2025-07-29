@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+import sentry_sdk
 from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
@@ -262,13 +263,16 @@ def send_alert_webhook_v2(
 
     # On success, record analytic event for Alert Rule UI Component
     if request_data.data.get("issue_alert"):
-        analytics.record(
-            AlertRuleUiComponentWebhookSentEvent(
-                organization_id=organization.id,
-                sentry_app_id=sentry_app_id,
-                event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
+        try:
+            analytics.record(
+                AlertRuleUiComponentWebhookSentEvent(
+                    organization_id=organization.id,
+                    sentry_app_id=sentry_app_id,
+                    event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 @instrumented_task(

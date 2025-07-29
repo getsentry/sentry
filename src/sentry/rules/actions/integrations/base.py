@@ -121,14 +121,18 @@ class IntegrationEventAction(EventAction, abc.ABC):
             notification_uuid=notification_uuid if notification_uuid else "",
             alert_id=rule.id if rule else None,
         )
-        analytics.record(
-            AlertSentEvent(
-                provider=self.provider,
-                alert_id=rule.id if rule else "",
-                alert_type="issue_alert",
-                organization_id=event.organization.id,
-                project_id=event.project_id,
-                external_id=external_id,
-                notification_uuid=notification_uuid if notification_uuid else "",
+
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    provider=self.provider,
+                    alert_id=rule.id if rule else "",
+                    alert_type="issue_alert",
+                    organization_id=event.organization.id,
+                    project_id=event.project_id,
+                    external_id=external_id,
+                    notification_uuid=notification_uuid if notification_uuid else "",
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

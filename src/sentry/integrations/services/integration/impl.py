@@ -424,13 +424,16 @@ class DatabaseBackedIntegrationService(IntegrationService):
         alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
 
         if alert_rule_action_ui_component:
-            analytics.record(
-                AlertRuleUiComponentWebhookSentEvent(
-                    organization_id=organization_id,
-                    sentry_app_id=sentry_app.id,
-                    event=f"{app_platform_event.resource}.{app_platform_event.action}",
+            try:
+                analytics.record(
+                    AlertRuleUiComponentWebhookSentEvent(
+                        organization_id=organization_id,
+                        sentry_app_id=sentry_app.id,
+                        event=f"{app_platform_event.resource}.{app_platform_event.action}",
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
         return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
