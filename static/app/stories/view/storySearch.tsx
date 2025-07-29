@@ -37,6 +37,8 @@ export function StorySearch() {
     foundations: foundationsTree,
     core: coreTree,
     shared: sharedTree,
+    typography: typographyTree,
+    layout: layoutTree,
   } = useStoryBookFilesByCategory();
   const foundations = useMemo(
     () => foundationsTree.flatMap(tree => tree.flat()),
@@ -44,6 +46,11 @@ export function StorySearch() {
   );
   const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
   const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
+  const typography = useMemo(
+    () => typographyTree.flatMap(tree => tree.flat()),
+    [typographyTree]
+  );
+  const layout = useMemo(() => layoutTree.flatMap(tree => tree.flat()), [layoutTree]);
 
   const storiesSearchHotkeys = useMemo(() => {
     return [{match: '/', callback: () => inputRef.current?.focus()}];
@@ -59,6 +66,22 @@ export function StorySearch() {
         key: 'foundations',
         label: 'Foundations',
         options: foundations,
+      });
+    }
+
+    if (layout.length > 0) {
+      sections.push({
+        key: 'layout',
+        label: 'Layout',
+        options: layout,
+      });
+    }
+
+    if (typography.length > 0) {
+      sections.push({
+        key: 'typography',
+        label: 'Typography',
+        options: typography,
       });
     }
 
@@ -79,7 +102,7 @@ export function StorySearch() {
     }
 
     return sections;
-  }, [foundations, core, shared]);
+  }, [foundations, core, shared, layout, typography]);
 
   return (
     <SearchComboBox
