@@ -226,6 +226,7 @@ class TestProcessWorkflowActivity(TestCase):
                 "workflow_engine.issue_platform.status_change_handler",
                 amount=1,
                 tags={"activity_type": self.activity.type},
+                sample_rate=1.0,
             )
 
             # Workflow engine is correctly registered for the activity update
