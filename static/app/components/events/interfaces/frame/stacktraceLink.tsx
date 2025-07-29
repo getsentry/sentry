@@ -481,5 +481,5 @@ const CodecovWarning = styled('div')`
 
 const FadeInButton = styled(Button)`
   animation: ${fadeIn} 0.2s ease-in-out forwards;
-  padding: 0;
+  color: ${p => p.theme.subText};
 `;
