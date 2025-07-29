@@ -21,7 +21,7 @@ function EmptyMessage() {
     <Panel>
       <PanelBody>
         <EmptyStateWarning small withIcon={false}>
-          {t('No issues found for this monitor')}
+          {t('No ongoing issues found for this monitor')}
         </EmptyStateWarning>
       </PanelBody>
     </Panel>
