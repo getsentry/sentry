@@ -810,6 +810,7 @@ def regenerate_service_hook_for_installation(
     installation_id: int, servicehook_events: list[str] | None
 ) -> None:
     installation = app_service.installation_by_id(id=installation_id)
+    assert installation is not None, "Installation must exist to regenerate service hooks"
     app_events = installation.sentry_app.events
 
     if servicehook_events is None or set(servicehook_events) != set(app_events):
