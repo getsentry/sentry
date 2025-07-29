@@ -343,7 +343,7 @@ describe('Gift', function () {
 
     function getLogBytesInput() {
       return screen.getByRole('textbox', {
-        name: 'How many log bytes in GB?',
+        name: 'How many logs in GB?',
       });
     }
 
