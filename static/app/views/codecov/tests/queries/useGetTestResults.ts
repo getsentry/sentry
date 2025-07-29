@@ -128,8 +128,8 @@ export function useInfiniteTestResults({
                   codecovPeriod as keyof typeof DATE_TO_QUERY_INTERVAL
                 ],
               sortBy: signedSortBy,
-              branch: filterBranch,
               term,
+              ...(filterBranch ? {branch: filterBranch} : {}),
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
               ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
