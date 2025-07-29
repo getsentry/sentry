@@ -90,13 +90,13 @@ describe('SeerComboBox', () => {
 
   it('closes seer search when close button is clicked', async () => {
     function TestComponent() {
-      const {displaySeerResults, setDisplaySeerResults} = useSearchQueryBuilder();
-      return displaySeerResults ? (
+      const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilder();
+      return displayAskSeer ? (
         <SeerComboBox initialQuery="test" />
       ) : (
         <div>
           <p>Not Seer Search</p>
-          <button onClick={() => setDisplaySeerResults(true)}>Open Seer Search</button>
+          <button onClick={() => setDisplayAskSeer(true)}>Open Seer Search</button>
         </div>
       );
     }
@@ -161,5 +161,42 @@ describe('SeerComboBox', () => {
         visualize: '{"chartType":1,"yAxes":["count()"]}',
       })
     );
+  });
+
+  it('sets the input value to the example query when selected via click', async () => {
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <SeerComboBox initialQuery="" />
+      </SearchQueryBuilderProvider>,
+      {
+        initialRouterConfig: {location: {pathname: '/foo/'}},
+      }
+    );
+
+    const exampleQuery = await screen.findByText('p95 duration of http client calls');
+    await userEvent.click(exampleQuery);
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    expect(input).toHaveValue('p95 duration of http client calls');
+  });
+
+  it('applies the example query when selected via keyboard', async () => {
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <SeerComboBox initialQuery="" />
+      </SearchQueryBuilderProvider>,
+      {
+        initialRouterConfig: {location: {pathname: '/foo/'}},
+      }
+    );
+
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    expect(input).toHaveValue('p95 duration of http client calls');
   });
 });
