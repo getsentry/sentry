@@ -231,7 +231,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
-  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rack': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'ruby-rails': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
