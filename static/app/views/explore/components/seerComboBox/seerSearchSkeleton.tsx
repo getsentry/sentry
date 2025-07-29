@@ -42,15 +42,13 @@ const LoadingSkeleton = styled('div')`
 const SkeletonCellsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
 `;
 
 const SkeletonCell = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.sm};
 
   &:last-child {
     border-bottom: none;
