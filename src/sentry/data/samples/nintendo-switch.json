@@ -5,8 +5,7 @@
     ["level", "error"],
     ["mechanism", "2168-0002"],
     ["os", "Nintendo OS 20.1.5"],
-    ["os.name", "Nintendo OS"],
-    ["user", "id:2d0a3a3c0acd2ac5ab32276ab14091dceb78884b"]
+    ["os.name", "Nintendo OS"]
   ],
   "breadcrumbs": {
     "values": [
