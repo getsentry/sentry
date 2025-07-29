@@ -25,6 +25,7 @@ export function RequestSdkAccessButton({
         openPrivateGamingSdkAccessModal({
           organization,
           projectSlug: project.slug,
+          projectId: project.id,
           sdkName: 'PlayStation',
           gamingPlatform: 'playstation',
           onSubmit: () => {
