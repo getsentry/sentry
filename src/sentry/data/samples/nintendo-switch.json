@@ -1,0 +1,166 @@
+{
+  "platform": "nintendo-switch",
+  "tags": [
+    ["environment", "integration-test"],
+    ["level", "error"],
+    ["mechanism", "2168-0002"],
+    ["os", "Nintendo OS 20.1.5"],
+    ["os.name", "Nintendo OS"],
+    ["user", "id:2d0a3a3c0acd2ac5ab32276ab14091dceb78884b"]
+  ],
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1753781366.367417,
+        "message": "Integration test started"
+      },
+      {
+        "timestamp": 1753781366.367534,
+        "message": "Context configuration finished"
+      },
+      {
+        "timestamp": 1753781366.367848,
+        "message": "About to trigger controlled crash"
+      }
+    ]
+  },
+  "contexts": {
+    "app": {
+      "app_name": "SentryIntegrationTest",
+      "app_version": "1.0.0",
+      "app_build": "1",
+      "type": "app"
+    },
+    "device": {
+      "name": "Nintendo Switch",
+      "type": "device"
+    },
+    "os": {
+      "name": "Nintendo OS",
+      "version": "20.1.5",
+      "type": "os"
+    }
+  },
+  "culprit": "nnMain",
+  "environment": "integration-test",
+  "exception": {
+    "values": [
+      {
+        "type": "Exception",
+        "value": "This is an example of a Nintendo Switch exception",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "nnMain",
+              "symbol": "nnMain",
+              "module": "792DEB574467EFAF89F8386B018D1357",
+              "package": "C:\\dev\\src\\sentry-switch\\build\\nx64\\integration-test\\test-app\\Develop\\SentryIntegrationTest.nsp.nss",
+              "filename": "main.cpp",
+              "abs_path": "C:\\dev\\src\\sentry-switch\\integration-test\\test-app\\main.cpp",
+              "lineno": 160,
+              "pre_context": [
+                "        WriteTestResult(\"crash-capture\", true, \"Pre-crash setup complete\");",
+                "        sentry_add_breadcrumb(sentry_value_new_breadcrumb(nullptr, \"About to trigger controlled crash\"));",
+                "",
+                "        // Trigger crash",
+                "        volatile int *p = nullptr;"
+              ],
+              "context_line": "        *p = 42;",
+              "post_context": [
+                "    } else {",
+                "        // message-capture",
+                "        sentry_uuid_t event_id = sentry_capture_event(",
+                "            sentry_value_new_message_event(SENTRY_LEVEL_INFO, \"test\", \"Integration test message\"));",
+                ""
+              ],
+              "in_app": true,
+              "vars": {
+                "exception_address": "0x0000000000000000",
+                "exception_code": 2,
+                "exception_code_description": "Access Violation Data",
+                "exception_thread": "4227"
+              },
+              "instruction_addr": "0x1dc3c0faec"
+            }
+          ],
+          "registers": {
+            "LR": "0x1dc3c0fae4",
+            "PC": "0x1dc3c0faec",
+            "SP": "0x79200a4ed0",
+            "X00": "0x0",
+            "X01": "0x1dc3c180e0",
+            "X29": "0x79200a4f68",
+            "X30": "0x1dc3c0fae4"
+          }
+        },
+        "thread_id": "4227",
+        "mechanism": {
+          "type": "2168-0002",
+          "description": "Please contact Nintendo Developer Portal Forum",
+          "help_link": "https://developer.nintendo.com/html/online-docs/g1kr9vj6-en/Packages/Docs/lists/NintendoSwitch-ErrorCodeList/NintendoSwitch-ErrorCodeList-en.html?q=2168-0002"
+        }
+      }
+    ]
+  },
+  "sdk": {
+    "name": "sentry.native.switch",
+    "version": "0.9.1",
+    "integrations": ["nx"],
+    "packages": [
+      {
+        "name": "github:getsentry/sentry-native",
+        "version": "0.9.1"
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "id": "4227",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "nnMain",
+              "symbol": "nnMain",
+              "module": "792DEB574467EFAF89F8386B018D1357",
+              "package": "C:\\dev\\src\\sentry-switch\\build\\nx64\\integration-test\\test-app\\Develop\\SentryIntegrationTest.nsp.nss",
+              "filename": "main.cpp",
+              "abs_path": "C:\\dev\\src\\sentry-switch\\integration-test\\test-app\\main.cpp",
+              "lineno": 160,
+              "context_line": "        *p = 42;",
+              "in_app": true,
+              "instruction_addr": "0x1dc3c0faec"
+            }
+          ]
+        },
+        "crashed": true,
+        "main": false,
+        "state": "Runnable"
+      },
+      {
+        "id": "4238",
+        "stacktrace": {
+          "frames": [
+            {
+              "module": "0D570D257E61E339E740A6DB116D5442C1643083",
+              "package": "nnSdk",
+              "filename": "nnSdk",
+              "abs_path": "nnSdk",
+              "in_app": false,
+              "instruction_addr": "0x1dc44e3574"
+            }
+          ]
+        },
+        "crashed": false,
+        "main": false,
+        "state": "Waiting"
+      }
+    ]
+  },
+  "user": {
+    "id": "42",
+    "email": "jane.doe@example.com",
+    "ip_address": "127.0.0.1",
+    "username": "Jane Doe"
+  }
+}
