@@ -435,6 +435,7 @@ export function CreateProject() {
           category: formData.platform?.category,
         });
         openConsoleModal({
+          organization,
           selectedPlatform: {
             key: value.id,
             name: value.name,
@@ -463,7 +464,7 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
-      organization.enabledConsolePlatforms,
+      organization,
     ]
   );
 

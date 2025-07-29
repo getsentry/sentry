@@ -51,6 +51,7 @@ const onboarding: OnboardingConfig = {
                 openPrivateGamingSdkAccessModal({
                   organization: params.organization,
                   projectSlug: params.projectSlug,
+                  projectId: params.projectId,
                   sdkName: 'Xbox',
                   gamingPlatform: 'xbox',
                 });
