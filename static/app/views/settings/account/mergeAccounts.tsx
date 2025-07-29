@@ -1,4 +1,5 @@
 import {createContext, Fragment, useContext, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -340,10 +341,10 @@ function UserRow({user, onSelect, selectedUsers}: UserRowProps) {
   );
 }
 
-const tableLayout = `
+const tableLayout = css`
   display: grid;
   grid-template-columns: auto 140px 140px 60px;
-  gap ${space(1)};
+  gap: ${space(1)};
   align-items: center;
 `;
 
