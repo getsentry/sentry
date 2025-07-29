@@ -500,7 +500,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             headers={
                 "x-sentry-auth": self.auth_header,
                 "content-type": "application/json",
-                "x-sentry-relay-signature": b"\xff\xff\xff\xff",
+                "x-sentry-relay-signature": "\xff\xff\xff\xff",
             },
             json={"message": "hello"},
         )
