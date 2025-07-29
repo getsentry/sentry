@@ -889,7 +889,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert len(response.data) == 1
 
         # Results are grouped by the error type
-        assert response.data.get("test_error").get("meta").get(
+        assert response.data.get("[test_error]").get("meta").get(
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
