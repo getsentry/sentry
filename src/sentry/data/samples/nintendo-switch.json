@@ -1,5 +1,5 @@
 {
-  "platform": "nintendo-switch",
+  "platform": "native",
   "tags": [
     ["environment", "integration-test"],
     ["level", "error"],
