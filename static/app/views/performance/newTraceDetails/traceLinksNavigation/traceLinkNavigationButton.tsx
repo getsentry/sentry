@@ -75,7 +75,7 @@ export function TraceLinkNavigationButton({
   function closeSpanDetailsDrawer() {
     traceDispatch({
       type: 'minimize drawer',
-      payload: false,
+      payload: true,
     });
   }
 
