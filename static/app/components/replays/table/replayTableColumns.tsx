@@ -23,7 +23,6 @@ import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconFire} from 'sentry/icons/iconFire';
-import {IconNot} from 'sentry/icons/iconNot';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
