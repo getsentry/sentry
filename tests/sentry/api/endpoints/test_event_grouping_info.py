@@ -4,7 +4,7 @@ import orjson
 import pytest
 from django.urls import reverse
 
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
@@ -113,11 +113,19 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_text == "Not Found"
 
     def test_get_grouping_info_unkown_grouping_config(self) -> None:
+        """Show we use the default config when the config we're given is unrecognized"""
+
         data = load_data(platform="javascript")
         event = self.store_event(data=data, project_id=self.project.id)
 
-        with pytest.raises(ResourceDoesNotExist):
+        with mock.patch(
+            "sentry.grouping.api.get_grouping_variants_for_event"
+        ) as mock_get_grouping_variants:
             get_grouping_info("fake-config", self.project, event)
+
+            mock_get_grouping_variants.assert_called_once()
+            assert mock_get_grouping_variants.call_args.args[0] == event
+            assert mock_get_grouping_variants.call_args.args[1].id == DEFAULT_GROUPING_CONFIG
 
     @mock.patch("sentry.grouping.grouping_info.logger")
     @mock.patch("sentry.grouping.grouping_info.metrics")
