@@ -171,6 +171,7 @@ export const gaming: PlatformKey[] = [
   'godot',
   'native',
   'nintendo-switch',
+  'nintendo-switch-2',
   'playstation',
   'unity',
   'unreal',
@@ -300,6 +301,7 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
+  'nintendo-switch-2',
   'playstation',
   'xbox',
 ]);
