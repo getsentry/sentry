@@ -38,7 +38,10 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         return ["project"]
 
     def get_projects_and_default(self, group: Group | None, params: Mapping[str, Any], **kwargs):
-        defaults = self.get_project_defaults(group.project_id)
+        if group:
+            defaults = self.get_project_defaults(group.project_id)
+        else:
+            defaults = {}
 
         # XXX: In GitLab repositories are called projects but get_repository_choices
         # expects the param to be called 'repo', so we need to rename it here.
