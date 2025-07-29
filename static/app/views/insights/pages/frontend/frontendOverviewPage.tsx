@@ -223,14 +223,14 @@ function EAPOverviewPage() {
         'transaction',
         'project',
         'tpm()',
-        'p50_if(span.duration,is_transaction,true)',
-        'p95_if(span.duration,is_transaction,true)',
-        'failure_rate_if(is_transaction,true)',
+        'p50_if(span.duration,is_transaction,equals,true)',
+        'p95_if(span.duration,is_transaction,equals,true)',
+        'failure_rate_if(is_transaction,equals,true)',
         ...(displayPerfScore
           ? (['performance_score(measurements.score.total)'] as const)
           : []),
         'count_unique(user)',
-        'sum_if(span.duration,is_transaction,true)',
+        'sum_if(span.duration,is_transaction,equals,true)',
       ],
     },
     'api.performance.landing-table'

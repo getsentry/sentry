@@ -498,7 +498,7 @@ type SpanResponseRaw = {
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   } & {
-    [Property in SpanFields as `count_if(${Property},${string})`]: number;
+    [Property in SpanFields as `count_if(${Property},equals,${string})`]: number;
   };
 
 export type SpanResponse = Flatten<SpanResponseRaw>;
