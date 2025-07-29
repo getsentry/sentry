@@ -1,15 +1,3 @@
-function safeEncodeURIComponent(input: string) {
-  try {
-    // If decoding and re-encoding gives the same string, it's already encoded
-    if (encodeURIComponent(decodeURIComponent(input)) === input) {
-      return input;
-    }
-  } catch (e) {
-    // decodeURIComponent threw an error, so it was not encoded
-  }
-  return encodeURIComponent(input);
-}
-
 type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
     ? Param | ExtractPathParams<`/${Rest}`>
@@ -43,7 +31,7 @@ export function getApiUrl<TApiPath extends string>(
       if (!(key in pathParams)) {
         throw new Error(`Missing path param: ${key}`);
       }
-      return safeEncodeURIComponent(String(pathParams[key as keyof typeof pathParams]));
+      return encodeURIComponent(String(pathParams[key as keyof typeof pathParams]));
     });
   }
   return url as ApiUrl;

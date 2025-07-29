@@ -32,14 +32,6 @@ describe('getApiUrl', () => {
     expect(url).toBe('/projects/my-org/my-project/releases/v%201.0.0/');
   });
 
-  test('should not modify already encoded parameters', () => {
-    const url = getApiUrl('/search/$query/', {
-      path: {query: 'test%20query'},
-    });
-
-    expect(url).toBe('/search/test%20query/');
-  });
-
   test('should stringify number path params', () => {
     const url = getApiUrl('/items/$id/', {
       path: {id: 123},
