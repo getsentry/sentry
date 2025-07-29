@@ -11,7 +11,7 @@ from typing import Any, TypedDict, Union
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
@@ -122,7 +122,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     """
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         pass
 
@@ -164,7 +167,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -238,7 +244,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
     dataset = Dataset.EventsAnalyticsPlatform
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -307,7 +316,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -369,7 +381,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-
         if params is None:
             params = {}
 
@@ -630,10 +641,7 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
-        use_eap_items = options.get("alerts.spans.use-eap-items")
-        if use_eap_items:
-            return EntityKey.EAPItems
-        return EntityKey.EAPItemsSpan
+        return EntityKey.EAPItems
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,
