@@ -76,7 +76,7 @@ export interface SearchQueryBuilderProps {
   filterKeyAliases?: TagCollection;
   /**
    * The width of the filter key menu.
-   * Defaults to 360px. May be increased if there are a large number of categories
+   * Defaults to 460px. May be increased if there are a large number of categories
    * or long filter key names.
    */
   filterKeyMenuWidth?: number;

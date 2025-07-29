@@ -92,7 +92,7 @@ export function SearchQueryBuilderProvider({
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
-  filterKeyMenuWidth = 360,
+  filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
   getTagValues,
