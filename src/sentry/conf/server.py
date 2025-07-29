@@ -702,22 +702,22 @@ CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 # List of the available regions
 SENTRY_REGION_CONFIG: list[RegionConfig] = []
 
-# Shared secret used to sign cross-region RPC requests.
+# Shared secret used to sign cross-region RPC requests
+# between monolith instances.
 RPC_SHARED_SECRET: list[str] | None = None
 
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
 # TODO: Replace both of these secrets with mutual TLS and simplify our rpc channels.
-# Shared secret used to sign cross-region RPC requests from the seer microservice.
+# Shared secret used to sign RCP requests from the seer microservice to the monolith.
+# The monolith supports multiple keys for incoming requests.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
-# Shared secret used to sign cross-region RPC requests to the seer microservice.
+# Shared secret used to sign RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
-# Shared secret used to sign cross-region RPC requests from the launchpad microservice.
-LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
-if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
-    LAUNCHPAD_RPC_SHARED_SECRET = [val]
+# Shared secret used to sign RCP requests from the launchpad service to the monolith.
+LAUNCHPAD_RPC_SHARED_SECRET: str | None = os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET", None)
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -3956,7 +3956,7 @@ if ngrok_host:
     SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 if SILO_DEVSERVER or IS_DEV:
-    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    LAUNCHPAD_RPC_SHARED_SECRET = "launchpad-also-very-long-value-haha"
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
