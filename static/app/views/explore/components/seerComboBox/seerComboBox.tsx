@@ -94,6 +94,8 @@ function isNoneOfTheseItem(item: SeerSearchItems): item is NoneOfTheseItem {
 type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem;
 
 export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
+  // console.log('initialQuery', initialQuery);
+  // console.log('props', props);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);

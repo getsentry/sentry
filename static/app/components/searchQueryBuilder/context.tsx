@@ -30,6 +30,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
   committedQuery: string;
+  currentInputValue: string;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
@@ -49,6 +50,7 @@ interface SearchQueryBuilderContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  setCurrentInputValue: (value: string) => void;
   setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -108,6 +110,7 @@ export function SearchQueryBuilderProvider({
   const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const [currentInputValue, setCurrentInputValue] = useState('');
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -194,6 +197,8 @@ export function SearchQueryBuilderProvider({
       replaceRawSearchKeys,
       filterKeyAliases,
       gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      currentInputValue,
+      setCurrentInputValue,
     };
   }, [
     disabled,
@@ -220,6 +225,8 @@ export function SearchQueryBuilderProvider({
     stableFilterKeys,
     stableGetSuggestedFilterKey,
     state,
+    currentInputValue,
+    setCurrentInputValue,
   ]);
 
   return (

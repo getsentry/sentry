@@ -173,10 +173,23 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displaySeerResults, query} = useSearchQueryBuilder();
+  const {displaySeerResults, query, currentInputValue} = useSearchQueryBuilder();
+
+  const initialSeerQuery = (() => {
+    const committedQuery = query.trim();
+    const inputValue = currentInputValue.trim();
+
+    if (!inputValue) return committedQuery;
+
+    if (!committedQuery) return inputValue;
+
+    if (committedQuery.includes(inputValue)) return committedQuery;
+
+    return `${committedQuery} ${inputValue}`;
+  })();
 
   return displaySeerResults ? (
-    <SeerComboBox initialQuery={query} />
+    <SeerComboBox initialQuery={initialSeerQuery} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );

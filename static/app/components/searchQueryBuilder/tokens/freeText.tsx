@@ -253,11 +253,6 @@ function SearchQueryBuilderInputInternal({
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, []);
 
-  const resetInputValue = useCallback(() => {
-    setInputValue(trimmedTokenValue);
-    updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex]);
-
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
   const {
@@ -270,7 +265,14 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    setCurrentInputValue,
   } = useSearchQueryBuilder();
+
+  const resetInputValue = useCallback(() => {
+    setInputValue(trimmedTokenValue);
+    setCurrentInputValue(trimmedTokenValue);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
@@ -617,6 +619,7 @@ function SearchQueryBuilderInputInternal({
           }
 
           setInputValue(e.target.value);
+          setCurrentInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
