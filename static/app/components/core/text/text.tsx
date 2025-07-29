@@ -87,7 +87,7 @@ type TextProps<T extends 'span' | 'p' | 'div'> = BaseTextProps & {
    */
   as?: T;
   ref?: React.Ref<HTMLElementTagNameMap[T] | null> | undefined;
-} & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+} & Omit<React.HTMLAttributes<HTMLElementTagNameMap[T]>, 'color'>;
 
 type ExclusiveEllipsisProps =
   | {ellipsis?: true; wrap?: never}

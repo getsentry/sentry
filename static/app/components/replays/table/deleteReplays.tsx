@@ -154,7 +154,7 @@ function ReplayQueryPreview({
         {t('Replays matching the following query will be deleted')}
       </Title>
       <KeyValueData.Card contentItems={contentItems} />
-      <Text size="sm" color="subText">
+      <Text size="sm" variant="muted">
         All dates and times are in UTC.
       </Text>
     </Fragment>
