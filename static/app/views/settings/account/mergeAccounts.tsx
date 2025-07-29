@@ -1,7 +1,7 @@
 import {createContext, Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
@@ -19,7 +19,14 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -44,6 +51,7 @@ function MergeAccounts() {
     staleTime: 0,
   });
   const user = useUser();
+  const queryClient = useQueryClient();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [tokenValue, setTokenValue] = useState('');
   const [verificationCodeSent, setVerificationCodeSent] = useState(false);
@@ -55,20 +63,44 @@ function MergeAccounts() {
         : [...prevSelectedUserIds, newUserId]
     );
 
-  type SubmitVariables = {idsToDelete: string[]; idsToMerge: string[]; token: string};
-  const {mutate: submit} = useMutation({
-    mutationFn: ({idsToMerge, idsToDelete, token}: SubmitVariables) => {
+  type SubmitVariables = {
+    idsToDelete: string[];
+    idsToMerge: string[];
+    verificationCode: string;
+  };
+  const {isPending: isSubmitPending, mutate: submit} = useMutation<
+    UserWithOrganizations[],
+    RequestError,
+    SubmitVariables
+  >({
+    mutationFn: ({idsToMerge, idsToDelete, verificationCode}: SubmitVariables) => {
       return fetchMutation({
         url: ENDPOINT,
         method: 'POST',
         data: {
-          ids_to_merge: idsToMerge,
-          ids_to_delete: idsToDelete,
-          verification_code: token,
+          idsToMerge,
+          idsToDelete,
+          verificationCode,
         },
-      })
-        .then(() => refetch())
-        .then(() => addSuccessMessage(t('Accounts merged!')));
+      });
+    },
+    onSuccess: data => {
+      addSuccessMessage(t('Accounts merged!'));
+      setSelectedUserIds([]);
+      setApiQueryData<UserWithOrganizations[]>(
+        queryClient,
+        makeMergeAccountsEndpointKey(),
+        data
+      );
+    },
+    onError: (err: RequestError) => {
+      if (err.responseJSON && !('raw' in err.responseJSON)) {
+        addErrorMessage(
+          Object.values(err.responseJSON ?? {})
+            .flat()
+            .join(' ')
+        );
+      }
     },
   });
 
@@ -78,24 +110,27 @@ function MergeAccounts() {
         url: VERIFICATION_CODE_ENDPOINT,
         method: 'POST',
         data: {},
-      }).then(() => addSuccessMessage(t('Verification code posted!')));
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Verification code posted!'));
+      setVerificationCodeSent(true);
     },
   });
 
-  const handleSubmit = (idsToMerge: string[], token: string) => {
+  const handleSubmit = (idsToMerge: string[], verificationCode: string) => {
     const userIds = users.map(item => item.id);
     const idsToDelete = userIds.filter(
       item => !idsToMerge.includes(item) && item !== user.id
     );
-    submit({idsToMerge, idsToDelete, token});
+    submit({idsToMerge, idsToDelete, verificationCode});
   };
 
   const handlePostVerificationCode = () => {
     postVerificationCode();
-    setVerificationCodeSent(true);
   };
 
-  if (isPending) {
+  if (isSubmitPending) {
     return (
       <Fragment>
         <SentryDocumentTitle title={t('Merge Accounts')} />
@@ -136,7 +171,7 @@ function MergeAccounts() {
             disabled={verificationCodeSent}
             onClick={() => handlePostVerificationCode()}
           >
-            Generate verification code
+            {t('Generate verification code')}
           </Button>
         </ButtonSection>
         <AccountSelection
@@ -164,8 +199,9 @@ function MergeAccounts() {
           <Button
             priority="danger"
             onClick={() => handleSubmit(selectedUserIds, tokenValue)}
+            disabled={isPending}
           >
-            Submit
+            {t('Submit')}
           </Button>
         </div>
       </List>
@@ -279,9 +315,9 @@ function UserRow({user, onSelect, selectedUsers}: UserRowProps) {
     <UserPanelItem>
       <Name>{user.name}</Name>
       {isPrimaryUser ? (
-        'Currently active'
+        t('Currently active')
       ) : user.lastActive === '' ? (
-        'Never'
+        t('Never')
       ) : (
         <div>
           <StyledTimeSince date={user.lastActive} />
