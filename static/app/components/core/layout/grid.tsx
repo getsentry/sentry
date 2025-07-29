@@ -1,8 +1,6 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {Slot} from 'sentry/components/core/slot';
-
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
@@ -85,19 +83,11 @@ type GridProps<T extends ContainerElement = 'div'> = Omit<
   rows?: Responsive<CSSProperties['gridTemplateRows']>;
 };
 
-export const Grid = styled(
-  <T extends ContainerElement = 'div'>({as, asChild, ...rest}: GridProps<T>) => {
-    if (asChild) {
-      return <Slot {...(rest as any)} />;
-    }
-    return <Container as={as ?? 'div'} {...(rest as any)} />;
+export const Grid = styled(Container, {
+  shouldForwardProp: prop => {
+    return !omitGridProps.has(prop as unknown as keyof GridProps);
   },
-  {
-    shouldForwardProp: prop => {
-      return !omitGridProps.has(prop as unknown as keyof GridProps);
-    },
-  }
-)<GridProps<any>>`
+})<GridProps<any>>`
   ${p => rc('display', p.as === 'span' || p.inline ? 'inline-grid' : 'grid', p.theme)};
 
   ${p => rc('gap', p.gap, p.theme, getSpacing)};

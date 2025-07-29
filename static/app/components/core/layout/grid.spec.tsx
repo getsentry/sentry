@@ -13,13 +13,17 @@ describe('Grid', () => {
   it('implements asChild', () => {
     render(
       <section>
-        <Grid asChild border="primary">
+        <Grid asChild border="primary" aria-label="Hello">
           <p>Hello</p>
         </Grid>
       </section>
     );
-    expect(screen.getByText('Hello')).toBeInTheDocument();
+
+    expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
+
+    expect(screen.getByText('Hello')).toHaveAttribute('aria-label', 'Hello');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
   });
 
   it('passes attributes to the underlying element', () => {

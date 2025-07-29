@@ -1,8 +1,6 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {Slot} from 'sentry/components/core/slot';
-
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
@@ -43,19 +41,11 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 };
 
-export const Flex = styled(
-  <T extends ContainerElement = 'div'>({as, asChild, ...rest}: FlexProps<T>) => {
-    if (asChild) {
-      return <Slot {...(rest as any)} />;
-    }
-    return <Container as={as ?? 'div'} {...(rest as any)} />;
+export const Flex = styled(Container, {
+  shouldForwardProp: prop => {
+    return !omitFlexProps.has(prop as unknown as keyof FlexProps);
   },
-  {
-    shouldForwardProp: prop => {
-      return !omitFlexProps.has(prop as unknown as keyof FlexProps);
-    },
-  }
-)<FlexProps<any>>`
+})<FlexProps<any>>`
   ${p => rc('display', p.as === 'span' || p.inline ? 'inline-flex' : 'flex', p.theme)};
 
   ${p => rc('order', p.order, p.theme)};

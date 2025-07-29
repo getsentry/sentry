@@ -6,7 +6,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/grid.tsx
 ---
 
-import {Container, Grid} from 'sentry/components/core/layout';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/layout/grid';
@@ -96,6 +96,20 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
   <Container area="footer">Footer</Container>
 </Grid>
 ```
+
+### asChild
+
+The `Grid` component can be used as a child of another component.
+
+<Storybook.Demo>
+  <Grid asChild border="primary" radius="md" padding="md">
+    <p>Hello</p>
+  </Grid>
+
+  <Flex asChild border="primary" radius="md" padding="md">
+    <p>Hello</p>
+  </Flex>
+</Storybook.Demo>
 
 ### Alignment
 

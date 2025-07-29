@@ -13,14 +13,17 @@ describe('Container', () => {
   it('implements asChild', () => {
     render(
       <section>
-        <Container asChild border="primary">
+        <Container asChild border="primary" aria-label="Hello">
           <p>Hello</p>
         </Container>
       </section>
     );
 
-    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
+
+    expect(screen.getByText('Hello')).toHaveAttribute('aria-label', 'Hello');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
   });
 
   it('passes attributes to the underlying element', () => {

@@ -1,4 +1,3 @@
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Slot} from 'sentry/components/core/slot';
@@ -107,10 +106,7 @@ export const Container = styled(
       if (omitContainerProps.has(prop as unknown as keyof ContainerProps<any>)) {
         return false;
       }
-      if (prop === 'asChild') {
-        return true;
-      }
-      return isPropValid(prop);
+      return true;
     },
   }
 )<ContainerProps>`
