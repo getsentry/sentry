@@ -1,6 +1,3 @@
-import logging
-import random
-
 from django.db import models, router, transaction
 from django.db.models import F
 
@@ -8,8 +5,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model, region_silo_model
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.options.rollout import in_random_rollout
-
-logger = logging.getLogger(__name__)
 
 
 class CacheVersionBase(Model):
@@ -23,8 +18,6 @@ class CacheVersionBase(Model):
     def incr_version(cls, key: str) -> int:
         if in_random_rollout("sentry.hybridcloud.cacheversion.rollout"):
             with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
-                if random.random() < 0.01:
-                    logger.info("cacheversion.incr_version", extra={"key": key})
                 obj, created = cls.objects.select_for_update().get_or_create(
                     key=key, defaults=dict(version=1)
                 )
@@ -36,8 +29,6 @@ class CacheVersionBase(Model):
                 return obj.version
 
         with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
-            if random.random() < 0.01:
-                logger.info("cacheversion.incr_version", extra={"key": key})
             cls.objects.create_or_update(
                 key=key, defaults=dict(version=1), values=dict(version=F("version") + 1)
             )
