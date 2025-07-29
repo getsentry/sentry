@@ -375,6 +375,9 @@ export const getOnDemandCategories = ({
 }) => {
   if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return plan.onDemandCategories.filter(category => {
+      if (category === DataCategory.LOG_BYTE) {
+        return false;
+      }
       return Object.values(plan.availableReservedBudgetTypes).every(
         budgetType => !budgetType.dataCategories.includes(category)
       );

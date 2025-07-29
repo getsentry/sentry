@@ -942,13 +942,13 @@ describe('getOnDemandCategories - AM2 logBytes support', function () {
     expect(plan.onDemandCategories).toContain('logBytes');
   });
 
-  it('includes logBytes in getOnDemandCategories for AM2 plans in per-category mode', function () {
+  it('excludes logBytes in getOnDemandCategories for AM2 plans in per-category mode', function () {
     const plan = PlanDetailsLookupFixture('am2_business')!;
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
     });
-    expect(categories).toContain('logBytes');
+    expect(categories).not.toContain('logBytes');
   });
 
   it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', function () {
