@@ -172,16 +172,15 @@ class FeatureContextManagerOrDecorator:
             setattr(func_or_cls, name, fixture)
 
             # Additionally, wrap each test method directly so it works when called manually
-            for attr_name in dir(func_or_cls):
-                if (
+            # Use vars() to only get attributes defined on this class, not inherited ones
+            for attr_name in vars(func_or_cls):
+                attr = getattr(func_or_cls, attr_name)
+                if callable(attr) and (
                     attr_name.startswith("test_")
-                    or attr_name.startswith("setUp")
-                    or attr_name.startswith("tearDown")
-                    or attr_name.startswith("setUpClass")
-                    or attr_name.startswith("tearDownClass")
+                    or attr_name in ("setUp", "tearDown", "setUpClass", "tearDownClass")
                 ):
-                    original_method = getattr(func_or_cls, attr_name)
-                    if callable(original_method):
+                    # Check if already wrapped to avoid double-wrapping
+                    if not hasattr(attr, "__wrapped__"):
 
                         def create_wrapped_method(method):
                             @wraps(method)
@@ -191,7 +190,7 @@ class FeatureContextManagerOrDecorator:
 
                             return wrapped_method
 
-                        wrapped = create_wrapped_method(original_method)
+                        wrapped = create_wrapped_method(attr)
                         setattr(func_or_cls, attr_name, wrapped)
 
             return func_or_cls
