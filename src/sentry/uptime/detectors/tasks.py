@@ -7,7 +7,8 @@ from urllib.robotparser import RobotFileParser
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, quotas
+from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -240,7 +241,10 @@ def process_candidate_url(
         "organizations:uptime-automatic-subscription-creation", project.organization
     ) and features.has("organizations:uptime", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
-        monitor_url_for_project(project, url)
+        monitor_result = monitor_url_for_project(project, url)
+        if monitor_result is None:
+            # Monitor creation was aborted due to billing constraints
+            return False
         # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
         project.organization.update_option("sentry:uptime_autodetection", False)
@@ -249,11 +253,28 @@ def process_candidate_url(
     return True
 
 
-def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscription:
+def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscription | None:
     """
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
+    # Create a dummy ProjectUptimeSubscription for the quota check
+    dummy_uptime_monitor = ProjectUptimeSubscription(project=project)
+    seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, dummy_uptime_monitor)
+
+    if not seat_assignment.assignable:
+        # Log and increment metric for failed monitor creation due to insufficient billing capacity
+        logger.info(
+            "uptime.monitor_creation_aborted_no_seat",
+            extra={
+                "project_id": project.id,
+                "url": url,
+                "reason": seat_assignment.reason,
+            },
+        )
+        metrics.incr("uptime.detectors.candidate_url.failed", tags={"reason": "insufficient_billing_capacity"})
+        return None  # Abort monitor creation
+
     for uptime_detector in get_auto_monitored_detectors_for_project(project):
         delete_uptime_detector(uptime_detector)
     metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
