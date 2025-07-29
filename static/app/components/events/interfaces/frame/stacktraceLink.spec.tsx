@@ -373,7 +373,7 @@ describe('StacktraceLink', function () {
       const copyButton = await screen.findByRole('button', {name: 'Copy file path'});
       await userEvent.click(copyButton);
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('/sentry/app.py');
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('/sentry/app.py:233');
       expect(addSuccessMessage).toHaveBeenCalledWith('File path copied to clipboard');
     });
 
