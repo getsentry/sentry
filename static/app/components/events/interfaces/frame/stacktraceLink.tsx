@@ -348,13 +348,16 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <FixMappingButton
+          type="button"
           priority="link"
           icon={
             sourceCodeProviders.length === 1
               ? getIntegrationIcon(sourceCodeProviders[0]!.provider.key, 'sm')
               : undefined
           }
-          onClick={() => {
+          onClick={e => {
+            // Prevent from opening/closing the stack frame
+            e.stopPropagation();
             trackAnalytics(
               'integrations.stacktrace_start_setup',
               {
@@ -407,6 +410,7 @@ const StacktraceLinkWrapper = styled('div')`
 
 const FixMappingButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-weight: 400;
   &:hover {
     color: ${p => p.theme.subText};
   }
