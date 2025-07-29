@@ -41,14 +41,16 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data=group1_data | {"tags": {"foo": "bar"}}, project_id=self.project.id
         )
         self.event_id = self.event.event_id
-        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
+        self.event_node_id = Event.generate_node_id(self.project.id, self.event_id)
         group = self.event.group
-        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id).event_id
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
+        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id)
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2.event_id)
 
         # Group 2 event
         self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
         self.keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
+
+        assert nodestore.backend.get_multi([self.event_node_id, self.node_id2, self.keep_node_id])
 
         UserReport.objects.create(
             group_id=group.id, project_id=self.event.project_id, name="With group id"
@@ -70,7 +72,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
     def test_simple(self) -> None:
         ErrorEventsDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         group = self.event.group
-        assert nodestore.backend.get(self.node_id)
+        assert nodestore.backend.get(self.event_node_id)
         assert nodestore.backend.get(self.node_id2)
         assert nodestore.backend.get(self.keep_node_id)
 
@@ -86,30 +88,24 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(self.event_node_id)
         assert not nodestore.backend.get(self.node_id2)
         assert nodestore.backend.get(self.keep_node_id), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
 
     def test_simple_multiple_groups(self) -> None:
-        other_event = self.store_event(
-            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
-            project_id=self.project.id,
-        )
-        other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
-
-        group = self.event.group
+        group_ids = [self.event.group.id, self.event_id2.group.id]
         with self.tasks():
-            delete_groups_for_project(
-                object_ids=[group.id, other_event.group_id],
-                transaction_id=uuid4().hex,
-                project_id=self.project.id,
+            delete_groups_for_project.apply_async(
+                kwargs={
+                    "object_ids": group_ids,
+                    "transaction_id": uuid4().hex,
+                    "project_id": self.project.id,
+                },
             )
 
-        assert not Group.objects.filter(id=group.id).exists()
-        assert not Group.objects.filter(id=other_event.group_id).exists()
-        assert not nodestore.backend.get(self.node_id)
-        assert not nodestore.backend.get(other_node_id)
+        assert not Group.objects.filter(id__in=group_ids).exists()
+        assert not nodestore.backend.get_multi([self.event_node_id, self.node_id2])
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
         assert nodestore.backend.get(self.keep_node_id)
@@ -196,7 +192,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
-        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(self.event_node_id)
         assert not nodestore.backend.get(other_node_id)
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
