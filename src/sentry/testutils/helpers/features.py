@@ -175,12 +175,20 @@ class FeatureContextManagerOrDecorator:
             # Use vars() to only get attributes defined on this class, not inherited ones
             for attr_name in vars(func_or_cls):
                 attr = getattr(func_or_cls, attr_name)
-                if callable(attr) and (
-                    attr_name.startswith("test_")
-                    or attr_name in ("setUp", "tearDown", "setUpClass", "tearDownClass")
+
+                # More precise method detection
+                if (
+                    callable(attr)
+                    and (
+                        attr_name.startswith("test_")
+                        # Standard unittest lifecycle methods only
+                        or attr_name in ("setUp", "tearDown", "setUpClass", "tearDownClass")
+                    )
+                    # Ensure it's actually a method (has __self__ attribute when bound) or function
+                    and (hasattr(attr, "__func__") or not hasattr(attr, "__self__"))
                 ):
                     # Check if already wrapped to avoid double-wrapping
-                    if not hasattr(attr, "__wrapped__"):
+                    if not getattr(attr, "_feature_wrapped", False):
 
                         def create_wrapped_method(method):
                             @wraps(method)
@@ -188,6 +196,8 @@ class FeatureContextManagerOrDecorator:
                                 with Feature(feature_names):
                                     return method(*args, **kwargs)
 
+                            # Mark as wrapped by our feature decorator
+                            wrapped_method._feature_wrapped = True
                             return wrapped_method
 
                         wrapped = create_wrapped_method(attr)
