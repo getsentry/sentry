@@ -32,7 +32,6 @@ export default function NumericDropdownFilter({
           onAction: generateAction({
             key: type,
             value: formatter(val),
-            edit: 'set',
             location,
             navigate,
           }),
@@ -43,7 +42,6 @@ export default function NumericDropdownFilter({
           onAction: generateAction({
             key: type,
             value: '>' + formatter(val),
-            edit: 'set',
             location,
             navigate,
           }),
@@ -54,7 +52,6 @@ export default function NumericDropdownFilter({
           onAction: generateAction({
             key: type,
             value: '<' + formatter(val),
-            edit: 'set',
             location,
             navigate,
           }),
@@ -63,9 +60,8 @@ export default function NumericDropdownFilter({
           key: 'exclude',
           label: t('Exclude from filter'),
           onAction: generateAction({
-            key: type,
+            key: '!' + type,
             value: formatter(val),
-            edit: 'remove',
             location,
             navigate,
           }),
