@@ -55,10 +55,6 @@ function withReactRouter3Props(Component: React.ComponentType<any>) {
   return WithReactRouter3Props;
 }
 
-function NoOp({children}: {children: React.JSX.Element}) {
-  return children;
-}
-
 interface RedirectProps extends Omit<NavigateProps, 'to'> {
   /**
    * Our Redirect only supports string to
@@ -97,21 +93,36 @@ function Redirect({to, ...rest}: RedirectProps) {
 }
 Redirect.displayName = 'Redirect';
 
-function getElement(Component: React.ComponentType<any> | undefined) {
+function getElement(
+  Component: React.ComponentType<any> | undefined,
+  deprecatedRouteProps = false
+) {
   if (!Component) {
     return undefined;
   }
 
-  const WrappedComponent = withReactRouter3Props(Component);
+  if (deprecatedRouteProps) {
+    const WrappedComponent = withReactRouter3Props(Component);
 
-  return <WrappedComponent />;
+    return <WrappedComponent />;
+  }
+
+  return <Component />;
 }
 
 /**
  * Converts a SentryRouteObject tree into a react-router RouteObject tree.
  */
 export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
-  const {name, path, withOrgPath, redirectTo, customerDomainOnlyRoute, component} = tree;
+  const {
+    name,
+    path,
+    withOrgPath,
+    redirectTo,
+    customerDomainOnlyRoute,
+    component,
+    deprecatedRouteProps,
+  } = tree;
 
   if (customerDomainOnlyRoute && !USING_CUSTOMER_DOMAIN) {
     return {};
@@ -132,7 +143,7 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   const handle = {name, path};
 
   if (tree.index) {
-    return {index: true, element: getElement(component), handle};
+    return {index: true, element: getElement(component, deprecatedRouteProps), handle};
   }
 
   const children = tree.children?.map(translateSentryRoute);
@@ -141,15 +152,19 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   // we need to generate multiple routes, one including the
   // /organizations/:ogId prefix, and one without
   if (!withOrgPath) {
-    return {path, element: getElement(component), handle, children};
+    return {path, element: getElement(component, deprecatedRouteProps), handle, children};
   }
 
   const dualRoutes: RouteObject[] = [];
 
+  const hasComponent = !!component;
+
   if (USING_CUSTOMER_DOMAIN) {
     dualRoutes.push({
       path,
-      element: getElement(withDomainRequired(component ?? NoOp)),
+      element: hasComponent
+        ? getElement(withDomainRequired(component), deprecatedRouteProps)
+        : undefined,
       handle,
       children,
     });
@@ -157,7 +172,9 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
 
   dualRoutes.push({
     path: `/organizations/:orgId${path}`,
-    element: getElement(withDomainRedirect(component ?? NoOp)),
+    element: hasComponent
+      ? getElement(withDomainRedirect(component), deprecatedRouteProps)
+      : undefined,
     handle,
     children,
   });

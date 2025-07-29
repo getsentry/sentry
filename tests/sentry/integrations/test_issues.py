@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
 from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncIntegrationBase
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -16,6 +17,7 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -563,16 +565,18 @@ class IssueSyncIntegrationWebhookTest(TestCase):
             assert data["data"]["resolution_type"] == self.integration.provider
 
             # Verify analytics event was recorded
-            mock_record.assert_called_with(
-                "issue.resolved",
-                project_id=self.group.project.id,
-                default_user_id="Sentry Jira",
-                organization_id=self.group.organization.id,
-                group_id=self.group.id,
-                resolution_type="with_third_party_app",
-                provider="example",
-                issue_type=self.group.issue_type.slug,
-                issue_category=self.group.issue_category.name.lower(),
+            assert_last_analytics_event(
+                mock_record,
+                IssueResolvedEvent(
+                    project_id=self.group.project.id,
+                    default_user_id="Sentry Jira",
+                    organization_id=self.group.organization.id,
+                    group_id=self.group.id,
+                    resolution_type="with_third_party_app",
+                    provider=self.integration.provider,
+                    issue_type=self.group.issue_type.slug,
+                    issue_category=self.group.issue_category.name.lower(),
+                ),
             )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)

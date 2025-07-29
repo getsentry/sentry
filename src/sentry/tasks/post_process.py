@@ -983,6 +983,9 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         logger.error("Missing event to schedule workflow task", extra={"job": job})
         return
 
+    if not job["event"].group.is_unresolved():
+        return
+
     try:
         process_workflows_event.delay(
             project_id=job["event"].project_id,
