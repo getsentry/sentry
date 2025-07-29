@@ -59,6 +59,9 @@ const formGroups: JsonFormObject[] = [
         type: 'select',
         required: false,
         options: [
+          // TODO: If we eliminate the special-casing as discussed in
+          // https://github.com/getsentry/sentry/pull/96719, consider changing the label here to
+          // `Default (newest first)` and removing the separate `Newest first` option.
           {value: StacktraceOrder.DEFAULT, label: t('Default')},
           {value: StacktraceOrder.MOST_RECENT_LAST, label: t('Oldest first')},
           {value: StacktraceOrder.MOST_RECENT_FIRST, label: t('Newest first')},
