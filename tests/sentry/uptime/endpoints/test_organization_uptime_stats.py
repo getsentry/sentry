@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from sentry.testutils.cases import APITestCase, UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
+
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 from tests.sentry.uptime.endpoints.test_base import UptimeResultEAPTestCase
@@ -79,96 +79,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 "missed_window": 0,
             }
 
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff(self) -> None:
-        """Test that the endpoint returns data for a simple uptime check."""
 
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.project_uptime_subscription.id)]) == 90
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff_rounded_resolution(self) -> None:
-        """Test that the endpoint returns data for a simple uptime check."""
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-            assert response.data is not None
-            data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.project_uptime_subscription.id)]) == 89
-
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(days=1)).timestamp()}
-    )
-    def test_simple_with_date_cutoff_rounded_resolution_past_cutoff(self) -> None:
-        """Test that the endpoint returns data for a simple uptime check."""
-        subscription_id = uuid.uuid4().hex
-        subscription = self.create_uptime_subscription(
-            url="https://santry.io/test", subscription_id=subscription_id
-        )
-        project_uptime_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=subscription
-        )
-
-        # Store data for the cutoff test scenario
-        self.store_uptime_data(
-            subscription_id, "success", scheduled_check_time=(MOCK_DATETIME - timedelta(days=5))
-        )
-        self.store_uptime_data(
-            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(days=5)
-        )
-        self.store_uptime_data(
-            subscription_id, "failure", scheduled_check_time=MOCK_DATETIME - timedelta(hours=2)
-        )
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                projectUptimeSubscriptionId=[str(project_uptime_subscription.id)],
-                since=(datetime.now(timezone.utc) - timedelta(days=89, hours=1)).timestamp(),
-                until=datetime.now(timezone.utc).timestamp(),
-                resolution="1d",
-            )
-        assert response.data is not None
-        data = json.loads(json.dumps(response.data))
-        # check that we return all the intervals,
-        # but the last one is the failure
-        assert len(data[str(project_uptime_subscription.id)]) == 89
-        assert data[str(project_uptime_subscription.id)][-1][1] == {
-            "failure": 1,
-            "failure_incident": 0,
-            "success": 0,
-            "missed_window": 0,
-        }
-        # make sure the rest of the intervals are empty
-        for i in range(88):
-            assert data[str(project_uptime_subscription.id)][i][1] == {
-                "failure": 0,
-                "failure_incident": 0,
-                "success": 0,
-                "missed_window": 0,
-            }
 
     def test_invalid_uptime_subscription_id(self) -> None:
         """
@@ -262,51 +173,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         )
 
 
-# TODO(jferg): remove after 90 days
-def test_add_extra_buckets_for_epoch_cutoff() -> None:
-    """Test adding extra buckets when there's an epoch cutoff"""
-    start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    end = datetime(2025, 1, 2, tzinfo=timezone.utc)
-    epoch_cutoff = datetime(2025, 1, 1, 12, tzinfo=timezone.utc)
-    rollup = 3600  # 1 hour
 
-    # Generate 12 hours of data points starting at epoch cutoff
-    data_points = []
-    for i in range(12):
-        timestamp = int(epoch_cutoff.timestamp()) + (i * 3600)
-        data_points.append(
-            (timestamp, {"failure": i % 3, "success": (3 - i % 3), "missed_window": 0})
-        )
-
-    subscription_id = 1234
-    formatted_response = {subscription_id: data_points}
-
-    result = add_extra_buckets_for_epoch_cutoff(
-        formatted_response, epoch_cutoff, rollup, start, end
-    )
-
-    # Should have 24 buckets total (24 hours worth)
-    assert len(result[subscription_id]) == 24
-
-    # First bucket should be at start time
-    assert result[subscription_id][0][0] == int(start.timestamp())
-
-    # Last bucket should be the original last bucket
-    assert result[subscription_id][-1] == formatted_response[subscription_id][-1]
-
-    # Added buckets should have zero counts
-    for bucket in result[subscription_id][:12]:
-        assert bucket[1] == {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0}
-
-    # Test when epoch cutoff is before start - should return original
-    result = add_extra_buckets_for_epoch_cutoff(
-        formatted_response, datetime(2024, 1, 1, tzinfo=timezone.utc), rollup, start, end
-    )
-    assert result == formatted_response
-
-    # Test with no epoch cutoff - should return original
-    result = add_extra_buckets_for_epoch_cutoff(formatted_response, None, rollup, start, end)
-    assert result == formatted_response
 
 
 @freeze_time(MOCK_DATETIME)

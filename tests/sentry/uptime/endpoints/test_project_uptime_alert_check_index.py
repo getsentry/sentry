@@ -165,18 +165,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data is not None
             assert len(response.data) == 0
 
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
-    )
-    def test_get_with_date_cutoff(self) -> None:
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.project_uptime_subscription.id,
-            )
-            assert response.data is not None
-            assert len(response.data) == 0
+
 
     def test_get_with_none_subscription_id(self) -> None:
         with self.feature(self.features):

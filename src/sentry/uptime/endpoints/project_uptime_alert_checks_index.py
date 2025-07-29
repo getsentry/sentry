@@ -115,13 +115,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         subscription_key: str,
         include_request_sequence_filter: bool,
     ) -> list[EapCheckEntrySerializerResponse]:
-        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
-        epoch_cutoff = (
-            datetime.fromtimestamp(maybe_cutoff, tz=timezone.utc) if maybe_cutoff else None
-        )
-        if epoch_cutoff and epoch_cutoff > start:
-            start = epoch_cutoff
-
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
@@ -381,6 +374,4 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         val_str = check_status_reason_val.val_str
         return cast(CheckStatusReasonType, val_str) if val_str != "" else None
 
-    def _get_date_cutoff_epoch_seconds(self) -> float | None:
-        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
-        return None if value == 0 else value
+

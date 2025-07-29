@@ -85,11 +85,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         except ValueError:
             return self.respond("Invalid project uptime subscription ids provided", status=400)
 
-        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
-        epoch_cutoff = (
-            datetime.datetime.fromtimestamp(maybe_cutoff, tz=datetime.UTC) if maybe_cutoff else None
-        )
-
         try:
             if use_eap_results:
                 eap_response = self._make_eap_request(
@@ -97,7 +92,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                     projects,
                     subscription_ids,
                     timerange_args,
-                    epoch_cutoff,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
                     "guid",
                     "subscription_id",
@@ -110,7 +104,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                     projects,
                     subscription_ids,
                     timerange_args,
-                    epoch_cutoff,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
                     "uptime_check_id",
                     "uptime_subscription_id",
@@ -125,15 +118,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_project_uptime_subscription_id, formatted_response
         )
 
-        response_with_extra_buckets = add_extra_buckets_for_epoch_cutoff(
-            mapped_response,
-            epoch_cutoff,
-            timerange_args["rollup"],
-            timerange_args["start"],
-            timerange_args["end"],
-        )
-
-        return self.respond(response_with_extra_buckets)
+        return self.respond(mapped_response)
 
     def _authorize_and_map_project_uptime_subscription_ids(
         self,
@@ -180,19 +165,14 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
-        epoch_cutoff: datetime.datetime | None,
         trace_item_type: TraceItemType.ValueType,
         aggregation_key: str,
         subscription_key: str,
         include_request_sequence_filter: bool = False,
     ) -> TimeSeriesResponse:
 
-        eap_query_start = timerange_args["start"]
-        if epoch_cutoff and epoch_cutoff > timerange_args["start"]:
-            eap_query_start = epoch_cutoff
-
         start_timestamp = Timestamp()
-        start_timestamp.FromDatetime(eap_query_start)
+        start_timestamp.FromDatetime(timerange_args["start"])
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(timerange_args["end"])
 
@@ -276,7 +256,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         Args:
             response: The EAP RPC TimeSeriesResponse
             subscription_key: The attribute name for subscription ID ("uptime_subscription_id" or "subscription_id")
-            epoch_cutoff: Optional cutoff timestamp for data
         """
         formatted_data: dict[str, dict[int, dict[str, int]]] = {}
 
@@ -318,50 +297,4 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             for subscription_id, data in formatted_response.items()
         }
 
-    def _get_date_cutoff_epoch_seconds(self) -> float | None:
-        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
-        return None if value == 0 else value
 
-
-# TODO(jferg): remove after 90 days
-def add_extra_buckets_for_epoch_cutoff(
-    formatted_response: dict[int, list[tuple[int, dict[str, int]]]],
-    epoch_cutoff: datetime.datetime | None,
-    rollup: int,
-    start: datetime.datetime,
-    end: datetime.datetime | None,
-) -> dict[int, list[tuple[int, dict[str, int]]]]:
-    """
-    Add padding buckets to the response to account for the epoch cutoff.
-    this is because pre-GA we did not store data.
-    """
-    if not epoch_cutoff or not formatted_response or epoch_cutoff < start:
-        return formatted_response
-
-    end = end or datetime.datetime.now(tz=datetime.UTC)
-
-    # Calculate the number of padding buckets needed.
-    total_buckets = int((end.timestamp() - start.timestamp()) / rollup)
-
-    rollup_secs = rollup
-    result = {}
-
-    # check the first one and see if it has enough buckets if so return
-    # because all of them should have the same number of buckets
-    first_result = formatted_response[list(formatted_response.keys())[0]]
-    if len(first_result) >= total_buckets:
-        return formatted_response
-    num_missing = total_buckets - len(first_result)
-
-    # otherwise prepend empty buckets
-    for subscription_id, data in formatted_response.items():
-        missing_buckets = []
-        for i in range(num_missing):
-            ts = int(start.timestamp()) + (i * rollup_secs)
-            missing_buckets.append(
-                (ts, {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0})
-            )
-
-        result[subscription_id] = missing_buckets + data
-
-    return result
