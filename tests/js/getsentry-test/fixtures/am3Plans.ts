@@ -62,7 +62,7 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   },
   profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
-  logBytes: {singular: 'log byte', plural: 'log bytes'},
+  logBytes: {singular: 'log', plural: 'logs'},
   seerAutofix: {singular: 'issue fix', plural: 'issue fixes'},
   seerScanner: {singular: 'issue scan', plural: 'issue scans'},
 };
