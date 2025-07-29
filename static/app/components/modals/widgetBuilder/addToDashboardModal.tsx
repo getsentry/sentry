@@ -381,6 +381,7 @@ function AddToDashboardModal({
                       disableFullscreen
                       onWidgetTableResizeColumn={handleWidgetTableColumnResize}
                       onWidgetTableSort={handleWidgetTableSort}
+                      isPreview
                     />
                   </WidgetCardWrapper>
                   <IndexedEventsSelectionAlert widget={widget} />
