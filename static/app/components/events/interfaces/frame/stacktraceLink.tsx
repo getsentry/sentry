@@ -238,14 +238,6 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     text: filePath,
     successMessage: t('File path copied to clipboard'),
     errorMessage: t('Failed to copy file path'),
-    onCopy: () => {
-      trackAnalytics('integrations.stacktrace_file_path_copied', {
-        view: 'stacktrace_issue_details',
-        organization,
-        group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
-        ...getAnalyticsDataForEvent(event),
-      });
-    },
   });
 
   const copyButtonProps = {
@@ -256,6 +248,12 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     onClick: (e: React.MouseEvent) => {
       e.stopPropagation();
       handleCopyPath();
+    },
+    analyticsEventKey: 'stacktrace_link_copy_file_path',
+    analyticsEventName: 'Stacktrace Link Copy File Path',
+    analyticsParams: {
+      group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+      ...getAnalyticsDataForEvent(event),
     },
   };
 
