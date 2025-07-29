@@ -27,7 +27,7 @@ from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import ingest_errors_tasks
+from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks, ingest_errors_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -40,7 +40,6 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.workflow_engine.types import WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -482,6 +481,29 @@ def should_update_escalating_metrics(event: Event) -> bool:
 
 
 @instrumented_task(
+    name="sentry.issues.tasks.post_process.post_process_group",
+    time_limit=120,
+    soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_postprocess_tasks,
+        processing_deadline_duration=120,
+    ),
+)
+def post_process_group_shim(*args, **kwargs) -> None:
+    """
+    Deployment shim for post_process_group.
+
+    We need to move this task to a new taskworker namespace, but don't want to change the
+    celery queue, or task name of inflight tasks.
+
+    Once all inflight work is going through this task, we can rename this function and remove
+    the binding to the old namespace.
+    """
+    post_process_group(*args, **kwargs)
+
+
+@instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
@@ -625,7 +647,7 @@ def post_process_group(
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
                     "has_alert": False,
-                    "has_escalated": False,
+                    "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
@@ -724,7 +746,7 @@ def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore[assignment]  # python/mypy#3004
+    event.data = EventDict(event.data, skip_renormalization=True)
     return event
 
 
@@ -795,7 +817,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 
 def process_snoozes(job: PostProcessJob) -> None:
     """
-    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved",
+    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved" and
+    set has_escalated to True if the group is transitioning from "archived until escalating" to "unresolved"
     otherwise set to False.
     """
     # we process snoozes before rules as it might create a regression
@@ -834,8 +857,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             manage_issue_states(
                 group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
             )
-
-            job["has_reappeared"] = True
+            job["has_escalated"] = True
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -955,44 +977,28 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     """
     metrics.incr("workflow_engine.issue_platform.payload.received.occurrence")
 
-    from sentry.workflow_engine.processors.workflow import process_workflows
-    from sentry.workflow_engine.tasks import process_workflows_event
+    from sentry.workflow_engine.tasks.workflows import process_workflows_event
 
-    # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
-        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        logger.error("Missing event to schedule workflow task", extra={"job": job})
+        return
+
+    if not job["event"].group.is_unresolved():
         return
 
     try:
-        workflow_event_data = WorkflowEventData(
-            event=job["event"],
-            group=job["event"].group,
-            group_state=job.get("group_state"),
-            has_reappeared=job.get("has_reappeared"),
-            has_escalated=job.get("has_escalated"),
+        process_workflows_event.delay(
+            project_id=job["event"].project_id,
+            event_id=job["event"].event_id,
+            occurrence_id=job["event"].occurrence_id,
+            group_id=job["event"].group_id,
+            group_state=job["group_state"],
+            has_reappeared=job["has_reappeared"],
+            has_escalated=job["has_escalated"],
         )
     except Exception:
-        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        logger.exception("Could not process workflow task", extra={"job": job})
         return
-
-    org = job["event"].project.organization
-    if not features.has("organizations:workflow-engine-post-process-async", org):
-        with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-            process_workflows(workflow_event_data)
-    else:
-        try:
-            process_workflows_event.delay(
-                project_id=job["event"].project_id,
-                event_id=job["event"].event_id,
-                occurrence_id=job["event"].occurrence_id,
-                group_id=job["event"].group_id,
-                group_state=job["group_state"],
-                has_reappeared=job["has_reappeared"],
-                has_escalated=job["has_escalated"],
-            )
-        except Exception:
-            logger.exception("Could not process workflow task", extra={"job": job})
-            return
 
 
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
@@ -1003,11 +1009,12 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
         return
 
     org = job["event"].project.organization
-    # TODO: only fire one system. To test, fire from both systems and observe metrics
-    if not features.has("organizations:workflow-engine-process-workflows", org):
-        return
 
-    process_workflow_engine(job)
+    # process workflow engine if we are single processing or dual processing for a specific org
+    if features.has("organizations:workflow-engine-single-process-workflows", org) or features.has(
+        "organizations:workflow-engine-process-workflows", org
+    ):
+        process_workflow_engine(job)
 
 
 def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
@@ -1018,7 +1025,10 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
         return
 
     org = job["event"].project.organization
-    if not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
+    if not (
+        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
+        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
+    ):
         return
 
     process_workflow_engine(job)
@@ -1026,6 +1036,16 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
 
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
+        return
+
+    org = job["event"].project.organization
+
+    if (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
+        # we are only processing through the workflow engine
         return
 
     from sentry.rules.processing.processor import RuleProcessor
@@ -1052,9 +1072,7 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        if not features.has(
-            "organizations:workflow-engine-trigger-actions", group_event.project.organization
-        ):
+        if not features.has("organizations:workflow-engine-trigger-actions", org):
             for callback, futures in callback_and_futures:
                 has_alert = True
                 safe_execute(callback, group_event, futures)
@@ -1344,16 +1362,14 @@ def feedback_filter_decorator(func):
 
 
 def should_postprocess_feedback(job: PostProcessJob) -> bool:
-    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+    from sentry.feedback.lib.utils import FeedbackCreationSource
 
     event = job["event"]
 
     if not hasattr(event, "occurrence") or event.occurrence is None:
         return False
 
-    if event.occurrence.evidence_data.get("is_spam") is True and features.has(
-        "organizations:user-feedback-spam-filter-actions", job["event"].project.organization
-    ):
+    if event.occurrence.evidence_data.get("is_spam") is True:
         metrics.incr("feedback.spam-detection-actions.dont-send-notification")
         return False
 
@@ -1429,19 +1445,15 @@ def check_has_high_priority_alerts(job: PostProcessJob) -> None:
 
 
 def link_event_to_user_report(job: PostProcessJob) -> None:
-    from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
+    from sentry.feedback.lib.utils import FeedbackCreationSource
+    from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
     from sentry.models.userreport import UserReport
 
     event = job["event"]
     project = event.project
     group = event.group
 
-    if (
-        features.has(
-            "organizations:user-feedback-event-link-ingestion-changes", project.organization
-        )
-        and not job["is_reprocessed"]
-    ):
+    if not job["is_reprocessed"]:
         metrics.incr("event_manager.save._update_user_reports_with_event_link")
         event = job["event"]
         project = event.project
@@ -1578,7 +1590,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
     from sentry.tasks.autofix import start_seer_automation
 
@@ -1587,12 +1599,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     # Only run on issues with no existing scan
     if group.seer_fixability_score is not None:
-        return
-
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
         return
 
     # check currently supported issue categories for Seer
@@ -1622,6 +1628,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not project.get_option("sentry:seer_scanner_automation"):
         return
 
+    # Don't run if there's already a task in progress for this issue
+    lock_key, lock_name = get_issue_summary_lock_key(group.id)
+    lock = locks.get(lock_key, duration=1, name=lock_name)
+    if lock.locked():
+        return
+
     seer_enabled = get_seer_org_acknowledgement(group.organization.id)
     if not seer_enabled:
         return
@@ -1635,7 +1647,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not has_budget:
         return
 
-    from sentry.autofix.utils import is_seer_scanner_rate_limited
+    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
         return

@@ -8,12 +8,11 @@ import FormField from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 
 export function DetectorBaseFields() {
   return (
-    <Flex gap={space(1)} direction="column">
+    <Flex gap="md" direction="column">
       <Layout.Title>
         <FormField name="name" inline={false} flexibleControlStateSize stacked>
           {({onChange, value}) => (
@@ -29,11 +28,12 @@ export function DetectorBaseFields() {
               }}
               errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
+              aria-label={t('Monitor Name')}
             />
           )}
         </FormField>
       </Layout.Title>
-      <Flex gap={space(1)}>
+      <Flex gap="md">
         <ProjectField />
         <EnvironmentField />
       </Flex>

@@ -35,14 +35,16 @@ describe('Visualize', () => {
             key: 'span.duration',
             name: 'span.duration',
             kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
           'span.self_time': {
             key: 'span.self_time',
             name: 'span.self_time',
             kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
           },
         };
-        return {tags, isLoading: false};
+        return {tags, isLoading: false, secondaryAliases: {}};
       }
 
       const tags: TagCollection = {
@@ -60,6 +62,7 @@ describe('Visualize', () => {
 
       return {
         tags,
+        secondaryAliases: {},
         isLoading: false,
       };
     });
@@ -1262,6 +1265,7 @@ describe('Visualize', () => {
                 kind: 'measurement',
               },
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
@@ -1274,6 +1278,7 @@ describe('Visualize', () => {
               kind: 'tag',
             },
           } as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1422,12 +1427,14 @@ describe('Visualize', () => {
             tags: {
               'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
             } as TagCollection,
+            secondaryAliases: {},
             isLoading: false,
           };
         }
 
         return {
           tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          secondaryAliases: {},
           isLoading: false,
         };
       });
@@ -1737,5 +1744,73 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('span.op');
+  });
+
+  it('disables visualize step when discover-saved-queries-deprecation feature is enabled and dataset is transactions', async function () {
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be disabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeDisabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeDisabled();
+  });
+
+  it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async function () {
+    const organizationWithoutDeprecation = OrganizationFixture({
+      features: [], // No discover-saved-queries-deprecation feature
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithoutDeprecation,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p95(transaction.duration)'],
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // The dropdowns should be enabled
+    const aggregateSelect = await screen.findByRole('button', {
+      name: 'Aggregate Selection',
+    });
+    expect(aggregateSelect).toBeEnabled();
+
+    const columnSelect = await screen.findByRole('button', {name: 'Column Selection'});
+    expect(columnSelect).toBeEnabled();
   });
 });

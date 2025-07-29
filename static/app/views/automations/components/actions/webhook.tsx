@@ -1,5 +1,5 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
@@ -12,8 +12,8 @@ export function WebhookDetails({
   handler: ActionHandler;
 }) {
   const service =
-    handler.services?.find(s => s.slug === action.config.target_identifier)?.name ||
-    action.config.target_identifier;
+    handler.services?.find(s => s.slug === action.config.targetIdentifier)?.name ||
+    action.config.targetIdentifier;
 
   return tct('Send a notification via [service]', {
     service: String(service),
@@ -32,8 +32,9 @@ function ServicesField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.config.target_identifier`}
-      value={action.config.target_identifier}
+      name={`${actionId}.config.targetIdentifier`}
+      aria-label={t('Webhook')}
+      value={action.config.targetIdentifier}
       options={services?.map(service => ({
         label: service.name,
         value: service.slug,
@@ -42,10 +43,17 @@ function ServicesField() {
         onUpdate({
           config: {
             ...action.config,
-            target_identifier: option.value,
+            targetIdentifier: option.value,
           },
         });
       }}
     />
   );
+}
+
+export function validateWebhookAction(action: Action): string | undefined {
+  if (!action.config.targetIdentifier) {
+    return t('You must specify an integration.');
+  }
+  return undefined;
 }

@@ -10,12 +10,25 @@ from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.taskworker.registry import taskregistry
 
 
-def test_import_paths():
+def test_import_paths() -> None:
     for path in settings.TASKWORKER_IMPORTS:
         try:
             __import__(path)
         except ImportError:
             raise AssertionError(f"Unable to import {path} from TASKWORKER_IMPORTS")
+
+
+def test_taskworker_schedule_unique() -> None:
+    visited: dict[str, str] = {}
+    for key, entry in settings.TASKWORKER_SCHEDULES.items():
+        if entry["task"] in visited:
+            msg = (
+                f"Schedule {key} references a task ({entry['task']}) "
+                f"that is already scheduled under key {visited[entry['task']]}."
+            )
+            raise AssertionError(msg)
+
+        visited[entry["task"]] = key
 
 
 @pytest.mark.parametrize("name,config", list(settings.TASKWORKER_SCHEDULES.items()))

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useRouter from 'sentry/utils/useRouter';
-import type {ChartInfo} from 'sentry/views/explore/charts';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Drawer} from 'sentry/views/explore/components/suspectTags/drawer';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 
@@ -19,9 +19,9 @@ type Props = {
   triggerWrapperRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}: Props) {
+export function FloatingTrigger({boxSelectOptions, chartInfo, triggerWrapperRef}: Props) {
   const router = useRouter();
-  const pageCoords = boxSelectOptions.pageCoords;
+  const triggerPosition = boxSelectOptions.floatingTriggerPosition;
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const {openDrawer} = useDrawer();
@@ -73,15 +73,16 @@ export function FloatingTrigger({boxSelectOptions, triggerWrapperRef, chartInfo}
     }
   }, [boxSelectOptions, chartInfo, isDrawerOpen, openDrawer]);
 
-  if (!pageCoords) return null;
+  if (!triggerPosition) return null;
 
   return createPortal(
     <div
       ref={triggerWrapperRef}
       style={{
         position: 'absolute',
-        top: pageCoords.y,
-        left: pageCoords.x,
+        top: triggerPosition.top,
+        left: triggerPosition.left,
+        zIndex: 1000,
       }}
     >
       <List>

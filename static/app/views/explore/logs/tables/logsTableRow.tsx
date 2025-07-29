@@ -17,10 +17,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
   Actions,
-  copyToClipBoard,
+  ActionTriggerType,
+  copyToClipboard,
+  openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsAnalyticsPageSource,
   useLogsBlockRowExpanding,
@@ -116,6 +122,8 @@ export const LogRowContent = memo(function LogRowContent({
   const setLogsSearch = useSetLogsSearch();
   const isTableFrozen = useLogsIsTableFrozen();
   const blockRowExpanding = useLogsBlockRowExpanding();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
   const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
     canDeferRenderElements ? false : true
@@ -154,6 +162,10 @@ export const LogRowContent = memo(function LogRowContent({
     } else {
       setExpanded(e => !e);
     }
+    if (!isExpanded && autorefreshEnabled) {
+      setAutorefresh('idle');
+    }
+
     trackAnalytics('logs.table.row_expanded', {
       log_id: String(dataRow[OurLogKnownFieldKey.ID]),
       page_source: analyticsPageSource,
@@ -239,7 +251,6 @@ export const LogRowContent = memo(function LogRowContent({
         data-test-id="log-table-row"
         {...rowInteractProps}
         onMouseEnter={() => setShouldRenderHoverElements(true)}
-        onMouseLeave={() => setShouldRenderHoverElements(false)}
       >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
@@ -306,7 +317,10 @@ export const LogRowContent = memo(function LogRowContent({
                         });
                         break;
                       case Actions.COPY_TO_CLIPBOARD:
-                        copyToClipBoard(cellValue);
+                        copyToClipboard(cellValue);
+                        break;
+                      case Actions.OPEN_EXTERNAL_LINK:
+                        openExternalLink(cellValue);
                         break;
                       default:
                         break;
@@ -317,6 +331,7 @@ export const LogRowContent = memo(function LogRowContent({
                       ? []
                       : ALLOWED_CELL_ACTIONS
                   }
+                  triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
                 </CellAction>

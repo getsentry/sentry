@@ -2,8 +2,9 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -11,19 +12,19 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {
   DataConditionNodeContext,
   dataConditionNodesMap,
-  frequencyTypeMapping,
   useDataConditionNodeContext,
 } from 'sentry/views/automations/components/dataConditionNodes';
 import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
-  conflictingConditionIds: string[];
-  group: string;
+  groupId: string;
   handlerGroup: DataConditionHandlerGroupType;
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: string) => void;
@@ -38,15 +39,18 @@ interface Option {
 
 export default function DataConditionNodeList({
   handlerGroup,
-  group,
+  groupId,
   placeholder,
   conditions,
   onAddRow,
   onDeleteRow,
   updateCondition,
-  conflictingConditionIds,
 }: DataConditionNodeListProps) {
   const {data: dataConditionHandlers = []} = useDataConditionsQuery(handlerGroup);
+  const {conflictingConditionGroups, conflictReason} =
+    useAutomationBuilderConflictContext();
+  const conflictingConditions = conflictingConditionGroups[groupId];
+  const {errors} = useAutomationBuilderErrorContext();
 
   const options = useMemo(() => {
     if (handlerGroup === DataConditionHandlerGroupType.WORKFLOW_TRIGGER) {
@@ -59,6 +63,7 @@ export default function DataConditionNodeList({
     const issueAttributeOptions: Option[] = [];
     const frequencyOptions: Option[] = [];
     const eventAttributeOptions: Option[] = [];
+    const otherOptions: Option[] = [];
 
     const percentageTypes = [
       DataConditionType.EVENT_FREQUENCY_PERCENT,
@@ -67,18 +72,25 @@ export default function DataConditionNodeList({
     ];
 
     dataConditionHandlers.forEach(handler => {
-      if (
-        percentageTypes.includes(handler.type) || // Skip percentage types so that frequency conditions are not duplicated
-        handler.type === DataConditionType.ISSUE_PRIORITY_DEESCALATING // Skip issue priority deescalating condition since it is handled separately
-      ) {
+      // Skip percentage types so that frequency conditions are not duplicated
+      if (percentageTypes.includes(handler.type)) {
         return;
       }
 
       const conditionType = frequencyTypeMapping[handler.type] || handler.type;
+      const conditionLabel = dataConditionNodesMap.get(conditionType)?.label;
+      const WarningMessage = dataConditionNodesMap.get(conditionType)?.warningMessage;
 
       const newDataCondition: Option = {
         value: conditionType,
-        label: dataConditionNodesMap.get(handler.type)?.label || handler.type,
+        label: conditionLabel || handler.type,
+        ...(WarningMessage && {
+          trailingItems: (
+            <Tooltip title={<WarningMessage />}>
+              <IconWarning />
+            </Tooltip>
+          ),
+        }),
       };
 
       if (handler.handlerSubgroup === DataConditionHandlerSubgroupType.EVENT_ATTRIBUTES) {
@@ -89,6 +101,8 @@ export default function DataConditionNodeList({
         handler.handlerSubgroup === DataConditionHandlerSubgroupType.ISSUE_ATTRIBUTES
       ) {
         issueAttributeOptions.push(newDataCondition);
+      } else {
+        otherOptions.push(newDataCondition);
       }
     });
 
@@ -108,81 +122,43 @@ export default function DataConditionNodeList({
         label: t('Filter by Event Attributes'),
         options: eventAttributeOptions,
       },
+      {
+        key: 'other',
+        label: t('Other'),
+        options: otherOptions,
+      },
     ];
   }, [dataConditionHandlers, handlerGroup]);
 
-  const issuePriorityDeescalatingConditionId: string | undefined = useMemo(() => {
-    return conditions.find(
-      condition => condition.type === DataConditionType.ISSUE_PRIORITY_DEESCALATING
-    )?.id;
-  }, [conditions]);
-
-  const onIssuePriorityDeescalatingChange = () => {
-    if (issuePriorityDeescalatingConditionId) {
-      onDeleteRow(issuePriorityDeescalatingConditionId);
-    } else {
-      onAddRow(DataConditionType.ISSUE_PRIORITY_DEESCALATING);
-    }
-  };
-
-  const onDeleteRowHandler = (condition: DataCondition) => {
-    onDeleteRow(condition.id);
-
-    // Count remaining ISSUE_PRIORITY_GREATER_OR_EQUAL conditions (excluding the one being deleted)
-    const remainingPriorityConditions = conditions.filter(
-      c =>
-        c.type === DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL &&
-        c.id !== condition.id
-    ).length;
-
-    // If no more ISSUE_PRIORITY_GREATER_OR_EQUAL conditions exist, remove the ISSUE_PRIORITY_DEESCALATING condition
-    if (remainingPriorityConditions === 0 && issuePriorityDeescalatingConditionId) {
-      onDeleteRow(issuePriorityDeescalatingConditionId);
-    }
-  };
-
   return (
     <Fragment>
-      {conditions.map(
-        condition =>
-          // ISSUE_PRIORITY_DEESCALATING condition is a special case attached to the ISSUE_PRIORITY_GREATER_OR_EQUAL condition
-          condition.type !== DataConditionType.ISSUE_PRIORITY_DEESCALATING && (
-            <AutomationBuilderRow
-              key={`${group}.conditions.${condition.id}`}
-              onDelete={() => onDeleteRowHandler(condition)}
-              isConflicting={conflictingConditionIds.includes(condition.id)}
+      {conditions.map(condition => {
+        const error = errors?.[condition.id];
+
+        return (
+          <AutomationBuilderRow
+            key={condition.id}
+            onDelete={() => onDeleteRow(condition.id)}
+            hasError={conflictingConditions?.has(condition.id) || !!error}
+            errorMessage={error}
+          >
+            <DataConditionNodeContext.Provider
+              value={{
+                condition,
+                condition_id: condition.id,
+                onUpdate: params => updateCondition(condition.id, params),
+              }}
             >
-              <DataConditionNodeContext.Provider
-                value={{
-                  condition,
-                  condition_id: `${group}.conditions.${condition.id}`,
-                  onUpdate: params => updateCondition(condition.id, params),
-                }}
-              >
-                <Node />
-                {condition.type === DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL && (
-                  <Fragment>
-                    <Checkbox
-                      checked={!!issuePriorityDeescalatingConditionId}
-                      onChange={() => onIssuePriorityDeescalatingChange()}
-                    />
-                    {t('Notify on deescalation')}
-                  </Fragment>
-                )}
-              </DataConditionNodeContext.Provider>
-            </AutomationBuilderRow>
-          )
-      )}
+              <Node />
+            </DataConditionNodeContext.Provider>
+          </AutomationBuilderRow>
+        );
+      })}
       {/* Always show alert for conflicting action filters, but only show alert for triggers when the trigger conditions conflict with each other */}
-      {((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
-        conflictingConditionIds.length > 0) ||
-        conflictingConditionIds.length > 1) && (
-        <Alert type="error" showIcon>
-          {t(
-            'The conditions highlighted in red are in conflict.  They may prevent the alert from ever being triggered.'
-          )}
-        </Alert>
-      )}
+      {conflictingConditions &&
+        ((handlerGroup === DataConditionHandlerGroupType.ACTION_FILTER &&
+          conflictingConditions.size > 0) ||
+          conflictingConditions.size > 1) && <Alert type="error">{conflictReason}</Alert>}
       <StyledSelectControl
         options={options}
         onChange={(obj: any) => {
@@ -190,6 +166,7 @@ export default function DataConditionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        aria-label={t('Add condition')}
       />
     </Fragment>
   );
@@ -202,6 +179,21 @@ function Node() {
   const Component = node?.dataCondition;
   return Component ? <Component /> : node?.label;
 }
+
+/**
+ * Maps COUNT and PERCENT frequency conditions to their base frequency type.
+ * This is used in the UI to show both conditions as a single branching condition.
+ */
+const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> = {
+  [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
+  [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
+  [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
+  [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
+  [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+  [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
+    DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
+};
 
 const StyledSelectControl = styled(Select)`
   width: 100%;

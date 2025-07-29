@@ -13,6 +13,7 @@ import {
   Grid,
   GridBody,
   GridBodyCell,
+  GridBodyCellStatic,
   GridBodyCellStatus,
   GridHead,
   GridHeadCell,
@@ -156,6 +157,18 @@ class GridEditable<
     };
   }
 
+  constructor(props: GridEditableProps<DataRow, ColumnKey>) {
+    super(props);
+    this.onResetColumnSize = this.onResetColumnSize.bind(this);
+    this.onResizeMouseDown = this.onResizeMouseDown.bind(this);
+    this.onResizeMouseUp = this.onResizeMouseUp.bind(this);
+    this.onResizeMouseMove = this.onResizeMouseMove.bind(this);
+    this.redrawGridColumn = this.redrawGridColumn.bind(this);
+    this.resizeGridColumn = this.resizeGridColumn.bind(this);
+    this.renderGridBody = this.renderGridBody.bind(this);
+    this.renderGridBodyRow = this.renderGridBodyRow.bind(this);
+  }
+
   state: GridEditableState = {
     numColumn: 0,
   };
@@ -189,7 +202,7 @@ class GridEditable<
     });
   }
 
-  onResetColumnSize = (e: React.MouseEvent, i: number) => {
+  onResetColumnSize(e: React.MouseEvent, i: number) {
     e.stopPropagation();
 
     const nextColumnOrder = [...this.props.columnOrder];
@@ -206,9 +219,9 @@ class GridEditable<
         width: COL_WIDTH_UNDEFINED,
       });
     }
-  };
+  }
 
-  onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
+  onResizeMouseDown(e: React.MouseEvent, i = -1) {
     e.stopPropagation();
 
     // Block right-click and other funky stuff
@@ -234,9 +247,9 @@ class GridEditable<
 
     window.addEventListener('mouseup', this.onResizeMouseUp);
     this.resizeWindowLifecycleEvents.mouseup!.push(this.onResizeMouseUp);
-  };
+  }
 
-  onResizeMouseUp = (e: MouseEvent) => {
+  onResizeMouseUp(e: MouseEvent) {
     const metadata = this.resizeMetadata;
     const onResizeColumn = this.props.grid.onResizeColumn;
 
@@ -252,16 +265,16 @@ class GridEditable<
 
     this.resizeMetadata = undefined;
     this.clearWindowLifecycleEvents();
-  };
+  }
 
-  onResizeMouseMove = (e: MouseEvent) => {
+  onResizeMouseMove(e: MouseEvent) {
     const {resizeMetadata} = this;
     if (!resizeMetadata) {
       return;
     }
 
     window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
-  };
+  }
 
   resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
     const grid = this.refGrid.current;
@@ -283,9 +296,9 @@ class GridEditable<
   /**
    * Recalculate the dimensions of Grid and Columns and redraws them
    */
-  redrawGridColumn = () => {
+  redrawGridColumn() {
     this.setGridTemplateColumns(this.props.columnOrder);
-  };
+  }
 
   /**
    * Set the CSS for Grid Column
@@ -330,6 +343,7 @@ class GridEditable<
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(true)
       : [];
+
     return (
       <GridRow data-test-id="grid-head-row">
         {prependColumns &&
@@ -382,7 +396,7 @@ class GridEditable<
     return data.map(this.renderGridBodyRow);
   }
 
-  renderGridBodyRow = (dataRow: DataRow, row: number) => {
+  renderGridBodyRow(dataRow: DataRow, row: number) {
     const {columnOrder, grid, onRowMouseOver, onRowMouseOut, highlightedRowKey} =
       this.props;
     const prependColumns = grid.renderPrependColumns
@@ -399,9 +413,9 @@ class GridEditable<
         <InteractionStateLayer isHovered={row === highlightedRowKey} as="td" />
 
         {prependColumns?.map((item, i) => (
-          <GridBodyCell data-test-id="grid-body-cell" key={`prepend-${i}`}>
+          <GridBodyCellStatic data-test-id="grid-body-cell" key={`prepend-${i}`}>
             {item}
-          </GridBodyCell>
+          </GridBodyCellStatic>
         ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell data-test-id="grid-body-cell" key={`${col.key}${i}`}>
@@ -412,7 +426,7 @@ class GridEditable<
         ))}
       </GridRow>
     );
-  };
+  }
 
   renderError() {
     return (

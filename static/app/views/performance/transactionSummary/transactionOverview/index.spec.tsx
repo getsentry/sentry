@@ -854,7 +854,6 @@ describe('Performance > TransactionSummary', function () {
         screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
       await userEvent.paste('user.email:uhoh*');
-      await userEvent.keyboard('{enter}');
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledTimes(1);

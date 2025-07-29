@@ -119,7 +119,7 @@ function getRegularChanges(subscription: Subscription) {
 
   if (pendingChanges.reserved.errors !== subscription.categories.errors?.reserved) {
     const old = formatReservedWithUnits(
-      subscription.reservedEvents || (subscription.categories.errors?.reserved ?? null),
+      subscription.categories.errors?.reserved ?? null,
       DataCategory.ERRORS
     );
     const change = formatReservedWithUnits(
@@ -385,9 +385,7 @@ function PendingChanges({subscription}: any) {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info" showIcon>
-          This account has pending changes to the subscription
-        </Alert>
+        <Alert type="info">This account has pending changes to the subscription</Alert>
       </Alert.Container>
 
       <List>

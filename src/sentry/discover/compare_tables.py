@@ -71,7 +71,11 @@ def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPR
         for field, data in metrics_data_row.items():
             if is_equation(field):
                 continue
-            translated_field, *rest = translate_columns([field])
+            [translated_field, *rest], dropped_columns = translate_columns([field])
+            # if we're dropping the field in eap then we can skip checking for mismatches
+            if len(dropped_columns) > 0:
+                continue
+
             arg: str | None = None
             if match := is_function(field):
                 function = match.group("function")
@@ -121,10 +125,19 @@ def compare_tables_for_dashboard_widget_queries(
         organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
     )
 
+    widget_viewer_url = (
+        generate_organization_url(organization.slug)
+        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
+    )
+
     if len(list(projects)) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.NO_PROJECT.value)
+            scope.set_tag(
+                "widget_viewer_url",
+                widget_viewer_url,
+            )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
             )
@@ -137,12 +150,30 @@ def compare_tables_for_dashboard_widget_queries(
             "query": None,
         }
 
-    fields = widget_query.fields
+    aggregates = widget_query.aggregates
+    columns = widget_query.columns
+    query_fields = widget_query.fields
+
+    fields_set = set()
+
+    if aggregates:
+        fields_set.update(aggregates)
+    if columns:
+        fields_set.update(columns)
+    if query_fields:
+        fields_set.update(query_fields)
+
+    fields = list(fields_set)
+
     if len(fields) == 0:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("passed", False)
             scope.set_tag("failed_reason", CompareTableResult.NO_FIELDS.value)
             scope.set_tag("widget_fields", fields)
+            scope.set_tag(
+                "widget_viewer_url",
+                widget_viewer_url,
+            )
             sentry_sdk.capture_message(
                 "dashboard_widget_comparison_done", level="info", scope=scope
             )
@@ -223,11 +254,6 @@ def compare_tables_for_dashboard_widget_queries(
     except Exception as e:
         logger.info("EAP query failed: %s", e)
         has_eap_error = True
-
-    widget_viewer_url = (
-        generate_organization_url(organization.slug)
-        + f"/dashboard/{dashboard.id}/widget/{widget.id}/"
-    )
 
     if has_metrics_error and has_eap_error:
         with sentry_sdk.isolation_scope() as scope:

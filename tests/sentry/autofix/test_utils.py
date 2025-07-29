@@ -4,10 +4,10 @@ from unittest.mock import patch
 import pytest
 from django.conf import settings
 
-from sentry.autofix.utils import (
+from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.utils import (
     AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS,
     AutofixState,
-    AutofixStatus,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_autofix_state_from_pr_id,
@@ -20,12 +20,12 @@ from sentry.utils import json
 
 
 class TestGetRepoFromCodeMappings(TestCase):
-    def test_code_mappings_empty(self):
+    def test_code_mappings_empty(self) -> None:
         project = self.create_project()
         repos = get_autofix_repos_from_project_code_mappings(project)
         assert repos == []
 
-    def test_get_repos_from_project_code_mappings_with_data(self):
+    def test_get_repos_from_project_code_mappings_with_data(self) -> None:
         project = self.create_project()
         repo = self.create_repo(name="getsentry/sentry", provider="github", external_id="123")
         self.create_code_mapping(project=project, repo=repo)
@@ -191,7 +191,7 @@ class TestGetAutofixState(TestCase):
 
 class TestAutomationRateLimiting(TestCase):
     @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
-    @patch("sentry.autofix.utils.track_outcome")
+    @patch("sentry.seer.autofix.utils.track_outcome")
     def test_scanner_rate_limited_with_unlimited_flag(self, mock_track_outcome):
         """Test scanner rate limiting bypassed with unlimited feature flag"""
         project = self.create_project()
@@ -202,23 +202,23 @@ class TestAutomationRateLimiting(TestCase):
         assert is_rate_limited is False
         mock_track_outcome.assert_not_called()
 
-    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
-    @patch("sentry.autofix.utils.track_outcome")
+    @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
+    @patch("sentry.seer.autofix.utils.track_outcome")
     def test_scanner_rate_limited_logic(self, mock_track_outcome, mock_is_limited):
         """Test scanner rate limiting logic"""
         project = self.create_project()
         organization = project.organization
 
-        mock_is_limited.return_value = (True, 45, None)
+        mock_is_limited.return_value = (True, 10, None)
 
-        with self.options({"seer.max_num_scanner_autotriggered_per_minute": 50}):
+        with self.options({"seer.max_num_scanner_autotriggered_per_ten_seconds": 15}):
             is_rate_limited = is_seer_scanner_rate_limited(project, organization)
 
         assert is_rate_limited is True
         mock_track_outcome.assert_called_once()
 
     @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
-    @patch("sentry.autofix.utils.track_outcome")
+    @patch("sentry.seer.autofix.utils.track_outcome")
     def test_autofix_rate_limited_with_unlimited_flag(self, mock_track_outcome):
         """Test autofix rate limiting bypassed with unlimited feature flag"""
         project = self.create_project()
@@ -229,8 +229,8 @@ class TestAutomationRateLimiting(TestCase):
         assert is_rate_limited is False
         mock_track_outcome.assert_not_called()
 
-    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
-    @patch("sentry.autofix.utils.track_outcome")
+    @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
+    @patch("sentry.seer.autofix.utils.track_outcome")
     def test_autofix_rate_limited_logic(self, mock_track_outcome, mock_is_limited):
         """Test autofix rate limiting logic"""
         project = self.create_project()
@@ -246,7 +246,7 @@ class TestAutomationRateLimiting(TestCase):
         assert is_rate_limited is True
         mock_track_outcome.assert_called_once()
 
-    @patch("sentry.autofix.utils.ratelimits.backend.is_limited_with_value")
+    @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
     def test_autofix_rate_limit_multiplication_logic(self, mock_is_limited):
         """Test that the limit is multiplied correctly based on project option"""
         project = self.create_project()

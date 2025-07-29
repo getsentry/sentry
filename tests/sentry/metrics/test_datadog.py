@@ -7,7 +7,7 @@ from sentry.metrics.datadog import DatadogMetricsBackend
 
 
 class DatadogMetricsBackendTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = DatadogMetricsBackend(prefix="sentrytest.")
 
     @patch("datadog.threadstats.base.ThreadStats.increment")

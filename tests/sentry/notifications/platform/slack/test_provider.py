@@ -10,19 +10,18 @@ from sentry.testutils.notifications.platform import MockNotification, MockNotifi
 
 
 class SlackRendererTest(TestCase):
-    def test_default_renderer(self):
-        renderer = SlackNotificationProvider.get_renderer(category=NotificationCategory.DEBUG)
-        # TODO(ecosystem): Replace this with a real data blob, template and renderable
-        assert (
-            renderer.render(
-                data=MockNotification(message="test"), template=MockNotificationTemplate()
-            )
-            == {}
+    def test_default_renderer(self) -> None:
+        data = MockNotification(message="test")
+        template = MockNotificationTemplate()
+        rendered_template = template.render(data)
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
         )
+        assert renderer.render(data=data, rendered_template=rendered_template) == {}
 
 
 class SlackNotificationProviderTest(TestCase):
-    def test_basic_fields(self):
+    def test_basic_fields(self) -> None:
         provider = SlackNotificationProvider()
         assert provider.key == NotificationProviderKey.SLACK
         assert provider.target_class == IntegrationNotificationTarget
@@ -31,6 +30,6 @@ class SlackNotificationProviderTest(TestCase):
             NotificationTargetResourceType.DIRECT_MESSAGE,
         ]
 
-    def test_is_available(self):
+    def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
         assert SlackNotificationProvider.is_available(organization=self.organization) is False

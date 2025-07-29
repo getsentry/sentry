@@ -562,9 +562,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    has_anomaly_detection = features.has(
-        "organizations:anomaly-detection-alerts", organization
-    ) and features.has("organizations:anomaly-detection-rollout", organization)
+    has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
@@ -698,6 +696,19 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
         snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
         nullify_id(snuba_query_snapshot)
         snuba_query_snapshot.save()
+
+        event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=_unpack_snuba_query(alert_rule)
+        )
+        new_event_snapshots = []
+        for event_type in event_types:
+            event_type_snapshot = deepcopy(event_type)
+            nullify_id(event_type_snapshot)
+            event_type_snapshot.snuba_query = snuba_query_snapshot
+            new_event_snapshots.append(event_type_snapshot)
+
+        SnubaQueryEventType.objects.bulk_create(new_event_snapshots)
+
         alert_rule_snapshot = deepcopy(alert_rule)
         nullify_id(alert_rule_snapshot)
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
@@ -887,9 +898,7 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has(
-                "organizations:anomaly-detection-alerts", organization
-            ) and not features.has("organizations:anomaly-detection-rollout", organization):
+            if not features.has("organizations:anomaly-detection-alerts", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )

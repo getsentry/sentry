@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -6,12 +6,10 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -61,40 +59,53 @@ export default function AutomationsList() {
   return (
     <SentryDocumentTitle title={t('Automations')} noSuffix>
       <PageFiltersContainer>
-        <ActionsProvider actions={<Actions />}>
-          <ListLayout>
-            <TableHeader />
-            <div>
-              <AutomationListTable
-                automations={automations ?? []}
-                isPending={isPending}
-                isError={isError}
-                isSuccess={isSuccess}
-                sort={sort}
-              />
-              <Pagination
-                pageLinks={getResponseHeader?.('Link')}
-                onCursor={newCursor => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {...location.query, cursor: newCursor},
-                  });
-                }}
-              />
-            </div>
-          </ListLayout>
-        </ActionsProvider>
+        <ListLayout actions={<Actions />}>
+          <TableHeader />
+          <div>
+            <AutomationListTable
+              automations={automations ?? []}
+              isPending={isPending}
+              isError={isError}
+              isSuccess={isSuccess}
+              sort={sort}
+            />
+            <Pagination
+              pageLinks={getResponseHeader?.('Link')}
+              onCursor={newCursor => {
+                navigate({
+                  pathname: location.pathname,
+                  query: {...location.query, cursor: newCursor},
+                });
+              }}
+            />
+          </div>
+        </ListLayout>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
 
 function TableHeader() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialQuery =
+    typeof location.query.query === 'string' ? location.query.query : '';
+
+  const onSearch = useCallback(
+    (query: string) => {
+      navigate({
+        pathname: location.pathname,
+        query: {...location.query, query, cursor: undefined},
+      });
+    },
+    [location.pathname, location.query, navigate]
+  );
+
   return (
-    <Flex gap={space(2)}>
+    <Flex gap="xl">
       <ProjectPageFilter size="md" />
       <div style={{flexGrow: 1}}>
-        <AutomationSearch />
+        <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />
       </div>
     </Flex>
   );

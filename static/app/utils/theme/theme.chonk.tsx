@@ -21,84 +21,84 @@ import commonTheme, {
 
 const CHART_PALETTE_LIGHT = [
   ['#7553FF'],
-  ['#7553FF', '#FFD00E'],
-  ['#7553FF', '#F53A9F', '#FFD00E'],
-  ['#7553FF', '#F53A9F', '#FFD00E', '#67C800'],
-  ['#7553FF', '#F53A9F', '#FFD00E', '#67C800', '#00A9D2'],
-  ['#7553FF', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#00A9D2'],
-  ['#7553FF', '#5533B2', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#00A9D2'],
+  ['#7553FF', '#3A1873'],
+  ['#7553FF', '#3A1873', '#F0369A'],
+  ['#7553FF', '#3A1873', '#F0369A', '#FF9838'],
+  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E'],
+  ['#7553FF', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  ['#7553FF', '#5533B2', '#3A1873', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
   [
     '#7553FF',
     '#5533B2',
-    '#F53A9F',
-    '#FC746F',
+    '#3A1873',
+    '#7C2282',
+    '#F0369A',
     '#FF9838',
     '#FFD00E',
     '#67C800',
-    '#00A9D2',
-  ],
-  [
-    '#7553FF',
-    '#5533B2',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
-    '#00A9D2',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
     '#FF9838',
     '#FFD00E',
     '#67C800',
-    '#00A9D2',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
     '#5533B2',
   ],
@@ -106,14 +106,14 @@ const CHART_PALETTE_LIGHT = [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
     '#5533B2',
     '#3A1873',
@@ -122,250 +122,250 @@ const CHART_PALETTE_LIGHT = [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
+    '#7C2282',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
+    '#7C2282',
+    '#B82D90',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
   ],
   [
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#00A9D2',
     '#7553FF',
     '#5533B2',
     '#3A1873',
-    '#9E2C8D',
-    '#F53A9F',
-    '#FC746F',
-    '#FF9838',
+    '#7C2282',
+    '#B82D90',
+    '#F0369A',
+    '#FA6769',
   ],
 ] as const;
 
 const CHART_PALETTE_DARK = [
-  ['#7A60FB'],
-  ['#7A60FB', '#FFD00E'],
-  ['#7A60FB', '#F53A9F', '#FFD00E'],
-  ['#7A60FB', '#F53A9F', '#FFD00E', '#67C800'],
-  ['#7A60FB', '#F53A9F', '#FFD00E', '#67C800', '#0CACD4'],
-  ['#7A60FB', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#0CACD4'],
-  ['#7A60FB', '#5C3CBB', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#0CACD4'],
+  ['#7553FF'],
+  ['#7553FF', '#5D3EB2'],
+  ['#7553FF', '#5D3EB2', '#F0369A'],
+  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838'],
+  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E'],
+  ['#7553FF', '#5D3EB2', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
+  ['#7553FF', '#5D3EB2', '#50219C', '#F0369A', '#FF9838', '#FFD00E', '#67C800'],
   [
-    '#7A60FB',
-    '#5C3CBB',
-    '#F53A9F',
-    '#FC746F',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
-    '#0CACD4',
-  ],
-  [
-    '#7A60FB',
-    '#5C3CBB',
-    '#B0009C',
-    '#F53A9F',
-    '#FC746F',
-    '#FF9838',
-    '#FFD00E',
-    '#67C800',
-    '#0CACD4',
-  ],
-  [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
-    '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#7C2282',
+    '#F0369A',
     '#FF9838',
     '#FFD00E',
     '#67C800',
-    '#0CACD4',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+  ],
+  [
+    '#7553FF',
+    '#5D3EB2',
+    '#50219C',
+    '#7C2282',
+    '#B0009C',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
+    '#7553FF',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
-    '#B0009C',
+    '#7C2282',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
   ],
   [
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
+    '#F0369A',
+    '#FA6769',
     '#FF9838',
     '#FFD00E',
     '#BACE05',
     '#67C800',
-    '#0CACD4',
-    '#7A60FB',
-    '#5C3CBB',
+    '#7553FF',
+    '#5D3EB2',
     '#50219C',
+    '#7C2282',
     '#B0009C',
-    '#F53A9F',
-    '#FC746F',
-    '#FF9838',
+    '#F0369A',
+    '#FA6769',
   ],
 ] as const;
 
@@ -539,20 +539,8 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
   };
 }
 
-const space = {
-  none: '0px',
-  '2xs': '2px',
-  xs: '4px',
-  sm: '6px',
-  md: '8px',
-  lg: '12px',
-  xl: '16px',
-  '2xl': '24px',
-  '3xl': '32px',
-} as const;
-
 const radius = {
-  none: '0px',
+  '0': '0px',
   '2xs': '2px',
   xs: '3px',
   sm: '4px',
@@ -572,20 +560,6 @@ const lightColors = {
   surface300: '#F1EEF9', // background.tertiary
   surface200: '#EAE7F6', // border.muted
   surface100: '#DFDBEF', // border.primary
-
-  // ⚠ Deprecated
-  grayOpaque500: '#181423',
-  grayOpaque400: '#6D6B74',
-  grayOpaque300: '#939198',
-  grayOpaque200: '#E0DFE2',
-  grayOpaque100: '#F3F3F4',
-
-  // ⚠ Deprecated
-  grayTransparent500: 'rgba(24, 20, 35, 1.0)',
-  grayTransparent400: 'rgba(24, 20, 35, 0.63)',
-  grayTransparent300: 'rgba(24, 20, 35, 0.47)',
-  grayTransparent200: 'rgba(24, 20, 35, 0.14)',
-  grayTransparent100: 'rgba(24, 20, 35, 0.05)',
 
   gray800: '#181423', // content.primary
   gray700: '#3B434E', // ⚠ link.muted.active only
@@ -639,29 +613,10 @@ const lightColors = {
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
     blue400: '#7553FF',
-    blue300: '#6C4DEB',
-    blue200: '#6246D4',
-    blue100: '#553DB8',
-
     pink400: '#FF70BC',
-    pink300: '#ED69AF',
-    pink200: '#DB61A2',
-    pink100: '#962963',
-
     red400: '#E50045',
-    red300: '#D4003F',
-    red200: '#C2003B',
-    red100: '#A80033',
-
     yellow400: '#FFD00E',
-    yellow300: '#F0C40D',
-    yellow200: '#E0B70C',
-    yellow100: '#C9A30A',
-
     green400: '#00F261',
-    green300: '#00E35B',
-    green200: '#00D455',
-    green100: '#00BF4D',
   },
 };
 
@@ -674,20 +629,6 @@ const darkColors: typeof lightColors = {
   surface300: '#191621', // background.teritary
   surface200: '#0D071A', // border.muted
   surface100: '#000000', // border.primary
-
-  // ⚠ Deprecated
-  grayOpaque500: '#F6F5FA',
-  grayOpaque400: '#A09DA8',
-  grayOpaque300: '#767380',
-  grayOpaque200: '#4D4A59',
-  grayOpaque100: '#3D394A',
-
-  // ⚠ Deprecated
-  grayTransparent500: 'rgba(246, 245, 250, 1.0)',
-  grayTransparent400: 'rgba(246, 245, 250, 0.58)',
-  grayTransparent300: 'rgba(246, 245, 250, 0.37)',
-  grayTransparent200: 'rgba(246, 245, 250, 0.18)',
-  grayTransparent100: 'rgba(246, 245, 250, 0.10)',
 
   gray800: '#F6F5FA', // content.primary
   gray700: '#C6C0D6', // ⚠ link.muted.active only
@@ -741,29 +682,10 @@ const darkColors: typeof lightColors = {
   // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
   chonk: {
     blue400: '#7553FF',
-    blue300: '#6C4DEB',
-    blue200: '#6246D4',
-    blue100: '#07050F',
-
     pink400: '#FF70BC',
-    pink300: '#ED69AF',
-    pink200: '#DB61A2',
-    pink100: '#0D0609',
-
     red400: '#E50045',
-    red300: '#D4003F',
-    red200: '#C2003B',
-    red100: '#1A0007',
-
     yellow400: '#FFD00E',
-    yellow300: '#F0C40D',
-    yellow200: '#E0B70C',
-    yellow100: '#0A0800',
-
     green400: '#00F261',
-    green300: '#00E35B',
-    green200: '#00D455',
-    green100: '#000A04',
   },
 };
 
@@ -939,9 +861,9 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: colors.chonk.blue200,
-  activeHover: colors.chonk.blue300,
-  activeText: tokens.content.accent,
+  active: tokens.component.link.accent.active,
+  activeHover: tokens.component.link.accent.hover,
+  activeText: tokens.component.link.accent.default,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -999,12 +921,6 @@ const generateAliases = (
    */
   progressBackground: colors.gray100,
 
-  /**
-   * Tag progress bars
-   */
-  tagBarHover: colors.chonk.blue300,
-  tagBar: colors.gray200,
-
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
     valid: colors.blue100,
@@ -1033,6 +949,20 @@ const generateAliases = (
    */
   bannerBackground: colors.gray500,
 });
+
+const fontSize = {
+  xs: '11px' as const,
+  sm: '12px' as const,
+  md: '14px' as const,
+  lg: '16px' as const,
+  xl: '20px' as const,
+  '2xl': '24px' as const,
+} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
+
+const chonkCommonTheme = {
+  ...commonTheme,
+  fontSize,
+};
 
 // Mapping of chonk theme to sentry theme
 const chonkLightColorMapping: ColorMapping = {
@@ -1159,20 +1089,19 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   chart: {
     colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
+    neutral: string;
   };
   colors: typeof lightColors & {
     background: ReturnType<typeof generateChonkTokens>['background'];
     border: ReturnType<typeof generateChonkTokens>['border'];
     content: ReturnType<typeof generateChonkTokens>['content'];
   };
-  focusRing: {
+  focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
     boxShadow: React.CSSProperties['boxShadow'];
     outline: React.CSSProperties['outline'];
   };
   isChonk: true;
   radius: typeof radius;
-
-  space: typeof space;
   tokens: typeof lightTokens;
 }
 
@@ -1181,9 +1110,9 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
  */
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
-
+  type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkLightColorMapping,
   ...lightAliases,
@@ -1196,13 +1125,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     ...darkAliases,
     tokens: darkTokens,
   },
-
-  space,
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${lightAliases.background}, 0 0 0 2px ${lightAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
@@ -1211,16 +1138,8 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
 
-  tour: {
-    background: darkColors.surface400,
-    header: darkColors.white,
-    text: darkAliases.subText,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
-
   chart: {
+    neutral: color(lightColors.gray400).lighten(0.8).toString(),
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
@@ -1259,9 +1178,9 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
  */
 export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
-
+  type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkDarkColorMapping,
   ...darkAliases,
@@ -1274,12 +1193,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     tokens: lightTokens,
   },
 
-  space,
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${darkAliases.background}, 0 0 0 2px ${darkAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),
@@ -1288,16 +1206,8 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
 
-  tour: {
-    background: darkColors.blue400,
-    header: darkColors.white,
-    text: darkColors.white,
-    next: lightAliases.textColor,
-    previous: darkColors.white,
-    close: lightColors.white,
-  },
-
   chart: {
+    neutral: color(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },

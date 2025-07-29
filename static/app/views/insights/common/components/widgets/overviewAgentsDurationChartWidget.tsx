@@ -13,7 +13,7 @@ import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ModalChartContainer} from 'sentry/views/insights/common/components/insightsChartContainer';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -31,7 +31,7 @@ export default function OverviewAgentsDurationChartWidget(
 
   const fullQuery = useCombinedQuery(getAgentRunsFilter());
 
-  const {data, isLoading, error} = useEAPSeries(
+  const {data, isLoading, error} = useSpanSeries(
     {
       ...pageFilterChartParams,
       search: fullQuery,

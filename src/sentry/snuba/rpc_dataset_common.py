@@ -452,7 +452,7 @@ def build_top_event_conditions(
         for key in groupby_columns:
             if key == "project.id":
                 value = resolver.params.project_slug_map[
-                    event.get("project", event.get("project.slug"))
+                    event.get("project") or event["project.slug"]
                 ]
             else:
                 value = event[key]
@@ -572,6 +572,10 @@ def run_top_events_timeseries_query(
         fields={},
         full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
+
+    if params.debug:
+        final_meta["query"] = json.loads(MessageToJson(rpc_request))
+
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 

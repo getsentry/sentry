@@ -504,6 +504,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables trace-item ingestion.
+register(
+    "replay.recording.ingest-trace-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -599,9 +606,11 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register("seer.max_num_autofix_autotriggered_per_hour", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per minute)
+# Seer Scanner Auto-trigger rate (max number of scans auto-triggered per project per 10 seconds)
 register(
-    "seer.max_num_scanner_autotriggered_per_minute", default=50, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "seer.max_num_scanner_autotriggered_per_ten_seconds",
+    default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Codecov Integration
@@ -846,6 +855,7 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
@@ -2554,6 +2564,32 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# the duration of the first datetime chunk of data queried
+# expressed in hours.
+register(
+    "profiling.flamegraph.query.initial_chunk_delta.hours",
+    type=Int,
+    default=12,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# the max duration of any datetime chunk of data queried
+# expressed in hours.
+register(
+    "profiling.flamegraph.query.max_delta.hours",
+    type=Int,
+    default=48,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The value by which the current delta is multiplied
+register(
+    "profiling.flamegraph.query.multiplier",
+    type=Int,
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # list of platform names for which we allow using unsampled profiles for the purpose
 # of improving profile (function) metrics
 register(
@@ -2601,14 +2637,6 @@ register(
 # Rate at which to prefer the Rust implementation of `assemble_stacktrace_component`.
 register(
     "grouping.rust_enhancers.prefer_rust_components",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rate at which to run split enhancements and compare the results to the default enhancements
-register(
-    "grouping.split_enhancements.sample_rate",
-    type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2974,6 +3002,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "workflow_engine.issue_alert.group.type_id.rollout",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.issue_alert.group.type_id.ga",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3031,7 +3072,7 @@ register(
 register(
     "uptime.snuba_uptime_results.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3184,32 +3225,18 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.try_compress.profile_metrics",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "taskworker.try_compress.profile_metrics.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Taskbroker flags
-register(
-    "taskworker.try_compress.profile_metrics.level",
-    default=6,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "taskworker.route.overrides",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.fetch_next.disabled_pools",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Taskbroker rollout flags
 register(
     "taskworker.deletions.rollout",
     default={},
@@ -3441,6 +3468,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.errors.postprocess.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3457,6 +3489,13 @@ register(
     default=["sync_options_trial"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "taskworker.postprocess.namespace.rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
@@ -3484,5 +3523,21 @@ register(
     "issues.browser_reporting.collector_endpoint_enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable experimental message parameterization in grouping.
+register(
+    "grouping.experimental_parameterization",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout for inferring project platform from events received
+register(
+    "sentry:infer_project_platform",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

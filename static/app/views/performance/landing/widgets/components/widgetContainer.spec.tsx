@@ -878,7 +878,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'span.op',
@@ -925,7 +925,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'project.id',
@@ -969,7 +969,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'sentry.normalized_description',
@@ -1040,7 +1040,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           cursor: '0:0:1',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: ['transaction', 'project.id', 'cache_miss_rate()'],
           noPagination: true,
@@ -1078,7 +1078,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -1097,10 +1097,9 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
             'count_scores(measurements.score.total)',
-            'total_opportunity_score()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );

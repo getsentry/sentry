@@ -12,7 +12,7 @@ import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('ProductSelect', function () {
   const api = new MockApiClient();
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
   const params = {};
 

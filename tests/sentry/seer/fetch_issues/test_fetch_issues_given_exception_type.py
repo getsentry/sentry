@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -38,7 +38,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
 
         # Assert only 1 Group object in the database
         assert Group.objects.count() == 1
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -65,7 +65,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
 
         # Part of the queried results
@@ -158,7 +158,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_last_seen_filter(self):
+    def test_last_seen_filter(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -187,7 +187,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
 
         # Assert only 1 Group object in the database
         assert Group.objects.count() == 1
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -215,7 +215,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_multiple_exception_types(self):
+    def test_multiple_exception_types(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
         repo = self.create_repo(
             project=self.project,
@@ -283,7 +283,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         assert len(results["events"]) == 1
         assert "entries" in results["events"][0]
 
-    def test_repo_does_not_exist(self):
+    def test_repo_does_not_exist(self) -> None:
         group_ids = get_issues_related_to_exception_type(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -292,7 +292,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         )
         assert group_ids == {"error": "Repo does not exist"}
 
-    def test_repository_project_path_config_does_not_exist(self):
+    def test_repository_project_path_config_does_not_exist(self) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentryA",
@@ -308,7 +308,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
         )
         assert group_ids == {"error": "Repo project path config does not exist"}
 
-    def test_group_not_found(self):
+    def test_group_not_found(self) -> None:
         group_ids = get_latest_issue_event(
             group_id=1,
         )

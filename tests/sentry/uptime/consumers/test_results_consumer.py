@@ -1,5 +1,7 @@
 import abc
+import time
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from typing import Literal
@@ -8,9 +10,14 @@ from unittest.mock import call
 
 import pytest
 from arroyo import Message
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, build_kafka_consumer_configuration
+from arroyo.commit import ONCE_PER_SECOND
+from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
+from confluent_kafka import Consumer, Producer, TopicPartition
+from confluent_kafka.admin import AdminClient
+from django.conf import settings
 from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
@@ -27,8 +34,10 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.skips import requires_kafka
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.consumers.results_consumer import (
     UptimeResultsStrategyFactory,
@@ -52,6 +61,8 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics, wait_for_topics
+from sentry.utils.kafka_config import get_kafka_admin_cluster_options
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
@@ -63,7 +74,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def strategy_processing_mode(self) -> Literal["batched-parallel", "parallel", "serial"]:
         pass
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
         self.subscription = self.create_uptime_subscription(
@@ -84,20 +95,22 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         message = Message(
             BrokerValue(
                 KafkaPayload(None, codec.encode(result), []),
-                Partition(Topic("test"), 1),
+                self.partition,
                 1,
                 datetime.now(),
             )
         )
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             if consumer is None:
-                factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
+                factory = UptimeResultsStrategyFactory(
+                    consumer_group="test", mode=self.strategy_processing_mode
+                )
                 commit = mock.Mock()
                 consumer = factory.create_with_partitions(commit, {self.partition: 0})
 
             consumer.submit(message)
 
-    def test(self):
+    def test(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -172,7 +185,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_detector_handler(self):
+    def test_detector_handler(self) -> None:
         """
         Simple test that the detector handler works as expected end-to-end.
         """
@@ -270,7 +283,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             ]
             assert len(legacy_resolve_calls) == 0
 
-    def test_does_nothing_when_missing_project_subscription(self):
+    def test_does_nothing_when_missing_project_subscription(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -294,7 +307,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert not logger.exception.called
             mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
-    def test_restricted_host_provider_id(self):
+    def test_restricted_host_provider_id(self) -> None:
         """
         Test that we do NOT create an issue when the host provider identifier
         has been restricted using the
@@ -345,7 +358,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_reset_fail_count(self):
+    def test_reset_fail_count(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -447,7 +460,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
-    def test_no_create_issues_feature(self):
+    def test_no_create_issues_feature(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
@@ -480,7 +493,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.subscription.refresh_from_db()
         assert self.subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_resolve(self):
+    def test_resolve(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -576,7 +589,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
-    def test_no_subscription(self):
+    def test_no_subscription(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -602,7 +615,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
 
-    def test_organization_feature_disabled(self):
+    def test_organization_feature_disabled(self) -> None:
         """
         Tests that we do not process results for disabled project subscriptions
         """
@@ -626,7 +639,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-    def test_missed_check_false_positive(self):
+    def test_missed_check_false_positive(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
@@ -652,7 +665,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={**result},
             )
 
-    def test_missed_check_updated_interval(self):
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
+    def test_missed_check_updated_interval(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
@@ -692,7 +706,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 1, **result},
             )
 
-    def test_missed_check_true_positive(self):
+    def test_missed_check_true_positive(self) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
@@ -718,7 +732,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 2, **result},
             )
 
-    def test_skip_already_processed(self):
+    def test_skip_already_processed(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -765,7 +779,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_skip_shadow_region(self):
+    def test_skip_shadow_region(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -803,7 +817,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_missed(self):
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
+    def test_missed(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -838,7 +853,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_onboarding_failure(self):
+    def test_onboarding_failure(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -955,7 +970,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
             self.project_subscription.refresh_from_db()
 
-    def test_onboarding_success_ongoing(self):
+    def test_onboarding_success_ongoing(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -1008,7 +1023,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
 
-    def test_onboarding_success_graduate(self):
+    def test_onboarding_success_graduate(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -1093,6 +1108,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1133,7 +1149,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
@@ -1145,6 +1163,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1182,7 +1201,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
-    def test_provider_stats(self):
+    @override_options({"uptime.snuba_uptime_results.enabled": False})
+    def test_provider_stats(self) -> None:
         features = [
             "organizations:uptime",
             "organizations:uptime-create-issues",
@@ -1378,7 +1398,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 self.assert_redis_config(expected_region, sub, expected_action, expected_mode)
             assert sub.status == UptimeSubscription.Status.ACTIVE.value
 
-    def test_check_and_update_regions(self):
+    def test_check_and_update_regions(self) -> None:
         sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1"],
@@ -1409,7 +1429,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             5,
         )
 
-    def test_check_and_update_regions_active_shadow(self):
+    def test_check_and_update_regions_active_shadow(self) -> None:
         sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
@@ -1434,7 +1454,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             5,
         )
 
-    def test_check_and_update_regions_larger_interval(self):
+    def test_check_and_update_regions_larger_interval(self) -> None:
         # Create subscription with only one region
         hour_sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=4).hex,
@@ -1529,7 +1549,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=34,
         )
 
-    def test_check_and_update_regions_removes_disabled(self):
+    def test_check_and_update_regions_removes_disabled(self) -> None:
         sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
@@ -1577,6 +1597,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1618,7 +1639,9 @@ class ProcessResultSerialTest(ProcessResultTest):
             )
 
             assert mock_processor_call.call_count == 3
-            mock_processor_call.assert_has_calls([call(result_1), call(result_2), call(result_3)])
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2), call("uptime", result_3)]
+            )
 
     @mock.patch(
         "sentry.remote_subscriptions.consumers.result_consumer.ResultsStrategyFactory.process_group"
@@ -1630,6 +1653,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         """
 
         factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
             mode="batched-parallel",
             max_batch_size=3,
             max_workers=1,
@@ -1668,6 +1692,469 @@ class ProcessResultSerialTest(ProcessResultTest):
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
 
+    def test_thread_queue_parallel(self) -> None:
+        """
+        Validates that the consumer in thread-queue-parallel mode processes messages correctly
+        """
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=2,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+
+        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
+            subscription_2 = self.create_uptime_subscription(
+                subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
+            )
+            self.create_project_uptime_subscription(uptime_subscription=subscription_2)
+
+            result_1 = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            )
+            result_2 = self.create_uptime_result(
+                subscription_2.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            )
+
+            self.send_result(result_1, consumer=consumer)
+            self.send_result(result_2, consumer=consumer)
+
+            queue_pool = factory.queue_pool
+            max_wait = 50
+            for _ in range(max_wait):
+                assert queue_pool is not None
+                stats = queue_pool.get_stats()
+                if stats["total_items"] == 0 and mock_processor_call.call_count == 2:
+                    break
+                time.sleep(0.1)
+
+            assert mock_processor_call.call_count == 2
+            mock_processor_call.assert_has_calls(
+                [call("uptime", result_1), call("uptime", result_2)], any_order=True
+            )
+
+        factory.shutdown()
+
+    def test_thread_queue_parallel_preserves_order(self) -> None:
+        """
+        Test that thread-queue-parallel mode preserves order within subscriptions.
+        """
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=3,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+
+        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
+            processed_guids = []
+
+            def track_calls(identifier, result):
+                processed_guids.append(result["guid"])
+
+            mock_processor_call.side_effect = track_calls
+
+            base_time = datetime.now()
+            expected_guids = []
+            results = []
+            for i in range(5):
+                result = self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=base_time - timedelta(minutes=5 - i),
+                )
+                guid = result["guid"]
+                expected_guids.append(guid)
+                results.append(result)
+                self.send_result(result, consumer=consumer)
+
+            queue_pool = factory.queue_pool
+            max_wait = 50
+            for _ in range(max_wait):
+                assert queue_pool is not None
+                stats = queue_pool.get_stats()
+                if stats["total_items"] == 0 and len(processed_guids) == 5:
+                    break
+                time.sleep(0.1)
+
+            assert len(processed_guids) == 5
+            assert (
+                processed_guids == expected_guids
+            ), f"Expected order {expected_guids}, got {processed_guids}"
+
+        factory.shutdown()
+
+    def test_thread_queue_parallel_concurrent_subscriptions(self) -> None:
+        """
+        Test that different subscriptions are processed concurrently in thread-queue-parallel mode.
+        """
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=2,
+        )
+        commit = mock.Mock()
+        consumer = factory.create_with_partitions(commit, {self.partition: 0})
+
+        subscription_2 = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex,
+            interval_seconds=300,
+            url="http://example2.com",
+        )
+        self.create_project_uptime_subscription(uptime_subscription=subscription_2)
+
+        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
+            result_1 = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            )
+            result_2 = self.create_uptime_result(
+                subscription_2.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            )
+
+            self.send_result(result_1, consumer=consumer)
+            self.send_result(result_2, consumer=consumer)
+
+            queue_pool = factory.queue_pool
+            max_wait = 50
+            for _ in range(max_wait):
+                assert queue_pool is not None
+                stats = queue_pool.get_stats()
+                if stats["total_items"] == 0 and mock_processor_call.call_count == 2:
+                    break
+                time.sleep(0.1)
+
+            assert mock_processor_call.call_count == 2
+
+        factory.shutdown()
+
+    def test_thread_queue_parallel_offset_commit(self) -> None:
+        """
+        Test that offsets are committed after successful processing in thread-queue-parallel mode.
+        """
+        committed_offsets: dict[Partition, int] = {}
+
+        def track_commits(offsets: Mapping[Partition, int], force: bool = False) -> None:
+            committed_offsets.update(offsets)
+
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=2,
+        )
+
+        test_partition = Partition(Topic("test"), 1)
+        consumer = factory.create_with_partitions(track_commits, {test_partition: 0})
+
+        with mock.patch.object(type(factory.result_processor), "__call__"):
+            codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
+
+            for offset in range(100, 105):
+                result = self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=10 - offset % 5),
+                )
+                message = Message(
+                    BrokerValue(
+                        KafkaPayload(None, codec.encode(result), []),
+                        test_partition,
+                        offset,
+                        datetime.now(),
+                    )
+                )
+                consumer.submit(message)
+
+            queue_pool = factory.queue_pool
+            max_wait = 20
+            for _ in range(max_wait):
+                assert queue_pool is not None
+                stats = queue_pool.get_stats()
+                if stats["total_items"] == 0 and len(committed_offsets) > 0:
+                    break
+
+                time.sleep(0.1)
+
+            assert test_partition in committed_offsets
+            assert committed_offsets[test_partition] == 105
+
+        factory.shutdown()
+
+    def test_thread_queue_parallel_error_handling(self) -> None:
+        """
+        Test that errors in processing don't block offset commits for other messages.
+        """
+        committed_offsets: dict[Partition, int] = {}
+
+        def track_commits(offsets: Mapping[Partition, int], force: bool = False) -> None:
+            committed_offsets.update(offsets)
+
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=2,
+        )
+
+        test_partition = Partition(Topic("test"), 1)
+        consumer = factory.create_with_partitions(track_commits, {test_partition: 0})
+
+        with mock.patch.object(type(factory.result_processor), "__call__") as mock_processor_call:
+            mock_processor_call.side_effect = [Exception("Processing failed"), None]
+
+            codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
+
+            for offset, minutes in [(100, 5), (101, 4)]:
+                result = self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=minutes),
+                )
+                message = Message(
+                    BrokerValue(
+                        KafkaPayload(None, codec.encode(result), []),
+                        test_partition,
+                        offset,
+                        datetime.now(),
+                    )
+                )
+                consumer.submit(message)
+
+            queue_pool = factory.queue_pool
+            max_wait = 20
+            for _ in range(max_wait):
+                assert queue_pool is not None
+                stats = queue_pool.get_stats()
+                if stats["total_items"] == 0 and mock_processor_call.call_count >= 2:
+                    time.sleep(0.2)
+                    break
+                time.sleep(0.1)
+
+            assert mock_processor_call.call_count == 2
+            assert len(committed_offsets) == 0 or test_partition not in committed_offsets
+
+        factory.shutdown()
+
+    def test_thread_queue_parallel_offset_gaps(self) -> None:
+        """
+        Test that offset gaps prevent committing past the gap.
+        """
+        all_commits = []
+
+        def track_commits(offsets: Mapping[Partition, int], force: bool = False) -> None:
+            all_commits.append(dict(offsets))
+
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=1,
+        )
+
+        test_partition = Partition(Topic("test"), 1)
+        consumer = factory.create_with_partitions(track_commits, {test_partition: 0})
+
+        with mock.patch.object(type(factory.result_processor), "__call__"):
+            codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
+            for offset in [100, 102, 103]:
+                result = self.create_uptime_result(
+                    self.subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
+                )
+                message = Message(
+                    BrokerValue(
+                        KafkaPayload(None, codec.encode(result), []),
+                        test_partition,
+                        offset,
+                        datetime.now(),
+                    )
+                )
+                consumer.submit(message)
+
+            queue_pool = factory.queue_pool
+            max_wait = 20
+            for _ in range(max_wait):
+                assert queue_pool is not None
+                stats = queue_pool.get_stats()
+                if stats["total_items"] == 0 and len(all_commits) > 0:
+                    time.sleep(0.2)
+                    break
+                time.sleep(0.1)
+
+            assert len(all_commits) > 0, "No commits happened"
+
+            last_commit = all_commits[-1]
+            assert test_partition in last_commit
+            actual_offset = last_commit[test_partition]
+            assert (
+                actual_offset == 101
+            ), f"Expected to commit offset 101 (next to read after processing 100), but got {actual_offset}"
+
+            for commit in all_commits:
+                if test_partition in commit:
+                    assert (
+                        commit[test_partition] <= 101
+                    ), f"Should not commit past the gap, but got {commit[test_partition]}"
+
+        factory.shutdown()
+
+    def test_thread_queue_parallel_graceful_shutdown(self) -> None:
+        """
+        Test that the thread-queue-parallel consumer shuts down gracefully.
+        """
+        factory = UptimeResultsStrategyFactory(
+            consumer_group="test",
+            mode="thread-queue-parallel",
+            max_workers=3,
+        )
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+
+        for i in range(5):
+            result = self.create_uptime_result(
+                self.subscription.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=i),
+            )
+            self.send_result(result, consumer=consumer)
+
+        factory.shutdown()
+        assert factory.queue_pool is None
+
 
 class ProcessResultParallelTest(ProcessResultTest):
     strategy_processing_mode = "parallel"
+
+
+class ProcessResultThreadQueueParallelKafkaTest(UptimeTestCase):
+    """
+    Integration test for thread-queue-parallel consumer with actual Kafka offset verification.
+    """
+
+    pytestmark = [requires_kafka]
+
+    def test_thread_queue_parallel_kafka_offset_commit(self) -> None:
+        """
+        Test that offsets are actually committed to Kafka consumer group.
+        """
+        subscription = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex, interval_seconds=300, region_slugs=["default"]
+        )
+        self.create_project_uptime_subscription(
+            uptime_subscription=subscription,
+            owner=self.user,
+        )
+
+        test_id = uuid.uuid4().hex[:8]
+        test_topic = f"uptime-test-{test_id}"
+        consumer_group = f"uptime-test-group-{test_id}"
+        cluster_options = get_kafka_admin_cluster_options(
+            "default", {"allow.auto.create.topics": "true"}
+        )
+        admin_client = AdminClient(cluster_options)
+        try:
+            create_topics("default", [test_topic])
+            wait_for_topics(admin_client, [test_topic])
+
+            producer_conf = settings.KAFKA_CLUSTERS["default"]["common"]
+            producer = Producer(producer_conf)
+
+            codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
+            for i in range(5):
+                result = self.create_uptime_result(
+                    subscription.subscription_id,
+                    scheduled_check_time=datetime.now() - timedelta(minutes=5 - i),
+                )
+                encoded = codec.encode(result)
+                producer.produce(test_topic, value=encoded, partition=0)
+
+            producer.flush()
+
+            factory = UptimeResultsStrategyFactory(
+                consumer_group="test",
+                mode="thread-queue-parallel",
+                max_workers=2,
+            )
+
+            with override_settings(
+                KAFKA_TOPIC_OVERRIDES={
+                    "uptime-results": test_topic,
+                }
+            ):
+                commit_count = 0
+                commits_made = []
+                original_create_with_partitions = factory.create_with_partitions
+
+                def create_with_partitions_tracking(commit, partitions):
+                    def tracked_commit(
+                        offsets: Mapping[Partition, int], force: bool = False
+                    ) -> None:
+                        nonlocal commit_count
+                        commit_count += 1
+                        commits_made.append(dict(offsets))
+                        return commit(offsets, force)
+
+                    return original_create_with_partitions(tracked_commit, partitions)
+
+                factory.create_with_partitions = create_with_partitions_tracking  # type: ignore[method-assign]
+                consumer_config = build_kafka_consumer_configuration(
+                    settings.KAFKA_CLUSTERS["default"]["common"],
+                    group_id=consumer_group,
+                    auto_offset_reset="earliest",
+                )
+
+                consumer = KafkaConsumer(consumer_config)
+                processor = StreamProcessor(
+                    consumer=consumer,
+                    topic=Topic(test_topic),
+                    processor_factory=factory,
+                    commit_policy=ONCE_PER_SECOND,
+                )
+
+                with mock.patch.object(
+                    type(factory.result_processor), "__call__"
+                ) as mock_processor:
+                    mock_processor.return_value = None
+
+                    start_time = time.time()
+                    while time.time() - start_time < 5:
+                        processor._run_once()
+                        time.sleep(0.1)
+
+                processor._shutdown()
+                factory.shutdown()
+
+                verify_consumer = Consumer(
+                    {
+                        **settings.KAFKA_CLUSTERS["default"]["common"],
+                        "group.id": consumer_group,
+                        "auto.offset.reset": "earliest",
+                        "enable.auto.commit": False,
+                    }
+                )
+
+                partitions = [TopicPartition(test_topic, 0)]
+                committed = verify_consumer.committed(partitions)
+                assert commit_count >= 1, f"Expected at least 1 commit, got {commit_count}"
+
+                if commits_made:
+                    last_commit = commits_made[-1]
+                    expected_partition = Partition(topic=Topic(test_topic), index=0)
+                    assert (
+                        expected_partition in last_commit
+                    ), f"Expected partition {expected_partition} in commit"
+                    assert (
+                        last_commit[expected_partition] == 5
+                    ), f"Expected offset 5, got {last_commit[expected_partition]}"
+
+                assert len(committed) == 1
+                assert committed[0].topic == test_topic
+                assert committed[0].partition == 0
+                # We sent 5 messages (0-4), so the committed offset should be 5
+                assert (
+                    committed[0].offset == 5
+                ), f"Expected committed offset 5, got {committed[0].offset}"
+
+                verify_consumer.close()
+
+        finally:
+            try:
+                admin_client.delete_topics([test_topic])
+            except Exception:
+                pass

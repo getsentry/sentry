@@ -11,11 +11,11 @@ class AuthLoginEndpointTest(APITestCase):
     endpoint = "sentry-api-0-auth-login"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Requests to set the test cookie
         self.client.get(reverse("sentry-api-0-auth-config"))
 
-    def test_login_invalid_password(self):
+    def test_login_invalid_password(self) -> None:
         response = self.get_error_response(
             username=self.user.username, password="bizbar", status_code=400
         )
@@ -23,11 +23,11 @@ class AuthLoginEndpointTest(APITestCase):
             "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
 
-    def test_login_valid_credentials(self):
+    def test_login_valid_credentials(self) -> None:
         response = self.get_success_response(username=self.user.username, password="admin")
         assert response.data["nextUri"] == "/organizations/new/"
 
-    def test_must_reactivate(self):
+    def test_must_reactivate(self) -> None:
         self.user.update(is_active=False)
 
         response = self.get_success_response(username=self.user.username, password="admin")

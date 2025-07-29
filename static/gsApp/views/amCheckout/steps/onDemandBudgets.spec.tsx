@@ -213,14 +213,6 @@ describe('OnDemandBudgets AM Checkout', function () {
         data: {
           onDemandBudget: {
             budgetMode: 'per_category',
-            errorsBudget: 1000,
-            transactionsBudget: 2000,
-            attachmentsBudget: 3000,
-            monitorSeatsBudget: 4000,
-            uptimeBudget: 0,
-            replaysBudget: 0,
-            profileDurationBudget: 0,
-            profileDurationUIBudget: 0,
             budgets: {
               errors: 1000,
               transactions: 2000,
@@ -230,6 +222,7 @@ describe('OnDemandBudgets AM Checkout', function () {
               uptime: 0,
               profileDuration: 0,
               profileDurationUI: 0,
+              logBytes: 0,
             },
           },
           onDemandMaxSpend: 10000,
@@ -327,14 +320,10 @@ describe('OnDemandBudgets AM Checkout', function () {
       onDemandBudgets: {
         enabled: false,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        replaysBudget: 0,
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
         transactionSpendUsed: 0,
         usedSpends: {errors: 0, transactions: 0, attachments: 0, replays: 0},
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
         budgets: {errors: 1000, transactions: 2000, attachments: 3000},
       },
     });

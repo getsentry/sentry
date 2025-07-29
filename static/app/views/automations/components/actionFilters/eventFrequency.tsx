@@ -16,8 +16,14 @@ import {
 import {
   SubfilterDetailsList,
   SubfiltersList,
+  validateSubfilters,
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import {
+  dataConditionNodesMap,
+  useDataConditionNodeContext,
+} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function EventFrequencyCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
@@ -42,17 +48,17 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
   return (
     <div>
       {tct(
-        'Number of events in an issue is [value]% higher [interval] compared to [comparison_interval] [where]',
+        'Number of events in an issue is [value]% higher [interval] compared to [comparisonInterval] [where]',
         {
           value: condition.comparison.value,
           interval:
             INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
-          comparison_interval:
+          comparisonInterval:
             COMPARISON_INTERVAL_CHOICES.find(
-              choice => choice.value === condition.comparison.comparison_interval
-            )?.label || condition.comparison.comparison_interval,
+              choice => choice.value === condition.comparison.comparisonInterval
+            )?.label || condition.comparison.comparisonInterval,
           where: hasSubfilters ? t('where') : null,
         }
       )}
@@ -82,6 +88,7 @@ export function EventFrequencyNode() {
 
 function ComparisonTypeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+  const {removeError} = useAutomationBuilderErrorContext();
 
   if (condition.type === DataConditionType.EVENT_FREQUENCY_COUNT) {
     return <CountBranch />;
@@ -93,6 +100,7 @@ function ComparisonTypeField() {
   return (
     <AutomationBuilderSelect
       name={`${condition_id}.type`}
+      aria-label={t('Comparison type')}
       value={condition.type}
       options={[
         {
@@ -105,8 +113,35 @@ function ComparisonTypeField() {
         },
       ]}
       onChange={(option: SelectValue<DataConditionType>) => {
-        onUpdate({type: option.value});
+        onUpdate({
+          type: option.value,
+          comparison: {
+            ...condition.comparison,
+            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
+          },
+        });
+        removeError(condition.id);
       }}
     />
   );
+}
+
+export function validateEventFrequencyCondition({
+  condition,
+}: ValidateDataConditionProps): string | undefined {
+  if (condition.type === DataConditionType.EVENT_FREQUENCY) {
+    return t('You must select a comparison type.');
+  }
+  if (
+    !condition.comparison.value ||
+    !condition.comparison.interval ||
+    (condition.type === DataConditionType.EVENT_FREQUENCY_PERCENT &&
+      !condition.comparison.comparisonInterval)
+  ) {
+    return t('Ensure all fields are filled in.');
+  }
+  if (condition.comparison.filters) {
+    return validateSubfilters(condition.comparison.filters);
+  }
+  return undefined;
 }

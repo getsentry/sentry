@@ -4,13 +4,16 @@ import type Fuse from 'fuse.js';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
+  RawSearchFilterHasValueItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
+  createAskSeerConsentItem,
   createAskSeerItem,
   createFilterValueItem,
   createItem,
-  createRawSearchFilterValueItem,
+  createRawSearchFilterHasValueItem,
+  createRawSearchFilterIsValueItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
@@ -19,7 +22,6 @@ import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 type FilterKeySearchItem = {
   description: string;
@@ -137,16 +139,16 @@ export function useSortedFilterKeyItems({
     filterKeySections,
     disallowFreeText,
     replaceRawSearchKeys,
+    enableAISearch,
+    gaveSeerConsent,
   } = useSearchQueryBuilder();
   const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-
+  const hasWildcardSearch = organization.features.includes(
+    'search-query-builder-wildcard-operators'
+  );
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-  const showAskSeerOption = !!(traceExploreAiQueryContext && areAiFeaturesAllowed);
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -218,18 +220,28 @@ export function useSortedFilterKeyItems({
         (!keyItems.length || inputValue.trim().includes(' ')) &&
         (!replaceRawSearchKeys?.length || !hasRawSearchReplacement);
 
+      let rawSearchFilterHasValueItems: RawSearchFilterHasValueItem[] = [];
+      if (hasWildcardSearch) {
+        rawSearchFilterHasValueItems =
+          replaceRawSearchKeys?.map(key => {
+            return createRawSearchFilterHasValueItem(key, inputValue);
+          }) ?? [];
+      }
+
+      const rawSearchFilterIsValueItems =
+        replaceRawSearchKeys?.map(key => {
+          const value = inputValue?.includes(' ')
+            ? `"${inputValue.replace(/"/g, '')}"`
+            : inputValue;
+
+          return createRawSearchFilterIsValueItem(key, value);
+        }) ?? [];
+
       const rawSearchReplacements: KeySectionItem = {
         key: 'raw-search-filter-values',
         value: 'raw-search-filter-values',
         label: '',
-        options:
-          replaceRawSearchKeys?.map(key => {
-            const value = inputValue?.includes(' ')
-              ? `"${inputValue.replace(/"/g, '')}"`
-              : inputValue;
-
-            return createRawSearchFilterValueItem(key, value);
-          }) ?? [],
+        options: [...rawSearchFilterHasValueItems, ...rawSearchFilterIsValueItems],
         type: 'section',
       };
 
@@ -249,6 +261,13 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
+      const askSeerItem = [];
+      if (enableAISearch) {
+        askSeerItem.push(
+          gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+        );
+      }
+
       const {shouldShowAtTop, suggestedFiltersSection} =
         getValueSuggestionsFromSearchResult(searched);
 
@@ -258,23 +277,25 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-        ...(showAskSeerOption ? [createAskSeerItem()] : []),
+        ...askSeerItem,
       ];
     }
 
     return keyItems;
   }, [
-    filterValue,
-    search,
-    includeSuggestions,
-    filterKeySections,
-    flatKeys,
-    getFieldDefinition,
-    filterKeys,
-    inputValue,
     disallowFreeText,
-    replaceRawSearchKeys,
+    enableAISearch,
+    filterKeySections,
+    filterKeys,
+    filterValue,
+    flatKeys,
+    gaveSeerConsent,
+    getFieldDefinition,
     hasRawSearchReplacement,
-    showAskSeerOption,
+    hasWildcardSearch,
+    includeSuggestions,
+    inputValue,
+    replaceRawSearchKeys,
+    search,
   ]);
 }

@@ -38,20 +38,20 @@ export function ArithmeticTokenFunction({
   state,
   token,
 }: ArithmeticTokenFunctionProps) {
-  if (token.attributes.length !== 1) {
-    throw new Error('Only functions with 1 argument supported.');
+  if (token.attributes.length > 1) {
+    throw new Error('Only functions with at most 1 argument supported.');
   }
-  const attribute = token.attributes[0]!;
+  const attribute = token.attributes[0];
 
   const ref = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
     ref,
     state,
+    focusable: defined(attribute), // if there are no attributes, it's not focusable
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
-
   const showUnfocusedState = !state.selectionManager.isFocused || !isFocused;
 
   return (
@@ -59,27 +59,29 @@ export function ArithmeticTokenFunction({
       {...rowProps}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
-      aria-label={`${token.function}(${attribute.text})`}
+      aria-label={`${token.function}(${attribute?.text ?? ''})`}
       aria-invalid={false}
       state={'valid'}
     >
       <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
       {'('}
-      <BaseGridCell {...gridCellProps}>
-        <InternalInput
-          item={item}
-          state={state}
-          token={token}
-          attribute={attribute}
-          rowRef={ref}
-          argumentIndex={0}
-        />
-        {showUnfocusedState && (
-          // Inject a floating span with the attribute name so when it's
-          // not focused, it doesn't look like the placeholder text
-          <FunctionArgumentOverlay>{attribute.attribute}</FunctionArgumentOverlay>
-        )}
-      </BaseGridCell>
+      {defined(attribute) && (
+        <BaseGridCell {...gridCellProps}>
+          <InternalInput
+            item={item}
+            state={state}
+            token={token}
+            attribute={attribute}
+            rowRef={ref}
+            argumentIndex={0}
+          />
+          {showUnfocusedState && (
+            // Inject a floating span with the attribute name so when it's
+            // not focused, it doesn't look like the placeholder text
+            <UnfocusedOverlay>{attribute.attribute}</UnfocusedOverlay>
+          )}
+        </BaseGridCell>
+      )}
       {')'}
       <BaseGridCell {...gridCellProps}>
         <DeleteFunction token={token} />
@@ -88,13 +90,10 @@ export function ArithmeticTokenFunction({
   );
 }
 
-interface InternalInputProps {
+interface InternalInputProps extends ArithmeticTokenFunctionProps {
   argumentIndex: number;
   attribute: TokenAttribute;
-  item: Node<Token>;
   rowRef: RefObject<HTMLDivElement | null>;
-  state: ListState<Token>;
-  token: TokenFunction;
 }
 
 function InternalInput({
@@ -121,7 +120,8 @@ function InternalInput({
     updateSelectionIndex();
   }, [updateSelectionIndex]);
 
-  const {dispatch, functionArguments, getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, functionArguments, getFieldDefinition, getSuggestedKey} =
+    useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
     () => getFieldDefinition(token.function)?.parameters?.[argumentIndex],
@@ -183,7 +183,16 @@ function InternalInput({
   );
 
   const onInputCommit = useCallback(() => {
-    const value = inputValue.trim() || attribute.attribute;
+    let value = inputValue.trim() || attribute.attribute;
+
+    if (
+      defined(getSuggestedKey) &&
+      parameterDefinition &&
+      parameterDefinition.kind === 'column'
+    ) {
+      value = getSuggestedKey(value) ?? value;
+    }
+
     dispatch({
       text: `${token.function}(${value})`,
       type: 'REPLACE_TOKEN',
@@ -193,7 +202,16 @@ function InternalInput({
       },
     });
     resetInputValue();
-  }, [dispatch, state, token, attribute, inputValue, resetInputValue]);
+  }, [
+    dispatch,
+    state,
+    token,
+    attribute,
+    inputValue,
+    resetInputValue,
+    getSuggestedKey,
+    parameterDefinition,
+  ]);
 
   const onInputEscape = useCallback(() => {
     resetInputValue();
@@ -425,7 +443,7 @@ const FunctionGridCell = styled(BaseGridCell)`
   padding-left: ${space(0.5)};
 `;
 
-const FunctionArgumentOverlay = styled('div')`
+const UnfocusedOverlay = styled('div')`
   position: absolute;
   pointer-events: none;
 `;

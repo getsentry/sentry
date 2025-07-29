@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import DBQueryInjectionVulnerabilityGroupType
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.performance_issues.detectors.query_injection_detector import QueryInjectionDetector
 from sentry.performance_issues.performance_detection import (
     get_detection_settings,
@@ -17,7 +17,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 
 @pytest.mark.django_db
 class QueryInjectionDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -26,14 +26,15 @@ class QueryInjectionDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_query_injection_detection_in_query_params(self):
+    def test_query_injection_detection_in_query_params(self) -> None:
         injection_event = get_event("query-injection/query-injection-mongo-event")
 
         problems = self.find_problems(injection_event)
         assert len(problems) == 1
         problem = problems[0]
-        assert problem.type == DBQueryInjectionVulnerabilityGroupType
-        assert problem.fingerprint == "1-1020-1c333b3c472df81fde8a61cdfae24c86676bd582"
+
+        assert problem.type == QueryInjectionVulnerabilityGroupType
+        assert problem.fingerprint == "1-1021-1c333b3c472df81fde8a61cdfae24c86676bd582"
         assert problem.op == "db"
         assert (
             problem.desc

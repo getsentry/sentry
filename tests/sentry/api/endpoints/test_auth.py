@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class LoginTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(email="a@example.com")
         user.set_password("test")
         user.save()
@@ -23,7 +23,7 @@ class LoginTest(APITestCase):
 
 @control_silo_test
 class LogoutTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(email="a@example.com")
 
         self.login_as(user)

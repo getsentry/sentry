@@ -1,5 +1,8 @@
+from collections.abc import Iterable, Sequence
 from functools import partial
+from typing import assert_never
 
+from django.db import router, transaction
 from django.db.models import Count, Q
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
@@ -16,6 +19,7 @@ from sentry.api.bases import OrganizationAlertRulePermission, OrganizationEndpoi
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.issue_search import convert_actor_or_none_value
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -29,21 +33,48 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    BulkDetectorWorkflowsValidator,
+)
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
 
 detector_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "type"},
-    allowed_keys={"name", "type"},
+    allowed_keys={"name", "type", "assignee"},
     allow_boolean=False,
     free_text_key="query",
 )
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
+
+
+def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+    """
+    Convert an assignee search value to a Django Q object for filtering detectors.
+    """
+    actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
+        value, projects, user, None
+    )
+    assignee_query = Q()
+    for actor in actors_or_none:
+        if isinstance(actor, (User, RpcUser)):
+            assignee_query |= Q(owner_user_id=actor.id)
+        elif isinstance(actor, Team):
+            assignee_query |= Q(owner_team_id=actor.id)
+        elif actor is None:
+            assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+        else:
+            assert_never(actor)
+    return assignee_query
+
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -114,6 +145,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         `````````````````````````````
         Return a list of detectors for a given organization.
         """
+        if not request.user.is_authenticated:
+            return self.respond(status=status.HTTP_401_UNAUTHORIZED)
+
         projects = self.get_projects(request, organization)
         queryset: QuerySet[Detector] = Detector.objects.filter(
             project_id__in=projects,
@@ -134,6 +168,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         queryset = apply_filter(queryset, filter, "name")
                     case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
                         queryset = apply_filter(queryset, filter, "type")
+                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                        # Filter values can be emails, team slugs, "me", "my_teams", "none"
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        assignee_q = convert_assignee_values(values, projects, request.user)
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(assignee_q)
+                        else:
+                            queryset = queryset.filter(assignee_q)
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.
@@ -186,9 +233,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         Create a new detector for a project.
 
         :param string name: The name of the detector
-        :param string detector_type: The type of detector to create
-        :param object data_source: Configuration for the data source
-        :param array data_conditions: List of conditions to trigger the detector
+        :param string type: The type of detector to create
+        :param string projectId: The detector project
+        :param object dataSource: Configuration for the data source
+        :param array dataConditions: List of conditions to trigger the detector
+        :param array workflowIds: List of workflow IDs to connect to the detector
         """
         detector_type = request.data.get("type")
         if not detector_type:
@@ -220,5 +269,25 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        detector = validator.save()
+        with transaction.atomic(router.db_for_write(Detector)):
+            detector = validator.save()
+
+            # Handle workflow connections in bulk
+            workflow_ids = request.data.get("workflowIds", [])
+            if workflow_ids:
+                bulk_validator = BulkDetectorWorkflowsValidator(
+                    data={
+                        "detector_id": detector.id,
+                        "workflow_ids": workflow_ids,
+                    },
+                    context={
+                        "organization": organization,
+                        "request": request,
+                    },
+                )
+                if not bulk_validator.is_valid():
+                    raise ValidationError({"workflowIds": bulk_validator.errors})
+
+                bulk_validator.save()
+
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)

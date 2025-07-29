@@ -1,4 +1,4 @@
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -25,24 +25,14 @@ export function getStaticDetectorThresholdSuffix(aggregate: string) {
   }
 }
 
-export function getMetricDetectorSuffix(detector: Detector) {
-  // TODO: Use a MetricDetector type to avoid checking for this
-  if (!('detection_type' in detector.config)) {
-    return '';
-  }
-
-  switch (detector.config.detection_type) {
+export function getMetricDetectorSuffix(
+  detectorType: MetricDetector['config']['detectionType'],
+  aggregate: string
+) {
+  switch (detectorType) {
     case 'static':
     case 'dynamic':
-      if (
-        detector.dataSources?.[0]?.type === 'snuba_query_subscription' &&
-        detector.dataSources[0].queryObj?.snubaQuery?.aggregate
-      ) {
-        return getStaticDetectorThresholdSuffix(
-          detector.dataSources[0].queryObj.snubaQuery.aggregate
-        );
-      }
-      return 'ms';
+      return getStaticDetectorThresholdSuffix(aggregate);
     case 'percent':
       return '%';
     default:

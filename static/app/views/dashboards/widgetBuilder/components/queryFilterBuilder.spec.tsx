@@ -21,7 +21,9 @@ describe('QueryFilterBuilder', () => {
       features: [],
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
     MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
   });
@@ -164,5 +166,75 @@ describe('QueryFilterBuilder', () => {
     );
 
     expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
+  });
+
+  it('disables search bar when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    const searchBar = await screen.findByPlaceholderText(
+      'Search for events, users, tags, and more'
+    );
+    expect(searchBar).toBeDisabled();
+  });
+
+  it('enables search bar when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
+    const organizationWithoutFeature = OrganizationFixture({
+      features: [],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithoutFeature,
+
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    const searchBar = await screen.findByPlaceholderText(
+      'Search for events, users, tags, and more'
+    );
+    expect(searchBar).toBeEnabled();
   });
 });

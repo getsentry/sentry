@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -21,6 +22,10 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -56,7 +61,8 @@ export default function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
+  const replay = useReplayReader();
+  const {currentTime, isFetching, isFinished, isPlaying, isVideoReplay} =
     useReplayContext();
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
@@ -67,7 +73,7 @@ export default function ReplayPreviewPlayer({
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const referrer = getRouteStringFromRoutes(routes);
-  const fromFeedback = referrer === '/feedback/';
+  const fromFeedback = referrer === '/issues/feedback/';
 
   const {groupId} = useParams<{groupId: string}>();
 
@@ -99,7 +105,7 @@ export default function ReplayPreviewPlayer({
           columnIndex={0}
           showDropdownFilters={false}
         />
-        <LinkButton
+        <ContainedLinkButton
           size="sm"
           to={{
             pathname: makeReplaysPathname({
@@ -116,66 +122,70 @@ export default function ReplayPreviewPlayer({
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
-        </LinkButton>
+        </ContainedLinkButton>
       </HeaderWrapper>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
-        <PlayerBreadcrumbContainer>
-          <PlayerContextContainer>
-            {isFullscreen ? (
-              <ContextContainer>
-                {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-                <BrowserOSIcons />
-                <ReplaySidebarToggleButton
-                  isOpen={isSidebarOpen}
-                  setIsOpen={setIsSidebarOpen}
+        <TooltipContext value={{container: fullscreenRef.current}}>
+          <PlayerBreadcrumbContainer>
+            <PlayerContextContainer>
+              {isFullscreen ? (
+                <ContextContainer>
+                  {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
+                  <BrowserOSIcons />
+                  <ReplaySidebarToggleButton
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setIsSidebarOpen}
+                  />
+                </ContextContainer>
+              ) : null}
+              <StaticPanel>
+                <ReplayPlayer overlayContent={overlayContent} isPreview />
+              </StaticPanel>
+            </PlayerContextContainer>
+            {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
+          </PlayerBreadcrumbContainer>
+          <ErrorBoundary mini>
+            <ButtonGrid>
+              {showNextAndPrevious && (
+                <Button
+                  size="sm"
+                  title={t('Previous Clip')}
+                  icon={<IconPrevious />}
+                  onClick={() => handleBackClick?.()}
+                  aria-label={t('Previous Clip')}
+                  disabled={!handleBackClick}
+                  analyticsEventName="Replay Preview Player: Clicked Previous Clip"
+                  analyticsEventKey="replay_preview_player.clicked_previous_clip"
                 />
-              </ContextContainer>
-            ) : null}
-            <StaticPanel>
-              <ReplayPlayer overlayContent={overlayContent} isPreview />
-            </StaticPanel>
-          </PlayerContextContainer>
-          {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
-        </PlayerBreadcrumbContainer>
-        <ErrorBoundary mini>
-          <ButtonGrid>
-            {showNextAndPrevious && (
-              <Button
-                size="sm"
-                title={t('Previous Clip')}
-                icon={<IconPrevious />}
-                onClick={() => handleBackClick?.()}
-                aria-label={t('Previous Clip')}
-                disabled={!handleBackClick}
-                analyticsEventName="Replay Preview Player: Clicked Previous Clip"
-                analyticsEventKey="replay_preview_player.clicked_previous_clip"
+              )}
+              <ReplayPlayPauseButton
+                analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
+                analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
+                priority={
+                  playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
+                }
               />
-            )}
-            <ReplayPlayPauseButton
-              analyticsEventName="Replay Preview Player: Clicked Play/Plause Clip"
-              analyticsEventKey="replay_preview_player.clicked_play_pause_clip"
-              priority={
-                playPausePriority ?? (isFinished || isPlaying ? 'primary' : 'default')
-              }
-            />
-            {showNextAndPrevious && (
-              <Button
-                size="sm"
-                title={t('Next Clip')}
-                icon={<IconNext />}
-                onClick={() => handleForwardClick?.()}
-                aria-label={t('Next Clip')}
-                disabled={!handleForwardClick}
-                analyticsEventName="Replay Preview Player: Clicked Next Clip"
-                analyticsEventKey="replay_preview_player.clicked_next_clip"
-              />
-            )}
-            <Container>
-              <TimeAndScrubberGrid />
-            </Container>
-            <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-          </ButtonGrid>
-        </ErrorBoundary>
+              {showNextAndPrevious && (
+                <Button
+                  size="sm"
+                  title={t('Next Clip')}
+                  icon={<IconNext />}
+                  onClick={() => handleForwardClick?.()}
+                  aria-label={t('Next Clip')}
+                  disabled={!handleForwardClick}
+                  analyticsEventName="Replay Preview Player: Clicked Next Clip"
+                  analyticsEventKey="replay_preview_player.clicked_next_clip"
+                />
+              )}
+              <Container>
+                <TimelineScaleContextProvider>
+                  <TimeAndScrubberGrid />
+                </TimelineScaleContextProvider>
+              </Container>
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
+            </ButtonGrid>
+          </ErrorBoundary>
+        </TooltipContext>
       </PreviewPlayerContainer>
     </PlayerPanel>
   );
@@ -244,6 +254,7 @@ const ContextContainer = styled('div')`
 `;
 
 const HeaderWrapper = styled('div')`
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -253,3 +264,12 @@ const HeaderWrapper = styled('div')`
 const StyledAlert = styled(Alert)`
   margin: ${space(1)} 0;
 `;
+
+const ContainedLinkButton = withChonk(
+  LinkButton,
+  chonkStyled(LinkButton)`
+    position: absolute;
+    right: 0;
+    top: 3px;
+  `
+);

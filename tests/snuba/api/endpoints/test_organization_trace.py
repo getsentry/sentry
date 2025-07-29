@@ -1,8 +1,10 @@
 import logging
+from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -232,3 +234,94 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         data = response.data
         assert len(data) == 1
         assert data[0]["event_id"] == error.event_id
+
+    def test_with_additional_attributes(self):
+        self.load_trace(is_eap=True)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "timestamp": self.day_ago,
+                    "additional_attributes": [
+                        "gen_ai.request.model",
+                        "gen_ai.usage.total_tokens",
+                    ],
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+
+        # The root span doesn't have any of the additional attributes and returns defaults
+        assert data[0]["additional_attributes"]["gen_ai.request.model"] == ""
+        assert data[0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 0
+
+        assert data[0]["children"][0]["additional_attributes"]["gen_ai.request.model"] == "gpt-4o"
+        assert data[0]["children"][0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 100
+
+    def test_with_target_error(self):
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": "a" * 16,
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.project.id)
+        for _ in range(5):
+            self.store_event(error_data, project_id=self.project.id)
+
+        with mock.patch("sentry.snuba.trace.ERROR_LIMIT", 1):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={"timestamp": self.day_ago, "errorId": error.event_id},
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        assert data[0]["event_id"] == error.event_id
+
+    def test_with_invalid_error_id(self):
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago, "errorId": ",blah blah,"},
+            )
+
+        assert response.status_code == 400, response.content
+
+    def test_with_date_outside_retention(self):
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={"timestamp": before_now(days=120)},
+                )
+
+        assert response.status_code == 400, response.content
+
+    def test_orphan_trace(self):
+        self.load_trace(is_eap=True)
+        orphan_event = self.create_event(
+            trace_id=self.trace_id,
+            transaction="/transaction/orphan",
+            spans=[],
+            project_id=self.project.id,
+            # Random span id so there's no parent
+            parent_span_id=uuid4().hex[:16],
+            milliseconds=500,
+            is_eap=True,
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 2
+        if len(data[0]["children"]) == 0:
+            orphan = data[0]
+        else:
+            orphan = data[1]
+        self.assert_event(orphan, orphan_event, "orphan")

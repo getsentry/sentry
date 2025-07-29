@@ -15,10 +15,12 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification
 
 
 class NotificationProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
+        self.data = MockNotification(message="test")
         self.slack_integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="ext-123"
         )
@@ -26,7 +28,7 @@ class NotificationProviderTest(TestCase):
             organization=self.organization, provider="discord", external_id="ext-123"
         )
 
-    def test_all_registrants_follow_protocol(self):
+    def test_all_registrants_follow_protocol(self) -> None:
         for provider in provider_registry.get_all():
             # Ensures the provider can be instantiated, does not test functionality
             provider()
@@ -37,7 +39,7 @@ class NotificationProviderTest(TestCase):
                 assert resource_type in NotificationTargetResourceType
             # Ensures the default renderer links back to its connected provider key
             assert provider.default_renderer == provider.get_renderer(
-                category=NotificationCategory.DEBUG
+                data=self.data, category=NotificationCategory.DEBUG
             )
             assert isinstance(provider.is_available(), bool)
             assert isinstance(
@@ -47,7 +49,7 @@ class NotificationProviderTest(TestCase):
                 bool,
             )
 
-    def test_validate_target_class(self):
+    def test_validate_target_class(self) -> None:
         class TestDiscordProvider(NotificationProvider[Any]):
             key = NotificationProviderKey.DISCORD
             target_class = IntegrationNotificationTarget

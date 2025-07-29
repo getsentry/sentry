@@ -2193,6 +2193,24 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         # The timestamp of the last event should be 22:00 and there should also only be 1 event
         assert data[-1] == ((self.day_ago + timedelta(hours=12)).timestamp(), [{"count": 1}])
 
+    def test_top_events_with_timestamp(self):
+        """Users shouldn't groupby timestamp for top events"""
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["timestamp", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 400, response.content
+
     def test_simple_equation(self):
         self.store_spans(
             [
@@ -2417,3 +2435,49 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         rows = data[0:6]
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0]
+
+    def test_debug_param(self):
+        self.user = self.create_user("user@example.com", is_superuser=False)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(user=self.user)
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "debug": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        # Debug should be ignored without superuser
+        assert "query" not in response.data["meta"]
+
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(user=self.user)
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "debug": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert "query" in response.data["meta"]
+        assert (
+            "FUNCTION_COUNT"
+            == response.data["meta"]["query"]["expressions"][0]["aggregation"]["aggregate"]
+        )

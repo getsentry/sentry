@@ -26,6 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
   useExploreFields,
   useExploreGroupBys,
@@ -40,7 +41,6 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
@@ -60,7 +60,10 @@ export function ToolbarSaveAs() {
   const mode = useExploreMode();
   const id = useExploreId();
   const visualizeYAxes = useMemo(
-    () => dedupeArray(visualizes.map(v => v.yAxis)),
+    () =>
+      dedupeArray(
+        visualizes.filter(visualize => !visualize.isEquation).map(v => v.yAxis)
+      ),
     [visualizes]
   );
 
@@ -265,7 +268,7 @@ export function ToolbarSaveAs() {
 
   return (
     <StyledToolbarSection data-test-id="section-save-as">
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <DropdownMenu
           items={items}
           trigger={triggerProps => (

@@ -13,6 +13,7 @@ def make_http_snapshot(insta_snapshot):
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("request")
+        assert interface is not None
 
         insta_snapshot({"errors": evt.data.get("errors"), "to_json": interface.to_json()})
 

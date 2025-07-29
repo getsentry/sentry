@@ -1494,10 +1494,6 @@ describe('Subscription > CombinedUsageTotals', function () {
       plan: 'am2_business',
       onDemandBudgets: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        attachmentsBudget: 0,
-        errorsBudget: 0,
-        replaysBudget: 0,
-        transactionsBudget: 0,
         budgets: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,
@@ -2000,6 +1996,42 @@ describe('calculateCategoryPrepaidUsage', () => {
     // Should fall back to usage-based calculation since no reserved budget info found
     expect(result.prepaidSpend).toBe(0); // No price bucket found for SEER in regular subscription
     expect(result.prepaidUsage).toBe(10);
+  });
+
+  it('converts prepaid limit to bytes for LOG_BYTE category', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_team',
+      planTier: 'am2',
+    });
+    const prepaidGb = 10; // 10 GB prepaid limit
+    const usageBytes = 5 * GIGABYTE; // 5 GB actual usage
+
+    // Add price bucket information for LOG_BYTE category
+    subscription.planDetails.planCategories.logBytes = [
+      {events: prepaidGb, price: 1000, unitPrice: 0.1, onDemandPrice: 0.2},
+    ];
+
+    subscription.categories.logBytes = MetricHistoryFixture({
+      prepaid: prepaidGb,
+      reserved: prepaidGb,
+      usage: usageBytes,
+    });
+
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.LOG_BYTE,
+      subscription,
+      prepaidGb
+    );
+
+    // Should multiply prepaid by GIGABYTE for unit conversion
+    expect(result).toEqual({
+      onDemandUsage: 0,
+      prepaidPercentUsed: 50, // 5GB / 10GB = 50%
+      prepaidPrice: 1000,
+      prepaidSpend: 500,
+      prepaidUsage: usageBytes,
+    });
   });
 });
 

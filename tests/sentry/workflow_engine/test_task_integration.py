@@ -13,7 +13,7 @@ from tests.sentry.issues.test_status_change_consumer import get_test_message_sta
 
 
 class IssuePlatformIntegrationTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(project=self.project)
         self.group = self.create_group(
@@ -29,7 +29,7 @@ class IssuePlatformIntegrationTests(TestCase):
             group=self.group,
         )
 
-    def test_handler_invoked__when_update_status_called(self):
+    def test_handler_invoked__when_update_status_called(self) -> None:
         """
         Integration test to ensure the `update_status` method
         will correctly invoke the `workflow_status_update_handler`
@@ -41,15 +41,15 @@ class IssuePlatformIntegrationTests(TestCase):
             detector_id=self.detector.id,
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             _process_message(message)
 
-            mock_incr.assert_called_with(
-                "workflow_engine.process_workflow.activity_update",
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )
 
-    def test_handler_invoked__when_resolved(self):
+    def test_handler_invoked__when_resolved(self) -> None:
         """
         Integration test to ensure the `update_status` method
         will correctly invoke the `workflow_state_update_handler`
@@ -62,11 +62,12 @@ class IssuePlatformIntegrationTests(TestCase):
             new_substatus=None,
             fingerprint=[self.fingerprint],
             detector_id=self.detector.id,
+            activity_data={"test": "test"},
         )
 
-        with mock.patch("sentry.workflow_engine.tasks.metrics.incr") as mock_incr:
+        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             update_status(self.group, message)
-            mock_incr.assert_called_with(
-                "workflow_engine.process_workflow.activity_update",
+            mock_incr.assert_any_call(
+                "workflow_engine.tasks.process_workflows.activity_update",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
             )

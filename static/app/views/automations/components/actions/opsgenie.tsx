@@ -1,6 +1,6 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
@@ -19,7 +19,7 @@ export function OpsgenieDetails({
 }) {
   const integration = handler.integrations?.find(i => i.id === action.integrationId);
   const service = integration?.services?.find(
-    s => s.id === action.config.target_identifier
+    s => s.id === action.config.targetIdentifier
   );
 
   return tct(
@@ -27,7 +27,7 @@ export function OpsgenieDetails({
     {
       logo: ActionMetadata[ActionType.OPSGENIE]?.icon,
       account: integration?.name || action.integrationId,
-      team: service?.name || action.config.target_identifier,
+      team: service?.name || action.config.targetIdentifier,
       priority: String(action.data.priority),
     }
   );
@@ -50,6 +50,7 @@ function PriorityField() {
   return (
     <AutomationBuilderSelect
       name={`${actionId}.data.priority`}
+      aria-label={t('Priority')}
       value={action.data.priority}
       options={OPSGENIE_PRIORITIES.map(priority => ({
         label: priority,
@@ -62,4 +63,17 @@ function PriorityField() {
       }}
     />
   );
+}
+
+export function validateOpsgenieAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify an Opsgenie configuration.');
+  }
+  if (!action.config.targetIdentifier) {
+    return t('You must specify a team.');
+  }
+  if (!action.data.priority) {
+    return t('You must specify a priority.');
+  }
+  return undefined;
 }

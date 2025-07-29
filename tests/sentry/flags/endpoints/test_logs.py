@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-logs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.id,))
@@ -18,7 +18,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
     def features(self):
         return {}
 
-    def test_get(self):
+    def test_get(self) -> None:
         model = FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc),
@@ -45,7 +45,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert result["data"][0]["provider"] == "generic"
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
-    def test_get_no_provider(self):
+    def test_get_no_provider(self) -> None:
         model = FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc),
@@ -71,7 +71,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert result["data"][0]["provider"] is None
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
-    def test_get_no_created_by(self):
+    def test_get_no_created_by(self) -> None:
         model = FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc),
@@ -96,7 +96,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert result["data"][0]["flag"] == "hello"
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
-    def test_get_filter_by_flag(self):
+    def test_get_filter_by_flag(self) -> None:
         FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc),
@@ -132,7 +132,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
 
-    def test_get_filter_by_provider(self):
+    def test_get_filter_by_provider(self) -> None:
         FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc) - timedelta(days=1),
@@ -189,7 +189,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             response = self.client.get(self.url + "?provider=blahblah")
             assert response.status_code == 400
 
-    def test_get_unauthorized_organization(self):
+    def test_get_unauthorized_organization(self) -> None:
         org = self.create_organization()
         url = reverse(self.endpoint, args=(org.id,))
 
@@ -197,7 +197,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_get_stats_period(self):
+    def test_get_stats_period(self) -> None:
         model = FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc),
@@ -214,7 +214,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert response.status_code == 200
             assert len(response.json()["data"]) == 1
 
-    def test_get_start_end(self):
+    def test_get_start_end(self) -> None:
         model = FlagAuditLogModel(
             action=0,
             created_at=datetime(2024, 1, 5, tzinfo=timezone.utc),
@@ -236,7 +236,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert response.status_code == 200
             assert len(response.json()["data"]) == 1
 
-    def test_get_sort(self):
+    def test_get_sort(self) -> None:
         FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc) - timedelta(days=1),
@@ -293,7 +293,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             response = self.client.get(self.url + "?sort=blahblah")
             assert response.status_code == 400
 
-    def test_get_sort_default_created_at(self):
+    def test_get_sort_default_created_at(self) -> None:
         FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc) - timedelta(days=1),
@@ -321,7 +321,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert response.json()["data"][0]["tags"].get("commit_sha") == "123"
             assert response.json()["data"][1]["tags"].get("commit_sha") is None
 
-    def test_get_paginate(self):
+    def test_get_paginate(self) -> None:
         FlagAuditLogModel(
             action=0,
             created_at=datetime.now(timezone.utc) - timedelta(days=1),
@@ -361,7 +361,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
 class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-log"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.flag = FlagAuditLogModel(
             action=0,
@@ -381,7 +381,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
     def features(self):
         return {}
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url)
             assert response.status_code == 200
@@ -394,7 +394,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
             assert result["data"]["flag"] == "hello"
             assert result["data"]["tags"] == {"commit_sha": "123"}
 
-    def test_get_unauthorized_organization(self):
+    def test_get_unauthorized_organization(self) -> None:
         org = self.create_organization()
         url = reverse(self.endpoint, args=(org.id, 123))
 
@@ -402,7 +402,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 403
 
-    def test_get_no_flag(self):
+    def test_get_no_flag(self) -> None:
         with self.feature(self.features):
             response = self.client.get(reverse(self.endpoint, args=(self.organization.id, 123)))
             assert response.status_code == 404

@@ -3,7 +3,11 @@ import type {Location} from 'history';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  parseFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -12,7 +16,7 @@ import {
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const MAX_VISUALIZES = 4;
 
@@ -50,7 +54,7 @@ export class Visualize {
 
   isValid(): boolean {
     if (this.isEquation) {
-      const expression = new Expression(this.yAxis);
+      const expression = new Expression(stripEquationPrefix(this.yAxis));
       return expression.isValid;
     }
     return defined(parseFunction(this.yAxis));
@@ -164,7 +168,7 @@ export function updateVisualizeAggregate({
     // and carry the argument if it's the same type, reset to a default
     // if it's not the same type. Just hard coding it for now for simplicity
     // as `count_unique` is the only aggregate that takes a string.
-    return `${newAggregate}(${SpanIndexedField.SPAN_OP})`;
+    return `${newAggregate}(${SpanFields.SPAN_OP})`;
   }
 
   if (NO_ARGUMENT_SPAN_AGGREGATES.includes(newAggregate as AggregationKey)) {

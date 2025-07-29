@@ -1,10 +1,7 @@
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
 
@@ -23,7 +20,7 @@ function PerfDisabled() {
 
 export default function TraceFeature() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
 
   return (
     <Feature
@@ -32,16 +29,7 @@ export default function TraceFeature() {
       organization={organization}
       renderDisabled={PerfDisabled}
     >
-      <TraceWrapper>
-        <NewTraceView replay={replay?.getReplay()} />
-      </TraceWrapper>
+      <NewTraceView replay={replay?.getReplay()} />
     </Feature>
   );
 }
-
-const TraceWrapper = styled('div')`
-  padding-top: ${space(1)};
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-`;

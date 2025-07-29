@@ -1,3 +1,4 @@
+from django.db import router, transaction
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -27,13 +28,16 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
-from sentry.workflow_engine.endpoints.validators.detector_workflow import can_edit_detector
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    BulkDetectorWorkflowsValidator,
+    can_edit_detector,
+)
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
 
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance=None
+    request: Request, project: Project, detector_type_slug: str, instance=None, partial=False
 ):
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -52,6 +56,7 @@ def get_detector_validator(
             "access": request.access,
         },
         data=request.data,
+        partial=partial,
     )
 
 
@@ -141,12 +146,33 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             raise PermissionDenied
 
         group_type = request.data.get("type") or detector.group_type.slug
-        validator = get_detector_validator(request, detector.project, group_type, detector)
+        validator = get_detector_validator(
+            request, detector.project, group_type, detector, partial=True
+        )
 
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        updated_detector = validator.save()
+        with transaction.atomic(router.db_for_write(Detector)):
+            updated_detector = validator.save()
+
+            workflow_ids = request.data.get("workflowIds")
+            if workflow_ids is not None:
+                bulk_validator = BulkDetectorWorkflowsValidator(
+                    data={
+                        "detector_id": detector.id,
+                        "workflow_ids": workflow_ids,
+                    },
+                    context={
+                        "organization": organization,
+                        "request": request,
+                    },
+                )
+                if not bulk_validator.is_valid():
+                    raise ValidationError({"workflowIds": bulk_validator.errors})
+
+                bulk_validator.save()
+
         return Response(serialize(updated_detector, request.user), status=status.HTTP_200_OK)
 
     @extend_schema(

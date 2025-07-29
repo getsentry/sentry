@@ -2101,3 +2101,22 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "valueType": "integer",
             "interval": 3_600_000,
         }
+
+    def test_top_events_with_timestamp(self):
+        """Users shouldn't groupby timestamp for top events"""
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count(span.self_time)",
+                "groupBy": ["timestamp", "count(span.self_time)"],
+                "query": "count(span.self_time):>4",
+                "orderby": ["-count(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 5,
+            },
+        )
+        assert response.status_code == 400, response.content

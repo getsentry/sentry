@@ -4,24 +4,25 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {DataCategory} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
+import type {EventType} from 'getsentry/components/addEventsCTA';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
@@ -35,7 +36,6 @@ type AiSetupDataConsentProps = {
 function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const subscription = useSubscription();
 
@@ -80,29 +80,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
 
-  const autofixAcknowledgeMutation = useMutation({
-    mutationFn: () => {
-      return promptsUpdate(api, {
-        organization,
-        feature: 'seer_autofix_setup_acknowledged',
-        status: 'dismissed',
-      });
-    },
-    onSuccess: () => {
-      // Invalidate the appropriate query based on mode
-      if (isGroupMode && groupId) {
-        queryClient.invalidateQueries({
-          queryKey: [
-            `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
-          ],
-        });
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: [`/organizations/${organization.slug}/seer/setup-check/`],
-        });
-      }
-    },
-  });
+  const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
   function handlePurchaseSeer() {
     navigate(`/settings/billing/checkout/?referrer=ai_setup_data_consent`);
@@ -125,14 +103,14 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   return (
     <ConsentItemsContainer>
-      <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
-      <Flex align="center" justify="center" gap={space(1)}>
+      <Flex align="center" justify="center" gap="md">
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
       <SingleCard>
-        <Flex align="center" gap={space(1)}>
+        <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
           <IconSeer variant="waiting" color="subText" size="lg" />
         </Flex>
@@ -188,7 +166,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap={space(2)} direction="column">
+                  <Flex gap="xl" direction="column">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -218,7 +196,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                             await sendAddEventsRequest({
                               api,
                               organization,
-                              eventTypes: [DataCategoryExact.SEER_AUTOFIX],
+                              eventTypes: [
+                                DATA_CATEGORY_INFO.seer_autofix.singular as EventType,
+                              ],
                             });
                             autofixAcknowledgeMutation.mutate();
                           }}
@@ -316,7 +296,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         )}
       </SingleCard>
       {warnAboutGithubIntegration && (
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           {t(
             'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}

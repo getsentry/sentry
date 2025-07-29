@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Count from 'sentry/components/count';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -10,6 +11,7 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,24 +30,32 @@ import {
 import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {ErrorCell} from 'sentry/views/insights/agentMonitoring/utils/cells';
+import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
 import {
+  AI_COST_ATTRIBUTE_SUM,
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
   AI_MODEL_ID_ATTRIBUTE,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
   getAIGenerationsFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-// import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 interface TableData {
   avg: number;
-  // errorRate: number;
+  cost: number;
+  errors: number;
+  inputCachedTokens: number;
   inputTokens: number;
   model: string;
+  outputReasoningTokens: number;
   outputTokens: number;
   p95: number;
   requests: number;
@@ -56,18 +66,22 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
+  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
-  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens'), width: 140},
-  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens'), width: 140},
-  // {key: 'failure_rate()', name: t('Error Rate'), width: 120},
+  {key: AI_COST_ATTRIBUTE_SUM, name: t('Cost'), width: 100},
+  {key: AI_INPUT_TOKENS_ATTRIBUTE_SUM, name: t('Input tokens (Cached)'), width: 180},
+  {key: AI_OUTPUT_TOKENS_ATTRIBUTE_SUM, name: t('Output tokens (Reasoning)'), width: 180},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
   AI_INPUT_TOKENS_ATTRIBUTE_SUM,
   AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
-  // 'failure_rate()',
+  AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+  AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
+  AI_COST_ATTRIBUTE_SUM,
+  'count_if(span.status,unknown)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -86,7 +100,7 @@ export function ModelsTable() {
         pathname,
         query: {
           ...previousQuery,
-          tableCursor: cursor,
+          modelsCursor: cursor,
         },
       },
       {replace: true, preventScrollReset: true}
@@ -95,24 +109,26 @@ export function ModelsTable() {
 
   const {sortField, sortOrder} = useTableSortParams();
 
-  const modelsRequest = useEAPSpans(
+  const cursor = decodeScalar(location.query?.modelsCursor);
+
+  const modelsRequest = useSpans(
     {
       fields: [
         AI_MODEL_ID_ATTRIBUTE,
         AI_INPUT_TOKENS_ATTRIBUTE_SUM,
         AI_OUTPUT_TOKENS_ATTRIBUTE_SUM,
+        AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM,
+        AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM,
+        AI_COST_ATTRIBUTE_SUM,
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        // 'failure_rate()',
+        'count_if(span.status,unknown)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
       limit: 10,
-      cursor:
-        typeof location.query.modelsCursor === 'string'
-          ? location.query.modelsCursor
-          : undefined,
+      cursor,
       keepPreviousData: true,
     },
     Referrer.MODELS_TABLE
@@ -125,12 +141,15 @@ export function ModelsTable() {
 
     return modelsRequest.data.map(span => ({
       model: `${span[AI_MODEL_ID_ATTRIBUTE]}`,
-      requests: span['count()'],
-      avg: span['avg(span.duration)'],
-      p95: span['p95(span.duration)'],
-      // errorRate: span['failure_rate()'],
+      requests: span['count()'] ?? 0,
+      avg: span['avg(span.duration)'] ?? 0,
+      p95: span['p95(span.duration)'] ?? 0,
+      cost: Number(span[AI_COST_ATTRIBUTE_SUM]),
+      errors: span['count_if(span.status,unknown)'] ?? 0,
       inputTokens: Number(span[AI_INPUT_TOKENS_ATTRIBUTE_SUM]),
+      inputCachedTokens: Number(span[AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM]),
       outputTokens: Number(span[AI_OUTPUT_TOKENS_ATTRIBUTE_SUM]),
+      outputReasoningTokens: Number(span[AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM]),
     }));
   }, [modelsRequest.data]);
 
@@ -165,9 +184,9 @@ export function ModelsTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return <BodyCell column={column} dataRow={dataRow} query={fullQuery} />;
     },
-    []
+    [fullQuery]
   );
 
   return (
@@ -196,9 +215,11 @@ export function ModelsTable() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  query,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  query: string;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -229,19 +250,58 @@ const BodyCell = memo(function BodyCell({
     case 'count()':
       return <NumberCell value={dataRow.requests} />;
     case AI_INPUT_TOKENS_ATTRIBUTE_SUM:
-      return <NumberCell value={dataRow.inputTokens} />;
+      return (
+        <TokenTypeCell
+          value={dataRow.inputTokens}
+          secondaryValue={dataRow.inputCachedTokens}
+        />
+      );
     case AI_OUTPUT_TOKENS_ATTRIBUTE_SUM:
-      return <NumberCell value={dataRow.outputTokens} />;
+      return (
+        <TokenTypeCell
+          value={dataRow.outputTokens}
+          secondaryValue={dataRow.outputReasoningTokens}
+        />
+      );
     case 'avg(span.duration)':
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    // case 'failure_rate()':
-    //   return <ErrorRateCell errorRate={dataRow.errorRate} total={dataRow.requests} />;
+    case AI_COST_ATTRIBUTE_SUM:
+      return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
+    case 'count_if(span.status,unknown)':
+      return (
+        <ErrorCell
+          value={dataRow.errors}
+          target={getExploreUrl({
+            query: `${query} span.status:unknown gen_ai.request.model:${dataRow.model}`,
+            organization,
+            selection,
+            referrer: Referrer.MODELS_TABLE,
+          })}
+        />
+      );
     default:
       return null;
   }
 });
+
+function TokenTypeCell({value, secondaryValue}: {secondaryValue: number; value: number}) {
+  return (
+    <TokenTypeCountWrapper>
+      <Count value={value} />
+      <span>
+        (<Count value={secondaryValue} />)
+      </span>
+    </TokenTypeCountWrapper>
+  );
+}
+
+const TokenTypeCountWrapper = styled('span')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  justify-content: flex-end;
+`;
 
 const ModelCell = styled(CellLink)`
   line-height: 1.1;

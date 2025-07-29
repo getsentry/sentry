@@ -135,7 +135,7 @@ def test_sdks_detected(mock_sdk_crash_reporter, store_event, sdk_name, detected)
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     @django_db_all
-    def test_sdk_crash_event_stored_to_sdk_crash_project(self):
+    def test_sdk_crash_event_stored_to_sdk_crash_project(self) -> None:
         cocoa_sdk_crashes_project = self.create_project(
             name="Cocoa SDK Crashes",
             slug="cocoa-sdk-crashes",

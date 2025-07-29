@@ -1,5 +1,3 @@
-import {DetectorFixture} from 'sentry-fixture/detectors';
-
 import {
   getMetricDetectorSuffix,
   getStaticDetectorThresholdSuffix,
@@ -33,39 +31,17 @@ describe('getStaticDetectorThresholdSuffix', function () {
 });
 
 describe('getMetricDetectorSuffix', function () {
+  const aggregate = 'avg(span.duration)';
+
   it('returns % for percent detection type', function () {
-    const detector = DetectorFixture({
-      id: '1',
-      name: 'test',
-      config: {
-        detection_type: 'percent',
-        comparison_delta: 10,
-        threshold_period: 1,
-      },
-    });
-
-    expect(getMetricDetectorSuffix(detector)).toBe('%');
+    expect(getMetricDetectorSuffix('percent', aggregate)).toBe('%');
   });
 
-  it('returns ms as default for static detection type without data source', function () {
-    const detector = DetectorFixture({
-      config: {
-        detection_type: 'static',
-        threshold_period: 1,
-      },
-    });
-
-    expect(getMetricDetectorSuffix(detector)).toBe('ms');
+  it('returns ms as default for static detection type with duration aggregate', function () {
+    expect(getMetricDetectorSuffix('static', aggregate)).toBe('ms');
   });
 
-  it('returns ms as default for dynamic detection type without data source', function () {
-    const detector = DetectorFixture({
-      config: {
-        detection_type: 'dynamic',
-        threshold_period: 1,
-      },
-    });
-
-    expect(getMetricDetectorSuffix(detector)).toBe('ms');
+  it('returns ms as default for dynamic detection type with duration aggregate', function () {
+    expect(getMetricDetectorSuffix('dynamic', aggregate)).toBe('ms');
   });
 });

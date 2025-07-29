@@ -4,7 +4,7 @@ import datetime
 import uuid
 from unittest.mock import patch
 
-from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
@@ -12,7 +12,7 @@ from sentry.testutils.helpers import TaskRunner
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(name="test_project")
         self.range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
@@ -151,7 +151,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             offset=0,
         )
 
-    def test_run_bulk_replay_delete_job_chained_runs(self):
+    def test_run_bulk_replay_delete_job_chained_runs(self) -> None:
         project = self.create_project()
 
         t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -180,7 +180,25 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.status == "completed"
         assert self.job.offset == 2
 
-    def test_run_bulk_replay_delete_job_no_matches(self):
+    def test_run_bulk_replay_delete_job_already_failed(self) -> None:
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay_id1 = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(t1, self.project.id, replay_id1, segment_id=0, environment="prod")
+        )
+
+        self.job.status = DeletionJobStatus.FAILED
+        self.job.save()
+
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=0)
+
+        # Runs were chained.
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"
+        assert self.job.offset == 0
+
+    def test_run_bulk_replay_delete_job_no_matches(self) -> None:
         with TaskRunner():
             run_bulk_replay_delete_job.delay(self.job.id, offset=0)
 

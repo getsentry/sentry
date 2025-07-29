@@ -36,11 +36,7 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import (
-    has_custom_dynamic_sampling,
-    has_dynamic_sampling,
-    has_dynamic_sampling_minimum_sample_rate,
-)
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -58,7 +54,7 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
-from sentry.seer.seer_utils import AutofixAutomationTuningSettings
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
@@ -99,6 +95,33 @@ class ProjectMemberSerializer(serializers.Serializer):
         help_text="Enables starring the project within the projects tab. Can be updated with **`project:read`** permission.",
         required=False,
     )
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=[item.value for item in AutofixAutomationTuningSettings],
+        required=False,
+    )
+    seerScannerAutomation = serializers.BooleanField(required=False)
+
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_seerScannerAutomation(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
 
 
 @extend_schema_serializer(
@@ -131,7 +154,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "copy_from_project",
         "targetSampleRate",
         "dynamicSamplingBiases",
-        "dynamicSamplingMinimumSampleRate",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
         "autofixAutomationTuning",
@@ -225,13 +247,8 @@ E.g. `['release', 'environment']`""",
     copy_from_project = serializers.IntegerField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
-    dynamicSamplingMinimumSampleRate = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[item.value for item in AutofixAutomationTuningSettings], required=False
-    )
-    seerScannerAutomation = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -434,15 +451,6 @@ E.g. `['release', 'environment']`""",
 
         return value
 
-    def validate_dynamicSamplingMinimumSampleRate(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_dynamic_sampling_minimum_sample_rate(organization, actor=actor):
-            raise serializers.ValidationError(
-                "Organization does not have the dynamic sampling minimum sample rate feature enabled."
-            )
-        return value
-
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
@@ -458,28 +466,6 @@ E.g. `['release', 'environment']`""",
         if not has_tempest_access(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
-            )
-        return value
-
-    def validate_autofixAutomationTuning(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
-    def validate_seerScannerAutomation(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
             )
         return value
 
@@ -581,7 +567,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked`.
+        `isBookmarked`, `autofixAutomationTuning`, and `seerScannerAutomation`.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -772,14 +758,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
-                ]
-        if result.get("dynamicSamplingMinimumSampleRate") is not None:
-            if project.update_option(
-                "sentry:dynamic_sampling_minimum_sample_rate",
-                result["dynamicSamplingMinimumSampleRate"],
-            ):
-                changed_proj_settings["sentry:dynamic_sampling_minimum_sample_rate"] = result[
-                    "dynamicSamplingMinimumSampleRate"
                 ]
 
         if result.get("autofixAutomationTuning") is not None:
@@ -1046,15 +1024,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if old_raw_dynamic_sampling_biases is None:
             return
 
-        for index, rule in enumerate(new_raw_dynamic_sampling_biases):
-            if rule["active"] != old_raw_dynamic_sampling_biases[index]["active"]:
+        old_biases = {bias["id"]: bias for bias in old_raw_dynamic_sampling_biases}
+        new_biases = {bias["id"]: bias for bias in new_raw_dynamic_sampling_biases}
+        for bias_id, new_bias in new_biases.items():
+            old_bias = old_biases.get(bias_id)
+            if (old_bias is None and new_bias["active"]) or (
+                old_bias is not None and new_bias["active"] != old_bias["active"]
+            ):
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,
                     target_object=project.id,
                     event=audit_log.get_event_id(
-                        "SAMPLING_BIAS_ENABLED" if rule["active"] else "SAMPLING_BIAS_DISABLED"
+                        "SAMPLING_BIAS_ENABLED" if new_bias["active"] else "SAMPLING_BIAS_DISABLED"
                     ),
-                    data={**project.get_audit_log_data(), "name": rule["id"]},
+                    data={**project.get_audit_log_data(), "name": bias_id},
                 )
                 return

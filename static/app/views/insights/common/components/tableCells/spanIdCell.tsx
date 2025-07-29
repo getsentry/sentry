@@ -13,7 +13,6 @@ import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/tr
 interface Props {
   location: Location;
   moduleName: ModuleName;
-  projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
@@ -24,7 +23,6 @@ interface Props {
 
 export function SpanIdCell({
   moduleName,
-  projectSlug,
   traceId,
   transactionId,
   transactionSpanId,
@@ -39,7 +37,6 @@ export function SpanIdCell({
     generateLinkToEventInTraceView({
       eventId: transactionId,
       targetId: transactionSpanId,
-      projectSlug,
       traceSlug: traceId,
       timestamp,
       organization,

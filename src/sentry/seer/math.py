@@ -86,3 +86,136 @@ def rrf_score(
 def rank_min(xs: list[float], ascending: bool = False):
     ranks = {x: rank for rank, x in enumerate(sorted(set(xs), reverse=not ascending), 1)}
     return [ranks[x] for x in xs]
+
+
+def boxcox_transform(
+    values: list[float], lambda_param: float | None = None
+) -> tuple[list[float], float]:
+    """
+    Apply BoxCox transformation to a list of values.
+
+    Parameters:
+        values: List of positive values to transform
+        lambda_param: BoxCox lambda parameter. If None, finds optimal lambda.
+
+    Returns:
+        Tuple of (transformed values, lambda parameter used)
+    """
+    min_value = min(values) if values else 0
+    if min_value <= 0:
+        shift_amount = -min_value + 1e-10
+        shifted_values = [v + shift_amount for v in values]
+    else:
+        shifted_values = values
+
+    # Get lambda parameter: use provided one or find optimal
+    lambda_param = _boxcox_normmax(shifted_values) if lambda_param is None else lambda_param
+
+    # Apply transformation
+    if lambda_param == 0.0:
+        transformed = [math.log(max(v, 1e-10)) for v in shifted_values]
+    else:
+        transformed = [
+            (pow(max(v, 1e-10), lambda_param) - 1) / lambda_param for v in shifted_values
+        ]
+
+    return transformed, lambda_param
+
+
+def _boxcox_llf(lambda_param: float, values: list[float]) -> float:
+    """
+    Compute the Box-Cox log-likelihood function.
+
+    Uses numerically stable log-space arithmetic following scipy's implementation.
+
+    Parameters:
+        lambda_param: BoxCox lambda parameter
+        values: List of positive values
+
+    Returns:
+        Log-likelihood value
+    """
+    n = len(values)
+    if n == 0:
+        return 0.0
+
+    log_values = [math.log(max(v, 1e-10)) for v in values]
+    log_sum = sum(log_values)
+
+    if lambda_param == 0.0:
+        log_mean = log_sum / n
+        log_var = sum((lv - log_mean) ** 2 for lv in log_values) / n
+        logvar = math.log(max(log_var, 1e-10))
+    else:
+        # For λ≠0: Use log-space arithmetic for numerical stability
+        # This avoids computing (x^λ - 1)/λ directly which can overflow
+        # Uses identity: var((x^λ - 1)/λ) = var(x^λ)/λ²
+        logx = [lambda_param * lv for lv in log_values]  # log(x^λ) = λ*log(x)
+        logx_mean = sum(logx) / n
+        logx_var = sum((lx - logx_mean) ** 2 for lx in logx) / n
+        # log(var(y)) = log(var(x^λ)) - 2*log(|λ|)
+        logvar = math.log(max(logx_var, 1e-10)) - 2 * math.log(abs(lambda_param))
+
+    # Box-Cox log-likelihood: (λ-1)*Σlog(x) - n/2*log(var(y))
+    return (lambda_param - 1) * log_sum - (n / 2) * logvar
+
+
+def _boxcox_normmax(values: list[float], max_iters: int = 100) -> float:
+    """
+    Calculate the approximate optimal lambda parameter for BoxCox transformation that maximizes the log-likelihood.
+
+    Uses MLE method with ternary search rather than Brent's method for efficient optimization.
+
+    Parameters:
+        values: List of positive values
+        max_iters: Maximum number of iterations to run for ternary search
+
+    Returns:
+        Approximate optimal lambda parameter
+    """
+    if not values:
+        return 0.0
+
+    left = -2.0
+    right = 2.0
+    tolerance = 1e-6
+    iters = 0
+
+    while right - left > tolerance and iters < max_iters:
+        m1 = left + (right - left) / 3
+        m2 = right - (right - left) / 3
+
+        llf_m1 = _boxcox_llf(m1, values)
+        llf_m2 = _boxcox_llf(m2, values)
+
+        if llf_m1 > llf_m2:
+            right = m2
+        else:
+            left = m1
+
+        iters += 1
+
+    return (left + right) / 2
+
+
+def calculate_z_scores(values: list[float]) -> list[float]:
+    """
+    Calculate z-scores for a list of values.
+
+    Parameters:
+        values: List of numerical values
+
+    Returns:
+        List of z-scores corresponding to input values
+    """
+    if not values:
+        return []
+
+    mean_val = sum(values) / len(values)
+    variance = sum((x - mean_val) ** 2 for x in values) / len(values)
+    std_dev = math.sqrt(variance)
+
+    if std_dev == 0:
+        return [0.0] * len(values)
+
+    return [(x - mean_val) / std_dev for x in values]

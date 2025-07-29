@@ -1,6 +1,6 @@
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
@@ -19,7 +19,7 @@ export function PagerdutyDetails({
 }) {
   const integration = handler.integrations?.find(i => i.id === action.integrationId);
   const service = integration?.services?.find(
-    s => s.id === action.config.target_identifier
+    s => s.id === action.config.targetIdentifier
   );
 
   return tct(
@@ -27,7 +27,7 @@ export function PagerdutyDetails({
     {
       logo: ActionMetadata[ActionType.PAGERDUTY]?.icon,
       account: integration?.name || action.integrationId,
-      service: service?.name || action.config.target_identifier,
+      service: service?.name || action.config.targetIdentifier,
       severity: String(action.data.priority),
     }
   );
@@ -50,6 +50,7 @@ function SeverityField() {
   return (
     <AutomationBuilderSelect
       name={`${actionId}.data.priority`}
+      aria-label={t('Severity')}
       value={action.data.priority}
       options={PAGERDUTY_SEVERITIES.map(severity => ({
         label: severity,
@@ -62,4 +63,17 @@ function SeverityField() {
       }}
     />
   );
+}
+
+export function validatePagerdutyAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a PagerDuty integration.');
+  }
+  if (!action.config.targetIdentifier) {
+    return t('You must specify a service.');
+  }
+  if (!action.data.priority) {
+    return t('You must specify a severity.');
+  }
+  return undefined;
 }

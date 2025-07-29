@@ -4,10 +4,10 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DetectorTest(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector()
 
-    def test_queryset(self):
+    def test_queryset(self) -> None:
         """
         Test that we filter out objects with statuses other than 'active'
         """

@@ -14,13 +14,14 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
 
 from sentry import (
+    audit_log,
     eventstore,
     eventstream,
     eventtypes,
@@ -37,6 +38,7 @@ from sentry.constants import (
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
+    VALID_PLATFORMS,
     DataCategory,
     InsightModules,
 )
@@ -127,6 +129,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
@@ -464,6 +467,10 @@ class EventManager:
         # After calling _pull_out_data we get some keys in the job like the platform
         _pull_out_data([job], projects)
 
+        # Sometimes projects get created without a platform (e.g. through the API), in which case we
+        # attempt to set it based on the first event
+        _set_project_platform_if_needed(project, job["event"])
+
         event_type = self._data.get("type")
         if event_type == "transaction":
             job["data"]["project"] = project.id
@@ -688,6 +695,38 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
             job["event"].datetime.strftime("%s")
         )
         job["groups"] = []
+
+
+def _set_project_platform_if_needed(project: Project, event: Event) -> None:
+    if project.platform:
+        return
+
+    if event.platform not in VALID_PLATFORMS or event.get_tag("sample_event") == "yes":
+        return
+
+    try:
+        updated = Project.objects.filter(
+            Q(id=project.id) & (Q(platform__isnull=True) | Q(platform=""))
+        ).update(platform=event.platform)
+
+        if updated:
+            create_system_audit_entry(
+                organization=project.organization,
+                target_object=project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+                data={**project.get_audit_log_data(), "platform": event.platform},
+            )
+            metrics.incr(
+                "issues.infer_project_platform.success",
+                sample_rate=1.0,
+                tags={
+                    "reason": "new_project" if not project.first_event else "backfill",
+                    "platform": event.platform,
+                },
+            )
+
+    except Exception:
+        logger.exception("Failed to infer and set project platform")
 
 
 @sentry_sdk.tracing.trace
@@ -1140,7 +1179,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
-        event_id=data.get("event_id"),
+        event_id=data["event_id"],
         group_id=None,
         data=EventDict(data, skip_renormalization=True),
     )
@@ -1260,7 +1299,8 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
-        # If we still haven't found a group, ask Seer for a match (if enabled for the project)
+
+        # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:
             seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
                 event, primary.grouphashes[0], primary.variants, all_grouphashes
@@ -1275,6 +1315,22 @@ def assign_event_to_group(
 
     # From here on out, we're just doing housekeeping
 
+    # TODO: Temporary metric to debug missing grouphash metadata. This metric *should* exactly match
+    # the `grouping.grouphashmetadata.backfill_needed` metric collected in
+    # `get_or_create_grouphashes`. If it doesn't, perhaps there's a race condition between creation
+    # of the metadata and our ability to pull it from the database immediately thereafter.
+    for grouphash in [*primary.grouphashes, *secondary.grouphashes]:
+        if not grouphash.metadata:
+            logger.warning(
+                "grouphash_metadata.hash_without_metadata",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "hash": grouphash.hash,
+                },
+            )
+            metrics.incr("grouping.grouphashmetadata.backfill_needed_2", sample_rate=1.0)
+
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
@@ -1286,7 +1342,7 @@ def assign_event_to_group(
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
-    # config, but will also be grandfathered into the current config for a week, so as not to
+    # config, but will also be grandfathered into the current config for a set period, so as not to
     # erroneously create new groups.
     update_or_set_grouping_config_if_needed(project, "ingest")
 
@@ -2539,6 +2595,7 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
     InsightModules.QUEUE: "has_insights_queues",
     InsightModules.LLM_MONITORING: "has_insights_llm_monitoring",
     InsightModules.AGENTS: "has_insights_agent_monitoring",
+    InsightModules.MCP: "has_insights_mcp",
 }
 
 

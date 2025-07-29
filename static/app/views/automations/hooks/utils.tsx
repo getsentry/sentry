@@ -1,14 +1,13 @@
+import {t} from 'sentry/locale';
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import type {
-  ConflictingConditions,
-  DataConditionGroup,
-} from 'sentry/types/workflowEngine/dataConditions';
+import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
+import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useDetectorQueriesByIds} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
@@ -34,23 +33,37 @@ export function findConflictingConditions(
   triggers: DataConditionGroup,
   actionFilters: DataConditionGroup[]
 ): ConflictingConditions {
-  // First check for conflicting trigger conditions
-  if (
-    triggers.logicType === DataConditionGroupLogicType.ALL &&
-    triggers.conditions.length > 1
-  ) {
+  // Check for duplicate trigger conditions
+  const duplicateConditions = findDuplicateTriggerConditions(triggers);
+  if (duplicateConditions.size > 0) {
     return {
-      conflictingTriggers: triggers.conditions.map(condition => condition.id),
-      conflictingActionFilters: {},
+      conflictingConditionGroups: {[triggers.id]: duplicateConditions},
+      conflictReason: t('Delete duplicate triggers to continue.'),
     };
   }
+
+  // Check for mutually exclusive trigger conditions with ALL logic
+  if (triggers.logicType === DataConditionGroupLogicType.ALL) {
+    const conflictingTriggerConditions =
+      findFirstSeenEventConflictingConditions(triggers);
+    if (conflictingTriggerConditions.size > 1) {
+      return {
+        conflictingConditionGroups: {
+          [triggers.id]: conflictingTriggerConditions,
+        },
+        conflictReason: t(
+          'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
+        ),
+      };
+    }
+  }
+
+  let hasConflictingActionFilters = false;
 
   // Check for first seen event condition
   const firstSeenId = triggers.conditions.find(
     condition => condition.type === DataConditionType.FIRST_SEEN_EVENT
   )?.id;
-  const conflictingConditions: Record<string, string[]> = {};
-  let hasConflictingActionFilters = false;
 
   // First seen event condition does not cause conflicts if the logic type is ANY_SHORT_CIRCUIT and there are multiple trigger conditions
   if (
@@ -60,43 +73,76 @@ export function findConflictingConditions(
       triggers.conditions.length > 1
     )
   ) {
+    const conflictingConditions: Record<string, Set<string>> = {};
+
     // Create a mapping of conflicting conditions for each action filter
     for (const actionFilter of actionFilters) {
-      const conflicts = findConflictingActionFilterConditions(actionFilter);
+      const conflicts = findFirstSeenEventConflictingConditions(actionFilter);
       conflictingConditions[actionFilter.id] = conflicts;
-      if (conflicts.length > 0) {
+      if (conflicts.size > 0) {
         hasConflictingActionFilters = true;
       }
     }
     // First seen event is only conflicting if there are conflicting action filter conditions
     if (hasConflictingActionFilters) {
       return {
-        conflictingTriggers: [firstSeenId],
-        conflictingActionFilters: conflictingConditions,
+        conflictingConditionGroups: {
+          [triggers.id]: new Set<string>([firstSeenId]),
+          ...conflictingConditions,
+        },
+        conflictReason: t(
+          'The conditions highlighted in red are in conflict with "A new issue is created."'
+        ),
       };
     }
   }
+
+  // Check for conflicting issue priority conditions in action filters
+  const conflictingActionFilters: Record<string, Set<string>> = {};
+  for (const actionFilter of actionFilters) {
+    const conflictingConditions = findConflictingPriorityConditions(actionFilter);
+    if (conflictingConditions.size > 0) {
+      hasConflictingActionFilters = true;
+      conflictingActionFilters[actionFilter.id] = conflictingConditions;
+    }
+  }
+
+  if (hasConflictingActionFilters) {
+    return {
+      conflictingConditionGroups: conflictingActionFilters,
+      conflictReason: t(
+        'The issue priority conditions highlighted in red are in conflict.'
+      ),
+    };
+  }
+
   return {
-    conflictingTriggers: [],
-    conflictingActionFilters: {},
+    conflictingConditionGroups: {},
+    conflictReason: null,
   };
 }
 
-const frequencyTypes = [
+const conflictingTriggers = new Set<DataConditionType>([
+  DataConditionType.FIRST_SEEN_EVENT,
+  DataConditionType.REGRESSION_EVENT,
+  DataConditionType.REAPPEARED_EVENT,
+]);
+
+const frequencyTypes = new Set<DataConditionType>([
   DataConditionType.EVENT_FREQUENCY_COUNT,
   DataConditionType.EVENT_FREQUENCY_PERCENT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
   DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
-];
+]);
 
-function findConflictingActionFilterConditions(
-  actionFilter: DataConditionGroup
-): string[] {
-  const conflictingConditions: string[] = [];
+function findFirstSeenEventConflictingConditions(
+  conditionGroup: DataConditionGroup
+): Set<string> {
+  const conflictingConditions: Set<string> = new Set<string>();
 
   // Find incompatible conditions for NONE logic type
-  if (actionFilter.logicType === DataConditionGroupLogicType.NONE) {
-    for (const condition of actionFilter.conditions) {
+  if (conditionGroup.logicType === DataConditionGroupLogicType.NONE) {
+    for (const condition of conditionGroup.conditions) {
       const isInvalidAgeComparison =
         condition.type === DataConditionType.AGE_COMPARISON &&
         condition.comparison.comparison_type === AgeComparison.NEWER &&
@@ -106,16 +152,17 @@ function findConflictingActionFilterConditions(
         condition.comparison.value <= 1;
 
       if (isInvalidAgeComparison || isInvalidIssueOccurence) {
-        conflictingConditions.push(condition.id);
+        conflictingConditions.add(condition.id);
       }
-      return conflictingConditions;
     }
+    return conflictingConditions;
   }
 
   // Find incompatible conditions for ANY_SHORT_CIRCUIT and ALL logic types
-  for (const condition of actionFilter.conditions) {
+  for (const condition of conditionGroup.conditions) {
+    const isConflictingTrigger = conflictingTriggers.has(condition.type);
     const isInvalidFrequency =
-      frequencyTypes.includes(condition.type) && condition.comparison.value >= 1;
+      frequencyTypes.has(condition.type) && condition.comparison.value >= 1;
     const isInvalidAgeComparison =
       condition.type === DataConditionType.AGE_COMPARISON &&
       condition.comparison.comparison_type === AgeComparison.OLDER;
@@ -123,18 +170,85 @@ function findConflictingActionFilterConditions(
       condition.type === DataConditionType.ISSUE_OCCURRENCES &&
       condition.comparison.value > 1;
 
-    if (isInvalidFrequency || isInvalidAgeComparison || isInvalidIssueOccurence) {
-      conflictingConditions.push(condition.id);
+    if (
+      isConflictingTrigger ||
+      isInvalidFrequency ||
+      isInvalidAgeComparison ||
+      isInvalidIssueOccurence
+    ) {
+      conflictingConditions.add(condition.id);
     }
   }
 
   // If the logic type is ANY_SHORT_CIRCUIT and any of the conditions are valid, consider the action filter valid
   if (
-    actionFilter.logicType === DataConditionGroupLogicType.ANY_SHORT_CIRCUIT &&
-    conflictingConditions.length !== actionFilter.conditions.length
+    conditionGroup.logicType === DataConditionGroupLogicType.ANY_SHORT_CIRCUIT &&
+    conflictingConditions.size !== conditionGroup.conditions.length
   ) {
-    return [];
+    return new Set<string>();
   }
 
   return conflictingConditions;
+}
+
+function findConflictingPriorityConditions(
+  conditionGroup: DataConditionGroup
+): Set<string> {
+  const conflictingConditions: Set<string> = new Set<string>();
+
+  const priorityGreaterOrEqualConditions: string[] = [];
+  const priorityDeescalatingConditions: string[] = [];
+
+  // Conflicting issue priority conditions are only relevant for ALL logic type
+  if (conditionGroup.logicType !== DataConditionGroupLogicType.ALL) {
+    return conflictingConditions;
+  }
+
+  for (const condition of conditionGroup.conditions) {
+    const isIssuePriority =
+      condition.type === DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL;
+    const isIssuePriorityDeescalating =
+      condition.type === DataConditionType.ISSUE_PRIORITY_DEESCALATING;
+    if (isIssuePriority) {
+      priorityGreaterOrEqualConditions.push(condition.id);
+    }
+    if (isIssuePriorityDeescalating) {
+      priorityDeescalatingConditions.push(condition.id);
+    }
+  }
+
+  // Issue priority and priority deescalating conditions conflict if logic type is ALL
+  if (
+    conditionGroup.logicType === DataConditionGroupLogicType.ALL &&
+    priorityGreaterOrEqualConditions.length > 0 &&
+    priorityDeescalatingConditions.length > 0
+  ) {
+    priorityGreaterOrEqualConditions.forEach(id => conflictingConditions.add(id));
+    priorityDeescalatingConditions.forEach(id => conflictingConditions.add(id));
+  }
+
+  return conflictingConditions;
+}
+
+function findDuplicateTriggerConditions(triggers: DataConditionGroup): Set<string> {
+  const conditionCounts: Record<string, string[]> = {};
+  const duplicates: Set<string> = new Set();
+
+  // Count the number of conditions for each type
+  for (const condition of triggers.conditions) {
+    if (conflictingTriggers.has(condition.type)) {
+      if (!conditionCounts[condition.type]) {
+        conditionCounts[condition.type] = [];
+      }
+      conditionCounts[condition.type]?.push(condition.id);
+    }
+  }
+
+  // Find all duplicates
+  Object.entries(conditionCounts).forEach(([, conditionIds]) => {
+    if (conditionIds.length > 1) {
+      conditionIds.forEach(id => duplicates.add(id));
+    }
+  });
+  return duplicates;
 }

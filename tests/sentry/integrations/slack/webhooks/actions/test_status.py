@@ -41,8 +41,10 @@ from . import BaseEventTest
 pytestmark = [requires_snuba]
 
 
+# Prevent flakiness from timestamp mismatch when building linking URL
+@freeze_time()
 class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification_text = "Identity not found."
         self.event_data = {
@@ -229,10 +231,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             assert start_2.args[0] == EventLifecycleOutcome.STARTED
             assert success_2.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
-    def test_ask_linking(self):
-        """Freezing time to prevent flakiness from timestamp mismatch."""
-
+    def test_ask_linking(self) -> None:
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
         associate_url = build_linking_url(
             self.integration, "invalid-id", "C065W1189", self.response_url
@@ -372,7 +371,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
-    def test_archive_issue_with_additional_user_auth(self):
+    def test_archive_issue_with_additional_user_auth(self) -> None:
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
@@ -395,7 +394,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
-    def test_archive_issue_with_additional_user_auth_through_unfurl(self):
+    def test_archive_issue_with_additional_user_auth_through_unfurl(self) -> None:
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
@@ -552,7 +551,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    def test_assign_issue_through_unfurl(self):
+    def test_assign_issue_through_unfurl(self) -> None:
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         original_message = self.get_original_message(self.group.id)
@@ -593,7 +592,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    def test_assign_issue_where_team_not_in_project(self):
+    def test_assign_issue_where_team_not_in_project(self) -> None:
         user2 = self.create_user(is_superuser=False)
         team2 = self.create_team(
             organization=self.organization, members=[self.user], name="Ecosystem"
@@ -606,7 +605,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
-    def test_assign_issue_where_team_not_in_project_through_unfurl(self):
+    def test_assign_issue_where_team_not_in_project_through_unfurl(self) -> None:
         user2 = self.create_user(is_superuser=False)
         team2 = self.create_team(
             organization=self.organization, members=[self.user], name="Ecosystem"
@@ -620,7 +619,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
-    def test_assign_issue_user_has_identity(self):
+    def test_assign_issue_user_has_identity(self) -> None:
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         user2_identity = self.create_identity(
@@ -641,7 +640,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
 
-    def test_assign_issue_user_has_identity_through_unfurl(self):
+    def test_assign_issue_user_has_identity_through_unfurl(self) -> None:
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
 
@@ -663,7 +662,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
 
-    def test_assign_user_with_multiple_identities(self):
+    def test_assign_user_with_multiple_identities(self) -> None:
         org2 = self.create_organization(owner=None)
 
         integration2 = self.create_integration(
@@ -689,7 +688,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status), text
 
-    def test_assign_user_with_multiple_identities_through_unfurl(self):
+    def test_assign_user_with_multiple_identities_through_unfurl(self) -> None:
         org2 = self.create_organization(owner=None)
 
         integration2 = self.create_integration(
@@ -990,7 +989,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.UNRESOLVED
 
         associate_url = build_unlinking_url(
-            self.integration.id, "slack_id2", "C065W1189", self.response_url
+            integration_id=self.integration.id,
+            slack_id=user2_identity.external_id,
+            channel_id="C065W1189",
+            response_url=self.response_url,
         )
 
         assert resp.data["response_type"] == "ephemeral"
@@ -1060,7 +1062,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
         )
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
         "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
@@ -1118,7 +1119,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             org_name=self.organization.name,
         )
 
-    @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
         "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
@@ -1212,7 +1212,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         resp = self.client.post("/extensions/slack/action/", data=payload)
         assert resp.status_code == 200
 
-    def test_approve_join_request(self):
+    def test_approve_join_request(self) -> None:
         other_user = self.create_user()
         member = self.create_member(
             organization=self.organization,
@@ -1236,7 +1236,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         assert resp is not None
 
-    def test_rejected_invite_request(self):
+    def test_rejected_invite_request(self) -> None:
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
             organization=self.organization,
@@ -1257,7 +1257,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         assert resp is not None
 
-    def test_invalid_rejected_invite_request(self):
+    def test_invalid_rejected_invite_request(self) -> None:
         user = self.create_user(email="hello@sentry.io")
         member = self.create_member(
             organization=self.organization,
@@ -1279,7 +1279,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         assert resp is not None
 
-    def test_invitation_removed(self):
+    def test_invitation_removed(self) -> None:
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
             organization=self.organization,
@@ -1298,7 +1298,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert resp is not None
 
-    def test_invitation_already_accepted(self):
+    def test_invitation_already_accepted(self) -> None:
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
             organization=self.organization,
@@ -1316,7 +1316,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert resp is not None
 
-    def test_invitation_validation_error(self):
+    def test_invitation_validation_error(self) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="manager")
         other_user = self.create_user()
@@ -1336,7 +1336,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert resp is not None
 
-    def test_identity_not_linked(self):
+    def test_identity_not_linked(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             Identity.objects.filter(user=self.user).delete()
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id="")
@@ -1344,7 +1344,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert resp is not None
 
-    def test_wrong_organization(self):
+    def test_wrong_organization(self) -> None:
         other_user = self.create_user()
         another_org = self.create_organization()
         member = OrganizationMember.objects.create(
@@ -1363,7 +1363,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         assert resp is not None
 
-    def test_no_member_admin(self):
+    def test_no_member_admin(self) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="admin")
 

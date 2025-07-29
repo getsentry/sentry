@@ -11,7 +11,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 @all_silo_test
 class GetOrgsFromIntegrationTest(TestCase):
-    def test_finds_single_org(self):
+    def test_finds_single_org(self) -> None:
         org = self.create_organization(slug="dogsaregreat")
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(name="squirrelChasers")
@@ -26,7 +26,7 @@ class GetOrgsFromIntegrationTest(TestCase):
 
         assert actual == [serialize_organization_integration(oi) for oi in ois]
 
-    def test_finds_multiple_orgs(self):
+    def test_finds_multiple_orgs(self) -> None:
         maisey_org = self.create_organization(slug="themaiseymaiseydog")
         charlie_org = self.create_organization(slug="charliebear")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -41,7 +41,7 @@ class GetOrgsFromIntegrationTest(TestCase):
         expected = [serialize_organization_integration(oi) for oi in ois]
         assert actual == expected
 
-    def test_finds_no_orgs_without_erroring(self):
+    def test_finds_no_orgs_without_erroring(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(name="squirrelChasers")
 
@@ -75,9 +75,10 @@ class BindOrgContextFromIntegrationTest(TestCase):
 
         bind_org_context_from_integration(integration.id)
 
-        mock_bind_ambiguous_org_context.assert_called_with(
-            [maisey_org.slug, charlie_org.slug], f"integration (id={integration.id})"
-        )
+        call_orgs, call_source = mock_bind_ambiguous_org_context.call_args[0]
+        # Prevent flakiness from random ordering of the org slugs
+        self.assertListEqual(sorted(call_orgs), sorted([maisey_org.slug, charlie_org.slug]))
+        assert call_source == f"integration (id={integration.id})"
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
     @patch("sentry.integrations.utils.scope.bind_organization_context")

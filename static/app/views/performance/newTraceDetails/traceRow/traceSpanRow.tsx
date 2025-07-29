@@ -1,6 +1,7 @@
 import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -17,6 +18,7 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 const NO_PROFILES: any = [];
 
@@ -26,6 +28,8 @@ export function TraceSpanRow(
   const spanId = isEAPSpanNode(props.node)
     ? props.node.value.event_id
     : props.node.value.span_id;
+
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   return (
     <div
@@ -74,20 +78,30 @@ export function TraceSpanRow(
           <PlatformIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
-          {props.node.value.op && props.node.value.op !== 'default' && (
+          {shouldUseOTelFriendlyUI && isEAPSpanNode(props.node) ? (
             <React.Fragment>
-              <span className="TraceOperation">{props.node.value.op}</span>
-              <strong className="TraceEmDash"> — </strong>
+              <span className="TraceName" title={props.node.value.name}>
+                {props.node.value.name
+                  ? ellipsize(props.node.value.name, 100)
+                  : (spanId ?? 'unknown')}
+              </span>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              {props.node.value.op && props.node.value.op !== 'default' && (
+                <React.Fragment>
+                  <span className="TraceOperation">{props.node.value.op}</span>
+                  <strong className="TraceEmDash"> — </strong>
+                </React.Fragment>
+              )}
+              <span className="TraceDescription" title={props.node.value.description}>
+                {getNodeDescriptionPrefix(props.node)}
+                {props.node.value.description
+                  ? ellipsize(props.node.value.description, 100)
+                  : (spanId ?? 'unknown')}
+              </span>
             </React.Fragment>
           )}
-          <span className="TraceDescription" title={props.node.value.description}>
-            {getNodeDescriptionPrefix(props.node)}
-            {props.node.value.description
-              ? props.node.value.description.length > 100
-                ? props.node.value.description.slice(0, 100).trim() + '\u2026'
-                : props.node.value.description
-              : (spanId ?? 'unknown')}
-          </span>
         </div>
       </div>
       <div

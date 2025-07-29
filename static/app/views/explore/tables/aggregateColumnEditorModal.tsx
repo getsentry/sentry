@@ -48,8 +48,10 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
@@ -87,11 +89,7 @@ export function AggregateColumnEditorModal({
   const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
 
   return (
-    <DragNDropContext
-      columns={tempColumns}
-      setColumns={setTempColumns}
-      defaultColumn={() => ({groupBy: ''})}
-    >
+    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -155,7 +153,7 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
@@ -258,6 +256,7 @@ function GroupBySelector({
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     tags: stringTags,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const label = useMemo(() => {
@@ -329,6 +328,7 @@ function AggregateSelector({
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const handleFunctionChange = useCallback(
@@ -425,13 +425,20 @@ function EquationSelector({
     [onChange, visualize]
   );
 
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+  });
+
   return (
     <ArithmeticBuilder
+      data-test-id="editor-visualize-equation"
       aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
+      getSuggestedKey={getSuggestedAttribute}
     />
   );
 }

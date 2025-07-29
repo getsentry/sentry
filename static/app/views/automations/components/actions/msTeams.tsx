@@ -1,5 +1,5 @@
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {
   type Action,
   type ActionHandler,
@@ -19,17 +19,27 @@ export function MSTeamsDetails({
     handler.integrations?.find(i => i.id === action.integrationId)?.name ||
     action.integrationId;
 
-  return tct('Send a [logo] Microsoft Teams notification to [team] Team, to [channel]', {
+  return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
     team: integrationName,
-    channel: String(action.config.target_identifier),
+    channel: String(action.config.targetIdentifier),
   });
 }
 
 export function MSTeamsNode() {
-  return tct('Send a [logo] Microsoft Teams notification to [team] Team, to [channel]', {
+  return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
     team: <IntegrationField />,
     channel: <TargetDisplayField />,
   });
+}
+
+export function validateMSTeamsAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Microsoft Teams team.');
+  }
+  if (!action.config.targetDisplay) {
+    return t('You must specify a channel.');
+  }
+  return undefined;
 }

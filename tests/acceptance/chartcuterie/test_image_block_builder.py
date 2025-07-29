@@ -12,11 +12,7 @@ from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
 from sentry.models.group import Group
-from sentry.testutils.cases import (
-    AcceptanceTestCase,
-    MetricsEnhancedPerformanceTestCase,
-    ProfilesSnubaTestCase,
-)
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -25,7 +21,6 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class TestSlackImageBlockBuilder(
-    AcceptanceTestCase,
     MetricsEnhancedPerformanceTestCase,
     ProfilesSnubaTestCase,
     OccurrenceTestMixin,

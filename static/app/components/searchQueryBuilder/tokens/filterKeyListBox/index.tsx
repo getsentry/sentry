@@ -16,10 +16,9 @@ import type {
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {
+  ASK_SEER_CONSENT_ITEM_KEY,
   ASK_SEER_ITEM_KEY,
-  AskSeerLabel,
-  AskSeerListItem,
-  AskSeerPane,
+  AskSeer,
 } from 'sentry/components/searchQueryBuilder/askSeer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -31,14 +30,11 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconMegaphone, IconSeer} from 'sentry/icons';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
@@ -144,39 +140,6 @@ function RecentSearchFilterOption<T>({
   );
 }
 
-function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const {setDisplaySeerResults} = useSearchQueryBuilder();
-  const organization = useOrganization();
-
-  const {optionProps, labelProps, isFocused, isPressed} = useOption(
-    {
-      key: ASK_SEER_ITEM_KEY,
-      'aria-label': 'Ask Seer',
-      shouldFocusOnHover: true,
-      shouldSelectOnPressUp: true,
-    },
-    state,
-    ref
-  );
-
-  const handleClick = () => {
-    trackAnalytics('trace.explorer.ai_query_interface', {
-      organization,
-      action: 'opened',
-    });
-    setDisplaySeerResults(true);
-  };
-
-  return (
-    <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
-      <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
-      <IconSeer />
-      <AskSeerLabel {...labelProps}>{t('Ask Seer')}</AskSeerLabel>
-    </AskSeerListItem>
-  );
-}
-
 function useHighlightFirstOptionOnSectionChange({
   state,
   selectedSection,
@@ -254,7 +217,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys} = useSearchQueryBuilder();
+  const {filterKeys, enableAISearch} = useSearchQueryBuilder();
   const focusedItem = state.selectionManager.focusedKey
     ? (state.collection.getItem(state.selectionManager.focusedKey)?.props?.value as
         | string
@@ -264,21 +227,11 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const organization = useOrganization();
-
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
-
-  const showAskSeerOption = traceExploreAiQueryContext && areAiFeaturesAllowed;
-
   return (
     <Fragment>
-      {showAskSeerOption ? (
+      {enableAISearch ? (
         <Feature features="organizations:gen-ai-explore-traces">
-          <AskSeerPane>
-            <AskSeerOption state={state} />
-          </AskSeerPane>
+          <AskSeer state={state} />
         </Feature>
       ) : null}
       {showRecentFilters ? (
@@ -355,13 +308,8 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
-
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const organization = useOrganization();
-
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const {filterKeyMenuWidth, wrapperRef, query, portalTarget, enableAISearch} =
+    useSearchQueryBuilder();
 
   const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
     const baseHidden = [
@@ -369,12 +317,13 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       ...recentFilters.map(filter => createRecentFilterOptionKey(getKeyName(filter.key))),
     ];
 
-    if (traceExploreAiQueryContext && areAiFeaturesAllowed) {
+    if (enableAISearch) {
       baseHidden.push(ASK_SEER_ITEM_KEY);
+      baseHidden.push(ASK_SEER_CONSENT_ITEM_KEY);
     }
 
     return new Set(baseHidden);
-  }, [hiddenOptions, recentFilters, traceExploreAiQueryContext, areAiFeaturesAllowed]);
+  }, [enableAISearch, hiddenOptions, recentFilters]);
 
   useHighlightFirstOptionOnSectionChange({
     state,
@@ -419,7 +368,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           ref={popoverRef}
           fullWidth
           showDetailsPane={showDetailsPane}
-          hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+          hasAiFeatures={enableAISearch}
         >
           {isOpen ? (
             <FilterKeyMenuContent
@@ -445,7 +394,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       <SectionedOverlay
         ref={popoverRef}
         width={filterKeyMenuWidth}
-        hasAiFeatures={traceExploreAiQueryContext && areAiFeaturesAllowed}
+        hasAiFeatures={enableAISearch}
       >
         {isOpen ? (
           <FilterKeyMenuContent

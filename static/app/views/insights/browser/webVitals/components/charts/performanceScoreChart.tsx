@@ -1,8 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';

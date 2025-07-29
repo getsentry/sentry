@@ -21,7 +21,7 @@ pytestmark = [requires_snuba]
 class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = MsTeamsNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.get_event()
 
         self.integration, _ = self.create_provider_integration_for(
@@ -302,12 +302,12 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.SUCCESS)
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})
 
         assert rule.render_label() == "Send a notification to the Galactic Empire Team to Tatooine"
 
-    def test_render_label_without_integration(self):
+    def test_render_label_without_integration(self) -> None:
         with assume_test_silo_mode_of(Integration):
             self.integration.delete()
 
@@ -316,7 +316,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert rule.render_label() == "Send a notification to the [removed] Team to Coruscant"
 
     @responses.activate
-    def test_valid_channel_selected(self):
+    def test_valid_channel_selected(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Death Star"})
 
         channels = [{"id": "d_s", "name": "Death Star"}]
@@ -331,7 +331,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.assert_form_valid(form, "d_s", "Death Star")
 
     @responses.activate
-    def test_valid_member_selected(self):
+    def test_valid_member_selected(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Darth Vader"})
 
         channels = [{"id": "i_s_d", "name": "Imperial Star Destroyer"}]
@@ -360,7 +360,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.assert_form_valid(form, "i_am_your_father", "Darth Vader")
 
     @responses.activate
-    def test_invalid_channel_selected(self):
+    def test_invalid_channel_selected(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Alderaan"})
 
         channels = [{"name": "Hoth", "id": "hh"}]

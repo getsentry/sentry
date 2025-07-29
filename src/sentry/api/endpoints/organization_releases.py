@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
+from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
@@ -28,6 +29,7 @@ from sentry.api.serializers.rest_framework import (
 from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -237,14 +239,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
         },
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
         },
     }
 
@@ -268,7 +270,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             include_all_accessible=False,
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -444,7 +446,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             **paginator_kwargs,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a New Release for an Organization
         ````````````````````````````````````````
@@ -500,12 +502,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             # Get all projects that are available to the user/token
             # Note: Does not use the "projects" data param from the request
             projects_from_request = self.get_projects(request, organization)
-            allowed_projects = {}
+            allowed_projects: dict[object, Project] = {}
             for project in projects_from_request:
                 allowed_projects[project.slug] = project
                 allowed_projects[project.id] = project
 
-            projects = []
+            projects: list[Project] = []
             for id_or_slug in result["projects"]:
                 if id_or_slug not in allowed_projects:
                     return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
@@ -623,13 +625,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 status = 201
 
             analytics.record(
-                "release.created",
-                user_id=request.user.id if request.user and request.user.id else None,
-                organization_id=organization.id,
-                project_ids=[project.id for project in projects],
-                user_agent=request.META.get("HTTP_USER_AGENT", ""),
-                created_status=status,
-                auth_type=get_auth_api_token_type(request.auth),
+                ReleaseCreatedEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization.id,
+                    project_ids=[project.id for project in projects],
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                    created_status=status,
+                    auth_type=get_auth_api_token_type(request.auth),
+                )
             )
 
             if is_org_auth_token_auth(request.auth):
@@ -649,7 +652,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries
         ```````````````````````````````

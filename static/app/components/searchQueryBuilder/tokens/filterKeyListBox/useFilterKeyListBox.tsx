@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
@@ -16,6 +17,7 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
+  createAskSeerConsentItem,
   createAskSeerItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
@@ -33,7 +35,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
 const MAX_OPTIONS_WITH_SEARCH = 8;
@@ -163,7 +164,13 @@ function useFilterKeySections({
   return {sections, selectedSection, setSelectedSection};
 }
 export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
-  const {filterKeys, getFieldDefinition, setDisplaySeerResults} = useSearchQueryBuilder();
+  const {
+    filterKeys,
+    getFieldDefinition,
+    setDisplaySeerResults,
+    enableAISearch,
+    gaveSeerConsent,
+  } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -172,15 +179,16 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   });
 
   const organization = useOrganization();
-  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
-    const askSeerItem =
-      traceExploreAiQueryContext && areAiFeaturesAllowed ? [createAskSeerItem()] : [];
+    const askSeerItem = [];
+    if (enableAISearch) {
+      askSeerItem.push(
+        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+      );
+    }
 
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
@@ -207,14 +215,14 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
 
     return [...askSeerItem, ...recentFilterItems, ...filteredByCategory];
   }, [
+    enableAISearch,
     filterKeys,
+    gaveSeerConsent,
     getFieldDefinition,
     recentFilters,
     recentSearches,
     sectionedItems,
     selectedSection,
-    traceExploreAiQueryContext,
-    areAiFeaturesAllowed,
   ]);
 
   const customMenu: CustomComboboxMenu<FilterKeyItem> = props => {
@@ -373,6 +381,8 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     [handleArrowUpDown, handleCycleRecentFilterKeys, handleCycleSections]
   );
 
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
+
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
@@ -383,8 +393,17 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         setDisplaySeerResults(true);
         return;
       }
+
+      if (option.type === 'ask-seer-consent') {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
+        return;
+      }
     },
-    [organization, setDisplaySeerResults]
+    [organization, seerAcknowledgeMutate, setDisplaySeerResults]
   );
 
   return {

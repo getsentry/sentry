@@ -19,6 +19,8 @@ export const enum SectionKey {
   USER_FEEDBACK = 'user-feedback',
   SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
+  PEOPLE = 'people',
+  ACTIVITY = 'activity',
 
   UPTIME = 'uptime', // Only Uptime issues
   DOWNTIME = 'downtime',
@@ -85,6 +87,11 @@ export const enum SectionKey {
 
   AI_INPUT = 'ai-input',
   AI_OUTPUT = 'ai-output',
+
+  MCP_INPUT = 'mcp-input',
+  MCP_OUTPUT = 'mcp-output',
+
+  SPAN_LINKS = 'span-links',
 }
 
 /**

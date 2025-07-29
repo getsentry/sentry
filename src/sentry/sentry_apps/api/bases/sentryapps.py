@@ -209,16 +209,12 @@ class SentryAppPermission(SentryPermission):
         "DELETE": ("org:admin",),
     }
 
-    published_scope_map = {
+    published_scope_map = scope_map = {
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
         "POST": ("org:admin",),
         "DELETE": ("org:admin",),
     }
-
-    @property
-    def scope_map(self):
-        return self.published_scope_map
 
     def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
@@ -245,7 +241,6 @@ class SentryAppPermission(SentryPermission):
                     message="User must be in the app owner's organization for unpublished apps",
                     status_code=403,
                     public_context={
-                        "integration": sentry_app.slug,
                         "user_organizations": [org.slug for org in organizations],
                     },
                 )

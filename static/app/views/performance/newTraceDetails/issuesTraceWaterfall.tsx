@@ -52,7 +52,7 @@ import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 const noopTraceSearch = () => {};
 
 interface IssuesTraceWaterfallProps
-  extends Omit<TraceWaterfallProps, 'tree' | 'traceWaterfallScrollHandlers'> {
+  extends Omit<TraceWaterfallProps, 'tree' | 'traceWaterfallScrollHandlers' | 'meta'> {
   event: Event;
   tree: IssuesTraceTree;
 }
