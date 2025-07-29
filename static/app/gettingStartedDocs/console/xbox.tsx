@@ -1,3 +1,4 @@
+import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
@@ -9,7 +10,7 @@ import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -47,7 +48,12 @@ const onboarding: OnboardingConfig = {
               size="sm"
               priority="primary"
               onClick={() => {
-                // TODO: Add modal
+                openPrivateGamingSdkAccessModal({
+                  organization: params.organization,
+                  projectSlug: params.projectSlug,
+                  sdkName: 'Xbox',
+                  gamingPlatform: 'xbox',
+                });
               }}
             >
               {t('Request Access')}

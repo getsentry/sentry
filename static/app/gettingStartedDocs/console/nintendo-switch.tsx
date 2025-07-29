@@ -1,3 +1,4 @@
+import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
@@ -11,7 +12,7 @@ import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -41,7 +42,18 @@ const onboarding: OnboardingConfig = {
           ),
           showIcon: true,
           trailingItems: (
-            <Button size="sm" priority="primary">
+            <Button
+              size="sm"
+              priority="primary"
+              onClick={() => {
+                openPrivateGamingSdkAccessModal({
+                  organization: params.organization,
+                  projectSlug: params.projectSlug,
+                  sdkName: 'Nintendo Switch',
+                  gamingPlatform: 'nintendo-switch',
+                });
+              }}
+            >
               {t('Request Access')}
             </Button>
           ),
