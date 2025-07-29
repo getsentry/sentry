@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {space} from 'sentry/styles/space';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
@@ -92,11 +91,11 @@ export function TraceTabsAndVitals({
   return (
     <Flex ref={setRef} justify="between">
       <Tabs value={currentTab} onChange={onTabChange}>
-        <StyledTabsList hideBorder variant="floating">
+        <TabList hideBorder variant="floating">
           {tabOptions.map(tab => (
             <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
           ))}
-        </StyledTabsList>
+        </TabList>
       </Tabs>
       <TraceContextVitals
         rootEventResults={rootEventResults}
@@ -109,10 +108,4 @@ export function TraceTabsAndVitals({
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
   background-color: ${p => p.theme.purple100};
-`;
-
-const StyledTabsList = styled(TabList)`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
