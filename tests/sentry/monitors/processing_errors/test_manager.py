@@ -256,6 +256,6 @@ class HandleProcessingErrorsTest(TestCase):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 monitor_slug=monitor.slug,
-                error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID],
+                error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID.value],
             ),
         )
