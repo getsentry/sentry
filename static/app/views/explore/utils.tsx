@@ -618,18 +618,26 @@ export function formatQueryToNaturalLanguage(query: string): string {
   return formattedTokens.reduce((result, token, index) => {
     if (index === 0) return token;
 
-    const prevToken = formattedTokens[index - 1];
-    if (!prevToken) return `${result}, ${token}`;
+    const currentOriginalToken = tokens[index] || '';
+    const prevOriginalToken = tokens[index - 1] || '';
 
     const isLogicalOp = token.toUpperCase() === 'AND' || token.toUpperCase() === 'OR';
     const prevIsLogicalOp =
-      prevToken.toUpperCase() === 'AND' || prevToken.toUpperCase() === 'OR';
+      formattedTokens[index - 1]?.toUpperCase() === 'AND' ||
+      formattedTokens[index - 1]?.toUpperCase() === 'OR';
 
     if (isLogicalOp || prevIsLogicalOp) {
       return `${result} ${token}`;
     }
 
-    return `${result}, ${token}`;
+    const isCurrentFilter = /[:>=<!]/.test(currentOriginalToken);
+    const isPrevFilter = /[:>=<!]/.test(prevOriginalToken);
+
+    if (isCurrentFilter && isPrevFilter) {
+      return `${result}, ${token}`;
+    }
+
+    return `${result} ${token}`;
   }, '');
 }
 
