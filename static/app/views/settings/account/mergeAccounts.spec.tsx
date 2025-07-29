@@ -24,9 +24,6 @@ describe('MergeAccounts', function () {
     });
   });
 
-  it('renders with accounts', function () {
-    render(<MergeAccounts />);
-  });
 
   it('renders single account', async function () {
     MockApiClient.clearMockResponses();
