@@ -17,8 +17,8 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
 
     // Includes TanStack Start specific configuration
     expect(
-      screen.getByText(textWithMarkupMatcher(/wrapVinxiConfigWithSentry/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/wrapVinxiConfigWithSentry/))
+    ).toHaveLength(2); // Appears in descriptive text and code snippet
   });
 
   it('displays TanStack Start specific integrations when products are selected', () => {
@@ -37,8 +37,8 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/replayIntegration/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentryGlobalServerMiddlewareHandler/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/sentryGlobalServerMiddlewareHandler/))
+    ).toHaveLength(2); // Appears in descriptive text and code snippet
   });
 
   it('enables performance tracing integration', () => {
@@ -58,8 +58,8 @@ describe('javascript-tanstackstart-react onboarding docs', function () {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/wrapStreamHandlerWithSentry/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/wrapStreamHandlerWithSentry/))
+    ).toHaveLength(2); // Appears in descriptive text and code snippet
   });
 
   it('enables replay by setting replay samplerates', () => {
