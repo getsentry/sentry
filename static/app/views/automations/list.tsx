@@ -40,7 +40,7 @@ export default function AutomationsList() {
       cursor: decodeScalar,
     },
   });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedDetectors'};
+  const sort = sorts[0] ?? {kind: 'desc', field: 'lastTriggered'};
 
   const {
     data: automations,
