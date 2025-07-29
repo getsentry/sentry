@@ -71,14 +71,17 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
     """
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
+
+    Can also be given a list of event types (e.g. ['issue.created', 'issue.resolved'])
     """
-    return sorted(
-        {
-            translated
-            for event in rolled_up_events
-            for translated in EVENT_EXPANSION.get(SentryAppResourceType(event), [event])
-        }
-    )
+    expanded_events = []
+    for event in rolled_up_events:
+        if event in EVENT_EXPANSION:
+            expanded_events.extend(EVENT_EXPANSION.get(SentryAppResourceType(event), [event]))
+        else:
+            expanded_events.append(event)
+
+    return sorted(expanded_events)
 
 
 # TODO(schew2381): Delete this method after staff is GA'd and the options are removed
