@@ -143,18 +143,16 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.browser;
-    if (name === null && version === null) {
-      return <IconNot size="xs" color="gray300" />;
-    }
-
     const icon = generatePlatformIconName(
       name ?? '',
       version && isLargeBreakpoint ? version : undefined
     );
 
+    const tooltipTitle = name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
+
     return (
       <DropdownContainer key="browser">
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={tooltipTitle}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
@@ -361,9 +359,11 @@ export const ReplayOSColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
+    const tooltipTitle = name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
+
     return (
       <DropdownContainer key="os">
-        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
+        <Tooltip title={tooltipTitle}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
