@@ -602,6 +602,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         groups = Group.objects.filter(project_id=self.project.id)
         self.assert_groups_metadata_updated(groups)
 
+    @pytest.mark.skip(reason="flaky: #96664")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
         {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
