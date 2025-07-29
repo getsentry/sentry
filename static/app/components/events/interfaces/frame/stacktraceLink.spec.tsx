@@ -17,15 +17,6 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
 
-// Mock clipboard API
-Object.assign(navigator, {
-  clipboard: {
-    writeText: jest.fn(),
-  },
-});
-
-jest.mock('sentry/actionCreators/indicator');
-
 describe('StacktraceLink', function () {
   const org = OrganizationFixture();
   const platform = 'python';
