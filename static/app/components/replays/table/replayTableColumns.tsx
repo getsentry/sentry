@@ -148,7 +148,8 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
-    const tooltipTitle = name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
+    const tooltipTitle =
+      name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
 
     return (
       <DropdownContainer key="browser">
@@ -359,7 +360,8 @@ export const ReplayOSColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
-    const tooltipTitle = name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
+    const tooltipTitle =
+      name || version ? `${name ?? t('Unknown')} ${version ?? ''}`.trim() : t('Unknown');
 
     return (
       <DropdownContainer key="os">
