@@ -101,6 +101,7 @@ def column_switcheroo(term):
         "geo.subregion": "user.geo.subregion",
         "timestamp.to_day": "timestamp",
         "timestamp.to_hour": "timestamp",
+        "platform.name": "platform",
     }
 
     swapped_term = column_swap_map.get(term, term)
