@@ -692,7 +692,7 @@ const ChartErrorWrapper = styled('div')`
 interface ErrorChartProps extends React.ComponentProps<'div'> {
   isAllowIndexed: boolean;
   isQueryValid: boolean;
-  errorMessage?: string | React.ReactNode;
+  errorMessage?: React.ReactNode;
 }
 
 export function ErrorChart({
