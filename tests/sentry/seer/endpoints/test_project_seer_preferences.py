@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 class ProjectSeerPreferencesEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-preferences"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -29,6 +29,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             },
         )
         self.repo_definition = SeerRepoDefinition(
+            integration_id="111",
             provider="github",
             owner="getsentry",
             name="sentry",
@@ -48,6 +49,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
         return_value=[
             {
+                "integration_id": "111",
                 "provider": "github",
                 "owner": "getsentry",
                 "name": "sentry",
@@ -98,6 +100,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         request_data = {
             "repositories": [
                 {
+                    "integration_id": "111",
                     "provider": "github",
                     "owner": "getsentry",
                     "name": "sentry",
@@ -128,6 +131,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert preference["organization_id"] == self.org.id
         assert preference["project_id"] == self.project.id
         assert len(preference["repositories"]) == 1
+        assert preference["repositories"][0]["integration_id"] == "111"
         assert preference["repositories"][0]["provider"] == "github"
         assert preference["repositories"][0]["owner"] == "getsentry"
         assert preference["repositories"][0]["name"] == "sentry"

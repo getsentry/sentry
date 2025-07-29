@@ -4,7 +4,7 @@ import orjson
 import pytest
 from django.urls import reverse
 
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 
 
 class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(
@@ -25,7 +25,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             organization=self.organization, teams=[self.team], slug="bengal"
         )
 
-    def test_error_event(self):
+    def test_error_event(self) -> None:
         data = load_data(platform="javascript")
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -44,7 +44,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_code == 200
         assert content["system"]["type"] == "component"
 
-    def test_transaction_event(self):
+    def test_transaction_event(self) -> None:
         data = load_data(platform="transaction")
         event = self.store_event(data=data, project_id=self.project.id)
 
@@ -64,7 +64,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert content == {}
 
     @pytest.mark.skip("We no longer return perf issue info from the grouping info endpoint")
-    def test_transaction_event_with_problem(self):
+    def test_transaction_event_with_problem(self) -> None:
         event = self.create_performance_issue()
         url = reverse(
             "sentry-api-0-event-grouping-info",
@@ -96,7 +96,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "d74ed7012596c3fb",
         ]
 
-    def test_no_event(self):
+    def test_no_event(self) -> None:
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
@@ -112,12 +112,20 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         assert response.status_code == 404
         assert response.status_text == "Not Found"
 
-    def test_get_grouping_info_unkown_grouping_config(self):
+    def test_get_grouping_info_unkown_grouping_config(self) -> None:
+        """Show we use the default config when the config we're given is unrecognized"""
+
         data = load_data(platform="javascript")
         event = self.store_event(data=data, project_id=self.project.id)
 
-        with pytest.raises(ResourceDoesNotExist):
+        with mock.patch(
+            "sentry.grouping.api.get_grouping_variants_for_event"
+        ) as mock_get_grouping_variants:
             get_grouping_info("fake-config", self.project, event)
+
+            mock_get_grouping_variants.assert_called_once()
+            assert mock_get_grouping_variants.call_args.args[0] == event
+            assert mock_get_grouping_variants.call_args.args[1].id == DEFAULT_GROUPING_CONFIG
 
     @mock.patch("sentry.grouping.grouping_info.logger")
     @mock.patch("sentry.grouping.grouping_info.metrics")
@@ -148,7 +156,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             extra={"project_id": self.project.id, "event_id": javascript_event.event_id},
         )
 
-    def test_variant_keys_and_types_use_dashes_not_underscores(self):
+    def test_variant_keys_and_types_use_dashes_not_underscores(self) -> None:
         """
         Test to make sure switching to using underscores on the BE doesn't change what we send
         to the FE.

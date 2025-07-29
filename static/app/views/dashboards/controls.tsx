@@ -11,6 +11,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +22,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -41,6 +43,7 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
@@ -56,6 +59,7 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
+  isSaving,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const queryClient = useQueryClient();
@@ -241,12 +245,14 @@ function Controls({
                 e.preventDefault();
                 onEdit();
               }}
-              icon={<IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
+              icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
               title={
-                hasEditAccess
-                  ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
-                  : t('You do not have permission to edit this dashboard')
+                isSaving
+                  ? DASHBOARD_SAVING_MESSAGE
+                  : hasEditAccess
+                    ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                    : t('You do not have permission to edit this dashboard')
               }
               priority="default"
               size="sm"

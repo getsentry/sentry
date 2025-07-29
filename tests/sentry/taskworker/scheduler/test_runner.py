@@ -34,6 +34,23 @@ def run_storage() -> RunStorage:
     return RunStorage(redis)
 
 
+def test_runstorage_zero_duration(run_storage: RunStorage) -> None:
+    with freeze_time("2025-07-19 14:25:00"):
+        now = timezone.now()
+        result = run_storage.set("test:do_stuff", now)
+        assert result is True
+
+
+def test_runstorage_double_set(run_storage: RunStorage) -> None:
+    with freeze_time("2025-07-19 14:25:00"):
+        now = timezone.now()
+        first = run_storage.set("test:do_stuff", now)
+        second = run_storage.set("test:do_stuff", now)
+
+        assert first is True, "initial set should return true"
+        assert second is False, "writing a key that exists should fail"
+
+
 @pytest.mark.django_db
 def test_schedulerunner_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)
@@ -132,6 +149,11 @@ def test_schedulerunner_tick_one_task_spawned(
         assert sleep_time == 300
         assert mock_send.call_count == 1
 
+        # scheduled tasks should not continue the scheduler trace
+        send_args = mock_send.call_args
+        assert send_args.args[0].headers["sentry-propagate-traces"] == "False"
+        assert "sentry-trace" not in send_args.args[0].headers
+
     assert run_storage.set.call_count == 1
     # set() is called with the correct next_run time
     run_storage.set.assert_called_with("test:valid", datetime(2025, 1, 24, 14, 30, 0, tzinfo=UTC))
@@ -173,6 +195,8 @@ def test_schedulerunner_tick_create_checkin(
         send_args = mock_send.call_args
         assert "sentry-monitor-check-in-id" in send_args.args[0].headers
         assert send_args.args[0].headers["sentry-monitor-slug"] == "important-task"
+        assert send_args.args[0].headers["sentry-propagate-traces"] == "False"
+        assert "sentry-trace" not in send_args.args[0].headers
 
         # Ensure a checkin was created
         assert mock_capture_checkin.call_count == 1

@@ -171,7 +171,7 @@ export enum IssueType {
   UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 
   // Metric Issues
-  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+  METRIC_ISSUE = 'metric_issue',
 
   // Detectors
   QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
@@ -335,6 +335,7 @@ export type Tag = {
    */
   maxSuggestedValues?: number;
   predefined?: boolean;
+  secondaryAliases?: string[];
   totalValues?: number;
   uniqueValues?: number;
   /**
@@ -806,7 +807,6 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
-  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {
@@ -869,6 +869,7 @@ export const enum FixabilityScoreThresholds {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
+  SUPER_LOW = 'super_low',
 }
 
 // TODO(ts): incomplete

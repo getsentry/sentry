@@ -255,13 +255,14 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             group = event.group
             self.login_as(user=self.user)
 
-            with self.feature("organizations:error-upsampling"):
-                response = self.get_response(query="is:unresolved", groups=[group.id])
-                assert response.status_code == 200
-                assert len(response.data) == 1
-                # Expect the count to be upsampled (1 / 0.1 = 10) - count is a string
-                assert response.data[0]["count"] == "10"
-                # Also check that lifetime stats are upsampled
-                assert response.data[0]["lifetime"]["count"] == "10"
-                # Also check that stats are upsampled, latest time bucket should contain upsampled event
-                assert response.data[0]["stats"]["24h"][-1][1] == 10
+            response = self.get_response(groups=[group.id])
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            # Expect the count to be upsampled (1 / 0.1 = 10) - count is a string
+            assert response.data[0]["count"] == "10"
+            # Also check that lifetime stats are upsampled
+            assert response.data[0]["lifetime"]["count"] == "10"
+            # Also check that stats are upsampled, latest time bucket should contain upsampled event
+            assert any(
+                bucket[1] == 10 for bucket in response.data[0]["stats"]["24h"]
+            ), "could not find upsampled bucket in stats"

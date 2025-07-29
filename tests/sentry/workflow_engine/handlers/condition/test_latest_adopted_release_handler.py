@@ -33,7 +33,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         group_event = self.event.for_group(group)
         return group, group_event
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = datetime.now(UTC)
         self.prod_env = self.create_environment(name="prod")
@@ -73,7 +73,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -86,7 +86,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         self.dc.comparison.update({"age_comparison": AgeComparisonType.OLDER})
         self.dc.save()
 
@@ -102,7 +102,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         # Test no release
         self.assert_does_not_pass(self.dc, self.event_data)
 
@@ -140,7 +140,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_4, group=group_4))
 
-    def test_date(self):
+    def test_date(self) -> None:
         self.create_group_release(group=self.group, release=self.newest_release)
         self.assert_passes(
             self.dc, WorkflowEventData(event=self.group_event, group=self.group_event.group)
@@ -155,7 +155,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.create_group_release(group=group_3, release=self.middle_release)
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
-    def test_oldest_older(self):
+    def test_oldest_older(self) -> None:
         self.dc.update(
             comparison={
                 "release_age_type": "oldest",
@@ -180,7 +180,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.create_group_release(group=group_3, release=self.middle_release)
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
-    def test_newest_newer(self):
+    def test_newest_newer(self) -> None:
         self.dc.update(
             comparison={
                 "release_age_type": "newest",
@@ -205,7 +205,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.create_group_release(group=group_3, release=self.middle_release)
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
-    def test_newest_older(self):
+    def test_newest_older(self) -> None:
         self.dc.update(
             comparison={
                 "release_age_type": "newest",
@@ -228,7 +228,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.create_group_release(group=group_3, release=self.middle_release)
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
-    def test_caching(self):
+    def test_caching(self) -> None:
         cache_key = get_first_last_release_for_group_cache_key(
             self.group.id, "oldest", LatestReleaseOrders.SEMVER
         )

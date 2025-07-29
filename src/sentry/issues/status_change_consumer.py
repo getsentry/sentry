@@ -162,7 +162,21 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
                 amount=len(group_status_update_registry.registrations.keys()),
                 tags={"activity_type": activity_type.value},
             )
+            logger.info(
+                "group.status_change.activity_created",
+                extra={
+                    "group_id": group.id,
+                    "activity_type": activity_type,
+                },
+            )
             for handler in group_status_update_registry.registrations.values():
+                logger.info(
+                    "group.status_change.activity_created.handler",
+                    extra={
+                        "group_id": group.id,
+                        "activity_type": activity_type,
+                    },
+                )
                 handler(group, status_change, latest_activity)
 
 

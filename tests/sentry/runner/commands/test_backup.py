@@ -113,12 +113,12 @@ class GoodCompareCommandTests(TestCase):
     Test success cases of the `sentry backup compare` CLI command.
     """
 
-    def test_compare_equal(self):
+    def test_compare_equal(self) -> None:
         rv = CliRunner().invoke(backup, ["compare", GOOD_FILE_PATH, GOOD_FILE_PATH])
         assert rv.exit_code == 0, rv.output
         assert "found 0" in rv.output
 
-    def test_compare_equal_findings_file(self):
+    def test_compare_equal_findings_file(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
             rv = CliRunner().invoke(
@@ -131,12 +131,12 @@ class GoodCompareCommandTests(TestCase):
                 findings = json.load(findings_file)
                 assert len(findings) == 0
 
-    def test_compare_unequal(self):
+    def test_compare_unequal(self) -> None:
         rv = CliRunner().invoke(backup, ["compare", MAX_USER_PATH, MIN_USER_PATH])
         assert rv.exit_code == 0, rv.output
         assert "found 0" not in rv.output
 
-    def test_compare_unequal_findings_file(self):
+    def test_compare_unequal_findings_file(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
             rv = CliRunner().invoke(
@@ -155,7 +155,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
     Test success cases of the `sentry compare` CLI command on encrypted inputs.
     """
 
-    def test_compare_decrypt_with(self):
+    def test_compare_decrypt_with(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
             tmp_findings = Path(tmp_dir).joinpath(f"{self._testMethodName}.findings.json")
@@ -265,7 +265,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
     Test the `sentry backup encrypt ...` and `sentry backup decrypt` commands
     """
 
-    def test_use_local(self):
+    def test_use_local(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_decrypted_path = Path(tmp_dir).joinpath("decrypted.tar")
             tmp_encrypted_path = Path(tmp_dir).joinpath("encrypted.tar")
@@ -376,7 +376,7 @@ class GoodSanitizeCommandTests(TestCase):
     Test success cases of the `sentry backup sanitize` CLI command.
     """
 
-    def test_sanitize(self):
+    def test_sanitize(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_sanitized_path = Path(tmp_dir).joinpath("sanitized.json")
             rv = CliRunner().invoke(
@@ -390,7 +390,7 @@ class GoodSanitizeCommandTests(TestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-    def test_sanitize_with_datetime_offset(self):
+    def test_sanitize_with_datetime_offset(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_sanitized_path = Path(tmp_dir).joinpath("sanitized.json")
             rv = CliRunner().invoke(
@@ -413,7 +413,7 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
     outputs.
     """
 
-    def test_sanitize_with_decryption_and_encryption(self):
+    def test_sanitize_with_decryption_and_encryption(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_sanitized_encrypted_path = Path(tmp_dir).joinpath("sanitized_encrypted.tar")
             (
@@ -531,19 +531,19 @@ class GoodImportExportCommandTests(TransactionTestCase):
     commands occurs without error.
     """
 
-    def test_global_scope(self):
+    def test_global_scope(self) -> None:
         # Global imports assume a clean database.
         clear_database()
         cli_import_then_export("global")
 
-    def test_config_scope(self):
+    def test_config_scope(self) -> None:
         cli_import_then_export("config")
         cli_import_then_export("config", import_args=["--silent"])
         cli_import_then_export("config", import_args=["--overwrite-configs"])
         cli_import_then_export("config", import_args=["--merge-users"])
         cli_import_then_export("config", import_args=["--overwrite-configs", "--merge-users"])
 
-    def test_organization_scope(self):
+    def test_organization_scope(self) -> None:
         cli_import_then_export("organizations")
         cli_import_then_export("organizations", import_args=["--silent"])
         cli_import_then_export(
@@ -552,7 +552,7 @@ class GoodImportExportCommandTests(TransactionTestCase):
             export_args=["--filter-org-slugs", "testing"],
         )
 
-    def test_user_scope(self):
+    def test_user_scope(self) -> None:
         cli_import_then_export("users")
         cli_import_then_export("users", import_args=["--silent"])
         cli_import_then_export("users", import_args=["--merge-users"])
@@ -590,7 +590,7 @@ class GoodImportExportCommandTests(TransactionTestCase):
                 export_args=["--filter-usernames-file", str(tmp_findings_file_path)],
             )
 
-    def test_export_user_scope_filter_usernames_empty(self):
+    def test_export_user_scope_filter_usernames_empty(self) -> None:
         # create a user that should not be in the export
         self.create_user("admin@example.com", is_staff=True, is_superuser=True)
         with TemporaryDirectory() as tmp_dir:
@@ -712,7 +712,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-    def test_encryption_with_local_decryption(self):
+    def test_encryption_with_local_decryption(self) -> None:
         self.cli_encrypted_import_then_export_use_local("global")
         self.cli_encrypted_import_then_export_use_local("config")
         self.cli_encrypted_import_then_export_use_local("organizations")
@@ -754,7 +754,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
         os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
         reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
     )
-    def test_confirm_yes(self):
+    def test_confirm_yes(self) -> None:
         output = self.cli_import_with_confirmation_input("y\n")
         assert "Import cancelled" not in output
         assert Email.objects.count() > 0
@@ -763,7 +763,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
         os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
         reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
     )
-    def test_confirm_no(self):
+    def test_confirm_no(self) -> None:
         output = self.cli_import_with_confirmation_input("n\n")
         assert "Import cancelled" in output
         assert Email.objects.count() == 0
@@ -791,7 +791,7 @@ class BadImportExportDomainErrorTests(TransactionTestCase):
 
 
 class BadImportExportCommandTests(TestCase):
-    def test_import_file_read_error_exit_code(self):
+    def test_import_file_read_error_exit_code(self) -> None:
         rv = CliRunner().invoke(
             import_, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"], catch_exceptions=False
         )
@@ -799,7 +799,7 @@ class BadImportExportCommandTests(TestCase):
         assert rv.exit_code == 2, rv.output
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
-    def test_export_in_control_silo(self):
+    def test_export_in_control_silo(self) -> None:
         with pytest.raises(RuntimeError) as excinfo:
             CliRunner().invoke(
                 export, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"], catch_exceptions=False
@@ -807,7 +807,7 @@ class BadImportExportCommandTests(TestCase):
         (msg,) = excinfo.value.args
         assert msg == "Exports must be run in REGION or MONOLITH instances only"
 
-    def test_export_invalid_public_key(self):
+    def test_export_invalid_public_key(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_pub_key_path = Path(tmp_dir).joinpath("key.pub")
             with open(tmp_pub_key_path, "w") as f:
@@ -829,7 +829,7 @@ class BadImportExportCommandTests(TestCase):
             (msg,) = excinfo.value.args
             assert msg.startswith("Unable to load PEM file")
 
-    def test_export_invalid_gcp_kms_config(self):
+    def test_export_invalid_gcp_kms_config(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             (_, _, tmp_tar_path) = create_encryption_test_files(tmp_dir)
             gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
@@ -860,7 +860,7 @@ class BadImportExportCommandTests(TestCase):
                 )
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
-    def test_import_in_control_silo(self):
+    def test_import_in_control_silo(self) -> None:
         with pytest.raises(RuntimeError) as excinfo:
             CliRunner().invoke(
                 import_, ["global", GOOD_FILE_PATH, "--no-prompt"], catch_exceptions=False
@@ -868,7 +868,7 @@ class BadImportExportCommandTests(TestCase):
         (msg,) = excinfo.value.args
         assert msg == "Imports must be run in REGION or MONOLITH instances only"
 
-    def test_import_invalid_public_key(self):
+    def test_import_invalid_public_key(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             (_, _, tmp_tar_path) = create_encryption_test_files(tmp_dir)
             tmp_priv_key_path = Path(tmp_dir).joinpath("key")
@@ -890,7 +890,7 @@ class BadImportExportCommandTests(TestCase):
             (msg, _) = excinfo.value.args
             assert msg.startswith("Could not deserialize")
 
-    def test_import_unreadable_gcp_kms_config(self):
+    def test_import_unreadable_gcp_kms_config(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             (_, _, tmp_tar_path) = create_encryption_test_files(tmp_dir)
             gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")
@@ -910,7 +910,7 @@ class BadImportExportCommandTests(TestCase):
                     catch_exceptions=False,
                 )
 
-    def test_import_invalid_gcp_kms_config(self):
+    def test_import_invalid_gcp_kms_config(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             (_, _, tmp_tar_path) = create_encryption_test_files(tmp_dir)
             gcp_kms_config_path = Path(tmp_dir).joinpath("config.json")

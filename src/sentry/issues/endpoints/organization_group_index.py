@@ -1,4 +1,5 @@
 import functools
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -20,8 +21,8 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
-    delete_groups,
     get_by_short_id,
+    schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
 )
@@ -66,6 +67,8 @@ from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
+
+logger = logging.getLogger(__name__)
 
 
 def inbox_search(
@@ -501,4 +504,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        return delete_groups(request, projects, organization.id, search_fn)
+        try:
+            return schedule_tasks_to_delete_groups(request, projects, organization.id, search_fn)
+        except Exception:
+            logger.exception("Error scheduling tasks to delete groups")
+            return Response({"detail": "Error deleting groups"}, status=500)

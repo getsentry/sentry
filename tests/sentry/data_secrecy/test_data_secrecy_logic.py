@@ -10,7 +10,7 @@ from sentry.testutils.silo import all_silo_test, create_test_regions
 
 @all_silo_test(regions=create_test_regions("us"))
 class DataSecrecyTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization.flags.prevent_superuser_access = True
         self.rpc_org = RpcOrganization(id=self.organization.id)
@@ -25,17 +25,17 @@ class DataSecrecyTest(TestCase):
             user_id=self.user.id, organization=self.rpc_org, member=self.rpc_orgmember
         )
 
-    def test_self_hosted(self):
+    def test_self_hosted(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=True):
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             assert should_allow_superuser_access(self.organization) is True
             assert should_allow_superuser_access(self.rpc_context) is True
 
-    def test_bit_flag_disabled(self):
+    def test_bit_flag_disabled(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.organization.flags.prevent_superuser_access = False
             assert should_allow_superuser_access(self.organization) is True

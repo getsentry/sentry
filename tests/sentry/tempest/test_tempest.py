@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TempestTasksTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.credentials = self.create_tempest_credentials(self.project)
@@ -24,6 +24,18 @@ class TempestTasksTest(TestCase):
             self.credentials.latest_fetched_item_id == "20001"
         )  # Since the ID is stored as a string
         mock_fetch.assert_called_once()
+
+    @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
+    def test_fetch_latest_item_id_task_no_id(self, mock_fetch):
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {"latest_id": None}
+
+        fetch_latest_item_id(self.credentials.id)
+
+        self.credentials.refresh_from_db()
+        assert self.credentials.message == "No crashes found"
+        assert self.credentials.message_type == MessageType.ERROR
+        assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
     def test_fetch_latest_item_id_error(self, mock_fetch):
@@ -166,7 +178,7 @@ class TempestTasksTest(TestCase):
         )
         mock_fetch_latest.apply_async.assert_not_called()
 
-    def test_tempest_project_key(self):
+    def test_tempest_project_key(self) -> None:
         project = self.create_project()
         project_key_1, created = ProjectKey.objects.get_or_create(
             use_case=UseCase.TEMPEST, project=project
@@ -181,7 +193,7 @@ class TempestTasksTest(TestCase):
         assert project_key_2.use_case == "UseCase.TEMPEST"
         assert project_key_1.id == project_key_2.id
 
-    def test_tempest_screenshot_option(self):
+    def test_tempest_screenshot_option(self) -> None:
         # Default should be False
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
@@ -191,7 +203,7 @@ class TempestTasksTest(TestCase):
         self.project.update_option("sentry:tempest_fetch_screenshots", False)
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
 
-    def test_tempest_dump_option(self):
+    def test_tempest_dump_option(self) -> None:
         # Default should be False
         assert self.project.get_option("sentry:tempest_fetch_dumps") is False
 

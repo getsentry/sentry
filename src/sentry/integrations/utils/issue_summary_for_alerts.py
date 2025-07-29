@@ -34,9 +34,6 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
         return None
 
-    if is_seer_scanner_rate_limited(project, group.organization):
-        return None
-
     from sentry import quotas
     from sentry.constants import DataCategory
 
@@ -44,6 +41,9 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
     )
     if not has_budget:
+        return None
+
+    if is_seer_scanner_rate_limited(project, group.organization):
         return None
 
     timeout = options.get("alerts.issue_summary_timeout") or 5
@@ -59,6 +59,8 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
                 if status_code == 200:
                     return summary_result
                 return None
-    except (concurrent.futures.TimeoutError, Exception) as e:
+    except concurrent.futures.TimeoutError:
+        return None
+    except Exception as e:
         logger.exception("Error generating issue summary: %s", e)
         return None

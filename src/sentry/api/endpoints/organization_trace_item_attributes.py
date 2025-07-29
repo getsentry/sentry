@@ -379,6 +379,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 SEMVER_ALIAS: self.semver_autocomplete_function,
                 SEMVER_BUILD_ALIAS: self.semver_build_autocomplete_function,
                 SEMVER_PACKAGE_ALIAS: self.semver_package_autocomplete_function,
+                "timestamp": self.skip_autocomplete,
             }
         )
 
@@ -434,7 +435,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
         versions = versions.filter_to_semver()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
-        versions = versions.annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        versions = versions.annotate_prerelease_column()
         versions = versions.order_by(*order_by)
 
         seen = set()
@@ -541,6 +542,9 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             )
             for package in packages
         ]
+
+    def skip_autocomplete(self) -> list[TagValue]:
+        return []
 
     def boolean_autocomplete_function(self) -> list[TagValue]:
         return [

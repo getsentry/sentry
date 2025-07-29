@@ -36,7 +36,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         return path
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         self.login_as(user=self.user)
 
         attachment = self.create_attachment()
@@ -48,7 +48,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment.id)
 
-    def test_filter(self):
+    def test_filter(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment(type="event.attachment")
@@ -61,7 +61,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment2.id)
 
-    def test_screenshot_across_groups(self):
+    def test_screenshot_across_groups(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()
@@ -91,7 +91,7 @@ class GroupEventAttachmentsTest(APITestCase):
             ]
             assert attachment["event_id"] in [group1_event.event_id, group2_event.event_id]
 
-    def test_without_feature(self):
+    def test_without_feature(self) -> None:
         self.login_as(user=self.user)
         self.create_attachment()
 
@@ -100,7 +100,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_event_id_filter(self):
+    def test_event_id_filter(self) -> None:
         self.login_as(user=self.user)
         attachment = self.create_attachment()
         self.create_attachment(event_id="b" * 32)
@@ -112,7 +112,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["event_id"] == attachment.event_id
 
-    def test_multi_event_id_filter(self):
+    def test_multi_event_id_filter(self) -> None:
         self.login_as(user=self.user)
         attachment = self.create_attachment()
         attachment2 = self.create_attachment(event_id="b" * 32)
@@ -128,7 +128,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert response.data[0]["event_id"] == attachment2.event_id
         assert response.data[1]["event_id"] == attachment.event_id
 
-    def test_date_range_filter(self):
+    def test_date_range_filter(self) -> None:
         self.login_as(user=self.user)
 
         old_attachment = self.create_attachment(event_id="b" * 32)
@@ -151,7 +151,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert range_response.data[0]["id"] == str(newer_attachment.id)
         assert range_response.data[0]["event_id"] == newer_attachment.event_id
 
-    def test_event_environment_filter(self):
+    def test_event_environment_filter(self) -> None:
         self.login_as(user=self.user)
         data = {}
 
@@ -182,7 +182,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert prod_response.data[0]["id"] == str(prod_attachment.id)
         assert prod_response.data[0]["event_id"] == prod_attachment.event_id
 
-    def test_event_query_filter(self):
+    def test_event_query_filter(self) -> None:
         self.login_as(user=self.user)
         data = {}
 
@@ -213,7 +213,7 @@ class GroupEventAttachmentsTest(APITestCase):
         assert prod_response.data[0]["id"] == str(sentry_attachment.id)
         assert prod_response.data[0]["event_id"] == sentry_attachment.event_id
 
-    def test_erroneous_event_filter(self):
+    def test_erroneous_event_filter(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
             data={
@@ -233,7 +233,7 @@ class GroupEventAttachmentsTest(APITestCase):
             )
         assert response.status_code == 400
 
-    def test_event_filters_not_matching_should_return_no_attachments(self):
+    def test_event_filters_not_matching_should_return_no_attachments(self) -> None:
         self.login_as(user=self.user)
 
         self.create_environment(name="development", project=self.project)

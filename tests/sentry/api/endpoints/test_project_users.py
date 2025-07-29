@@ -3,7 +3,9 @@ from unittest import mock
 
 from django.utils import timezone
 
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.utils.eventuser import EventUser
 
 
@@ -11,7 +13,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-users"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(
             organization=self.organization, date_added=(timezone.now() - timedelta(hours=2))
@@ -55,10 +57,13 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
             assert sorted(map(lambda x: x["id"], response.data)) == sorted(
                 [str(self.euser1.id), str(self.euser2.id)]
             )
-        mock_record.assert_any_call(
-            "eventuser_endpoint.request",
-            project_id=self.project.id,
-            endpoint="sentry.api.endpoints.project_users.get",
+
+        assert_any_analytics_event(
+            mock_record,
+            EventUserEndpointRequest(
+                project_id=self.project.id,
+                endpoint="sentry.api.endpoints.project_users.get",
+            ),
         )
 
     @mock.patch("sentry.analytics.record")
@@ -92,7 +97,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         self._assert_simple_response(response, mock_record)
 
-    def test_empty_search_query(self):
+    def test_empty_search_query(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -101,7 +106,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_username_search(self):
+    def test_username_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -120,7 +125,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_email_search(self):
+    def test_email_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -142,7 +147,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_id_search(self):
+    def test_id_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -161,7 +166,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_ip_search(self):
+    def test_ip_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(

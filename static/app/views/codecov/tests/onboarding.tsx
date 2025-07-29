@@ -2,16 +2,19 @@ import {useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {AddScriptToYaml} from 'sentry/views/codecov/tests/onboardingSteps/addScriptToYaml';
-import {AddUploadToken} from 'sentry/views/codecov/tests/onboardingSteps/addUploadToken';
-import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
-import {ChooseUploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermission';
-import {EditGHAWorkflow} from 'sentry/views/codecov/tests/onboardingSteps/editGHAWorkflow';
-import {InstallPreventCLI} from 'sentry/views/codecov/tests/onboardingSteps/installPreventCLI';
-import {OutputCoverageFile} from 'sentry/views/codecov/tests/onboardingSteps/outputCoverageFile';
+import {t, tct} from 'sentry/locale';
+import {AddScriptToYamlStep} from 'sentry/views/codecov/tests/onboardingSteps/addScriptToYamlStep';
+import {AddUploadTokenStep} from 'sentry/views/codecov/tests/onboardingSteps/addUploadTokenStep';
+import type {UploadPermission} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermissionStep';
+import {ChooseUploadPermissionStep} from 'sentry/views/codecov/tests/onboardingSteps/chooseUploadPermissionStep';
+import {EditGHAWorkflowStep} from 'sentry/views/codecov/tests/onboardingSteps/editGHAWorkflowStep';
+import {InstallPreventCLIStep} from 'sentry/views/codecov/tests/onboardingSteps/installPreventCLIStep';
+import {OutputCoverageFileStep} from 'sentry/views/codecov/tests/onboardingSteps/outputCoverageFileStep';
+import {RunTestSuiteStep} from 'sentry/views/codecov/tests/onboardingSteps/runTestSuiteStep';
+import {UploadFileCLIStep} from 'sentry/views/codecov/tests/onboardingSteps/uploadFileCLIStep';
+import {ViewResultsInsightsStep} from 'sentry/views/codecov/tests/onboardingSteps/viewResultsInsightsStep';
 import TestPreOnboardingPage from 'sentry/views/codecov/tests/preOnboarding';
 
 type SetupOption = 'githubAction' | 'cli';
@@ -54,17 +57,27 @@ export default function TestsOnboardingPage() {
           ]}
         />
         <StepsContainer>
-          <OutputCoverageFile step="1" />
+          <OutputCoverageFileStep step="1" />
           {/* TODO coming soon: we will conditionally render this based on CLI vs GHAction and OIDC vs Token for CLI */}
-          <ChooseUploadPermission
+          <ChooseUploadPermissionStep
             step="2a"
             selectedUploadPermission={selectedUploadPermission}
             setSelectedUploadPermission={setSelectedUploadPermission}
           />
-          <AddUploadToken step="2b" />
-          <AddScriptToYaml step="3" />
-          <InstallPreventCLI step="3" />
-          <EditGHAWorkflow step="3" />
+          <AddUploadTokenStep step="2b" />
+          <AddScriptToYamlStep step="3" />
+          <InstallPreventCLIStep step="3" />
+          <EditGHAWorkflowStep step="3" />
+          <RunTestSuiteStep step="4" />
+          <UploadFileCLIStep previousStep="3" step="4" />
+          <ViewResultsInsightsStep step="5" />
+          <div>
+            {tct('To learn more about Test Analytics, please visit [ourDocs].', {
+              ourDocs: (
+                <Link to="https://docs.sentry.io/product/test-analytics/">our docs</Link>
+              ),
+            })}
+          </div>
         </StepsContainer>
       </OnboardingContainer>
     </LayoutGap>
@@ -73,11 +86,11 @@ export default function TestsOnboardingPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const OnboardingContainer = styled('div')`
-  padding: ${space(1.5)} ${space(4)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   max-width: 800px;
@@ -85,7 +98,7 @@ const OnboardingContainer = styled('div')`
 
 const IntroContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const GetStartedHeader = styled('h2')`
@@ -102,9 +115,9 @@ const TAValueText = styled('p')`
 const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StepsContainer = styled('div')`
-  padding: ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
 `;

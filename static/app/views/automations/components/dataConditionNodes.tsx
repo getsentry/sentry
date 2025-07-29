@@ -1,6 +1,8 @@
 import type React from 'react';
 import {createContext, useContext} from 'react';
+import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
 import {
   type DataCondition,
@@ -59,6 +61,7 @@ import {
   IssuePriorityNode,
   validateIssuePriorityCondition,
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
@@ -109,6 +112,7 @@ type DataConditionNode = {
   dataCondition?: React.ComponentType<any>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
+  warningMessage?: React.ComponentType<any>;
 };
 
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
@@ -201,6 +205,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+    {
+      label: t('De-escalation'),
+      dataCondition: IssuePriorityDeescalating,
+      details: IssuePriorityDeescalating,
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.LATEST_ADOPTED_RELEASE,
     {
       label: t('Release age'),
@@ -212,6 +225,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
         environment: '',
       },
       validate: validateLatestAdoptedReleaseCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -221,6 +235,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       dataCondition: LatestReleaseNode,
       details: LatestReleaseNode,
       validate: undefined,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -234,6 +249,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
         match: MatchType.CONTAINS,
       },
       validate: validateEventAttributeCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -264,6 +280,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       validate: validateEventFrequencyCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -274,6 +291,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       details: EventFrequencyCountDetails,
       defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
       validate: validateEventFrequencyCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -288,6 +306,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
         comparison_interval: Interval.ONE_WEEK,
       },
       validate: validateEventFrequencyCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -296,6 +315,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       validate: validateEventUniqueUserFrequencyCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -306,6 +326,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       details: EventUniqueUserFrequencyCountDetails,
       defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
       validate: validateEventUniqueUserFrequencyCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -320,6 +341,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
         comparison_interval: Interval.ONE_WEEK,
       },
       validate: validateEventUniqueUserFrequencyCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -328,6 +350,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       validate: validatePercentSessionsCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -338,6 +361,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       details: PercentSessionsCountDetails,
       defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
       validate: validatePercentSessionsCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
   [
@@ -352,18 +376,26 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
         comparison_interval: Interval.ONE_WEEK,
       },
       validate: validatePercentSessionsCondition,
+      warningMessage: OccurenceBasedMonitorsWarning,
     },
   ],
 ]);
 
-export const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>> =
-  {
-    [DataConditionType.PERCENT_SESSIONS_COUNT]: DataConditionType.PERCENT_SESSIONS,
-    [DataConditionType.PERCENT_SESSIONS_PERCENT]: DataConditionType.PERCENT_SESSIONS,
-    [DataConditionType.EVENT_FREQUENCY_COUNT]: DataConditionType.EVENT_FREQUENCY,
-    [DataConditionType.EVENT_FREQUENCY_PERCENT]: DataConditionType.EVENT_FREQUENCY,
-    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT]:
-      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
-    [DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT]:
-      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY,
-  };
+function OccurenceBasedMonitorsWarning() {
+  return (
+    <Flex direction="column" gap="md">
+      <WarningLine>
+        {t('These filters will only apply to some of your monitors and triggers.')}
+      </WarningLine>
+      <WarningLine>
+        {t(
+          'They are only available for occurrence-based monitors \(errors, N+1, and replay\) and only apply to the triggers "A new event is captured for an issue" and "A new issue is created."'
+        )}
+      </WarningLine>
+    </Flex>
+  );
+}
+
+const WarningLine = styled('p')`
+  margin: 0;
+`;

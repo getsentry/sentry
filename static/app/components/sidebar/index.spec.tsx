@@ -5,7 +5,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -90,6 +97,10 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'GET',
       body: {onboardingTasks: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {data: null},
     });
   });
 
@@ -412,29 +423,13 @@ describe('Sidebar', function () {
     });
 
     it('should render the sidebar banner with no dismissed prompts and the feature flag enabled', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
 
     it('will not render sidebar banner when collapsed', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -444,21 +439,13 @@ describe('Sidebar', function () {
     });
 
     it('should show dot on help menu after dismissing sidebar banner', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
       const dismissMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         method: 'PUT',
         body: {},
       });
 
-      renderSidebarWithFeatures([
-        'navigation-sidebar-v2',
-        'navigation-sidebar-v2-banner',
-      ]);
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 
@@ -487,11 +474,6 @@ describe('Sidebar', function () {
       ConfigStore.set('user', {
         ...user,
         options: {...user.options, prefersChonkUI: true},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
       });
 
       renderSidebarWithFeatures(['chonk-ui']);
@@ -535,11 +517,6 @@ describe('Sidebar', function () {
       ConfigStore.set('user', {
         ...user,
         options: {...user.options, prefersChonkUI: false},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
       });
 
       const dismiss = MockApiClient.addMockResponse({
@@ -600,11 +577,6 @@ describe('Sidebar', function () {
         options: {...user.options, prefersChonkUI: false},
       });
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: null},
-      });
-
       const dismiss = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
         method: 'PUT',
@@ -619,8 +591,15 @@ describe('Sidebar', function () {
 
       // The dot is not visible initially - banner takes precedence
       expect(screen.queryByTestId('help-menu-dot')).not.toBeInTheDocument();
-      expect(await screen.findByText(/Sentry has a new look/)).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: /Dismiss/}));
+      const chonkBanner = await screen.findByText(/Sentry has a new look/);
+      expect(chonkBanner).toBeInTheDocument();
+
+      // Find the dismiss button within the chonk UI banner
+      await userEvent.click(
+        within(screen.getByRole('complementary')).getByRole('button', {
+          name: /Dismiss/,
+        })
+      );
 
       expect(optionsRequest).not.toHaveBeenCalled();
       expect(dismiss).toHaveBeenCalledWith(

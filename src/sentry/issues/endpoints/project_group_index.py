@@ -1,4 +1,5 @@
 import functools
+import logging
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,9 +11,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import (
-    delete_groups,
     get_by_short_id,
     prep_search,
+    schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
 )
@@ -30,6 +31,7 @@ from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -56,6 +58,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         """
         List a Project's Issues
         ```````````````````````
+        **Deprecated**: This endpoint has been replaced with the [Organization
+        Issues endpoint](/api/events/list-an-organizations-issues/) which
+        supports filtering on project and additional functionality.
 
         Return a list of issues (groups) bound to a project.  All parameters are
         supplied as query string parameters.
@@ -299,4 +304,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :auth: required
         """
         search_fn = functools.partial(prep_search, request, project)
-        return delete_groups(request, [project], project.organization_id, search_fn)
+        try:
+            return schedule_tasks_to_delete_groups(
+                request, [project], project.organization_id, search_fn
+            )
+        except Exception:
+            logger.exception("Error deleting groups")
+            return Response({"detail": "Error deleting groups"}, status=500)

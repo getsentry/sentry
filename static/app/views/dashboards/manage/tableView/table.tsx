@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
+import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -8,8 +10,13 @@ import Pagination from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export interface DashboardTableProps {
@@ -27,8 +34,17 @@ export function DashboardTable({
   pageLinks,
   cursorKey,
 }: DashboardTableProps) {
+  const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const resetDashboardLists = useResetDashboardLists();
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: resetDashboardLists,
+  });
+  const handleDeleteDashboard = useDeleteDashboard({
+    onSuccess: resetDashboardLists,
+  });
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -86,8 +102,16 @@ export function DashboardTable({
             <SavedEntityTable.Cell hasButton data-column="star">
               <SavedEntityTable.CellStar
                 isStarred={dashboard.isFavorited ?? false}
-                // TODO: DAIN-718 Add star functionality
-                onClick={() => {}}
+                onClick={async () => {
+                  await updateDashboardFavorite(
+                    api,
+                    queryClient,
+                    organization.slug,
+                    dashboard.id,
+                    !dashboard.isFavorited
+                  );
+                  resetDashboardLists();
+                }}
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="name">
@@ -103,8 +127,9 @@ export function DashboardTable({
             <SavedEntityTable.Cell data-column="envs">
               <SavedEntityTable.CellEnvironments environments={dashboard.environment} />
             </SavedEntityTable.Cell>
-            {/* TODO: DAIN-716 Add release filter as tokens */}
-            <SavedEntityTable.Cell data-column="filter">{'\u2014'}</SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="filter">
+              <SavedEntityTable.CellQuery query={getDashboardFiltersQuery(dashboard)} />
+            </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="num-widgets">
               {dashboard.widgetPreview.length}
             </SavedEntityTable.Cell>
@@ -125,21 +150,11 @@ export function DashboardTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="actions" hasButton>
               <SavedEntityTable.CellActions
-                // TODO: DAIN-717 Add action handlers
                 items={[
-                  ...(dashboard.createdBy === null
-                    ? []
-                    : [
-                        {
-                          key: 'rename',
-                          label: t('Rename'),
-                          onAction: () => {},
-                        },
-                      ]),
                   {
                     key: 'duplicate',
                     label: t('Duplicate'),
-                    onAction: () => {},
+                    onAction: () => handleDuplicateDashboard(dashboard, 'table'),
                   },
                   ...(dashboard.createdBy === null
                     ? []
@@ -148,7 +163,15 @@ export function DashboardTable({
                           key: 'delete',
                           label: t('Delete'),
                           priority: 'danger' as const,
-                          onAction: () => {},
+                          onAction: () => {
+                            openConfirmModal({
+                              message: t(
+                                'Are you sure you want to delete this dashboard?'
+                              ),
+                              priority: 'danger',
+                              onConfirm: () => handleDeleteDashboard(dashboard, 'table'),
+                            });
+                          },
                         },
                       ]),
                 ]}
@@ -162,6 +185,13 @@ export function DashboardTable({
   );
 }
 
+function getDashboardFiltersQuery(dashboard: DashboardListItem) {
+  // Dashboards only currently support release filters
+  return dashboard.filters?.release
+    ? `release:[${dashboard.filters.release.join(',')}]`
+    : '';
+}
+
 const Container = styled('div')`
   container-type: inline-size;
 `;
@@ -170,8 +200,8 @@ const Container = styled('div')`
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
   grid-template-areas: 'star name project envs filter num-widgets created-by last-visited created actions';
   grid-template-columns:
-    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 120px)
-    minmax(auto, 120px) auto auto auto 48px;
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(auto, 200px)
+    minmax(auto, 120px) 80px auto auto 48px;
 `;
 
 const TableHeading = styled('h2')`

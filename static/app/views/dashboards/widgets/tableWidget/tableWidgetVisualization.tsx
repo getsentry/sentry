@@ -9,8 +9,13 @@ import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {ColumnValueType, Sort} from 'sentry/utils/discover/fields';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import type {Column, ColumnValueType, Sort} from 'sentry/utils/discover/fields';
+import {
+  fieldAlignment,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -21,6 +26,11 @@ import type {
   TabularMeta,
   TabularRow,
 } from 'sentry/views/dashboards/widgets/common/types';
+import CellAction, {
+  Actions,
+  copyToClipboard,
+  openExternalLink,
+} from 'sentry/views/discover/table/cellAction';
 
 type FieldRendererGetter = (
   field: string,
@@ -48,6 +58,10 @@ interface TableWidgetVisualizationProps {
    * A mapping between column key to a column alias to override header name.
    */
   aliases?: Record<string, string>;
+  /**
+   * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
+   */
+  allowedCellActions?: Actions[];
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -89,6 +103,10 @@ interface TableWidgetVisualizationProps {
    */
   onResizeColumn?: (columns: TabularColumn[]) => void;
   /**
+   * A callback function that is invoked when a user clicks an option in the cell action dropdown.
+   */
+  onTriggerCellAction?: (action: Actions, value: string | number) => void;
+  /**
    * If true, will allow table columns to be resized, otherwise no resizing. By default this is true
    */
   resizable?: boolean;
@@ -126,6 +144,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     sort,
     onResizeColumn,
     resizable = true,
+    onTriggerCellAction,
+    allowedCellActions = [Actions.COPY_TO_CLIPBOARD, Actions.OPEN_EXTERNAL_LINK],
   } = props;
 
   const theme = useTheme();
@@ -197,7 +217,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
-          const name = aliases?.[column.key] || column.key;
+          let name = aliases?.[column.key] || column.key;
+          if (isEquation(column.key)) name = stripEquationPrefix(name);
           const sortColumn = getSortField(column.key) ?? column.key;
 
           let direction = undefined;
@@ -242,7 +263,42 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           const cell = valueRenderer(dataRow, baggage);
 
-          return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
+          const column = columnOrder[columnIndex]!;
+          const formattedColumn = {
+            key: column.key,
+            name: column.key,
+            isSortable: !!column.sortable,
+            type: column.type ?? FieldValueType.NEVER,
+            column: {
+              field: column.key,
+              kind: 'field',
+            } as Column,
+          };
+
+          return (
+            <CellAction
+              key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
+              column={formattedColumn}
+              // id is not used by CellAction, but is required for the TableDataRow type
+              dataRow={{...dataRow, id: ''}}
+              handleCellAction={(action: Actions, value: string | number) => {
+                onTriggerCellAction?.(action, value);
+                switch (action) {
+                  case Actions.COPY_TO_CLIPBOARD:
+                    copyToClipboard(value);
+                    break;
+                  case Actions.OPEN_EXTERNAL_LINK:
+                    openExternalLink(value);
+                    break;
+                  default:
+                    break;
+                }
+              }}
+              allowActions={allowedCellActions}
+            >
+              {cell}
+            </CellAction>
+          );
         },
         onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
           widths[columnIndex] = defined(nextColumn.width)
@@ -318,4 +374,5 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;
+  vertical-align: middle;
 `;

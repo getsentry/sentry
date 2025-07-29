@@ -1,4 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -320,7 +320,6 @@ const performanceOnboarding: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               filename: 'instrument.(js|mjs)',
               language: 'javascript',
               code: getSdkInitSnippet(params, 'node'),

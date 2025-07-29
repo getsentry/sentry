@@ -2,8 +2,6 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
@@ -14,14 +12,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -40,6 +33,7 @@ import {
   validateAutomationBuilderState,
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
+import {EditAutomationActions} from 'sentry/views/automations/components/editAutomationActions';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
@@ -135,16 +129,19 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length === 0) {
-        const formData = getNewAutomationData(data as AutomationFormData, state);
+        const formData: NewAutomation = getNewAutomationData(
+          data as AutomationFormData,
+          state
+        );
         const updatedData = {
-          automationId: params.automationId,
+          id: automation.id,
           ...formData,
         };
         const updatedAutomation = await updateAutomation(updatedData);
         navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
       }
     },
-    [params.automationId, organization.slug, navigate, updateAutomation, state]
+    [automation.id, organization.slug, navigate, updateAutomation, state]
   );
 
   return (
@@ -163,6 +160,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
               <EditableAutomationName />
             </Layout.Title>
           </Layout.HeaderContent>
+          <Flex>
+            <EditAutomationActions automation={automation} />
+          </Flex>
         </StyledLayoutHeader>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -180,20 +180,6 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
-      <StickyFooter>
-        <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap={space(1)}>
-          <LinkButton
-            priority="default"
-            to={makeAutomationDetailsPathname(organization.slug, params.automationId)}
-          >
-            {t('Cancel')}
-          </LinkButton>
-          <Button priority="primary" type="submit">
-            {t('Save')}
-          </Button>
-        </Flex>
-      </StickyFooter>
     </FullHeightForm>
   );
 }

@@ -30,17 +30,17 @@ from sentry.utils.outcomes import Outcome
 class BaseMonitorDetailsTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(self.organization.slug, monitor.slug)
         assert resp.data["slug"] == monitor.slug
 
-    def test_simple_with_id(self):
+    def test_simple_with_id(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(self.organization.slug, monitor.slug)
@@ -54,7 +54,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         uuid = UUID("00000000-0000-0000-0000-000000000000")
         self.get_error_response(self.organization.slug, uuid, status_code=404)
 
-    def test_simple_with_uuid_like_slug(self):
+    def test_simple_with_uuid_like_slug(self) -> None:
         """
         When the slug looks like a UUID we still want to make sure we're
         prioritizing slug lookup
@@ -69,11 +69,11 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         resp = self.get_success_response(self.organization.slug, monitor.guid)
         assert resp.data["slug"] == monitor.slug
 
-    def test_mismatched_org_slugs(self):
+    def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()
         self.get_error_response("asdf", monitor.slug, status_code=404)
 
-    def test_monitor_environment(self):
+    def test_monitor_environment(self) -> None:
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
 
@@ -82,7 +82,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             self.organization.slug, monitor.slug, environment="jungle", status_code=404
         )
 
-    def test_filtering_monitor_environment(self):
+    def test_filtering_monitor_environment(self) -> None:
         monitor = self._create_monitor()
         prod_env = "production"
         prod = self._create_monitor_environment(monitor, name=prod_env)
@@ -131,7 +131,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             }
         ]
 
-    def test_expand_issue_alert_rule(self):
+    def test_expand_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
@@ -143,7 +143,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
 
-    def test_with_active_incident_and_detection(self):
+    def test_with_active_incident_and_detection(self) -> None:
         monitor = self._create_monitor()
         monitor_env = self._create_monitor_environment(monitor)
 
@@ -169,7 +169,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             },
         }
 
-    def test_with_active_incident_no_detection(self):
+    def test_with_active_incident_no_detection(self) -> None:
         monitor = self._create_monitor()
         monitor_env = self._create_monitor_environment(monitor)
 
@@ -188,7 +188,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             "brokenNotice": None,
         }
 
-    def test_owner_user(self):
+    def test_owner_user(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_success_response(self.organization.slug, monitor.slug)
 
@@ -199,7 +199,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             "name": self.user.email,
         }
 
-    def test_owner_team(self):
+    def test_owner_team(self) -> None:
         monitor = self._create_monitor(
             owner_user_id=None,
             owner_team_id=self.team.id,
@@ -217,11 +217,11 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 class BaseUpdateMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_name(self):
+    def test_name(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"name": "Monitor Name"}
@@ -231,7 +231,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.name == "Monitor Name"
 
-    def test_slug(self):
+    def test_slug(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-monitor"}
@@ -249,7 +249,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
-    def test_sluggification(self):
+    def test_sluggification(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"slug": "a_b_c_"}
@@ -261,7 +261,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         )
         assert resp.data["slug"] == "a_-b-_c"
 
-    def test_owner(self):
+    def test_owner(self) -> None:
         monitor = self._create_monitor()
         assert monitor.owner_user_id == self.user.id
         assert monitor.owner_team_id is None
@@ -309,7 +309,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         )
         assert resp.data["owner"][0] == "User is not a member of this organization"
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_error_response(
             self.organization.slug,
@@ -320,7 +320,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         )
         assert resp.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_slug_exists(self):
+    def test_slug_exists(self) -> None:
         self._create_monitor(slug="my-test-monitor")
         other_monitor = self._create_monitor(slug="another-monitor")
 
@@ -334,14 +334,14 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
         assert resp.data["slug"][0] == 'The slug "my-test-monitor" is already in use.', resp.content
 
-    def test_slug_same(self):
+    def test_slug_same(self) -> None:
         monitor = self._create_monitor(slug="my-test-monitor")
 
         self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-test-monitor"}
         )
 
-    def test_can_mute(self):
+    def test_can_mute(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"isMuted": True}
@@ -351,7 +351,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.is_muted
 
-    def test_can_unmute(self):
+    def test_can_unmute(self) -> None:
         monitor = self._create_monitor()
 
         monitor.update(is_muted=True)
@@ -364,7 +364,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert not monitor.is_muted
 
-    def test_timezone(self):
+    def test_timezone(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
@@ -378,7 +378,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["timezone"] == "America/Los_Angeles"
 
-    def test_checkin_margin(self):
+    def test_checkin_margin(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor=monitor)
 
@@ -441,7 +441,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             == monitor_environment.next_checkin_latest
         )
 
-    def test_max_runtime(self):
+    def test_max_runtime(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor=monitor)
 
@@ -496,7 +496,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             second=0, microsecond=0
         ) + timedelta(minutes=TIMEOUT)
 
-    def test_existing_issue_alert_rule(self):
+    def test_existing_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()
         rule = self._create_issue_alert_rule(monitor)
         new_environment = self.create_environment(name="jungle")
@@ -548,7 +548,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 
-    def test_existing_issue_alert_rule_add_slug_condition(self):
+    def test_existing_issue_alert_rule_add_slug_condition(self) -> None:
         monitor = self._create_monitor()
         rule = self._create_issue_alert_rule(monitor, exclude_slug_filter=True)
         new_environment = self.create_environment(name="jungle")
@@ -585,7 +585,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             },
         ]
 
-    def test_without_existing_issue_alert_rule(self):
+    def test_without_existing_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()
         resp = self.get_success_response(
             self.organization.slug,
@@ -603,7 +603,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         rule = monitor.get_issue_alert_rule()
         assert rule is not None
 
-    def test_invalid_config_param(self):
+    def test_invalid_config_param(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
@@ -614,7 +614,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert "invalid" not in monitor.config
 
-    def test_cronjob_crontab(self):
+    def test_cronjob_crontab(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
@@ -639,7 +639,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     #     ['@daily', '0 0 * * *'],
     #     ['@hourly', '0 * * * *'],
     # ))
-    def test_cronjob_nonstandard(self):
+    def test_cronjob_nonstandard(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
@@ -654,7 +654,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
         assert monitor.config["schedule"] == "0 0 1 * *"
 
-    def test_cronjob_crontab_invalid(self):
+    def test_cronjob_crontab_invalid(self) -> None:
         monitor = self._create_monitor()
 
         self.get_error_response(
@@ -679,7 +679,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             **{"config": {"schedule": "* * 31 9 *"}},
         )
 
-    def test_crontab_unsupported(self):
+    def test_crontab_unsupported(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_error_response(
@@ -705,7 +705,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
         ), resp.content
 
-    def test_cronjob_interval(self):
+    def test_cronjob_interval(self) -> None:
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
@@ -721,7 +721,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
         assert monitor.config["schedule"] == [1, "month"]
 
-    def test_cronjob_interval_invalid_inteval(self):
+    def test_cronjob_interval_invalid_inteval(self) -> None:
         monitor = self._create_monitor()
 
         self.get_error_response(
@@ -756,7 +756,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             **{"config": {"schedule_type": "interval", "schedule": "bar"}},
         )
 
-    def test_mismatched_org_slugs(self):
+    def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()
 
         self.get_error_response(
@@ -767,7 +767,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             **{"config": {"schedule_type": "interval", "schedule": [1, "month"]}},
         )
 
-    def test_cannot_change_project(self):
+    def test_cannot_change_project(self) -> None:
         monitor = self._create_monitor()
 
         project2 = self.create_project()
@@ -895,7 +895,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 class BaseDeleteMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         super().setUp()
 
@@ -919,11 +919,11 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         mock_update_monitor_slug.assert_called_once()
         mock_disable_monitor_seat.assert_called_once_with(monitor=monitor)
 
-    def test_mismatched_org_slugs(self):
+    def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()
         self.get_error_response("asdf", monitor.slug, status_code=404)
 
-    def test_environment(self):
+    def test_environment(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
@@ -944,7 +944,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
-    def test_multiple_environments(self):
+    def test_multiple_environments(self) -> None:
         monitor = self._create_monitor()
         monitor_environment_a = self._create_monitor_environment(monitor, name="alpha")
         monitor_environment_b = self._create_monitor_environment(monitor, name="beta")
@@ -972,7 +972,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
         ).exists()
 
-    def test_bad_environment(self):
+    def test_bad_environment(self) -> None:
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
 
@@ -983,7 +983,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             qs_params={"environment": "jungle"},
         )
 
-    def test_simple_with_issue_alert_rule(self):
+    def test_simple_with_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()
         self._create_issue_alert_rule(monitor)
 
@@ -995,7 +995,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
         assert rule.status == ObjectStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
 
-    def test_simple_with_issue_alert_rule_deleted(self):
+    def test_simple_with_issue_alert_rule_deleted(self) -> None:
         monitor = self._create_monitor()
         rule = self._create_issue_alert_rule(monitor)
         rule.delete()

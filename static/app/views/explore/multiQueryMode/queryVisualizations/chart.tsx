@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -13,31 +12,24 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
-import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
-import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
   type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {INGESTION_DELAY} from 'sentry/views/explore/settings';
+import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -45,7 +37,6 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
 interface MultiQueryChartProps {
-  canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
@@ -57,20 +48,9 @@ export function MultiQueryModeChart({
   query: queryParts,
   mode,
   timeseriesResult,
-  canUsePreviousResults,
 }: MultiQueryChartProps) {
-  const theme = useTheme();
-
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
-
-  const [confidence, numSeries] = useMemo(() => {
-    const series = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis]).filter(defined);
-    return [
-      combineConfidenceForSeries(series),
-      Math.min(series.length, DEFAULT_TOP_EVENTS),
-    ];
-  }, [timeseriesResult.data, yAxes]);
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
@@ -81,74 +61,27 @@ export function MultiQueryModeChart({
 
   const updateChartType = useUpdateQueryAtIndex(index);
 
-  const previousTimeseriesResult = usePrevious(timeseriesResult);
-
-  const getSeries = useCallback(() => {
-    const shouldUsePreviousResults =
-      timeseriesResult.isPending &&
-      canUsePreviousResults &&
-      yAxes.every(yAxis => previousTimeseriesResult.data.hasOwnProperty(yAxis));
-
-    const data = yAxes.flatMap((yAxis, i) => {
-      const series = shouldUsePreviousResults
-        ? previousTimeseriesResult.data[yAxis]
-        : timeseriesResult.data[yAxis];
-      return (series ?? []).map(s => {
-        // We replace the series name with the formatted series name here
-        // when possible as it's cleaner to read.
-        //
-        // We can't do this in top N mode as the series name uses the row
-        // values instead of the aggregate function.
-        if (s.yAxis === yAxis) {
-          return {
-            ...s,
-            seriesName: formattedYAxes[i] ?? yAxis,
-          };
-        }
-        return s;
-      });
-    });
-    return {
-      data,
-      error: shouldUsePreviousResults
-        ? previousTimeseriesResult.error
-        : timeseriesResult.error,
-      loading: shouldUsePreviousResults
-        ? previousTimeseriesResult.isPending
-        : timeseriesResult.isPending,
-    };
-  }, [
-    timeseriesResult.isPending,
-    timeseriesResult.error,
-    timeseriesResult.data,
-    canUsePreviousResults,
-    yAxes,
-    previousTimeseriesResult.error,
-    previousTimeseriesResult.isPending,
-    previousTimeseriesResult.data,
-    formattedYAxes,
-  ]);
-
-  const {data, error, loading} = getSeries();
-  const {sampleCount, isSampled, dataScanned} = determineSeriesSampleCountAndIsSampled(
-    data,
-    isTopN
-  );
-
   const chartType = queryParts.chartType ?? determineDefaultChartType(yAxes);
 
   const visualizationType =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
-  const chartInfo = {
-    chartIcon: <IconGraph type={visualizationType} />,
-    chartType,
-    yAxes,
-    formattedYAxes,
-    data,
-    error,
-    loading,
-  };
+  const chartInfo: ChartInfo = useMemo(() => {
+    const series = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
+    const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
+
+    return {
+      chartType,
+      confidence: combineConfidenceForSeries(series),
+      series,
+      timeseriesResult,
+      yAxis: yAxes[0]!,
+      dataScanned: samplingMeta.dataScanned,
+      isSampled: samplingMeta.isSampled,
+      sampleCount: samplingMeta.sampleCount,
+      samplingMode: undefined,
+    };
+  }, [chartType, isTopN, timeseriesResult, yAxes]);
 
   const organization = useOrganization();
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
@@ -160,29 +93,6 @@ export function MultiQueryModeChart({
       <Widget.WidgetTitle title={formattedYAxes.filter(Boolean).join(', ')} />
     </Fragment>
   );
-
-  if (chartInfo.loading) {
-    return (
-      <Widget
-        key={index}
-        height={CHART_HEIGHT}
-        Title={Title}
-        Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
-        revealActions="always"
-      />
-    );
-  }
-  if (chartInfo.error) {
-    return (
-      <Widget
-        key={index}
-        height={CHART_HEIGHT}
-        Title={Title}
-        Visualization={<Widget.WidgetError error={chartInfo.error} />}
-        revealActions="always"
-      />
-    );
-  }
 
   const items: MenuItemProps[] = [];
 
@@ -242,13 +152,6 @@ export function MultiQueryModeChart({
     },
   });
 
-  const DataPlottableConstructor =
-    chartInfo.chartType === ChartType.LINE
-      ? Line
-      : chartInfo.chartType === ChartType.AREA
-        ? Area
-        : Bars;
-
   return (
     <Widget
       key={index}
@@ -261,12 +164,12 @@ export function MultiQueryModeChart({
         >
           <CompactSelect
             triggerProps={{
-              icon: chartInfo.chartIcon,
+              icon: <IconGraph type={visualizationType} />,
               borderless: true,
               showChevron: false,
               size: 'xs',
             }}
-            value={chartInfo.chartType}
+            value={chartType}
             menuTitle={t('Type')}
             options={EXPLORE_CHART_TYPE_OPTIONS}
             onChange={option => {
@@ -306,26 +209,15 @@ export function MultiQueryModeChart({
         ),
       ]}
       revealActions="always"
-      Visualization={
-        <TimeSeriesWidgetVisualization
-          plottables={chartInfo.data.map(timeSeries => {
-            return new DataPlottableConstructor(
-              markDelayedData(timeSeries, INGESTION_DELAY),
-              {
-                color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
-                stack: 'all',
-              }
-            );
-          })}
-        />
-      }
+      Visualization={<ChartVisualization chartInfo={chartInfo} />}
       Footer={
         <ConfidenceFooter
-          sampleCount={sampleCount}
-          isSampled={isSampled}
-          confidence={confidence}
-          topEvents={isTopN ? numSeries : undefined}
-          dataScanned={dataScanned}
+          sampleCount={chartInfo.sampleCount}
+          isLoading={chartInfo.timeseriesResult?.isPending || false}
+          isSampled={chartInfo.isSampled}
+          confidence={chartInfo.confidence}
+          topEvents={isTopN ? chartInfo.series.length : undefined}
+          dataScanned={chartInfo.dataScanned}
         />
       }
     />

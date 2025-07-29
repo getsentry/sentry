@@ -16,7 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CacheHitMissCell} from 'sentry/views/insights/cache/components/tables/cacheHitMissCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -36,7 +36,7 @@ type ColumnKeys =
   | SpanFields.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-type DataRow = Pick<EAPSpanResponse, DataRowKeys> & {
+type DataRow = Pick<SpanResponse, DataRowKeys> & {
   'cache.hit': '' | 'true' | 'false';
   'transaction.duration': number; // TODO: this should be a boolean
 };

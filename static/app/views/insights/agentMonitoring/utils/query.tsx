@@ -1,6 +1,6 @@
 // These are the span op we are currently ingesting.
 
-import {type EAPSpanProperty, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 // AI Runs - equivalent to OTEL Invoke Agent span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-agent-spans.md#invoke-agent-span
@@ -24,14 +24,16 @@ export const AI_GENERATION_OPS = [
   'gen_ai.generate_object',
   'gen_ai.stream_text',
   'gen_ai.stream_object',
-  'gen_ai.embed',
-  'gen_ai.embed_many',
+  'gen_ai.embed', // AI SDK
+  'gen_ai.embed_many', // AI SDK
+  'gen_ai.embeddings', // Python OpenAI
   'gen_ai.text_completion',
+  'gen_ai.responses',
 ];
 
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
-const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
+export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
 
 const AI_HANDOFF_OPS = ['gen_ai.handoff'];
 
@@ -52,10 +54,8 @@ export const AI_TOTAL_TOKENS_ATTRIBUTE = SpanFields.GEN_AI_USAGE_TOTAL_TOKENS;
 export const AI_TOKEN_USAGE_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`;
 export const AI_INPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`;
 export const AI_OUTPUT_TOKENS_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`;
-export const AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM =
-  `sum(tags[${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING}, number])` as EAPSpanProperty;
-export const AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM =
-  `sum(tags[${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED}, number])` as EAPSpanProperty;
+export const AI_OUTPUT_TOKENS_REASONING_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`;
+export const AI_INPUT_TOKENS_CACHED_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`;
 export const AI_COST_ATTRIBUTE_SUM = `sum(${SpanFields.GEN_AI_USAGE_TOTAL_COST})`;
 
 export const legacyAttributeKeys = new Map<string, string[]>([
