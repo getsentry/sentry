@@ -130,7 +130,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
@@ -273,7 +273,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
@@ -310,7 +310,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
