@@ -147,12 +147,6 @@ export function useSortedFilterKeyItems({
   const hasWildcardSearch = organization.features.includes(
     'search-query-builder-wildcard-operators'
   );
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
-  );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
-  );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -222,7 +216,7 @@ export function useSortedFilterKeyItems({
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
-        (!replaceRawSearchKeys?.length || !hasRawSearchReplacement);
+        !replaceRawSearchKeys?.length;
 
       let rawSearchFilterHasValueItems: RawSearchFilterHasValueItem[] = [];
       if (hasWildcardSearch) {
@@ -254,8 +248,7 @@ export function useSortedFilterKeyItems({
         inputValue &&
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
-        !!replaceRawSearchKeys?.length &&
-        hasRawSearchReplacement;
+        !!replaceRawSearchKeys?.length;
 
       const keyItemsSection: KeySectionItem = {
         key: 'key-items',
@@ -271,10 +264,7 @@ export function useSortedFilterKeyItems({
         !isQuoted(inputValue) &&
         (!keyItems.length || inputValue.trim().includes(' ')) &&
         !!matchKeySuggestions?.length &&
-        matchKeySuggestions.some(suggestion =>
-          suggestion.valuePattern.test(inputValue)
-        ) &&
-        hasMatchKeySuggestions;
+        matchKeySuggestions.some(suggestion => suggestion.valuePattern.test(inputValue));
 
       let matchKeySuggestionsOptions: SearchKeyItem[] = [];
       if (shouldShowMatchKeySuggestions && matchKeySuggestions) {
@@ -322,8 +312,6 @@ export function useSortedFilterKeyItems({
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
-    hasMatchKeySuggestions,
-    hasRawSearchReplacement,
     hasWildcardSearch,
     includeSuggestions,
     inputValue,

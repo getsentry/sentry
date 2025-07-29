@@ -155,6 +155,13 @@ function McpOverviewPage() {
   const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
     useTraceItemTags('string');
 
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
@@ -166,13 +173,17 @@ function McpOverviewPage() {
       stringTags,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      replaceRawSearchKeys: ['span.description'],
-      matchKeySuggestions: [
-        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-      ],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
     }),
     [
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
       searchQuery,

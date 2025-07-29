@@ -206,6 +206,13 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
 
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
+
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: query,
@@ -240,24 +247,28 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
-      replaceRawSearchKeys: ['span.description'],
-      matchKeySuggestions: [
-        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-      ],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
       numberSecondaryAliases,
       stringSecondaryAliases,
     }),
     [
-      query,
-      mode,
-      numberTags,
-      numberSecondaryAliases,
-      stringTags,
-      stringSecondaryAliases,
-      oldSearch,
       fields,
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
+      mode,
+      numberSecondaryAliases,
+      numberTags,
+      oldSearch,
+      query,
       setExplorePageParams,
+      stringSecondaryAliases,
+      stringTags,
     ]
   );
 
