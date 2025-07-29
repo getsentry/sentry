@@ -7,8 +7,9 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface Props {
   detectorId: string;
@@ -30,9 +31,21 @@ function EmptyMessage() {
 export function DetectorDetailsOngoingIssues({detectorId, query}: Props) {
   const organization = useOrganization();
 
+  const {selection} = usePageFilters();
+  const {start, end, period} = selection.datetime;
+  const timeProps =
+    start && end
+      ? {
+          start: getUtcDateString(start),
+          end: getUtcDateString(end),
+        }
+      : {
+          statsPeriod: period,
+        };
+
   const queryParams = {
-    ...query,
-    query: new MutableSearch(['is:unresolved', `detector:${detectorId}`]).formatString(),
+    ...(query || timeProps),
+    query: `is:unresolved detector:${detectorId}`,
     limit: 5,
   };
 

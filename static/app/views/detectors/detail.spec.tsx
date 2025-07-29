@@ -9,7 +9,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -130,6 +130,31 @@ describe('DetectorDetails', function () {
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Last Triggered')).toBeInTheDocument();
       expect(screen.getByText('Actions')).toBeInTheDocument();
+    });
+
+    it('displays ongoing issues for the detector', async function () {
+      const {router} = render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Verify ongoing issues section is displayed
+      expect(await screen.findByText('RequestError')).toBeInTheDocument();
+
+      // Verify the View All button links to the issues page with the correct query
+      const viewAllButton = screen.getByRole('button', {name: 'View All'});
+
+      await userEvent.click(viewAllButton);
+
+      // Check that navigation occurred to the issues page with the detector query
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/`
+      );
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          query: `is:unresolved detector:${snubaQueryDetector.id}`,
+        })
+      );
     });
   });
 });
