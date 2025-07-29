@@ -55,9 +55,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   // TODO: Wireup sizeMode
   const content =
     selectedContent === 'treemap' ? (
-      <AppSizeTreemap treemapData={appSizeData.treemap} sizeMode="install" />
+      <AppSizeTreemap treemapData={appSizeData.treemap} />
     ) : (
-      <AppSizeCategories treemapData={appSizeData.treemap} sizeMode="install" />
+      <AppSizeCategories treemapData={appSizeData.treemap} />
     );
 
   return (

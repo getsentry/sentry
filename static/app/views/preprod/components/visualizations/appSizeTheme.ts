@@ -1,6 +1,6 @@
 import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
-// TODO: UPdate to use theme
+// TODO: Update to use theme
 const COLORS = {
   gray900: '#0F0C13',
   gray700: '#1E1825',

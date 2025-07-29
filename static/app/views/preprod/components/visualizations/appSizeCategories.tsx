@@ -3,23 +3,26 @@ import type {PieSeriesOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeVizUtils';
-import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
+import {
+  type TreemapElement,
+  type TreemapResults,
+  TreemapType,
+} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeCategoriesProps {
-  sizeMode: 'install' | 'download';
   treemapData: TreemapResults;
 }
 
 export function AppSizeCategories(props: AppSizeCategoriesProps) {
   const theme = useTheme();
-  const {treemapData, sizeMode} = props;
+  const {treemapData} = props;
 
-  function calculateCategorySizes(element: any): Record<string, number> {
+  function calculateCategorySizes(element: TreemapElement): Record<string, number> {
     const categorySizes: Record<string, number> = {};
 
-    function traverse(node: any) {
-      const size = sizeMode === 'install' ? node.install_size : node.download_size;
+    function traverse(node: TreemapElement) {
+      const size = node.size;
       const category = node.element_type || TreemapType.OTHER;
 
       if (category) {
@@ -27,7 +30,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
       }
 
       if (node.children && node.children.length > 0) {
-        node.children.forEach((child: any) => traverse(child));
+        node.children.forEach((child: TreemapElement) => traverse(child));
       }
     }
 
@@ -36,10 +39,7 @@ export function AppSizeCategories(props: AppSizeCategoriesProps) {
   }
 
   const categorySizes = calculateCategorySizes(treemapData.root);
-  const totalSize =
-    sizeMode === 'install'
-      ? treemapData.total_install_size
-      : treemapData.total_download_size;
+  const totalSize = treemapData.root.size;
 
   const pieData = Object.entries(categorySizes)
     .filter(([_, size]) => size > 0)
