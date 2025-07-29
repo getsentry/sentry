@@ -157,6 +157,7 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [
     "fixtures.safe_migrations_apps.*",
+    "fixtures.schema_validation",
     "sentry.analytics.*",
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
