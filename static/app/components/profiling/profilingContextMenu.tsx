@@ -244,7 +244,7 @@ interface MenuHeadingProps
 
 const MenuHeading = styled((props: MenuHeadingProps) => {
   const {children, ...rest} = props;
-  return <div {...rest}>{children}</div>;
+  return <Something {...rest}>{children}</Something>;
 })`
   text-transform: uppercase;
   line-height: 1.5;
