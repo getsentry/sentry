@@ -411,6 +411,7 @@ const StacktraceLinkWrapper = styled('div')`
 const FixMappingButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-weight: 400;
+  font-size: ${p => p.theme.fontSize.sm};
   &:hover {
     color: ${p => p.theme.subText};
   }
