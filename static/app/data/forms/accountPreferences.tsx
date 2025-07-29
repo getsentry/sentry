@@ -60,8 +60,8 @@ const formGroups: JsonFormObject[] = [
         required: false,
         options: [
           {value: StacktraceOrder.DEFAULT, label: t('Default')},
-          {value: StacktraceOrder.MOST_RECENT_LAST, label: t('Oldest')},
-          {value: StacktraceOrder.MOST_RECENT_FIRST, label: t('Newest')},
+          {value: StacktraceOrder.MOST_RECENT_LAST, label: t('Oldest first')},
+          {value: StacktraceOrder.MOST_RECENT_FIRST, label: t('Newest first')},
         ],
         label: t('Stack Trace Order'),
         help: t('Choose the default ordering of frames in stack traces'),
