@@ -100,15 +100,50 @@ function useScrollToHash() {
 
       try {
         const element = document.querySelector(`#${hash}`);
-        element?.scrollIntoView({behavior: 'instant', block: 'start'});
+        if (element) {
+          element.scrollIntoView({behavior: 'instant', block: 'start'});
+          return true; // Successfully scrolled
+        }
+        return false; // Element not found
       } catch {
         // hash might be an invalid querySelector and lead to a DOMException
+        return false;
       }
     }
+    return true; // No hash to scroll to
+  };
+
+  const attemptScrollWithRetry = () => {
+    let attempts = 0;
+    const maxAttempts = 20; // Maximum number of attempts
+    const baseDelay = 50; // Base delay in ms
+    const maxDelay = 2000; // Maximum delay in ms
+
+    const tryScroll = () => {
+      if (scrollToHash()) {
+        return; // Successfully scrolled or no hash
+      }
+
+      attempts++;
+      if (attempts >= maxAttempts) {
+        return; // Give up after max attempts
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(baseDelay * Math.pow(1.5, attempts), maxDelay);
+      const jitter = Math.random() * 0.1 * delay; // Add up to 10% jitter
+      
+      setTimeout(tryScroll, delay + jitter);
+    };
+
+    // Start with a small initial delay to allow initial render
+    requestAnimationFrame(() => {
+      setTimeout(tryScroll, 100);
+    });
   };
 
   useEffect(() => {
-    setTimeout(() => scrollToHash(), 300);
+    attemptScrollWithRetry();
   }, []);
 }
 
