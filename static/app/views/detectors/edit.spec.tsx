@@ -135,7 +135,7 @@ describe('DetectorEdit', () => {
       const mockUpdateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
         method: 'PUT',
-        body: {detectorId: mockDetector.id, enabled: !mockDetector.enabled},
+        body: {...mockDetector, enabled: !mockDetector.enabled},
       });
 
       render(<DetectorEdit />, {organization, initialRouterConfig});
