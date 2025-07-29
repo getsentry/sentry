@@ -9,6 +9,7 @@ from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any, TypedDict
 
+import sentry_sdk
 from django.db.models import QuerySet
 from snuba_sdk import (
     BooleanCondition,
@@ -234,16 +235,20 @@ class EventUser:
 
             query_end_time = time.time()
 
-            analytics.record(
-                EventUserSnubaQuery(
-                    project_ids=[p.id for p in projects],
-                    query=query.print(),
-                    query_try=tries,
-                    count_rows_returned=len(data_results),
-                    count_rows_filtered=len(data_results) - len(unique_event_users),
-                    query_time_ms=int((query_end_time - query_start_time) * 1000),
+            try:
+                analytics.record(
+                    EventUserSnubaQuery(
+                        project_ids=[p.id for p in projects],
+                        query=query.print(),
+                        query_try=tries,
+                        count_rows_returned=len(data_results),
+                        count_rows_filtered=len(data_results) - len(unique_event_users),
+                        query_time_ms=int((query_end_time - query_start_time) * 1000),
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             tries += 1
             if (
                 target_unique_rows_fetched
@@ -254,14 +259,17 @@ class EventUser:
                 break
 
         end_time = time.time()
-        analytics.record(
-            EventUserSnubaForProjects(
-                project_ids=[p.id for p in projects],
-                total_tries=tries,
-                total_rows_returned=len(full_results),
-                total_time_ms=int((end_time - start_time) * 1000),
+        try:
+            analytics.record(
+                EventUserSnubaForProjects(
+                    project_ids=[p.id for p in projects],
+                    total_tries=tries,
+                    total_rows_returned=len(full_results),
+                    total_time_ms=int((end_time - start_time) * 1000),
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if result_limit:
             return full_results[result_offset : result_offset + result_limit]
