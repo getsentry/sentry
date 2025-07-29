@@ -31,7 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -814,7 +814,7 @@ def _summarize_by_first[
     time_limit=60,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
+        namespace=workflow_engine_tasks,
         processing_deadline_duration=60,
         retry=Retry(
             times=5,
