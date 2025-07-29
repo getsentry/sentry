@@ -491,7 +491,7 @@ const ButtonsWrapper = styled('div')`
 const SeerFooter = styled('div')`
   display: flex;
   justify-content: flex-end;
-  padding: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
 `;
 
