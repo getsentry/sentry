@@ -14,6 +14,18 @@ export function AskSeerFeedback() {
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =
     useSearchQueryBuilder();
 
+  const handleClick = (correct: 'yes' | 'no') => {
+    trackAnalytics('trace.explorer.ai_query_feedback', {
+      organization,
+      correct_query_results: correct,
+      natural_language_query: askSeerNLQueryRef.current ?? '',
+      query: askSeerSuggestedQueryRef.current ?? '',
+    });
+    askSeerNLQueryRef.current = null;
+    askSeerSuggestedQueryRef.current = null;
+    setDisplayAskSeerFeedback(false);
+  };
+
   return (
     <Fragment>
       <AskSeerLabel fontWeight="normal">
@@ -24,34 +36,16 @@ export function AskSeerFeedback() {
         <Button
           size="zero"
           icon={<IconThumb />}
-          onClick={() => {
-            trackAnalytics('trace.explorer.ai_query_feedback', {
-              organization,
-              correct_query_results: 'yes',
-              natural_language_query: askSeerNLQueryRef.current ?? '',
-              query: askSeerSuggestedQueryRef.current ?? '',
-            });
-            askSeerNLQueryRef.current = null;
-            askSeerSuggestedQueryRef.current = null;
-            setDisplayAskSeerFeedback(false);
-          }}
+          onClick={() => handleClick('yes')}
+          aria-label="Seer feedback worked"
         >
           Yep
         </Button>
         <Button
           size="zero"
           icon={<IconThumb direction="down" />}
-          onClick={() => {
-            trackAnalytics('trace.explorer.ai_query_feedback', {
-              organization,
-              correct_query_results: 'no',
-              natural_language_query: askSeerNLQueryRef.current ?? '',
-              query: askSeerSuggestedQueryRef.current ?? '',
-            });
-            askSeerNLQueryRef.current = null;
-            askSeerSuggestedQueryRef.current = null;
-            setDisplayAskSeerFeedback(false);
-          }}
+          onClick={() => handleClick('no')}
+          aria-label="Seer feedback did not work"
         >
           Nope
         </Button>
