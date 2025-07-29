@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
@@ -9,6 +9,8 @@ import {Heading} from 'sentry/components/core/text';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 const consoleConfig = {
   playstation: (
@@ -85,7 +87,8 @@ const consoleConfig = {
   ),
 };
 
-interface ConsoleModalProps extends ModalRenderProps {
+export interface ConsoleModalProps {
+  organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
 }
 
@@ -95,12 +98,20 @@ export function ConsoleModal({
   Footer,
   selectedPlatform,
   closeModal,
-}: ConsoleModalProps) {
+  organization,
+}: ConsoleModalProps & ModalRenderProps) {
   const platformKey =
     selectedPlatform.key === 'nintendo-switch-2'
       ? 'nintendo-switch'
       : selectedPlatform.key;
   const config = consoleConfig[platformKey as keyof typeof consoleConfig];
+
+  useEffect(() => {
+    trackAnalytics('gaming.partner_request_access_guidance_modal_opened', {
+      platform: selectedPlatform.key,
+      organization,
+    });
+  }, [selectedPlatform.key, organization]);
 
   if (!config) {
     return null;
@@ -116,7 +127,19 @@ export function ConsoleModal({
       </Header>
       <Body>{config}</Body>
       <Footer>
-        <Button priority="primary" onClick={closeModal}>
+        <Button
+          priority="primary"
+          onClick={() => {
+            trackAnalytics(
+              'gaming.partner_request_access_guidance_modal_button_got_it_clicked',
+              {
+                platform: selectedPlatform.key,
+                organization,
+              }
+            );
+            closeModal();
+          }}
+        >
           {t('Got it')}
         </Button>
       </Footer>
