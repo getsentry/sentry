@@ -1,6 +1,8 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -8,16 +10,19 @@ import {
 import {
   ToolbarVisualizeAddChart,
   ToolbarVisualizeAddEquation,
+  ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {VisualizeDropdown} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeDropdown';
 import {VisualizeEquation} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   MAX_VISUALIZES,
+  updateVisualizeAggregate,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ToolbarVisualizeProps {
@@ -90,11 +95,8 @@ export function ToolbarVisualize({
             key={group}
             canDelete={canDelete}
             onDelete={() => onDelete(group)}
-            onReplace={newYAxis =>
-              replaceOverlay(group, visualize.replace({yAxis: newYAxis}))
-            }
-            yAxis={visualize.yAxis}
-            traceItemType={TraceItemDataset.SPANS}
+            onReplace={newVisualize => replaceOverlay(group, newVisualize)}
+            visualize={visualize}
           />
         );
       })}
@@ -111,5 +113,79 @@ export function ToolbarVisualize({
         )}
       </ToolbarFooter>
     </ToolbarSection>
+  );
+}
+
+interface VisualizeDropdownProps {
+  canDelete: boolean;
+  onDelete: () => void;
+  onReplace: (visualize: Visualize) => void;
+  visualize: Visualize;
+}
+
+function VisualizeDropdown({
+  canDelete,
+  onDelete,
+  onReplace,
+  visualize,
+}: VisualizeDropdownProps) {
+  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
+
+  const aggregateOptions = useMemo(
+    () =>
+      ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
+        return {
+          label: aggregate,
+          value: aggregate,
+          textValue: aggregate,
+        };
+      }),
+    []
+  );
+
+  const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
+
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+    numberTags,
+    stringTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  const onChangeAggregate = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        const yAxis = updateVisualizeAggregate({
+          newAggregate: option.value,
+          oldAggregate: parsedFunction?.name,
+          oldArgument: parsedFunction?.arguments[0],
+        });
+        onReplace(visualize.replace({yAxis}));
+      }
+    },
+    [onReplace, parsedFunction, visualize]
+  );
+
+  const onChangeArgument = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        const yAxis = `${parsedFunction?.name}(${option.value})`;
+        onReplace(visualize.replace({yAxis}));
+      }
+    },
+    [onReplace, parsedFunction, visualize]
+  );
+
+  return (
+    <ToolbarVisualizeDropdown
+      aggregateOptions={aggregateOptions}
+      fieldOptions={fieldOptions}
+      canDelete={canDelete}
+      onChangeAggregate={onChangeAggregate}
+      onChangeArgument={onChangeArgument}
+      onDelete={onDelete}
+      parsedFunction={parsedFunction}
+    />
   );
 }
