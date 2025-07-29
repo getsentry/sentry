@@ -286,7 +286,7 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
 `;
 
-function PageWithProviders(props: any) {
+function PageWithProviders(props: Props) {
   return (
     <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
       <DatabaseSpanSummaryPage {...props} />
