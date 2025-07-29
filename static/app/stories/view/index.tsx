@@ -132,7 +132,7 @@ function useScrollToHash() {
       // Exponential backoff with jitter
       const delay = Math.min(baseDelay * Math.pow(1.5, attempts), maxDelay);
       const jitter = Math.random() * 0.1 * delay; // Add up to 10% jitter
-      
+
       setTimeout(tryScroll, delay + jitter);
     };
 
