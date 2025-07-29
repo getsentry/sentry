@@ -418,7 +418,40 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
     def test_missing_signature(self):
         """
-        Tests that events with invalid signatures are filtered out in the processing pipeline.
+        Tests that the event is dropped if the signature is missing.
+        """
+        relay_id, _ = self.setup_for_trusted_relay_signature()
+
+        event_data = {
+            "message": "event with missing signature",
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        headers = {
+            "x-sentry-auth": self.auth_header,
+            "content-type": "application/json",
+            "x-sentry-relay-id": relay_id,
+        }
+
+        event = self.post_and_try_retrieve_event(
+            event_data,
+            headers=headers,
+        )
+        assert event is None
+
+        url = self.get_relay_store_url(self.project.id)
+        resp = requests.post(
+            url,
+            headers=headers,
+            json=event_data,
+        )
+        # Once the project config is fetched it gets rejected in the hot path
+        assert resp.status_code == 403
+        assert resp.json() == {"detail": "event submission rejected with_reason: MissingSignature"}
+
+    def test_signature_header_is_none(self):
+        """
+        Tests that the event is dropped if the signature is set to None.
         """
         relay_id, _ = self.setup_for_trusted_relay_signature()
 
