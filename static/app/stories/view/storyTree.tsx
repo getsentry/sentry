@@ -127,7 +127,7 @@ function folderOrSearchScoreFirst(
   return a[0].localeCompare(b[0]);
 }
 
-const order: StoryCategory[] = ['foundations', 'core', 'shared'];
+const order: StoryCategory[] = ['foundations', 'typography', 'layout', 'core', 'shared'];
 function rootCategorySort(
   a: [StoryCategory | string, StoryTreeNode],
   b: [StoryCategory | string, StoryTreeNode]
@@ -164,15 +164,24 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'foundations' | 'core' | 'shared';
+export type StoryCategory = 'foundations' | 'core' | 'shared' | 'typography' | 'layout';
 
-function inferFileCategory(path: string): StoryCategory {
-  if (isCoreFile(path)) {
-    return 'core';
-  }
-
+export function inferFileCategory(path: string): StoryCategory {
   if (isFoundationFile(path)) {
     return 'foundations';
+  }
+
+  if (isTypographyFile(path)) {
+    return 'typography';
+  }
+
+  if (isLayoutFile(path)) {
+    return 'layout';
+  }
+
+  // Leave core at the end, as both typography and layout are considered core components
+  if (isCoreFile(path)) {
+    return 'core';
   }
 
   return 'shared';
@@ -184,6 +193,14 @@ function isCoreFile(file: string) {
 
 function isFoundationFile(file: string) {
   return file.includes('app/styles') || file.includes('app/icons');
+}
+
+function isTypographyFile(file: string) {
+  return file.includes('components/core/text');
+}
+
+function isLayoutFile(file: string) {
+  return file.includes('components/core/layout');
 }
 
 function inferComponentName(path: string): string {
