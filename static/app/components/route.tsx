@@ -82,7 +82,7 @@ interface DeprecatedPropRoute extends Omit<BaseRouteObject, 'deprecatedRouteProp
 
 interface RouteObject extends BaseRouteObject {
   /**
-   * A react component to render. Components that expect RouteComponentProps are 
+   * A react component to render. Components that expect RouteComponentProps are
    * not allowed here. Use deprecatedRouteProps: true on legacy components. New
    * components should use the `use{Params,Location}` hooks.
    * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
