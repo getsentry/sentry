@@ -71,8 +71,11 @@ export function useFindNextTrace({
     `api.performance.trace-panel-${direction}-trace-link`
   );
 
+  const spanId = data?.[0]?.id;
+  const traceId = data?.[0]?.trace;
+
   const nextTraceData = useMemo(() => {
-    if (!data?.[0]?.id || !data?.[0]?.trace || isError || isPending) {
+    if (!spanId || !traceId || isError || isPending) {
       return {
         id: undefined,
         trace: undefined,
@@ -80,11 +83,11 @@ export function useFindNextTrace({
       };
     }
     return {
-      id: data[0].id,
-      trace: data[0].trace,
+      id: spanId,
+      trace: traceId,
       isLoading: false,
     };
-  }, [data, isError, isPending]);
+  }, [spanId, traceId, isError, isPending]);
 
   return nextTraceData;
 }
