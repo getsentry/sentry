@@ -61,10 +61,6 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             return
 
     if new_status == GroupStatus.RESOLVED:
-        logger.info(
-            "group.update_status.resolved",
-            extra={**log_extra, "group_id": group.id},
-        )
         activity_type = ActivityType.SET_RESOLVED
         Group.objects.update_group_status(
             groups=[group],
@@ -163,6 +159,10 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             Activity.objects.filter(group_id=group.id, type=activity_type.value)
             .order_by("-datetime")
             .first()
+        )
+        logger.info(
+            "group.update_status.latest_activity",
+            extra={**log_extra, "latest_activity": latest_activity, "group_id": group.id},
         )
         if latest_activity is not None:
             metrics.incr(
