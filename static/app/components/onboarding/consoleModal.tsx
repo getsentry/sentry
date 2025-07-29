@@ -100,8 +100,11 @@ export function ConsoleModal({
   closeModal,
   organization,
 }: ConsoleModalProps & ModalRenderProps) {
-  const platformKey = selectedPlatform.key as keyof typeof consoleConfig;
-  const config = consoleConfig[platformKey];
+  const platformKey =
+    selectedPlatform.key === 'nintendo-switch-2'
+      ? 'nintendo-switch'
+      : selectedPlatform.key;
+  const config = consoleConfig[platformKey as keyof typeof consoleConfig];
 
   useEffect(() => {
     trackAnalytics('gaming.partner_request_access_guidance_modal_opened', {

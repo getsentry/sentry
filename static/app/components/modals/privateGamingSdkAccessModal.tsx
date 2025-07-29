@@ -16,6 +16,7 @@ const PRIVATE_GAMING_SDK_OPTIONS = [
   {value: 'playstation', label: 'PlayStation'},
   {value: 'xbox', label: 'Xbox'},
   {value: 'nintendo-switch', label: 'Nintendo Switch'},
+  {value: 'nintendo-switch-2', label: 'Nintendo Switch 2'},
 ] as const;
 
 type GamingPlatform = (typeof PRIVATE_GAMING_SDK_OPTIONS)[number]['value'];
