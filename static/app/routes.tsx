@@ -680,7 +680,7 @@ function buildRoutes(): RouteObject[] {
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'toolbar/',

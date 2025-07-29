@@ -7,29 +7,36 @@ import ProjectReplays from 'sentry/views/settings/project/projectReplays';
 
 describe('ProjectReplays', function () {
   const {routerProps, organization, project} = initializeOrg();
-  const url = `/projects/${organization.slug}/${project.slug}/`;
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/projects/${project.slug}/replays/`,
+    },
+    route: '/settings/projects/:projectId/replays/',
+  };
+  const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url,
+      url: getProjectEndpoint,
       method: 'GET',
       body: ProjectFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `${url}keys/`,
+      url: `${getProjectEndpoint}keys/`,
       method: 'GET',
       body: [],
     });
   });
 
   it('can toggle rage click issue creation', async function () {
-    render(
-      <ProjectReplays {...routerProps} organization={organization} project={project} />
-    );
+    render(<ProjectReplays {...routerProps} project={project} />, {
+      initialRouterConfig,
+      organization,
+    });
 
     const mock = MockApiClient.addMockResponse({
-      url,
+      url: getProjectEndpoint,
       method: 'PUT',
     });
 
@@ -38,7 +45,7 @@ describe('ProjectReplays', function () {
     );
 
     expect(mock).toHaveBeenCalledWith(
-      url,
+      getProjectEndpoint,
       expect.objectContaining({
         method: 'PUT',
         data: {
