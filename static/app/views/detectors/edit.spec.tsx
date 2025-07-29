@@ -21,7 +21,7 @@ describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
     features: ['workflow-engine-ui', 'visibility-explore-view'],
   });
-  const project = ProjectFixture({organization, environments: ['production']});
+  const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
     location: {
@@ -35,6 +35,12 @@ describe('DetectorEdit', () => {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       body: [],
