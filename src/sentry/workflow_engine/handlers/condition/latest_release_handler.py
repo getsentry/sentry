@@ -31,6 +31,11 @@ class CacheAccess[T]:
 
 
 class _LatestReleaseCacheAccess(CacheAccess[Release | Literal[False]]):
+    """
+    If we have a release for a project in an environment, we cache it.
+    If we don't, we cache False.
+    """
+
     def __init__(self, event: GroupEvent, environment: Environment | None):
         self._key = get_project_release_cache_key(
             event.group.project_id, environment.id if environment else None
