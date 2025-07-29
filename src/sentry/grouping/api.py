@@ -68,10 +68,6 @@ NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
 NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, {}, [], [], None)
 
 
-class GroupingConfigNotFound(LookupError):
-    pass
-
-
 class GroupingConfig(TypedDict):
     id: str
     enhancements: str
