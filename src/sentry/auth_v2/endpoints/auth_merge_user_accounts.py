@@ -14,9 +14,9 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 
 
 class AuthMergeUserAccountsValidator(serializers.Serializer):
-    verification_code = serializers.CharField(required=True)
-    ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
-    ids_to_delete = serializers.ListField(child=serializers.IntegerField(), required=True)
+    verificationCode = serializers.CharField(required=True)
+    idsToMerge = serializers.ListField(child=serializers.IntegerField(), required=True)
+    idsToDelete = serializers.ListField(child=serializers.IntegerField(), required=True)
 
 
 @control_silo_endpoint
@@ -62,14 +62,14 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         verification_code = UserMergeVerificationCode.objects.filter(
             user_id=primary_user.id
         ).first()
-        if verification_code is None or verification_code.token != result["verification_code"]:
+        if verification_code is None or verification_code.token != result["verificationCode"]:
             return Response(
                 status=403,
                 data={"error": "Incorrect verification code"},
             )
 
-        ids_to_merge = result["ids_to_merge"]
-        ids_to_delete = result["ids_to_delete"]
+        ids_to_merge = result["idsToMerge"]
+        ids_to_delete = result["idsToDelete"]
         if not set(ids_to_merge).isdisjoint(set(ids_to_delete)):
             return Response(
                 status=400,
@@ -104,4 +104,4 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
             user.merge_to(primary_user)
             user.delete()
 
-        return Response("Successfully merged user accounts.")
+        return Response(serialize([primary_user], request.user, UserSerializerWithOrgMemberships()))

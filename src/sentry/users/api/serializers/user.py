@@ -415,19 +415,19 @@ class UserSerializerWithOrgMemberships(UserSerializer):
         memberships = OrganizationMemberMapping.objects.filter(
             user_id__in={u.id for u in item_list}
         ).values_list("user_id", "organization_id", named=True)
-        active_org_id_to_name = dict(
+        active_org_id_to_slug = dict(
             OrganizationMapping.objects.filter(
                 organization_id__in={m.organization_id for m in memberships},
                 status=OrganizationStatus.ACTIVE,
-            ).values_list("organization_id", "name")
+            ).values_list("organization_id", "slug")
         )
-        active_organization_ids = active_org_id_to_name.keys()
+        active_organization_ids = active_org_id_to_slug.keys()
 
-        user_org_memberships: DefaultDict[int, list[str]] = defaultdict(list)
+        user_org_memberships: DefaultDict[int, set[str]] = defaultdict(set)
         for membership in memberships:
             if membership.organization_id in active_organization_ids:
-                user_org_memberships[membership.user_id].append(
-                    active_org_id_to_name[membership.organization_id]
+                user_org_memberships[membership.user_id].add(
+                    active_org_id_to_slug[membership.organization_id]
                 )
         for item in item_list:
             attrs[item]["organizations"] = user_org_memberships[item.id]

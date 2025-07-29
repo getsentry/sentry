@@ -72,9 +72,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_simple(self) -> None:
         data = {
-            "ids_to_merge": [self.user2.id],
-            "ids_to_delete": [self.user3.id],
-            "verification_code": self.verification_code.token,
+            "idsToMerge": [self.user2.id],
+            "idsToDelete": [self.user3.id],
+            "verificationCode": self.verification_code.token,
         }
         self.get_success_response(**data)
 
@@ -83,9 +83,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_incorrect_code(self) -> None:
         data = {
-            "ids_to_merge": [self.user2.id],
-            "ids_to_delete": [self.user3.id],
-            "verification_code": "hello",
+            "idsToMerge": [self.user2.id],
+            "idsToDelete": [self.user3.id],
+            "verificationCode": "hello",
         }
         response = self.get_error_response(**data)
         assert response.status_code == 403
@@ -93,9 +93,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_merge_unrelated_account(self) -> None:
         data = {
-            "ids_to_merge": [self.unrelated_user.id],
-            "ids_to_delete": [self.user2.id, self.user3.id],
-            "verification_code": self.verification_code.token,
+            "idsToMerge": [self.unrelated_user.id],
+            "idsToDelete": [self.user2.id, self.user3.id],
+            "verificationCode": self.verification_code.token,
         }
         response = self.get_error_response(**data)
         assert response.status_code == 403
@@ -105,9 +105,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_related_and_unrelated_accounts(self) -> None:
         data = {
-            "ids_to_merge": [self.user2.id, self.unrelated_user.id],
-            "ids_to_delete": [self.user3.id],
-            "verification_code": self.verification_code.token,
+            "idsToMerge": [self.user2.id, self.unrelated_user.id],
+            "idsToDelete": [self.user3.id],
+            "verificationCode": self.verification_code.token,
         }
         response = self.get_error_response(**data)
         assert response.status_code == 403
@@ -117,9 +117,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_pass_current_user_id(self) -> None:
         data = {
-            "ids_to_merge": [self.user1.id],
-            "ids_to_delete": [self.user2.id, self.user3.id],
-            "verification_code": self.verification_code.token,
+            "idsToMerge": [self.user1.id],
+            "idsToDelete": [self.user2.id, self.user3.id],
+            "verificationCode": self.verification_code.token,
         }
         response = self.get_error_response(**data)
         assert response.status_code == 400
@@ -129,9 +129,9 @@ class MergeUserAccountsWithSharedEmailTest(APITestCase):
 
     def test_not_disjoint(self) -> None:
         data = {
-            "ids_to_merge": [self.user2.id],
-            "ids_to_delete": [self.user2.id, self.user3.id],
-            "verification_code": self.verification_code.token,
+            "idsToMerge": [self.user2.id],
+            "idsToDelete": [self.user2.id, self.user3.id],
+            "verificationCode": self.verification_code.token,
         }
         response = self.get_error_response(**data)
         assert response.status_code == 400
