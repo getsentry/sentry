@@ -206,12 +206,12 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = useCallback(() => {
-    if (shouldLoad) {
-      return;
-    }
-
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
+    }
+
+    if (shouldLoad) {
+      return;
     }
 
     hoverTimeoutRef.current = setTimeout(() => {
