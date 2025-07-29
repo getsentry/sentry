@@ -327,8 +327,8 @@ function UserRow({user, onSelect, selectedUsers}: UserRowProps) {
       {isPrimaryUser ? null : (
         <div>
           <Checkbox
-            type="checkbox"
-            name="user"
+            role="checkbox"
+            name={user.name}
             value={user.name}
             onChange={() => onSelect(user.id)}
             style={{margin: 5}}
