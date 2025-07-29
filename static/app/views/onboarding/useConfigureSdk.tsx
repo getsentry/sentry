@@ -103,7 +103,10 @@ export function useConfigureSdk({
           enabledConsolePlatforms: organization.enabledConsolePlatforms,
         })
       ) {
-        openConsoleModal({selectedPlatform});
+        openConsoleModal({
+          organization,
+          selectedPlatform,
+        });
         return;
       }
 
