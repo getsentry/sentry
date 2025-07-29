@@ -1,9 +1,7 @@
 import {useCallback, useMemo} from 'react';
-import isEqual from 'lodash/isEqual';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePrevious from 'sentry/utils/usePrevious';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -24,7 +22,6 @@ interface UseMultiQueryTimeseriesOptions {
 }
 
 interface UseMultiQueryTimeseriesResults {
-  canUsePreviousResults: boolean;
   result: ReturnType<typeof useSortedTimeSeries>;
 }
 
@@ -108,50 +105,11 @@ function useMultiQueryTimeseriesImpl({
     };
   }, [query, yAxes, fields, orderby, interval, mode, enabled, queryExtras]);
 
-  const previousQuery = usePrevious(query);
-  const previousOptions = usePrevious(options);
-  const canUsePreviousResults = useMemo(() => {
-    if (!isEqual(query, previousQuery)) {
-      return false;
-    }
-
-    if (!isEqual(options.interval, previousOptions.interval)) {
-      return false;
-    }
-
-    if (!isEqual(options.fields, previousOptions.fields)) {
-      return false;
-    }
-
-    if (!isEqual(options.orderby, previousOptions.orderby)) {
-      return false;
-    }
-
-    if (!isEqual(options.topEvents, previousOptions.topEvents)) {
-      return false;
-    }
-
-    // The query we're using has remained the same except for the y axis.
-    // This means we can  re-use the previous results to prevent a loading state.
-    return true;
-  }, [
-    query,
-    previousQuery,
-    options.interval,
-    options.fields,
-    options.orderby,
-    options.topEvents,
-    previousOptions.interval,
-    previousOptions.fields,
-    previousOptions.orderby,
-    previousOptions.topEvents,
-  ]);
-
   const timeseriesResult = useSortedTimeSeries(
     options,
     'api.explorer.stats',
     DiscoverDatasets.SPANS
   );
 
-  return {result: timeseriesResult, canUsePreviousResults};
+  return {result: timeseriesResult};
 }
