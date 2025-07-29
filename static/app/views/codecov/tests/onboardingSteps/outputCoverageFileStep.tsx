@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
-interface OutputCoverageFileProps {
+interface OutputCoverageFileStepProps {
   step: string;
 }
 
@@ -28,7 +28,7 @@ const GENERATE_FILE_SNIPPETS: Record<Frameworks, string> = {
   phpunit: '',
 };
 
-export function OutputCoverageFile({step}: OutputCoverageFileProps) {
+export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
   const headerText = tct('Step [step]: Output a JUnit XML file in your CI', {
     step,
   });
