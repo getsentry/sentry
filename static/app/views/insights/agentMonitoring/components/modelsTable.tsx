@@ -11,6 +11,7 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,7 +46,6 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
-// import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
 interface TableData {
@@ -100,7 +100,7 @@ export function ModelsTable() {
         pathname,
         query: {
           ...previousQuery,
-          tableCursor: cursor,
+          modelsCursor: cursor,
         },
       },
       {replace: true, preventScrollReset: true}
@@ -108,6 +108,8 @@ export function ModelsTable() {
   };
 
   const {sortField, sortOrder} = useTableSortParams();
+
+  const cursor = decodeScalar(location.query?.modelsCursor);
 
   const modelsRequest = useSpans(
     {
@@ -126,10 +128,7 @@ export function ModelsTable() {
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
       limit: 10,
-      cursor:
-        typeof location.query.modelsCursor === 'string'
-          ? location.query.modelsCursor
-          : undefined,
+      cursor,
       keepPreviousData: true,
     },
     Referrer.MODELS_TABLE

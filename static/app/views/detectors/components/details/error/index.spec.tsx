@@ -1,4 +1,5 @@
 import {ErrorDetectorFixture} from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -16,6 +17,16 @@ describe('ErrorDetectorDetails', function () {
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: ProjectFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A2&statsPeriod=14d',
+      method: 'GET',
+      body: [GroupFixture()],
     });
   });
 

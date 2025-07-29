@@ -153,6 +153,7 @@ export const platformProductAvailability = {
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -225,9 +226,21 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
-  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ruby: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rack': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rails': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {

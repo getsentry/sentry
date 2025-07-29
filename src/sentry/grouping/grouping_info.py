@@ -1,9 +1,7 @@
 import logging
 from typing import Any
 
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
 from sentry.models.project import Project
 from sentry.performance_issues.performance_detection import EventPerformanceProblem
@@ -20,29 +18,23 @@ def get_grouping_info(
     # produced hashes that would normally also appear in the event.
     hashes = event.get_hashes()
 
-    try:
-        if event.get_event_type() == "transaction":
-            # Transactions events are grouped using performance detection. They
-            # are not subject to grouping configs, and the only relevant
-            # grouping variant is `PerformanceProblemVariant`.
+    if event.get_event_type() == "transaction":
+        # Transactions events are grouped using performance detection. They
+        # are not subject to grouping configs, and the only relevant
+        # grouping variant is `PerformanceProblemVariant`.
 
-            problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
+        problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
 
-            # Create a variant for every problem associated with the event
-            # TODO: Generate more unique keys, in case this event has more than
-            # one problem of a given type
-            variants: dict[str, BaseVariant] = {
-                problem.problem.type.slug: PerformanceProblemVariant(problem)
-                for problem in problems
-                if problem
-            }
-        else:
-            variants = event.get_grouping_variants(
-                force_config=config_name, normalize_stacktraces=True
-            )
-
-    except GroupingConfigNotFound:
-        raise ResourceDoesNotExist(detail="Unknown grouping config")
+        # Create a variant for every problem associated with the event
+        # TODO: Generate more unique keys, in case this event has more than
+        # one problem of a given type
+        variants: dict[str, BaseVariant] = {
+            problem.problem.type.slug: PerformanceProblemVariant(problem)
+            for problem in problems
+            if problem
+        }
+    else:
+        variants = event.get_grouping_variants(force_config=config_name, normalize_stacktraces=True)
 
     grouping_info = get_grouping_info_from_variants(variants)
 
