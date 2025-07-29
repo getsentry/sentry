@@ -144,7 +144,23 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             return False
 
     def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        raise NotImplementedError
+        # We delete by the occurrence_id instead of the event_id
+        node_ids = [
+            Event.generate_node_id(
+                event.project_id,
+                (
+                    event._snuba_data["occurrence_id"]
+                    if self.dataset == Dataset.IssuePlatform
+                    else event.event_id
+                ),
+            )
+            for event in events
+        ]
+        nodestore.backend.delete_multi(node_ids)
+        self.post_delete_events_from_nodestore(events)
+
+    def post_delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
+        pass
 
     def delete_events_from_snuba(self) -> None:
         raise NotImplementedError
@@ -159,11 +175,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.Events
 
-    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # Remove from nodestore
-        node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-        logger.info("Deleting %s events from nodestore.", len(node_ids))
-        nodestore.backend.delete_multi(node_ids)
+    def post_delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
         self.delete_dangling_attachments_and_user_reports(events)
 
     def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
@@ -193,14 +205,6 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.IssuePlatform
     max_rows_to_delete = ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
-
-    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # We delete by the occurrence_id instead of the event_id
-        node_ids = [
-            Event.generate_node_id(event.project_id, event._snuba_data["occurrence_id"])
-            for event in events
-        ]
-        nodestore.backend.delete_multi(node_ids)
 
     def delete_events_from_snuba(self) -> None:
         requests = []
