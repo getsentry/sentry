@@ -9,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 
 from sentry import analytics, features
+from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -20,8 +21,6 @@ from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.utils import metrics
 from sentry.utils.codeowners import MAX_RAW_LENGTH
-
-from .analytics import CodeOwnersMaxLengthExceeded
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
