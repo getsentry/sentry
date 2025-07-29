@@ -961,12 +961,6 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'rate-limits/',
-      name: t('Rate Limits'),
-      component: make(() => import('sentry/views/settings/organizationRateLimits')),
-      deprecatedRouteProps: true,
-    },
-    {
       path: 'relay/',
       name: t('Relay'),
       component: make(() => import('sentry/views/settings/organizationRelay')),
