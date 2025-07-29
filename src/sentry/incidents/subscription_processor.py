@@ -364,7 +364,10 @@ class SubscriptionProcessor:
                 "incidents.alert_rules.process_update",
                 tags={"dual_processing": has_metric_alert_processing},
             ),
-            track_memory_usage("incidents.alert_rules.process_update_memory"),
+            track_memory_usage(
+                "incidents.alert_rules.process_update_memory",
+                tags={"dual_processing": has_metric_alert_processing},
+            ),
         ):
             if has_metric_alert_processing:
                 try:
