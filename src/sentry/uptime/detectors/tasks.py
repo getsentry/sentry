@@ -272,7 +272,10 @@ def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscrip
                 "reason": seat_assignment.reason,
             },
         )
-        metrics.incr("uptime.detectors.candidate_url.failed", tags={"reason": "insufficient_billing_capacity"})
+        metrics.incr(
+            "uptime.detectors.candidate_url.failed",
+            tags={"reason": "insufficient_billing_capacity"},
+        )
         return None  # Abort monitor creation
 
     for uptime_detector in get_auto_monitored_detectors_for_project(project):
