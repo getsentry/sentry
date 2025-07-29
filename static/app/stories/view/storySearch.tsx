@@ -45,11 +45,7 @@ export function StorySearch() {
   const core = useMemo(() => coreTree.flatMap(tree => tree.flat()), [coreTree]);
   const shared = useMemo(() => sharedTree.flatMap(tree => tree.flat()), [sharedTree]);
 
-  const storiesSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => inputRef.current?.focus()}];
-  }, []);
-
-  useHotkeys(storiesSearchHotkeys);
+  useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
 
   const sectionedItems = useMemo(() => {
     const sections: StorySection[] = [];
