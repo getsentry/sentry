@@ -3,6 +3,8 @@ import {Fragment} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import {IconLink} from 'sentry/icons';
 import {useStory} from 'sentry/stories/view/useStory';
@@ -26,35 +28,39 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
       </Fragment>
     ),
   });
+
   return (
-    <HeadingLink href={`#${id}`} onClick={onClick}>
-      <IconLink />
+    <HeadingContainer gap="md" align="center">
       <Heading {...props} id={id} />
-    </HeadingLink>
+      <LinkButton priority="transparent" size="xs" href={`#${id}`} onClick={onClick}>
+        <IconLink />
+      </LinkButton>
+    </HeadingContainer>
   );
 }
 
-const HeadingLink = styled('a')`
-  display: flex;
-  flex-flow: row-reverse;
-  justify-content: flex-end;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
+const HeadingContainer = styled(Flex)`
+  > a {
+    opacity: 0;
+    color: ${p => p.theme.tokens.graphics.muted};
+  }
+
+  &:is(:hover, :focus-within) > a {
+    opacity: 1;
+  }
+
+  a:is(:hover, :focus) {
+    color: ${p => p.theme.tokens.graphics.accent};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    display: grid;
-    justify-content: flex-start;
-    grid-template-columns: ${p => p.theme.space.xl} auto;
-    margin-left: calc((${p => p.theme.space.xl} + ${p => p.theme.space.md}) * -1);
-  }
+    flex-direction: row;
+    margin-left: -40px;
 
-  > :first-child {
-    opacity: 0;
-  }
-
-  &:where(:hover, :focus) {
-    > :first-child {
-      opacity: 1;
+    > a {
+      width: 32px;
+      height: 32px;
+      order: -1;
     }
   }
 `;
