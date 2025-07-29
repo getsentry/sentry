@@ -262,9 +262,16 @@ const Layer = styled('div')`
   width: 100%;
   height: 100%;
   position: absolute;
+  display: flex;
   left: 0;
   top: 0;
   z-index: ${p => p.theme.zIndex.dropdown - 1};
 `;
 
 export {Layer as ProfilingContextMenuLayer};
+
+export const Something = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
