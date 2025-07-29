@@ -337,7 +337,7 @@ function buildRoutes(): RouteObject[] {
       withOrgPath: true,
     },
     {
-      path: '/debug/notifs/',
+      path: '/debug/notifications/',
       component: make(() => import('sentry/debug/notifications/views/index')),
       withOrgPath: true,
     },

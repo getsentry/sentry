@@ -72,6 +72,7 @@ from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
 )
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
 from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
+from sentry.web.urls import react_page_view
 
 urlpatterns = [
     re_path(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
@@ -158,4 +159,6 @@ urlpatterns = [
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
     re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
+    # Notifications Debugger
+    re_path(r"^debug/notifications/", react_page_view, name="debug-notifications"),
 ]

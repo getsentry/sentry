@@ -481,12 +481,6 @@ urlpatterns += [
         react_page_view,
         name="stories",
     ),
-    # Notification Previews
-    re_path(
-        r"^debug/notifs/",
-        react_page_view,
-        name="notifs",
-    ),
     # Rollback
     re_path(
         r"^rollback/",
