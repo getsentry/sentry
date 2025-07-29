@@ -15,7 +15,7 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
-const DEFAULT_HOVER_TIMEOUT = 200;
+export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT = 200;
 
 interface UseTraceItemDetailsProps {
   /**
@@ -182,9 +182,9 @@ export function usePrefetchTraceItemDetailsOnHover({
             },
           }),
           queryFn: fetchDataQuery,
-          staleTime: 30_000,
+          staleTime: Infinity, // Prefetched items are never stale as the row is either entirely stored or not stored at all.
         });
-      }, DEFAULT_HOVER_TIMEOUT);
+      }, DEFAULT_TRACE_ITEM_HOVER_TIMEOUT);
     },
     onHoverEnd: () => {
       if (sharedHoverTimeoutRef.current) {
