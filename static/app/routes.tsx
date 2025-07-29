@@ -2653,7 +2653,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
-      deprecatedRouteProps: true,
       children: [
         ...issueTabs,
         {
