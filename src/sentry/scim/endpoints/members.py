@@ -419,7 +419,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             previous_role != organization.default_role
             or previous_restriction != idp_role_restricted
         ):
-            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
+            metrics.incr("sentry.scim.member.update_role", tags={"organization": organization.slug})
 
         context = serialize(
             member,
