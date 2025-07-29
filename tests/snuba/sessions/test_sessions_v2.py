@@ -197,6 +197,7 @@ def test_virtual_groupby_query():
         "sessions_abnormal",
         "sessions_crashed",
         "sessions_errored",
+        "sessions_unhandled",
     ]
     assert query.query_groupby == []
 
@@ -209,6 +210,7 @@ def test_virtual_groupby_query():
         "users_abnormal",
         "users_crashed",
         "users_errored",
+        "users_unhandled",
     ]
     assert query.query_groupby == []
 
