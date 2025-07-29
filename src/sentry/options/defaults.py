@@ -3182,7 +3182,6 @@ register(
 )
 
 
-
 register(
     "uptime.snuba_uptime_results.enabled",
     type=Bool,
@@ -3643,14 +3642,6 @@ register(
 # Enable experimental message parameterization in grouping.
 register(
     "grouping.experimental_parameterization",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Rollout for inferring project platform from events received
-register(
-    "sentry:infer_project_platform",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

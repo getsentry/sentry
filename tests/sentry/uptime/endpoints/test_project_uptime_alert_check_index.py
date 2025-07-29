@@ -165,8 +165,6 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data is not None
             assert len(response.data) == 0
 
-
-
     def test_get_with_none_subscription_id(self) -> None:
         with self.feature(self.features):
             # Create a subscription with None subscription_id

@@ -373,5 +373,3 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             return None
         val_str = check_status_reason_val.val_str
         return cast(CheckStatusReasonType, val_str) if val_str != "" else None
-
-

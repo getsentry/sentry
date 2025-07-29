@@ -329,7 +329,7 @@ def add_missing_buckets(
     first_result = formatted_response[list(formatted_response.keys())[0]]
     if len(first_result) >= total_buckets:
         return formatted_response
-    
+
     num_missing = total_buckets - len(first_result)
 
     # Add missing buckets at the beginning for each subscription
@@ -344,5 +344,3 @@ def add_missing_buckets(
         result[subscription_id] = missing_buckets + data
 
     return result
-
-

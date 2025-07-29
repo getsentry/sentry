@@ -79,8 +79,6 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 "missed_window": 0,
             }
 
-
-
     def test_invalid_uptime_subscription_id(self) -> None:
         """
         Test that an invalid uptime_subscription_id produces a 400 response.
@@ -189,10 +187,8 @@ def test_add_missing_buckets() -> None:
     full_data_points = []
     for i in range(24):
         timestamp = int(start.timestamp()) + (i * 3600)
-        full_data_points.append(
-            (timestamp, {"failure": 0, "success": 1, "missed_window": 0})
-        )
-    
+        full_data_points.append((timestamp, {"failure": 0, "success": 1, "missed_window": 0}))
+
     full_response = {subscription_id: full_data_points}
     result = add_missing_buckets(full_response, rollup, start, end)
     assert result == full_response
@@ -221,9 +217,6 @@ class OrganizationUptimeCheckIndexEndpointTest(
             incident_status=incident_status,
             scheduled_check_time=scheduled_check_time,
         )
-
-
-
 
 
 @freeze_time(MOCK_DATETIME)
