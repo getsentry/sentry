@@ -32,7 +32,9 @@ describe('WidgetBuilderSlideout', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
@@ -545,5 +547,93 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(await screen.findByText('Widget Library')).toBeInTheDocument();
     expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
+  });
+
+  it('should show deprecation alert when flag enabled', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+    renderGlobalModal();
+
+    expect(
+      await screen.findByText(
+        /You may have limited functionality due to the ongoing migration of transactions to spans/i
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByTestId('transaction-widget-disabled-wrapper')).toBeInTheDocument();
+  });
+
+  it('should not show deprecation alert when flag enabled', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+        deprecatedRouterMocks: true,
+      }
+    );
+    renderGlobalModal();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(
+          /You may have limited functionality due to the ongoing migration of transactions to spans/i
+        )
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId('transaction-widget-disabled-wrapper')
+    ).not.toBeInTheDocument();
   });
 });

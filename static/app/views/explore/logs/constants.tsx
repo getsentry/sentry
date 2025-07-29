@@ -13,7 +13,10 @@ export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = 
   [OurLogKnownFieldKey.TRACE_ID]: t('Trace'),
 };
 
-export const LOG_INGEST_DELAY = 10_000;
+export const MAX_LOG_INGEST_DELAY = 40_000;
+export const QUERY_PAGE_LIMIT = 1000; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
+export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 1000;
+export const LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT = 150;
 
 /**
  * These are required fields are always added to the query when fetching the log table.
@@ -32,6 +35,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
   OurLogKnownFieldKey.PROJECT,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
@@ -55,6 +59,8 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
 
+export const HiddenLogSearchFields: string[] = [...AlwaysHiddenLogFields];
+
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',
   label: t('Logs'),
@@ -66,6 +72,6 @@ export const LOGS_INSTRUCTIONS_URL =
 
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 
-export const VIRTUAL_STREAMED_INTERVAL_MS = 333;
+export const VIRTUAL_STREAMED_INTERVAL_MS = 250;
 
 export const LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD = 100; // Items from bottom of table to trigger table fetch.

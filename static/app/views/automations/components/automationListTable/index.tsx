@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import LoadingError from 'sentry/components/loadingError';
@@ -30,16 +31,15 @@ function LoadingSkeletons() {
 
 function HeaderCell({
   children,
-  className,
   sortKey,
   sort,
+  ...props
 }: {
   children: React.ReactNode;
-  className: string;
   sort: Sort | undefined;
   divider?: boolean;
   sortKey?: string;
-}) {
+} & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
   const navigate = useNavigate();
   const isSortedByField = sort?.field === sortKey;
@@ -57,7 +57,7 @@ function HeaderCell({
 
   return (
     <SimpleTable.HeaderCell
-      className={className}
+      {...props}
       sort={sort && sortKey === sort?.field ? sort.kind : undefined}
       handleSortClick={sortKey ? handleSort : undefined}
     >
@@ -76,20 +76,20 @@ function AutomationListTable({
   return (
     <AutomationsSimpleTable>
       <SimpleTable.Header>
-        <HeaderCell className="name" sort={sort} sortKey="name">
+        <HeaderCell sort={sort} sortKey="name">
           {t('Name')}
         </HeaderCell>
-        <HeaderCell className="last-triggered" sort={sort}>
+        <HeaderCell data-column-name="last-triggered" sort={sort}>
           {t('Last Triggered')}
         </HeaderCell>
-        <HeaderCell className="action" sort={sort} sortKey="actions">
+        <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
           {t('Actions')}
         </HeaderCell>
-        <HeaderCell className="projects" sort={sort}>
+        <HeaderCell data-column-name="projects" sort={sort}>
           {t('Projects')}
         </HeaderCell>
         <HeaderCell
-          className="connected-monitors"
+          data-column-name="connected-monitors"
           sort={sort}
           sortKey="connectedDetectors"
         >
@@ -114,17 +114,17 @@ const AutomationsSimpleTable = styled(SimpleTable)`
 
   margin-bottom: ${space(2)};
 
-  .last-triggered,
-  .action,
-  .projects,
-  .connected-monitors {
+  [data-column-name='last-triggered'],
+  [data-column-name='action'],
+  [data-column-name='projects'],
+  [data-column-name='connected-monitors'] {
     display: none;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 2.5fr 1fr;
 
-    .projects {
+    [data-column-name='projects'] {
       display: flex;
     }
   }
@@ -132,7 +132,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 2.5fr 1fr 1fr;
 
-    .action {
+    [data-column-name='action'] {
       display: flex;
     }
   }
@@ -140,7 +140,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 2.5fr 1fr 1fr 1fr;
 
-    .last-triggered {
+    [data-column-name='last-triggered'] {
       display: flex;
     }
   }
@@ -148,7 +148,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
 
-    .connected-monitors {
+    [data-column-name='connected-monitors'] {
       display: flex;
     }
   }

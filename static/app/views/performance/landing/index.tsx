@@ -3,10 +3,10 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';

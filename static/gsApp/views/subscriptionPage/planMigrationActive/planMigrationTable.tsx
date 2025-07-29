@@ -13,7 +13,7 @@ import {
   type PlanMigration,
   type Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {AlertStripedTable} from 'getsentry/views/subscriptionPage/styles';
 
@@ -29,7 +29,10 @@ function PlanMigrationTable({subscription, migration}: Props) {
     return null;
   }
 
-  const isAM3Migration = migration.cohort.cohortId >= CohortId.EIGHTH;
+  // migrations from AM1/AM2 to AM3
+  const isAM3Migration =
+    migration.cohort.cohortId >= CohortId.EIGHTH &&
+    migration.cohort.cohortId <= CohortId.TENTH;
 
   const planName = subscription.planDetails.name;
   const planPrice = subscription.planDetails.price;
@@ -41,7 +44,6 @@ function PlanMigrationTable({subscription, migration}: Props) {
   // Setting default to monthly to handle nextPlan if the endpoint update is not updated yet
   // Prior plan migrations are all monthly contracts
   const nextPlanTerm = nextPlan.contractPeriod ?? MONTHLY;
-  const hasErrorCredits = !!(nextPlan.errorCredits && nextPlan.errorCreditsMonths);
   // The nextPlan.discountAmount is handled differently for monthly & annual billing intervals. Using these checks to display correct info
   const hasMonthlyDiscount = !!(
     nextPlan.discountAmount &&
@@ -57,6 +59,86 @@ function PlanMigrationTable({subscription, migration}: Props) {
   const annualMigrationDate = migration.effectiveAt
     ? moment(migration.effectiveAt).format('ll')
     : moment(subscription.onDemandPeriodEnd).add(1, 'days').format('ll');
+
+  const getRowParamsForCategory = (category: DataCategory) => {
+    // for AM1/AM2 to AM3 migrations, we move from transactions-based billing to spans-based billing
+    // so we render the row as a transition from reserved transactions volume to reserved spans volume
+    const isSpans = category === DataCategory.SPANS;
+    const shouldShowCurrentSpans =
+      isSpans && !!subscription.categories[category]?.reserved;
+    const isTransactionsToSpansMigration = isSpans && !shouldShowCurrentSpans;
+
+    const currentValue = isTransactionsToSpansMigration
+      ? (subscription.categories.transactions?.reserved ?? null)
+      : (subscription.categories[category]?.reserved ?? null);
+    const titleOverride = isTransactionsToSpansMigration
+      ? t('Tracing and Performance Monitoring')
+      : undefined;
+    const previousType = isTransactionsToSpansMigration
+      ? DataCategoryExact.TRANSACTION
+      : undefined;
+
+    const categoryInfo = getCategoryInfoFromPlural(category);
+    if (!categoryInfo) {
+      return null;
+    }
+
+    const type = categoryInfo.name;
+
+    const nextValue = getNextDataCategoryValue(
+      nextPlan,
+      isAM3Migration, // update this if shouldUseExistingVolume should be true for future migrations
+      type,
+      subscription
+    );
+
+    return {
+      type,
+      previousType,
+      currentValue,
+      nextValue,
+      hasCredits: !!nextPlan.categoryCredits?.[category]?.credits,
+      titleOverride,
+    };
+  };
+
+  const sortRowParamMappings = (
+    rowParamsMapping: Array<ReturnType<typeof getRowParamsForCategory>>
+  ) => {
+    return rowParamsMapping
+      .filter(rowParams => !!rowParams)
+      .sort((a, b) => {
+        // sort based on order of the categories in the subscription's current plan
+        // if previousType exists, we need to use that since it means we're migrating
+        // from a category on the subscription's current plan that won't be available
+        // in the new plan
+        const aCategoryExact = a?.previousType ?? a?.type;
+        const bCategoryExact = b?.previousType ?? b?.type;
+        const aCategory = aCategoryExact
+          ? DATA_CATEGORY_INFO[aCategoryExact]?.plural
+          : null;
+        const bCategory = bCategoryExact
+          ? DATA_CATEGORY_INFO[bCategoryExact]?.plural
+          : null;
+        const aOrder = aCategory
+          ? (subscription.categories[aCategory]?.order ?? Infinity)
+          : Infinity;
+        const bOrder = bCategory
+          ? (subscription.categories[bCategory]?.order ?? Infinity)
+          : Infinity;
+        return aOrder - bOrder;
+      });
+  };
+
+  const getCategoryRows = () => {
+    const rowParamsMapping = Object.entries(nextPlan.reserved)
+      .filter(([_, value]) => value !== undefined && value !== null)
+      .map(([category, _]) => getRowParamsForCategory(category as DataCategory));
+
+    return sortRowParamMappings(rowParamsMapping).map(rowParams => (
+      <PlanMigrationRow key={rowParams.type} {...rowParams} />
+    ));
+  };
 
   return (
     <TableContainer>
@@ -98,111 +180,9 @@ function PlanMigrationTable({subscription, migration}: Props) {
               hasCredits={hasSecondDiscount}
             />
           )}
-          <PlanMigrationRow
-            type={DataCategoryExact.ERROR}
-            currentValue={
-              subscription.categories.errors?.reserved ?? subscription.reservedEvents
-            }
-            nextValue={getNextDataCategoryValue(
-              nextPlan,
-              isAM3Migration,
-              DataCategoryExact.ERROR,
-              subscription
-            )}
-            hasCredits={hasErrorCredits}
-          />
-          {/* TODO(data categories): BIL-955 */}
-          {isAM3Migration
-            ? nextPlan.reserved.spans && (
-                <PlanMigrationRow
-                  type={DataCategoryExact.SPAN}
-                  currentValue={subscription.categories.transactions?.reserved ?? null}
-                  nextValue={getNextDataCategoryValue(
-                    nextPlan,
-                    isAM3Migration,
-                    DataCategoryExact.SPAN,
-                    subscription
-                  )}
-                />
-              )
-            : nextPlan.reserved.transactions && (
-                <PlanMigrationRow
-                  type={DataCategoryExact.TRANSACTION}
-                  currentValue={subscription.categories.transactions?.reserved ?? null}
-                  nextValue={getNextDataCategoryValue(
-                    nextPlan,
-                    isAM3Migration,
-                    DataCategoryExact.TRANSACTION,
-                    subscription
-                  )}
-                />
-              )}
-          <PlanMigrationRow
-            type={DataCategoryExact.ATTACHMENT}
-            currentValue={subscription.categories.attachments?.reserved ?? null}
-            nextValue={getNextDataCategoryValue(
-              nextPlan,
-              isAM3Migration,
-              DataCategoryExact.ATTACHMENT,
-              subscription
-            )}
-          />
-          {nextPlan.reserved.replays && (
-            <PlanMigrationRow
-              type={DataCategoryExact.REPLAY}
-              currentValue={subscription.categories.replays?.reserved ?? null}
-              nextValue={getNextDataCategoryValue(
-                nextPlan,
-                isAM3Migration,
-                DataCategoryExact.REPLAY,
-                subscription
-              )}
-            />
-          )}
-          {nextPlan.reserved.monitorSeats && (
-            <PlanMigrationRow
-              type={DataCategoryExact.MONITOR_SEAT}
-              currentValue={subscription.categories.monitorSeats?.reserved ?? null}
-              nextValue={getNextDataCategoryValue(
-                nextPlan,
-                isAM3Migration,
-                DataCategoryExact.MONITOR_SEAT,
-                subscription
-              )}
-            />
-          )}
-          {isAM3Migration && nextPlan.reserved.profileDuration && (
-            <PlanMigrationRow
-              type={DataCategoryExact.PROFILE_DURATION}
-              currentValue={subscription.categories.profileDuration?.reserved ?? null}
-              nextValue={getNextDataCategoryValue(
-                nextPlan,
-                isAM3Migration,
-                DataCategoryExact.PROFILE_DURATION,
-                subscription
-              )}
-            />
-          )}
+          {getCategoryRows()}
         </tbody>
       </AlertStripedTable>
-      {hasErrorCredits && (
-        <Credits data-test-id="error-credits">
-          *
-          {tct(
-            'We will provide an extra [errorCredits] errors for [errorCreditsMonths] months at no additional charge.',
-            {
-              errorCredits: formatReservedWithUnits(
-                nextPlan.errorCredits || 0,
-                DataCategory.ERRORS,
-                {
-                  isAbbreviated: true,
-                }
-              ),
-              errorCreditsMonths: nextPlan.errorCreditsMonths,
-            }
-          )}
-        </Credits>
-      )}
       {hasMonthlyDiscount && (
         <Credits data-test-id="dollar-credits">
           *
@@ -241,20 +221,20 @@ function PlanMigrationTable({subscription, migration}: Props) {
             )}
         </Credits>
       )}
-      {isAM3Migration && getAM3MigrationCredits(migration.cohort.cohortId, nextPlan)}
+      {getCategoryCredits(migration.cohort.cohortId, nextPlan)}
     </TableContainer>
   );
 }
 
 function getNextDataCategoryValue(
   nextPlan: NextPlanInfo,
-  isAM3Migration: boolean,
+  shouldUseExistingVolume: boolean,
   category: DataCategoryExact,
   subscription: Subscription
 ) {
   const key = DATA_CATEGORY_INFO[category].plural as DataCategory;
   if (
-    isAM3Migration &&
+    shouldUseExistingVolume &&
     subscription.planDetails.categories.includes(key) &&
     subscription.categories[key]?.reserved !==
       subscription.planDetails.planCategories[key]![0]!.events
@@ -264,12 +244,16 @@ function getNextDataCategoryValue(
   return nextPlan.reserved[key] ?? null;
 }
 
-function getAM3MigrationCredits(cohortId: CohortId, nextPlan: NextPlanInfo) {
+function getCategoryCredits(cohortId: CohortId, nextPlan: NextPlanInfo) {
+  if (!nextPlan.categoryCredits) {
+    return null;
+  }
+
   let message: string;
   if (cohortId === CohortId.TENTH) {
     message =
       "You'll retain the same monthly replay quota throughout the remainder of your annual subscription.";
-  } else if (nextPlan.categoryCredits) {
+  } else {
     const categoryCredits = nextPlan.categoryCredits;
 
     message = "We'll provide an additional ";
@@ -277,19 +261,13 @@ function getAM3MigrationCredits(cohortId: CohortId, nextPlan: NextPlanInfo) {
 
     const creditsToDisplay: string[] = [];
 
-    Object.keys(categoryCredits)
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      .filter(category => categoryCredits[category] !== null)
-      .forEach(category => {
-        if (
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          categoryCredits[category].credits !== 0 &&
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          categoryCredits[category].months !== 0
-        ) {
+    Object.entries(categoryCredits)
+      .filter(([_, creditInfo]) => creditInfo.credits !== null)
+      .forEach(([category, creditInfo]) => {
+        const {credits, months} = creditInfo;
+        if (credits !== 0 && months !== 0) {
           creditsToDisplay.push(
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            `${categoryCredits[category].credits} ${category} for the next ${categoryCredits[category].months} ${isAnnualNextPlan ? 'months' : 'monthly usage cycles'}`
+            `${credits} ${category} for the next ${months} ${isAnnualNextPlan ? 'months' : 'monthly usage cycles'}`
           );
         }
       });
@@ -302,8 +280,6 @@ function getAM3MigrationCredits(cohortId: CohortId, nextPlan: NextPlanInfo) {
       message += ' after your plan is upgraded';
     }
     message += ', at no charge.';
-  } else {
-    return null;
   }
 
   return (

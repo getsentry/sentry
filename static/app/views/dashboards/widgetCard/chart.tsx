@@ -40,19 +40,21 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
+  isAggregateField,
   isEquation,
   maybeEquationAlias,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -61,10 +63,14 @@ import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {convertTableDataToTabularData} from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {
+  convertTableDataToTabularData,
+  decodeColumnAliases,
+} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -100,6 +106,8 @@ type WidgetCardChartProps = Pick<
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
+  onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
   shouldResize?: boolean;
@@ -141,8 +149,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 
   tableResultComponent({loading, tableResults}: TableResultProps): React.ReactNode {
-    const {widget, selection, minTableColumnWidth, location, organization, theme} =
-      this.props;
+    const {
+      widget,
+      selection,
+      minTableColumnWidth,
+      location,
+      organization,
+      theme,
+      onWidgetTableSort,
+      onWidgetTableResizeColumn,
+    } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
       return <LoadingPlaceholder />;
@@ -161,18 +177,23 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
+      const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.() ?? {};
       const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
       const columns = decodeColumnOrder(
         fields.map(field => ({
           field,
-        }))
-      ).map(column => ({
+        })),
+        tableResults[i]?.meta
+      ).map((column, index) => ({
         key: column.key,
-        name: column.name,
-        width: minTableColumnWidth ?? column.width,
+        width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
         type: column.type === 'never' ? null : column.type,
+        sortable:
+          widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
       }));
-      const tableData = convertTableDataToTabularData(tableResults?.[0]);
+      const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
+      const tableData = convertTableDataToTabularData(tableResults?.[i]);
+      const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
 
       return (
         <TableWrapper key={`table:${result.title}`}>
@@ -183,6 +204,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               frameless
               scrollable
               fit="max-content"
+              aliases={aliases}
+              onChangeSort={onWidgetTableSort}
+              sort={sort}
               getRenderer={(field, _dataRow, meta) => {
                 const customRenderer = datasetConfig.getCustomFieldRenderer?.(
                   field,
@@ -204,6 +228,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                   eventView,
                 } satisfies RenderFunctionBaggage;
               }}
+              onResizeColumn={onWidgetTableResizeColumn}
+              allowedCellActions={[]}
             />
           ) : (
             <StyledSimpleTableChart

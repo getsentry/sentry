@@ -9,7 +9,7 @@ from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMDetailGetTest(SCIMTestCase):
-    def test_team_details_404(self):
+    def test_team_details_404(self) -> None:
         url = reverse(
             "sentry-api-0-organization-scim-team-details",
             args=[self.organization.slug, 2],
@@ -22,7 +22,7 @@ class SCIMDetailGetTest(SCIMTestCase):
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
         }
 
-    def test_scim_team_details_basic(self):
+    def test_scim_team_details_basic(self) -> None:
         team = self.create_team(
             organization=self.organization, name="test-scimv2", idp_provisioned=True
         )
@@ -40,7 +40,7 @@ class SCIMDetailGetTest(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
 
-    def test_scim_team_details_excluded_attributes(self):
+    def test_scim_team_details_excluded_attributes(self) -> None:
         team = self.create_team(
             organization=self.organization, name="test-scimv2", idp_provisioned=True
         )
@@ -57,7 +57,7 @@ class SCIMDetailGetTest(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
 
-    def test_team_doesnt_exist(self):
+    def test_team_doesnt_exist(self) -> None:
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, 32340]
         )
@@ -70,7 +70,7 @@ class SCIMDetailGetTest(SCIMTestCase):
         response = self.client.delete(url)
         assert response.status_code == 404, response.data
 
-    def test_team_details_put_permission_denied(self):
+    def test_team_details_put_permission_denied(self) -> None:
         url = reverse(
             "sentry-api-0-organization-scim-team-details",
             args=[self.organization.slug, self.team.id],
@@ -83,7 +83,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.base_data: dict[str, Any] = {
@@ -99,7 +99,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             user=self.create_user(), organization=self.organization, teams=[self.team]
         )
 
-    def test_scim_team_details_invalid_patch_op(self):
+    def test_scim_team_details_invalid_patch_op(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "invalid",
@@ -135,7 +135,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "sentry.scim.team.update", tags={"organization": self.organization}
         )
 
-    def test_scim_team_details_patch_rename_team_invalid_slug(self):
+    def test_scim_team_details_patch_rename_team_invalid_slug(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "replace",
@@ -153,7 +153,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "hyphens. It cannot be entirely numeric."
         )
 
-    def test_scim_team_details_patch_add(self):
+    def test_scim_team_details_patch_add(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "add",
@@ -174,7 +174,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_scim_team_details_patch_remove(self):
+    def test_scim_team_details_patch_remove(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "remove",
@@ -189,7 +189,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_team_details_replace_members_list(self):
+    def test_team_details_replace_members_list(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "replace",
@@ -220,7 +220,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_team_member_doesnt_exist_add_to_team(self):
+    def test_team_member_doesnt_exist_add_to_team(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "add",
@@ -241,7 +241,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "detail": "User not found.",
         }
 
-    def test_team_details_patch_too_many_ops(self):
+    def test_team_details_patch_too_many_ops(self) -> None:
         self.base_data["Operations"] = [{"op": "replace"}] * 101
         response = self.get_error_response(
             self.organization.slug, self.team.id, **self.base_data, status_code=400
@@ -253,7 +253,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "detail": "Too many patch ops sent, limit is 100.",
         }
 
-    def test_team_details_invalid_filter_patch_route(self):
+    def test_team_details_invalid_filter_patch_route(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "remove",
@@ -269,7 +269,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
             "scimType": "invalidFilter",
         }
 
-    def test_rename_team_azure_request(self):
+    def test_rename_team_azure_request(self) -> None:
         self.base_data["Operations"] = [
             {"op": "Replace", "path": "displayName", "value": "theNewName"}
         ]
@@ -279,7 +279,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_remove_member_azure(self):
+    def test_remove_member_azure(self) -> None:
         self.base_data["Operations"] = [
             {"op": "Remove", "path": "members", "value": [{"value": str(self.member_on_team.id)}]}
         ]
@@ -291,7 +291,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
-    def test_remove_member_not_on_team(self):
+    def test_remove_member_not_on_team(self) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "Remove",

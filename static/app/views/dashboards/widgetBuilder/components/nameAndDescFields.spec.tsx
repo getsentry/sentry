@@ -24,7 +24,7 @@ describe('WidgetBuilder', () => {
       },
       params: {},
     });
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
   });
 
   it('edits name and description', async function () {

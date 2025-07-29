@@ -24,7 +24,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 @freeze_time("2024-01-09")
 class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -37,9 +37,9 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.event_data = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def test(self):
+    def test(self) -> None:
         status_1 = WorkflowActionGroupStatus.objects.create(
             workflow=self.workflow, action=self.action, group=self.group
         )
@@ -62,7 +62,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
 
-    def test_multiple_workflows(self):
+    def test_multiple_workflows(self) -> None:
         status_1 = WorkflowActionGroupStatus.objects.create(
             workflow=self.workflow, action=self.action, group=self.group
         )
@@ -90,7 +90,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
 
-    def test_multiple_workflows_single_action__first_fire(self):
+    def test_multiple_workflows_single_action__first_fire(self) -> None:
         workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
         action_group = self.create_data_condition_group(logic_type="any-short")
         self.create_data_condition_group_action(
@@ -111,7 +111,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
-    def test_multiple_workflows_single_action__later_fire(self):
+    def test_multiple_workflows_single_action__later_fire(self) -> None:
         workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
         action_group = self.create_data_condition_group(logic_type="any-short")
         self.create_data_condition_group_action(
@@ -147,7 +147,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status.refresh_from_db()
         assert status.date_updated == timezone.now() - timedelta(hours=1)
 
-    def test_get_workflow_action_group_statuses(self):
+    def test_get_workflow_action_group_statuses(self) -> None:
         workflow = self.create_workflow(organization=self.organization)
         WorkflowActionGroupStatus.objects.create(
             workflow=workflow, action=self.action, group=self.group
@@ -162,7 +162,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         assert action_to_statuses == {self.action.id: [status]}
 
-    def test_process_workflow_action_group_statuses(self):
+    def test_process_workflow_action_group_statuses(self) -> None:
         workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
         action_group = self.create_data_condition_group(logic_type="any-short")
         self.create_data_condition_group_action(
@@ -204,7 +204,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         assert missing_status.action == self.action
         assert missing_status.group == self.group
 
-    def test_update_workflow_action_group_statuses(self):
+    def test_update_workflow_action_group_statuses(self) -> None:
         status = WorkflowActionGroupStatus.objects.create(
             workflow=self.workflow, action=self.action, group=self.group
         )

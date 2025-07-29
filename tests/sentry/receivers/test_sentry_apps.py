@@ -25,7 +25,7 @@ from sentry.types.group import GroupSubStatus
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(
@@ -228,7 +228,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(events=["issue.assigned"])
@@ -299,7 +299,7 @@ class TestIssueAssigned(APITestCase):
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
         self.sentry_app = self.create_sentry_app(
             organization=self.project.organization,
@@ -371,7 +371,7 @@ class TestComments(APITestCase):
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
         # Creating an app that is not subscribed to issue.resolved, but subscription is by resource

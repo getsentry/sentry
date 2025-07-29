@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 
 interface Props {
@@ -22,7 +22,6 @@ export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
     <Alert.Container>
       <StyledAlert
         type="info"
-        showIcon
         trailingItems={
           <Feature features="discover-basic">
             <LinkButton priority="default" size="xs" to={buttonTo}>

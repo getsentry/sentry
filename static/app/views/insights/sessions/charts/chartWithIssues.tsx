@@ -101,9 +101,9 @@ export default function ChartWithIssues(props: Props) {
 
   const footer = hasData && recentIssues && (
     <FooterIssues>
-      {recentIssues.map((group, index) => (
+      {recentIssues.map(group => (
         <GroupWrapper canSelect key={group.id}>
-          <EventOrGroupHeader index={index} data={group} source={'session-health'} />
+          <EventOrGroupHeader data={group} source={'session-health'} />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupWrapper>
       ))}
@@ -127,7 +127,7 @@ export default function ChartWithIssues(props: Props) {
             onClick={() => {
               openInsightChartModal({
                 title: (
-                  <Flex justify="space-between">
+                  <Flex justify="between">
                     {title}
                     {hasData && recentIssues?.length ? (
                       <LinkButton size="xs" to={{pathname: `/issues/`}}>

@@ -593,7 +593,7 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
         child=serializers.IntegerField(),
         help_text="List of team IDs that have edit access to a dashboard.",
         required=False,
-        default=[],
+        default=list,
     )
 
     def validate(self, data):
@@ -980,6 +980,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
+    )
+    is_favorited = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Favorite the dashboard automatically for the request user",
     )
 
 

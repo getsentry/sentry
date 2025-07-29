@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -17,13 +16,24 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agentMonitoring/components/drawer';
+import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
 import {useColumnOrder} from 'sentry/views/insights/agentMonitoring/hooks/useColumnOrder';
-import {formatLLMCosts} from 'sentry/views/insights/agentMonitoring/utils/formatLLMCosts';
+import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {
+  ErrorCell,
+  NumberPlaceholder,
+} from 'sentry/views/insights/agentMonitoring/utils/cells';
 import {
   AI_COST_ATTRIBUTE_SUM,
+  AI_GENERATION_OPS,
   AI_TOKEN_USAGE_ATTRIBUTE_SUM,
+  AI_TOOL_CALL_OPS,
+  getAgentRunsFilter,
   getAITracesFilter,
 } from 'sentry/views/insights/agentMonitoring/utils/query';
 import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
@@ -31,7 +41,7 @@ import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/insights/common/components/textAlign';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 
@@ -41,7 +51,7 @@ interface TableData {
   llmCalls: number;
   timestamp: number;
   toolCalls: number;
-  totalCost: number;
+  totalCost: number | null;
   totalTokens: number;
   traceId: string;
   transaction: string;
@@ -72,13 +82,20 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
+const GENERATION_COUNTS = AI_GENERATION_OPS.map(op => `count_if(span.op,${op})` as const);
+
+const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS].map(
+  op => `count_if(span.op,${op})` as const
+);
+
 export function TracesTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const combinedQuery = useCombinedQuery(getAITracesFilter());
 
   const tracesRequest = useTraces({
-    query: getAITracesFilter(),
+    query: combinedQuery,
     sort: `-timestamp`,
     keepPreviousData: true,
     cursor:
@@ -90,13 +107,13 @@ export function TracesTable() {
 
   const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
 
-  const spansRequest = useEAPSpans(
+  const spansRequest = useSpans(
     {
-      search: `trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
+      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        'count_if(span.op,gen_ai.chat)',
-        'count_if(span.op,gen_ai.generate_text)',
+        ...GENERATION_COUNTS,
         'count_if(span.op,gen_ai.execute_tool)',
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
         AI_COST_ATTRIBUTE_SUM,
@@ -107,29 +124,61 @@ export function TracesTable() {
     Referrer.TRACES_TABLE
   );
 
+  const traceErrorRequest = useSpans(
+    {
+      // Get all generations and tool calls with status unknown
+      search: `span.status:unknown trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      fields: ['trace', ...AI_AGENT_SUB_OPS],
+      limit: tracesRequest.data?.data.length ?? 0,
+      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+    },
+    Referrer.TRACES_TABLE
+  );
+
   const spanDataMap = useMemo(() => {
-    if (!spansRequest.data) {
+    if (!spansRequest.data || !traceErrorRequest.data) {
       return {};
     }
+    // sum up the error spans for a trace
+    const errors = traceErrorRequest.data?.reduce(
+      (acc, span) => {
+        const sum = AI_AGENT_SUB_OPS.reduce(
+          (errorSum, key) => errorSum + (span[key] ?? 0),
+          0
+        );
+
+        acc[span.trace] = sum;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return spansRequest.data.reduce(
       (acc, span) => {
         acc[span.trace] = {
-          llmCalls:
-            (span['count_if(span.op,gen_ai.chat)'] ?? 0) +
-            (span['count_if(span.op,gen_ai.generate_text)'] ?? 0),
+          llmCalls: GENERATION_COUNTS.reduce<number>(
+            (sum, key) => sum + (span[key] ?? 0),
+            0
+          ),
           toolCalls: span['count_if(span.op,gen_ai.execute_tool)'] ?? 0,
           totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
           totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
+          totalErrors: errors[span.trace] ?? 0,
         };
         return acc;
       },
       {} as Record<
         string,
-        {llmCalls: number; toolCalls: number; totalCost: number; totalTokens: number}
+        {
+          llmCalls: number;
+          toolCalls: number;
+          totalCost: number;
+          totalErrors: number;
+          totalTokens: number;
+        }
       >
     );
-  }, [spansRequest.data]);
+  }, [spansRequest.data, traceErrorRequest.data]);
 
   const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
     navigate(
@@ -153,15 +202,20 @@ export function TracesTable() {
       traceId: span.trace,
       transaction: span.name ?? '',
       duration: span.duration,
-      errors: span.numErrors,
+      errors: spanDataMap[span.trace]?.totalErrors ?? 0,
       llmCalls: spanDataMap[span.trace]?.llmCalls ?? 0,
       toolCalls: spanDataMap[span.trace]?.toolCalls ?? 0,
       totalTokens: spanDataMap[span.trace]?.totalTokens ?? 0,
-      totalCost: spanDataMap[span.trace]?.totalCost ?? 0,
+      totalCost: spanDataMap[span.trace]?.totalCost ?? null,
       timestamp: span.start,
-      isSpanDataLoading: spansRequest.isLoading,
+      isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
-  }, [tracesRequest.data, spanDataMap, spansRequest.isLoading]);
+  }, [
+    tracesRequest.data,
+    spanDataMap,
+    spansRequest.isLoading,
+    traceErrorRequest.isLoading,
+  ]);
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -175,9 +229,9 @@ export function TracesTable() {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
     },
-    []
+    [combinedQuery]
   );
 
   return (
@@ -206,19 +260,26 @@ export function TracesTable() {
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  query,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
+  query: string;
 }) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   const {openTraceViewDrawer} = useTraceViewDrawer({});
 
   switch (column.key) {
     case 'traceId':
       return (
         <span>
-          <Button priority="link" onClick={() => openTraceViewDrawer(dataRow.traceId)}>
+          <TraceIdButton
+            priority="link"
+            onClick={() => openTraceViewDrawer(dataRow.traceId)}
+          >
             {dataRow.traceId.slice(0, 8)}
-          </Button>
+          </TraceIdButton>
         </span>
       );
     case 'transaction':
@@ -232,7 +293,18 @@ const BodyCell = memo(function BodyCell({
     case 'duration':
       return <DurationCell milliseconds={dataRow.duration} />;
     case 'errors':
-      return <NumberCell value={dataRow.errors} />;
+      return (
+        <ErrorCell
+          value={dataRow.errors}
+          target={getExploreUrl({
+            query: `${query} span.status:unknown trace:[${dataRow.traceId}]`,
+            organization,
+            selection,
+            referrer: Referrer.TRACES_TABLE,
+          })}
+          isLoading={dataRow.isSpanDataLoading}
+        />
+      );
     case 'llmCalls':
     case 'toolCalls':
     case 'totalTokens':
@@ -244,7 +316,11 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isSpanDataLoading) {
         return <NumberPlaceholder />;
       }
-      return <TextAlignRight>{formatLLMCosts(dataRow.totalCost)}</TextAlignRight>;
+      return (
+        <TextAlignRight>
+          <LLMCosts cost={dataRow.totalCost} />
+        </TextAlignRight>
+      );
     case 'timestamp':
       return (
         <TextAlignRight>
@@ -255,10 +331,6 @@ const BodyCell = memo(function BodyCell({
       return null;
   }
 });
-
-function NumberPlaceholder() {
-  return <Placeholder style={{marginLeft: 'auto'}} height={'14px'} width={'50px'} />;
-}
 
 const GridEditableContainer = styled('div')`
   position: relative;
@@ -290,4 +362,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${space(0.5)};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+`;
+
+const TraceIdButton = styled(Button)`
+  font-weight: normal;
 `;

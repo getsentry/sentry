@@ -15,6 +15,7 @@ class ParameterizationRegex:
 
     name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
+    raw_pattern_experimental: str | None = None
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
     counter: int = 0
@@ -24,21 +25,20 @@ class ParameterizationRegex:
 
     @property
     def pattern(self) -> str:
+        return self._pattern(False)
+
+    @property
+    def experimental_pattern(self) -> str:
+        return self._pattern(self.raw_pattern_experimental is not None)
+
+    def _pattern(self, experimental: bool = False) -> str:
         """
         Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
+        pattern = self.raw_pattern_experimental if experimental else self.raw_pattern
         prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
         postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{self.raw_pattern}){postfix}"
-
-    @property
-    def compiled_pattern(self) -> re.Pattern[str]:
-        """
-        Returns the compiled regex pattern with a named matching group and lookbehind/lookahead if needed.
-        """
-        if not hasattr(self, "_compiled_pattern"):
-            self._compiled_pattern = re.compile(rf"(?x){self.pattern}")
-        return self._compiled_pattern
+        return rf"{prefix}(?P<{self.name}>{pattern}){postfix}"
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
@@ -88,7 +88,14 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(
-        name="traceparent", raw_pattern=r"""\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b"""
+        name="traceparent",
+        raw_pattern=r"""
+            # https://www.w3.org/TR/trace-context/#traceparent-header
+            (\b00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]\b) |
+
+            # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html#request-tracing-syntax
+            (\b1-[0-9a-f]{8}-[0-9a-f]{24}\b)
+        """,
     ),
     ParameterizationRegex(
         name="uuid",
@@ -111,6 +118,59 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             |
             # RFC3339, RFC3339Nano
             (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
+            |
+            # Datetime:
+            (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
+            |
+            # Kitchen
+            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            |
+            # Date
+            (\d{4}-[01]\d-[0-3]\d)
+            |
+            # Time
+            ([0-2]\d:[0-5]\d:[0-5]\d)
+            |
+            # Old Date Formats, TODO: possibly safe to remove?
+            (
+                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
+                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
+                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))
+            ) |
+            (
+                \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
+                (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
+                ([\d]{1,2})\s+
+                ([\d]{2}:[\d]{2}:[\d]{2})\s+
+                [\d]{4}
+            ) |
+            (
+                \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s+)?
+                (0[1-9]|[1-2]?[\d]|3[01])\s+
+                (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
+                (19[\d]{2}|[2-9][\d]{3})\s+
+                (2[0-3]|[0-1][\d]):([0-5][\d])
+                (?::(60|[0-5][\d]))?\s+
+                ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
+            ) |
+            (datetime.datetime\(.*?\))
+        """,
+        raw_pattern_experimental=r"""
+            # No word boundaries required around dates. Should there be?
+            # RFC822, RFC1123, RFC1123Z
+            ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])))
+            |
+            # Similar to RFC822, but "Mon Jan 02, 1999", "Jan 02, 1999"
+            (((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s[0-3]\d,\s\d{2,4})
+            |
+            # RFC850
+            ((?:Sun|Sunday|Mon|Monday|Tue|Tuesday|Wed|Wednesday|Thu|Thursday|Fri|Friday|Sat|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
+            |
+            # RFC3339, RFC3339Nano
+            (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
+            |
+            # JavaScript
+            ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2}\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT[+-]\d{4}(?:\s\([^)]+\))?)
             |
             # Datetime:
             (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
@@ -193,6 +253,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 
 
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
+EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
+    r.name: r.experimental_pattern for r in DEFAULT_PARAMETERIZATION_REGEXES
+}
 
 
 @dataclasses.dataclass
@@ -211,7 +274,9 @@ class Parameterizer:
     def __init__(
         self,
         regex_pattern_keys: Sequence[str],
+        experimental: bool = False,
     ):
+        self._experimental = experimental
         self._parameterization_regex = self._make_regex_from_patterns(regex_pattern_keys)
         self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
@@ -227,9 +292,13 @@ class Parameterizer:
         so we can use newlines and indentation for better legibility in patterns above.
         """
 
-        return re.compile(
-            rf"(?x){'|'.join(DEFAULT_PARAMETERIZATION_REGEXES_MAP[k] for k in pattern_keys)}"
+        regexes_map = (
+            EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP
+            if self._experimental
+            else DEFAULT_PARAMETERIZATION_REGEXES_MAP
         )
+
+        return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
     def parametrize_w_regex(self, content: str) -> str:
         """

@@ -20,7 +20,7 @@ const Header = styled('h3')`
 `;
 
 // currently no styles are added but this is here for organization and future use
-function Content(props: any) {
+function Content(props: React.ComponentProps<'div'>) {
   return <div {...props} />;
 }
 

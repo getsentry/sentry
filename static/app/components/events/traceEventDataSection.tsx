@@ -238,7 +238,10 @@ export function TraceEventDataSection({
       platform === 'objc' ||
       platform === 'native' ||
       platform === 'cocoa' ||
-      platform === 'nintendo-switch'
+      platform === 'nintendo-switch' ||
+      platform === 'nintendo-switch-2' ||
+      platform === 'playstation' ||
+      platform === 'xbox'
     ) {
       return [
         {
@@ -352,7 +355,7 @@ export function TraceEventDataSection({
       disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {!displayOptions.includes('raw-stack-trace') && (
               <Tooltip
                 title={t('Only full version available')}

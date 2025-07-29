@@ -11,6 +11,7 @@ import {
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getHasTag} from 'sentry/components/events/searchBar';
@@ -26,7 +27,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
@@ -581,7 +581,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
                 <Alert.Container>
-                  <Alert showIcon type="warning">
+                  <Alert type="warning">
                     {t(
                       'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                     )}
@@ -651,9 +651,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
-                          searchOnChange={organization.features.includes(
-                            'ui-search-on-change'
-                          )}
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
                           placeholder={this.searchPlaceholder}
@@ -783,8 +780,10 @@ function EAPSearchQueryBuilderWithContext({
   project,
   traceItemType,
 }: EAPSearchQueryBuilderWithContextProps) {
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,
@@ -794,6 +793,8 @@ function EAPSearchQueryBuilderWithContext({
     stringAttributes,
     itemType: traceItemType,
     projects: [parseInt(project.id, 10)],
+    numberSecondaryAliases,
+    stringSecondaryAliases,
   };
 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;

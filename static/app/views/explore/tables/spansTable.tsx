@@ -70,7 +70,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles} data-test-id="spans-table">
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -142,7 +142,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columnsFromEventView[j]!}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

@@ -25,6 +25,12 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 
 
 def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
+    """
+    Determine the `contributes` value based on the given `values` list.
+
+    Returns True if the values are constants or if at least one grouping component in the list
+    contributes.
+    """
     for value in values or ():
         if not isinstance(value, BaseGroupingComponent) or value.contributes:
             return True
@@ -219,10 +225,6 @@ class FunctionGroupingComponent(BaseGroupingComponent[str]):
     id: str = "function"
 
 
-class LineNumberGroupingComponent(BaseGroupingComponent[int]):
-    id: str = "lineno"
-
-
 class ModuleGroupingComponent(BaseGroupingComponent[str]):
     id: str = "module"
 
@@ -231,17 +233,11 @@ class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
     id: str = "ns-error"
 
 
-class SymbolGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "symbol"
-
-
 FrameGroupingComponentChildren = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
     | FunctionGroupingComponent
-    | LineNumberGroupingComponent  # only in legacy config
     | ModuleGroupingComponent
-    | SymbolGroupingComponent  # only in legacy config
 )
 
 
@@ -253,8 +249,8 @@ class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildre
         self,
         values: Sequence[FrameGroupingComponentChildren],
         in_app: bool,
-        hint: str | None = None,  # only passed in legacy
-        contributes: bool | None = None,  # only passed in legacy
+        hint: str | None = None,
+        contributes: bool | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.in_app = in_app

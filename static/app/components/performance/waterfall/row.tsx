@@ -5,6 +5,7 @@ import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import toPercent from 'sentry/utils/number/toPercent';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -63,7 +64,8 @@ export const RowCell = styled('div')<RowCellProps>`
 `;
 
 export function RowReplayTimeIndicators() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const durationMs = replay?.getDurationMs();
 

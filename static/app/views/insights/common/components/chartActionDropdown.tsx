@@ -14,7 +14,6 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
@@ -95,9 +94,6 @@ export function BaseChartActionDropdown({
   referrer,
 }: BaseProps) {
   const organization = useOrganization();
-  const useEap = useInsightsEap();
-  const hasChartActionsEnabled =
-    organization.features.includes('insights-chart-actions') && useEap;
 
   const menuOptions: MenuItemProps[] = [
     {
@@ -106,7 +102,7 @@ export function BaseChartActionDropdown({
       to: exploreUrl,
       onAction: () => {
         trackAnalytics('insights.open_in_explore', {
-          organization: organization.slug,
+          organization,
           referrer,
         });
       },
@@ -123,16 +119,12 @@ export function BaseChartActionDropdown({
         onAction: () => {
           option.onAction?.();
           trackAnalytics('insights.create_alert', {
-            organization: organization.slug,
+            organization,
             referrer,
           });
         },
       })),
     });
-  }
-
-  if (!hasChartActionsEnabled) {
-    return null;
   }
 
   return (

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Badge} from 'sentry/components/core/badge';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Link from 'sentry/components/links/link';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
 import {IconFire} from 'sentry/icons';

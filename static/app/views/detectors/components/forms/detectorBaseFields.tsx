@@ -8,12 +8,13 @@ import FormField from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
+import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
+import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DetectorBaseFields() {
   return (
-    <Flex gap={space(1)} direction="column">
+    <Flex gap="md" direction="column">
       <Layout.Title>
         <FormField name="name" inline={false} flexibleControlStateSize stacked>
           {({onChange, value}) => (
@@ -29,11 +30,12 @@ export function DetectorBaseFields() {
               }}
               errorMessage={t('Please set a title')}
               placeholder={t('New Monitor')}
+              aria-label={t('Monitor Name')}
             />
           )}
         </FormField>
       </Layout.Title>
-      <Flex gap={space(1)}>
+      <Flex gap="md">
         <ProjectField />
         <EnvironmentField />
       </Flex>
@@ -43,6 +45,8 @@ export function DetectorBaseFields() {
 
 function ProjectField() {
   const {projects, fetching} = useProjects();
+  const {project, detectorType} = useDetectorFormContext();
+  const canEditDetector = useCanEditDetector({projectId: project.id, detectorType});
 
   return (
     <StyledProjectField
@@ -50,7 +54,7 @@ function ProjectField() {
       flexibleControlStateSize
       stacked
       projects={projects}
-      groupProjects={project => (project.isMember ? 'member' : 'all')}
+      groupProjects={p => (p.isMember ? 'member' : 'all')}
       groups={[
         {key: 'member', label: t('My Projects')},
         {key: 'all', label: t('All Projects')},
@@ -60,6 +64,17 @@ function ProjectField() {
       aria-label={t('Select Project')}
       disabled={fetching}
       size="sm"
+      validate={() => {
+        if (!canEditDetector) {
+          return [
+            [
+              'projectId',
+              t('You do not have permission to create or edit monitors in this project'),
+            ],
+          ];
+        }
+        return [];
+      }}
     />
   );
 }

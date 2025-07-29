@@ -1036,7 +1036,7 @@ describe('handleAddQueryToDashboard', function () {
   let router: InjectedRouter;
   let mockedOpenAddToDashboardModal: jest.Mock;
   beforeEach(() => {
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
     location = LocationFixture();
     router = RouterFixture();
     mockedOpenAddToDashboardModal = jest.mocked(openAddToDashboardModal);

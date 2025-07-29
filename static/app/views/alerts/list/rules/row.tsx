@@ -11,13 +11,12 @@ import {
   type SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
@@ -36,6 +35,9 @@ import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {CombinedAlerts} from 'sentry/views/alerts/types';
 import {CombinedAlertType} from 'sentry/views/alerts/types';
 import {isIssueAlert} from 'sentry/views/alerts/utils';
+import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 type Props = {
   hasEditAccess: boolean;
@@ -67,6 +69,21 @@ function RuleListRow({
     : isCron
       ? rule.project.slug
       : rule.projects[0]!;
+
+  const ruleType =
+    rule &&
+    rule.type === CombinedAlertType.METRIC &&
+    getAlertTypeFromAggregateDataset({
+      aggregate: rule.aggregate,
+      dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
+      organization,
+    });
+
+  const deprecateTransactionsAlerts =
+    deprecateTransactionAlerts(organization) &&
+    ruleType &&
+    DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
   const editKey = {
     [CombinedAlertType.ISSUE]: 'rules',
@@ -108,7 +125,9 @@ function RuleListRow({
 
   const activeActions = {
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
-    [CombinedAlertType.METRIC]: ['edit', 'duplicate', 'delete'],
+    [CombinedAlertType.METRIC]: deprecateTransactionsAlerts
+      ? ['edit', 'delete']
+      : ['edit', 'duplicate', 'delete'],
     [CombinedAlertType.UPTIME]: ['edit', 'delete'],
     [CombinedAlertType.CRONS]: ['edit', 'delete'],
   };

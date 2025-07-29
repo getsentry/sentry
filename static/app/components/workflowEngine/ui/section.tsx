@@ -1,23 +1,32 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
 
 type SectionProps = {
-  title: string;
+  title: React.ReactNode;
   children?: React.ReactNode;
   description?: string;
 };
 
 export default function Section({children, title, description}: SectionProps) {
   return (
-    <Flex direction="column" gap={space(1)}>
+    <SectionContainer direction="column" gap="md">
       <SectionHeading>{title}</SectionHeading>
       {description && <SectionDescription>{description}</SectionDescription>}
       {children}
-    </Flex>
+    </SectionContainer>
   );
 }
+
+const SectionContainer = styled(Flex)`
+  > p {
+    margin-bottom: ${p => p.theme.space['0']};
+  }
+
+  p + p {
+    margin-top: ${p => p.theme.space.md};
+  }
+`;
 
 const SectionHeading = styled('h4')`
   font-size: ${p => p.theme.fontSize.lg};

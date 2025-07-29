@@ -9,7 +9,7 @@ from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -155,13 +155,14 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         timestamp: datetime,
         fingerprint: str,
         environment=None,
+        level="error",
         tags: list[list[str]] | None = None,
     ) -> Event:
         data = {
             "timestamp": timestamp.isoformat(),
             "environment": environment,
             "fingerprint": [fingerprint],
-            "level": "error",
+            "level": level,
             "user": {"id": uuid4().hex},
             "exception": {
                 "values": [
@@ -248,15 +249,15 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
                 snuba_query=snuba_query,
             )
 
-        subscription_update: QuerySubscriptionUpdate = {
-            "subscription_id": str(query_subscription.id),
-            "values": {"value": 1},
-            "timestamp": datetime.now(UTC),
-            "entity": "test-entity",
-        }
+        subscription_update = ProcessedSubscriptionUpdate(
+            subscription_id=str(query_subscription.id),
+            values={"value": 1},
+            timestamp=datetime.now(UTC),
+            entity="test-entity",
+        )
 
         data_source = self.create_data_source(
-            source_id=str(subscription_update["subscription_id"]),
+            source_id=str(subscription_update.subscription_id),
             organization=self.organization,
         )
 
@@ -274,8 +275,8 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             )
 
         # Create a data_packet from the update for testing
-        data_packet = DataPacket[QuerySubscriptionUpdate](
-            source_id=str(subscription_update["subscription_id"]),
+        data_packet = DataPacket[ProcessedSubscriptionUpdate](
+            source_id=str(subscription_update.subscription_id),
             packet=subscription_update,
         )
 

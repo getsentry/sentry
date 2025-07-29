@@ -4,20 +4,17 @@ import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {
-  createDashboard,
-  deleteDashboard,
-  fetchDashboard,
   updateDashboardFavorite,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
@@ -33,12 +30,13 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {
   DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 type Props = {
   api: Client;
@@ -127,6 +125,12 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: onDashboardsChange,
+  });
+  const handleDeleteDashboard = useDeleteDashboard({
+    onSuccess: onDashboardsChange,
+  });
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
@@ -134,40 +138,6 @@ function DashboardTable({
     {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
-
-  function handleDelete(dashboard: DashboardListItem) {
-    deleteDashboard(api, organization.slug, dashboard.id)
-      .then(() => {
-        trackAnalytics('dashboards_manage.delete', {
-          organization,
-          dashboard_id: parseInt(dashboard.id, 10),
-          view_type: 'table',
-        });
-        onDashboardsChange();
-        addSuccessMessage(t('Dashboard deleted'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Error deleting Dashboard'));
-      });
-  }
-
-  async function handleDuplicate(dashboard: DashboardListItem) {
-    try {
-      const dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
-      const newDashboard = cloneDashboard(dashboardDetail);
-      newDashboard.widgets.map(widget => (widget.id = undefined));
-      await createDashboard(api, organization.slug, newDashboard, true);
-      trackAnalytics('dashboards_manage.duplicate', {
-        organization,
-        dashboard_id: parseInt(dashboard.id, 10),
-        view_type: 'table',
-      });
-      onDashboardsChange();
-      addSuccessMessage(t('Dashboard duplicated'));
-    } catch (e) {
-      addErrorMessage(t('Error duplicating Dashboard'));
-    }
-  }
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
@@ -303,7 +273,7 @@ function DashboardTable({
                 openConfirmModal({
                   message: t('Are you sure you want to duplicate this dashboard?'),
                   priority: 'primary',
-                  onConfirm: () => handleDuplicate(dataRow),
+                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                 });
               }}
               aria-label={t('Duplicate Dashboard')}
@@ -317,7 +287,7 @@ function DashboardTable({
                 openConfirmModal({
                   message: t('Are you sure you want to delete this dashboard?'),
                   priority: 'danger',
-                  onConfirm: () => handleDelete(dataRow),
+                  onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
               aria-label={t('Delete Dashboard')}

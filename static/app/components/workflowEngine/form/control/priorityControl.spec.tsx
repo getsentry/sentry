@@ -7,24 +7,23 @@ import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions'
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   METRIC_DETECTOR_FORM_FIELDS,
-} from 'sentry/views/detectors/components/forms/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 
 describe('PriorityControl', function () {
   it('renders children', async function () {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
       </Form>
     );
 
-    expect(await screen.findByText('Above 0s')).toBeInTheDocument();
-    expect(screen.getByLabelText('Medium threshold')).toBeInTheDocument();
+    expect(await screen.findByText('Above 0ms')).toBeInTheDocument();
     expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });
 
@@ -32,19 +31,19 @@ describe('PriorityControl', function () {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
       </Form>
     );
-    expect(await screen.findByRole('button', {name: 'Low'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Med'})).toBeInTheDocument();
     expect(screen.getByText('Med')).toBeInTheDocument();
     expect(screen.getByText('High')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Low'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Med'}));
     await userEvent.click(await screen.findByRole('option', {name: 'High'}));
     expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel)).toBe(
       DetectorPriorityLevel.HIGH
@@ -53,25 +52,22 @@ describe('PriorityControl', function () {
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('allows configuring medium and high thresholds', async function () {
+  it('allows configuring high thresholds', async function () {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.LOW,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
       },
     });
     render(
       <Form model={formModel} hideFooter>
-        <PriorityControl minimumPriority={DetectorPriorityLevel.LOW} />
+        <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
       </Form>
     );
-    const medium = screen.getByLabelText('Medium threshold');
-    await userEvent.type(medium, '4');
 
     const high = screen.getByLabelText('High threshold');
     await userEvent.type(high, '5');
 
-    expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold)).toBe('4');
     expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe('5');
   });
 
@@ -96,5 +92,40 @@ describe('PriorityControl', function () {
     expect(screen.getByRole('option', {name: 'Med'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'High'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Low'})).not.toBeInTheDocument();
+  });
+
+  it('validates that medium threshold is lower than high threshold', async function () {
+    const formModel = new FormModel({
+      initialData: {
+        ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
+        [METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel]: DetectorPriorityLevel.MEDIUM,
+        [METRIC_DETECTOR_FORM_FIELDS.conditionValue]: '10', // This is the medium threshold
+      },
+    });
+
+    render(
+      <Form model={formModel} hideFooter>
+        <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
+      </Form>
+    );
+
+    // Only high threshold field should be visible when initial priority is MEDIUM
+    const highField = screen.getByLabelText('High threshold');
+    expect(screen.queryByLabelText('Medium threshold')).not.toBeInTheDocument();
+
+    // Test invalid case: high (5) <= medium (10)
+    await userEvent.clear(highField);
+    await userEvent.type(highField, '5');
+
+    expect(formModel.getError(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe(
+      'High threshold must be higher than medium threshold'
+    );
+
+    // Test valid case: high (15) > medium (10)
+    await userEvent.clear(highField);
+    await userEvent.type(highField, '15');
+
+    // Validation should clear error when high > medium
+    expect(formModel.getError(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBeFalsy();
   });
 });

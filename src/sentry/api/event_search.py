@@ -455,6 +455,23 @@ class SearchValue(NamedTuple):
             return False
         return _is_wildcard(self.raw_value)
 
+    def is_str_sequence(self) -> bool:
+        return isinstance(self.raw_value, list) and all(isinstance(e, str) for e in self.raw_value)
+
+    def split_wildcards(self) -> tuple[list[str], list[str]] | None:
+        if not self.is_str_sequence():
+            return None
+        wildcards = []
+        non_wildcards = []
+        assert isinstance(self.raw_value, list)
+        for s in self.raw_value:
+            assert isinstance(s, str)
+            if _is_wildcard(s) is True:
+                wildcards.append(s)
+            else:
+                non_wildcards.append(s)
+        return (non_wildcards, wildcards)
+
     def classify_and_format_wildcard(
         self,
     ) -> (
@@ -566,32 +583,16 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-# https://github.com/python/mypy/issues/18520
-# without this mypy thinks that AggregateFilter and SearchFilter are
-# structurally equivalent and will refuse to narrow them
-if TYPE_CHECKING:
+class AggregateFilter(NamedTuple):
+    key: AggregateKey
+    operator: str
+    value: SearchValue
 
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+    def to_query_string(self) -> str:
+        return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
-        def to_query_string(self) -> str:
-            return ""
-
-else:  # real implementation here!
-
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-
-        def to_query_string(self) -> str:
-            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
-
-        def __str__(self) -> str:
-            return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    def __str__(self) -> str:
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass  # pycqa/pycodestyle#1277

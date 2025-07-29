@@ -5,11 +5,8 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
-import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {
-  AggregateFunction,
-  FunctionArgument,
-} from 'sentry/components/arithmeticBuilder/types';
+import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -29,7 +26,11 @@ import {
   parseFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  FieldKind,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {
@@ -47,8 +48,10 @@ import {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
@@ -78,17 +81,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = useCallback(() => {
-    onColumnsChange(
-      tempColumns
-        .filter(col => {
-          if (isVisualize(col) && col.isEquation) {
-            const expression = new Expression(stripEquationPrefix(col.yAxis));
-            return expression.isValid;
-          }
-          return true;
-        })
-        .map(col => (isVisualize(col) ? col.toJSON() : col))
-    );
+    onColumnsChange(tempColumns.map(col => (isVisualize(col) ? col.toJSON() : col)));
     closeModal();
   }, [closeModal, onColumnsChange, tempColumns]);
 
@@ -96,11 +89,7 @@ export function AggregateColumnEditorModal({
   const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
 
   return (
-    <DragNDropContext
-      columns={tempColumns}
-      setColumns={setTempColumns}
-      defaultColumn={() => ({groupBy: ''})}
-    >
+    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -164,7 +153,7 @@ export function AggregateColumnEditorModal({
             </RowContainer>
           </Body>
           <Footer data-test-id="editor-footer">
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
                 {t('Read the Docs')}
               </LinkButton>
@@ -267,6 +256,7 @@ function GroupBySelector({
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
     tags: stringTags,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const label = useMemo(() => {
@@ -308,10 +298,7 @@ interface VisualizeSelectorProps {
 }
 
 function VisualizeSelector(props: VisualizeSelectorProps) {
-  if (
-    props.organization.features.includes('visibility-explore-equations') &&
-    props.visualize.isEquation
-  ) {
+  if (props.visualize.isEquation) {
     return <EquationSelector {...props} />;
   }
 
@@ -341,6 +328,7 @@ function AggregateSelector({
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const handleFunctionChange = useCallback(
@@ -395,24 +383,40 @@ function AggregateSelector({
   );
 }
 
-function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorProps) {
+function EquationSelector({
+  numberTags,
+  stringTags,
+  onChange,
+  visualize,
+}: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const aggregateFunctions: AggregateFunction[] = useMemo(() => {
-    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
-      name: aggregate,
-      label: aggregate,
-    }));
-  }, []);
-
   const functionArguments: FunctionArgument[] = useMemo(() => {
-    return Object.entries(numberTags).map(([key, tag]) => {
-      return {
-        name: key,
-        label: tag.name,
-      };
-    });
-  }, [numberTags]);
+    return [
+      ...Object.entries(numberTags).map(([key, tag]) => {
+        return {
+          kind: FieldKind.MEASUREMENT,
+          name: key,
+          label: tag.name,
+        };
+      }),
+      ...Object.entries(stringTags).map(([key, tag]) => {
+        return {
+          kind: FieldKind.TAG,
+          name: key,
+          label: tag.name,
+        };
+      }),
+    ];
+  }, [numberTags, stringTags]);
+
+  const getSpanFieldDefinition = useCallback(
+    (key: string) => {
+      const tag = numberTags[key] ?? stringTags[key];
+      return getFieldDefinition(key, 'span', tag?.kind);
+    },
+    [numberTags, stringTags]
+  );
 
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -421,15 +425,21 @@ function EquationSelector({numberTags, onChange, visualize}: VisualizeSelectorPr
     [onChange, visualize]
   );
 
+  const getSuggestedAttribute = useExploreSuggestedAttribute({
+    numberAttributes: numberTags,
+    stringAttributes: stringTags,
+  });
+
   return (
-    <Fragment>
-      <ArithmeticBuilder
-        aggregateFunctions={aggregateFunctions}
-        functionArguments={functionArguments}
-        expression={expression}
-        setExpression={handleExpressionChange}
-      />
-    </Fragment>
+    <ArithmeticBuilder
+      data-test-id="editor-visualize-equation"
+      aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+      functionArguments={functionArguments}
+      getFieldDefinition={getSpanFieldDefinition}
+      expression={expression}
+      setExpression={handleExpressionChange}
+      getSuggestedKey={getSuggestedAttribute}
+    />
   );
 }
 

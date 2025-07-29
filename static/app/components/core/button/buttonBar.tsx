@@ -3,17 +3,20 @@ import styled from '@emotion/styled';
 
 import {StyledButton} from 'sentry/components/core/button';
 // eslint-disable-next-line boundaries/element-types
-import type {ValidSize} from 'sentry/styles/space';
-// eslint-disable-next-line boundaries/element-types
-import {space} from 'sentry/styles/space';
+import type {Space} from 'sentry/utils/theme/theme';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;
-  gap?: ValidSize | 0;
+  gap?: Space;
   merged?: boolean;
 }
 
-export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
+export function ButtonBar({
+  children,
+  merged = false,
+  gap = 'md',
+  ...props
+}: ButtonBarProps) {
   return (
     <StyledButtonBar merged={merged} gap={gap} {...props}>
       {children}
@@ -21,10 +24,10 @@ export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonB
   );
 }
 
-const StyledButtonBar = styled('div')<{gap: ValidSize | 0; merged: boolean}>`
+const StyledButtonBar = styled('div')<{gap: Space; merged: boolean}>`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${p => (p.gap === 0 ? '0' : space(p.gap))};
+  grid-column-gap: ${p => p.theme.space[p.gap]};
   align-items: center;
 
   ${p => p.merged && MergedButtonBarStyles}

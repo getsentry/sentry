@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.project2 = self.create_project(organization=self.organization)
@@ -17,7 +17,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-sdk-updates",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
@@ -74,7 +74,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         update_suggestions = response.data
         assert len(update_suggestions) == 0
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         org = self.create_organization()
         self.create_member(user=self.user, organization=org)
 
@@ -87,7 +87,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             response = self.client.get(url)
         assert len(response.data) == 0
 
-    def test_filtered_project(self):
+    def test_filtered_project(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -225,7 +225,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

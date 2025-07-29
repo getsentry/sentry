@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,8 +12,8 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getHighlightedSpanAttributes} from 'sentry/views/insights/agentMonitoring/utils/highlightedSpanAttributes';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -92,7 +92,6 @@ export function TransactionHighlights(props: HighlightProps) {
         organization: props.organization,
         attributes: props.event.contexts.trace?.data,
         op: props.node.value['transaction.op'],
-        description: props.node.value.transaction,
       })}
     />
   );

@@ -1,9 +1,9 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -26,11 +26,7 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {
-  ModuleName,
-  SpanMetricsField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 const WEB_VITALS_COUNT = 5;
 
@@ -42,9 +38,9 @@ function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const browserTypes = decodeBrowserTypes(location.query[SpanMetricsField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
   const {data: projectData, isPending} = useProjectRawWebVitalsQuery({

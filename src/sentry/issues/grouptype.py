@@ -193,6 +193,8 @@ class GroupType:
     # New issue category mapping (under the organizations:issue-taxonomy flag)
     # When GA'd, the original `category` will be removed and this will be renamed to `category`.
     category_v2: int
+    # Allows delayed creation of issues for this group type until the issue is seen `noise_config.ignore_limit` times.
+    # Then a new issue is created, ignoring past events.
     noise_config: NoiseConfig | None = None
     default_priority: int = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
@@ -218,7 +220,9 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
+            features.add(
+                cls.build_visible_feature_name(), OrganizationFeature, True, api_expose=True
+            )
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
@@ -502,11 +506,25 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
+# Experimental Group Type for Query Injection Vulnerability
 @dataclass(frozen=True)
 class DBQueryInjectionVulnerabilityGroupType(GroupType):
     type_id = 1020
     slug = "db_query_injection_vulnerability"
     description = "Potential Database Query Injection Vulnerability"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.MEDIUM
+
+
+@dataclass(frozen=True)
+class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1021
+    slug = "query_injection_vulnerability"
+    description = "Potential Query Injection Vulnerability"
     category = GroupCategory.PERFORMANCE.value
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
@@ -657,9 +675,10 @@ class FeedbackGroup(GroupType):
 
 @dataclass(frozen=True)
 class MetricIssuePOC(GroupType):
+    # DEPRECATED, use metric_issue (8001) instead
     type_id = 8002
     slug = "metric_issue_poc"
-    description = "Metric Issue POC"
+    description = "DEPRECATED Metric Issue POC"
     category = GroupCategory.METRIC_ALERT.value
     category_v2 = GroupCategory.METRIC.value
     default_priority = PriorityLevel.HIGH
@@ -693,7 +712,7 @@ def should_create_group(
     )
 
     if over_threshold:
-        client.delete(grouphash)
+        client.delete(key)
         return True
     else:
         client.expire(key, noise_config.expiry_seconds)

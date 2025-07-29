@@ -3,6 +3,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
@@ -79,9 +80,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        conditions = attrs.get("condition_group", {}).get("conditions")
-        if len(conditions) > 2:
-            raise serializers.ValidationError("Too many conditions")
+
+        if "condition_group" in attrs:
+            conditions = attrs.get("condition_group", {}).get("conditions")
+            if len(conditions) > 2:
+                raise serializers.ValidationError("Too many conditions")
+
         return attrs
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
@@ -116,9 +120,21 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         super().update(instance, validated_data)
 
-        data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-        if data_source:
-            self.update_data_source(instance, data_source)
+        # Handle enable/disable query subscriptions
+        if "enabled" in validated_data:
+            enabled = validated_data.get("enabled")
+            assert isinstance(enabled, bool)
+
+            query_subscriptions = QuerySubscription.objects.filter(
+                id__in=[data_source.source_id for data_source in instance.data_sources.all()]
+            )
+            if query_subscriptions:
+                enable_disable_subscriptions(query_subscriptions, enabled)
+
+        if "data_source" in validated_data:
+            data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
+            if data_source:
+                self.update_data_source(instance, data_source)
 
         instance.save()
         return instance

@@ -57,7 +57,6 @@ register_temporary_features(default_manager)
 # expose public api
 add = default_manager.add
 entity_features = default_manager.entity_features
-option_features = default_manager.option_features
 get = default_manager.get
 has = default_manager.has
 batch_has = default_manager.batch_has

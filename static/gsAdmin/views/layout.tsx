@@ -3,9 +3,9 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
-import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -78,6 +78,9 @@ function Layout({children}: Props) {
             <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
             <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
             <NavLink to="/_admin/invoices/">Invoices</NavLink>
+            <NavLink to="/_admin/spike-projection-generation/">
+              Spike Projection Generation
+            </NavLink>
           </Navigation>
           <div>
             <ThemeToggle

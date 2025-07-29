@@ -1,5 +1,5 @@
-import time
 from datetime import datetime
+from time import sleep as real_sleep  # Import before monkeypatch
 
 import orjson
 import pytest
@@ -7,23 +7,26 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
+from sentry.testutils.helpers.options import override_options
+from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 
-@pytest.mark.django_db(transaction=True)
-def test_basic(monkeypatch):
+@override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
+@pytest.mark.parametrize("kafka_slice_id", [None, 2])
+def test_basic(monkeypatch, kafka_slice_id):
     # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
-
     topic = Topic("test")
     messages: list[KafkaPayload] = []
 
     fac = ProcessSpansStrategyFactory(
-        max_batch_size=10,
+        max_batch_size=1,
         max_batch_time=10,
         num_processes=1,
         input_block_size=None,
         output_block_size=None,
         produce_to_pipe=messages.append,
+        kafka_slice_id=kafka_slice_id,
     )
 
     commits = []
@@ -33,57 +36,62 @@ def test_basic(monkeypatch):
 
     step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
 
-    step.submit(
-        Message(
-            BrokerValue(
-                partition=Partition(topic, 0),
-                offset=1,
-                payload=KafkaPayload(
-                    None,
-                    orjson.dumps(
-                        {
-                            "project_id": 12,
-                            "span_id": "a" * 16,
-                            "trace_id": "b" * 32,
-                            "end_timestamp_precise": 1700000000.0,
-                        }
+    try:
+        step.submit(
+            Message(
+                BrokerValue(
+                    partition=Partition(topic, 0),
+                    offset=1,
+                    payload=KafkaPayload(
+                        None,
+                        orjson.dumps(
+                            {
+                                "project_id": 12,
+                                "span_id": "a" * 16,
+                                "trace_id": "b" * 32,
+                                "end_timestamp_precise": 1700000000.0,
+                            }
+                        ),
+                        [],
                     ),
-                    [],
-                ),
-                timestamp=datetime.now(),
+                    timestamp=datetime.now(),
+                )
             )
         )
-    )
 
-    step.poll()
-    fac._flusher.current_drift.value = 9000  # "advance" our "clock"
+        step.poll()
+        fac._flusher.current_drift.value = 9000  # "advance" our "clock"
 
-    step.poll()
-    # Give flusher threads time to process after drift change
-    time.sleep(0.1)
+        step.poll()
+        # Give flusher threads time to process after drift change
+        for _ in range(20):
+            if messages:
+                break
+            step.poll()
+            real_sleep(0.1)
 
-    step.join()
+        (msg,) = messages
 
-    (msg,) = messages
-
-    assert orjson.loads(msg.value) == {
-        "spans": [
-            {
-                "data": {
-                    "__sentry_internal_span_buffer_outcome": "different",
+        assert orjson.loads(msg.value) == {
+            "spans": [
+                {
+                    "data": {
+                        "__sentry_internal_span_buffer_outcome": "different",
+                    },
+                    "is_segment": True,
+                    "project_id": 12,
+                    "segment_id": "aaaaaaaaaaaaaaaa",
+                    "span_id": "aaaaaaaaaaaaaaaa",
+                    "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "end_timestamp_precise": 1700000000.0,
                 },
-                "is_segment": True,
-                "project_id": 12,
-                "segment_id": "aaaaaaaaaaaaaaaa",
-                "span_id": "aaaaaaaaaaaaaaaa",
-                "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-                "end_timestamp_precise": 1700000000.0,
-            },
-        ],
-    }
+            ],
+        }
+    finally:
+        fac._flusher.join()
 
 
-@pytest.mark.django_db(transaction=True)
+@override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
 def test_flusher_processes_limit(monkeypatch):
     """Test that flusher respects the max_processes limit"""
     # Flush very aggressively to make test pass instantly
@@ -110,16 +118,18 @@ def test_flusher_processes_limit(monkeypatch):
 
     # Create with 4 partitions/shards to test process sharing
     partitions = {Partition(topic, i): 0 for i in range(4)}
-    step = fac.create_with_partitions(add_commit, partitions)
-
-    # Verify that flusher uses at most 2 processes
+    fac.create_with_partitions(add_commit, partitions)
     flusher = fac._flusher
-    assert len(flusher.processes) == 2
-    assert flusher.max_processes == 2
-    assert flusher.num_processes == 2
 
-    # Verify shards are distributed across processes
-    total_shards = sum(len(shards) for shards in flusher.process_to_shards_map.values())
-    assert total_shards == 4  # All 4 shards should be assigned
+    try:
+        # Verify that flusher uses at most 2 processes
+        assert len(flusher.processes) == 2
+        assert flusher.max_processes == 2
+        assert flusher.num_processes == 2
 
-    step.join()
+        # Verify shards are distributed across processes
+        total_shards = sum(len(shards) for shards in flusher.process_to_shards_map.values())
+        assert total_shards == 4  # All 4 shards should be assigned
+    finally:
+        # shutdown flusher thread
+        fac._flusher.join()

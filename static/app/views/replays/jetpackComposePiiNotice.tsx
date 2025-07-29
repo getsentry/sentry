@@ -1,6 +1,6 @@
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
@@ -20,7 +20,6 @@ export function JetpackComposePiiNotice() {
     <Alert.Container>
       <Alert
         type="error"
-        showIcon
         trailingItems={
           <Button
             aria-label={t('Dismiss')}
@@ -51,13 +50,13 @@ export function JetpackComposePiiNotice() {
 export function useNeedsJetpackComposePiiNotice({
   replays,
 }: {
-  replays: undefined | ReplayListRecord[];
+  replays: ReplayListRecord[];
 }) {
-  const needsJetpackComposePiiWarning = replays?.find(replay => {
+  const needsJetpackComposePiiWarning = replays.find(replay => {
     return (
-      replay?.sdk.name === 'sentry.java.android' &&
+      replay.sdk.name === 'sentry.java.android' &&
       semverCompare(
-        replay?.sdk.version ?? '',
+        replay.sdk.version ?? '',
         MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.minVersion
       ) === -1
     );

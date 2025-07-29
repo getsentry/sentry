@@ -2,11 +2,10 @@ import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
 import {
-  useExploreFields,
   useExploreGroupBys,
-  useExploreSortBys,
   useExploreVisualizes,
-  useSetExploreSortBys,
+  useSetExploreGroupBys,
+  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
@@ -20,24 +19,22 @@ interface ExploreToolbarProps {
   width?: number;
 }
 
-export function ExploreToolbar({width}: ExploreToolbarProps) {
-  const fields = useExploreFields();
-  const groupBys = useExploreGroupBys();
+export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const visualizes = useExploreVisualizes();
-  const sortBys = useExploreSortBys();
-  const setSortBys = useSetExploreSortBys();
+  const setVisualizes = useSetExploreVisualizes();
+
+  const groupBys = useExploreGroupBys();
+  const setGroupBys = useSetExploreGroupBys();
 
   return (
     <Container width={width}>
-      <ToolbarVisualize />
-      <ToolbarGroupBy autoSwitchToAggregates />
-      <ToolbarSortBy
-        fields={fields}
-        groupBys={groupBys}
+      <ToolbarVisualize
         visualizes={visualizes}
-        sorts={sortBys}
-        setSorts={setSortBys}
+        setVisualizes={setVisualizes}
+        allowEquations={extras?.includes('equations') || false}
       />
+      <ToolbarGroupBy groupBys={groupBys} setGroupBys={setGroupBys} />
+      <ToolbarSortBy />
       <ToolbarSaveAs />
     </Container>
   );

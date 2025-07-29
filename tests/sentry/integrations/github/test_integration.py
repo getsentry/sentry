@@ -106,7 +106,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.installation_id = "install_1"
@@ -150,7 +150,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
+            json={
+                "token": self.access_token,
+                "expires_at": self.expires_at,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
         )
 
         repositories: dict[str, Any] = {
@@ -356,7 +367,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         return resp
 
     @responses.activate
-    def test_plugin_migration(self):
+    def test_plugin_migration(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -387,7 +398,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -403,6 +414,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",
             "account_id": 60591805,
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
@@ -555,7 +573,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
 
     @responses.activate
-    def test_disable_plugin_when_fully_migrated(self):
+    def test_disable_plugin_when_fully_migrated(self) -> None:
         self._stub_github()
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -584,7 +602,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert "github" not in [p.slug for p in plugins.for_project(project)]
 
     @responses.activate
-    def test_get_repositories_search_param(self):
+    def test_get_repositories_search_param(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -611,7 +629,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_get_repositories_all_and_pagination(self):
+    def test_get_repositories_all_and_pagination(self) -> None:
         """Fetch all repositories and test the pagination logic."""
         with self.tasks():
             self.assert_setup_flow()
@@ -630,7 +648,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ]
 
     @responses.activate
-    def test_get_repositories_only_first_page(self):
+    def test_get_repositories_only_first_page(self) -> None:
         """Fetch all repositories and test the pagination logic."""
         with self.tasks():
             self.assert_setup_flow()
@@ -652,7 +670,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ]
 
     @responses.activate
-    def test_get_stacktrace_link_file_exists(self):
+    def test_get_stacktrace_link_file_exists(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -681,7 +699,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
 
     @responses.activate
-    def test_get_stacktrace_link_file_doesnt_exists(self):
+    def test_get_stacktrace_link_file_doesnt_exists(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -711,7 +729,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not result
 
     @responses.activate
-    def test_get_stacktrace_link_use_default_if_version_404(self):
+    def test_get_stacktrace_link_use_default_if_version_404(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -745,7 +763,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
 
     @responses.activate
-    def test_get_message_from_error(self):
+    def test_get_message_from_error(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -894,7 +912,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_get_trees_for_org_works(self):
+    def test_get_trees_for_org_works(self) -> None:
         """Fetch the tree representation of a repo"""
         installation = self.get_installation_helper()
         cache.clear()
@@ -917,7 +935,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert trees == expected_trees
 
     @responses.activate
-    def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
+    def test_get_trees_for_org_prevent_exhaustion_some_repos(self) -> None:
         """Some repos will hit the network but the rest will grab from the cache."""
         repos_key = f"githubtrees:repositories:{self.organization.id}"
         cache.clear()
@@ -962,7 +980,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_trees_for_org_rate_limit_401(self):
+    def test_get_trees_for_org_rate_limit_401(self) -> None:
         """Sometimes the rate limit API fails from the get go."""
         # Generic test set up
         cache.clear()  # TODO: Investigate why it did not work in the setUp method
@@ -1004,7 +1022,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_get_trees_for_org_makes_API_requests_before_MAX_CONNECTION_ERRORS_is_hit(self):
+    def test_get_trees_for_org_makes_API_requests_before_MAX_CONNECTION_ERRORS_is_hit(self) -> None:
         """
         If some requests fail, but `MAX_CONNECTION_ERRORS` isn't hit, requests will continue
         to be made to the API.
@@ -1041,7 +1059,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_trees_for_org_falls_back_to_cache_once_MAX_CONNECTION_ERRORS_is_hit(self):
+    def test_get_trees_for_org_falls_back_to_cache_once_MAX_CONNECTION_ERRORS_is_hit(self) -> None:
         """Once `MAX_CONNECTION_ERRORS` requests fail, the rest will grab from the cache."""
         installation = self.get_installation_helper()
         self.set_rate_limit()
@@ -1076,7 +1094,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_commit_context_all_frames(self):
+    def test_get_commit_context_all_frames(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -1154,7 +1172,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_source_url_matches(self):
+    def test_source_url_matches(self) -> None:
         installation = self.get_installation_helper()
 
         test_cases = [
@@ -1172,7 +1190,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert installation.source_url_matches(source_url) == matches
 
     @responses.activate
-    def test_extract_branch_from_source_url(self):
+    def test_extract_branch_from_source_url(self) -> None:
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -1191,7 +1209,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert installation.extract_branch_from_source_url(repo, source_url) == "master"
 
     @responses.activate
-    def test_extract_source_path_from_source_url(self):
+    def test_extract_source_path_from_source_url(self) -> None:
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -1213,7 +1231,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_get_stacktrace_link_with_special_chars(self):
+    def test_get_stacktrace_link_with_special_chars(self) -> None:
         """Test that URLs with special characters (like square brackets) are properly encoded"""
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1245,7 +1263,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_get_stacktrace_link_avoid_double_quote(self):
+    def test_get_stacktrace_link_avoid_double_quote(self) -> None:
         """Test that URLs with special characters (like square brackets) are properly encoded"""
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1277,7 +1295,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_get_account_id(self):
+    def test_get_account_id(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -1286,7 +1304,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert installation.get_account_id() == 60591805
 
     @responses.activate
-    def test_get_account_id_backfill_missing(self):
+    def test_get_account_id_backfill_missing(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         del integration.metadata["account_id"]
@@ -1732,7 +1750,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:integrations-scm-multi-org")
     @with_feature("organizations:github-multi-org")
     @responses.activate
-    def test_github_installation_gets_owner_orgs(self):
+    def test_github_installation_gets_owner_orgs(self) -> None:
         self._setup_with_existing_installations()
         pipeline_view = OAuthLoginView()
         pipeline_view.client = GithubSetupApiClient(self.access_token)
@@ -1744,7 +1762,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @with_feature("organizations:integrations-scm-multi-org")
     @with_feature("organizations:github-multi-org")
     @responses.activate
-    def test_github_installation_filters_valid_installations(self):
+    def test_github_installation_filters_valid_installations(self) -> None:
         self._setup_with_existing_installations()
         pipeline_view = OAuthLoginView()
         pipeline_view.client = GithubSetupApiClient(self.access_token)

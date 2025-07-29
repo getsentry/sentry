@@ -15,7 +15,7 @@ class ExploreSavedQueriesTest(APITestCase):
         "organizations:visibility-explore-view": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -44,7 +44,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
         self.url = reverse("sentry-api-0-explore-saved-queries", args=[self.org.slug])
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url)
 
@@ -93,7 +93,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[3]["createdBy"]["username"] == self.user.username
         assert not response.data[3]["expired"]
 
-    def test_get_name_filter(self):
+    def test_get_name_filter(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "Test"})
 
@@ -115,7 +115,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_get_all_paginated(self):
+    def test_get_all_paginated(self) -> None:
         for i in range(0, 10):
             query = {
                 "range": "24h",
@@ -134,7 +134,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
-    def test_get_sortby(self):
+    def test_get_sortby(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -164,7 +164,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 values = list(reversed(values))
             assert list(sorted(values)) == values
 
-    def test_get_sortby_most_popular(self):
+    def test_get_sortby_most_popular(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         ExploreSavedQuery.objects.filter(name="Test query").update(visits=2)
         model = ExploreSavedQuery.objects.create(
@@ -195,7 +195,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 assert values[-1] == expected[0]
                 assert values[-2] == expected[1]
 
-    def test_get_sortby_recently_viewed(self):
+    def test_get_sortby_recently_viewed(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -231,7 +231,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 assert values[0] == expected[0]
                 assert values[1] == expected[1]
 
-    def test_get_sortby_myqueries(self):
+    def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")
         self.create_member(organization=self.org, user=uhoh_user)
 
@@ -266,10 +266,10 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[1]["createdBy"]["id"] == str(uhoh_user.id)
         assert response.data[2]["createdBy"]["id"] == str(whoops_user.id)
 
-    def test_get_expired_query(self):
+    def test_get_expired_query(self) -> None:
         query = {
-            "start": before_now(days=90),
-            "end": before_now(days=61),
+            "start": str(before_now(days=90)),
+            "end": str(before_now(days=61)),
         }
         ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -288,14 +288,14 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[0]["expired"]
 
-    def test_get_my_queries(self):
+    def test_get_my_queries(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, data={"exclude": "shared"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-    def test_get_shared_queries(self):
+    def test_get_shared_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -311,7 +311,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert len(response.data) == 5
         assert response.data[0]["name"] == "Shared query"
 
-    def test_get_query_last_visited(self):
+    def test_get_query_last_visited(self) -> None:
         last_visited = before_now(minutes=10)
         query = {"fields": ["span.op"], "mode": "samples"}
         model = ExploreSavedQuery.objects.create(
@@ -335,7 +335,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["lastVisited"] == last_visited
 
-    def test_get_no_starred_queries(self):
+    def test_get_no_starred_queries(self) -> None:
         with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
@@ -353,7 +353,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_get_starred_queries(self):
+    def test_get_starred_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model_a = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -399,7 +399,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
 
-    def test_get_most_starred_queries(self):
+    def test_get_most_starred_queries(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -460,7 +460,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data[-1]["starred"] is False
         assert response.data[-1]["position"] is None
 
-    def test_get_sortby_multiple(self):
+    def test_get_sortby_multiple(self) -> None:
         # Trigger prebuilt queries creation and unstar prebuilt queries to simplify test
         with self.feature(self.features):
             response = self.client.get(self.url)
@@ -579,7 +579,7 @@ class ExploreSavedQueriesTest(APITestCase):
         )  # This should be false because this query is starred by a different user
         assert response.data[4]["position"] is None
 
-    def test_post_require_mode(self):
+    def test_post_require_mode(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -593,7 +593,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "This field is required." == response.data["query"]["mode"][0]
 
-    def test_post_success(self):
+    def test_post_success(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -625,7 +625,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
 
-    def test_post_all_projects(self):
+    def test_post_all_projects(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -644,7 +644,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
 
-    def test_save_with_project(self):
+    def test_save_with_project(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -664,7 +664,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_with_project_and_my_projects(self):
+    def test_save_with_project_and_my_projects(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         with self.feature(self.features):
@@ -686,7 +686,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_with_org_projects(self):
+    def test_save_with_org_projects(self) -> None:
         project = self.create_project(organization=self.org)
         with self.feature(self.features):
             response = self.client.post(
@@ -707,7 +707,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_with_team_project(self):
+    def test_save_with_team_project(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         self.create_project(organization=self.org, teams=[team])
@@ -730,7 +730,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_without_team(self):
+    def test_save_without_team(self) -> None:
         team = self.create_team(organization=self.org, members=[])
         self.create_project(organization=self.org, teams=[team])
         with self.feature(self.features):
@@ -752,7 +752,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400
         assert "No Projects found, join a Team" == response.data["detail"]
 
-    def test_save_with_team_and_without_project(self):
+    def test_save_with_team_and_without_project(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         self.create_project(organization=self.org, teams=[team])
         with self.feature(self.features):
@@ -774,7 +774,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ExploreSavedQuery.objects.filter(name="with team query").exists()
 
-    def test_save_with_wrong_projects(self):
+    def test_save_with_wrong_projects(self) -> None:
         other_org = self.create_organization(owner=self.user)
         project = self.create_project(organization=other_org)
         project2 = self.create_project(organization=self.org)
@@ -816,7 +816,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 403, response.content
         assert not ExploreSavedQuery.objects.filter(name="project query").exists()
 
-    def test_save_interval(self):
+    def test_save_interval(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -838,7 +838,7 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data["name"] == "Interval query"
         assert response.data["interval"] == "1m"
 
-    def test_save_invalid_interval(self):
+    def test_save_invalid_interval(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -858,7 +858,7 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 400, response.content
 
-    def test_save_without_chart_type(self):
+    def test_save_without_chart_type(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -887,7 +887,7 @@ class ExploreSavedQueriesTest(APITestCase):
             {"yAxes": ["count(span.duration)"]},
         ]
 
-    def test_save_aggregate_field_and_orderby(self):
+    def test_save_aggregate_field_and_orderby(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -935,7 +935,7 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert response.data["query"][0]["aggregateOrderby"] == "-avg(span.duration)"
 
-    def test_save_invalid_ambiguous_aggregate_field(self):
+    def test_save_invalid_ambiguous_aggregate_field(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -967,7 +967,7 @@ class ExploreSavedQueriesTest(APITestCase):
             ),
         }
 
-    def test_save_invalid_aggregate_field(self):
+    def test_save_invalid_aggregate_field(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -1005,7 +1005,7 @@ class ExploreSavedQueriesTest(APITestCase):
             },
         }
 
-    def test_save_invalid_aggregate_field_bad_y_axes(self):
+    def test_save_invalid_aggregate_field_bad_y_axes(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,
@@ -1041,7 +1041,7 @@ class ExploreSavedQueriesTest(APITestCase):
             },
         }
 
-    def test_save_invalid_aggregate_field_bad_group_by(self):
+    def test_save_invalid_aggregate_field_bad_group_by(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
                 self.url,

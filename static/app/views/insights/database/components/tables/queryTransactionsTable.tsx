@@ -3,7 +3,7 @@ import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
@@ -24,11 +24,11 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'transaction'
   | 'transaction.method'
   | 'epm()'
@@ -52,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
+    key: `avg(${SpanFields.SPAN_SELF_TIME})`,
     name: DataTitles.avg,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -71,7 +71,7 @@ interface Props {
   data: Row[];
   isLoading: boolean;
   sort: ValidSort;
-  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>;
+  span: Pick<SpanResponse, SpanFields.SPAN_GROUP | SpanFields.SPAN_OP>;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -145,7 +145,7 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
-  span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
+  span: Pick<SpanResponse, SpanFields.SPAN_GROUP | SpanFields.SPAN_OP>,
   location: Location,
   organization: Organization,
   theme: Theme
@@ -156,7 +156,7 @@ function renderBodyCell(
         ? `${row['transaction.method']} ${row.transaction}`
         : row.transaction;
 
-    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
+    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanFields.SPAN_GROUP])}`;
 
     const query: Record<string, string | undefined> = {
       ...location.query,

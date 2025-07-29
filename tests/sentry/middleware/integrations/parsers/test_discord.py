@@ -30,7 +30,7 @@ class DiscordRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -184,7 +184,7 @@ class DiscordRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @responses.activate
-    def test_control_classes(self):
+    def test_control_classes(self) -> None:
         params = sign(integration_id=self.integration.id, discord_id=self.discord_id)
         link_path = reverse(
             "sentry-integration-discord-link-identity",
@@ -236,7 +236,7 @@ class DiscordRequestParserTest(TestCase):
 @control_silo_test
 class End2EndTest(APITestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_validation_failure(self):
+    def test_validation_failure(self) -> None:
         response = self.client.post(
             reverse("sentry-integration-discord-interactions"),
             data={"type": DiscordRequestTypes.PING},

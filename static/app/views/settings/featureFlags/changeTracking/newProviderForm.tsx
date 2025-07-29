@@ -1,12 +1,12 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {
-  addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
+  clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
@@ -15,7 +15,6 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,7 +25,10 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags/changeTracking';
+import {
+  makeFetchSecretQueryKey,
+  type Secret,
+} from 'sentry/views/settings/featureFlags/changeTracking';
 
 type CreateSecretQueryVariables = {
   provider: string;
@@ -35,13 +37,23 @@ type CreateSecretQueryVariables = {
 
 type CreateSecretResponse = string;
 
+interface Props {
+  canSaveSecret: boolean;
+  onCreatedSecret: (secret: string) => void;
+  selectedProvider: string;
+  setError: (error: string | null) => void;
+  setSelectedProvider: (provider: string) => void;
+  existingSecret?: Secret;
+}
+
 export default function NewProviderForm({
   onCreatedSecret,
-  onSetProvider,
-}: {
-  onCreatedSecret: (secret: string) => void;
-  onSetProvider: (provider: string) => void;
-}) {
+  setSelectedProvider,
+  selectedProvider,
+  setError: setError,
+  canSaveSecret,
+  existingSecret,
+}: Props) {
   const initialData = {
     provider: '',
     secret: '',
@@ -50,8 +62,6 @@ export default function NewProviderForm({
   const api = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-
-  const [selectedProvider, setSelectedProvider] = useState('');
 
   const handleGoBack = useCallback(() => {
     navigate(
@@ -81,43 +91,63 @@ export default function NewProviderForm({
     onSuccess: (_response, {secret, provider}) => {
       addSuccessMessage(t('Added provider and secret.'));
       onCreatedSecret(secret);
-      onSetProvider(provider);
+      setSelectedProvider(provider);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
     },
     onError: error => {
-      const message = t('Failed to add provider or secret.');
-      handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      clearIndicators();
+      const responseJSON = error.responseJSON;
+
+      const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
+
+      if (!hasFieldSpecificErrors) {
+        // Only show banner if there are no field-specific errors
+        const message =
+          typeof responseJSON === 'string'
+            ? responseJSON
+            : t('Failed to add provider or secret.');
+        handleXhrErrorResponse(message, error);
+        setError(message);
+      }
     },
   });
 
-  const canRead = hasEveryAccess(['org:read'], {organization});
-  const canWrite = hasEveryAccess(['org:write'], {organization});
-  const canAdmin = hasEveryAccess(['org:admin'], {organization});
-  const hasAccess = canRead || canWrite || canAdmin;
-
   return (
     <Form
-      apiMethod="POST"
       initialData={initialData}
-      apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
-      onSubmit={({provider, secret}) => {
-        submitSecret({
-          provider,
-          secret,
-        });
+      onSubmit={(data, onFormSubmitSuccess, onFormSubmitError) => {
+        submitSecret(
+          {
+            provider: data.provider,
+            secret: data.secret,
+          },
+          {
+            onSuccess: () => {
+              onFormSubmitSuccess({});
+            },
+            onError: error => {
+              // Only call onSubmitError for field-specific errors
+              // General errors are already handled in the mutation's onError
+              if (error.responseJSON?.secret || error.responseJSON?.provider) {
+                onFormSubmitError(error);
+              }
+            },
+          }
+        );
       }}
       onCancel={handleGoBack}
-      submitLabel={t('Add Provider')}
+      submitLabel={existingSecret ? t('Update Provider') : t('Add Provider')}
       requireChanges
-      submitDisabled={!hasAccess || isPending}
+      submitDisabled={!selectedProvider || !canSaveSecret || isPending}
     >
       <SelectField
         required
         label={t('Provider')}
-        onChange={setSelectedProvider}
+        onChange={value => {
+          setSelectedProvider(value);
+        }}
         value={selectedProvider}
         placeholder={t('Select a provider')}
         name="provider"

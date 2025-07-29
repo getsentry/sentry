@@ -36,6 +36,8 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     GITLAB_COMMENT_BOT_DEFAULT,
@@ -123,7 +125,6 @@ class _Links(TypedDict):
 class OnboardingTasksSerializerResponse(TypedDict):
     task: str | None  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime | None
     dateCompleted: datetime
     data: Any  # JSON objec
@@ -500,7 +501,6 @@ class OnboardingTasksSerializer(Serializer):
         return {
             "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
             "status": OrganizationOnboardingTask.STATUS_KEY_MAP[obj.status],
-            "user": attrs.get("user"),
             "completionSeen": obj.completion_seen,
             "dateCompleted": obj.date_completed,
             "data": obj.data,
@@ -516,6 +516,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     planSampleRate: float
     desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
+    enabledConsolePlatforms: list[str]
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
@@ -562,6 +563,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
+    enablePrReviewTestGeneration: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -570,7 +572,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(  # type: ignore[explicit-override, override]
+    def serialize(  # type: ignore[override]
         self,
         obj: Organization,
         attrs: Mapping[str, Any],
@@ -719,6 +721,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
             ),
+            "enablePrReviewTestGeneration": bool(
+                obj.get_option(
+                    "sentry:enable_pr_review_test_generation",
+                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+                )
+            ),
             "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
@@ -744,6 +752,12 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
                 "sentry:ingest-through-trusted-relays-only",
                 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+            )
+
+        if features.has("organizations:project-creation-games-tab", obj):
+            context["enabledConsolePlatforms"] = obj.get_option(
+                "sentry:enabled_console_platforms",
+                ENABLED_CONSOLE_PLATFORMS_DEFAULT,
             )
 
         if access.role is not None:
@@ -780,6 +794,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "rollbackEnabled",
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",
+        "enabledConsolePlatforms",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
@@ -819,7 +834,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return team_list
 
-    def serialize(  # type: ignore[explicit-override, override]
+    def serialize(  # type: ignore[override]
         self,
         obj: Organization,
         attrs: Mapping[str, Any],

@@ -1,6 +1,16 @@
+from collections.abc import Sequence
+from typing import TypedDict
+
+from django.db.models.query import QuerySet
+
 from sentry.models.promptsactivity import PromptsActivity
 
-DEFAULT_PROMPTS = {
+
+class _PromptConfig(TypedDict):
+    required_fields: list[str]
+
+
+DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "alert_stream": {"required_fields": ["organization_id"]},
     "chonk_ui_dot_indicator": {"required_fields": ["organization_id"]},
     "chonk_ui_banner": {"required_fields": ["organization_id"]},
@@ -39,10 +49,10 @@ class PromptsConfig:
     required_fields available: [organization_id, project_id]
     """
 
-    def __init__(self, prompts):
+    def __init__(self, prompts: dict[str, _PromptConfig]):
         self.prompts = prompts
 
-    def add(self, name, config):
+    def add(self, name: str, config: _PromptConfig) -> None:
         if self.has(name):
             raise Exception(f"Prompt key {name} is already in use")
         if "required_fields" not in config:
@@ -50,20 +60,22 @@ class PromptsConfig:
 
         self.prompts[name] = config
 
-    def has(self, name):
+    def has(self, name: str) -> bool:
         return name in self.prompts
 
-    def get(self, name):
+    def get(self, name: str) -> _PromptConfig:
         return self.prompts[name]
 
-    def required_fields(self, name):
+    def required_fields(self, name: str) -> list[str]:
         return self.prompts[name]["required_fields"]
 
 
 prompt_config = PromptsConfig(DEFAULT_PROMPTS)
 
 
-def get_prompt_activities_for_user(organization_ids, user_id, features):
+def get_prompt_activities_for_user(
+    organization_ids: Sequence[int], user_id: int, features: Sequence[str]
+) -> QuerySet[PromptsActivity]:
     return PromptsActivity.objects.filter(
         organization_id__in=organization_ids, feature__in=features, user_id=user_id
     )

@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -142,7 +142,7 @@ export default function FirstEventFooter({
           {project?.firstEvent ? t('Error Received') : t('Waiting for error')}
         </AnimatedText>
       </StatusWrapper>
-      <OnboardingButtonBar gap={2}>
+      <OnboardingButtonBar gap="xl">
         {getSecondaryCta()}
         {getPrimaryCta()}
       </OnboardingButtonBar>

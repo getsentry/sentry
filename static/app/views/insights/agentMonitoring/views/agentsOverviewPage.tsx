@@ -1,4 +1,4 @@
-import React, {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -7,51 +7,62 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {
+  EAPSpanSearchQueryBuilder,
+  useEAPSpanSearchQueryBuilderProps,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import Redirect from 'sentry/components/redirect';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {useLocation} from 'sentry/utils/useLocation';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {AiModuleToggleButton} from 'sentry/views/insights/agentMonitoring/components/aiModuleToggleButton';
+import {IssuesWidget} from 'sentry/views/insights/agentMonitoring/components/issuesWidget';
 import {LegacyLLMMonitoringInfoAlert} from 'sentry/views/insights/agentMonitoring/components/legacyLlmMonitoringAlert';
-import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmGenerationsWidget';
+import LLMGenerationsWidget from 'sentry/views/insights/agentMonitoring/components/llmCallsWidget';
+import TokenCostWidget from 'sentry/views/insights/agentMonitoring/components/modelCostWidget';
 import {ModelsTable} from 'sentry/views/insights/agentMonitoring/components/modelsTable';
+import TokenTypesWidget from 'sentry/views/insights/agentMonitoring/components/tokenTypesWidget';
 import TokenUsageWidget from 'sentry/views/insights/agentMonitoring/components/tokenUsageWidget';
+import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolCallsWidget';
+import ToolErrorsWidget from 'sentry/views/insights/agentMonitoring/components/toolErrorsWidget';
 import {ToolsTable} from 'sentry/views/insights/agentMonitoring/components/toolsTable';
-import ToolUsageWidget from 'sentry/views/insights/agentMonitoring/components/toolUsageWidget';
 import {TracesTable} from 'sentry/views/insights/agentMonitoring/components/tracesTable';
 import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agentMonitoring/hooks/useActiveTable';
+import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
 import {
   AIInsightsFeature,
   usePreferedAiModule,
 } from 'sentry/views/insights/agentMonitoring/utils/features';
 import {Onboarding} from 'sentry/views/insights/agentMonitoring/views/onboarding';
+import {
+  TwoColumnWidgetGrid,
+  WidgetGrid,
+} from 'sentry/views/insights/agentMonitoring/views/styles';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
-import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
-import {WidgetGrid} from 'sentry/views/insights/pages/platform/shared/styles';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const TableControl = SegmentedControl<TableType>;
 const TableControlItem = SegmentedControl.Item<TableType>;
@@ -82,14 +93,11 @@ function useShouldShowLegacyLLMAlert() {
 }
 
 function AgentsMonitoringPage() {
-  const location = useLocation();
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const hasInsightsLlmMonitoring = useShouldShowLegacyLLMAlert();
   const datePageFilterProps = limitMaxPickableDays(organization);
-
-  const {eventView, handleSearch} = useTransactionNameQuery();
-  const searchBarQuery = getTransactionSearchQuery(location, eventView.query);
+  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
 
   const {activeTable, onActiveTableChange} = useActiveTable();
 
@@ -112,14 +120,46 @@ function AgentsMonitoringPage() {
     [organization, activeTable, onActiveTableChange]
   );
 
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
+
+  const eapSpanSearchQueryBuilderProps = useMemo(
+    () => ({
+      initialQuery: searchQuery ?? '',
+      onSearch: (newQuery: string) => {
+        setSearchQuery(newQuery);
+      },
+      searchSource: 'agent-monitoring',
+      numberTags,
+      stringTags,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      replaceRawSearchKeys: ['span.description'],
+    }),
+    [
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
+  );
+
+  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
+    eapSpanSearchQueryBuilderProps
+  );
+
   return (
-    <React.Fragment>
+    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.AGENTS}
         headerActions={<AiModuleToggleButton />}
         headerTitle={
           <Fragment>
-            {AGENTS_LANDING_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }
@@ -131,17 +171,14 @@ function AgentsMonitoringPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <ProjectPageFilter resetParamsOnChange={['starred']} />
+                    <InsightsProjectSelector />
                     <EnvironmentPageFilter />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <StyledTransactionNameSearchBar
-                      organization={organization}
-                      eventView={eventView}
-                      onSearch={handleSearch}
-                      query={searchBarQuery}
-                    />
+                    <QueryBuilderWrapper>
+                      <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+                    </QueryBuilderWrapper>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -152,7 +189,7 @@ function AgentsMonitoringPage() {
                   <Onboarding />
                 ) : (
                   <Fragment>
-                    <WidgetGrid>
+                    <WidgetGrid rowHeight={210} paddingBottom={0}>
                       <WidgetGrid.Position1>
                         <OverviewAgentsRunsChartWidget />
                       </WidgetGrid.Position1>
@@ -162,15 +199,6 @@ function AgentsMonitoringPage() {
                       <WidgetGrid.Position3>
                         <IssuesWidget />
                       </WidgetGrid.Position3>
-                      <WidgetGrid.Position4>
-                        <LLMGenerationsWidget />
-                      </WidgetGrid.Position4>
-                      <WidgetGrid.Position5>
-                        <ToolUsageWidget />
-                      </WidgetGrid.Position5>
-                      <WidgetGrid.Position6>
-                        <TokenUsageWidget />
-                      </WidgetGrid.Position6>
                     </WidgetGrid>
                     <ControlsWrapper>
                       <TableControl
@@ -189,9 +217,10 @@ function AgentsMonitoringPage() {
                         </TableControlItem>
                       </TableControl>
                     </ControlsWrapper>
-                    {activeTable === TableType.TRACES && <TracesTable />}
-                    {activeTable === TableType.MODELS && <ModelsTable />}
-                    {activeTable === TableType.TOOLS && <ToolsTable />}
+
+                    {activeTable === TableType.TRACES && <TracesView />}
+                    {activeTable === TableType.MODELS && <ModelsView />}
+                    {activeTable === TableType.TOOLS && <ToolsView />}
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -199,7 +228,61 @@ function AgentsMonitoringPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-    </React.Fragment>
+    </SearchQueryBuilderProvider>
+  );
+}
+
+function TracesView() {
+  return (
+    <Fragment>
+      <WidgetGrid rowHeight={260}>
+        <WidgetGrid.Position1>
+          <LLMGenerationsWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <TokenUsageWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <ToolUsageWidget />
+        </WidgetGrid.Position3>
+      </WidgetGrid>
+      <TracesTable />
+    </Fragment>
+  );
+}
+
+function ModelsView() {
+  return (
+    <Fragment>
+      <WidgetGrid rowHeight={260}>
+        <WidgetGrid.Position1>
+          <TokenCostWidget />
+        </WidgetGrid.Position1>
+        <WidgetGrid.Position2>
+          <TokenUsageWidget />
+        </WidgetGrid.Position2>
+        <WidgetGrid.Position3>
+          <TokenTypesWidget />
+        </WidgetGrid.Position3>
+      </WidgetGrid>
+      <ModelsTable />
+    </Fragment>
+  );
+}
+
+function ToolsView() {
+  return (
+    <Fragment>
+      <TwoColumnWidgetGrid rowHeight={260}>
+        <TwoColumnWidgetGrid.Position1>
+          <ToolUsageWidget />
+        </TwoColumnWidgetGrid.Position1>
+        <TwoColumnWidgetGrid.Position2>
+          <ToolErrorsWidget />
+        </TwoColumnWidgetGrid.Position2>
+      </TwoColumnWidgetGrid>
+      <ToolsTable />
+    </Fragment>
   );
 }
 
@@ -220,13 +303,15 @@ function PageWithProviders() {
         moduleName={ModuleName.AGENTS}
         analyticEventName="insight.page_loads.agents"
       >
-        <AgentsMonitoringPage />
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <AgentsMonitoringPage />
+        </TraceItemAttributeProvider>
       </ModulePageProviders>
     </AIInsightsFeature>
   );
 }
 
-const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
+const QueryBuilderWrapper = styled('div')`
   flex: 2;
 `;
 
@@ -234,8 +319,8 @@ const ControlsWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
-  margin: ${space(2)} 0;
+  gap: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.xl} 0;
 `;
 
 export default PageWithProviders;

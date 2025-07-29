@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import ShortId, {Wrapper} from 'sentry/components/group/inboxBadges/shortId';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {t} from 'sentry/locale';
@@ -27,7 +27,7 @@ export function IssueCell({group, disabled = false, className}: IssueCellProps) 
         shortId={group.shortId}
         avatar={<ProjectAvatar project={group.project} />}
       />
-      <LastSeenWrapper gap={space(0.5)}>
+      <LastSeenWrapper gap="xs">
         {t('Last seen')}
         <TimeSince
           date={group.lastSeen}

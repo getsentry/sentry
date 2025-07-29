@@ -59,18 +59,19 @@ export const getChonkStylesConfig = ({
       color: 'currentcolor',
     },
   });
+  const boxShadow = `0px 2px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     control: (_, state) => ({
       display: 'flex',
       color: state.isDisabled ? theme.disabled : theme.textColor,
-      background: theme.background,
+      background: theme.tokens.background.secondary,
       border: `1px solid ${theme.border}`,
-      boxShadow: 'none',
-      borderRadius: theme.formRadius[size].borderRadius,
+      boxShadow,
+      ...theme.formRadius[size],
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
-      ...(state.isFocused && theme.focusRing),
+      ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.background,
         color: theme.disabled,
@@ -159,6 +160,7 @@ export const getChonkStylesConfig = ({
       backgroundColor: theme.background,
       borderRadius: '4px',
       border: `1px solid ${theme.border}`,
+      boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
       display: 'flex',
       margin: 0,
       marginTop: multiValueSizeMapping[size].spacing,
@@ -177,7 +179,7 @@ export const getChonkStylesConfig = ({
     multiValueRemove: () => ({
       alignItems: 'center',
       display: 'flex',
-      padding: '0 4px',
+      margin: '4px 4px',
 
       ...(isDisabled
         ? {
@@ -185,6 +187,7 @@ export const getChonkStylesConfig = ({
           }
         : {
             '&:hover': {
+              cursor: 'pointer',
               background: theme.hover,
             },
           }),

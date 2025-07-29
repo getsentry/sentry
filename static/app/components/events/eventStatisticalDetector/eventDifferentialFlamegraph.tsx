@@ -5,7 +5,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -576,7 +576,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           {props.subtitle}
         </DifferentialFlamegraphChangedFunctionsSubtitleText>
       </DifferentialFlamegraphChangedFunctionsTitleText>
-      <ButtonBar merged>
+      <ButtonBar merged gap="0">
         <DifferentialFlamegraphPaginationButton
           size="xs"
           disabled={!props.onPreviousPageClick}

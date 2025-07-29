@@ -854,7 +854,6 @@ describe('Performance > TransactionSummary', function () {
         screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
       await userEvent.paste('user.email:uhoh*');
-      await userEvent.keyboard('{enter}');
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledTimes(1);
@@ -1042,30 +1041,6 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Transaction Summary');
 
       expect(issueGet).toHaveBeenCalled();
-    });
-
-    it('renders the suspect spans table if the feature is enabled', async function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-spans-performance/',
-        body: [],
-      });
-
-      const {organization, router} = initializeData();
-
-      render(
-        <TestComponent
-          organization={organization}
-          router={router}
-          location={router.location}
-        />,
-        {
-          router,
-          organization,
-          deprecatedRouterMocks: true,
-        }
-      );
-
-      expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();
     });
 
     it('adds search condition on transaction status when clicking on status breakdown', async function () {

@@ -1,4 +1,5 @@
 import logging
+import random
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -38,9 +39,11 @@ class EventLifecycleMetric(ABC):
         """Get extra data to log."""
         return {}
 
-    def capture(self, assume_success: bool = True) -> "EventLifecycle":
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> "EventLifecycle":
         """Open a context to measure the event."""
-        return EventLifecycle(self, assume_success)
+        return EventLifecycle(self, assume_success, sample_log_rate)
 
 
 class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
@@ -102,9 +105,15 @@ class EventLifecycle:
     that inserting `record_failure` calls is still a dev to-do item.
     """
 
-    def __init__(self, payload: EventLifecycleMetric, assume_success: bool = True) -> None:
+    def __init__(
+        self,
+        payload: EventLifecycleMetric,
+        assume_success: bool = True,
+        sample_log_rate: float = 1.0,
+    ) -> None:
         self.payload = payload
         self.assume_success = assume_success
+        self.sample_log_rate = sample_log_rate
         self._state: EventLifecycleOutcome | None = None
         self._extra = dict(self.payload.get_extras())
 
@@ -127,6 +136,7 @@ class EventLifecycle:
         outcome: EventLifecycleOutcome,
         outcome_reason: BaseException | str | None = None,
         create_issue: bool = False,
+        sample_log_rate: float | None = None,
     ) -> None:
         """Record a starting or halting event.
 
@@ -167,10 +177,20 @@ class EventLifecycle:
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
 
-        if outcome == EventLifecycleOutcome.FAILURE:
-            logger.warning(key, **log_params)
-        elif outcome == EventLifecycleOutcome.HALTED:
-            logger.info(key, **log_params)
+        if outcome == EventLifecycleOutcome.FAILURE or outcome == EventLifecycleOutcome.HALTED:
+            # Use provided sample_log_rate or fall back to instance default
+            effective_sample_log_rate = (
+                sample_log_rate if sample_log_rate is not None else self.sample_log_rate
+            )
+
+            should_log = (
+                effective_sample_log_rate >= 1.0 or random.random() < effective_sample_log_rate
+            )
+            if should_log:
+                if outcome == EventLifecycleOutcome.FAILURE:
+                    logger.warning(key, **log_params)
+                elif outcome == EventLifecycleOutcome.HALTED:
+                    logger.info(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
@@ -181,13 +201,14 @@ class EventLifecycle:
         new_state: EventLifecycleOutcome,
         outcome_reason: BaseException | str | None = None,
         create_issue: bool = False,
+        sample_log_rate: float | None = None,
     ) -> None:
         if self._state is None:
             self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
             self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
-        self.record_event(new_state, outcome_reason, create_issue)
+        self.record_event(new_state, outcome_reason, create_issue, sample_log_rate)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.
@@ -204,6 +225,7 @@ class EventLifecycle:
         failure_reason: BaseException | str | None = None,
         extra: dict[str, Any] | None = None,
         create_issue: bool = True,
+        sample_log_rate: float | None = None,
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
@@ -223,17 +245,26 @@ class EventLifecycle:
         example, if we receive an error status from a remote service and gracefully
         display an error response to the user, it would be necessary to manually call
         `record_failure` on the context object.
+
+        Args:
+            failure_reason: The reason for the failure (exception or string)
+            extra: Additional data to include in logs
+            create_issue: Whether to create a Sentry issue (default True)
+            sample_log_rate: Rate at which to sample logs (0.0-1.0). If None, uses instance default.
         """
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.FAILURE, failure_reason, create_issue)
+        self._terminate(
+            EventLifecycleOutcome.FAILURE, failure_reason, create_issue, sample_log_rate
+        )
 
     def record_halt(
         self,
         halt_reason: BaseException | str | None = None,
         extra: dict[str, Any] | None = None,
         create_issue: bool = False,
+        sample_log_rate: float | None = None,
     ) -> None:
         """Record that the event halted in an ambiguous state.
 
@@ -253,11 +284,17 @@ class EventLifecycle:
           (2) monitor it for sudden spikes in frequency; and
           (3) investigate whether more detailed error information is available
               (but probably later, as a backlog item).
+
+        Args:
+            halt_reason: The reason for the halt (exception or string)
+            extra: Additional data to include in logs
+            create_issue: Whether to create a Sentry issue (default False)
+            sample_log_rate: Rate at which to sample logs (0.0-1.0). If None, uses instance default.
         """
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.HALTED, halt_reason, create_issue)
+        self._terminate(EventLifecycleOutcome.HALTED, halt_reason, create_issue, sample_log_rate)
 
     def __enter__(self) -> Self:
         if self._state is not None:
@@ -317,6 +354,12 @@ class IntegrationPipelineViewType(StrEnum):
 
     # Jira Server
     WEBHOOK_CREATION = "webhook_creation"
+
+    # All Integrations
+    FINISH_PIPELINE = "finish_pipeline"
+
+    # Opsgenie
+    INSTALLATION_CONFIGURATION = "installation_configuration"
 
 
 class IntegrationPipelineErrorReason(StrEnum):

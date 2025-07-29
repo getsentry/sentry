@@ -222,6 +222,7 @@ describe('OnDemandBudgets AM Checkout', function () {
               uptime: 0,
               profileDuration: 0,
               profileDurationUI: 0,
+              logBytes: 0,
             },
           },
           onDemandMaxSpend: 10000,

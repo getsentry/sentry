@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -27,14 +27,10 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/useQueuesByDestinationQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {
-  ModuleName,
-  SpanIndexedField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'messaging.destination.name'
   | 'avg(messaging.message.receive.latency)'
@@ -83,7 +79,7 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',

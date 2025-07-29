@@ -4,11 +4,13 @@ import responses
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apigrant import ApiGrant
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
@@ -18,7 +20,7 @@ from sentry.utils import json
 
 @control_silo_test
 class TestCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
 
         self.user = self.create_user()
         self.org = self.create_organization()
@@ -39,13 +41,25 @@ class TestCreator(TestCase):
         ).run(user=self.user, request=kwargs.pop("request", None))
 
     @responses.activate
-    def test_creates_installation(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_creates_installation(self, mock_record):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         assert install.pk
 
+        # SLO assertions
+        assert_success_metric(mock_record=mock_record)
+
+        # INSTALLATION_CREATE (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
     @responses.activate
-    def test_creates_installation__multiple_runs(self):
+    def test_creates_installation__multiple_runs(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         assert install.pk
@@ -54,13 +68,13 @@ class TestCreator(TestCase):
         assert install2.pk != install.pk
 
     @responses.activate
-    def test_creates_api_grant(self):
+    def test_creates_api_grant(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         assert ApiGrant.objects.filter(id=install.api_grant_id).exists()
 
     @responses.activate
-    def test_creates_service_hooks(self):
+    def test_creates_service_hooks(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
 
@@ -77,7 +91,7 @@ class TestCreator(TestCase):
             assert not ServiceHookProject.objects.all()
 
     @responses.activate
-    def test_creates_audit_log_entry(self):
+    def test_creates_audit_log_entry(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         request = self.make_request(user=self.user, method="GET")
         SentryAppInstallationCreator(organization_id=self.org.id, slug="nulldb").run(
@@ -88,7 +102,7 @@ class TestCreator(TestCase):
         ).exists()
 
     @responses.activate
-    def test_notifies_service(self):
+    def test_notifies_service(self) -> None:
 
         rpc_user = user_service.get_user(user_id=self.user.id)
         with self.tasks():
@@ -102,21 +116,21 @@ class TestCreator(TestCase):
             assert response_body.get("actor").get("id") == rpc_user.id
 
     @responses.activate
-    def test_associations(self):
+    def test_associations(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
 
         assert install.api_grant is not None
 
     @responses.activate
-    def test_pending_status(self):
+    def test_pending_status(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
 
         assert install.status == SentryAppInstallationStatus.PENDING
 
     @responses.activate
-    def test_installed_status(self):
+    def test_installed_status(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         internal_app = self.create_internal_integration(name="internal", organization=self.org)
         install = SentryAppInstallationCreator(
@@ -144,7 +158,7 @@ class TestCreator(TestCase):
         )
 
     @responses.activate
-    def test_placeholder_email(self):
+    def test_placeholder_email(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         proxy_user = User.objects.get(id=install.sentry_app.proxy_user.id)

@@ -628,13 +628,13 @@ Retrieve a collection of replay delete jobs.
 
 | Column       | Type         | Description                                                                                                                |
 | ------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| id           | number       | -                                                                                                                          |
+| id           | string       | -                                                                                                                          |
 | dateCreated  | string       | -                                                                                                                          |
 | dateUpdated  | string       | -                                                                                                                          |
 | rangeStart   | string       | The minimum UTC timestamp in the deletion range.                                                                           |
 | rangeEnd     | string       | The maximum UTC timestamp in the deletion range.                                                                           |
 | environments | list[string] | The environment to delete replays from. If not specified, applies to all environments                                      |
-| status       | string       | The status of the deletion job. One of `pending`, `in-progress`, and `completed`.                                          |
+| status       | string       | The status of the deletion job. One of `pending`, `in-progress`, `completed` or `failed`.                                  |
 | query        | string       | The query string which matches the to-be-deleted replays. Conforms to https://docs.sentry.io/concepts/search/#query-syntax |
 | countDeleted | number       | The count of replays deleted by the job.                                                                                   |
 

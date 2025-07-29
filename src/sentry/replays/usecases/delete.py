@@ -26,13 +26,12 @@ from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
-    make_video_filename,
     storage_kv,
 )
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
-from sentry.replays.usecases.query.configs.scalar import scalar_search_config
+from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -94,14 +93,11 @@ def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
     # to verify it exists.
     replay_id = row["replay_id"]
     retention_days = row["retention_days"]
-    platform = row["platform"]
 
     filenames = []
     for segment_id in range(row["max_segment_id"] + 1):
         segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
         filenames.append(make_recording_filename(segment))
-        if platform != "javascript":
-            filenames.append(make_video_filename(segment))
 
     return filenames
 
@@ -110,7 +106,6 @@ class MatchedRow(TypedDict):
     retention_days: int
     replay_id: str
     max_segment_id: int | None
-    platform: str
 
 
 class MatchedRows(TypedDict):
@@ -128,8 +123,9 @@ def fetch_rows_matching_pattern(
     offset: int,
 ) -> MatchedRows:
     search_filters = parse_search_query(query, config=replay_url_parser_config)
-    where = handle_search_filters(scalar_search_config, search_filters)
+    having = handle_search_filters(agg_search_config, search_filters)
 
+    where = []
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
@@ -139,7 +135,6 @@ def fetch_rows_matching_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
-            Function("any", parameters=[Column("platform")], alias="platform"),
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -149,6 +144,7 @@ def fetch_rows_matching_pattern(
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
+        having=having,
         groupby=[Column("replay_id")],
         orderby=[OrderBy(Function("min", parameters=[Column("timestamp")]), Direction.ASC)],
         granularity=Granularity(3600),
@@ -180,7 +176,6 @@ def fetch_rows_matching_pattern(
         "rows": [
             {
                 "max_segment_id": row["max_segment_id"],
-                "platform": row["platform"],
                 "replay_id": row["replay_id"],
                 "retention_days": row["retention_days"],
             }

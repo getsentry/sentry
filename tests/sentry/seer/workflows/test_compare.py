@@ -1,9 +1,13 @@
 import math
 
-from sentry.seer.workflows.compare import keyed_kl_score, keyed_rrf_score
+from sentry.seer.workflows.compare import (
+    keyed_kl_score,
+    keyed_rrf_score,
+    keyed_rrf_score_with_filter,
+)
 
 
-def test_keyed_kl_score():
+def test_keyed_kl_score() -> None:
     baseline = [
         ("key", "true", 10),
         ("key", "false", 200),
@@ -38,7 +42,7 @@ def test_keyed_kl_score():
     assert math.isclose(scores[0][1], 8.58, rel_tol=1e-3)
 
 
-def test_keyed_rrf_score():
+def test_keyed_rrf_score() -> None:
     baseline = [
         ("key", "true", 10),
         ("key", "false", 200),
@@ -59,7 +63,7 @@ def test_keyed_rrf_score():
     assert math.isclose(scores[1][1], 0.01612, abs_tol=1e-3)
 
 
-def test_synthetic_baseline_kl():
+def test_synthetic_baseline_kl() -> None:
     """
     This test checks the KL divergence for the synthetic generated baseline, describe in the tech spec.
     There are 4 attributes: country, device, error_code, browser.
@@ -115,7 +119,7 @@ def test_synthetic_baseline_kl():
     assert math.isclose(kl_scores[1], 0.17, abs_tol=1e-3)
 
 
-def test_zero_kl():
+def test_zero_kl() -> None:
     """
     This test checks the if the distirbution of the outliers is more or less the same as the baseline, the KL divergence should be close to 0.
     """
@@ -141,7 +145,7 @@ def test_zero_kl():
     assert math.isclose(scores[0][1], 0.0, abs_tol=1e-4)
 
 
-def test_entropy_only():
+def test_entropy_only() -> None:
     """
     This test ranks the attributes by entropy only.
     'country' has zero entropy, so it will be ranked the highest. 'browser' has the highest entropy, so it will be ranked the lowest.
@@ -177,7 +181,7 @@ def test_entropy_only():
     assert attributes == ["country", "device", "browser"]
 
 
-def test_small_support():
+def test_small_support() -> None:
     """
     This test checkes the that logic for adding unseen values to the distribution works.
     This logic is used to prevent small support attributes from being ranked higher than large support attributes.
@@ -211,3 +215,105 @@ def test_small_support():
     )
     attributes = [s[0] for s in scores]
     assert attributes == ["country", "browser", "device"]
+
+
+def test_keyed_rrf_score_with_filter_basic() -> None:
+    """
+    Test basic functionality of keyed_rrf_score_with_filter
+    """
+    baseline = [
+        ("key", "true", 10),
+        ("key", "false", 200),
+        ("other", "true", 1000),
+        ("other", "false", 5000),
+    ]
+    outliers = [("key", "true", 10), ("other", "true", 100), ("other", "false", 500)]
+
+    scores = keyed_rrf_score_with_filter(
+        baseline,
+        outliers,
+        total_baseline=sum(i[2] for i in baseline),
+        total_outliers=sum(i[2] for i in outliers),
+        z_threshold=1.5,
+    )
+
+    # Should return tuples of (key, score, filtered_boolean)
+    assert len(scores) == 2
+    for key, score, filtered in scores:
+        assert isinstance(key, str)
+        assert isinstance(score, float)
+        assert isinstance(filtered, bool)
+        assert score >= 0
+
+
+def test_keyed_rrf_score_with_filter_threshold_behavior() -> None:
+    """
+    Test filtering behavior with different z_threshold values
+    """
+    baseline = [
+        ("key", "true", 10),
+        ("key", "false", 200),
+        ("other", "true", 1000),
+        ("other", "false", 5000),
+    ]
+    outliers = [("key", "true", 10), ("other", "true", 100), ("other", "false", 500)]
+
+    # With low threshold, no keys should be filtered
+    high_threshold_scores = keyed_rrf_score_with_filter(
+        baseline,
+        outliers,
+        total_baseline=sum(i[2] for i in baseline),
+        total_outliers=sum(i[2] for i in outliers),
+        z_threshold=-10.0,
+    )
+
+    for key, score, filtered in high_threshold_scores:
+        assert not filtered, f"Key {key} should not be filtered with high threshold"
+
+
+def test_keyed_rrf_score_with_filter_empty_inputs() -> None:
+    """
+    Test with empty inputs
+    """
+    scores = keyed_rrf_score_with_filter(
+        [], [], total_baseline=0, total_outliers=0, z_threshold=1.5
+    )
+    assert scores == []
+
+
+def test_keyed_rrf_score_with_filter_consistency_with_regular_rrf() -> None:
+    """
+    Test that the scores are consistent with keyed_rrf_score
+    """
+    baseline = [
+        ("key", "true", 10),
+        ("key", "false", 200),
+        ("other", "true", 1000),
+        ("other", "false", 5000),
+    ]
+    outliers = [("key", "true", 10), ("other", "true", 100), ("other", "false", 500)]
+
+    # Get scores from both functions
+    filtered_scores = keyed_rrf_score_with_filter(
+        baseline,
+        outliers,
+        total_baseline=sum(i[2] for i in baseline),
+        total_outliers=sum(i[2] for i in outliers),
+        z_threshold=1.5,
+    )
+
+    regular_scores = keyed_rrf_score(
+        baseline,
+        outliers,
+        total_baseline=sum(i[2] for i in baseline),
+        total_outliers=sum(i[2] for i in outliers),
+    )
+
+    # Extract just the key-score pairs and sort them for comparison
+    filtered_key_scores = sorted([(key, score) for key, score, _ in filtered_scores])
+    regular_key_scores = sorted(regular_scores)
+
+    # The scores should be identical
+    for (key1, score1), (key2, score2) in zip(filtered_key_scores, regular_key_scores):
+        assert key1 == key2
+        assert math.isclose(score1, score2, rel_tol=1e-9)

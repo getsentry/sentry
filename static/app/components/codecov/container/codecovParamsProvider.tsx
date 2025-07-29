@@ -15,8 +15,8 @@ type CodecovQueryParamsProviderProps = {
 };
 
 const VALUES_TO_RESET_MAP = {
-  integratedOrg: ['repository', 'branch'],
-  repository: ['branch'],
+  integratedOrgId: ['repository', 'branch', 'testSuites'],
+  repository: ['branch', 'testSuites'],
   branch: [],
   codecovPeriod: [],
 };
@@ -80,7 +80,7 @@ export default function CodecovQueryParamsProvider({
   useEffect(() => {
     const entries = {
       repository: searchParams.get('repository'),
-      integratedOrg: searchParams.get('integratedOrg'),
+      integratedOrgId: searchParams.get('integratedOrgId'),
       branch: searchParams.get('branch'),
       codecovPeriod: searchParams.get('codecovPeriod'),
     };
@@ -98,13 +98,13 @@ export default function CodecovQueryParamsProvider({
   }, [setLocalStorageState, searchParams]);
 
   const repository = _defineParam('repository');
-  const integratedOrg = _defineParam('integratedOrg');
+  const integratedOrgId = _defineParam('integratedOrgId');
   const branch = _defineParam('branch');
   const codecovPeriod = _defineParam('codecovPeriod', '24h') as CodecovPeriodOptions;
 
   const params: CodecovContextData = {
     ...(repository ? {repository} : {}),
-    ...(integratedOrg ? {integratedOrg} : {}),
+    ...(integratedOrgId ? {integratedOrgId} : {}),
     ...(branch ? {branch} : {}),
     codecovPeriod,
     changeContextValue,

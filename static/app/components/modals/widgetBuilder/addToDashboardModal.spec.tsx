@@ -32,6 +32,8 @@ describe('add to dashboard modal', () => {
     widgetDisplay: [DisplayType.AREA],
     widgetPreview: [],
     projects: [],
+    environment: [],
+    filters: {},
   };
   const testDashboard: DashboardDetails = {
     id: '1',
@@ -77,7 +79,15 @@ describe('add to dashboard modal', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{...testDashboardListItem, widgetDisplay: [DisplayType.AREA]}],
+      body: [
+        {...testDashboardListItem, widgetDisplay: [DisplayType.AREA]},
+        {
+          ...testDashboardListItem,
+          title: 'Other Dashboard',
+          id: '2',
+          widgetDisplay: [DisplayType.AREA],
+        },
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -587,5 +597,38 @@ describe('add to dashboard modal', () => {
 
     expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
+  });
+
+  it('does not show the current dashboard in the list of options', async () => {
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        location={LocationFixture({pathname: '/organizations/org-slug/dashboard/1/'})}
+      />,
+      {
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+          },
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByText('Select Dashboard'));
+    expect(screen.getByText('Other Dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('Test Dashboard')).not.toBeInTheDocument();
   });
 });

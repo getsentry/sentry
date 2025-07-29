@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

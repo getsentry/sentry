@@ -54,6 +54,7 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.SHOW_GREATER_THAN,
   Actions.SHOW_LESS_THAN,
   Actions.COPY_TO_CLIPBOARD,
+  Actions.OPEN_EXTERNAL_LINK,
 ];
 
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
@@ -74,7 +75,7 @@ export function useTableStyles(
       : options?.prefixColumnWidth;
 
   const resizingColumnIndex = useRef<number | null>(null);
-  const columnWidthsRef = useRef<Array<number | null>>(fields.map(() => null));
+  const columnWidthsRef = useRef<Array<number | null>>(fields.map(_ => null));
 
   useEffect(() => {
     columnWidthsRef.current = fields.map(

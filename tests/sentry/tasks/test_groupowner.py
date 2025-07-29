@@ -20,7 +20,7 @@ pytestmark = [requires_snuba]
 
 
 class TestGroupOwners(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
@@ -82,7 +82,7 @@ class TestGroupOwners(TestCase):
             ]
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.set_release_commits(self.user.email)
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         event_frames = get_frame_paths(self.event)
@@ -100,7 +100,7 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    def test_user_deletion_cascade(self):
+    def test_user_deletion_cascade(self) -> None:
         other_user = self.create_user()
         group = self.create_group()
         other_group = self.create_group()
@@ -129,7 +129,7 @@ class TestGroupOwners(TestCase):
 
         assert GroupOwner.objects.count() == 1
 
-    def test_no_matching_user(self):
+    def test_no_matching_user(self) -> None:
         self.set_release_commits("not@real.user")
 
         result = get_serialized_event_file_committers(self.project, self.event)
@@ -149,7 +149,7 @@ class TestGroupOwners(TestCase):
         )
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
-    def test_delete_old_entries(self):
+    def test_delete_old_entries(self) -> None:
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
         event_frames = get_frame_paths(self.event)
@@ -287,7 +287,7 @@ class TestGroupOwners(TestCase):
         assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
         assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
-    def test_update_existing_entries(self):
+    def test_update_existing_entries(self) -> None:
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
         event_frames = get_frame_paths(self.event)
@@ -323,7 +323,7 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    def test_no_release_or_commit(self):
+    def test_no_release_or_commit(self) -> None:
         event_with_no_release = self.store_event(
             data={
                 "message": "BOOM!",
@@ -468,7 +468,7 @@ class TestGroupOwners(TestCase):
 
         assert not GroupOwner.objects.filter(user_id=self.user.id).exists()
 
-    def test_owners_count(self):
+    def test_owners_count(self) -> None:
         self.set_release_commits(self.user.email)
         self.user = self.create_user()
         event_frames = get_frame_paths(self.event)

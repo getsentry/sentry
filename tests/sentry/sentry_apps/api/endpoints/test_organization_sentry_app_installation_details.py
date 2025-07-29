@@ -14,7 +14,7 @@ from sentry.utils import json
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -52,7 +52,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
 
 @control_silo_test
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
-    def test_access_within_installs_organization_by_member(self):
+    def test_access_within_installs_organization_by_member(self) -> None:
         member_user = self.create_user("member@example.com")
         self.create_member(organization=self.org, user=member_user, role="member")
         self.login_as(member_user)
@@ -67,7 +67,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             "status": "pending",
         }
 
-    def test_access_within_installs_organization_by_manager(self):
+    def test_access_within_installs_organization_by_manager(self) -> None:
         manager_user = self.create_user("manager@example.com")
         self.create_member(organization=self.org, user=manager_user, role="manager")
         self.login_as(manager_user)
@@ -83,7 +83,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
             "status": "pending",
         }
 
-    def test_no_access_outside_install_organization(self):
+    def test_no_access_outside_install_organization(self) -> None:
         self.login_as(user=self.user)
 
         url = reverse("sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid])
@@ -121,7 +121,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
         assert response.status_code == 204
 
-    def test_member_cannot_delete_install(self):
+    def test_member_cannot_delete_install(self) -> None:
         user = self.create_user("bar@example.com")
         self.create_member(organization=self.org, user=user, role="member")
         self.login_as(user)
@@ -132,7 +132,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
 @control_silo_test
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.token = GrantExchanger(
             install=self.installation,
@@ -164,7 +164,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         self.installation.refresh_from_db()
         assert self.installation.status == SentryAppInstallationStatus.INSTALLED
 
-    def test_sentry_app_installation_mark_pending_status(self):
+    def test_sentry_app_installation_mark_pending_status(self) -> None:
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid]
         )
@@ -180,7 +180,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
             == "Invalid value 'pending' for status. Valid values: 'installed'"
         )
 
-    def test_sentry_app_installation_mark_installed_wrong_app(self):
+    def test_sentry_app_installation_mark_installed_wrong_app(self) -> None:
         self.token = GrantExchanger(
             install=self.installation2,
             code=self.installation2.api_grant.code,
@@ -198,7 +198,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         )
         assert response.status_code == 403
 
-    def test_sentry_app_installation_mark_installed_no_token(self):
+    def test_sentry_app_installation_mark_installed_no_token(self) -> None:
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid]
         )

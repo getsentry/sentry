@@ -6,10 +6,10 @@ import type {LocationDescriptor} from 'history';
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -178,7 +178,15 @@ function TagDetailsRow({
     },
   };
   const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
-  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+  // Ensure no item shows 100% when there are multiple tag values
+  const hasMultipleItems = (tag.uniqueValues ?? 0) > 1;
+  const cappedPercentage = hasMultipleItems && percentage >= 100 ? 99 : percentage;
+  const displayPercentage =
+    cappedPercentage < 1
+      ? '<1%'
+      : hasMultipleItems && percentage >= 100
+        ? '>99%'
+        : `${cappedPercentage.toFixed(0)}%`;
 
   return (
     <Row>

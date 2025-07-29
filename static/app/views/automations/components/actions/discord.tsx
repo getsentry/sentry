@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/core/layout';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
   OptionalRowLine,
   RowLine,
@@ -7,7 +7,6 @@ import {
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissableInfoAlert';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   type Action,
   type ActionHandler,
@@ -34,7 +33,7 @@ export function DiscordDetails({
     {
       logo: ActionMetadata[ActionType.DISCORD]?.icon,
       server: integrationName,
-      channel: String(action.config.target_identifier),
+      channel: String(action.config.targetIdentifier),
       tags: action.data.tags ? `, and in the message show tags [${tags}]` : null,
     }
   );
@@ -42,7 +41,7 @@ export function DiscordDetails({
 
 export function DiscordNode() {
   return (
-    <Flex direction="column" gap={space(1)} flex="1">
+    <Flex direction="column" gap="md" flex="1">
       <RowLine>
         {tct('Send a [logo] Discord message to [server] server, to [channel]', {
           logo: ActionMetadata[ActionType.DISCORD]?.icon,
@@ -65,4 +64,14 @@ export function DiscordNode() {
       </DismissableInfoAlert>
     </Flex>
   );
+}
+
+export function validateDiscordAction(action: Action): string | undefined {
+  if (!action.integrationId) {
+    return t('You must specify a Discord server.');
+  }
+  if (!action.config.targetDisplay) {
+    return t('You must specify a channel ID or URL.');
+  }
+  return undefined;
 }

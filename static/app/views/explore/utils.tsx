@@ -340,7 +340,7 @@ export function viewSamplesTarget({
     mode: Mode.SAMPLES,
     fields: newFields,
     query: search.formatString(),
-    sortBys: [sortBy],
+    sampleSortBys: [sortBy],
   });
 }
 
@@ -415,7 +415,10 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (organization.features.includes('performance-trace-explorer')) {
+  if (
+    organization.features.includes('performance-trace-explorer') ||
+    organization.features.includes('visibility-explore-view')
+  ) {
     return 'traces';
   }
 
@@ -688,3 +691,16 @@ export function prettifyAggregation(aggregation: string): string | null {
 
   return null;
 }
+
+export const removeHiddenKeys = (
+  tagCollection: TagCollection,
+  hiddenKeys: string[]
+): TagCollection => {
+  const result: TagCollection = {};
+  for (const key in tagCollection) {
+    if (key && !hiddenKeys.includes(key) && tagCollection[key]) {
+      result[key] = tagCollection[key];
+    }
+  }
+  return result;
+};

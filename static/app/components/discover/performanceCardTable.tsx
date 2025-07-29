@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/core/alert';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -685,7 +685,7 @@ function PerformanceCardTable({
         {platformPerformanceRender[performanceType]?.title}
       </HeadCellContainer>
       {isUnknownPlatform && (
-        <StyledAlert type="warning" showIcon system>
+        <StyledAlert type="warning" system>
           {tct(
             'For more performance metrics, specify which platform this project is using in [link]',
             {

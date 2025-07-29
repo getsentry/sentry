@@ -6,7 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -116,7 +116,7 @@ export function AddAutofixRepoModalContent({
       </Header>
       <Body>
         {showMaxLimitAlert && (
-          <Alert type="info" showIcon>
+          <Alert type="info">
             {t('Seer is currently limited to %s repositories.', maxReposLimit)}
           </Alert>
         )}

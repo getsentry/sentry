@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -338,7 +337,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   {
                     code: <code />,
                     link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#dsn-configuration/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#configure" />
                     ),
                   }
                 ),
@@ -349,7 +348,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             "Next, you'll need to set your log levels, as illustrated here. You can learn more about [link:configuring log levels] in our documentation.",
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#minimum-log-level/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#minimum-log-level" />
               ),
             }
           ),

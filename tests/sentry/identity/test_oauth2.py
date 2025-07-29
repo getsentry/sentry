@@ -13,6 +13,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.silo import control_silo_test
 
@@ -22,7 +23,7 @@ MockResponse = namedtuple("MockResponse", ["headers", "content"])
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class OAuth2CallbackViewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
@@ -139,10 +140,27 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, "json_error")
 
+    @responses.activate
+    def test_api_error(self, mock_record):
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"token": "a-fake-token"},
+            status=401,
+        )
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        code = "auth-code"
+        result = self.view.exchange_token(self.request, pipeline, code)
+        assert "token" not in result
+        assert "error" in result
+        assert "401" in result["error"]
+
+        assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
@@ -161,7 +179,7 @@ class OAuth2LoginViewTest(TestCase):
             scope="all-the-things",
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         response = self.view.dispatch(self.request, pipeline)
 
@@ -176,7 +194,7 @@ class OAuth2LoginViewTest(TestCase):
         assert query["scope"][0] == "all-the-things"
         assert "state" in query
 
-    def test_customer_domains(self):
+    def test_customer_domains(self) -> None:
         self.request.subdomain = "albertos-apples"
         pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
         response = self.view.dispatch(self.request, pipeline)

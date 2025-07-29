@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db.models.expressions import RawSQL
 
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group
 from sentry.models.repository import Repository
@@ -20,6 +21,34 @@ This number is global so that fetching issues and events is consistent.
 """
 
 logger = logging.getLogger(__name__)
+
+
+def get_latest_issue_event(group_id: int) -> dict[str, Any]:
+    """
+    Get the latest event for a group.
+    """
+    group = Group.objects.filter(id=group_id).first()
+    if not group:
+        logger.warning(
+            "Group not found",
+            extra={"group_id": group_id},
+        )
+        return {}
+
+    event = group.get_latest_event()
+    if not event:
+        logger.warning(
+            "No event found",
+            extra={"group_id": group_id},
+        )
+        return {}
+
+    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    return {  # Structured like seer.automation.models.IssueDetails
+        "id": int(serialized_event["groupID"]),
+        "title": serialized_event["title"],
+        "events": [serialized_event],
+    }
 
 
 def get_issues_related_to_exception_type(

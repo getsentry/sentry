@@ -10,24 +10,23 @@ from sentry.testutils.notifications.platform import MockNotification, MockNotifi
 
 
 class EmailRendererTest(TestCase):
-    def test_default_renderer(self):
-        renderer = EmailNotificationProvider.get_renderer(category=NotificationCategory.DEBUG)
-        # TODO(ecosystem): Replace this with a real data blob, template and renderable
-        assert (
-            renderer.render(
-                data=MockNotification(message="test"), template=MockNotificationTemplate()
-            )
-            == {}
+    def test_default_renderer(self) -> None:
+        data = MockNotification(message="test")
+        template = MockNotificationTemplate()
+        rendered_template = template.render(data)
+        renderer = EmailNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
         )
+        assert renderer.render(data=data, rendered_template=rendered_template) == {}
 
 
 class EmailNotificationProviderTest(TestCase):
-    def test_basic_fields(self):
+    def test_basic_fields(self) -> None:
         provider = EmailNotificationProvider()
         assert provider.key == NotificationProviderKey.EMAIL
         assert provider.target_class == GenericNotificationTarget
         assert provider.target_resource_types == [NotificationTargetResourceType.EMAIL]
 
-    def test_is_available(self):
+    def test_is_available(self) -> None:
         assert EmailNotificationProvider.is_available() is True
         assert EmailNotificationProvider.is_available(organization=self.organization) is True

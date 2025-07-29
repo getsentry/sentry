@@ -296,11 +296,7 @@ export type Subscription = {
   contractPeriodEnd: string;
   contractPeriodStart: string;
   customPrice: number | null;
-  // TODO(data categories): BIL-960
-  customPriceAttachments: number | null;
-  customPriceErrors: number | null;
   customPricePcss: number | null;
-  customPriceTransactions: number | null;
   dataRetention: string | null;
   // Event details
   dateJoined: string;
@@ -363,20 +359,7 @@ export type Subscription = {
   /**
    * Total events allowed for the current usage period including gifted
    */
-  prepaidEventsAllowed: number | null;
   renewalDate: string;
-  // TODO(data categories): BIL-960
-  reservedAttachments: number | null;
-  /**
-   * For AM plan tier, null for previous tiers
-   */
-  reservedErrors: number | null;
-  /**
-   * Reserved events on a recurring subscription
-   * For plan tiers previous to am1
-   */
-  reservedEvents: number;
-  reservedTransactions: number | null;
   slug: string;
   spendAllocationEnabled: boolean;
   sponsoredType: string | null;
@@ -432,9 +415,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  // TODO(data categories): BIL-960
-  trueForward?: {attachment: boolean; error: boolean; transaction: boolean};
 
   /**
    * Optional without access, and possibly null with access
@@ -739,15 +719,13 @@ export enum CreditType {
   ERROR = 'error',
   TRANSACTION = 'transaction',
   SPAN = 'span',
-  SPAN_INDEXED = 'spanIndexed',
-  PROFILE_DURATION = 'profileDuration',
-  PROFILE_DURATION_UI = 'profileDurationUI',
+  PROFILE_DURATION = 'profile_duration',
+  PROFILE_DURATION_UI = 'profile_duration_ui',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
-  MONITOR_SEAT = 'monitorSeat',
   DISCOUNT = 'discount',
   PERCENT = 'percent',
-  UPTIME = 'uptime',
+  LOG_BYTE = 'log_byte',
 }
 
 type BaseRecurringCredit = {
@@ -777,7 +755,8 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.PROFILE_DURATION
     | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
-    | CreditType.REPLAY;
+    | CreditType.REPLAY
+    | CreditType.LOG_BYTE;
 }
 
 export type RecurringCredit =
@@ -795,6 +774,7 @@ export enum CohortId {
   EIGHTH = 8,
   NINTH = 9,
   TENTH = 10,
+  TEST_ONE = 111,
 }
 
 /** @internal exported for tests only */
@@ -804,18 +784,13 @@ export type Cohort = {
   secondDiscount: number;
 };
 
-// TODO(data categories): BIL-963
 export type NextPlanInfo = {
   contractPeriod: string;
   discountAmount: number;
   discountMonths: number;
-  errorCredits: number;
-  errorCreditsMonths: number;
   id: string;
   name: string;
   reserved: Partial<Record<DataCategory, number>>;
-  reservedAttachments: number;
-  reservedErrors: number;
   totalPrice: number;
   categoryCredits?: Partial<
     Record<
@@ -826,7 +801,6 @@ export type NextPlanInfo = {
       }
     >
   >;
-  reservedTransactions?: number;
 };
 
 export type PlanMigration = {
@@ -1018,6 +992,10 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   freeEventsMultiple: number;
   /**
+   * Whether the category has spike protection support
+   */
+  hasSpikeProtection: boolean;
+  /**
    * The maximum number of free events that can be gifted
    */
   maxAdminGift: number;
@@ -1025,4 +1003,8 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * The tooltip text for the checkout page
    */
   reservedVolumeTooltip: string | null;
+  /**
+   * How usage is tallied for the category
+   */
+  tallyType: 'usage' | 'seat';
 }

@@ -58,7 +58,7 @@ def call_endpoint(client, relay, private_key):
         },
     }
 )
-def test_global_config():
+def test_global_config() -> None:
     config = get_global_config()
 
     normalized = normalize_global_config(config)
@@ -123,7 +123,7 @@ def test_return_global_config_on_right_version(
     },
 )
 @patch("sentry.relay.globalconfig.RELAY_OPTIONS", [])
-def test_global_config_valid_with_generic_filters():
+def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
     assert config == normalize_global_config(config)
 

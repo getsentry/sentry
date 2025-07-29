@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
-import {SpanFields, SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -25,6 +25,7 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
+  DETECTOR = 'detector',
   DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -140,6 +141,143 @@ export enum FieldKey {
   OTA_UPDATES_UPDATE_ID = 'ota_updates.update_id',
 }
 
+type SharedFieldKey =
+  | FieldKey.DIST
+  | FieldKey.ENVIRONMENT
+  | FieldKey.EVENT_TIMESTAMP
+  | FieldKey.HAS
+  | FieldKey.HTTP_METHOD
+  | FieldKey.HTTP_REFERER
+  | FieldKey.HTTP_STATUS_CODE
+  | FieldKey.HTTP_URL
+  | FieldKey.ID
+  | FieldKey.MESSAGE
+  | FieldKey.PLATFORM
+  | FieldKey.PLATFORM_NAME
+  | FieldKey.PROFILE_ID
+  | FieldKey.PROJECT
+  | FieldKey.REPLAY_ID
+  | FieldKey.TIMESTAMP
+  | FieldKey.TITLE
+  | FieldKey.TRACE
+  | FieldKey.TRACE_PARENT_SPAN
+  | FieldKey.TRACE_SPAN
+  | FieldKey.TRANSACTION
+  | FieldKey.APP_IN_FOREGROUND;
+
+type ErrorFieldKey =
+  | FieldKey.AGE
+  | FieldKey.ASSIGNED
+  | FieldKey.ASSIGNED_OR_SUGGESTED
+  | FieldKey.BOOKMARKS
+  | FieldKey.CULPRIT
+  | FieldKey.DETECTOR
+  | FieldKey.ERROR_HANDLED
+  | FieldKey.ERROR_MECHANISM
+  | FieldKey.ERROR_TYPE
+  | FieldKey.ERROR_UNHANDLED
+  | FieldKey.ERROR_VALUE
+  | FieldKey.ERROR_RECEIVED
+  | FieldKey.ERROR_MAIN_THREAD
+  | FieldKey.EVENT_TYPE
+  | FieldKey.FIRST_RELEASE
+  | FieldKey.FIRST_SEEN
+  | FieldKey.IS
+  | FieldKey.ISSUE
+  | FieldKey.ISSUE_CATEGORY
+  | FieldKey.ISSUE_PRIORITY
+  | FieldKey.ISSUE_SEER_ACTIONABILITY
+  | FieldKey.ISSUE_SEER_LAST_RUN
+  | FieldKey.ISSUE_TYPE
+  | FieldKey.LAST_SEEN
+  | FieldKey.LEVEL
+  | FieldKey.LOCATION
+  | FieldKey.STACK_ABS_PATH
+  | FieldKey.STACK_COLNO
+  | FieldKey.STACK_FILENAME
+  | FieldKey.STACK_FUNCTION
+  | FieldKey.STACK_IN_APP
+  | FieldKey.STACK_LINENO
+  | FieldKey.STACK_MODULE
+  | FieldKey.STACK_PACKAGE
+  | FieldKey.STACK_RESOURCE
+  | FieldKey.STACK_STACK_LEVEL
+  | FieldKey.STATUS
+  | FieldKey.SYMBOLICATED_IN_APP
+  | FieldKey.TIMES_SEEN
+  | FieldKey.TYPE
+  | FieldKey.UNREAL_CRASH_TYPE;
+
+type BrowserFieldKey = FieldKey.BROWSER_NAME;
+
+type DeviceFieldKey =
+  | FieldKey.DEVICE
+  | FieldKey.DEVICE_ARCH
+  | FieldKey.DEVICE_BATTERY_LEVEL
+  | FieldKey.DEVICE_BRAND
+  | FieldKey.DEVICE_CHARGING
+  | FieldKey.DEVICE_CLASS
+  | FieldKey.DEVICE_FAMILY
+  | FieldKey.DEVICE_LOCALE
+  | FieldKey.DEVICE_MODEL_ID
+  | FieldKey.DEVICE_NAME
+  | FieldKey.DEVICE_ONLINE
+  | FieldKey.DEVICE_ORIENTATION
+  | FieldKey.DEVICE_SCREEN_DENSITY
+  | FieldKey.DEVICE_SCREEN_DPI
+  | FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS
+  | FieldKey.DEVICE_SCREEN_WIDTH_PIXELS
+  | FieldKey.DEVICE_SIMULATOR
+  | FieldKey.DEVICE_UUID;
+
+type GeoFieldKey =
+  | FieldKey.GEO_CITY
+  | FieldKey.GEO_COUNTRY_CODE
+  | FieldKey.GEO_REGION
+  | FieldKey.GEO_SUBDIVISION;
+
+type OsFieldKey =
+  | FieldKey.OS
+  | FieldKey.OS_BUILD
+  | FieldKey.OS_KERNEL_VERSION
+  | FieldKey.OS_NAME
+  | FieldKey.OS_DISTRIBUTION_NAME
+  | FieldKey.OS_DISTRIBUTION_VERSION;
+
+type ReleaseFieldKey =
+  | FieldKey.RELEASE
+  | FieldKey.RELEASE_BUILD
+  | FieldKey.RELEASE_PACKAGE
+  | FieldKey.RELEASE_STAGE
+  | FieldKey.RELEASE_VERSION;
+
+type SDKFieldKey = FieldKey.SDK_NAME | FieldKey.SDK_VERSION;
+
+type TransactionFieldKey =
+  | FieldKey.TIMESTAMP_TO_DAY
+  | FieldKey.TIMESTAMP_TO_HOUR
+  | FieldKey.TOTAL_COUNT
+  | FieldKey.TRACE_CLIENT_SAMPLE_RATE
+  | FieldKey.TRANSACTION_DURATION
+  | FieldKey.TRANSACTION_OP
+  | FieldKey.TRANSACTION_STATUS;
+
+type UserFieldKey =
+  | FieldKey.USER
+  | FieldKey.USER_DISPLAY
+  | FieldKey.USER_EMAIL
+  | FieldKey.USER_ID
+  | FieldKey.USER_IP
+  | FieldKey.USER_USERNAME
+  | FieldKey.USER_SEGMENT;
+
+type ProfileFieldKey = FieldKey.FUNCTION_DURATION;
+
+type OTAFieldKey =
+  | FieldKey.OTA_UPDATES_CHANNEL
+  | FieldKey.OTA_UPDATES_RUNTIME_VERSION
+  | FieldKey.OTA_UPDATES_UPDATE_ID;
+
 export enum FieldValueType {
   BOOLEAN = 'boolean',
   DATE = 'date',
@@ -227,6 +365,9 @@ export enum AggregationKey {
   COUNT_WEB_VITALS = 'count_web_vitals',
   EPS = 'eps',
   EPM = 'epm',
+  SAMPLE_COUNT = 'sample_count',
+  SAMPLE_EPS = 'sample_eps',
+  SAMPLE_EPM = 'sample_epm',
   FAILURE_COUNT = 'failure_count',
   MIN = 'min',
   MAX = 'max',
@@ -260,6 +401,34 @@ export enum IsFieldValues {
   FOR_REVIEW = 'for_review',
   LINKED = 'linked',
   UNLINKED = 'unlinked',
+}
+
+const IsFieldDescriptions: Record<IsFieldValues, string> = {
+  [IsFieldValues.RESOLVED]: t('Issues marked as fixed'),
+  [IsFieldValues.UNRESOLVED]: t('Issues still active and needing attention'),
+  [IsFieldValues.ARCHIVED]: t('Issues that have been archived'),
+  [IsFieldValues.ESCALATING]: t(
+    'Issues occurring significantly more often than they used to'
+  ),
+  [IsFieldValues.NEW]: t('Issues that first occurred in the last 7 days'),
+  [IsFieldValues.ONGOING]: t(
+    'Issues created more than 7 days ago or manually been marked as reviewed'
+  ),
+  [IsFieldValues.REGRESSED]: t('Issues resolved then occurred again'),
+  [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
+  [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
+  [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
+  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+};
+
+export function getIsFieldDescriptionFromValue(
+  isFieldValue: IsFieldValues
+): string | undefined {
+  if (isFieldValue in IsFieldDescriptions) {
+    return IsFieldDescriptions[isFieldValue];
+  }
+  return undefined;
 }
 
 type AggregateColumnParameter = {
@@ -503,6 +672,24 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.EPM]: {
     desc: t('Events per minute'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+    parameters: [],
+  },
+  [AggregationKey.SAMPLE_COUNT]: {
+    desc: t('Raw sample count'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.INTEGER,
+    parameters: [],
+  },
+  [AggregationKey.SAMPLE_EPS]: {
+    desc: t('Raw sample EPS'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+    parameters: [],
+  },
+  [AggregationKey.SAMPLE_EPM]: {
+    desc: t('Raw sample EPM'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
     parameters: [],
@@ -826,9 +1013,9 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
 };
 
 // TODO: Extend the two lists below with more options upon backend support
-export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
-  SpanIndexedField.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
-  SpanIndexedField.SPAN_SELF_TIME,
+export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanFields[] = [
+  SpanFields.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
+  SpanFields.SPAN_SELF_TIME,
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
@@ -857,13 +1044,27 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       {
         name: 'column',
         kind: 'column',
-        columnTypes: validateForNumericAggregate([
-          FieldValueType.DURATION,
-          FieldValueType.NUMBER,
-          FieldValueType.PERCENTAGE,
-        ]),
+        columnTypes: function ({key, valueType}) {
+          return (
+            key === SpanFields.SPAN_DURATION &&
+            (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
+          );
+        },
         defaultValue: 'span.duration',
         required: false,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+    valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
       },
     ],
   },
@@ -1178,110 +1379,211 @@ const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 };
 
 type TraceFields =
-  | SpanIndexedField.IS_TRANSACTION
-  | SpanIndexedField.SPAN_ACTION
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.SPAN_DOMAIN
-  | SpanIndexedField.SPAN_DURATION
-  | SpanIndexedField.SPAN_GROUP
-  | SpanIndexedField.SPAN_CATEGORY
-  | SpanIndexedField.SPAN_OP
-  | SpanIndexedField.NORMALIZED_DESCRIPTION
+  | SpanFields.IS_TRANSACTION
+  | SpanFields.SPAN_ACTION
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.SPAN_DOMAIN
+  | SpanFields.SPAN_DURATION
+  | SpanFields.SPAN_GROUP
+  | SpanFields.SPAN_CATEGORY
+  | SpanFields.SPAN_OP
+  | SpanFields.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
-  | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.SPAN_STATUS
-  | SpanIndexedField.RESPONSE_CODE
-  | SpanIndexedField.CACHE_HIT;
+  | SpanFields.SPAN_SELF_TIME
+  | SpanFields.SPAN_STATUS
+  | SpanFields.SPAN_STATUS_CODE
+  | SpanFields.CACHE_HIT;
 
 const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
-  [SpanIndexedField.SPAN_ACTION]: {
+  [SpanFields.SPAN_ACTION]: {
     desc: t(
       'The Sentry Insights span action, e.g `SELECT` for a SQL span or `POST` for an HTTP client span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_DESCRIPTION]: {
+  [SpanFields.SPAN_DESCRIPTION]: {
     desc: t('Description of the span’s operation'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.NORMALIZED_DESCRIPTION]: {
+  [SpanFields.NORMALIZED_DESCRIPTION]: {
     desc: t(
       'Parameterized and normalized description of the span, commonly used for grouping within insights'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_DOMAIN]: {
+  [SpanFields.SPAN_DOMAIN]: {
     desc: t(
       'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_DURATION]: {
+  [SpanFields.SPAN_DURATION]: {
     desc: t('The total time taken by the span'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanIndexedField.SPAN_GROUP]: {
+  [SpanFields.SPAN_GROUP]: {
     desc: t('Unique hash of the span’s description'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_CATEGORY]: {
+  [SpanFields.SPAN_CATEGORY]: {
     desc: t(
       'The prefix of the span operation, e.g if `span.op` is `http.client`, then `span.category` is `http`'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_OP]: {
+  [SpanFields.SPAN_OP]: {
     desc: t('The operation of the span, e.g `http.client`, `middleware`'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.SPAN_SELF_TIME]: {
+  [SpanFields.SPAN_SELF_TIME]: {
     desc: t('The duration of the span excluding the duration of its child spans'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanIndexedField.SPAN_STATUS]: {
+  [SpanFields.SPAN_STATUS]: {
     desc: t('Status of the operation the span represents'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.RESPONSE_CODE]: {
+  [SpanFields.SPAN_STATUS_CODE]: {
     desc: t('The HTTP response status code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanIndexedField.IS_TRANSACTION]: {
+  [SpanFields.IS_TRANSACTION]: {
     desc: t('The span is also a transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
-  [SpanIndexedField.CACHE_HIT]: {
+  [SpanFields.CACHE_HIT]: {
     desc: t('`true` if the  cache was hit, `false` otherwise'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
 };
 
-type AllEventFieldKeys =
-  | keyof typeof AGGREGATION_FIELDS
-  | keyof typeof MEASUREMENT_FIELDS
-  | keyof typeof SPAN_OP_FIELDS
-  | keyof typeof TRACE_FIELD_DEFINITIONS
-  | FieldKey;
+const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
+  [FieldKey.DIST]: {
+    desc: t(
+      'Distinguishes between build or deployment variants of the same release of an application.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ENVIRONMENT]: {
+    desc: t('The environment the event was seen in'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.EVENT_TIMESTAMP]: {
+    desc: t('Date and time of the event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
+  [FieldKey.HTTP_METHOD]: {
+    desc: t('Method of the request that created the event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.HTTP_REFERER]: {
+    desc: t('The web page the resource was requested from'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.HTTP_STATUS_CODE]: {
+    desc: t('Type of response (i.e., 200, 404)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.HTTP_URL]: {
+    desc: t('Full URL of the request without parameters'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ID]: {
+    desc: t('The event identification number'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.MESSAGE]: {
+    desc: t('Error message or transaction name'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.PLATFORM]: {
+    desc: t('Name of the platform'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.PLATFORM_NAME]: {
+    desc: t('Name of the platform'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.PROFILE_ID]: {
+    desc: t('The ID of an associated profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.HAS]: {
+    desc: t('Determines if a tag or field exists in an event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.REPLAY_ID]: {
+    desc: t('The ID of an associated Session Replay'),
+    kind: FieldKind.TAG,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TIMESTAMP]: {
+    desc: t('The time an event finishes'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
+  [FieldKey.TITLE]: {
+    desc: t('Error or transaction name identifier'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TRACE]: {
+    desc: t('The trace identification number'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TRACE_PARENT_SPAN]: {
+    desc: t('Span identification number of the parent to the event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TRACE_SPAN]: {
+    desc: t('Span identification number of the root span'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TRANSACTION]: {
+    desc: t('Error or transaction name identifier'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.APP_IN_FOREGROUND]: {
+    desc: t('Indicates if the app is in the foreground or background'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+};
 
-const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
-  ...AGGREGATION_FIELDS,
-  ...MEASUREMENT_FIELDS,
-  ...SPAN_OP_FIELDS,
-  ...TRACE_FIELD_DEFINITIONS,
+const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
@@ -1299,22 +1601,218 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
-  [FieldKey.CULPRIT]: {
-    deprecated: true,
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.BOOKMARKS]: {
     desc: t('The issues bookmarked by a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
+  [FieldKey.CULPRIT]: {
+    deprecated: true,
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DETECTOR]: {
+    desc: t('The detector that triggered the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ERROR_HANDLED]: {
+    desc: t('Determines handling status of the error'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.ERROR_MECHANISM]: {
+    desc: t('The mechanism that created the error'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ERROR_TYPE]: {
+    desc: t('The type of exception'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ERROR_UNHANDLED]: {
+    desc: t('Determines unhandling status of the error'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.ERROR_VALUE]: {
+    desc: t('Original value that exhibits error'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ERROR_RECEIVED]: {
+    desc: t('The datetime that the error was received'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
+  [FieldKey.ERROR_MAIN_THREAD]: {
+    desc: t('Indicates if the error occurred on the main thread'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.EVENT_TYPE]: {
+    desc: t('Type of event (Errors, transactions, csp and default)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.FIRST_RELEASE]: {
+    desc: t('Issues first seen in a given release'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.FIRST_SEEN]: {
+    desc: t('Issues first seen at a given time'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
+  [FieldKey.IS]: {
+    desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    defaultValue: 'unresolved',
+    allowWildcard: false,
+    values: Object.values(IsFieldValues),
+  },
+  [FieldKey.ISSUE]: {
+    desc: t('The issue identification short code'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_CATEGORY]: {
+    desc: t('Category of issue (error or performance)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_PRIORITY]: {
+    desc: t('The priority of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
+    desc: t('How easily you can fix the issue with a code change, estimated by Seer'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_SEER_LAST_RUN]: {
+    desc: t('The last time Seer attempted to auto-fix the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+    allowWildcard: false,
+  },
+  [FieldKey.ISSUE_TYPE]: {
+    desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.LAST_SEEN]: {
+    desc: t('Issues last seen at a given time'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
+  [FieldKey.LEVEL]: {
+    kind: FieldKind.FIELD,
+    desc: t('Severity of the event (i.e., fatal, error, warning)'),
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.LOCATION]: {
+    desc: t('Location of error'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_ABS_PATH]: {
+    desc: t('Absolute path to the source file'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_COLNO]: {
+    desc: t('Column number of the call starting at 1'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [FieldKey.STACK_FILENAME]: {
+    desc: t('Relative path to the source file from the root directory'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_FUNCTION]: {
+    desc: t('Name of function being called'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_IN_APP]: {
+    desc: t('Indicates if frame is related to relevant code in stack trace'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.STACK_LINENO]: {
+    desc: t('Line number of the call starting at 1'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [FieldKey.STACK_MODULE]: {
+    desc: t('Platform specific module path'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_PACKAGE]: {
+    desc: t('The package the frame is from'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_RESOURCE]: {
+    desc: t('The package the frame is from'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.STACK_STACK_LEVEL]: {
+    desc: t('Number of frames per stacktrace'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [FieldKey.SYMBOLICATED_IN_APP]: {
+    desc: t('Indicates if all in-app frames are symbolicated'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.STATUS]: {
+    desc: t('Status of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.TIMES_SEEN]: {
+    desc: t('Total number of events'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+    keywords: ['count'],
+  },
+  [FieldKey.TYPE]: {
+    desc: t('Type of event (Errors, transactions, csp and default)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.UNREAL_CRASH_TYPE]: {
+    desc: t('Crash type of an Unreal event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
+const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+};
+
+const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
   [FieldKey.DEVICE]: {
     desc: t('The device that the event was seen on'),
     kind: FieldKind.FIELD,
@@ -1405,63 +1903,9 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.DIST]: {
-    desc: t(
-      'Distinguishes between build or deployment variants of the same release of an application.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ENVIRONMENT]: {
-    desc: t('The environment the event was seen in'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ERROR_HANDLED]: {
-    desc: t('Determines handling status of the error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.ERROR_MECHANISM]: {
-    desc: t('The mechanism that created the error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ERROR_TYPE]: {
-    desc: t('The type of exception'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ERROR_UNHANDLED]: {
-    desc: t('Determines unhandling status of the error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.ERROR_VALUE]: {
-    desc: t('Original value that exhibits error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ERROR_RECEIVED]: {
-    desc: t('The datetime that the error was received'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-  },
-  [FieldKey.ERROR_MAIN_THREAD]: {
-    desc: t('Indicates if the error occurred on the main thread'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.EVENT_TIMESTAMP]: {
-    desc: t('Date and time of the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-  },
-  [FieldKey.EVENT_TYPE]: {
-    desc: t('Type of event (Errors, transactions, csp and default)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+};
+
+const GEO_FIELD_DEFINITIONS: Record<GeoFieldKey, FieldDefinition> = {
   [FieldKey.GEO_CITY]: {
     desc: t('Full name of the city'),
     kind: FieldKind.FIELD,
@@ -1482,94 +1926,9 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.HTTP_METHOD]: {
-    desc: t('Method of the request that created the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.HTTP_REFERER]: {
-    desc: t('The web page the resource was requested from'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.HTTP_STATUS_CODE]: {
-    desc: t('Type of response (i.e., 200, 404)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.HTTP_URL]: {
-    desc: t('Full URL of the request without parameters'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ID]: {
-    desc: t('The event identification number'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.IS]: {
-    desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    defaultValue: 'unresolved',
-    allowWildcard: false,
-  },
-  [FieldKey.ISSUE]: {
-    desc: t('The issue identification short code'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [FieldKey.ISSUE_CATEGORY]: {
-    desc: t('Category of issue (error or performance)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [FieldKey.ISSUE_PRIORITY]: {
-    desc: t('The priority of the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
-    desc: t('How easily you can fix the issue with a code change, estimated by Seer'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [FieldKey.ISSUE_SEER_LAST_RUN]: {
-    desc: t('The last time Seer attempted to auto-fix the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-    allowWildcard: false,
-  },
-  [FieldKey.ISSUE_TYPE]: {
-    desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [FieldKey.LAST_SEEN]: {
-    desc: t('Issues last seen at a given time'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-  },
-  [FieldKey.LEVEL]: {
-    kind: FieldKind.FIELD,
-    desc: t('Severity of the event (i.e., fatal, error, warning)'),
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.LOCATION]: {
-    desc: t('Location of error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.MESSAGE]: {
-    desc: t('Error message or transaction name'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+};
+
+const OS_FIELD_DEFINITIONS: Record<OsFieldKey, FieldDefinition> = {
   [FieldKey.OS]: {
     desc: t('Build and kernel version'),
     kind: FieldKind.FIELD,
@@ -1577,11 +1936,6 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.OS_BUILD]: {
     desc: t('Name of the build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.OS_KERNEL_VERSION]: {
-    desc: t('Version number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1595,43 +1949,19 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PLATFORM]: {
-    desc: t('Name of the platform'),
+  [FieldKey.OS_KERNEL_VERSION]: {
+    desc: t('Version number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FieldKey.PLATFORM_NAME]: {
-    desc: t('Name of the platform'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.PROFILE_ID]: {
-    desc: t('The ID of an associated profile'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
-  [FieldKey.FIRST_RELEASE]: {
-    desc: t('Issues first seen in a given release'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.FIRST_SEEN]: {
-    desc: t('Issues first seen at a given time'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-  },
-  [FieldKey.HAS]: {
-    desc: t('Determines if a tag or field exists in an event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
   },
   [FieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+};
+
+const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
   [FieldKey.RELEASE]: {
     desc: t('The version of your code deployed to an environment'),
     kind: FieldKind.FIELD,
@@ -1661,11 +1991,9 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
   },
-  [FieldKey.REPLAY_ID]: {
-    desc: t('The ID of an associated Session Replay'),
-    kind: FieldKind.TAG,
-    valueType: FieldValueType.STRING,
-  },
+};
+
+const SDK_FIELD_DEFINITIONS: Record<SDKFieldKey, FieldDefinition> = {
   [FieldKey.SDK_NAME]: {
     desc: t('Name of the platform that sent the event'),
     kind: FieldKind.FIELD,
@@ -1676,77 +2004,9 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.STACK_ABS_PATH]: {
-    desc: t('Absolute path to the source file'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.STACK_COLNO]: {
-    desc: t('Column number of the call starting at 1'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-  },
-  [FieldKey.STACK_FILENAME]: {
-    desc: t('Relative path to the source file from the root directory'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.STACK_FUNCTION]: {
-    desc: t('Name of function being called'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.STACK_IN_APP]: {
-    desc: t('Indicates if frame is related to relevant code in stack trace'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.STACK_LINENO]: {
-    desc: t('Line number of the call starting at 1'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-  },
-  [FieldKey.STACK_MODULE]: {
-    desc: t('Platform specific module path'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.STACK_PACKAGE]: {
-    desc: t('The package the frame is from'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.STACK_RESOURCE]: {
-    desc: t('The package the frame is from'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.STACK_STACK_LEVEL]: {
-    desc: t('Number of frames per stacktrace'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-  },
-  [FieldKey.SYMBOLICATED_IN_APP]: {
-    desc: t('Indicates if all in-app frames are symbolicated'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.STATUS]: {
-    desc: t('Status of the issue'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.TIMES_SEEN]: {
-    desc: t('Total number of events'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.NUMBER,
-    keywords: ['count'],
-  },
-  [FieldKey.TIMESTAMP]: {
-    desc: t('The time an event finishes'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.DATE,
-  },
+};
+
+const TRANSACTION_FIELD_DEFINITIONS: Record<TransactionFieldKey, FieldDefinition> = {
   [FieldKey.TIMESTAMP_TO_HOUR]: {
     desc: t('Rounded down to the nearest hour'),
     kind: FieldKind.FIELD,
@@ -1757,43 +2017,13 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
-  [FieldKey.TITLE]: {
-    desc: t('Error or transaction name identifier'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.TRACE]: {
-    desc: t('The trace identification number'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.TOTAL_COUNT]: {
     desc: t('The total number of events for the current query'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
-  [FieldKey.TRACE_PARENT_SPAN]: {
-    desc: t('Span identification number of the parent to the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.TRACE_SPAN]: {
-    desc: t('Span identification number of the root span'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.TRACE_CLIENT_SAMPLE_RATE]: {
     desc: t('Sample rate of the trace in the SDK between 0 and 1'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.TRANSACTION]: {
-    desc: t('Error or transaction name identifier'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.TRANSACTION_OP]: {
-    desc: t('Short code identifying the type of operation the span is measuring'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1802,21 +2032,19 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
+  [FieldKey.TRANSACTION_OP]: {
+    desc: t('Short code identifying the type of operation the span is measuring'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.TRANSACTION_STATUS]: {
     desc: t('Describes the status of the span/transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.TYPE]: {
-    desc: t('Type of event (Errors, transactions, csp and default)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.UNREAL_CRASH_TYPE]: {
-    desc: t('Crash type of an Unreal event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+};
+
+const USER_FIELD_DEFINITIONS: Record<UserFieldKey, FieldDefinition> = {
   [FieldKey.USER]: {
     desc: t('User identification value'),
     kind: FieldKind.FIELD,
@@ -1852,16 +2080,17 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.APP_IN_FOREGROUND]: {
-    desc: t('Indicates if the app is in the foreground or background'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
+};
+
+const PROFILE_FIELD_DEFINITIONS: Record<ProfileFieldKey, FieldDefinition> = {
   [FieldKey.FUNCTION_DURATION]: {
     desc: t('Duration of the function'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
+};
+
+const OTA_FIELD_DEFINITIONS: Record<OTAFieldKey, FieldDefinition> = {
   [FieldKey.OTA_UPDATES_CHANNEL]: {
     desc: t('The channel name of the build from EAS Update'),
     kind: FieldKind.FIELD,
@@ -1877,6 +2106,32 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+};
+
+type AllEventFieldKeys =
+  | keyof typeof AGGREGATION_FIELDS
+  | keyof typeof MEASUREMENT_FIELDS
+  | keyof typeof SPAN_OP_FIELDS
+  | keyof typeof TRACE_FIELD_DEFINITIONS
+  | FieldKey;
+
+const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
+  ...AGGREGATION_FIELDS,
+  ...MEASUREMENT_FIELDS,
+  ...SPAN_OP_FIELDS,
+  ...TRACE_FIELD_DEFINITIONS,
+  ...SHARED_FIELD_KEY,
+  ...ERROR_FIELD_DEFINITION,
+  ...BROWSER_FIELD_DEFINITION,
+  ...DEVICE_FIELD_DEFINITION,
+  ...GEO_FIELD_DEFINITIONS,
+  ...OS_FIELD_DEFINITIONS,
+  ...RELEASE_FIELD_DEFINITION,
+  ...SDK_FIELD_DEFINITIONS,
+  ...TRANSACTION_FIELD_DEFINITIONS,
+  ...USER_FIELD_DEFINITIONS,
+  ...PROFILE_FIELD_DEFINITIONS,
+  ...OTA_FIELD_DEFINITIONS,
 };
 
 const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
@@ -1914,8 +2169,15 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [SpanFields.STATUS]: {
+  [SpanFields.SPAN_STATUS]: {
     desc: t('Span status. Indicates whether the span operation was successful.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanFields.STATUS_MESSAGE]: {
+    desc: t(
+      'Span status message. If the span operation was not successful, this contains an error message.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1928,6 +2190,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.ASSIGNED_OR_SUGGESTED,
   FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
+  FieldKey.DETECTOR,
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,
@@ -2511,7 +2774,6 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
-  BROWSER_VERSION = 'browser.version',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
@@ -2523,10 +2785,8 @@ export enum FeedbackFieldKey {
 export const FEEDBACK_FIELDS = [
   FieldKey.ASSIGNED,
   FeedbackFieldKey.BROWSER_NAME,
-  FeedbackFieldKey.BROWSER_VERSION,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
-  FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
@@ -2561,11 +2821,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FeedbackFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the browser'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
     kind: FieldKind.FIELD,
@@ -2577,7 +2832,9 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t('Message written by the user providing feedback.'),
+    desc: t(
+      'Message written by the user providing feedback. Search is case insensitive and supports substrings.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: true,

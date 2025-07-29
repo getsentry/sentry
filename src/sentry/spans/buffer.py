@@ -151,8 +151,9 @@ class FlushedSegment(NamedTuple):
 
 
 class SpansBuffer:
-    def __init__(self, assigned_shards: list[int]):
+    def __init__(self, assigned_shards: list[int], slice_id: int | None = None):
         self.assigned_shards = list(assigned_shards)
+        self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
         self._current_compression_level = None
@@ -165,7 +166,7 @@ class SpansBuffer:
 
     # make it pickleable
     def __reduce__(self):
-        return (SpansBuffer, (self.assigned_shards,))
+        return (SpansBuffer, (self.assigned_shards, self.slice_id))
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:z:{{{project_and_trace}}}:{span_id}".encode("ascii")
@@ -189,7 +190,7 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         timeout = options.get("spans.buffer.timeout")
         root_timeout = options.get("spans.buffer.root-timeout")
-        max_segment_spans = options.get("spans.buffer.max-segment-spans")
+        max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
         result_meta = []
         is_root_span_count = 0
@@ -224,7 +225,7 @@ class SpansBuffer:
                         parent_span_id,
                         "true" if any(span.is_segment_span for span in subsegment) else "false",
                         redis_ttl,
-                        max_segment_spans,
+                        max_segment_bytes,
                         *[span.span_id for span in subsegment],
                     )
 
@@ -295,7 +296,10 @@ class SpansBuffer:
         return self.add_buffer_sha
 
     def _get_queue_key(self, shard: int) -> bytes:
-        return f"span-buf:q:{shard}".encode("ascii")
+        if self.slice_id is not None:
+            return f"span-buf:q:{self.slice_id}-{shard}".encode("ascii")
+        else:
+            return f"span-buf:q:{shard}".encode("ascii")
 
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """

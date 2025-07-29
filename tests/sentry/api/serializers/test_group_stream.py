@@ -16,7 +16,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 class StreamGroupSerializerTestCase(
     TestCase, BaseMetricsTestCase, SearchIssueTestMixin, PerformanceIssueTestCase
 ):
-    def test_environment(self):
+    def test_environment(self) -> None:
         group = self.group
 
         environment = Environment.get_or_create(group.project, "production")
@@ -50,7 +50,7 @@ class StreamGroupSerializerTestCase(
             assert make_series.call_count == 1
 
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
-    def test_perf_issue(self):
+    def test_perf_issue(self) -> None:
         event = self.create_performance_issue()
         group = event.group
         serialized = serialize(
@@ -65,7 +65,7 @@ class StreamGroupSerializerTestCase(
         assert serialized["stats"]["24h"][-1][1] == 1
 
     @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
-    def test_profiling_issue(self):
+    def test_profiling_issue(self) -> None:
         proj = self.create_project()
         cur_time = before_now(minutes=5)
         event, occurrence, group_info = self.store_search_issue(

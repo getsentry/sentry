@@ -165,9 +165,6 @@ describe('Subscription > PendingChanges', function () {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team_auf',
-      reservedErrors: 100_000,
-      reservedTransactions: 100_000,
-      reservedAttachments: 25,
       categories: {
         errors: MetricHistoryFixture({reserved: 100_000}),
         transactions: MetricHistoryFixture({reserved: 100_000}),

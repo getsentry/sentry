@@ -74,11 +74,12 @@ describe('PageParamsProvider', function () {
 
     act(() =>
       setPageParams({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           {
@@ -111,7 +112,8 @@ describe('PageParamsProvider', function () {
         ],
         mode: Mode.SAMPLES,
         query: '',
-        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
         aggregateFields: [{groupBy: ''}, new Visualize('count(span.duration)')],
       })
     );
@@ -124,11 +126,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'span.op', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('count(span.self_time)', {
@@ -146,11 +149,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'browser.name'},
           new Visualize('count(span.self_time)', {
@@ -169,11 +173,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           new Visualize('count(span.self_time)', {
             chartType: ChartType.AREA,
@@ -191,11 +196,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: ''},
           new Visualize('count(span.self_time)', {
@@ -213,11 +219,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('count(span.self_time)', {
@@ -238,18 +245,20 @@ describe('PageParamsProvider', function () {
           yAxes: ['count(span.self_time)'],
         },
       ],
-      sortBys: null,
+      sampleSortBys: null,
+      aggregateSortBys: null,
     });
 
     act(() => setMode(Mode.SAMPLES));
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
-        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: ''},
           new Visualize('count(span.self_time)', {
@@ -263,7 +272,8 @@ describe('PageParamsProvider', function () {
   it('correctly updates mode from aggregates to sample with group bys', function () {
     renderTestComponent({
       mode: Mode.AGGREGATE,
-      sortBys: null,
+      sampleSortBys: null,
+      aggregateSortBys: null,
       fields: ['id', 'sdk.name', 'sdk.version', 'timestamp'],
       aggregateFields: [
         {groupBy: 'sdk.name'},
@@ -281,7 +291,7 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: [
           'id',
           'sdk.name',
@@ -292,7 +302,8 @@ describe('PageParamsProvider', function () {
         ],
         mode: Mode.SAMPLES,
         query: '',
-        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           {groupBy: 'sdk.version'},
@@ -313,11 +324,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: 'foo:bar',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('count(span.self_time)', {
@@ -335,11 +347,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
-        sortBys: [{field: 'id', kind: 'desc'}],
+        sampleSortBys: [{field: 'id', kind: 'desc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('count(span.self_time)', {
@@ -357,11 +370,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.SAMPLES,
         query: '',
-        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('count(span.self_time)', {
@@ -388,11 +402,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'max(span.duration)', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'max(span.duration)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('min(span.self_time)', {
@@ -422,11 +437,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('min(span.self_time)', {
@@ -456,11 +472,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'sdk.name', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'sdk.name', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           new Visualize('count(span.self_time)', {
@@ -487,11 +504,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
         aggregateFields: [
           {groupBy: 'sdk.name'},
           new Visualize('count(span.self_time)', {
@@ -509,11 +527,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
         aggregateFields: [{groupBy: 'span.op'}, new Visualize('count(span.duration)')],
       })
     );
@@ -537,11 +556,12 @@ describe('PageParamsProvider', function () {
 
     expect(pageParams).toEqual(
       expect.objectContaining({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
         mode: Mode.AGGREGATE,
         query: '',
-        sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
+        sampleSortBys: [{field: 'timestamp', kind: 'asc'}],
+        aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'span.op'},
           new Visualize('count(span.self_time)', {

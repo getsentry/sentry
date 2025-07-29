@@ -11,6 +11,7 @@ from sentry.data_export.processors.issues_by_tag import (
     IssuesByTagProcessor,
 )
 from sentry.models.environment import Environment
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.web.frontend.base import ProjectView, region_silo_view
 from sentry.web.frontend.csv import CsvResponder
 
@@ -31,6 +32,15 @@ class GroupTagCsvResponder(CsvResponder[GroupTagValueAndEventUser]):
 @region_silo_view
 class GroupTagExportView(ProjectView):
     required_scope = "event:read"
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+        }
+    }
 
     def get(self, request: Request, organization, project, group_id, key) -> HttpResponseBase:
         # If the environment doesn't exist then the tag can't possibly exist

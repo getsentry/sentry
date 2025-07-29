@@ -8,21 +8,37 @@ from sentry.issues.auto_source_code_config.errors import (
     NeedsExtension,
     UnsupportedFrameInfo,
 )
-from sentry.issues.auto_source_code_config.frame_info import FrameInfo
+from sentry.issues.auto_source_code_config.frame_info import create_frame_info
 
 UNSUPPORTED_FRAME_FILENAMES = [
+    # HTTP/HTTPS URLs
+    "https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    "http://example.com/script.js",
+    "HTTP://EXAMPLE.COM/SCRIPT.JS",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    "webpack:///https://cdn.example.com/bundle.js",
+    # Special frame types
     "<anonymous>",
     "<frozen importlib._bootstrap>",
     "[native code]",
     "O$t",
     "async https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+    # Top level files
     "README",  # top level file
-    # XXX: Top level files will need to be supported
     "/gtm.js",  # Rejected because it's a top level file and not because it has a backslash
     "ssl.py",
     "initialization.dart",
     "backburner.js",
+]
+
+# Files with "http" substring that should be ACCEPTED
+LEGITIMATE_HTTP_FILENAMES = [
+    "src/httpclient/request.py",
+    "/usr/local/httpd/config.py",
+    "lib/http_utils.js",
+    "services/httpserver/main.go",
+    "lib/https_client.rb",
+    "network/http2/stream.go",
 ]
 
 NO_EXTENSION_FRAME_FILENAMES = [
@@ -33,17 +49,23 @@ NO_EXTENSION_FRAME_FILENAMES = [
 class TestFrameInfo:
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
-        assert FrameInfo({"filename": path}).__repr__() == f"FrameInfo: {path}"
+        assert create_frame_info({"filename": path}).__repr__() == f"FrameInfo: {path}"
 
     @pytest.mark.parametrize("filepath", UNSUPPORTED_FRAME_FILENAMES)
     def test_raises_unsupported(self, filepath: str) -> None:
         with pytest.raises(UnsupportedFrameInfo):
-            FrameInfo({"filename": filepath})
+            create_frame_info({"filename": filepath})
+
+    @pytest.mark.parametrize("filepath", LEGITIMATE_HTTP_FILENAMES)
+    def test_legitimate_http_filenames_accepted(self, filepath: str) -> None:
+        # These files contain "http" but should NOT be rejected
+        frame_info = create_frame_info({"filename": filepath})
+        assert frame_info.raw_path == filepath
 
     def test_raises_no_extension(self) -> None:
         for filepath in NO_EXTENSION_FRAME_FILENAMES:
             with pytest.raises(NeedsExtension):
-                FrameInfo({"filename": filepath})
+                create_frame_info({"filename": filepath})
 
     @pytest.mark.parametrize(
         "frame, expected_exception",
@@ -64,7 +86,7 @@ class TestFrameInfo:
         self, frame: dict[str, Any], expected_exception: type[Exception]
     ) -> None:
         with pytest.raises(expected_exception):
-            FrameInfo(frame, "java")
+            create_frame_info(frame, "java")
 
     @pytest.mark.parametrize(
         "frame, expected_stack_root, expected_normalized_path",
@@ -98,7 +120,7 @@ class TestFrameInfo:
     def test_java_valid_frames(
         self, frame: dict[str, Any], expected_stack_root: str, expected_normalized_path: str
     ) -> None:
-        frame_info = FrameInfo(frame, "java")
+        frame_info = create_frame_info(frame, "java")
         assert frame_info.stack_root == expected_stack_root
         assert frame_info.normalized_path == expected_normalized_path
 
@@ -135,6 +157,6 @@ class TestFrameInfo:
     def test_straight_path_prefix(
         self, frame_filename: str, stack_root: str, normalized_path: str
     ) -> None:
-        frame_info = FrameInfo({"filename": frame_filename})
+        frame_info = create_frame_info({"filename": frame_filename})
         assert frame_info.normalized_path == normalized_path
         assert frame_info.stack_root == stack_root

@@ -13,10 +13,9 @@ import {
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, type EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -45,10 +44,12 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
+import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
+import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
-import {Request} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/request';
 import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
@@ -61,6 +62,7 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
+import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
@@ -278,6 +280,8 @@ export function SpanNodeDetails(
                   />
                   <AIInputSection node={node} />
                   <AIOutputSection node={node} />
+                  <MCPInputSection node={node} />
+                  <MCPOutputSection node={node} />
                   <SpanSections
                     node={node}
                     project={project}
@@ -403,14 +407,11 @@ function EAPSpanNodeDetails({
   }
 
   const attributes = traceItemData?.attributes;
+  const links = traceItemData?.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
   const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
-
-  const eventHasRequestEntry = eventTransaction?.entries.some(
-    entry => entry.type === EntryType.REQUEST
-  );
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -459,6 +460,8 @@ function EAPSpanNodeDetails({
                     />
                     <AIInputSection node={node} attributes={attributes} />
                     <AIOutputSection node={node} attributes={attributes} />
+                    <MCPInputSection node={node} attributes={attributes} />
+                    <MCPOutputSection node={node} attributes={attributes} />
                     <Attributes
                       node={node}
                       attributes={attributes}
@@ -468,24 +471,22 @@ function EAPSpanNodeDetails({
                       project={project}
                     />
 
-                    {isTransaction && eventHasRequestEntry ? (
-                      <FoldSection
-                        sectionKey={SectionKey.CONTEXTS}
-                        title={
-                          <SectionTitleWithQuestionTooltip
-                            title={t('Contexts')}
-                            tooltipText={t(
-                              "This data is not indexed and can't be queried in the Trace Explorer. For querying, attach these as attributes to your spans."
-                            )}
-                          />
-                        }
-                        disableCollapsePersistence
-                      >
-                        <Request event={eventTransaction} />
-                      </FoldSection>
+                    {isTransaction ? (
+                      <Contexts event={eventTransaction} project={project} />
                     ) : null}
 
                     <LogDetails />
+
+                    {organization.features.includes('trace-view-span-links') &&
+                    links?.length ? (
+                      <TraceSpanLinks
+                        node={node}
+                        links={links}
+                        theme={theme}
+                        location={location}
+                        organization={organization}
+                      />
+                    ) : null}
 
                     {eventTransaction && organization.features.includes('profiling') ? (
                       <ProfileDetails
@@ -545,24 +546,3 @@ function EAPSpanNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
-
-export function SectionTitleWithQuestionTooltip({
-  title,
-  tooltipText,
-}: {
-  title: string;
-  tooltipText: string;
-}) {
-  return (
-    <Flex>
-      <div>{title}</div>
-      <QuestionTooltip title={tooltipText} size="sm" />
-    </Flex>
-  );
-}
-
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;

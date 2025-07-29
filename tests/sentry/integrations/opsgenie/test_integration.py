@@ -15,7 +15,7 @@ from sentry.integrations.opsgenie.tasks import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
-from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.asserts import assert_slo_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -53,7 +53,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         "api_key": "123-key",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
@@ -64,8 +64,12 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         resp = self.client.post(self.init_path, data=config)
         assert resp.status_code == 200
 
-    def test_installation_no_key(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_no_key(self, mock_record):
         self.assert_setup_flow(self.config_no_key)
+
+        # SLO assertions
+        assert_success_metric(mock_record)
 
         integration = Integration.objects.get(provider=self.provider.key)
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
@@ -77,7 +81,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.name == "cool-name"
         assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
 
-    def test_eu_installation_no_key(self):
+    def test_eu_installation_no_key(self) -> None:
         self.assert_setup_flow(self.eu_config_no_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -90,7 +94,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.name == "chill-name"
         assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
 
-    def test_installation_with_key(self):
+    def test_installation_with_key(self) -> None:
         self.assert_setup_flow(self.config_with_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -108,7 +112,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.name == "cool-name"
         assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
 
-    def test_eu_installation_with_key(self):
+    def test_eu_installation_with_key(self) -> None:
         self.assert_setup_flow(self.eu_config_with_key)
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -127,7 +131,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert integration.metadata["domain_name"] == "chill-name.app.eu.opsgenie.com"
 
     @responses.activate
-    def test_update_config_valid(self):
+    def test_update_config_valid(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -150,7 +154,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         }
 
     @responses.activate
-    def test_update_config_invalid(self):
+    def test_update_config_invalid(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -186,7 +190,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         }
 
     @responses.activate
-    def test_update_config_invalid_rate_limited(self):
+    def test_update_config_invalid_rate_limited(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -205,7 +209,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
-    def test_update_config_invalid_integration_key(self):
+    def test_update_config_invalid_integration_key(self) -> None:
         integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
@@ -229,7 +233,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             "organizations:integrations-enterprise-incident-management": False,
         }
     )
-    def test_disallow_when_no_business_plan(self):
+    def test_disallow_when_no_business_plan(self) -> None:
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
         assert (
@@ -247,7 +251,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(
             name="thonk", organization=self.organization, teams=[self.team]
@@ -302,17 +306,20 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             )
         id1 = str(self.organization_integration.id) + "-thonk"
         id2 = str(self.organization_integration.id) + "-thinkies"
-        assert org_integration.config == {
-            "team_table": [
-                {"id": id1, "team": "thonk [MIGRATED]", "integration_key": "123-key"},
-                {"id": id2, "team": "thinkies [MIGRATED]", "integration_key": "456-key"},
-            ]
-        }
+        # Don't assert order to prevent test flakiness
+        assert len(org_integration.config["team_table"]) == 2
+        assert {
+            "id": id1,
+            "team": "thonk [MIGRATED]",
+            "integration_key": "123-key",
+        } in org_integration.config["team_table"]
+        assert {
+            "id": id2,
+            "team": "thinkies [MIGRATED]",
+            "integration_key": "456-key",
+        } in org_integration.config["team_table"]
 
-        rule_updated = Rule.objects.get(
-            label="rule",
-            project=self.project,
-        )
+        rule_updated = Rule.objects.get(label="rule", project=self.project)
 
         assert rule_updated.data["actions"] == [
             ALERT_LEGACY_INTEGRATIONS,
@@ -323,10 +330,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-        rule2_updated = Rule.objects.get(
-            label="rule2",
-            project=project2,
-        )
+        rule2_updated = Rule.objects.get(label="rule2", project=project2)
         assert rule2_updated.data["actions"] == [
             ALERT_LEGACY_INTEGRATIONS,
             {
@@ -343,7 +347,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
-    def test_no_duplicate_keys(self):
+    def test_no_duplicate_keys(self) -> None:
         """
         Keys should not be migrated twice.
         """
@@ -377,7 +381,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             ]
         }
 
-    def test_existing_key(self):
+    def test_existing_key(self) -> None:
         """
         Test that migration works if a key has already been added to config.
         """
@@ -432,7 +436,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-    def test_multiple_rules(self):
+    def test_multiple_rules(self) -> None:
         """
         Test multiple rules, some of which send notifications to legacy integrations.
         """
@@ -484,7 +488,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
 
         assert rule2_updated.data["actions"] == []
 
-    def test_existing_rule(self):
+    def test_existing_rule(self) -> None:
         """
         Don't add a new recipient from an API key if the recipient already exists.
         """
@@ -549,7 +553,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             },
         ]
 
-    def test_migrate_plugin_with_name(self):
+    def test_migrate_plugin_with_name(self) -> None:
         """
         Test that the Opsgenie plugin is migrated correctly if the legacy alert action has a name field.
         """

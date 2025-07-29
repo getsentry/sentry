@@ -287,7 +287,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
 )
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-child-task-count",
     help="Number of tasks child processes execute before being restart",
@@ -324,10 +323,8 @@ def taskworker(**options: Any) -> None:
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
-    if options["autoreload"]:
-        autoreload.run_with_reloader(run_taskworker, **options)
-    else:
-        run_taskworker(**options)
+    # TODO(mark) restore autoreload
+    run_taskworker(**options)
 
 
 def run_taskworker(
@@ -519,6 +516,11 @@ def cron(**options: Any) -> None:
     help="Which physical topic to use for this consumer. This can be a topic name that is not specified in settings. The logical topic is still hardcoded in sentry.consumers.",
 )
 @click.option(
+    "--kafka-slice-id",
+    type=int,
+    help="Which sliced kafka topic to use. This only applies if the target topic is configured in SLICED_KAFKA_TOPICS.",
+)
+@click.option(
     "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
 )
 @click.option(
@@ -595,11 +597,18 @@ def cron(**options: Any) -> None:
     default=None,
     help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
 )
+@click.option(
+    "--shutdown-strategy-before-consumer",
+    is_flag=True,
+    default=False,
+    help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
     consumer_args: tuple[str, ...],
     topic: str | None,
+    kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
     **options: Any,
 ) -> None:
@@ -628,8 +637,17 @@ def basic_consumer(
     if log_level is not None:
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
-    add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
-    processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
+    add_global_tags(
+        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+    )
+    processor = get_stream_processor(
+        consumer_name,
+        consumer_args,
+        topic=topic,
+        kafka_slice_id=kafka_slice_id,
+        add_global_tags=True,
+        **options,
+    )
 
     # for backwards compat: should eventually be removed
     if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":

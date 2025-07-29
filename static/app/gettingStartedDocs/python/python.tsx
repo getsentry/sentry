@@ -1,7 +1,7 @@
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
   type DocsParams,
@@ -269,15 +269,22 @@ export const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Configuration should happen as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            "Configuration should happen as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. To enable tracing, use [code:traces_sample_rate=1.0] in the sentry_sdk.init() call.",
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'python',
           code: `
 import sentry_sdk
@@ -288,7 +295,10 @@ sentry_sdk.init(
     # of transactions for tracing.
     traces_sample_rate=1.0,
 )`,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
             {
               linkTracingOptions: (
@@ -309,22 +319,30 @@ sentry_sdk.init(
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
-      additionalInfo: tct(
-        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        },
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'You have the option to manually construct a transaction using [link:custom instrumentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
@@ -399,15 +417,18 @@ export const featureFlagOnboarding: OnboardingConfig = {
 
 export const agentMonitoringOnboarding: OnboardingConfig = {
   introduction: () => (
-    <Alert type="info">
+    <Alert type="info" showIcon={false}>
       {tct(
-        'Agent Monitoring is currently in beta with support for [vercelai:Vercel AI SDK] and [openai:OpenAI Agents SDK].',
+        'Agent Monitoring is currently in beta with support for [openai:OpenAI Agents SDK] and [vercelai:Vercel AI SDK]. If you are using something else, you can use [manual:manual instrumentation].',
         {
           vercelai: (
             <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-vercel-ai-sdk" />
           ),
           openai: (
             <ExternalLink href="https://docs.sentry.io/product/insights/agents/getting-started/#quick-start-with-openai-agents" />
+          ),
+          manual: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/#manual-instrumentation" />
           ),
         }
       )}
@@ -444,6 +465,7 @@ from sentry_sdk.integrations.openai_agents import OpenAIAgentsIntegration
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,

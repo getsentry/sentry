@@ -17,7 +17,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -61,7 +61,7 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
-import type {QueryCounts} from './utils';
+import {DEFAULT_QUERY, type QueryCounts} from './utils';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   FOR_REVIEW_QUERIES,
@@ -100,7 +100,6 @@ interface EndpointParams extends Partial<PageFilters['datetime']> {
   query?: string;
   sort?: string;
   statsPeriod?: string | null;
-  useGroupSnubaDataset?: boolean;
 }
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -325,13 +324,9 @@ function IssueListOverview({
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
-    if (location.query.useGroupSnubaDataset) {
-      params.useGroupSnubaDataset = true;
-    }
-
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
-  }, [selection, location, query, sort, getGroupStatsPeriod]);
+  }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
     // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend

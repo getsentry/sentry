@@ -1,13 +1,14 @@
+import type {Platform} from 'sentry/components/platformPicker';
 import {
   backend,
   desktop,
   frontend,
+  gaming,
   mobile,
   PlatformCategory,
   serverless,
 } from 'sentry/data/platformCategories';
 import type {PlatformKey} from 'sentry/types/project';
-
 /**
  *
  * @param platform - a SDK platform, for example `node-express`, `javascript-react`
@@ -32,6 +33,9 @@ export function platformToCategory(platform: PlatformKey | undefined): PlatformC
   if ((desktop as string[]).includes(platform)) {
     return PlatformCategory.DESKTOP;
   }
+  if ((gaming as string[]).includes(platform)) {
+    return PlatformCategory.GAMING;
+  }
   return PlatformCategory.OTHER;
 }
 
@@ -43,6 +47,9 @@ export function isNativePlatform(platform: string | undefined) {
     case 'swift':
     case 'c':
     case 'nintendo-switch':
+    case 'nintendo-switch-2':
+    case 'playstation':
+    case 'xbox':
       return true;
     default:
       return false;
@@ -59,4 +66,19 @@ export function isMobilePlatform(platform: string | undefined) {
   }
 
   return (mobile as string[]).includes(platform);
+}
+
+export function isDisabledGamingPlatform({
+  platform,
+  enabledConsolePlatforms,
+}: {
+  platform: Platform;
+  enabledConsolePlatforms?: string[];
+}) {
+  return (
+    platform.type === 'console' &&
+    !enabledConsolePlatforms?.includes(
+      platform.id === 'nintendo-switch-2' ? 'nintendo-switch' : platform.id
+    )
+  );
 }

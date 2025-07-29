@@ -39,7 +39,7 @@ class PagerDutyClientTest(APITestCase):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
@@ -140,7 +140,7 @@ class PagerDutyClientTest(APITestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
-    def test_send_trigger_custom_severity(self):
+    def test_send_trigger_custom_severity(self) -> None:
         expected_data = {
             "client": "sentry",
             "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),

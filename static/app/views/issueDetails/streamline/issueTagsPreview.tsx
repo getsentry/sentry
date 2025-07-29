@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {

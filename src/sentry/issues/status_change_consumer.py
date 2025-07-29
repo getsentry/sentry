@@ -67,6 +67,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=activity_type,
+            activity_data=status_change.get("activity_data"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
         kick_off_status_syncs.apply_async(
@@ -90,6 +91,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=activity_type,
+            activity_data=status_change.get("activity_data"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
         kick_off_status_syncs.apply_async(
@@ -127,6 +129,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             from_substatus=group.substatus,
+            activity_data=status_change.get("activity_data"),
         )
         add_group_to_inbox(group, group_inbox_reason)
         kick_off_status_syncs.apply_async(
@@ -154,7 +157,26 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             .first()
         )
         if latest_activity is not None:
+            metrics.incr(
+                "workflow_engine.issue_platform.status_change_handler",
+                amount=len(group_status_update_registry.registrations.keys()),
+                tags={"activity_type": activity_type.value},
+            )
+            logger.info(
+                "group.status_change.activity_created",
+                extra={
+                    "group_id": group.id,
+                    "activity_type": activity_type,
+                },
+            )
             for handler in group_status_update_registry.registrations.values():
+                logger.info(
+                    "group.status_change.activity_created.handler",
+                    extra={
+                        "group_id": group.id,
+                        "activity_type": activity_type,
+                    },
+                )
                 handler(group, status_change, latest_activity)
 
 
@@ -164,7 +186,7 @@ def get_group_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> G
 
 
 def bulk_get_groups_from_fingerprints(
-    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
+    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]],
 ) -> dict[tuple[int, tuple[str, ...]], Group]:
     """
     Returns a map of (project, fingerprint) to the group.
@@ -222,6 +244,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         "project_id": payload["project_id"],
         "new_status": payload["new_status"],
         "new_substatus": payload.get("new_substatus", None),
+        "detector_id": payload.get("detector_id", None),
     }
 
     process_occurrence_data(data)

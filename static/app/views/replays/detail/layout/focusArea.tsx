@@ -1,5 +1,6 @@
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import Ai from 'sentry/views/replays/detail/ai';
+import Ai from 'sentry/views/replays/detail/ai/ai';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import Console from 'sentry/views/replays/detail/console';
 import ErrorList from 'sentry/views/replays/detail/errorList/index';
@@ -13,22 +14,54 @@ export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
 
   switch (getActiveTab()) {
     case TabKey.AI:
-      return <Ai />;
+      return (
+        <AnalyticsArea name="ai_summary_tab">
+          <Ai />
+        </AnalyticsArea>
+      );
     case TabKey.NETWORK:
-      return <NetworkList />;
+      return (
+        <AnalyticsArea name="network_tab">
+          <NetworkList />
+        </AnalyticsArea>
+      );
     case TabKey.TRACE:
-      return <TraceFeature />;
+      return (
+        <AnalyticsArea name="trace_tab">
+          <TraceFeature />
+        </AnalyticsArea>
+      );
     case TabKey.ERRORS:
-      return <ErrorList />;
+      return (
+        <AnalyticsArea name="errors_tab">
+          <ErrorList />
+        </AnalyticsArea>
+      );
     case TabKey.MEMORY:
-      return <MemoryPanel />;
+      return (
+        <AnalyticsArea name="memory_tab">
+          <MemoryPanel />
+        </AnalyticsArea>
+      );
     case TabKey.CONSOLE:
-      return <Console />;
+      return (
+        <AnalyticsArea name="console_tab">
+          <Console />
+        </AnalyticsArea>
+      );
     case TabKey.TAGS:
-      return <TagPanel />;
+      return (
+        <AnalyticsArea name="tags_tab">
+          <TagPanel />
+        </AnalyticsArea>
+      );
     case TabKey.BREADCRUMBS:
     default: {
-      return <Breadcrumbs />;
+      return (
+        <AnalyticsArea name="breadcrumbs_tab">
+          <Breadcrumbs />
+        </AnalyticsArea>
+      );
     }
   }
 }

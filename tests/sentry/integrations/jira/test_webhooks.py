@@ -24,7 +24,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         integration, _ = self.create_provider_integration_for(
             organization=self.organization,
@@ -75,7 +75,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
     @responses.activate
-    def test_assign_use_email_api_error(self):
+    def test_assign_use_email_api_error(self) -> None:
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/3/user/email",
@@ -175,7 +175,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             mock_set_tag.assert_any_call("integration_id", self.integration.id)
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(self.organization))
 
-    def test_missing_changelog(self):
+    def test_missing_changelog(self) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,

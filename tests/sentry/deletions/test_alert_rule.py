@@ -27,7 +27,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
         alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
@@ -81,7 +81,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )

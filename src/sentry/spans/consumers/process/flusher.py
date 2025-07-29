@@ -3,15 +3,17 @@ import multiprocessing
 import multiprocessing.context
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import partial
 
 import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.abstract import Producer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
+from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -24,6 +26,86 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 MAX_PROCESS_RESTARTS = 10
 
 logger = logging.getLogger(__name__)
+
+
+class MultiProducer:
+    """
+    Manages multiple Kafka producers for load balancing across brokers/topics.
+
+    Configure multiple producers using SLICED_KAFKA_TOPICS in settings.py:
+
+    SLICED_KAFKA_TOPICS = {
+        ("buffered-segments", 0): {"cluster": "default", "topic": "buffered-segments-1"},
+        ("buffered-segments", 1): {"cluster": "secondary", "topic": "buffered-segments-2"}
+    }
+    """
+
+    def __init__(
+        self,
+        topic: Topic,
+        producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None,
+    ):
+        self.topic = topic
+        self.producers: list[Producer[KafkaPayload]] = []
+        self.topics: list[ArroyoTopic] = []
+        self.current_index = 0
+        self.producer_factory = producer_factory or self._default_producer_factory
+        self._setup_producers()
+
+    def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
+        """Default factory that creates real KafkaProducers."""
+        return KafkaProducer(build_kafka_producer_configuration(default_config=producer_config))
+
+    def _setup_producers(self):
+        """Setup producers based on SLICED_KAFKA_TOPICS configuration."""
+        # Get sliced Kafka topics configuration
+        sliced_configs = []
+        for (topic_name, slice_id), config in settings.SLICED_KAFKA_TOPICS.items():
+            if topic_name == self.topic.value:
+                sliced_configs.append(config)
+
+        if sliced_configs:
+            # Multiple producers configured via SLICED_KAFKA_TOPICS
+            for config in sliced_configs:
+                cluster_name = config["cluster"]
+                topic_name = config["topic"]
+
+                producer_config = get_kafka_producer_cluster_options(cluster_name)
+                producer = self.producer_factory(producer_config)
+                topic = ArroyoTopic(topic_name)
+
+                self.producers.append(producer)
+                self.topics.append(topic)
+        else:
+            # Single producer (backward compatibility)
+            cluster_name = get_topic_definition(self.topic)["cluster"]
+            producer_config = get_kafka_producer_cluster_options(cluster_name)
+            producer = self.producer_factory(producer_config)
+            topic = ArroyoTopic(get_topic_definition(self.topic)["real_topic_name"])
+
+            self.producers.append(producer)
+            self.topics.append(topic)
+
+        # Validate that we have at least one producer
+        if not self.producers:
+            raise ValueError(f"No producers configured for topic {self.topic.value}")
+
+    def produce(self, payload: KafkaPayload):
+        """Produce message with load balancing."""
+        if len(self.producers) == 1:
+            # Single producer - no load balancing needed
+            return self.producers[0].produce(self.topics[0], payload)
+
+        # Round-robin load balancing
+        producer_index = self.current_index % len(self.producers)
+        self.current_index += 1
+
+        return self.producers[producer_index].produce(self.topics[producer_index], payload)
+
+    def close(self):
+        """Close all producers."""
+        for producer in self.producers:
+            producer.close()
 
 
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
@@ -49,6 +131,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ):
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
+        self.slice_id = buffer.slice_id
 
         self.mp_context = mp_context = multiprocessing.get_context("spawn")
         self.stopped = mp_context.Value("i", 0)
@@ -67,8 +150,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self.processes: dict[int, multiprocessing.context.SpawnProcess | threading.Thread] = {}
         self.process_healthy_since = {
-            process_index: mp_context.Value("i", int(time.time()))
-            for process_index in range(self.num_processes)
+            process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
         }
         self.process_backpressure_since = {
             process_index: mp_context.Value("i", 0) for process_index in range(self.num_processes)
@@ -78,19 +160,40 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         self._create_processes()
 
+        # When starting the consumer, block the consumer's main thread until
+        # all processes are healthy. This ensures we do not write into Redis if
+        # the flusher deterministically crashes on start, because in
+        # combination with the consumer crashlooping this will cause Redis to
+        # be filled up.
+        for process_index in self.process_to_shards_map.keys():
+            self._wait_for_process_to_become_healthy(process_index)
+
+    def _wait_for_process_to_become_healthy(self, process_index: int):
+        start_time = time.time()
+        max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds") * 2
+
+        while True:
+            if self.process_healthy_since[process_index].value != 0:
+                break
+
+            if time.time() - start_time > max_unhealthy_seconds:
+                shards = self.process_to_shards_map[process_index]
+                raise RuntimeError(
+                    f"process {process_index} (shards {shards}) didn't start up in {max_unhealthy_seconds} seconds"
+                )
+
+            time.sleep(0.1)
+
     def _create_processes(self):
         # Create processes based on shard mapping
         for process_index, shards in self.process_to_shards_map.items():
             self._create_process_for_shards(process_index, shards)
 
     def _create_process_for_shards(self, process_index: int, shards: list[int]):
-        # Optimistically reset healthy_since to avoid a race between the
-        # starting process and the next flush cycle. Keep back pressure across
-        # the restart, however.
-        self.process_healthy_since[process_index].value = int(time.time())
+        self.process_healthy_since[process_index].value = 0
 
         # Create a buffer for these specific shards
-        shard_buffer = SpansBuffer(shards)
+        shard_buffer = SpansBuffer(shards, slice_id=self.slice_id)
 
         make_process: Callable[..., multiprocessing.context.SpawnProcess | threading.Thread]
         if self.produce_to_pipe is None:
@@ -141,6 +244,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         healthy_since,
         produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
+        # TODO: remove once span buffer is live in all regions
+        scope = sentry_sdk.get_isolation_scope()
+        scope.level = "warning"
+
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
         sentry_sdk.set_tag("sentry_spans_buffer_shards", shard_tag)
@@ -150,18 +257,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             if produce_to_pipe is not None:
                 produce = produce_to_pipe
-                producer = None
+                producer_manager = None
             else:
-                cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
-
-                producer_config = get_kafka_producer_cluster_options(cluster_name)
-                producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-                topic = ArroyoTopic(
-                    get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
-                )
+                producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
 
                 def produce(payload: KafkaPayload) -> None:
-                    producer_futures.append(producer.produce(topic, payload))
+                    producer_futures.append(producer_manager.produce(payload))
 
             while not stopped.value:
                 system_now = int(time.time())
@@ -204,8 +305,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
                 buffer.done_flush_segments(flushed_segments)
 
-            if producer is not None:
-                producer.close()
+            if producer_manager is not None:
+                producer_manager.close()
         except KeyboardInterrupt:
             pass
         except Exception:
@@ -257,6 +358,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 pass  # Process already closed, ignore
 
             self._create_process_for_shards(process_index, shards)
+            self._wait_for_process_to_become_healthy(process_index)
 
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         # Note that submit is not actually a hot path. Their message payloads

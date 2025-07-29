@@ -21,6 +21,7 @@ from django.utils import timezone
 
 from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
 from sentry.dynamic_sampling import (
     ExtendedBoostedRelease,
@@ -66,7 +67,6 @@ from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -292,10 +292,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
+        regression_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == event2.datetime
+        assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
@@ -342,10 +346,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
+        regression_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == event2.datetime
+        assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
@@ -1091,10 +1099,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
+        regression_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == event2.datetime
+        assert open_period.date_started == regression_activity.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
@@ -3705,7 +3717,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ts = timezone.now().timestamp()
 
         # We want to test with multiple platforms.
-        for platform in ("python", "java", None):
+        for platform in ("python", "java"):
             project = self.create_project(platform=platform)
 
             for index, (release_version, environment) in enumerate(
@@ -3924,8 +3936,9 @@ class DSLatestReleaseBoostTest(TestCase):
 
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):
-    def test(self) -> None:
+    def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
+        perf_data["event_id"] = str(uuid.uuid4())
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
         group, created, _ = save_grouphash_and_group(self.project, event, group_hash)

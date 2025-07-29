@@ -134,6 +134,7 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
+    GENERAL = "general"  # for processes that span multiple integration domains
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
@@ -503,7 +504,6 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:

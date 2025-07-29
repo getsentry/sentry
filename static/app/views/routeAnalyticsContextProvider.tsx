@@ -34,7 +34,7 @@ export const RouteAnalyticsContext = createContext<{
 }>(DEFAULT_CONTEXT);
 
 interface Props {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function RouteAnalyticsContextProvider({children}: Props) {

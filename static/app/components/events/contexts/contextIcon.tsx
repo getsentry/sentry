@@ -29,6 +29,7 @@ import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
 import logoNintendo from 'sentry-logos/logo-nintendo.svg';
 import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
+import logoNintendoSwitch2 from 'sentry-logos/logo-nintendo-switch-2.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
@@ -61,6 +62,7 @@ const LOGO_MAPPING = {
   'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'nintendo-switch': logoNintendoSwitch,
+  'nintendo-switch-2': logoNintendoSwitch2,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
@@ -111,6 +113,7 @@ const LOGO_MAPPING = {
   xbox: logoXbox,
 };
 
+/** @internal used in stories **/
 export const NAMES = Object.keys(LOGO_MAPPING);
 
 // The icons in this list will be inverted when the theme is set to dark mode

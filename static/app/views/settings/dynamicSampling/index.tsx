@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +29,7 @@ export default function DynamicSamplingSettings() {
   ) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           {tct(
             'Custom Sample Rates for Dynamic Sampling are not available on your current plan. Check our [documentation] for information about how to set Sampling Priorities.',
             {
@@ -48,7 +48,7 @@ export default function DynamicSamplingSettings() {
   if (!hasDynamicSamplingCustomFeature(organization)) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           {tct(
             'Dynamic Sampling is not available on your current plan. Check our [documentation] for more information about Dynamic Sampling.',
             {
@@ -99,7 +99,7 @@ export default function DynamicSamplingSettings() {
         </Fragment>
       ) : (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {t('You need at least member permissions to view these settings.')}
           </Alert>
         </Alert.Container>

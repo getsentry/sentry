@@ -34,7 +34,7 @@ METADATA = {
 @freeze_time()
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.handler = OpsgenieActionHandler()
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.integration = self.create_provider_integration(
@@ -67,7 +67,7 @@ class OpsgenieActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def test_build_incident_attachment(self):
+    def test_build_incident_attachment(self) -> None:
         from sentry.integrations.opsgenie.utils import build_incident_attachment
 
         alert_rule = self.create_alert_rule()
@@ -113,7 +113,6 @@ class OpsgenieActionHandlerTest(FireTest):
 
     @responses.activate
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -224,11 +223,11 @@ class OpsgenieActionHandlerTest(FireTest):
         assert json.loads(data) == expected_payload
 
     @responses.activate
-    def test_fire_metric_alert(self):
+    def test_fire_metric_alert(self) -> None:
         self.run_fire_test()
 
     @responses.activate
-    def test_fire_metric_alert_multiple_teams(self):
+    def test_fire_metric_alert_multiple_teams(self) -> None:
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         self.org_integration.config["team_table"].append(team2)
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -237,11 +236,11 @@ class OpsgenieActionHandlerTest(FireTest):
         self.run_fire_test()
 
     @responses.activate
-    def test_resolve_metric_alert(self):
+    def test_resolve_metric_alert(self) -> None:
         self.run_fire_test("resolve")
 
     @responses.activate
-    def test_rule_snoozed(self):
+    def test_rule_snoozed(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
@@ -330,12 +329,12 @@ class OpsgenieActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def test_custom_priority(self):
+    def test_custom_priority(self) -> None:
         # default critical incident priority is P1, custom set to P3
         self.action.update(sentry_app_config={"priority": "P3"})
         self.run_fire_test()
 
     @responses.activate
-    def test_custom_priority_resolve(self):
+    def test_custom_priority_resolve(self) -> None:
         self.action.update(sentry_app_config={"priority": "P3"})
         self.run_fire_test("resolve")

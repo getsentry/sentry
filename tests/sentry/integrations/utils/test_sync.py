@@ -15,7 +15,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 
 @region_silo_test
 class TestSyncAssigneeInbound(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",
@@ -76,7 +76,7 @@ class TestSyncAssigneeInbound(TestCase):
         )
 
         assert self.group.get_assignee() is None
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assignment(self, mock_record_event):
@@ -99,7 +99,7 @@ class TestSyncAssigneeInbound(TestCase):
         assert updated_assignee is not None
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assign_with_multiple_groups(self, mock_record_event):
@@ -149,7 +149,7 @@ class TestSyncAssigneeInbound(TestCase):
             assert assignee.id == self.test_user.id
             assert assignee.email == "test@example.com"
 
-        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False)
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     def test_assign_with_no_user_found(self, mock_record_halt):

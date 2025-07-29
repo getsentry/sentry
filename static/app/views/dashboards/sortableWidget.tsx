@@ -3,16 +3,24 @@ import styled from '@emotion/styled';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
+import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
+import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
-import type {DashboardFilters, DashboardPermissions, Widget} from './types';
+import {
+  type DashboardFilters,
+  type DashboardPermissions,
+  type Widget,
+  WidgetType,
+} from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
@@ -34,6 +42,8 @@ type Props = {
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
   onNewWidgetScrollComplete?: () => void;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
+  onWidgetTableSort?: (sort: Sort) => void;
   windowWidth?: number;
 };
 
@@ -57,6 +67,8 @@ function SortableWidget(props: Props) {
     dashboardCreator,
     newlyAddedWidget,
     onNewWidgetScrollComplete,
+    onWidgetTableSort,
+    onWidgetTableResizeColumn,
   } = props;
 
   const organization = useOrganization();
@@ -69,6 +81,10 @@ function SortableWidget(props: Props) {
     dashboardPermissions,
     dashboardCreator
   );
+
+  const disableTransactionWidget =
+    organization.features.includes('discover-saved-queries-deprecation') &&
+    widget.widgetType === WidgetType.TRANSACTIONS;
 
   useEffect(() => {
     const isMatchingWidget = isEditingDashboard
@@ -104,6 +120,8 @@ function SortableWidget(props: Props) {
     isMobile,
     windowWidth,
     tableItemLimit: TABLE_ITEM_LIMIT,
+    onWidgetTableSort,
+    onWidgetTableResizeColumn,
   };
 
   return (
@@ -117,6 +135,11 @@ function SortableWidget(props: Props) {
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
               isMobile={props.isMobile}
+              disableEdit={disableTransactionWidget}
+              disableDuplicate={disableTransactionWidget}
+              disabledReason={t(
+                'You may have limited functionality due to the ongoing migration of transactions to spans.'
+              )}
             />
           )}
         </LazyRender>

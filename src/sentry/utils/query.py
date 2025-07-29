@@ -1,12 +1,23 @@
 from __future__ import annotations
 
+import logging
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import click
 from django.db import connections, router
+from django.db.models.fields import Field
+from django.db.models.query import QuerySet
+from django.db.models.query_utils import Q
+from django.db.models.sql.constants import ROW_COUNT
+from django.db.models.sql.subqueries import DeleteQuery
 
 from sentry import eventstore
+from sentry.db.models.base import Model
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -15,14 +26,19 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
+class CeleryBulkQueryState(TypedDict):
+    timestamp: str
+    event_id: str
+
+
 def celery_run_batch_query(
-    filter,
-    batch_size,
-    referrer,
-    state=None,
-    fetch_events=True,
-    tenant_ids=None,
-):
+    filter: eventstore.Filter,
+    batch_size: int,
+    referrer: str,
+    state: CeleryBulkQueryState | None = None,
+    fetch_events: bool = True,
+    tenant_ids: dict[str, int | str] | None = None,
+) -> tuple[CeleryBulkQueryState | None, list[Event]]:
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
     is used for celery tasks in issue merge/unmerge/reprocessing.
@@ -74,7 +90,7 @@ def celery_run_batch_query(
     return state, events
 
 
-class RangeQuerySetWrapper:
+class RangeQuerySetWrapper[V]:
     """
     Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
     and LESS THAN queries on the primary key.
@@ -82,16 +98,19 @@ class RangeQuerySetWrapper:
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__(
+    def __init__[
+        M: Model
+    ](
         self,
-        queryset,
-        step=1000,
-        limit=None,
-        min_id=None,
-        order_by="pk",
-        callbacks=(),
-        result_value_getter=None,
-        override_unique_safety_check=False,
+        queryset: QuerySet[M, V],
+        *,
+        step: int = 1000,
+        limit: int | None = None,
+        min_id: int | None = None,
+        order_by: str = "pk",
+        callbacks: Sequence[Callable[[list[V]], None]] = (),
+        result_value_getter: Callable[[V], int] | None = None,
+        override_unique_safety_check: bool = False,
     ):
         # Support for slicing
         if queryset.query.low_mark == 0 and not (
@@ -117,7 +136,9 @@ class RangeQuerySetWrapper:
         self.result_value_getter = result_value_getter
 
         order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
-        if not override_unique_safety_check and not order_by_col.unique:
+        if not override_unique_safety_check and (
+            not isinstance(order_by_col, Field) or not order_by_col.unique
+        ):
             # TODO: Ideally we could fix this bug and support ordering by a non unique col
             raise InvalidQuerySetError(
                 "Order by column must be unique, otherwise this wrapper can get "
@@ -126,7 +147,7 @@ class RangeQuerySetWrapper:
                 "`override_unique_safety_check=True`"
             )
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[V]:
         if self.min_value is not None:
             cur_value = self.min_value
         else:
@@ -151,19 +172,23 @@ class RangeQuerySetWrapper:
             start = num
 
             if cur_value is None:
-                results = queryset
+                results_qs = queryset
             elif self.desc:
-                results = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
+                results_qs = queryset.filter(**{"%s__lte" % self.order_by: cur_value})
             else:
-                results = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
+                results_qs = queryset.filter(**{"%s__gte" % self.order_by: cur_value})
 
-            results = list(results[0 : self.step])
+            results = list(results_qs[0 : self.step])
 
             for cb in self.callbacks:
                 cb(results)
 
             for result in results:
-                pk = self.result_value_getter(result) if self.result_value_getter else result.pk
+                pk = (
+                    self.result_value_getter(result)
+                    if self.result_value_getter
+                    else getattr(result, "pk")
+                )
                 if last_object_pk is not None and pk == last_object_pk:
                     continue
 
@@ -188,18 +213,18 @@ class RangeQuerySetWrapper:
             has_results = num > start
 
 
-class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
-    def get_total_count(self):
+class RangeQuerySetWrapperWithProgressBar[V](RangeQuerySetWrapper[V]):
+    def get_total_count(self) -> int:
         return self.queryset.count()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[V]:
         total_count = self.get_total_count()
         iterator = super().__iter__()
-        label = self.queryset.model._meta.verbose_name_plural.title()
-        return iter(WithProgressBar(iterator, total_count, label))
+        verbose_name = self.queryset.model._meta.verbose_name_plural or self.queryset.model.__name__
+        return iter(WithProgressBar(iterator, total_count, verbose_name.title()))
 
 
-class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgressBar):
+class RangeQuerySetWrapperWithProgressBarApprox[V](RangeQuerySetWrapperWithProgressBar[V]):
     """
     Works the same as `RangeQuerySetWrapperWithProgressBar`, but approximates the number of rows
     in the table. This is intended for use on very large tables where we end up timing out
@@ -209,7 +234,7 @@ class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgress
     produce a useful total count on filtered queries.
     """
 
-    def get_total_count(self):
+    def get_total_count(self) -> int:
         cursor = connections[self.queryset.db].cursor()
         cursor.execute(
             "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = %s",
@@ -232,48 +257,20 @@ class WithProgressBar[V]:
 
 
 def bulk_delete_objects(
-    model, limit=10000, transaction_id=None, logger=None, partition_key=None, **filters
-):
-    connection = connections[router.db_for_write(model)]
-    quote_name = connection.ops.quote_name
+    model: type[Model],
+    limit: int = 10000,
+    transaction_id: str | None = None,
+    logger: logging.Logger | None = None,
+    **filters: Any,
+) -> bool:
+    qs = model.objects.filter(**filters).values_list("id")[:limit]
 
-    query = []
-    params = []
-    partition_query = []
+    delete_query = DeleteQuery(model)
+    delete_query.add_q(Q(id__in=qs))
+    n = delete_query.get_compiler(router.db_for_write(model)).execute_sql(ROW_COUNT)
 
-    if partition_key:
-        for column, value in partition_key.items():
-            partition_query.append(f"{quote_name(column)} = %s")
-            params.append(value)
-
-    for column, value in filters.items():
-        if column.endswith("__in"):
-            column, _ = column.split("__")
-            query.append(f"{quote_name(column)} = ANY(%s)")
-            params.append(list(value))
-        else:
-            query.append(f"{quote_name(column)} = %s")
-            params.append(value)
-
-    query_s = """
-        delete from %(table)s
-        where %(partition_query)s id = any(array(
-            select id
-            from %(table)s
-            where (%(query)s)
-            limit %(limit)d
-        ))
-    """ % dict(
-        partition_query=(" AND ".join(partition_query)) + (" AND " if partition_query else ""),
-        query=" AND ".join(query),
-        table=model._meta.db_table,
-        limit=limit,
-    )
-
-    cursor = connection.cursor()
-    cursor.execute(query_s, params)
-
-    has_more = cursor.rowcount > 0
+    # `n` will be `None` if `qs` is an empty queryset
+    has_more = n is not None and n > 0
 
     if has_more and logger is not None and _leaf_re.search(model.__name__) is None:
         logger.info(

@@ -37,7 +37,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {
   getAggregateAlias,
   isAggregateField,
@@ -51,14 +53,22 @@ import {
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {
+  decodeInteger,
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+} from 'sentry/utils/queryString';
+import type {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {
@@ -96,6 +106,11 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {
+  convertTableDataToTabularData,
+  decodeColumnAliases,
+} from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -291,6 +306,7 @@ function WidgetViewerModal(props: Props) {
   // include the orderby in the table widget aggregates and columns otherwise
   // eventsv2 will complain about sorting on an unselected field.
   if (
+    widget.displayType !== DisplayType.TABLE &&
     orderby &&
     !isEquationAlias(rawOrderby) &&
     // Normalize to the aggregate alias because we may still have widgets
@@ -482,6 +498,25 @@ function WidgetViewerModal(props: Props) {
     const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
+
+    if (organization.features.includes('dashboards-use-widget-table-visualization')) {
+      return ViewerTableV2({
+        tableResults,
+        loading,
+        pageLinks,
+        fields,
+        widget,
+        tableWidget,
+        setChartUnmodified,
+        widths,
+        location,
+        organization,
+        navigate,
+        eventView,
+        theme,
+      });
+    }
+
     return (
       <Fragment>
         <GridEditable
@@ -557,6 +592,23 @@ function WidgetViewerModal(props: Props) {
   }: GenericWidgetQueriesChildrenProps) => {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
+    }
+    if (organization.features.includes('dashboards-use-widget-table-visualization')) {
+      return ViewerTableV2({
+        tableResults,
+        loading,
+        pageLinks,
+        fields,
+        widget,
+        tableWidget,
+        setChartUnmodified,
+        widths,
+        location,
+        organization,
+        navigate,
+        eventView,
+        theme,
+      });
     }
     const links = parseLinkHeader(pageLinks ?? null);
     return (
@@ -634,6 +686,23 @@ function WidgetViewerModal(props: Props) {
     loading,
     pageLinks,
   }) => {
+    if (organization.features.includes('dashboards-use-widget-table-visualization')) {
+      return ViewerTableV2({
+        tableResults,
+        loading,
+        pageLinks,
+        fields,
+        widget,
+        tableWidget,
+        setChartUnmodified,
+        widths,
+        location,
+        organization,
+        navigate,
+        eventView,
+        theme,
+      });
+    }
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -893,7 +962,7 @@ function WidgetViewerModal(props: Props) {
         )}
         {widget.queries.length > 1 && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
               )}
@@ -1032,7 +1101,7 @@ function WidgetViewerModal(props: Props) {
                 <Footer>
                   <ResultsContainer>
                     {renderTotalResults(totalResults, widget.widgetType)}
-                    <ButtonBar gap={1}>
+                    <ButtonBar>
                       {onEdit && widget.id && (
                         <Button
                           onClick={() => {
@@ -1187,6 +1256,189 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     default:
       return <span />;
   }
+}
+
+interface ViewerTableV2Props {
+  eventView: EventView;
+  fields: string[];
+  loading: boolean;
+  location: Location;
+  navigate: ReactRouter3Navigate;
+  organization: Organization;
+  setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
+  tableWidget: Widget;
+  theme: Theme;
+  widget: Widget;
+  widths: string[];
+  pageLinks?: string;
+  tableResults?: TableDataWithTitle[];
+}
+
+function ViewerTableV2({
+  widget,
+  tableResults,
+  loading,
+  pageLinks,
+  fields,
+  widths,
+  setChartUnmodified,
+  tableWidget,
+  location,
+  organization,
+  navigate,
+  eventView,
+  theme,
+}: ViewerTableV2Props) {
+  const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
+  const links = parseLinkHeader(pageLinks ?? null);
+
+  function sortable(key: string) {
+    if (tableWidget.widgetType === WidgetType.ISSUE) {
+      return false;
+    }
+    if (tableWidget.widgetType === WidgetType.RELEASE) {
+      return isAggregateField(key);
+    }
+    return true;
+  }
+
+  const columnOrder = decodeColumnOrder(
+    fields.map(field => ({
+      field,
+    })),
+    tableResults?.[0]?.meta
+  );
+
+  const tableColumns = columnOrder.map((column, index) => ({
+    key: column.key,
+    type: column.type === 'never' ? null : column.type,
+    sortable: sortable(column.key),
+    width: widths[index] ? parseInt(widths[index], 10) || -1 : -1,
+  }));
+  const datasetConfig = getDatasetConfig(widget.widgetType);
+  const aliases = decodeColumnAliases(
+    tableColumns,
+    tableWidget.queries[0]?.fieldAliases ?? [],
+    tableWidget.widgetType === WidgetType.ISSUE
+      ? datasetConfig?.getFieldHeaderMap?.()
+      : {}
+  );
+
+  if (loading) {
+    return (
+      <TableWidgetVisualization.LoadingPlaceholder
+        columns={tableColumns}
+        aliases={aliases}
+      />
+    );
+  }
+
+  const tableSort = decodeSorts(tableWidget.queries[0]?.orderby)[0];
+  const data = convertTableDataToTabularData(tableResults?.[0]);
+
+  function onChangeSort(newSort: Sort) {
+    if (
+      [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
+      defined(widget.limit) ||
+      tableWidget.widgetType === WidgetType.ISSUE
+    ) {
+      setChartUnmodified(false);
+    }
+
+    trackAnalytics('dashboards_views.widget_viewer.sort', {
+      organization,
+      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      display_type: widget.displayType,
+      column: newSort.field,
+      order: newSort.kind,
+    });
+
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          sort: `${newSort.kind === 'desc' ? '-' : ''}${newSort.field}`,
+        },
+      },
+      {replace: true, preventScrollReset: true}
+    );
+  }
+
+  return (
+    <Fragment>
+      <TableWidgetVisualization
+        tableData={data}
+        columns={tableColumns}
+        aliases={aliases}
+        sort={tableSort}
+        onChangeSort={onChangeSort}
+        getRenderer={(field, _dataRow, meta) => {
+          const customRenderer = datasetConfig?.getCustomFieldRenderer?.(
+            field,
+            meta as MetaType,
+            widget,
+            organization
+          )!;
+
+          return customRenderer;
+        }}
+        makeBaggage={(field, _dataRow, meta) => {
+          const unit = meta.units?.[field] as string | undefined;
+
+          return {
+            location,
+            organization,
+            theme,
+            unit,
+            eventView,
+          } satisfies RenderFunctionBaggage;
+        }}
+        allowedCellActions={[]}
+      />
+      {!(
+        tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
+        tableWidget.widgetType === WidgetType.RELEASE
+      ) &&
+        (links?.previous?.results || links?.next?.results) && (
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={(nextCursor, _path, _query, delta) => {
+              let nextPage = isNaN(page) ? delta : page + delta;
+              let newCursor = nextCursor;
+              // unset cursor and page when we navigate back to the first page
+              // also reset cursor if somehow the previous button is enabled on
+              // first page and user attempts to go backwards
+              if (nextPage <= 0) {
+                newCursor = undefined;
+                nextPage = 0;
+              }
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                    [WidgetViewerQueryField.PAGE]: nextPage,
+                  },
+                },
+                {replace: true, preventScrollReset: true}
+              );
+
+              if (widget.displayType === DisplayType.TABLE) {
+                setChartUnmodified(false);
+              }
+
+              trackAnalytics('dashboards_views.widget_viewer.paginate', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+          />
+        )}
+    </Fragment>
+  );
 }
 
 export const modalCss = css`

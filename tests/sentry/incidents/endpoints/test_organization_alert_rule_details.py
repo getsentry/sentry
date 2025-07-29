@@ -179,7 +179,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
             ],
         }
 
-    def test_invalid_rule_id(self):
+    def test_invalid_rule_id(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -189,7 +189,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
         assert resp.status_code == 404
 
-    def test_permissions(self):
+    def test_permissions(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.create_user())
         with self.feature("organizations:incidents"):
@@ -197,7 +197,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
         assert resp.status_code == 403
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -205,7 +205,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
         resp = self.get_response(self.organization.slug, self.alert_rule.id)
         assert resp.status_code == 404
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         project = self.alert_rule.projects.get()
@@ -217,7 +217,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
@@ -225,7 +225,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
-    def test_workflow_engine_serializer(self):
+    def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -251,7 +251,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert resp.data == serialize(self.detector, serializer=WorkflowEngineDetectorSerializer())
 
-    def test_aggregate_translation(self):
+    def test_aggregate_translation(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
@@ -260,7 +260,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             assert resp.data["aggregate"] == "count_unique(user)"
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
-    def test_expand_latest_incident(self):
+    def test_expand_latest_incident(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         incident = self.create_incident(
@@ -281,9 +281,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert "latestIncident" not in no_expand_resp.data
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
-    def test_static_detection_type(self):
+    def test_static_detection_type(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         rule = self.create_alert_rule()  # the default detection type is static
@@ -316,9 +315,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
-    def test_percent_detection_type(self):
+    def test_percent_detection_type(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         rule = self.create_alert_rule(
@@ -357,7 +355,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -437,9 +434,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
-    def test_missing_threshold(self):
+    def test_missing_threshold(self) -> None:
         """Test that we throw a validation error when the trigger is missing alertThreshold"""
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -461,7 +457,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert serializer.errors["nonFieldErrors"][0] == "Trigger must have an alertThreshold"
 
     @responses.activate
-    def test_with_sentryapp_success(self):
+    def test_with_sentryapp_success(self) -> None:
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
         self.login_as(user=self.superuser)
         self.create_team(organization=self.organization, members=[self.superuser])
@@ -514,7 +510,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
 
     @responses.activate
-    def test_with_sentryapp_multiple_installations_filters_by_org(self):
+    def test_with_sentryapp_multiple_installations_filters_by_org(self) -> None:
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
         self.login_as(user=self.superuser)
         self.create_team(organization=self.organization, members=[self.superuser])
@@ -589,7 +585,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
 
     @responses.activate
-    def test_with_unresponsive_sentryapp(self):
+    def test_with_unresponsive_sentryapp(self) -> None:
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
         self.login_as(user=self.superuser)
         self.create_team(organization=self.organization, members=[self.superuser])
@@ -638,7 +634,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         )
         assert resp.data["triggers"][0]["actions"][0]["disabled"] is True
 
-    def test_with_snooze_rule(self):
+    def test_with_snooze_rule(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         rule_snooze = self.snooze_rule(
@@ -659,7 +655,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             assert response.data["snooze"]
             assert "snoozeCreatedBy" not in response.data
 
-    def test_with_snooze_rule_everyone(self):
+    def test_with_snooze_rule_everyone(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -676,7 +672,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -708,7 +704,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             == list(audit_log_entry)[0].ip_address
         )
 
-    def test_workflow_engine_serializer(self):
+    def test_workflow_engine_serializer(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -748,7 +744,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == "what"
         assert resp.data["dateModified"] > serialized_alert_rule["dateModified"]
 
-    def test_not_updated_fields(self):
+    def test_not_updated_fields(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -774,7 +770,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         updated_sub = updated_alert_rule.snuba_query.subscriptions.get()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
-    def test_update_trigger_label_to_unallowed_value(self):
+    def test_update_trigger_label_to_unallowed_value(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -798,7 +794,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
             assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
 
-    def test_update_trigger_alert_threshold(self):
+    def test_update_trigger_alert_threshold(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -819,7 +815,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["triggers"][1]["alertThreshold"] == 125
 
-    def test_delete_resolve_alert_threshold(self):
+    def test_delete_resolve_alert_threshold(self) -> None:
         # This is a test to make sure we can remove a resolveThreshold after it has been set.
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -842,7 +838,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["resolveThreshold"] is None
 
-    def test_update_resolve_alert_threshold(self):
+    def test_update_resolve_alert_threshold(self) -> None:
         # This is a test to make sure we can remove a resolveThreshold after it has been set.
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -864,7 +860,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["resolveThreshold"] == 75
 
-    def test_delete_trigger(self):
+    def test_delete_trigger(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -905,7 +901,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_dual_delete.call_count == 1
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_delete_trigger_dual_update_resolve(self):
+    def test_delete_trigger_dual_update_resolve(self) -> None:
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
         comparison on the DataCondition corresponding to alert resolution.
@@ -936,7 +932,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_update_trigger_threshold_dual_update_resolve(self):
+    def test_update_trigger_threshold_dual_update_resolve(self) -> None:
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the
         comparison on the DataCondition corresponding to alert resolution if trigger thresholds
@@ -975,7 +971,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_update_trigger_threshold_dual_update_resolve_noop(self):
+    def test_update_trigger_threshold_dual_update_resolve_noop(self) -> None:
         """
         If there is an explicit resolve threshold on an alert rule, then updating triggers should
         not affect the resolve action filter.
@@ -1001,7 +997,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert_dual_written_resolution_threshold_equals(alert_rule, resolve_threshold)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_remove_resolve_threshold_dual_update_resolve(self):
+    def test_remove_resolve_threshold_dual_update_resolve(self) -> None:
         """
         If we set the remove the resolve threshold from an alert rule, then we need to update the
         resolve action filter according to the triggers.
@@ -1027,7 +1023,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_dual_update_resolve_all_triggers_removed_and_recreated(self):
+    def test_dual_update_resolve_all_triggers_removed_and_recreated(self) -> None:
         """
         If a PUT request is made via the API and the trigger IDs are not specified in the
         request (as is usually the case), then the triggers + their actions are deleted and
@@ -1050,7 +1046,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert_dual_written_resolution_threshold_equals(self.alert_rule, 50)
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -1073,7 +1068,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -1099,7 +1093,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -1127,7 +1120,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -1162,7 +1154,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
 
-    def test_delete_action(self):
+    def test_delete_action(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1220,7 +1212,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_dual_delete.call_count == 1
         assert mock_dual_delete.call_args_list[0][0][0] == action
 
-    def test_update_trigger_action_type(self):
+    def test_update_trigger_action_type(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1250,7 +1242,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"][0]["actions"]) == 1
         assert len(resp.data["triggers"][1]["actions"]) == 2
 
-    def test_invalid_thresholds(self):
+    def test_invalid_thresholds(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1266,7 +1258,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
 
-    def test_update_snapshot(self):
+    def test_update_snapshot(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1284,7 +1276,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
             )
 
-    def test_no_owner(self):
+    def test_no_owner(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1304,7 +1296,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(alert_rule, self.user)
         assert resp.data["owner"] is None
 
-    def test_team_permission(self):
+    def test_team_permission(self) -> None:
         # Test ensures you can only edit alerts owned by your team or no one.
         om = self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1332,7 +1324,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.refresh_from_db()
         assert resp.data == serialize(alert_rule, self.user)
 
-    def test_change_name_of_existing_alert(self):
+    def test_change_name_of_existing_alert(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1479,7 +1471,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
-    def test_create_slack_alert_with_name_and_channel_id_sdk(self):
+    def test_create_slack_alert_with_name_and_channel_id_sdk(self) -> None:
         """
         The user specifies the Slack channel and channel ID (which match).
         """
@@ -1504,7 +1496,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             assert stored_action["inputChannelId"] == str(channelID)
             assert stored_action["targetIdentifier"] == channelName
 
-    def test_create_slack_alert_with_mismatch_name_and_channel_id_sdk(self):
+    def test_create_slack_alert_with_mismatch_name_and_channel_id_sdk(self) -> None:
         """
         The user specifies the Slack channel and channel ID but they do not match.
         """
@@ -1536,7 +1528,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 ]
             }
 
-    def test_create_slack_alert_with_mismatch_name_and_user_id_sdk(self):
+    def test_create_slack_alert_with_mismatch_name_and_user_id_sdk(self) -> None:
         """
         The user specifies the Slack user and user ID but they do not match.
         """
@@ -1569,7 +1561,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 ]
             }
 
-    def test_create_slack_alert_with_missing_name_from_sdk(self):
+    def test_create_slack_alert_with_missing_name_from_sdk(self) -> None:
         """
         The user specifies the Slack user and user ID but the response doesn't have a name.
         """
@@ -1597,7 +1589,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
 
     # An incorrect channelID will raise an SlackApiError in the Slack client
     @responses.activate
-    def test_create_slack_alert_with_non_existent_channel_id(self):
+    def test_create_slack_alert_with_non_existent_channel_id(self) -> None:
         """
         The user specifies a bad Slack channel ID.
         """
@@ -1635,7 +1627,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             }
 
     @responses.activate
-    def test_create_slack_alert_with_non_existent_user_id(self):
+    def test_create_slack_alert_with_non_existent_user_id(self) -> None:
         """
         The user specifies a bad Slack user ID.
         """
@@ -1669,7 +1661,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             }
 
     @responses.activate
-    def test_create_slack_alert_with_non_visible_user(self):
+    def test_create_slack_alert_with_non_visible_user(self) -> None:
         """
         The user specifies a hidden Slack user ID.
         """
@@ -1706,7 +1698,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             }
 
     @responses.activate
-    def test_create_slack_alert_with_bad_user_response(self):
+    def test_create_slack_alert_with_bad_user_response(self) -> None:
         """
         Catch-all for less common Slack API errors.
         """
@@ -1906,7 +1898,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def test_sentry_app(self):
+    def test_sentry_app(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1938,7 +1930,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(alert_rule)
         assert resp.data["triggers"][0]["actions"][0]["sentryAppId"] == sentry_app.id
 
-    def test_no_config_sentry_app(self):
+    def test_no_config_sentry_app(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1973,7 +1965,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
             )
 
     @responses.activate
-    def test_success_response_from_sentry_app(self):
+    def test_success_response_from_sentry_app(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -2030,7 +2022,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
             )
 
     @responses.activate
-    def test_error_response_from_sentry_app(self):
+    def test_error_response_from_sentry_app(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -2089,7 +2081,7 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -2147,14 +2139,14 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
         self.get_success_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
-    def test_snapshot_and_create_new_with_same_name(self):
+    def test_snapshot_and_create_new_with_same_name(self) -> None:
         with self.tasks():
             self.create_member(
                 user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -2178,7 +2170,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
             # We also confirm that the incident is automatically resolved.
             assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
 
-    def test_team_permission(self):
+    def test_team_permission(self) -> None:
         # Test ensures you can only delete alerts owned by your team or no one.
         om = self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -2202,7 +2194,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id, status_code=204)
 
-    def test_project_permission(self):
+    def test_project_permission(self) -> None:
         """Test that a user can't delete an alert in a project they do not have access to"""
         # disable Open Membership
         self.organization.flags.allow_joinleave = False

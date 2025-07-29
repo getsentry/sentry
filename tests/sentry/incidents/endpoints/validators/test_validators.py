@@ -31,7 +31,7 @@ from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidator
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "type": Condition.GREATER,
@@ -40,7 +40,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "conditionGroupId": self.data_condition_group.id,
         }
 
-    def test(self):
+    def test(self) -> None:
         validator = MetricIssueComparisonConditionValidator(data=self.valid_data)
         assert validator.is_valid()
         assert validator.validated_data == {
@@ -50,7 +50,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             "condition_group_id": self.data_condition_group.id,
         }
 
-    def test_invalid_condition(self):
+    def test_invalid_condition(self) -> None:
         unsupported_condition = Condition.EQUAL
         data = {
             **self.valid_data,
@@ -62,7 +62,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             ErrorDetail(string=f"Unsupported type {unsupported_condition}", code="invalid")
         ]
 
-    def test_unregistered_condition(self):
+    def test_unregistered_condition(self) -> None:
         validator = MetricIssueComparisonConditionValidator(
             data={**self.valid_data, "type": "invalid"}
         )
@@ -71,7 +71,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
         ]
 
-    def test_invalid_comparison(self):
+    def test_invalid_comparison(self) -> None:
         validator = MetricIssueComparisonConditionValidator(
             data={
                 **self.valid_data,
@@ -83,7 +83,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             ErrorDetail(string="A valid number or dict is required.", code="invalid")
         ]
 
-    def test_invalid_comparison_dict(self):
+    def test_invalid_comparison_dict(self) -> None:
         comparison = {"foo": "bar"}
         validator = MetricIssueComparisonConditionValidator(
             data={
@@ -99,7 +99,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
             )
         ]
 
-    def test_invalid_result(self):
+    def test_invalid_result(self) -> None:
         validator = MetricIssueComparisonConditionValidator(
             data={
                 **self.valid_data,
@@ -113,7 +113,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
 
 
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(
@@ -283,7 +283,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             data=detector.get_audit_log_data(),
         )
 
-    def test_anomaly_detection__invalid_comparison(self):
+    def test_anomaly_detection__invalid_comparison(self) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {
@@ -314,7 +314,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
         assert not validator.is_valid()
 
-    def test_invalid_detector_type(self):
+    def test_invalid_detector_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
@@ -324,7 +324,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             )
         ]
 
-    def test_too_many_conditions(self):
+    def test_too_many_conditions(self) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {

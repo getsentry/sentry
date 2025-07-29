@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, tagstore
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -21,6 +22,7 @@ from sentry.apidocs.examples.tags_examples import TagsExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.tagstore.types import TagValueSerializerResponse
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Events"])
@@ -30,6 +32,15 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=5, window=1, concurrent_limit=5),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+        }
+    }
 
     @extend_schema(
         operation_id="List a Tag's Values for an Issue",
@@ -58,9 +69,10 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         List a Tag's Values
         """
         analytics.record(
-            "eventuser_endpoint.request",
-            project_id=group.project_id,
-            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            EventUserEndpointRequest(
+                project_id=group.project_id,
+                endpoint="sentry.api.endpoints.group_tagkey_values.get",
+            )
         )
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 

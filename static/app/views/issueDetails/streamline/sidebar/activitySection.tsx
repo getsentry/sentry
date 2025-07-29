@@ -8,10 +8,9 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
-import Link from 'sentry/components/links/link';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
-import {IconChat, IconEllipsis} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -27,11 +26,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
-import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -83,7 +83,7 @@ function TimelineItem({
   return (
     <ActivityTimelineItem
       title={
-        <Flex gap={space(0.5)} align="center" justify="flex-start">
+        <Flex gap="xs" align="center" justify="start">
           <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
@@ -251,63 +251,44 @@ export default function StreamlinedActivitySection({
     },
   };
 
-  const filteredActivityLink = {
-    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-      filter: 'comments',
-    },
-  };
-
-  return (
-    <div>
-      {!isDrawer && (
-        <Flex justify="space-between" align="center" style={{marginBottom: space(1)}}>
-          <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
-            {t('Activity')}
-            {group.numComments > 0 ? (
-              <CommentsLink
-                to={filteredActivityLink}
-                aria-label={t('Number of comments: %s', group.numComments)}
-                onClick={() => {
-                  trackAnalytics('issue_details.activity_comments_link_clicked', {
-                    organization,
-                    num_comments: group.numComments,
-                  });
-                }}
-              >
-                <IconChat
-                  size="xs"
-                  color={
-                    group.subscriptionDetails?.reason === 'mentioned'
-                      ? 'successText'
-                      : undefined
-                  }
-                />
-                <span>{group.numComments}</span>
-              </CommentsLink>
-            ) : null}
-          </SidebarSectionTitle>
-          <ViewButton
-            aria-label={t('Open activity drawer')}
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-              query: {
-                ...location.query,
-                cursor: undefined,
-              },
-            }}
-            analyticsEventKey="issue_details.activity_drawer_opened"
-            analyticsEventName="Issue Details: Activity Drawer Opened"
-            analyticsParams={{
-              num_activities: group.activity.length,
-            }}
-          >
-            {t('View')}
-          </ViewButton>
-        </Flex>
-      )}
+  return isDrawer ? (
+    <Timeline.Container>
+      <NoteInputWithStorage
+        key={inputId}
+        storageKey="groupinput:latest"
+        itemKey={group.id}
+        onCreate={n => {
+          handleCreate(n, activeUser);
+          setInputId(uniqueId());
+        }}
+        source="issue-details"
+        {...noteProps}
+      />
+      {group.activity
+        .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
+        .map(item => {
+          return (
+            <TimelineItem
+              item={item}
+              handleDelete={handleDelete}
+              handleUpdate={handleUpdate}
+              group={group}
+              teams={teams}
+              key={item.id}
+              isDrawer={isDrawer}
+            />
+          );
+        })}
+    </Timeline.Container>
+  ) : (
+    <SidebarFoldSection
+      title={
+        <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
+          {t('Activity')}
+        </SidebarSectionTitle>
+      }
+      sectionKey={SectionKey.ACTIVITY}
+    >
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -320,7 +301,7 @@ export default function StreamlinedActivitySection({
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length < 5 || isDrawer) &&
+        {group.activity.length < 5 ? (
           group.activity
             .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
             .map(item => {
@@ -335,8 +316,8 @@ export default function StreamlinedActivitySection({
                   isDrawer={isDrawer}
                 />
               );
-            })}
-        {!isDrawer && group.activity.length >= 5 && (
+            })
+        ) : (
           <Fragment>
             {group.activity.slice(0, 3).map(item => {
               return (
@@ -371,7 +352,7 @@ export default function StreamlinedActivitySection({
           </Fragment>
         )}
       </Timeline.Container>
-    </div>
+    </SidebarFoldSection>
   );
 }
 
@@ -407,11 +388,4 @@ const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
 
 const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
   font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
-`;
-
-const CommentsLink = styled(Link)`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-  color: ${p => p.theme.subText};
 `;

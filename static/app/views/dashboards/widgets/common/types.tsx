@@ -46,12 +46,18 @@ export type TimeSeriesItem = {
   incomplete?: boolean;
 };
 
+type TimeSeriesGroupBy = {
+  key: string;
+  value: string;
+};
+
 export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
+  groupBy?: TimeSeriesGroupBy[];
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
@@ -65,7 +71,7 @@ export type TabularMeta<TFields extends string = string> = {
 
 export type TabularRow<TFields extends string = string> = Record<
   TFields,
-  number | string | string[] | null
+  number | string | string[] | boolean | null
 >;
 
 export type TabularData<TFields extends string = string> = {
@@ -75,8 +81,7 @@ export type TabularData<TFields extends string = string> = {
 
 export type TabularColumn<TFields extends string = string> = {
   key: TFields;
-  name: TFields;
-  alias?: string;
+  sortable?: boolean;
   type?: AttributeValueType;
   width?: number;
 };

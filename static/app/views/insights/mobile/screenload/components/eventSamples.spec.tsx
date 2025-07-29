@@ -92,6 +92,7 @@ describe('ScreenLoadEventSamples', function () {
             'profile.id': 'profile1',
             'measurements.time_to_initial_display': 100.0,
             'measurements.time_to_full_display': 200.0,
+            trace: 'trace-id',
           },
         ],
       },
@@ -122,7 +123,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '4142de70'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/backend/project1:4142de70494989c04f023ce1727ac856f31b7f92/'
+      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
     );
 
     // Profile is a button

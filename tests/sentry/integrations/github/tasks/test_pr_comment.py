@@ -47,7 +47,7 @@ class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.installation = get_installation_of_type(
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
@@ -172,7 +172,7 @@ class GithubCommentTestCase(IntegrationTestCase):
 
 
 class TestPrToIssueQuery(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """one pr with one issue"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -182,7 +182,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner.group_id]
 
-    def test_multiple_issues(self):
+    def test_multiple_issues(self) -> None:
         """one pr with multiple issues"""
         commit = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         pr = self.add_pr_to_commit(commit)
@@ -194,7 +194,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
         assert results == [groupowner_1.group_id, groupowner_2.group_id, groupowner_3.group_id]
 
-    def test_multiple_prs(self):
+    def test_multiple_prs(self) -> None:
         """multiple eligible PRs with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -209,7 +209,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         results = self.pr_comment_workflow.get_issue_ids_from_pr(pr=pr_2)
         assert results == [groupowner_2.group_id]
 
-    def test_multiple_commits(self):
+    def test_multiple_commits(self) -> None:
         """Multiple eligible commits with one issue each"""
         commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
         commit_2 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
@@ -222,7 +222,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
 
 
 class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         group1 = [
             self.store_event(
                 {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
@@ -249,7 +249,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2, group3, group1]
 
-    def test_over_5_issues(self):
+    def test_over_5_issues(self) -> None:
         issue_ids = [
             self.store_event(
                 {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
@@ -260,7 +260,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         res = self.pr_comment_workflow.get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
-    def test_ignore_info_level_issues(self):
+    def test_ignore_info_level_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -295,7 +295,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
         )
         assert [issue["group_id"] for issue in res] == [group2]
 
-    def test_do_not_ignore_other_issues(self):
+    def test_do_not_ignore_other_issues(self) -> None:
         group1 = [
             self.store_event(
                 {
@@ -336,7 +336,7 @@ class TestTop5IssuesByCount(GithubCommentTestCase, SnubaTestCase):
 
 
 class TestGetCommentBody(GithubCommentTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         ev1 = self.store_event(
             data={
                 "message": "issue 1",
@@ -381,7 +381,7 @@ This pull request was deployed and Sentry observed the following issues:
 
 
 class TestCommentWorkflow(GithubCommentTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"
@@ -461,7 +461,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
-        assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
+        assert pull_request_comment.group_ids == groups
         assert pull_request_comment.updated_at == timezone.now()
         mock_metrics.incr.assert_called_with("github.pr_comment.comment_updated")
 
@@ -655,7 +655,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user_1"
         self.app_id = "app_1"

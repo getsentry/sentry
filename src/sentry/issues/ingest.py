@@ -34,6 +34,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -199,7 +200,10 @@ def save_issue_from_occurrence(
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
         if not should_create_group(occurrence.type, client, primary_hash, project):
-            metrics.incr("issues.issue.dropped.noise_reduction")
+            metrics.incr(
+                "issues.issue.dropped.noise_reduction",
+                tags={"group_type": occurrence.type.slug},
+            )
             return None
 
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
@@ -229,6 +233,12 @@ def save_issue_from_occurrence(
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
             )
+            if is_new and occurrence.evidence_data and "detector_id" in occurrence.evidence_data:
+                DetectorGroup.objects.get_or_create(
+                    detector_id=occurrence.evidence_data["detector_id"],
+                    group_id=group.id,
+                )
+
             open_period = get_latest_open_period(group)
             if open_period is not None:
                 highest_seen_priority = group.priority
@@ -273,11 +283,12 @@ def save_issue_from_occurrence(
         return None
     else:
         group = primary_grouphash.group
-        if group.issue_category.value != occurrence.type.category:
+        if group.issue_type.type_id != occurrence.type.type_id:
             logger.error(
-                "save_issue_from_occurrence.category_mismatch",
+                "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_category": group.issue_category,
+                    "issue_type": group.issue_type.slug,
+                    "occurrence_type": occurrence.type.slug,
                     "event_type": "platform",
                     "group_id": group.id,
                 },

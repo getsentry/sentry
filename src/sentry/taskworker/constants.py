@@ -1,3 +1,5 @@
+from enum import Enum
+
 DEFAULT_PROCESSING_DEADLINE = 10
 """
 The fallback/default processing_deadline that tasks
@@ -32,3 +34,23 @@ DEFAULT_CHILD_TASK_COUNT = 10000
 The number of tasks a worker child process will process
 before being restarted.
 """
+
+MAX_BACKOFF_SECONDS_WHEN_HOST_UNAVAILABLE = 20
+"""
+The maximum number of seconds to wait before retrying RPCs when the host is unavailable.
+"""
+
+
+MAX_PARAMETER_BYTES_BEFORE_COMPRESSION = 3000000  # 3MB
+"""
+The maximum number of bytes before a task parameter is compressed.
+"""
+
+
+class CompressionType(Enum):
+    """
+    The type of compression used for task parameters.
+    """
+
+    ZSTD = "zstd"
+    PLAINTEXT = "plaintext"

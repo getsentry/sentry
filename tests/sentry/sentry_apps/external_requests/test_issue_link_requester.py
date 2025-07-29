@@ -26,7 +26,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestIssueLinkRequester(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")

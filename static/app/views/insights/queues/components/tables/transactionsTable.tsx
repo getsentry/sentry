@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -26,10 +26,10 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByTransactionQuery} from 'sentry/views/insights/queues/queries/useQueuesByTransactionQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {type SpanMetricsResponse} from 'sentry/views/insights/types';
+import {type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'transaction'
   | `avg_if(${string},${string},${string})`

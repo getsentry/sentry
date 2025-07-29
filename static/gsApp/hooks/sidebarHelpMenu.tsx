@@ -11,7 +11,11 @@ function SidebarHelpMenu() {
       source="help_sidebar"
       organization={organization}
       Component={({href, onClick}) => (
-        <SidebarMenuItem openInNewTab={false} href={href} onClick={e => onClick(e)}>
+        <SidebarMenuItem
+          openInNewTab={false}
+          href={href}
+          onClick={e => onClick?.(e as any)}
+        >
           {t('Contact Support')}
         </SidebarMenuItem>
       )}

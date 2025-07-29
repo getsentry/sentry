@@ -16,11 +16,12 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, options, quotas
+from sentry import analytics, audit_log, features, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
@@ -99,6 +100,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -163,7 +165,9 @@ def create_incident(
             # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
             for incident_project in incident_projects:
                 post_save.send_robust(
-                    sender=type(incident_project), instance=incident_project, created=True
+                    sender=type(incident_project),
+                    instance=incident_project,
+                    created=True,
                 )
 
         create_incident_activity(
@@ -203,7 +207,10 @@ def update_incident_status(
         )
 
         prev_status = incident.status
-        kwargs: dict[str, Any] = {"status": status.value, "status_method": status_method.value}
+        kwargs: dict[str, Any] = {
+            "status": status.value,
+            "status_method": status_method.value,
+        }
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = date_closed if date_closed else django_timezone.now()
         elif status == IncidentStatus.OPEN:
@@ -412,11 +419,7 @@ def get_metric_issue_aggregates(
             )
 
         except Exception:
-            entity_key = (
-                EntityKey.EAPItems
-                if options.get("alerts.spans.use-eap-items")
-                else EntityKey.EAPItemsSpan
-            )
+            entity_key = EntityKey.EAPItems
             metrics.incr(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
@@ -560,9 +563,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    has_anomaly_detection = features.has(
-        "organizations:anomaly-detection-alerts", organization
-    ) and features.has("organizations:anomaly-detection-rollout", organization)
+    has_anomaly_detection = features.has("organizations:anomaly-detection-alerts", organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
@@ -696,6 +697,19 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
         snuba_query_snapshot: SnubaQuery = deepcopy(_unpack_snuba_query(alert_rule))
         nullify_id(snuba_query_snapshot)
         snuba_query_snapshot.save()
+
+        event_types = SnubaQueryEventType.objects.filter(
+            snuba_query=_unpack_snuba_query(alert_rule)
+        )
+        new_event_snapshots = []
+        for event_type in event_types:
+            event_type_snapshot = deepcopy(event_type)
+            nullify_id(event_type_snapshot)
+            event_type_snapshot.snuba_query = snuba_query_snapshot
+            new_event_snapshots.append(event_type_snapshot)
+
+        SnubaQueryEventType.objects.bulk_create(new_event_snapshots)
+
         alert_rule_snapshot = deepcopy(alert_rule)
         nullify_id(alert_rule_snapshot)
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
@@ -885,9 +899,7 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has(
-                "organizations:anomaly-detection-alerts", organization
-            ) and not features.has("organizations:anomaly-detection-rollout", organization):
+            if not features.has("organizations:anomaly-detection-alerts", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
@@ -1019,24 +1031,30 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
         bulk_disable_snuba_subscriptions(_unpack_snuba_query(alert_rule).subscriptions.all())
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
-    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+def enable_disable_subscriptions(
+    query_subscriptions: BaseQuerySet[QuerySubscription], enabled: bool
+) -> None:
+    if enabled:
+        bulk_enable_snuba_subscriptions(query_subscriptions)
+    else:
+        bulk_disable_snuba_subscriptions(query_subscriptions)
 
+
+def update_detector(detector: Detector, enabled: bool) -> None:
     with transaction.atomic(router.db_for_write(Detector)):
-        detector.update(status=updated_detector_status)
-        detector.update(enabled=enabled)
+        toggle_detector(detector, enabled)
+
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
-            if enabled:
-                bulk_enable_snuba_subscriptions(query_subscriptions)
-            else:
-                bulk_disable_snuba_subscriptions(query_subscriptions)
+            enable_disable_subscriptions(query_subscriptions, enabled)
 
 
 def delete_alert_rule(
-    alert_rule: AlertRule, user: User | RpcUser | None = None, ip_address: str | None = None
+    alert_rule: AlertRule,
+    user: User | RpcUser | None = None,
+    ip_address: str | None = None,
 ) -> None:
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
@@ -1208,7 +1226,9 @@ def _schedule_trigger_action(
     )
 
 
-def _sort_by_priority_list(triggers: Collection[AlertRuleTrigger]) -> list[AlertRuleTrigger]:
+def _sort_by_priority_list(
+    triggers: Collection[AlertRuleTrigger],
+) -> list[AlertRuleTrigger]:
     priority_dict = {
         WARNING_TRIGGER_LABEL: 0,
         CRITICAL_TRIGGER_LABEL: 1,
@@ -1219,7 +1239,9 @@ def _sort_by_priority_list(triggers: Collection[AlertRuleTrigger]) -> list[Alert
     )
 
 
-def _prioritize_actions(triggers: Collection[AlertRuleTrigger]) -> list[AlertRuleTriggerAction]:
+def _prioritize_actions(
+    triggers: Collection[AlertRuleTrigger],
+) -> list[AlertRuleTriggerAction]:
     """
     Function that given an input array of AlertRuleTriggers, prioritizes those triggers
     based on their label, and then re-orders actions based on that ordering
@@ -1349,7 +1371,10 @@ def create_alert_rule_trigger_action(
         target = AlertTarget(target_identifier, target_display)
 
     # store priority in the json sentry_app_config
-    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+    if priority is not None and type in [
+        ActionService.PAGERDUTY,
+        ActionService.OPSGENIE,
+    ]:
         if sentry_app_config:
             sentry_app_config.update({"priority": priority})
         else:
@@ -1440,7 +1465,10 @@ def update_alert_rule_trigger_action(
         updated_fields["target_identifier"] = target.identifier
 
     # store priority in the json sentry_app_config
-    if priority is not None and type in [ActionService.PAGERDUTY, ActionService.OPSGENIE]:
+    if priority is not None and type in [
+        ActionService.PAGERDUTY,
+        ActionService.OPSGENIE,
+    ]:
         if updated_fields.get("sentry_app_config"):
             updated_fields["sentry_app_config"].update({"priority": priority})
         else:
@@ -1468,7 +1496,11 @@ def get_target_identifier_display_for_integration(
 ) -> AlertTarget:
     if action_type == AlertRuleTriggerAction.Type.SLACK.value:
         return _get_target_identifier_display_for_slack(
-            target_value, integration_id, use_async_lookup, input_channel_id, integrations
+            target_value,
+            integration_id,
+            use_async_lookup,
+            input_channel_id,
+            integrations,
         )
 
     if target_value is None:
@@ -1690,11 +1722,15 @@ def delete_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> 
     trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
-def get_actions_for_trigger(trigger: AlertRuleTrigger) -> QuerySet[AlertRuleTriggerAction]:
+def get_actions_for_trigger(
+    trigger: AlertRuleTrigger,
+) -> QuerySet[AlertRuleTriggerAction]:
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
 
 
-def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
+def get_available_action_integrations_for_org(
+    organization: Organization,
+) -> list[RpcIntegration]:
     """
     Returns a list of integrations that the organization has installed. Integrations are
     filtered by the list of registered providers.
@@ -1863,7 +1899,10 @@ def check_aggregate_column_support(
 
 
 def translate_aggregate_field(
-    aggregate: str, reverse: bool = False, allow_mri: bool = False, allow_eap: bool = False
+    aggregate: str,
+    reverse: bool = False,
+    allow_mri: bool = False,
+    allow_eap: bool = False,
 ) -> str:
     column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
     if not reverse:

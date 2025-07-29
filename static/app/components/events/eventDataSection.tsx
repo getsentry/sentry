@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {DataSection} from 'sentry/components/events/styles';
-import {Anchor} from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -84,7 +84,7 @@ export function EventDataSection({
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
-                <PermalinkAnchor href={`#${type}`}>
+                <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
                   <StyledIconLink size="xs" color="subText" />
                 </PermalinkAnchor>
                 {titleNode}
@@ -122,7 +122,7 @@ const StyledIconLink = styled(IconLink)`
   transition: opacity 100ms;
 `;
 
-const PermalinkAnchor = styled(Anchor)`
+const PermalinkAnchor = styled(ExternalLink)`
   display: flex;
   align-items: center;
   position: absolute;

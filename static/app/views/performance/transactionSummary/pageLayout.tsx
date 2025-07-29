@@ -266,7 +266,11 @@ function PageLayout(props: Props) {
 
   let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
     tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-  if (isInDomainView) {
+
+  // TODO: /performance routes have been deprecated and all orgs should now evaluate isInDomainView as true
+  // We do not show the old web vitals tab for any orgs, with the exception of AM1 orgs as they do not have access to the new web vitals module
+  // Delete this check once all orgs have been migrated off AM1
+  if (isInDomainView && organization.features.includes('insights-modules-use-eap')) {
     hasWebVitals = 'no';
   }
 
@@ -306,11 +310,7 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && (
-                      <StyledAlert type="error" showIcon>
-                        {error}
-                      </StyledAlert>
-                    )}
+                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
                     <ChildComponent
                       location={location}
                       organization={organization}
@@ -336,7 +336,9 @@ function PageLayout(props: Props) {
 export function NoAccess() {
   return (
     <Alert.Container>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert type="warning" showIcon={false}>
+        {t("You don't have access to this feature")}
+      </Alert>
     </Alert.Container>
   );
 }
