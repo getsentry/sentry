@@ -6,11 +6,11 @@ export type GamingAnalyticsEventParameters = {
     platform: string;
   };
   'gaming.private_sdk_access_modal_opened': {
-    platform: string;
+    platforms: string[];
     project_id: string;
   };
   'gaming.private_sdk_access_modal_submitted': {
-    platform: string;
+    platforms: string[];
     project_id: string;
   };
 };

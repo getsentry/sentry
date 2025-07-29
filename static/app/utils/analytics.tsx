@@ -11,7 +11,10 @@ import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
-import {gamingEventMap} from 'sentry/utils/analytics/gamingAnalyticsEvents';
+import {
+  type GamingAnalyticsEventParameters,
+  gamingEventMap,
+} from 'sentry/utils/analytics/gamingAnalyticsEvents';
 import {
   logsAnalyticsEventMap,
   type LogsAnalyticsEventParameters,
@@ -106,6 +109,7 @@ interface EventParameters
     TeamInsightsEventParameters,
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
+    GamingAnalyticsEventParameters,
     StackTraceEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,

@@ -39,6 +39,7 @@ export function PrivateGamingSdkAccessModal({
   sdkName,
   gamingPlatform,
   projectId,
+  onSubmit,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
   const user = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,11 +52,11 @@ export function PrivateGamingSdkAccessModal({
 
   useEffect(() => {
     trackAnalytics('gaming.private_sdk_access_modal_opened', {
-      platform: gamingPlatform,
+      platforms: gamingPlatforms,
       project_id: projectId,
       organization,
     });
-  }, [gamingPlatform, organization, projectId]);
+  }, [gamingPlatforms, organization, projectId]);
 
   function handleSubmit() {
     if (!isFormValid) {
@@ -65,10 +66,12 @@ export function PrivateGamingSdkAccessModal({
     setIsSubmitting(true);
 
     trackAnalytics('gaming.private_sdk_access_modal_submitted', {
-      platform: gamingPlatform,
+      platforms: gamingPlatforms,
       project_id: projectId,
       organization,
     });
+
+    onSubmit?.();
 
     const messageBody = [
       `User: ${user.name}`,

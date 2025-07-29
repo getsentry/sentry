@@ -400,9 +400,7 @@ export async function openConsoleModal(
   );
   openModal(deps => <Modal {...deps} {...options} />, {
     modalCss,
-    onClose: () => {
-      options.onClose?.();
-    },
+    onClose: options.onClose,
   });
 }
 
