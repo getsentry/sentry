@@ -39,7 +39,6 @@ export default function OSBrowserDropdownFilter({
                     onAction: generateAction({
                       key: `${type}.name`,
                       value: name ?? '',
-                      edit: 'set',
                       location,
                       navigate,
                     }),
@@ -48,9 +47,8 @@ export default function OSBrowserDropdownFilter({
                     key: 'name_exclude',
                     label: t('Exclude from filter'),
                     onAction: generateAction({
-                      key: `${type}.name`,
+                      key: `!${type}.name`,
                       value: name ?? '',
-                      edit: 'remove',
                       location,
                       navigate,
                     }),
@@ -74,7 +72,6 @@ export default function OSBrowserDropdownFilter({
                     onAction: generateAction({
                       key: `${type}.version`,
                       value: version ?? '',
-                      edit: 'set',
                       location,
                       navigate,
                     }),
@@ -83,9 +80,8 @@ export default function OSBrowserDropdownFilter({
                     key: 'version_exclude',
                     label: t('Exclude from filter'),
                     onAction: generateAction({
-                      key: `${type}.version`,
+                      key: `!${type}.version`,
                       value: version ?? '',
-                      edit: 'remove',
                       location,
                       navigate,
                     }),

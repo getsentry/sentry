@@ -7,16 +7,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-type EditType = 'set' | 'remove';
-
 export function generateAction({
   key,
   value,
-  edit,
   location,
   navigate,
 }: {
-  edit: EditType;
   key: string;
   location: Location<ReplayListLocationQuery>;
   navigate: ReturnType<typeof useNavigate>;
@@ -24,15 +20,12 @@ export function generateAction({
 }) {
   const search = new MutableSearch(decodeScalar(location.query.query) || '');
 
-  const modifiedQuery =
-    edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
-
   const onAction = () => {
     navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
-        query: modifiedQuery.formatString(),
+        query: search.setFilterValues(key, [value]).formatString(),
       },
     });
   };
