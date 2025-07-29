@@ -360,62 +360,66 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
     def setUp(self) -> None:
         super().setUp()
-        self.org1 = self.organization
-        self.org2 = self.create_organization(name="Test Org 2")
-        self.org3 = self.create_organization(name="Test Org 3")
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.org1 = self.organization
+            self.org2 = self.create_organization(name="Test Org 2")
+            self.org3 = self.create_organization(name="Test Org 3")
 
-        self.github_integration_1 = self.create_integration(
-            organization=self.org1,
-            name="GitHub Integration 1",
-            provider="github",
-            external_id="github:repo1",
-            status=ObjectStatus.ACTIVE,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
 
-        self.github_integration_2 = self.create_integration(
-            organization=self.org1,
-            name="GitHub Integration 2",
-            provider="github",
-            external_id="github:repo2",
-            status=ObjectStatus.ACTIVE,
-        )
+            self.github_integration_1 = self.create_integration(
+                organization=self.org1,
+                name="GitHub Integration 1",
+                provider="github",
+                external_id="github:repo1",
+                status=ObjectStatus.ACTIVE,
+            )
 
-        now = datetime.now(timezone.utc)
-        # Add the same GitHub integrations to other orgs (multi-org scenario)
-        # Org2 uses github_integration_1 and is older than org1's
-        self.org2_github_oi_1 = self.create_organization_integration(
-            integration=self.github_integration_1,
-            organization_id=self.org2.id,
-            status=ObjectStatus.ACTIVE,
-            date_added=now - timedelta(days=10),  # Older than org1
-        )
+            self.github_integration_2 = self.create_integration(
+                organization=self.org1,
+                name="GitHub Integration 2",
+                provider="github",
+                external_id="github:repo2",
+                status=ObjectStatus.ACTIVE,
+            )
 
-        # Org3 uses github_integration_2 and is newer than org1's
-        self.org3_github_oi_2 = self.create_organization_integration(
-            integration=self.github_integration_2,
-            organization_id=self.org3.id,
-            status=ObjectStatus.ACTIVE,
-            date_added=now + timedelta(days=5),  # Newer than org1
-        )
+            now = datetime.now(timezone.utc)
+            # Add the same GitHub integrations to other orgs (multi-org scenario)
+            # Org2 uses github_integration_1 and is older than org1's
+            self.org2_github_oi_1 = self.create_organization_integration(
+                integration=self.github_integration_1,
+                organization_id=self.org2.id,
+                status=ObjectStatus.ACTIVE,
+                date_added=now - timedelta(days=10),  # Older than org1
+            )
 
-        # Get org1's OrganizationIntegrations
-        self.org1_github_oi_1 = OrganizationIntegration.objects.get(
-            organization_id=self.org1.id, integration_id=self.github_integration_1.id
-        )
-        self.org1_github_oi_2 = OrganizationIntegration.objects.get(
-            organization_id=self.org1.id, integration_id=self.github_integration_2.id
-        )
+            # Org3 uses github_integration_2 and is newer than org1's
+            self.org3_github_oi_2 = self.create_organization_integration(
+                integration=self.github_integration_2,
+                organization_id=self.org3.id,
+                status=ObjectStatus.ACTIVE,
+                date_added=now + timedelta(days=5),  # Newer than org1
+            )
+
+            # Get org1's OrganizationIntegrations
+            self.org1_github_oi_1 = OrganizationIntegration.objects.get(
+                organization_id=self.org1.id, integration_id=self.github_integration_1.id
+            )
+            self.org1_github_oi_2 = OrganizationIntegration.objects.get(
+                organization_id=self.org1.id, integration_id=self.github_integration_2.id
+            )
 
     @freeze_time()
     def test_start_grace_period_for_provider_github_with_skip_oldest(self) -> None:
         grace_period_end = datetime.now(timezone.utc) + timedelta(days=7)
+        with assume_test_silo_mode(SiloMode.REGION):
 
-        grace_perioded_ois = integration_service.start_grace_period_for_provider(
-            organization_id=self.org1.id,
-            provider="github",
-            grace_period_end=grace_period_end,
-            skip_oldest=True,
-        )
+            grace_perioded_ois = integration_service.start_grace_period_for_provider(
+                organization_id=self.org1.id,
+                provider="github",
+                grace_period_end=grace_period_end,
+                skip_oldest=True,
+            )
 
         # Expected behavior with skip_oldest=True:
         # - org1_github_oi_1 should get grace perioded (org2's OI is newer)
@@ -424,9 +428,10 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
 
         lof_grace_perioded_ois = [oi.id for oi in grace_perioded_ois]
 
-        self.org1_github_oi_1.refresh_from_db()
-        self.org1_github_oi_2.refresh_from_db()
-        self.org3_github_oi_2.refresh_from_db()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org1_github_oi_1.refresh_from_db()
+            self.org1_github_oi_2.refresh_from_db()
+            self.org3_github_oi_2.refresh_from_db()
 
         assert self.org1_github_oi_1.id in lof_grace_perioded_ois
         assert self.org1_github_oi_1.grace_period_end == grace_period_end
@@ -441,12 +446,13 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
     def test_start_grace_period_for_provider_github_without_skip_oldest(self) -> None:
         grace_period_end = datetime.now(timezone.utc) + timedelta(days=7)
 
-        grace_perioded_ois = integration_service.start_grace_period_for_provider(
-            organization_id=self.org1.id,
-            provider="github",
-            grace_period_end=grace_period_end,
-            skip_oldest=False,
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            grace_perioded_ois = integration_service.start_grace_period_for_provider(
+                organization_id=self.org1.id,
+                provider="github",
+                grace_period_end=grace_period_end,
+                skip_oldest=False,
+            )
 
         # Expected behavior with skip_oldest=False:
         # - Both org1's GitHub OrganizationIntegrations should get grace perioded
@@ -454,8 +460,14 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
 
         lof_grace_perioded_ois = [oi.id for oi in grace_perioded_ois]
 
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org1_github_oi_1.refresh_from_db()
+            self.org1_github_oi_2.refresh_from_db()
+
         assert self.org1_github_oi_1.id in lof_grace_perioded_ois
         assert self.org1_github_oi_2.id in lof_grace_perioded_ois
+        assert self.org1_github_oi_1.grace_period_end == grace_period_end
+        assert self.org1_github_oi_2.grace_period_end == grace_period_end
 
         assert len(lof_grace_perioded_ois) == 2, "Both org1's GitHub OIs should be grace perioded"
 
