@@ -751,20 +751,22 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
         )
+        lifecycle.add_extra("events", installation.sentry_app.events)
+        lifecycle.add_extras(
+            {
+                "installation_uuid": installation.uuid,
+                "installation_id": installation.id,
+                "organization": installation.organization_id,
+                "sentry_app": installation.sentry_app.id,
+                "events": installation.sentry_app.events,
+                "webhook_url": installation.sentry_app.webhook_url or "",
+            }
+        )
+
         if not servicehook:
-            lifecycle.add_extra("events", installation.sentry_app.events)
-            lifecycle.add_extras(
-                {
-                    "installation_uuid": installation.uuid,
-                    "installation_id": installation.id,
-                    "organization": installation.organization_id,
-                    "sentry_app": installation.sentry_app.id,
-                    "events": installation.sentry_app.events,
-                    "webhook_url": installation.sentry_app.webhook_url or "",
-                }
-            )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         if event not in servicehook.events:
+            backfill_service_hooks_events.delay(installation=installation, event=event)
             raise SentryAppSentryError(
                 message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
             )
@@ -797,6 +799,23 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         request_data,
         installation.sentry_app.webhook_url,
     )
+
+
+@instrumented_task(
+    "sentry.sentry_apps.tasks.sentry_apps.backfill_service_hooks_events",
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
+    ),
+    **CONTROL_TASK_OPTIONS,
+)
+def backfill_service_hooks_events(installation: RpcSentryAppInstallation, event: str) -> None:
+    app_events = installation.sentry_app.events
+    if event in app_events:
+        create_or_update_service_hooks_for_installation(
+            installation=installation,
+            events=app_events,
+            webhook_url=installation.sentry_app.webhook_url,
+        )
 
 
 @instrumented_task(
