@@ -168,11 +168,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
         <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
-            <OSBrowserDropdownFilter
-              type="browser"
-              name={nameOrUnknown}
-              version={versionOrBlank}
-            />
+            <OSBrowserDropdownFilter type="browser" name={name} version={version} />
           ) : null}
         </Tooltip>
       </DropdownContainer>
@@ -384,11 +380,7 @@ export const ReplayOSColumn: ReplayTableColumn = {
         <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
-            <OSBrowserDropdownFilter
-              type="os"
-              name={nameOrUnknown}
-              version={versionOrBlank}
-            />
+            <OSBrowserDropdownFilter type="os" name={name} version={version} />
           ) : null}
         </Tooltip>
       </DropdownContainer>

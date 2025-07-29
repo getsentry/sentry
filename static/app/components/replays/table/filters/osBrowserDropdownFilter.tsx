@@ -5,6 +5,7 @@ import {
 } from 'sentry/components/replays/table/filters/utils';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -15,7 +16,7 @@ export default function OSBrowserDropdownFilter({
   version,
 }: {
   name: string | null;
-  type: string;
+  type: 'browser' | 'os';
   version: string | null;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
@@ -24,13 +25,13 @@ export default function OSBrowserDropdownFilter({
   return (
     <DropdownMenu
       items={[
-        ...(name
+        ...(defined(name)
           ? [
               {
                 key: 'name',
                 label: tct('[type] name: [name]', {
                   type: <strong>{type}</strong>,
-                  name: <strong>{name}</strong>,
+                  name: name ? <strong>{name}</strong> : <em>{t('Blank')}</em>,
                 }),
                 children: [
                   {
@@ -38,7 +39,7 @@ export default function OSBrowserDropdownFilter({
                     label: t('Add to filter'),
                     onAction: generateAction({
                       key: `${type}.name`,
-                      value: name ?? '',
+                      value: name,
                       location,
                       navigate,
                     }),
@@ -48,7 +49,7 @@ export default function OSBrowserDropdownFilter({
                     label: t('Exclude from filter'),
                     onAction: generateAction({
                       key: `!${type}.name`,
-                      value: name ?? '',
+                      value: name,
                       location,
                       navigate,
                     }),
@@ -57,13 +58,13 @@ export default function OSBrowserDropdownFilter({
               },
             ]
           : []),
-        ...(version
+        ...(defined(version)
           ? [
               {
                 key: 'version',
                 label: tct('[type] version: [version]', {
                   type: <strong>{type}</strong>,
-                  version: <strong>{version}</strong>,
+                  version: version ? <strong>{version}</strong> : <em>{t('Blank')}</em>,
                 }),
                 children: [
                   {
@@ -71,7 +72,7 @@ export default function OSBrowserDropdownFilter({
                     label: t('Add to filter'),
                     onAction: generateAction({
                       key: `${type}.version`,
-                      value: version ?? '',
+                      value: version,
                       location,
                       navigate,
                     }),
@@ -81,7 +82,7 @@ export default function OSBrowserDropdownFilter({
                     label: t('Exclude from filter'),
                     onAction: generateAction({
                       key: `!${type}.version`,
-                      value: version ?? '',
+                      value: version,
                       location,
                       navigate,
                     }),
