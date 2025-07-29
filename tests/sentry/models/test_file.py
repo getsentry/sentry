@@ -17,7 +17,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class FileBlobTest(TestCase):
-    def test_from_file(self):
+    def test_from_file(self) -> None:
         fileobj = ContentFile(b"foo bar")
 
         my_file1 = FileBlob.from_file(fileobj)
@@ -32,7 +32,7 @@ class FileBlobTest(TestCase):
         assert my_file1.checksum == my_file2.checksum
         assert my_file1.path == my_file2.path
 
-    def test_generate_unique_path(self):
+    def test_generate_unique_path(self) -> None:
         path = FileBlob.generate_unique_path()
         assert path
 
@@ -65,7 +65,7 @@ class FileBlobTest(TestCase):
         # blob is still around.
         assert FileBlob.objects.get(id=blob.id)
 
-    def test_dedupe_works_with_cache(self):
+    def test_dedupe_works_with_cache(self) -> None:
         contents = ContentFile(b"foo bar")
 
         FileBlob.from_file(contents)
@@ -78,7 +78,7 @@ class FileBlobTest(TestCase):
 
 
 class FileTest(TestCase):
-    def test_delete_also_removes_blobs(self):
+    def test_delete_also_removes_blobs(self) -> None:
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz.js", type="default", size=7)
         baz_file.putfile(fileobj, 3)
@@ -94,7 +94,7 @@ class FileTest(TestCase):
         assert FileBlobIndex.objects.filter(file_id=baz_id).count() == 0
         assert FileBlob.objects.count() == 0
 
-    def test_delete_does_not_remove_shared_blobs(self):
+    def test_delete_does_not_remove_shared_blobs(self) -> None:
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz-v1.js", type="default", size=7)
         baz_file.putfile(fileobj, 3)
@@ -114,7 +114,7 @@ class FileTest(TestCase):
         # Check that raz_file blob indexes are there.
         assert len(raz_file.blobs.all()) == 3
 
-    def test_file_handling(self):
+    def test_file_handling(self) -> None:
         fileobj = ContentFile(b"foo bar")
         file1 = File.objects.create(name="baz.js", type="default", size=7)
         results = file1.putfile(fileobj, 3)
@@ -150,7 +150,7 @@ class FileTest(TestCase):
         with pytest.raises(ValueError):
             fp.read()
 
-    def test_seek(self):
+    def test_seek(self) -> None:
         """Test behavior of seek with difference values for whence"""
         bytes = BytesIO(b"abcdefghijklmnopqrstuvwxyz")
         file1 = File.objects.create(name="baz.js", type="default", size=26)
@@ -178,7 +178,7 @@ class FileTest(TestCase):
             with pytest.raises(ValueError):
                 fp.seek(0, 666)
 
-    def test_multi_chunk_prefetch(self):
+    def test_multi_chunk_prefetch(self) -> None:
         random_data = os.urandom(1 << 25)
 
         fileobj = ContentFile(random_data)
@@ -190,7 +190,7 @@ class FileTest(TestCase):
 
 
 @django_db_all
-def test_large_files():
+def test_large_files() -> None:
     large_blob = FileBlob.objects.create(size=3_000_000_000, checksum=uuid4().hex)
     zero_blob = FileBlob.objects.create(size=0, checksum=uuid4().hex)
     large_file = File.objects.create(size=3_000_000_000)

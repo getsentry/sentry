@@ -28,7 +28,7 @@ class MsTeamsRequestParserTest(TestCase):
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}msteams/webhook/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
         self.user = self.create_user()
@@ -62,7 +62,7 @@ class MsTeamsRequestParserTest(TestCase):
         }
 
     @responses.activate
-    def test_routing_events(self):
+    def test_routing_events(self) -> None:
         # No regions identified
         request = self.factory.post(
             self.path,
@@ -97,7 +97,7 @@ class MsTeamsRequestParserTest(TestCase):
             region_names=["us"],
         )
 
-    def test_routing_events_no_org_integration(self):
+    def test_routing_events_no_org_integration(self) -> None:
         integration = self.create_provider_integration(
             provider="msteams",
             external_id="blah",
@@ -116,7 +116,7 @@ class MsTeamsRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @responses.activate
-    def test_routing_control_paths(self):
+    def test_routing_control_paths(self) -> None:
         requests = [
             self.factory.get(
                 reverse("sentry-integration-msteams-configure"),
@@ -143,7 +143,7 @@ class MsTeamsRequestParserTest(TestCase):
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
 
-    def test_get_integration_from_request(self):
+    def test_get_integration_from_request(self) -> None:
         CARD_ACTION_RESPONSE = self.generate_card_response(self.integration.id)
 
         region_silo_payloads = [
@@ -180,7 +180,7 @@ class MsTeamsRequestParserTest(TestCase):
             integration = parser.get_integration_from_request()
             assert integration is None
 
-    def test_handle_control_silo_payloads(self):
+    def test_handle_control_silo_payloads(self) -> None:
         help_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         help_command["text"] = "Help"
         control_silo_payloads = [GENERIC_EVENT, help_command, EXAMPLE_PERSONAL_MEMBER_ADDED]

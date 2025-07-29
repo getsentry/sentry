@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 
 
 class BufferTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         create_default_projects()
         self.buf = Buffer()
 
@@ -35,20 +35,20 @@ class BufferTest(TestCase):
         )
         process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)
 
-    def test_process_saves_data(self):
+    def test_process_saves_data(self) -> None:
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}
         self.buf.process(Group, columns, filters)
         assert Group.objects.get(id=group.id).times_seen == group.times_seen + 1
 
-    def test_process_saves_data_without_existing_row(self):
+    def test_process_saves_data_without_existing_row(self) -> None:
         columns = {"new_groups": 1}
         filters = {"project_id": self.project.id, "release_id": self.release.id}
         self.buf.process(ReleaseProject, columns, filters)
         assert ReleaseProject.objects.filter(new_groups=1, **filters).exists()
 
-    def test_process_saves_extra(self):
+    def test_process_saves_extra(self) -> None:
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}
@@ -58,7 +58,7 @@ class BufferTest(TestCase):
         assert reload.times_seen == group.times_seen + 1
         assert reload.last_seen == the_date
 
-    def test_increments_when_null(self):
+    def test_increments_when_null(self) -> None:
         org = Organization.objects.create(slug="test-org")
         team = Team.objects.create(organization=org, slug="test-team")
         project = Project.objects.create(organization=org, slug="test-project")
@@ -84,8 +84,8 @@ class BufferTest(TestCase):
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
 
-    def test_push_to_hash_bulk(self):
+    def test_push_to_hash_bulk(self) -> None:
         raises(NotImplementedError, self.buf.push_to_hash_bulk, Group, {"id": 1}, {"foo": "bar"})
 
-    def test_get_hash_length(self):
+    def test_get_hash_length(self) -> None:
         raises(NotImplementedError, self.buf.get_hash_length, Group, {"id": 1})

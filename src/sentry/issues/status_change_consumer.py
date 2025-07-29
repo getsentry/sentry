@@ -151,10 +151,18 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 
         This is used to trigger the `workflow_engine` processing status changes.
         """
+        logger.info(
+            "group.update_status.activity_type",
+            extra={**log_extra, "activity_type": activity_type.value, "group_id": group.id},
+        )
         latest_activity = (
             Activity.objects.filter(group_id=group.id, type=activity_type.value)
             .order_by("-datetime")
             .first()
+        )
+        logger.info(
+            "group.update_status.latest_activity",
+            extra={**log_extra, "latest_activity": latest_activity, "group_id": group.id},
         )
         if latest_activity is not None:
             metrics.incr(

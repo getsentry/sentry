@@ -60,7 +60,7 @@ def add_notification_setting_provider(
 # NotificationSettingOption and NotificationSettingProvider tables
 @control_silo_test
 class NotificationControllerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         setting_option_1 = add_notification_setting_option(
             scope_type=NotificationScopeEnum.USER,
@@ -113,7 +113,7 @@ class NotificationControllerTest(TestCase):
 
         self.setting_providers = [setting_provider_1, setting_provider_2, setting_provider_3]
 
-    def test_get_all_setting_options(self):
+    def test_get_all_setting_options(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -130,7 +130,7 @@ class NotificationControllerTest(TestCase):
         )
         assert list(controller.get_all_setting_options) == []
 
-    def test_get_all_setting_providers(self):
+    def test_get_all_setting_providers(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -138,7 +138,7 @@ class NotificationControllerTest(TestCase):
         )
         assert list(controller.get_all_setting_providers) == self.setting_providers
 
-    def test_without_settings(self):
+    def test_without_settings(self) -> None:
         rpc_user = Actor.from_object(self.user)
         NotificationSettingOption.objects.all().delete()
         NotificationSettingProvider.objects.all().delete()
@@ -177,7 +177,7 @@ class NotificationControllerTest(TestCase):
         assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.SLACK)
         assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.MSTEAMS)
 
-    def test_filter_setting_options(self):
+    def test_filter_setting_options(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -198,7 +198,7 @@ class NotificationControllerTest(TestCase):
         )
         assert filtered_options == [self.setting_options[1]]
 
-    def test_filter_setting_providers(self):
+    def test_filter_setting_providers(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -219,7 +219,7 @@ class NotificationControllerTest(TestCase):
         )
         assert filtered_providers == [self.setting_providers[0]]
 
-    def test_layering(self):
+    def test_layering(self) -> None:
         NotificationSettingOption.objects.all().delete()
         top_level_option = add_notification_setting_option(
             scope_type=NotificationScopeEnum.PROJECT,
@@ -298,7 +298,7 @@ class NotificationControllerTest(TestCase):
             == NotificationSettingsOptionEnum.NEVER
         )
 
-    def test_get_layered_setting_options(self):
+    def test_get_layered_setting_options(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -324,7 +324,7 @@ class NotificationControllerTest(TestCase):
             == self.setting_options[1].value
         )
 
-    def test_get_layered_setting_options_defaults(self):
+    def test_get_layered_setting_options_defaults(self) -> None:
         new_user = self.create_user()
         setting_option_1 = add_notification_setting_option(
             scope_type=NotificationScopeEnum.ORGANIZATION,
@@ -355,7 +355,7 @@ class NotificationControllerTest(TestCase):
             == NotificationSettingsOptionEnum.SUBSCRIBE_ONLY
         )
 
-    def test_get_layered_setting_providers_defaults(self):
+    def test_get_layered_setting_providers_defaults(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -378,7 +378,7 @@ class NotificationControllerTest(TestCase):
             == self.setting_providers[2].value
         )
 
-    def test_get_setting_providers_with_defaults(self):
+    def test_get_setting_providers_with_defaults(self) -> None:
         new_user = self.create_user()
         setting_provider_1 = add_notification_setting_provider(
             scope_type=NotificationScopeEnum.ORGANIZATION,
@@ -417,7 +417,7 @@ class NotificationControllerTest(TestCase):
             == self.setting_providers[2].value
         )
 
-    def test_get_combined_settings(self):
+    def test_get_combined_settings(self) -> None:
         new_user = self.create_user()
         self.create_member(
             organization=self.organization, user=new_user, role="member", teams=[self.team]
@@ -526,7 +526,7 @@ class NotificationControllerTest(TestCase):
             provider_settings = enabled_settings[new_user][type]
             assert provider_settings == expected_setting
 
-    def test_get_notification_recipients(self):
+    def test_get_notification_recipients(self) -> None:
         rpc_user = Actor.from_object(self.user)
         new_user = self.create_user()
         rpc_new_user = Actor.from_object(new_user)
@@ -562,7 +562,7 @@ class NotificationControllerTest(TestCase):
         assert recipients[ExternalProviders.EMAIL] == {rpc_user, rpc_new_user}
         assert recipients[ExternalProviders.MSTEAMS] == {rpc_new_user}
 
-    def test_user_has_any_provider_settings(self):
+    def test_user_has_any_provider_settings(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             organization_id=self.organization.id,
@@ -571,7 +571,7 @@ class NotificationControllerTest(TestCase):
         assert controller.user_has_any_provider_settings(provider=ExternalProviderEnum.EMAIL)
         assert not controller.user_has_any_provider_settings(provider=ExternalProviderEnum.MSTEAMS)
 
-    def test_get_subscriptions_status_for_projects(self):
+    def test_get_subscriptions_status_for_projects(self) -> None:
         add_notification_setting_option(
             scope_type=NotificationScopeEnum.PROJECT,
             scope_identifier=self.project.id,
@@ -615,7 +615,7 @@ class NotificationControllerTest(TestCase):
             )
         }
 
-    def test_get_participants(self):
+    def test_get_participants(self) -> None:
         rpc_user = Actor.from_object(self.user)
         controller = NotificationController(
             recipients=[self.user],
@@ -646,7 +646,7 @@ class NotificationControllerTest(TestCase):
         }
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_get_team_workflow_participants(self):
+    def test_get_team_workflow_participants(self) -> None:
         rpc_user = Actor.from_object(self.team)
         with assume_test_silo_mode(SiloMode.REGION):
             link_team(self.team, self.integration, "#team-channel", "team_channel_id")
@@ -664,7 +664,7 @@ class NotificationControllerTest(TestCase):
         }
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_get_team_issue_alert_participants(self):
+    def test_get_team_issue_alert_participants(self) -> None:
         rpc_user = Actor.from_object(self.team)
         with assume_test_silo_mode(SiloMode.REGION):
             link_team(self.team, self.integration, "#team-channel", "team_channel_id")
@@ -681,7 +681,7 @@ class NotificationControllerTest(TestCase):
             }
         }
 
-    def test_get_notification_value_for_recipient_and_type(self):
+    def test_get_notification_value_for_recipient_and_type(self) -> None:
         add_notification_setting_option(
             scope_type=NotificationScopeEnum.USER,
             scope_identifier=self.user.id,
@@ -728,7 +728,7 @@ class NotificationControllerTest(TestCase):
             == NotificationSettingsOptionEnum.NEVER
         )
 
-    def test_get_notification_provider_value_for_recipient_and_type(self):
+    def test_get_notification_provider_value_for_recipient_and_type(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -744,7 +744,7 @@ class NotificationControllerTest(TestCase):
             == NotificationSettingsOptionEnum.ALWAYS
         )
 
-    def test_get_notification_value_for_recipient_and_type_with_layering(self):
+    def test_get_notification_value_for_recipient_and_type_with_layering(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -782,7 +782,7 @@ class NotificationControllerTest(TestCase):
             == NotificationSettingsOptionEnum.NEVER
         )
 
-    def test_get_notification_provider_value_for_recipient_and_type_with_layering(self):
+    def test_get_notification_provider_value_for_recipient_and_type_with_layering(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             project_ids=[self.project.id],
@@ -823,7 +823,7 @@ class NotificationControllerTest(TestCase):
             == NotificationSettingsOptionEnum.NEVER
         )
 
-    def test_get_users_for_weekly_reports(self):
+    def test_get_users_for_weekly_reports(self) -> None:
         controller = NotificationController(
             recipients=[self.user],
             organization_id=self.organization.id,
@@ -847,7 +847,7 @@ class NotificationControllerTest(TestCase):
         assert controller.get_users_for_weekly_reports() == []
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_fallback_if_invalid_team(self):
+    def test_fallback_if_invalid_team(self) -> None:
         # team with invalid provider
         team1 = self.create_team()
         user1 = self.create_user()
@@ -876,7 +876,7 @@ class NotificationControllerTest(TestCase):
             assert isinstance(recipient, Actor) and recipient.actor_type == ActorType.USER
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_keeps_team_as_recipient_if_valid(self):
+    def test_keeps_team_as_recipient_if_valid(self) -> None:
         team = self.create_team()
         user1 = self.create_user()
         user2 = self.create_user()
@@ -894,7 +894,7 @@ class NotificationControllerTest(TestCase):
         assert isinstance(controller.recipients[0], Team)
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_user_recipients_remain(self):
+    def test_user_recipients_remain(self) -> None:
         user1 = self.create_user()
         user2 = self.create_user()
 

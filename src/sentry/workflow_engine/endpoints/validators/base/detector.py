@@ -65,8 +65,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         with transaction.atomic(router.db_for_write(Detector)):
-            instance.name = validated_data.get("name", instance.name)
-            instance.type = validated_data.get("detector_type", instance.group_type).slug
+            if "name" in validated_data:
+                instance.name = validated_data.get("name", instance.name)
 
             # Handle enable/disable detector
             if "enabled" in validated_data:
@@ -89,14 +89,15 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                     instance.owner_user_id = None
                     instance.owner_team_id = None
 
-            condition_group = validated_data.pop("condition_group")
-            data_conditions: list[DataConditionType] = condition_group.get("conditions")
+            if "condition_group" in validated_data:
+                condition_group = validated_data.pop("condition_group")
+                data_conditions: list[DataConditionType] = condition_group.get("conditions")
 
-            if data_conditions and instance.workflow_condition_group:
-                group_validator = BaseDataConditionGroupValidator()
-                group_validator.update(instance.workflow_condition_group, condition_group)
+                if data_conditions and instance.workflow_condition_group:
+                    group_validator = BaseDataConditionGroupValidator()
+                    group_validator.update(instance.workflow_condition_group, condition_group)
 
-        instance.save()
+            instance.save()
 
         create_audit_entry(
             request=self.context["request"],

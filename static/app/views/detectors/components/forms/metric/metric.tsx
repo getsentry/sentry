@@ -32,8 +32,11 @@ import {AutomateSection} from 'sentry/views/detectors/components/forms/automateS
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
+  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
   DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
+  metricDetectorFormDataToEndpointPayload,
+  metricSavedDetectorToFormData,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
@@ -59,9 +62,10 @@ function MetricDetectorForm() {
 export function EditExistingMetricDetectorForm({detector}: {detector: Detector}) {
   return (
     <EditDetectorLayout
-      detectorType="metric_issue"
       detector={detector}
       previewChart={<MetricDetectorPreviewChart />}
+      formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
+      savedDetectorToFormData={metricSavedDetectorToFormData}
     >
       <MetricDetectorForm />
     </EditDetectorLayout>
@@ -73,6 +77,8 @@ export function NewMetricDetectorForm() {
     <NewDetectorLayout
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
+      formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
+      initialFormData={DEFAULT_THRESHOLD_METRIC_FORM_DATA}
     >
       <MetricDetectorForm />
     </NewDetectorLayout>
@@ -90,6 +96,12 @@ function MonitorKind() {
     ],
   ];
 
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  // Disable choices for releases dataset, does not support
+  if (dataset === DetectorDataset.RELEASES) {
+    return null;
+  }
+
   return (
     <MonitorKindField
       label={t('\u2026and monitor for changes in the following way:')}
@@ -98,6 +110,7 @@ function MonitorKind() {
       name={METRIC_DETECTOR_FORM_FIELDS.detectionType}
       defaultValue="threshold"
       choices={options}
+      preserveOnUnmount
     />
   );
 }
@@ -331,6 +344,14 @@ function DetectSection() {
                 METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
                 defaultAggregate
               );
+
+              // Reset detection type to static for releases dataset
+              if (newDataset === DetectorDataset.RELEASES) {
+                formContext.form?.setValue(
+                  METRIC_DETECTOR_FORM_FIELDS.detectionType,
+                  'static'
+                );
+              }
             }}
           />
           <IntervalPicker />
@@ -375,6 +396,7 @@ function DetectSection() {
               <Flex align="center" gap="md">
                 <ChangePercentField
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
+                  aria-label={t('Initial threshold')}
                   placeholder="0"
                   hideLabel
                   inline

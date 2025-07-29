@@ -549,6 +549,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             # get what we already have
             existing = OrganizationOption.objects.get(organization=organization, key=option_key)
 
+            assert existing.value is not None
             key_dict = {val.get("public_key"): val for val in existing.value}
             original_number_of_keys = len(existing.value)
         except OrganizationOption.DoesNotExist:
@@ -752,9 +753,9 @@ def create_console_platform_audit_log(
 
     changes = []
     if enabled:
-        changes.append(f"Enabled Platforms: {', '.join(enabled)}")
+        changes.append(f"Enabled platforms: {', '.join(enabled)}")
     if disabled:
-        changes.append(f"Disabled Platforms: {', '.join(disabled)}")
+        changes.append(f"Disabled platforms: {', '.join(disabled)}")
 
     if changes:
         create_audit_entry(

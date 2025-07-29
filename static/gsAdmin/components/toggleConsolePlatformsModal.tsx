@@ -50,6 +50,7 @@ function ToggleConsolePlatformsModal({
     onSuccess: () => {
       addSuccessMessage(`Console platforms updated for ${organization.slug}`);
       onSuccess();
+      closeModal();
     },
     onError: () => {
       addErrorMessage(`Failed to update console platforms for ${organization.slug}`);
@@ -70,7 +71,7 @@ function ToggleConsolePlatformsModal({
       submitDisabled={isPending}
     >
       <Header closeButton>
-        <Flex align="center" gap={space(2)}>
+        <Flex align="center" gap="xl">
           <h4>Toggle Console Platforms</h4>
         </Flex>
       </Header>

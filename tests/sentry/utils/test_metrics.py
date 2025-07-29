@@ -5,7 +5,7 @@ import pytest
 from sentry.utils import metrics
 
 
-def test_timer_success():
+def test_timer_success() -> None:
     with mock.patch("sentry.utils.metrics.timing") as timing:
         with metrics.timer("key", tags={"foo": True}) as tags:
             tags["bar"] = False
@@ -20,7 +20,7 @@ class ExpectedError(Exception):
     pass
 
 
-def test_timer_failure():
+def test_timer_failure() -> None:
     with mock.patch("sentry.utils.metrics.timing") as timing:
         with pytest.raises(ExpectedError):
             with metrics.timer("key", tags={"foo": True}):
@@ -32,7 +32,7 @@ def test_timer_failure():
         assert args[3] == {"foo": True, "result": "failure"}
 
 
-def test_wraps():
+def test_wraps() -> None:
     @metrics.wraps("key", tags={"foo": True})
     def thing(a):
         return a

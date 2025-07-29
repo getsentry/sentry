@@ -8,14 +8,14 @@ from sentry.testutils.silo import all_silo_test
 
 @all_silo_test
 class TestSecurityTxt(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         with override_settings(SENTRY_MODE=SentryMode.SAAS):
             response = self.client.get(reverse("sentry-security-txt"))
             assert response.status_code == 200
             assert b"Contact: security@sentry.io" in response.content
             assert response["Content-Type"] == "text/plain"
 
-    def test_self_hosted_not_found(self):
+    def test_self_hosted_not_found(self) -> None:
         with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
             response = self.client.get(reverse("sentry-security-txt"))
             assert response.status_code == 404

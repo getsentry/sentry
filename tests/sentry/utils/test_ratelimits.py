@@ -18,7 +18,7 @@ RELAXED_CONFIG = {
 
 
 class ForOrganizationMemberTestCase(TestCase):
-    def test_by_email(self):
+    def test_by_email(self) -> None:
         organization = Organization(id=1)
         email = "foo@example.com"
         for n in range(2):
@@ -28,7 +28,7 @@ class ForOrganizationMemberTestCase(TestCase):
 
         assert ratelimits.for_organization_member_invite(organization, email, config=RELAXED_CONFIG)
 
-    def test_by_organization(self):
+    def test_by_organization(self) -> None:
         organization = Organization(id=1)
         for n in range(5):
             assert not ratelimits.for_organization_member_invite(
@@ -39,7 +39,7 @@ class ForOrganizationMemberTestCase(TestCase):
             organization, "anything@example.com", config=RELAXED_CONFIG
         )
 
-    def test_by_api_token(self):
+    def test_by_api_token(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = AuthenticatedToken.from_token(ApiToken(id=1))
         for n in range(5):
@@ -54,7 +54,7 @@ class ForOrganizationMemberTestCase(TestCase):
             Organization(id=1), "anything@example.com", auth=token, config=RELAXED_CONFIG
         )
 
-    def test_by_user(self):
+    def test_by_user(self) -> None:
         user = User(email="biz@example.com")
         for n in range(5):
             assert not ratelimits.for_organization_member_invite(

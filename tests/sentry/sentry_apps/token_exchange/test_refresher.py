@@ -22,7 +22,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestRefresher(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
@@ -36,14 +36,14 @@ class TestRefresher(TestCase):
             user=self.user,
         )
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         assert self.refresher.run()
 
-    def test_adds_token_to_installation(self):
+    def test_adds_token_to_installation(self) -> None:
         token = self.refresher.run()
         assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
-    def test_deletes_refreshed_token(self):
+    def test_deletes_refreshed_token(self) -> None:
         self.refresher.run()
         assert not ApiToken.objects.filter(id=self.token.id).exists()
 
@@ -218,7 +218,7 @@ class TestRefresher(TestCase):
             exchange_type="refresh",
         )
 
-    def test_returns_token_on_outbox_error(self):
+    def test_returns_token_on_outbox_error(self) -> None:
         # Mock the transaction to raise OperationalError after token creation
         with patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced") as mock_process:
             mock_process.side_effect = OperationalError("Outbox issue")

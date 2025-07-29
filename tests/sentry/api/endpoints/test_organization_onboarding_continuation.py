@@ -7,7 +7,7 @@ class OrganizationOnboardingContinuation(APITestCase):
     endpoint = "sentry-api-0-organization-onboarding-continuation-email"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -37,7 +37,7 @@ class OrganizationOnboardingContinuation(APITestCase):
         builder.assert_called_with(**expected_email_args)
         builder.return_value.send_async.assert_called_with([self.user.email])
 
-    def test_validation_error(self):
+    def test_validation_error(self) -> None:
         data = {"platforms": "not a list"}
         resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert resp.data["platforms"][0].code == "not_a_list"

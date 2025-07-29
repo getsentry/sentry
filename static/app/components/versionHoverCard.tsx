@@ -100,7 +100,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
     return (
       <Flex direction="column" gap="xl">
-        <Flex gap="xl" justify="space-between">
+        <Flex gap="xl" justify="between">
           <div>
             <h6>{t('New Issues')}</h6>
             <CountSince>{release.newGroups}</CountSince>
@@ -111,7 +111,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
           </div>
         </Flex>
         {parsedVersion?.package && (
-          <Flex direction="column" gap="xl" justify="space-between">
+          <Flex direction="column" gap="xl" justify="between">
             {parsedVersion.package && (
               <div>
                 <h6>{t('Package')}</h6>
@@ -140,16 +140,11 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
         )}
         {release.lastCommit && <LastCommit commit={release.lastCommit} />}
         {deploys.length > 0 && (
-          <Flex direction="column" gap={space(0.5)}>
+          <Flex direction="column" gap="xs">
             <h6>{t('Deploys')}</h6>
             {recentDeploysByEnvironment.map(deploy => {
               return (
-                <Flex
-                  key={deploy.id}
-                  align="center"
-                  gap={space(1)}
-                  justify="space-between"
-                >
+                <Flex key={deploy.id} align="center" gap="md" justify="between">
                   <Tag type="highlight">{deploy.environment}</Tag>
                   {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
                 </Flex>

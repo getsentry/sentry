@@ -22,6 +22,10 @@ export interface DetectorSeriesQueryOptions {
    * The aggregate to use for the series query. eg: `count()`
    */
   aggregate: string;
+  /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
   dataset: DiscoverDatasets;
   environment: string;
   /**
@@ -63,6 +67,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Transform comparison series data for % change alerts
+   */
+  transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

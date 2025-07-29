@@ -10,7 +10,7 @@ from sentry.testutils.helpers import override_options
 @mock.patch("sentry.monitors.rate_limit.ALLOWED_MINIMUM", 5)
 class MonitorRateLimit(TestCase):
     @override_options({"crons.per_monitor_rate_limit": 2})
-    def test_minimum(self):
+    def test_minimum(self) -> None:
         """
         Without any monitor environments we'll always return ALLOWED_MINIMUM.
         """
@@ -19,7 +19,7 @@ class MonitorRateLimit(TestCase):
         assert window == 45
 
     @override_options({"crons.per_monitor_rate_limit": 2})
-    def test_computed_from_environments(self):
+    def test_computed_from_environments(self) -> None:
         """
         Validate that the quota is computed from the total number of monitor
         environments in a project.

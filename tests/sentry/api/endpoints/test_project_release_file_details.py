@@ -16,14 +16,14 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 
 
-def test_closes_depnedent_files_is_iterable():
+def test_closes_depnedent_files_is_iterable() -> None:
     # django (but not django.test) requires a file response to be iterable
     f = ClosesDependentFiles(io.BytesIO(b"hello\nworld\n"))
     assert list(f) == [b"hello\n", b"world\n"]
 
 
 class ReleaseFileDetailsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -53,7 +53,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(releasefile.id)
 
-    def test_file_download(self):
+    def test_file_download(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -130,7 +130,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         return self.client.get(url + postfix)
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
 
         # Invalid base64
         self.login_as(user=self.user)
@@ -141,7 +141,7 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self._get(urlsafe_b64encode(b"foo666").decode())
         assert response.status_code == 404, response.content
 
-    def test_archived(self):
+    def test_archived(self) -> None:
         self.login_as(user=self.user)
         self.create_release_archive()
 
@@ -160,7 +160,7 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self._get(id.decode())
         assert response.status_code == 404
 
-    def test_download_archived(self):
+    def test_download_archived(self) -> None:
         self.login_as(user=self.user)
         self.create_release_archive()
 
@@ -173,7 +173,7 @@ class ReleaseFileDetailsTest(APITestCase):
         body = close_streaming_response(response)
         assert sha1(body).hexdigest() == checksum
 
-    def test_archived_with_dist(self):
+    def test_archived_with_dist(self) -> None:
         self.login_as(user=self.user)
         dist = Distribution.objects.create(
             organization_id=self.organization.id, release_id=self.release.id, name="foo"
@@ -186,7 +186,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
 
 class ReleaseFileUpdateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -220,7 +220,7 @@ class ReleaseFileUpdateTest(APITestCase):
         assert releasefile.name == "foobar"
         assert releasefile.ident == ReleaseFile.get_ident("foobar")
 
-    def test_update_archived(self):
+    def test_update_archived(self) -> None:
         self.login_as(user=self.user)
         self.create_release_archive()
 
@@ -242,7 +242,7 @@ class ReleaseFileUpdateTest(APITestCase):
 
 
 class ReleaseFileDeleteTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -279,7 +279,7 @@ class ReleaseFileDeleteTest(APITestCase):
         assert not File.objects.filter(id=releasefile.file.id).exists()
         assert release.count_artifacts() == 0
 
-    def test_delete_archived(self):
+    def test_delete_archived(self) -> None:
         self.login_as(user=self.user)
         self.create_release_archive()
 

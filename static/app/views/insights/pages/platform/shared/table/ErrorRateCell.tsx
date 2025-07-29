@@ -45,7 +45,7 @@ export function ErrorRateCell({
 
   return (
     <ThresholdCell value={errorRate}>
-      <Flex align="center" justify="flex-end" gap="xs">
+      <Flex align="center" justify="end" gap="xs">
         {formatPercentage(errorRate, 2, {minimumValue: 0.0001})}
         {defined(errorCount) ? errorCountElement : null}
       </Flex>

@@ -1,7 +1,7 @@
 from sentry.utils.zip import is_unsafe_path
 
 
-def test_is_unsafe_path():
+def test_is_unsafe_path() -> None:
     assert is_unsafe_path("/foo.txt")
     assert is_unsafe_path("../foo.txt")
     assert is_unsafe_path("aha/../foo.txt")
