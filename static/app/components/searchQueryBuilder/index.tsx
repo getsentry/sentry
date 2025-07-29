@@ -163,7 +163,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled, query, setDisplayAskSeerFeedback} =
+    useSearchQueryBuilder();
 
   if (disabled) {
     return null;
@@ -179,6 +180,7 @@ function ActionButtons({
           icon={<IconClose />}
           borderless
           onClick={() => {
+            setDisplayAskSeerFeedback(false);
             dispatch({type: 'CLEAR'});
             handleSearch('');
           }}

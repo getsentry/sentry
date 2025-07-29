@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -91,7 +91,23 @@ function isNoneOfTheseItem(item: SeerSearchItems): item is NoneOfTheseItem {
   return item.key === 'none-of-these';
 }
 
-type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem;
+interface ExampleItem {
+  key: `example-query-${number}`;
+  query: string;
+}
+
+function isExampleItem(item: SeerSearchItems): item is ExampleItem {
+  return item.key.startsWith('example-query-');
+}
+
+type SeerSearchItems = SeerSearchItem<string> | NoneOfTheseItem | ExampleItem;
+
+const SeerExampleItems = [
+  {key: 'example-query-1', query: 'p95 duration of http client calls'},
+  {key: 'example-query-2', query: 'database calls by transaction'},
+  {key: 'example-query-3', query: 'POST requests slower than 250ms'},
+  {key: 'example-query-4', query: 'failure rate by user in the last week'},
+] as SeerSearchItems[];
 
 export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -114,7 +130,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     autoSubmitSeer,
     setAutoSubmitSeer,
   } = useSearchQueryBuilder();
-  const {rawResult, submitQuery, isPending} = useSeerSearch();
+  const {rawResult, submitQuery, isPending, isError} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
   const areAiFeaturesAllowed =
@@ -138,20 +154,36 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   };
 
   const items: SeerSearchItems[] = useMemo(() => {
-    if (!rawResult.length) return [];
+    if (rawResult && rawResult.length > 0) {
+      const results: SeerSearchItems[] = rawResult.map((query, index) => ({
+        ...query,
+        key: `${index}-${query.query}`,
+      }));
 
-    const results: SeerSearchItems[] = rawResult.map((query, index) => ({
-      ...query,
-      key: `${index}-${query.query}`,
-    }));
+      results.push({
+        key: 'none-of-these',
+        label: t('None of these'),
+      });
 
-    results.push({
-      key: 'none-of-these',
-      label: t('None of these'),
+      return results;
+    }
+
+    if (isError) {
+      return [];
+    }
+
+    return SeerExampleItems;
+  }, [isError, rawResult]);
+
+  const handleExampleSelect = (query: string) => {
+    setSearchQuery(query);
+    trackAnalytics('trace.explorer.ai_query_example_clicked', {
+      organization,
+      example_query: query,
     });
-
-    return results;
-  }, [rawResult]);
+    inputRef.current?.focus();
+    submitQuery(query);
+  };
 
   const state = useComboBoxState({
     ...props,
@@ -185,6 +217,21 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         );
       }
 
+      if (isExampleItem(item)) {
+        return (
+          <Item key={item.key} textValue={item.query} data-is-example>
+            <Text
+              onClick={() => {
+                handleExampleSelect(item.query);
+                state.close();
+              }}
+            >
+              {item.query}
+            </Text>
+          </Item>
+        );
+      }
+
       return (
         <Item key={item.key}>
           <div
@@ -208,19 +255,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   });
 
   useTraceExploreAiQuerySetup({enableAISearch: areAiFeaturesAllowed && state.isOpen});
-
-  const handleExampleClick = useCallback(
-    (example: string) => {
-      setSearchQuery(example);
-      trackAnalytics('trace.explorer.ai_query_example_clicked', {
-        organization,
-        example_query: example,
-      });
-      inputRef.current?.focus();
-      submitQuery(example);
-    },
-    [organization, submitQuery]
-  );
 
   const {inputProps, listBoxProps} = useSearchTokenCombobox(
     {
@@ -253,9 +287,25 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               return;
             }
 
+            if (
+              state.isOpen &&
+              typeof state.selectionManager.focusedKey === 'string' &&
+              state.selectionManager.focusedKey.startsWith('example-query-')
+            ) {
+              const item = items.find(i => i.key === state.selectionManager.focusedKey);
+              if (!item || !isExampleItem(item)) {
+                addErrorMessage(t('Failed to find AI query to apply'));
+                return;
+              }
+
+              state.close();
+              handleExampleSelect(item.query);
+              return;
+            }
+
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || isNoneOfTheseItem(item)) {
+              if (!item || isNoneOfTheseItem(item) || isExampleItem(item)) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
@@ -398,9 +448,11 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             </Fragment>
           ) : (
             <SeerContent>
-              <SeerSearchHeader
-                title={t("Describe what you're looking for.")}
-                handleExampleClick={handleExampleClick}
+              <SeerSearchHeader title={t("Describe what you're looking for.")} />
+              <SeerSearchListBox
+                {...listBoxProps}
+                listBoxRef={listBoxRef}
+                state={state}
               />
             </SeerContent>
           )}

@@ -72,7 +72,8 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
     background-color: ${p => p.theme.purple100};
   }
 
-  &[data-is-none-of-these] {
+  &[data-is-none-of-these],
+  &[data-is-example] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   }
 `;

@@ -51,11 +51,11 @@ export const useSeerSearch = () => {
   const memberProjects = projects.filter(p => p.isMember);
   const [rawResult, setRawResult] = useState<SeerSearchQuery[]>([]);
 
-  const {mutate: submitQuery, isPending} = useMutation<
-    SeerSearchResponse,
-    RequestError,
-    string
-  >({
+  const {
+    mutate: submitQuery,
+    isPending,
+    isError,
+  } = useMutation<SeerSearchResponse, RequestError, string>({
     mutationFn: (query: string) => {
       const selectedProjects =
         pageFilters.selection.projects?.length > 0 &&
@@ -102,6 +102,7 @@ export const useSeerSearch = () => {
     rawResult,
     submitQuery,
     isPending,
+    isError,
   };
 };
 
