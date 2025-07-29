@@ -307,19 +307,44 @@ class TraceItemContext(TypedDict):
     timestamp: float
 
 
+def get_in(map_obj: dict[str, Any], keys: list[str]) -> Any:
+    """Safely navigate nested dictionaries and return a default value if any key doesn't exist."""
+    current = map_obj
+    for key in keys:
+        if not isinstance(current, dict):
+            return {}
+        current = current.get(key, {})
+        if current is None:
+            return {}
+    return current
+
+
+def get_timestamp(map_obj: dict[str, Any], key: str = "timestamp") -> float:
+    """Safely extract timestamp from payload, returning None if not found."""
+    timestamp = map_obj.get(key)
+
+    if timestamp is None:
+        return None
+
+    try:
+        return float(timestamp)
+    except (TypeError, ValueError):
+        return None
+
+
 def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> TraceItemContext | None:
     """Returns a trace-item row or null for each event."""
     match event_type:
         case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
 
             # If the node wasn't provided we're forced to skip the event.
             if "node" not in payload_data:
                 return None
 
             node = payload_data["node"]
-            node_attributes = node.get("attributes", {})
+            node_attributes = get_in(node, ["attributes"])
             click_attributes = {
                 "is_dead": event_type in (EventType.DEAD_CLICK, EventType.RAGE_CLICK),
                 "is_rage": event_type == EventType.RAGE_CLICK,
@@ -360,8 +385,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "timestamp": float(payload.get("timestamp", 0)),
             }
         case EventType.NAVIGATION:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
 
             navigation_attributes = {"category": "navigation"}
             if "from" in payload_data:
@@ -381,8 +406,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.UI_FOCUS:
             return None
         case EventType.RESOURCE_FETCH | EventType.RESOURCE_XHR:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
 
             resource_attributes = {
                 "category": (
@@ -400,10 +425,10 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             if "statusCode" in payload_data:
                 resource_attributes["statusCode"] = int(payload_data["statusCode"])
 
-            for key, value in payload_data.get("request", {}).get("headers", {}).items():
+            for key, value in get_in(payload_data, ["request", "headers"], {}).items():
                 resource_attributes[f"request.headers.{key}"] = str(value)
 
-            for key, value in payload_data.get("response", {}).get("headers", {}).items():
+            for key, value in get_in(payload_data, ["response", "headers"], {}).items():
                 resource_attributes[f"response.headers.{key}"] = str(value)
 
             request_size, response_size = parse_network_content_lengths(event)
@@ -418,8 +443,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "timestamp": float(payload.get("startTimestamp", 0)),
             }
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
 
             resource_attributes = {
                 "category": (
@@ -444,8 +469,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "timestamp": float(payload.get("startTimestamp", 0)),
             }
         case EventType.LCP | EventType.FCP | EventType.CLS:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
 
             if event_type == EventType.CLS:
                 category = "web-vital.cls"
@@ -475,8 +500,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
 
         case EventType.HYDRATION_ERROR:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
 
             hydration_attributes = {
                 "category": "replay.hydrate-error",
@@ -491,7 +516,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
 
         case EventType.MUTATIONS:
-            payload_data = event.get("data", {}).get("payload", {}).get("data", {})
+            payload_data = get_in(event, ["data", "payload", "data"])
 
             mutations_attributes = {
                 "category": "replay.mutations",
@@ -509,7 +534,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
-            payload = event.get("data", {}).get("payload", {})
+            payload = get_in(event, ["data", "payload"])
 
             options_attributes = {
                 "category": "sdk.options",
@@ -540,9 +565,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.FEEDBACK:
             return None
         case EventType.MEMORY:
-            payload = event.get("data", {}).get("payload", {})
-            payload_data = payload.get("data", {})
-            memory_data = payload_data.get("memory", {})
+            payload = get_in(event, ["data", "payload"])
+            payload_data = get_in(payload, ["data"])
+            memory_data = get_in(payload_data, ["memory"])
 
             memory_attributes = {
                 "category": "memory",
