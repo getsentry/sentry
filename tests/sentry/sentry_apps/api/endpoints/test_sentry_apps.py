@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import orjson
 import pytest
@@ -605,7 +605,7 @@ class PostSentryAppsTest(SentryAppsTest):
                 assert content[key] == value
 
     @patch("sentry.analytics.record")
-    def test_wrong_schema_format(self, record: MagicMock) -> None:
+    def test_wrong_schema_format(self, record):
         kwargs = {
             "schema": {
                 "elements": [
