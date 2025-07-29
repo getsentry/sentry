@@ -11,14 +11,14 @@ from sentry.testutils.cases import TestCase
 
 
 class TestSeerRepositoryCleanup(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.repo_external_id = "12345"
         self.repo_provider = "github"
 
     @responses.activate
-    def test_cleanup_seer_repository_preferences_success(self):
+    def test_cleanup_seer_repository_preferences_success(self) -> None:
         """Test successful cleanup of Seer repository preferences."""
         # Mock the Seer API response
         responses.add(
@@ -55,7 +55,7 @@ class TestSeerRepositoryCleanup(TestCase):
             assert request.headers[header_name] == header_value
 
     @responses.activate
-    def test_cleanup_seer_repository_preferences_api_error(self):
+    def test_cleanup_seer_repository_preferences_api_error(self) -> None:
         """Test handling of Seer API errors."""
         # Mock the Seer API to return an error
         responses.add(
@@ -73,7 +73,7 @@ class TestSeerRepositoryCleanup(TestCase):
             )
 
     @responses.activate
-    def test_cleanup_seer_repository_preferences_organization_not_found(self):
+    def test_cleanup_seer_repository_preferences_organization_not_found(self) -> None:
         """Test handling when organization doesn't exist."""
         # Mock the Seer API response for non-existent organization
         responses.add(

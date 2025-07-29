@@ -6,7 +6,7 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-external-issue-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -29,15 +29,15 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         )
         self.login_as(self.user)
 
-    def test_deletes_external_issue(self):
+    def test_deletes_external_issue(self) -> None:
         assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
         self.get_success_response(self.install.uuid, self.external_issue.id, status_code=204)
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
-    def test_handles_non_existing_external_issue(self):
+    def test_handles_non_existing_external_issue(self) -> None:
         self.get_error_response(self.install.uuid, 999999, status_code=404)
 
-    def test_handles_issue_from_wrong_org(self):
+    def test_handles_issue_from_wrong_org(self) -> None:
         """
         Ensure that an outside organization cannot delete another organization's external issue
         """

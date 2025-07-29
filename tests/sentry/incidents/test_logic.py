@@ -108,7 +108,7 @@ class CreateIncidentTest(TestCase):
         with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
             yield
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
         date_started = timezone.now() - timedelta(minutes=5)
@@ -169,7 +169,7 @@ class UpdateIncidentStatus(TestCase):
     def get_most_recent_incident_activity(self, incident):
         return IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
 
-    def test_status_already_set(self):
+    def test_status_already_set(self) -> None:
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
         update_incident_status(
             incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
@@ -204,13 +204,13 @@ class UpdateIncidentStatus(TestCase):
             "status": str(incident.status),
         }
 
-    def test_closed(self):
+    def test_closed(self) -> None:
         incident = self.create_incident(
             self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
         )
         self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
 
-    def test_closed_specify_date(self):
+    def test_closed_specify_date(self) -> None:
         incident = self.create_incident(
             self.organization,
             title="Test",
@@ -220,7 +220,7 @@ class UpdateIncidentStatus(TestCase):
         date_closed = timezone.now() - timedelta(days=1)
         self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
 
-    def test_all_params(self):
+    def test_all_params(self) -> None:
         incident = self.create_incident()
         self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
 
@@ -275,7 +275,7 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
 
 
 class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
-    def test_projects(self):
+    def test_projects(self) -> None:
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
@@ -293,7 +293,7 @@ class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
         )
         assert get_metric_issue_aggregates(params) == {"count": 4}
 
-    def test_is_unresolved_query(self):
+    def test_is_unresolved_query(self) -> None:
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
             query="is:unresolved",
@@ -318,14 +318,14 @@ class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
 
 
 class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
         self.dataset = Dataset.Metrics
 
-    def test_sessions(self):
+    def test_sessions(self) -> None:
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=120), query="", projects=[self.project]
         )
@@ -356,7 +356,7 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    def test_no_snapshot(self):
+    def test_no_snapshot(self) -> None:
         incident = self.create_incident()
         activity = create_incident_activity(
             incident,
@@ -371,7 +371,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         class _DynamicMetricAlertSettings(TypedDict):
@@ -399,7 +399,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             "seasonality": AlertRuleSeasonality.AUTO,
         }
 
-    def test_create_alert_rule(self):
+    def test_create_alert_rule(self) -> None:
         name = "hello"
         query = "level:error"
         aggregate = "count(*)"
@@ -439,7 +439,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.threshold_period == threshold_period
         assert alert_rule.projects.all().count() == 1
 
-    def test_ignore(self):
+    def test_ignore(self) -> None:
         name = "hello"
         query = "status:unresolved"
         aggregate = "count(*)"
@@ -477,7 +477,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
-    def test_release_version(self):
+    def test_release_version(self) -> None:
         name = "hello"
         query = "release.version:1.2.3"
         aggregate = "count(*)"
@@ -515,7 +515,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
-    def test_alert_rule_owner(self):
+    def test_alert_rule_owner(self) -> None:
         alert_rule_1 = create_alert_rule(
             self.organization,
             [self.project],
@@ -543,7 +543,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule_2.user_id is None
         assert alert_rule_2.team_id == self.team.id
 
-    def test_comparison_delta(self):
+    def test_comparison_delta(self) -> None:
         comparison_delta = 60
         alert_rule = create_alert_rule(
             self.organization,
@@ -563,7 +563,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
         )
 
-    def test_performance_metric_alert(self):
+    def test_performance_metric_alert(self) -> None:
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -596,7 +596,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
 
-    def test_create_alert_resolution_load_shedding(self):
+    def test_create_alert_resolution_load_shedding(self) -> None:
         time_window = 1440
 
         alert_rule = create_alert_rule(
@@ -617,7 +617,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
-    def test_create_alert_load_shedding_comparison(self):
+    def test_create_alert_load_shedding_comparison(self) -> None:
         time_window = 1440
 
         alert_rule = create_alert_rule(
@@ -818,7 +818,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             project_id=self.project.id,
         )
 
-    def test(self):
+    def test(self) -> None:
         name = "uh oh"
         query = "level:warning"
         aggregate = "count_unique(tags[sentry:user])"
@@ -859,7 +859,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.projects.all().count() == 2
         assert self.alert_rule.projects.all()[0] == updated_projects[0]
 
-    def test_update_subscription(self):
+    def test_update_subscription(self) -> None:
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
         with self.tasks():
             update_alert_rule(self.alert_rule, query="some new query")
@@ -867,17 +867,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             old_subscription_id != self.alert_rule.snuba_query.subscriptions.get().subscription_id
         )
 
-    def test_snapshot_alert_rule_with_only_owner(self):
+    def test_snapshot_alert_rule_with_only_owner(self) -> None:
         # Force the alert rule into an invalid state
         AlertRule.objects.filter(id=self.alert_rule.id).update(user_id=None, team_id=None)
         self.alert_rule.refresh_from_db()
         snapshot_alert_rule(self.alert_rule, self.user)
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         alert_rule = update_alert_rule(self.alert_rule, query="")
         assert alert_rule.snuba_query.query == ""
 
-    def test_delete_projects(self):
+    def test_delete_projects(self) -> None:
         # Testing delete projects from update
         alert_rule = self.create_alert_rule(
             projects=[self.project, self.create_project(fire_project_created=True)]
@@ -894,7 +894,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.projects.all().count() == 1
         assert unaffected_alert_rule.projects.all().count() == 2
 
-    def test_new_updated_deleted_projects(self):
+    def test_new_updated_deleted_projects(self) -> None:
         alert_rule = self.create_alert_rule(
             projects=[self.project, self.create_project(fire_project_created=True)]
         )
@@ -910,7 +910,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
 
-    def test_with_attached_incident(self):
+    def test_with_attached_incident(self) -> None:
         # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
         with self.tasks():
             incident = self.create_incident()
@@ -992,7 +992,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert action_snapshot.target_identifier == action.target_identifier
             assert action_snapshot.target_display == action.target_display
 
-    def test_alert_rule_owner(self):
+    def test_alert_rule_owner(self) -> None:
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -1044,7 +1044,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
 
-    def test_comparison_delta(self):
+    def test_comparison_delta(self) -> None:
         comparison_delta = 60
 
         update_alert_rule(self.alert_rule, comparison_delta=comparison_delta)
@@ -1067,7 +1067,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.comparison_delta is None
         assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
 
-    def test_performance_metric_alert(self):
+    def test_performance_metric_alert(self) -> None:
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -1111,7 +1111,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
 
-    def test_update_alert_load_shedding_on_window(self):
+    def test_update_alert_load_shedding_on_window(self) -> None:
         time_window = 1440
         alert_rule = create_alert_rule(
             self.organization,
@@ -1138,7 +1138,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window] * 60
         )
 
-    def test_update_alert_load_shedding_on_window_with_comparison(self):
+    def test_update_alert_load_shedding_on_window_with_comparison(self) -> None:
         time_window = 1440
         comparison_delta = 60
         alert_rule = create_alert_rule(
@@ -1173,7 +1173,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
         )
 
-    def test_update_alert_load_shedding_on_comparison(self):
+    def test_update_alert_load_shedding_on_comparison(self) -> None:
         time_window = 1440
         comparison_delta = 60
         alert_rule = create_alert_rule(
@@ -1200,7 +1200,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * 60
         )
 
-    def test_update_alert_load_shedding_on_comparison_and_window(self):
+    def test_update_alert_load_shedding_on_comparison_and_window(self) -> None:
         time_window = 1440
         comparison_delta = 60
         alert_rule = create_alert_rule(
@@ -1804,7 +1804,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with pytest.raises(ValidationError):
             update_alert_rule(rule, detection_type=AlertRuleDetectionType.DYNAMIC, time_window=300)
 
-    def test_snapshot_alert_rule_with_event_types(self):
+    def test_snapshot_alert_rule_with_event_types(self) -> None:
         # Create alert rule with event types
         alert_rule = create_alert_rule(
             self.organization,
@@ -1873,7 +1873,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         class _DynamicMetricAlertSettings(TypedDict):
@@ -1918,7 +1918,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
             **self.dynamic_metric_alert_settings,
         )
 
-    def test(self):
+    def test(self) -> None:
         alert_rule_id = self.alert_rule.id
         with self.tasks():
             delete_alert_rule(self.alert_rule)
@@ -1932,7 +1932,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
 
-    def test_with_incident(self):
+    def test_with_incident(self) -> None:
         incident = self.create_incident()
         incident.update(alert_rule=self.alert_rule)
         alert_rule_id = self.alert_rule.id
@@ -2174,11 +2174,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_enable(self):
+    def test_enable(self) -> None:
         with self.tasks():
             disable_alert_rule(self.alert_rule)
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
@@ -2193,7 +2193,7 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_disable(self):
+    def test_disable(self) -> None:
         with self.tasks():
             disable_alert_rule(self.alert_rule)
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
@@ -2203,7 +2203,7 @@ class EnableDisableAlertRuleTest(TestCase, BaseIncidentsTest):
 
 
 class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector()
 
         with self.tasks():
@@ -2246,7 +2246,7 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
             assert qs.status == query_subscription_status
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_enable(self):
+    def test_enable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
@@ -2258,14 +2258,14 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_disable(self):
+    def test_disable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
         self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
 
     @with_feature("organizations:workflow-engine-metric-alert-dual-write")
-    def test_multiple_data_sources_enable_disable(self):
+    def test_multiple_data_sources_enable_disable(self) -> None:
         with self.tasks():
             self.snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.ERROR,
@@ -2303,14 +2303,14 @@ class CreateAlertRuleTriggerTest(TestCase):
     def alert_rule(self):
         return self.create_alert_rule()
 
-    def test(self):
+    def test(self) -> None:
         label = "hello"
         alert_threshold = 1000
         trigger = create_alert_rule_trigger(self.alert_rule, label, alert_threshold)
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
 
-    def test_existing_label(self):
+    def test_existing_label(self) -> None:
         name = "uh oh"
         create_alert_rule_trigger(self.alert_rule, name, 100)
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
@@ -2340,7 +2340,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
     def alert_rule(self):
         return self.create_alert_rule()
 
-    def test(self):
+    def test(self) -> None:
         trigger = create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
         label = "uh oh"
@@ -2349,7 +2349,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
 
-    def test_name_used(self):
+    def test_name_used(self) -> None:
         label = "uh oh"
         create_alert_rule_trigger(self.alert_rule, label, 1000)
         trigger = create_alert_rule_trigger(self.alert_rule, "something else", 1000)
@@ -2376,7 +2376,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
 
 
 class DeleteAlertRuleTriggerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         trigger_id = trigger.id
@@ -2385,7 +2385,7 @@ class DeleteAlertRuleTriggerTest(TestCase):
 
 
 class GetTriggersForAlertRuleTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         assert get_triggers_for_alert_rule(alert_rule).get() == trigger
@@ -2438,7 +2438,7 @@ class BaseAlertRuleTriggerActionTest(TestCase):
 
 
 class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
-    def test(self):
+    def test(self) -> None:
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.USER
         target_identifier = str(self.user.id)
@@ -2450,7 +2450,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
 
-    def test_exempt_service(self):
+    def test_exempt_service(self) -> None:
         service_type = AlertRuleTriggerAction.Type.SENTRY_NOTIFICATION
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
 
@@ -2463,7 +2463,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_slack(self):
+    def test_slack(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -2495,7 +2495,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
                 assert action.target_display == channel_name
                 assert action.integration_id == integration.id
 
-    def test_slack_not_existing(self):
+    def test_slack_not_existing(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -2596,7 +2596,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
                 integration_id=integration.id,
             )
 
-    def test_pagerduty(self):
+    def test_pagerduty(self) -> None:
         services = [
             {
                 "type": "service",
@@ -2636,7 +2636,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         assert action.target_display == "hellboi"
         assert action.integration_id == integration.id
 
-    def test_pagerduty_not_existing(self):
+    def test_pagerduty_not_existing(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -2658,7 +2658,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_discord(self):
+    def test_discord(self) -> None:
         guild_id = "example-discord-server"
         metadata = {
             "guild_id": guild_id,
@@ -2695,7 +2695,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         assert action.target_display == channel_id
         assert action.integration_id == integration.id
 
-    def test_discord_flag_off(self):
+    def test_discord_flag_off(self) -> None:
         guild_id = "example-discord-server"
         metadata = {
             "guild_id": guild_id,
@@ -2742,7 +2742,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         assert app_config is not None
         assert app_config["priority"] == priority
 
-    def test_unsupported_priority(self):
+    def test_unsupported_priority(self) -> None:
         # doesn't save priority if the action type doesn't use it
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
@@ -2765,7 +2765,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             target_identifier=str(self.user.id),
         )
 
-    def test(self):
+    def test(self) -> None:
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.TEAM
         target_identifier = str(self.team.id)
@@ -2777,7 +2777,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert self.action.target_identifier == target_identifier
 
     @responses.activate
-    def test_slack(self):
+    def test_slack(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -2809,7 +2809,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
                 assert action.target_display == channel_name
                 assert action.integration_id == integration.id
 
-    def test_slack_not_existing(self):
+    def test_slack_not_existing(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -2909,7 +2909,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
                 integration_id=integration.id,
             )
 
-    def test_pagerduty(self):
+    def test_pagerduty(self) -> None:
         services = [
             {
                 "type": "service",
@@ -2950,7 +2950,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.target_display == "hellboi"
         assert action.integration_id == integration.id
 
-    def test_pagerduty_not_existing(self):
+    def test_pagerduty_not_existing(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -2972,7 +2972,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_opsgenie(self):
+    def test_opsgenie(self) -> None:
         metadata = {
             "api_key": "1234-ABCD",
             "DISCORD_BASE_URL": "https://api.opsgenie.com/",
@@ -3019,7 +3019,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.target_display == "cool-team"
         assert action.integration_id == integration.id
 
-    def test_opsgenie_not_existing(self):
+    def test_opsgenie_not_existing(self) -> None:
         metadata = {
             "api_key": "1234-ABCD",
             "DISCORD_BASE_URL": "https://api.opsgenie.com/",
@@ -3048,7 +3048,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_discord(self):
+    def test_discord(self) -> None:
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3093,7 +3093,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.integration_id == integration.id
 
     @responses.activate
-    def test_discord_invalid_channel_id(self):
+    def test_discord_invalid_channel_id(self) -> None:
         channel_id = "****bad****"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3127,7 +3127,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_discord_bad_response(self):
+    def test_discord_bad_response(self) -> None:
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3164,7 +3164,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_discord_no_integration(self):
+    def test_discord_no_integration(self) -> None:
         channel_id = "channel-id"
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -3220,7 +3220,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_discord_channel_not_in_guild(self):
+    def test_discord_channel_not_in_guild(self) -> None:
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3260,7 +3260,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_discord_unsupported_type(self):
+    def test_discord_unsupported_type(self) -> None:
         channel_id = "channel-id"
         guild_id = "example-discord-server"
         guild_name = "Server Name"
@@ -3300,7 +3300,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             )
 
     @responses.activate
-    def test_supported_priority(self):
+    def test_supported_priority(self) -> None:
         metadata = {
             "api_key": "1234-ABCD",
             "DISCORD_BASE_URL": "https://api.opsgenie.com/",
@@ -3389,7 +3389,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             target_identifier=str(self.user.id),
         )
 
-    def test(self):
+    def test(self) -> None:
         action_id = self.action.id
         delete_alert_rule_trigger_action(self.action)
         with pytest.raises(AlertRuleTriggerAction.DoesNotExist):
@@ -3397,7 +3397,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
 
 class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest):
-    def test(self):
+    def test(self) -> None:
         assert list(get_actions_for_trigger(self.trigger)) == []
         action = create_alert_rule_trigger_action(
             self.trigger,
@@ -3409,16 +3409,16 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest):
 
 
 class GetAvailableActionIntegrationsForOrgTest(TestCase):
-    def test_none(self):
+    def test_none(self) -> None:
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
-    def test_unregistered(self):
+    def test_unregistered(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, user=None, external_id="1", provider="something_random"
         )
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
-    def test_registered(self):
+    def test_registered(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, user=None, external_id="1", provider="slack"
         )
@@ -3426,7 +3426,7 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
             serialize_integration(integration)
         ]
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, user=None, external_id="1", provider="slack"
         )
@@ -3437,7 +3437,7 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
             serialize_integration(integration)
         ]
 
-    def test_disabled_integration(self):
+    def test_disabled_integration(self) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization,
             user=None,
@@ -3447,7 +3447,7 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
         )
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
-    def test_disabled_org_integration(self):
+    def test_disabled_org_integration(self) -> None:
         integration, org_integration = self.create_provider_integration_for(
             self.organization, user=None, external_id="1", provider="slack"
         )
@@ -3457,7 +3457,7 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
 
 
 class MetricTranslationTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         aggregate = "count_unique(user)"
         translated = translate_aggregate_field(aggregate)
         assert translated == "count_unique(tags[sentry:user])"
@@ -3466,7 +3466,7 @@ class MetricTranslationTest(TestCase):
         translated_2 = translate_aggregate_field(translated)
         assert translated_2 == "count_unique(tags[sentry:user])"
 
-    def test_reverse(self):
+    def test_reverse(self) -> None:
         aggregate = "count_unique(tags[sentry:user])"
         translated = translate_aggregate_field(aggregate, reverse=True)
         assert translated == "count_unique(user)"
@@ -3528,7 +3528,7 @@ class TriggerActionTest(TestCase):
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
-    def test_rule_updated(self):
+    def test_rule_updated(self) -> None:
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
             incident=incident,
@@ -3543,7 +3543,7 @@ class TriggerActionTest(TestCase):
         assert out.to == [self.user.email]
         assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
 
-    def test_manual_resolve(self):
+    def test_manual_resolve(self) -> None:
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
             incident=incident,
@@ -3565,7 +3565,7 @@ class TriggerActionTest(TestCase):
 
 
 class TestDeduplicateTriggerActions(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule()
         self.incident = self.create_incident(alert_rule=self.alert_rule)
@@ -3615,7 +3615,7 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         return alert_rule_trigger, action
 
-    def test_critical_only(self):
+    def test_critical_only(self) -> None:
         trigger_c, action_c = self.create_alert_rule_trigger_and_action(
             id=1, target_identifier="asdf", warning=False
         )
@@ -3638,7 +3638,7 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         self.run_test([trigger_c], [action_c, other_action_c])
 
-    def test_warning_only(self):
+    def test_warning_only(self) -> None:
         trigger_w, action_w = self.create_alert_rule_trigger_and_action(
             id=1, target_identifier="asdf", warning=True
         )
@@ -3661,7 +3661,7 @@ class TestDeduplicateTriggerActions(TestCase):
         )
         self.run_test([trigger_w], [action_w, other_action_w])
 
-    def test_critical_and_warning(self):
+    def test_critical_and_warning(self) -> None:
         trigger_w, action_w = self.create_alert_rule_trigger_and_action(
             id=2, target_identifier="asdf", warning=True
         )
@@ -3743,31 +3743,31 @@ class TestCustomMetricAlertRule(TestCase):
 
 
 class TestGetAlertResolution(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
 
-    def test_low_range(self):
+    def test_low_range(self) -> None:
         time_window = 2
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_RESOLUTION
 
-    def test_high_range(self):
+    def test_high_range(self) -> None:
         last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
         result = get_alert_resolution(time_window, self.organization)
 
         assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
 
-    def test_mid_range(self):
+    def test_mid_range(self) -> None:
         time_window = 125
         result = get_alert_resolution(time_window, self.organization)
 
         # 125 is not part of the dict, will round down to the lower window of 120
         assert result == 3
 
-    def test_crazy_low_range(self):
+    def test_crazy_low_range(self) -> None:
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
         assert result == DEFAULT_ALERT_RULE_RESOLUTION

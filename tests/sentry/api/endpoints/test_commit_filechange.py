@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 class CommitFileChangeTest(APITestCase):
     endpoint = "sentry-api-0-release-commitfilechange"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project(name="foo")
@@ -60,14 +60,14 @@ class CommitFileChangeTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.project.organization.slug, self.release.version)
 
         assert len(response.data) == 2
         assert response.data[0]["filename"] == ".gitignore"
         assert response.data[1]["filename"] == "/static/js/widget.js"
 
-    def test_query_name(self):
+    def test_query_name(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
             self.release.version,
@@ -77,7 +77,7 @@ class CommitFileChangeTest(APITestCase):
         assert response.data[0]["filename"] == ".gitignore"
         assert response.data[1]["filename"] == "/static/js/widget.js"
 
-    def test_query_external_id(self):
+    def test_query_external_id(self) -> None:
         response = self.get_success_response(
             self.project.organization.slug,
             self.release.version,
@@ -87,7 +87,7 @@ class CommitFileChangeTest(APITestCase):
         assert response.data[0]["filename"] == ".gitignore"
         assert response.data[1]["filename"] == "/static/js/widget.js"
 
-    def test_query_does_not_exist(self):
+    def test_query_does_not_exist(self) -> None:
         self.get_error_response(
             self.project.organization.slug,
             self.release.version,

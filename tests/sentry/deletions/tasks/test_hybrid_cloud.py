@@ -385,7 +385,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
             burst()
 
-    def test_cross_db_deletion(self):
+    def test_cross_db_deletion(self) -> None:
         data = setup_cross_db_deletion_data()
         user, monitor, organization, project = itemgetter(
             "user", "monitor", "organization", "project"
@@ -420,7 +420,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
         self.assert_monitors_user_ids_null(monitors=affected_monitors)
 
-    def test_deletion_row_after_tombstone(self):
+    def test_deletion_row_after_tombstone(self) -> None:
         data = setup_cross_db_deletion_data()
         user, monitor, organization, project = itemgetter(
             "user", "monitor", "organization", "project"
@@ -464,7 +464,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
         self.assert_monitors_user_ids_null(monitors=affected_monitors)
 
-    def test_empty_tombstones_table(self):
+    def test_empty_tombstones_table(self) -> None:
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
         assert RegionTombstone.objects.count() == 0
 
@@ -480,7 +480,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         with assume_test_silo_mode_of(User):
             User.objects.all().delete()
 
-    def test_get_ids_for_tombstone_cascade_cross_db(self):
+    def test_get_ids_for_tombstone_cascade_cross_db(self) -> None:
         data = setup_cross_db_deletion_data()
 
         unaffected_data = []
@@ -514,7 +514,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         assert ids == [monitor.id]
         assert oldest_obj == tombstone.created_at
 
-    def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(self):
+    def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(self) -> None:
         cascade_data = [setup_cross_db_deletion_data() for _ in range(3)]
 
         # Create some additional filler data
@@ -576,7 +576,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
             )
             assert ids == bounds_with_expected_results
 
-    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
+    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self) -> None:
         data = setup_cross_db_deletion_data()
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
 
@@ -635,7 +635,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         with assume_test_silo_mode_of(User):
             User.objects.all().delete()
 
-    def test_with_simple_tombstone_intersection(self):
+    def test_with_simple_tombstone_intersection(self) -> None:
         reserve_model_ids(Monitor, 43)
         reserve_model_ids(User, 11)
         data = setup_cross_db_deletion_data(desired_user_id=10, desired_monitor_id=42)
@@ -667,7 +667,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         assert ids == [monitor.id]
         assert oldest_obj == tombstone.created_at
 
-    def test_with_empty_tombstones_table(self):
+    def test_with_empty_tombstones_table(self) -> None:
         # Set up some sample data that shouldn't be affected
         with outbox_runner():
             [setup_cross_db_deletion_data() for _ in range(3)]
@@ -691,7 +691,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
 
         assert ids == []
 
-    def test_row_watermarking_bounds(self):
+    def test_row_watermarking_bounds(self) -> None:
         # In testing, the IDs for these models will be low, sequential values
         # so adding some seed data to space the IDs out gives better insight
         # on filter correctness.
@@ -761,7 +761,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 ids == bounds_with_expected_results
             ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
 
-    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
+    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self) -> None:
         data = setup_cross_db_deletion_data()
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
 

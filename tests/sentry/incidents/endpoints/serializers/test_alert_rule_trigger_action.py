@@ -39,7 +39,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["integrationId"] == action.integration_id
         assert result["dateCreated"] == action.date_added
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         action = create_alert_rule_trigger_action(
@@ -53,7 +53,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["desc"] == action.target_display
 
     @responses.activate
-    def test_discord(self):
+    def test_discord(self) -> None:
         responses.add(
             method=responses.GET,
             url=f"{DISCORD_BASE_URL}/channels/channel-id",
@@ -84,7 +84,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert str(action.target_display) in result["desc"]
 
     @responses.activate
-    def test_discord_channel_id_none(self):
+    def test_discord_channel_id_none(self) -> None:
         responses.add(
             method=responses.GET,
             url=f"{DISCORD_BASE_URL}/channels/None",

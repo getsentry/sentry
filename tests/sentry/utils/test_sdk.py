@@ -38,7 +38,7 @@ def patch_isolation_scope():
 
 
 class SDKUtilsTest(TestCase):
-    def test_context_scope_merge_no_existing_context(self):
+    def test_context_scope_merge_no_existing_context(self) -> None:
         scope = Scope()
         new_context_data = {"maisey": "silly", "charlie": "goofy"}
 
@@ -49,7 +49,7 @@ class SDKUtilsTest(TestCase):
         assert "dogs" in scope._contexts
         assert scope._contexts["dogs"] == new_context_data
 
-    def test_context_scope_merge_with_existing_context(self):
+    def test_context_scope_merge_with_existing_context(self) -> None:
         scope = Scope()
         existing_context_data = {"cory": "nudgy", "bodhi": "floppy"}
         new_context_data = {"maisey": "silly", "charlie": "goofy"}
@@ -379,10 +379,10 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
 
 class BindOrganizationContextTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with patch_isolation_scope() as mock_scope:
             bind_organization_context(self.org)
 
@@ -397,7 +397,7 @@ class BindOrganizationContextTest(TestCase):
                 }
             }
 
-    def test_adds_values_from_context_helper(self):
+    def test_adds_values_from_context_helper(self) -> None:
         mock_context_helper = MagicMock(
             wraps=lambda scope, organization: scope.set_tag("organization.name", organization.name)
         )
@@ -413,7 +413,7 @@ class BindOrganizationContextTest(TestCase):
                     "organization.name": self.org.name,
                 }
 
-    def test_handles_context_helper_error(self):
+    def test_handles_context_helper_error(self) -> None:
         mock_context_helper = MagicMock(side_effect=Exception)
 
         with patch_isolation_scope() as mock_scope:
@@ -431,7 +431,7 @@ class BindAmbiguousOrgContextTest(TestCase):
     def _make_orgs(self, n: int) -> list[Organization]:
         return [self.create_organization() for _ in range(n)]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         orgs = self._make_orgs(3)
 
         with patch_isolation_scope() as mock_scope:
@@ -448,7 +448,7 @@ class BindAmbiguousOrgContextTest(TestCase):
                 },
             }
 
-    def test_doesnt_overwrite_org_in_list(self):
+    def test_doesnt_overwrite_org_in_list(self) -> None:
         orgs = self._make_orgs(3)
         single_org = orgs[2]
         expected_tags = {
@@ -475,7 +475,7 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert mock_scope._tags == expected_tags
             assert mock_scope._contexts == expected_contexts
 
-    def test_does_overwrite_org_not_in_list(self):
+    def test_does_overwrite_org_not_in_list(self) -> None:
         other_org, *orgs = self._make_orgs(4)
         assert other_org.slug not in [org.slug for org in orgs]
 
@@ -508,7 +508,7 @@ class BindAmbiguousOrgContextTest(TestCase):
                 },
             }
 
-    def test_truncates_list(self):
+    def test_truncates_list(self) -> None:
         orgs = self._make_orgs(5)
 
         with patch.object(sdk, "_AMBIGUOUS_ORG_CUTOFF", 3), patch_isolation_scope() as mock_scope:
@@ -519,7 +519,7 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert slug_list_in_org_context[-1] == "... (3 more)"
 
 
-def test_before_send_error_level():
+def test_before_send_error_level() -> None:
     event = {
         "tags": {
             "silo_mode": "REGION",

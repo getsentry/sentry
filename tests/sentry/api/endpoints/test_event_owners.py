@@ -9,7 +9,7 @@ pytestmark = [requires_snuba, requires_kafka]
 
 
 class ProjectOwnershipEndpointTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.user2 = self.create_user("user2@example.com")
         self.user3 = self.create_user("user3@example.com")
@@ -28,7 +28,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             organization=self.organization, teams=[self.team, self.team2, self.team3], slug="bengal"
         )
 
-    def test_no_rules(self):
+    def test_no_rules(self) -> None:
         event1 = self.store_event(
             data={"stacktrace": {"frames": [{"filename": "foo.py"}]}}, project_id=self.project.id
         )
@@ -48,7 +48,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["rule"] is None
         assert len(resp.data["rules"]) == 0
 
-    def test_no_matching_owners(self):
+    def test_no_matching_owners(self) -> None:
         rule_a = Rule(Matcher("path", "bar.py"), [Owner("user", self.user.email)])
 
         ProjectOwnership.objects.create(
@@ -74,7 +74,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["rule"] is None
         assert len(resp.data["rules"]) == 0
 
-    def test_matching_non_existing_owner(self):
+    def test_matching_non_existing_owner(self) -> None:
         rule_a = Rule(Matcher("path", "*"), [Owner("user", "doesnotexist@fake.com")])
 
         ProjectOwnership.objects.create(
@@ -100,7 +100,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["rule"] == Matcher(type="path", pattern="*")
         assert len(resp.data["rules"]) == 1
 
-    def test_one_owner(self):
+    def test_one_owner(self) -> None:
         rule_a = Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)])
 
         ProjectOwnership.objects.create(
@@ -127,7 +127,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["rule"] == Matcher("path", "*.py")
         assert len(resp.data["rules"]) == 1
 
-    def test_multiple_owners(self):
+    def test_multiple_owners(self) -> None:
         users = [self.user, self.user2, self.user3]
         rules = [
             Rule(Matcher("path", "*.py"), [Owner("user", users[0].email)]),
@@ -159,7 +159,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["rule"] == Matcher("path", "*.py")
         assert len(resp.data["rules"]) == 3
 
-    def test_multiple_owners_order_matters(self):
+    def test_multiple_owners_order_matters(self) -> None:
         users = [self.user, self.user2, self.user3]
         rules = [
             Rule(Matcher("path", "*.py"), [Owner("user", users[0].email)]),
@@ -192,7 +192,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["rule"] == Matcher("path", "*")
         assert len(resp.data["rules"]) == 3
 
-    def test_owners_of_different_types_ordered_correctly(self):
+    def test_owners_of_different_types_ordered_correctly(self) -> None:
         owners = [self.user, self.team3, self.user2, self.team2, self.user3, self.team]
         rules = [
             Rule(Matcher("path", "*.py"), [Owner("user", owners[0].email)]),

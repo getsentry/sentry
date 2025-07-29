@@ -11,7 +11,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestNotificationActionHandler(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
@@ -19,7 +19,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def test_execute_without_group_type(self):
+    def test_execute_without_group_type(self) -> None:
         """Test that execute does nothing when detector has no group_type"""
         self.detector.type = ""
         with pytest.raises(NoRegistrationExistsError):

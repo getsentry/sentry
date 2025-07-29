@@ -7,7 +7,7 @@ from sentry.testutils.requests import drf_request_from_request
 
 
 class TeamPermissionBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         super().setUp()
@@ -24,21 +24,21 @@ class TeamPermissionBase(TestCase):
 
 
 class TeamPermissionTest(TeamPermissionBase):
-    def test_get_regular_user(self):
+    def test_get_regular_user(self) -> None:
         user = self.create_user()
         assert not self.has_object_perm("GET", self.team, user=user)
         assert not self.has_object_perm("POST", self.team, user=user)
         assert not self.has_object_perm("PUT", self.team, user=user)
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_get_superuser(self):
+    def test_get_superuser(self) -> None:
         user = self.create_user(is_superuser=True)
         assert self.has_object_perm("GET", self.team, user=user, is_superuser=True)
         assert self.has_object_perm("POST", self.team, user=user, is_superuser=True)
         assert self.has_object_perm("PUT", self.team, user=user, is_superuser=True)
         assert self.has_object_perm("DELETE", self.team, user=user, is_superuser=True)
 
-    def test_member_without_team_membership(self):
+    def test_member_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member", teams=[])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -46,7 +46,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert not self.has_object_perm("PUT", self.team, user=user)
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_member_with_team_membership(self):
+    def test_member_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -55,7 +55,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
     @with_feature("organizations:team-roles")
-    def test_member_with_team_membership_and_team_role_admin(self):
+    def test_member_with_team_membership_and_team_role_admin(self) -> None:
         user = self.create_user()
         member = self.create_member(user=user, organization=self.org, role="member")
         self.create_team_membership(self.team, member, role="admin")
@@ -64,7 +64,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_admin_without_team_membership(self):
+    def test_admin_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="admin")
         # if `allow_joinleave` is True, admins can act on teams
@@ -74,7 +74,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_admin_with_team_membership(self):
+    def test_admin_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="admin", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -82,7 +82,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_manager_without_team_membership(self):
+    def test_manager_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="manager")
         assert self.has_object_perm("GET", self.team, user=user)
@@ -90,7 +90,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_manager_with_team_membership(self):
+    def test_manager_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="manager", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -98,7 +98,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_owner_without_team_membership(self):
+    def test_owner_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="owner")
         assert self.has_object_perm("GET", self.team, user=user)
@@ -106,7 +106,7 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_owner_with_team_membership(self):
+    def test_owner_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="owner", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -114,35 +114,35 @@ class TeamPermissionTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_api_key_with_org_access(self):
+    def test_api_key_with_org_access(self) -> None:
         key = self.create_api_key(organization=self.org, scope_list=["team:read"])
         assert self.has_object_perm("GET", self.team, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_without_org_access(self):
+    def test_api_key_without_org_access(self) -> None:
         key = self.create_api_key(organization=self.create_organization(), scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.team, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_without_access(self):
+    def test_api_key_without_access(self) -> None:
         key = self.create_api_key(organization=self.org)
         assert not self.has_object_perm("GET", self.org, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_with_wrong_access(self):
+    def test_api_key_with_wrong_access(self) -> None:
         key = self.create_api_key(organization=self.org, scope_list=["project:read"])
         assert not self.has_object_perm("GET", self.org, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_with_wrong_access_for_method(self):
+    def test_api_key_with_wrong_access_for_method(self) -> None:
         key = self.create_api_key(organization=self.org, scope_list=["team:write"])
         assert self.has_object_perm("PUT", self.project, auth=key)
         assert self.has_object_perm("POST", self.team, auth=key)
@@ -151,7 +151,7 @@ class TeamPermissionTest(TeamPermissionBase):
 
 
 class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.org.flags.allow_joinleave = False
@@ -159,21 +159,21 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org)
 
-    def test_get_regular_user(self):
+    def test_get_regular_user(self) -> None:
         user = self.create_user()
         assert not self.has_object_perm("GET", self.team, user=user)
         assert not self.has_object_perm("POST", self.team, user=user)
         assert not self.has_object_perm("PUT", self.team, user=user)
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_get_superuser(self):
+    def test_get_superuser(self) -> None:
         user = self.create_user(is_superuser=True)
         assert self.has_object_perm("GET", self.team, user=user, is_superuser=True)
         assert self.has_object_perm("POST", self.team, user=user, is_superuser=True)
         assert self.has_object_perm("PUT", self.team, user=user, is_superuser=True)
         assert self.has_object_perm("DELETE", self.team, user=user, is_superuser=True)
 
-    def test_member_without_team_membership(self):
+    def test_member_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member", teams=[])
         assert not self.has_object_perm("GET", self.team, user=user)
@@ -181,7 +181,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert not self.has_object_perm("PUT", self.team, user=user)
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_member_with_team_membership(self):
+    def test_member_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -190,7 +190,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
     @with_feature("organizations:team-roles")
-    def test_member_with_team_membership_and_team_role_admin(self):
+    def test_member_with_team_membership_and_team_role_admin(self) -> None:
         user = self.create_user()
         member = self.create_member(user=user, organization=self.org, role="member")
         self.create_team_membership(self.team, member, role="admin")
@@ -199,7 +199,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_admin_without_team_membership(self):
+    def test_admin_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="admin")
         # if `allow_joinleave` is False, admins can't act on teams
@@ -209,7 +209,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert not self.has_object_perm("PUT", self.team, user=user)
         assert not self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_admin_with_team_membership(self):
+    def test_admin_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="admin", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -217,7 +217,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_manager_without_team_membership(self):
+    def test_manager_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="manager")
         # managers should be able to act on teams/projects they
@@ -227,7 +227,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_manager_with_team_membership(self):
+    def test_manager_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="manager", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -235,7 +235,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_owner_without_team_membership(self):
+    def test_owner_without_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="owner")
         # owners should be able to act on teams/projects they
@@ -245,7 +245,7 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_owner_with_team_membership(self):
+    def test_owner_with_team_membership(self) -> None:
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="owner", teams=[self.team])
         assert self.has_object_perm("GET", self.team, user=user)
@@ -253,35 +253,35 @@ class TeamPermissionNoJoinLeaveTest(TeamPermissionBase):
         assert self.has_object_perm("PUT", self.team, user=user)
         assert self.has_object_perm("DELETE", self.team, user=user)
 
-    def test_api_key_with_org_access(self):
+    def test_api_key_with_org_access(self) -> None:
         key = self.create_api_key(organization=self.org, scope_list=["team:read"])
         assert self.has_object_perm("GET", self.team, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_without_org_access(self):
+    def test_api_key_without_org_access(self) -> None:
         key = self.create_api_key(organization=self.create_organization(), scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.team, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_without_access(self):
+    def test_api_key_without_access(self) -> None:
         key = self.create_api_key(organization=self.org)
         assert not self.has_object_perm("GET", self.org, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_with_wrong_access(self):
+    def test_api_key_with_wrong_access(self) -> None:
         key = self.create_api_key(organization=self.org, scope_list=["project:read"])
         assert not self.has_object_perm("GET", self.org, auth=key)
         assert not self.has_object_perm("POST", self.team, auth=key)
         assert not self.has_object_perm("PUT", self.team, auth=key)
         assert not self.has_object_perm("DELETE", self.team, auth=key)
 
-    def test_api_key_with_wrong_access_for_method(self):
+    def test_api_key_with_wrong_access_for_method(self) -> None:
         key = self.create_api_key(organization=self.org, scope_list=["team:write"])
         assert self.has_object_perm("PUT", self.project, auth=key)
         assert self.has_object_perm("POST", self.team, auth=key)

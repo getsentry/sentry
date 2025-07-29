@@ -22,7 +22,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 class TestAnomalyDetectionHandler(ConditionTestCase):
     condition = Condition.ANOMALY_DETECTION
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.snuba_query = self.create_snuba_query()
         self.subscription = create_snuba_subscription(self.project, "test", self.snuba_query)

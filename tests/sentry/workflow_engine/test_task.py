@@ -18,7 +18,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 
 
 class FetchEventTests(TestCase):
-    def test_fetch_event_retries_on_retry_error(self):
+    def test_fetch_event_retries_on_retry_error(self) -> None:
         """Test that fetch_event retries when encountering RetryError."""
         event_id = "test_event_id"
         project_id = self.project.id
@@ -39,7 +39,7 @@ class FetchEventTests(TestCase):
 
 
 class WorkflowStatusUpdateHandlerTests(TestCase):
-    def test__no_detector_id(self):
+    def test__no_detector_id(self) -> None:
         """
         Test that the workflow_status_update_handler does not crash
         when no detector_id is provided in the status change message.
@@ -66,7 +66,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
 
-    def test__feature_flag(self):
+    def test__feature_flag(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project)
         activity = Activity(
@@ -92,7 +92,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             mock_delay.assert_not_called()
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test(self):
+    def test(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project)
         activity = Activity(
@@ -123,7 +123,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
 
 class TestProcessWorkflowActivity(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(project=self.project)
         self.activity = Activity(
             project=self.project,
@@ -134,7 +134,7 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector()
 
-    def test_process_workflow_activity__no_workflows(self):
+    def test_process_workflow_activity__no_workflows(self) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),

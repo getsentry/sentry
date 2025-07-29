@@ -887,7 +887,7 @@ def get_metric_conditional_tagging_rules(
         rules.extend(
             _threshold_to_rules(
                 threshold_override,
-                [
+                [  # type: ignore[arg-type]  # python/mypy#19483
                     {
                         "op": "eq",
                         "name": "event.transaction",

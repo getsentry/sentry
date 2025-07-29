@@ -39,7 +39,7 @@ def assert_unknown_command_text(data: SlackBody, unknown_command: str | None = N
 @control_silo_test(regions=[Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)])
 class SlackCommandsHelpTest(SlackCommandsTest):
     @responses.activate
-    def test_missing_command(self):
+    def test_missing_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
@@ -50,7 +50,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         assert_is_help_text(data)
 
     @responses.activate
-    def test_invalid_command(self):
+    def test_invalid_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
@@ -61,7 +61,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         assert_unknown_command_text(data, "invalid command")
 
     @responses.activate
-    def test_help_command(self):
+    def test_help_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
@@ -72,7 +72,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         assert_is_help_text(data)
 
     @responses.activate
-    def test_support_command(self):
+    def test_support_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,
@@ -83,7 +83,7 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         assert_is_support_text(data)
 
     @responses.activate
-    def test_docs_command(self):
+    def test_docs_command(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             responses.add(
                 method=responses.POST,

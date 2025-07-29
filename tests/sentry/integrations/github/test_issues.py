@@ -34,7 +34,7 @@ pytestmark = [requires_snuba]
 
 @all_silo_test
 class GitHubIssueBasicAllSiloTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -58,7 +58,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
             yield
 
     @responses.activate
-    def test_get_create_issue_config_without_group(self):
+    def test_get_create_issue_config_without_group(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -104,7 +104,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
     def request(self):
         return RequestFactory()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -151,7 +151,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             assert PROXY_SIGNATURE_HEADER in request.headers
 
     @responses.activate
-    def test_get_allowed_assignees(self):
+    def test_get_allowed_assignees(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/assignees",
@@ -175,7 +175,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             self._check_proxying()
 
     @responses.activate
-    def test_get_repo_labels(self):
+    def test_get_repo_labels(self) -> None:
         """Test that labels are fetched using pagination when the feature flag is enabled."""
         responses.add(
             responses.POST,
@@ -221,7 +221,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
                 self._check_proxying()
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -301,7 +301,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         }
 
     @responses.activate
-    def test_create_issue_with_bad_github_repo(self):
+    def test_create_issue_with_bad_github_repo(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -327,7 +327,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         }
 
     @responses.activate
-    def test_create_issue_raises_integration_error(self):
+    def test_create_issue_raises_integration_error(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -350,7 +350,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         assert e.value.args[0] == "Error Communicating with GitHub (HTTP 500): dang snap!"
 
-    def test_performance_issues_content(self):
+    def test_performance_issues_content(self) -> None:
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
         event = self.create_performance_issue()
         description = self.install.get_group_description(event.group, event)
@@ -358,7 +358,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         title = self.install.get_group_title(event.group, event)
         assert title == "N+1 Query"
 
-    def test_generic_issues_content(self):
+    def test_generic_issues_content(self) -> None:
         """Test that a GitHub issue created from a generic issue has the expected title and description"""
 
         occurrence = TEST_ISSUE_OCCURRENCE
@@ -380,7 +380,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         title = self.install.get_group_title(group_event.group, group_event)
         assert title == occurrence.issue_title
 
-    def test_error_issues_content(self):
+    def test_error_issues_content(self) -> None:
         """Test that a GitHub issue created from an error issue has the expected title and descriptionn"""
         event = self.store_event(
             data={
@@ -398,7 +398,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert title == event.title
 
     @responses.activate
-    def test_link_issue(self):
+    def test_link_issue(self) -> None:
         issue_id = "321"
 
         responses.add(
@@ -434,7 +434,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             self._check_proxying()
 
     @responses.activate
-    def test_repo_dropdown_choices(self):
+    def test_repo_dropdown_choices(self) -> None:
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
@@ -493,7 +493,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         ]
 
     @responses.activate
-    def test_linked_issue_comment(self):
+    def test_linked_issue_comment(self) -> None:
         issue_event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
@@ -553,7 +553,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert payload == {"body": "hello"}
 
     @responses.activate
-    def test_default_repo_link_fields(self):
+    def test_default_repo_link_fields(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -582,7 +582,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert repo_field["default"] == "getsentry/sentry"
 
     @responses.activate
-    def test_default_repo_create_fields(self):
+    def test_default_repo_create_fields(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -621,7 +621,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert repo_field["default"] == "getsentry/sentry"
 
     @responses.activate
-    def test_default_repo_link_fields_no_repos(self):
+    def test_default_repo_link_fields_no_repos(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
@@ -637,7 +637,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert repo_field["choices"] == []
 
     @responses.activate
-    def test_default_repo_create_fields_no_repos(self):
+    def test_default_repo_create_fields_no_repos(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",

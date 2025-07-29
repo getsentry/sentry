@@ -71,7 +71,7 @@ def exclude_on_exception_task(param):
 
 
 @override_settings(SILO_MODE=SiloMode.REGION)
-def test_task_silo_limit_call_region():
+def test_task_silo_limit_call_region() -> None:
     result = region_task("hi")
     assert "Region task hi" == result
 
@@ -80,7 +80,7 @@ def test_task_silo_limit_call_region():
 
 
 @override_settings(SILO_MODE=SiloMode.CONTROL)
-def test_task_silo_limit_call_control():
+def test_task_silo_limit_call_control() -> None:
     with pytest.raises(SiloLimit.AvailabilityError):
         region_task("hi")
 
@@ -88,7 +88,7 @@ def test_task_silo_limit_call_control():
 
 
 @override_settings(SILO_MODE=SiloMode.MONOLITH)
-def test_task_silo_limit_call_monolith():
+def test_task_silo_limit_call_monolith() -> None:
     assert "Region task hi" == region_task("hi")
     assert "Control task hi" == control_task("hi")
 
@@ -148,7 +148,7 @@ def test_capture_payload_metrics(mock_distribution):
         "taskworker.route.overrides": {},
     }
 )
-def test_validate_parameters_call():
+def test_validate_parameters_call() -> None:
     with pytest.raises(TypeError) as err:
         region_task.apply_async(args=(datetime.datetime.now(),))
     assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)

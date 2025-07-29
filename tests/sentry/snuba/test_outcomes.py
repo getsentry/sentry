@@ -23,47 +23,47 @@ def _make_query(qs, params=None, allow_minute_resolution=True):
 
 
 class OutcomesQueryDefinitionTests(TestCase):
-    def test_query_must_have_category(self):
+    def test_query_must_have_category(self) -> None:
         with pytest.raises(InvalidQuery):
             _make_query("statsPeriod=4d&interval=1d&field=sum(quantity)")
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         with pytest.raises(InvalidField):
             _make_query("statsPeriod=4d&interval=1d&field=sum(badstuff)")
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         with pytest.raises(InvalidField):
             _make_query("")
 
-    def test_invalid_groupby(self):
+    def test_invalid_groupby(self) -> None:
         with pytest.raises(InvalidField):
             _make_query(
                 "statsPeriod=4d&interval=1d&field=sum(quantity)&groupBy=category&groupBy=no"
             )
 
-    def test_invalid_category(self):
+    def test_invalid_category(self) -> None:
         with pytest.raises(InvalidField):
             _make_query("statsPeriod=4d&category=zzz&interval=1d&groupBy=category&groupBy=no")
 
-    def test_invalid_reason(self):
+    def test_invalid_reason(self) -> None:
         with pytest.raises(InvalidField):
             _make_query("statsPeriod=4d&reason=zzz&interval=1d&groupBy=category&groupBy=no")
 
-    def test_invalid_outcome(self):
+    def test_invalid_outcome(self) -> None:
         with pytest.raises(InvalidField):
             _make_query("statsPeriod=4d&outcome=zzz&interval=1d&groupBy=category&groupBy=no")
 
-    def test_no_field(self):
+    def test_no_field(self) -> None:
         with pytest.raises(InvalidField):
             _make_query("statsPeriod=4d&interval=1d&groupBy=category&groupBy=no")
 
-    def test_no_combined_attachment(self):
+    def test_no_combined_attachment(self) -> None:
         with pytest.raises(InvalidQuery):
             _make_query(
                 "statsPeriod=4d&interval=1d&category=error&category=attachment&field=sum(quantity)"
             )
 
-    def test_correct_category_mapping(self):
+    def test_correct_category_mapping(self) -> None:
         query = _make_query(
             "statsPeriod=4d&interval=1d&category=error&field=sum(quantity)",
             {"organization_id": 1},
@@ -77,14 +77,14 @@ class OutcomesQueryDefinitionTests(TestCase):
             )
         ) in query.conditions
 
-    def test_correct_reason_mapping(self):
+    def test_correct_reason_mapping(self) -> None:
         query = _make_query(
             "statsPeriod=4d&interval=1d&groupBy=category&reason=spike_protection&field=sum(quantity)",
             {"organization_id": 1},
         )
         assert Condition(Column("reason"), Op.IN, ["smart_rate_limit"]) in query.conditions
 
-    def test_correct_outcome_mapping(self):
+    def test_correct_outcome_mapping(self) -> None:
         query = _make_query(
             "statsPeriod=4d&interval=1d&groupBy=category&outcome=accepted&field=sum(quantity)",
             {"organization_id": 1},
@@ -92,7 +92,7 @@ class OutcomesQueryDefinitionTests(TestCase):
 
         assert Condition(Column("outcome"), Op.IN, [Outcome.ACCEPTED]) in query.conditions
 
-    def test_correct_times_seen_aggregate(self):
+    def test_correct_times_seen_aggregate(self) -> None:
         query = _make_query(
             "statsPeriod=6h&interval=10m&groupBy=category&field=sum(times_seen)",
             {"organization_id": 1},
@@ -107,7 +107,7 @@ class OutcomesQueryDefinitionTests(TestCase):
         )
         assert Function("sum", [Column("times_seen")], "times_seen") in query.select_params
 
-    def test_filter_keys(self):
+    def test_filter_keys(self) -> None:
         query = _make_query(
             "statsPeriod=6h&interval=10m&groupBy=category&field=sum(times_seen)",
             {"organization_id": 1},
@@ -123,7 +123,7 @@ class OutcomesQueryDefinitionTests(TestCase):
         assert Condition(Column("org_id"), Op.EQ, 1) in query.conditions
         assert Condition(Column("project_id"), Op.IN, [1, 2, 3, 4, 5]) in query.conditions
 
-    def test_key_id_filter(self):
+    def test_key_id_filter(self) -> None:
         query = _make_query(
             "statsPeriod=4d&interval=1d&groupBy=category&key_id=12345&field=sum(quantity)",
             {"organization_id": 1},
@@ -131,14 +131,14 @@ class OutcomesQueryDefinitionTests(TestCase):
 
         assert Condition(Column("key_id"), Op.IN, [12345]) in query.conditions
 
-    def test_key_id_filter_invalid(self):
+    def test_key_id_filter_invalid(self) -> None:
         with pytest.raises(InvalidQuery):
             _make_query(
                 "statsPeriod=4d&interval=1d&groupBy=category&key_id=INVALID&field=sum(quantity)",
                 {"organization_id": 1},
             )
 
-    def test_start_and_end_no_interval(self):
+    def test_start_and_end_no_interval(self) -> None:
         start = timezone.now()
         end = start + timedelta(days=1)
         query = _make_query(

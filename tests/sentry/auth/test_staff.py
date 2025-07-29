@@ -54,7 +54,7 @@ def override_org_id(new_org_id: int):
 @control_silo_test
 @freeze_time(BASETIME)
 class StaffTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.current_datetime = timezone.now()
         self.default_token = "abcdefghijklmnog"
@@ -86,7 +86,7 @@ class StaffTestCase(TestCase):
             }
         return request
 
-    def test_ips(self):
+    def test_ips(self) -> None:
         request = self.make_request(user=self.staff_user)
         request.META["REMOTE_ADDR"] = "10.0.0.1"
 
@@ -103,7 +103,7 @@ class StaffTestCase(TestCase):
         staff.set_logged_in(request.user)
         assert staff.is_active is True
 
-    def test_sso(self):
+    def test_sso(self) -> None:
         request = self.make_request(user=self.staff_user)
 
         # no ips = any host
@@ -122,49 +122,49 @@ class StaffTestCase(TestCase):
             staff.set_logged_in(request.user)
             assert staff.is_active is True
 
-    def test_valid_data(self):
+    def test_valid_data(self) -> None:
         request = self.build_request()
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is True
 
-    def test_missing_cookie(self):
+    def test_missing_cookie(self) -> None:
         request = self.build_request(cookie_token=None)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    def test_invalid_cookie_token(self):
+    def test_invalid_cookie_token(self) -> None:
         request = self.build_request(cookie_token="foobar")
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    def test_invalid_session_token(self):
+    def test_invalid_session_token(self) -> None:
         request = self.build_request(session_token="foobar")
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    def test_missing_data(self):
+    def test_missing_data(self) -> None:
         request = self.build_request(session_data=False)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    def test_invalid_uid(self):
+    def test_invalid_uid(self) -> None:
         request = self.build_request(uid=-1)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
     @freeze_time(BASETIME)
-    def test_expired(self):
+    def test_expired(self) -> None:
         request = self.build_request(expires=EXPIRED_TIME)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
     @freeze_time(BASETIME)
-    def test_not_expired(self):
+    def test_not_expired(self) -> None:
         request = self.build_request(expires=VALID_TIME)
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is True
 
-    def test_login_saves_session(self):
+    def test_login_saves_session(self) -> None:
         request = self.make_request()
         staff = Staff(request, allowed_ips=())
         staff.set_logged_in(self.staff_user)
@@ -182,7 +182,7 @@ class StaffTestCase(TestCase):
         assert len(data["tok"]) == 12
         assert data["uid"] == str(self.staff_user.id)
 
-    def test_staff_from_request_does_not_modify_session(self):
+    def test_staff_from_request_does_not_modify_session(self) -> None:
         # Active staff in request
         request = self.make_request(user=self.staff_user, is_staff=True)
         request.session.modified = False
@@ -206,7 +206,7 @@ class StaffTestCase(TestCase):
             assert len(data["tok"]) == 12
             assert data["uid"] == str(self.staff_user.id)
 
-    def test_logout_clears_session(self):
+    def test_logout_clears_session(self) -> None:
         request = self.build_request()
         staff = Staff(request, allowed_ips=())
         staff.set_logged_out()
@@ -214,7 +214,7 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
         assert not request.session.get(SESSION_KEY)
 
-    def test_middleware_as_staff(self):
+    def test_middleware_as_staff(self) -> None:
         request = self.build_request()
 
         delattr(request, "staff")
@@ -237,7 +237,7 @@ class StaffTestCase(TestCase):
             domain=COOKIE_DOMAIN,
         )
 
-    def test_middleware_as_staff_without_session(self):
+    def test_middleware_as_staff_without_session(self) -> None:
         request = self.build_request(session_data=False)
 
         delattr(request, "staff")
@@ -251,7 +251,7 @@ class StaffTestCase(TestCase):
         middleware.process_response(request, response)
         response.delete_cookie.assert_called_once_with(COOKIE_NAME)
 
-    def test_middleware_as_non_staff(self):
+    def test_middleware_as_non_staff(self) -> None:
         user = self.create_user("foo@example.com", is_staff=False)
         request = self.build_request(user=user)
 
@@ -266,7 +266,7 @@ class StaffTestCase(TestCase):
         middleware.process_response(request, response)
         assert not response.set_signed_cookie.called
 
-    def test_changed_user(self):
+    def test_changed_user(self) -> None:
         request = self.build_request()
         staff = Staff(request, allowed_ips=())
         assert staff.is_active
@@ -286,18 +286,18 @@ class StaffTestCase(TestCase):
         request.user.update(is_staff=True)
         assert not staff.is_active
 
-    def test_is_active_staff_sys_token(self):
+    def test_is_active_staff_sys_token(self) -> None:
         request = self.build_request()
         request.auth = SystemToken()
         assert is_active_staff(request)
 
-    def test_is_active_staff(self):
+    def test_is_active_staff(self) -> None:
         request = self.build_request()
         request.staff = Staff(request, allowed_ips=())
         request.staff._is_active = True
         assert is_active_staff(request)
 
-    def test_is_not_active_staff(self):
+    def test_is_not_active_staff(self) -> None:
         request = self.build_request()
         request.staff = Staff(request, allowed_ips=())
         request.staff._is_active = False

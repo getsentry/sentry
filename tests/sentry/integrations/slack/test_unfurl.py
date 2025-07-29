@@ -188,7 +188,7 @@ def test_match_link(url, expected):
 
 
 class UnfurlTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # We're redefining project to ensure that the individual tests have unique project ids.
         # Sharing project ids across tests could result in some race conditions
@@ -203,7 +203,7 @@ class UnfurlTest(TestCase):
     def tearDown(self):
         self.frozen_time.stop()
 
-    def test_unfurl_issues(self):
+    def test_unfurl_issues(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
@@ -232,7 +232,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    def test_unfurl_issues_block_kit(self):
+    def test_unfurl_issues_block_kit(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
@@ -261,7 +261,7 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    def test_escape_issue(self):
+    def test_escape_issue(self) -> None:
         # wraps text in markdown code block
         escape_text = "<https://example.com/|*Click Here*>"
         group = self.create_group(
@@ -279,7 +279,7 @@ class UnfurlTest(TestCase):
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
-    def test_unfurl_metric_alert(self):
+    def test_unfurl_metric_alert(self) -> None:
         alert_rule = self.create_alert_rule()
 
         incident = self.create_incident(

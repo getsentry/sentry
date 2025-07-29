@@ -11,7 +11,7 @@ from sentry.utils import jwt
 
 @override_settings(CODECOV_API_BASE_URL="http://example.com")
 class TestCodecovApiClient(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.test_git_provider_org = "test-org"
         self.test_secret = "test-secret-" + "a" * 20
 
@@ -25,7 +25,7 @@ class TestCodecovApiClient(TestCase):
         ):
             self.codecov_client = CodecovApiClient(self.test_git_provider_org)
 
-    def test_raises_configuration_error_without_signing_secret(self):
+    def test_raises_configuration_error_without_signing_secret(self) -> None:
         with self.options(
             {
                 "codecov.api-bridge-signing-secret": None,
@@ -34,7 +34,7 @@ class TestCodecovApiClient(TestCase):
             with pytest.raises(ConfigurationError):
                 CodecovApiClient(self.test_git_provider_org)
 
-    def test_creates_valid_jwt(self):
+    def test_creates_valid_jwt(self) -> None:
         encoded_jwt = self.codecov_client._create_jwt()
 
         header = jwt.peek_header(encoded_jwt)

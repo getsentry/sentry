@@ -49,15 +49,15 @@ class DeliverDigestTest(TestCase):
             with self.tasks():
                 deliver_digest(key)
 
-    def test_old_key(self):
+    def test_old_key(self) -> None:
         self.run_test(f"mail:p:{self.project.id}")
         assert len(mail.outbox) == 0
 
-    def test_new_key(self):
+    def test_new_key(self) -> None:
         self.run_test(f"mail:p:{self.project.id}:IssueOwners:")
         assert len(mail.outbox) == 0
 
-    def test_fallthrough_choice_key(self):
+    def test_fallthrough_choice_key(self) -> None:
         self.run_test(f"mail:p:{self.project.id}:IssueOwners::AllMembers")
         assert "2 new alerts since" in mail.outbox[0].subject
         message = mail.outbox[0]
@@ -65,7 +65,7 @@ class DeliverDigestTest(TestCase):
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
 
-    def test_member_key(self):
+    def test_member_key(self) -> None:
         self.run_test(f"mail:p:{self.project.id}:Member:{self.user.id}")
         assert "2 new alerts since" in mail.outbox[0].subject
         message = mail.outbox[0]
@@ -73,6 +73,6 @@ class DeliverDigestTest(TestCase):
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
 
-    def test_no_records(self):
+    def test_no_records(self) -> None:
         # This shouldn't error if no records are present
         deliver_digest(f"mail:p:{self.project.id}:IssueOwners:")

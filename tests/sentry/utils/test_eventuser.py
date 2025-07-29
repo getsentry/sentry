@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import call
 
 from django.utils import timezone
 from snuba_sdk import BooleanOp
 
+from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
+from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.eventuser import EventUser
 
@@ -16,7 +18,7 @@ now = before_now(days=1).replace(minute=10, second=0, microsecond=0, tzinfo=None
 
 @freeze_time(now)
 class EventUserTestCase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
@@ -70,10 +72,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].user_ident == self.event_2.data.get("user").get("id")
         assert euser[0].email == self.event_2.data.get("user").get("email")
 
-        mock_record.assert_has_calls(
+        assert_analytics_events_recorded(
+            mock_record,
             [
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -88,8 +90,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=0,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.for_projects",
+                EventUserSnubaForProjects(
                     project_ids=[self.project.id],
                     total_tries=1,
                     total_rows_returned=1,
@@ -98,13 +99,13 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             ],
         )
 
-    def test_for_projects_query_filter_username(self):
+    def test_for_projects_query_filter_username(self) -> None:
         euser = EventUser.for_projects([self.project], {"username": ["minion"]}, result_limit=1)
         assert len(euser) == 1
         assert euser[0].user_ident == self.event_3.data.get("user").get("id")
         assert euser[0].email == self.event_3.data.get("user").get("email")
 
-    def test_for_projects_query_filter_email(self):
+    def test_for_projects_query_filter_email(self) -> None:
         euser = EventUser.for_projects(
             [self.project], {"email": ["foo@example.com"]}, result_limit=1
         )
@@ -112,13 +113,13 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].user_ident == self.event_1.data.get("user").get("id")
         assert euser[0].email == self.event_1.data.get("user").get("email")
 
-    def test_for_projects_query_filter_ip(self):
+    def test_for_projects_query_filter_ip(self) -> None:
         euser = EventUser.for_projects([self.project], {"ip": ["8.8.8.8"]}, result_limit=1)
         assert len(euser) == 1
         assert euser[0].user_ident == self.event_3.data.get("user").get("id")
         assert euser[0].email == self.event_3.data.get("user").get("email")
 
-    def test_for_projects_query_multiple_OR_filters(self):
+    def test_for_projects_query_multiple_OR_filters(self) -> None:
         eusers = EventUser.for_projects(
             [self.project],
             {"username": ["minion"], "email": ["foo@example.com"]},
@@ -126,7 +127,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         )
         assert len(eusers) == 2
 
-    def test_for_projects_query_multiple_AND_filters(self):
+    def test_for_projects_query_multiple_AND_filters(self) -> None:
         eusers = EventUser.for_projects(
             [self.project],
             {"username": ["minion"], "email": ["minion@universal.com"], "ip": ["8.8.8.8"]},
@@ -135,7 +136,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[0].user_ident == self.event_3.data.get("user").get("id")
         assert eusers[0].email == self.event_3.data.get("user").get("email")
 
-    def test_for_projects_query_with_multiple_eventuser_entries_different_ips(self):
+    def test_for_projects_query_with_multiple_eventuser_entries_different_ips(self) -> None:
         for i in range(10):
             self.store_event(
                 data={
@@ -160,7 +161,9 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[0].email == self.event_2.data.get("user").get("email")
         assert eusers[0].ip_address == self.event_2.data.get("user").get("ip_address")
 
-    def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_ip(self):
+    def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_ip(
+        self,
+    ) -> None:
         for i in range(5):
             self.store_event(
                 data={
@@ -281,10 +284,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[1].email == self.event_3.data.get("user").get("email")
         assert eusers[1].ip_address == self.event_3.data.get("user").get("ip_address")
 
-        mock_record.assert_has_calls(
+        assert_analytics_events_recorded(
+            mock_record,
             [
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -298,8 +301,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=19,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.for_projects",
+                EventUserSnubaForProjects(
                     project_ids=[self.project.id],
                     total_tries=1,
                     total_rows_returned=2,
@@ -361,10 +363,10 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[1].email == email_2
         assert eusers[1].ip_address == "2001:db8:0:85a3::ac1f:8005"
 
-        mock_record.assert_has_calls(
+        assert_analytics_events_recorded(
+            mock_record,
             [
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -379,8 +381,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=4,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.query",
+                EventUserSnubaQuery(
                     project_ids=[self.project.id],
                     query=f"MATCH (events)\nSELECT project_id, ip_address_v6, ip_address_v4, user_id, user_name, "
                     f"user_email, max(timestamp) AS `latest_timestamp`\nBY project_id, ip_address_v6, "
@@ -395,8 +396,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     count_rows_filtered=3,
                     query_time_ms=0,
                 ),
-                call(
-                    "eventuser_snuba.for_projects",
+                EventUserSnubaForProjects(
                     project_ids=[self.project.id],
                     total_tries=2,
                     total_rows_returned=2,
@@ -405,13 +405,13 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             ],
         )
 
-    def test_tag_value_primary_is_user_ident(self):
+    def test_tag_value_primary_is_user_ident(self) -> None:
         euser = EventUser.for_projects([self.project], {"id": ["2"]}, result_limit=1)
         assert len(euser) == 1
         assert euser[0].user_ident == "2"
         assert euser[0].tag_value == "id:2"
 
-    def test_tag_value_primary_is_username(self):
+    def test_tag_value_primary_is_username(self) -> None:
         self.store_event(
             data={
                 "user": {
@@ -429,7 +429,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].user_ident is None
         assert euser[0].tag_value == "username:cocoa"
 
-    def test_tag_value_primary_is_email(self):
+    def test_tag_value_primary_is_email(self) -> None:
         self.store_event(
             data={
                 "user": {
@@ -450,7 +450,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].username is None
         assert euser[0].tag_value == "email:cocoa@universal.com"
 
-    def test_tag_value_primary_is_ip(self):
+    def test_tag_value_primary_is_ip(self) -> None:
         self.store_event(
             data={
                 "user": {
@@ -470,7 +470,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].email is None
         assert euser[0].tag_value == "ip:8.8.8.1"
 
-    def test_for_tags(self):
+    def test_for_tags(self) -> None:
         assert EventUser.for_tags(self.project.id, ["id:myminion"]) == {
             "id:myminion": EventUser.from_event(self.event_3)
         }

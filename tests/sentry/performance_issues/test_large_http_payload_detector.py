@@ -18,7 +18,7 @@ from sentry.testutils.performance_issues.event_generators import create_event, c
 
 @pytest.mark.django_db
 class LargeHTTPPayloadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -27,7 +27,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_detects_large_http_payload_issue(self):
+    def test_detects_large_http_payload_issue(self) -> None:
 
         spans = [
             create_span(
@@ -63,7 +63,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         spans = [
             create_span(
@@ -97,7 +97,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_does_not_issue_if_url_is_not_an_http_span(self):
+    def test_does_not_issue_if_url_is_not_an_http_span(self) -> None:
         spans = [
             create_span(
                 "resource.script",
@@ -113,7 +113,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         assert self.find_problems(event) == []
 
-    def test_does_not_issue_if_url_is_not_a_json_asset(self):
+    def test_does_not_issue_if_url_is_not_a_json_asset(self) -> None:
         spans = [
             create_span(
                 "http.client",
@@ -130,7 +130,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         assert self.find_problems(event) == []
 
-    def test_issues_if_url_is_a_json_asset(self):
+    def test_issues_if_url_is_a_json_asset(self) -> None:
         spans = [
             create_span(
                 "http.client",
@@ -164,7 +164,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_ignores_query_parameters(self):
+    def test_ignores_query_parameters(self) -> None:
         spans = [
             create_span(
                 "http.client",
@@ -198,7 +198,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_ignores_query_parameters_with_trailing_slash(self):
+    def test_ignores_query_parameters_with_trailing_slash(self) -> None:
         spans = [
             create_span(
                 "http.client",
@@ -232,7 +232,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_trigger_detection_for_http_span_lower_than_100_ms_duration(self):
+    def test_does_not_trigger_detection_for_http_span_lower_than_100_ms_duration(self) -> None:
         spans = [
             create_span(
                 "http.client",
@@ -249,7 +249,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         assert self.find_problems(event) == []
 
-    def test_handles_string_payload_size_threshold(self):
+    def test_handles_string_payload_size_threshold(self) -> None:
 
         spans = [
             create_span(

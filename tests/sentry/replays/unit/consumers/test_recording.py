@@ -16,10 +16,11 @@ from sentry.replays.consumers.recording import (
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
 from sentry.replays.usecases.pack import pack
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
-def test_decompress_segment_success():
+def test_decompress_segment_success() -> None:
     """Test successful decompression of segment"""
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
@@ -33,7 +34,7 @@ def test_decompress_segment_success():
     assert decompressed == data
 
 
-def test_decompress_segment_already_decompressed():
+def test_decompress_segment_already_decompressed() -> None:
     """Test handling of already decompressed JSON data"""
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
@@ -43,19 +44,19 @@ def test_decompress_segment_already_decompressed():
     assert decompressed == data
 
 
-def test_decompress_segment_unexpected_start_character():
+def test_decompress_segment_unexpected_start_character() -> None:
     """Test handling of invalid data that can't be decompressed"""
     with pytest.raises(DropSilently):
         decompress_segment(b"hello, world!")
 
 
-def test_decompress_segment_empty_data():
+def test_decompress_segment_empty_data() -> None:
     """Test handling of empty data"""
     with pytest.raises(DropSilently):
         decompress_segment(b"")
 
 
-def test_parse_headers_success():
+def test_parse_headers_success() -> None:
     """Test successful parsing of headers"""
     recording = json.dumps({"segment_id": 42}).encode() + b"\n" + b"hello, world"
 
@@ -64,38 +65,38 @@ def test_parse_headers_success():
     assert payload == b"hello, world"
 
 
-def test_parse_headers_success_invalid_type():
+def test_parse_headers_success_invalid_type() -> None:
     """Test parsing headers with invalid segment-id value"""
     recording = json.dumps({"segment_id": None}).encode() + b"\n" + b"hello, world"
     with pytest.raises(DropSilently):
         parse_headers(recording, "1")
 
 
-def test_parse_headers_no_newline():
+def test_parse_headers_no_newline() -> None:
     """Test parsing headers without newline separator"""
     with pytest.raises(DropSilently):
         parse_headers(b'{"segment_id": 42}', "1")
 
 
-def test_parse_headers_invalid_json():
+def test_parse_headers_invalid_json() -> None:
     """Test parsing headers with invalid JSON"""
     with pytest.raises(DropSilently):
         parse_headers(b"hello\nworld", "1")
 
 
-def test_parse_headers_missing_segment_id():
+def test_parse_headers_missing_segment_id() -> None:
     """Test parsing headers missing segment_id field"""
     with pytest.raises(DropSilently):
         parse_headers(b'{"other_field": "value"}\nworld', "1")
 
 
-def test_parse_headers_empty_recording():
+def test_parse_headers_empty_recording() -> None:
     """Test parsing empty recording"""
     with pytest.raises(DropSilently):
         parse_headers(b"", "1")
 
 
-def test_parse_request_message_success():
+def test_parse_request_message_success() -> None:
     """Test successful parsing of request message"""
     message = {
         "type": "replay_recording_not_chunked",
@@ -112,13 +113,13 @@ def test_parse_request_message_success():
     assert result == message
 
 
-def test_parse_request_message_validation_error():
+def test_parse_request_message_validation_error() -> None:
     """Test ValidationError raises DropSilently"""
     with pytest.raises(DropSilently):
         parse_request_message(msgpack.packb(b"invalid"))
 
 
-def test_parse_recording_event_success():
+def test_parse_recording_event_success() -> None:
     """Test successful parsing of recording event end-to-end"""
     # Create real compressed data
     original_payload = b'[{"type": "test", "data": "some event data"}]'
@@ -164,7 +165,7 @@ def test_parse_recording_event_success():
     assert result == expected
 
 
-def test_parse_recording_event_with_replay_event():
+def test_parse_recording_event_with_replay_event() -> None:
     """Test parsing recording event with replay_event JSON"""
     # Create real compressed data
     original_payload = b'[{"type": "test", "data": "some event data"}]'
@@ -211,7 +212,7 @@ def test_parse_recording_event_with_replay_event():
     assert result == expected
 
 
-def test_parse_recording_event_missing_payload():
+def test_parse_recording_event_missing_payload() -> None:
     """Test that missing payload cause DropSilently"""
     message = {
         "type": "replay_recording_not_chunked",
@@ -227,7 +228,7 @@ def test_parse_recording_event_missing_payload():
         parse_recording_event(msgpack.packb(message))
 
 
-def test_parse_recording_event_invalid_compression():
+def test_parse_recording_event_invalid_compression() -> None:
     """Test that invalid compression in payload causes DropSilently"""
     message = {
         "type": "replay_recording_not_chunked",
@@ -243,7 +244,7 @@ def test_parse_recording_event_invalid_compression():
         parse_recording_event(msgpack.packb(message))
 
 
-def test_parse_recording_event_invalid_headers():
+def test_parse_recording_event_invalid_headers() -> None:
     """Test that invalid headers in payload causes DropSilently"""
     message = {
         "type": "replay_recording_not_chunked",
@@ -259,7 +260,8 @@ def test_parse_recording_event_invalid_headers():
         parse_recording_event(msgpack.packb(message))
 
 
-def test_process_message_compressed():
+@django_db_all
+def test_process_message_compressed() -> None:
     """Test "process_message" function with compressed payload."""
     # Create real compressed data
     original_payload = b'[{"type": "test", "data": "some event data"}]'
@@ -303,12 +305,14 @@ def test_process_message_compressed():
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
         replay_event={},
+        trace_items=[],
         video_size=None,
     )
     assert expected == processed_result
 
 
-def test_process_message_uncompressed():
+@django_db_all
+def test_process_message_uncompressed() -> None:
     """Test "process_message" function with uncompressed payload."""
     # Create real compressed data
     original_payload = b'[{"type": "test", "data": "some event data"}]'
@@ -352,12 +356,14 @@ def test_process_message_uncompressed():
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
         replay_event={},
+        trace_items=[],
         video_size=None,
     )
     assert expected == processed_result
 
 
-def test_process_message_compressed_with_video():
+@django_db_all
+def test_process_message_compressed_with_video() -> None:
     """Test "process_message" function with compressed payload and a video."""
     # Create real compressed data
     original_payload = b'[{"type": "test", "data": "some event data"}]'
@@ -401,17 +407,18 @@ def test_process_message_compressed_with_video():
         recording_size_uncompressed=len(original_payload),
         recording_size=len(compressed_payload),
         replay_event={},
+        trace_items=[],
         video_size=5,
     )
     assert expected == processed_result
 
 
-def test_process_message_invalid_message():
+def test_process_message_invalid_message() -> None:
     """Test "process_message" function with invalid message."""
     assert process_message(make_kafka_message(b"")) == FilteredPayload()
 
 
-def test_process_message_invalid_recording_json():
+def test_process_message_invalid_recording_json() -> None:
     """Test "process_message" function with invalid recording json."""
     message = {
         "type": "replay_recording_not_chunked",
@@ -431,7 +438,7 @@ def test_process_message_invalid_recording_json():
     assert process_message(kafka_message) == FilteredPayload()
 
 
-def test_process_message_invalid_headers():
+def test_process_message_invalid_headers() -> None:
     """Test "process_message" function with invalid headers."""
     message = {
         "type": "replay_recording_not_chunked",
@@ -451,7 +458,7 @@ def test_process_message_invalid_headers():
     assert process_message(kafka_message) == FilteredPayload()
 
 
-def test_process_message_malformed_headers():
+def test_process_message_malformed_headers() -> None:
     """Test "process_message" function with malformed headers."""
     message = {
         "type": "replay_recording_not_chunked",
@@ -471,7 +478,7 @@ def test_process_message_malformed_headers():
     assert process_message(kafka_message) == FilteredPayload()
 
 
-def test_process_message_malformed_headers_invalid_unicode_codepoint():
+def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     """Test "process_message" function with malformed unicode codepoint in headers."""
     message = {
         "type": "replay_recording_not_chunked",
@@ -491,7 +498,7 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint():
     assert process_message(kafka_message) == FilteredPayload()
 
 
-def test_process_message_no_headers():
+def test_process_message_no_headers() -> None:
     """Test "process_message" function with no headers."""
     message = {
         "type": "replay_recording_not_chunked",

@@ -22,7 +22,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestGrantExchanger(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.code = self.install.api_grant.code
         assert self.install.sentry_app.application is not None

@@ -76,7 +76,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
             assert len(mail.outbox) == USER_COUNT
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule(project=self.project)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
@@ -141,7 +141,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             },
         )
 
-    def test_sends_alert_rule_notification_to_each_member(self):
+    def test_sends_alert_rule_notification_to_each_member(self) -> None:
         """Test that if there is only one event it is sent as a regular alert rule notification"""
         self.run_test(event_count=1)
 

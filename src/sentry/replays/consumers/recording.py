@@ -24,7 +24,7 @@ from sentry.replays.usecases.ingest import (
     process_recording_event,
     track_recording_metadata,
 )
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -107,6 +107,9 @@ def parse_recording_event(message: bytes) -> Event:
     if replay_event_json:
         replay_event = json.loads(cast(bytes, replay_event_json))
     else:
+        # Check if any events are not present in the pipeline. We need
+        # to know because we want to write to Snuba from here soon.
+        metrics.incr("sentry.replays.consumer.recording.missing-replay-event")
         replay_event = None
 
     replay_video_raw = recording.get("replay_video")
