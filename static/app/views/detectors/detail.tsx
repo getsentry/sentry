@@ -1,5 +1,6 @@
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {useParams} from 'sentry/utils/useParams';
@@ -30,7 +31,9 @@ export default function DetectorDetails() {
 
   return (
     <SentryDocumentTitle title={detector.name} noSuffix>
-      <DetectorDetailsContent detector={detector} project={project} />
+      <PageFiltersContainer>
+        <DetectorDetailsContent detector={detector} project={project} />
+      </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
