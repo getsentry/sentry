@@ -29,10 +29,12 @@ type OptionalPathParams<TApiPath extends string> =
 
 const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
+type ApiUrl = string & {__apiUrl: true};
+
 export function getApiUrl<TApiPath extends string>(
   path: TApiPath,
   ...[options]: OptionalPathParams<TApiPath>
-): string {
+): ApiUrl {
   let url: string = path;
   const pathParams = options?.path;
   if (pathParams) {
@@ -44,5 +46,5 @@ export function getApiUrl<TApiPath extends string>(
       return safeEncodeURIComponent(String(pathParams[key as keyof typeof pathParams]));
     });
   }
-  return url;
+  return url as ApiUrl;
 }

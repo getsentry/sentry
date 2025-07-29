@@ -1,3 +1,5 @@
+import {expectTypeOf} from 'expect-type';
+
 import {getApiUrl} from './getApiUrl';
 
 describe('getApiUrl', () => {
@@ -55,6 +57,13 @@ describe('getApiUrl', () => {
   });
 
   describe('types', () => {
+    test('should return branded string type', () => {
+      const url = getApiUrl('/projects/$orgSlug/', {
+        path: {orgSlug: 'my-org'},
+      });
+
+      expectTypeOf(url).toEqualTypeOf<string & {__apiUrl: true}>();
+    });
     test('should not allow invalid path parameters', () => {
       getApiUrl('/projects/$orgSlug/', {
         // @ts-expect-error Invalid path parameter
