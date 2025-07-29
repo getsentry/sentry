@@ -25,8 +25,6 @@ interface UseMultiQueryTimeseriesResults {
   result: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export const DEFAULT_TOP_EVENTS = 5;
-
 export function useMultiQueryTimeseries({
   enabled,
   index,
