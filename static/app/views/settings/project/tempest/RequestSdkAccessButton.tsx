@@ -22,15 +22,21 @@ export function RequestSdkAccessButton({
       data-test-id="request-sdk-access"
       icon={<IconCode />}
       onClick={() => {
-        trackAnalytics('tempest.sdk_access_modal_opened', {
-          organization,
-          project_slug: project.slug,
-        });
         openPrivateGamingSdkAccessModal({
           organization,
           projectSlug: project.slug,
           sdkName: 'PlayStation',
           gamingPlatform: 'playstation',
+          onSubmit: () => {
+            trackAnalytics('tempest.sdk_access_modal_submitted', {
+              organization,
+              project_slug: project.slug,
+            });
+          },
+        });
+        trackAnalytics('tempest.sdk_access_modal_opened', {
+          organization,
+          project_slug: project.slug,
         });
       }}
     >
