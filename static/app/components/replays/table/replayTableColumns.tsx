@@ -640,7 +640,6 @@ const DropdownContainer = styled(Flex)`
   position: relative;
   flex-direction: column;
   justify-content: center;
-  flex-grow: 1;
 `;
 
 const SmallFont = styled('div')`
