@@ -1,22 +1,26 @@
-import {useEffect} from 'react';
-import {Navigate, type NavigateProps} from 'react-router-dom';
-import * as Sentry from '@sentry/react';
-
-import type {
-  IndexRedirectProps,
-  IndexRouteProps,
-  RedirectProps,
-  RouteProps,
-} from 'sentry/types/legacyReactRouter';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
-
-// This module contains the "fake" react components that are used as we migrade
-// off of react-router 3 to 6. The shims in the utils/reactRouter6Compat module
-// read the props off tese components and construct a real react router 6 tree.
-
-type CustomProps = {
+/**
+ * This is our "custom" route object. It varies a bit from react-router 6's
+ * routing object in that it doesn't take a rendered component, but instead a
+ * component type and handles the rendering itself.
+ */
+interface BaseRouteObject {
+  /**
+   * child components to render under this route
+   */
+  children?: SentryRouteObject[];
+  /**
+   * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
+   */
+  customerDomainOnlyRoute?: true;
+  /**
+   * Injects react router 3 style router props to the component.
+   * Including an `Outlet` component as a child element.
+   */
+  deprecatedRouteProps?: never;
+  /**
+   * Is a index route
+   */
+  index?: boolean;
   /**
    * Human readable route name. This is primarily used in the settings routes.
    */
@@ -26,6 +30,16 @@ type CustomProps = {
    * the legacy `Route` style tree.
    */
   newStyleChildren?: SentryRouteObject[];
+  /**
+   * The react router path of this component
+   */
+  path?: string;
+  /**
+   * The path to redirect to when landing on this route. This will directly
+   * render a Redirect component. `component` nad `children` will both be
+   * ignored in this case.
+   */
+  redirectTo?: string;
   /**
    * Ensure this route renders two routes, one for the "org" path which
    * includes the :orgId slug, and one without.
@@ -39,101 +53,45 @@ type CustomProps = {
    * withDomainRedirect respectively.
    */
   withOrgPath?: boolean;
+}
+
+/**
+ * Enforces that these props are not expected by the component.
+ */
+type NoRouteProps = {
+  [key: string | number | symbol]: any;
+  children?: never;
+  location?: never;
+  params?: never;
+  route?: never;
+  routeParams?: never;
+  router?: never;
+  routes?: never;
 };
 
-/**
- * This is our "custom" route object. It varies a bit from react-router 6's
- * routing object in that it doesn't take a rendered component, but instead a
- * component type and handles the rendering itself.
- */
-export interface SentryRouteObject extends CustomProps {
+interface DeprecatedPropRoute extends Omit<BaseRouteObject, 'deprecatedRouteProps'> {
   /**
-   * child components to render under this route
+   * A react component that accepts legacy router props (location, params, router, etc.)
    */
-  children?: SentryRouteObject[];
+  component: React.ComponentType<any>;
   /**
-   * A react component to render or a import promise that will be lazily loaded
+   * Passes legacy route props to the component.
    */
-  component?: React.ComponentType<any>;
+  deprecatedRouteProps: true;
+}
+
+interface RouteObject extends BaseRouteObject {
   /**
-   * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
+   * A react component to render. Components that expect RouteComponentProps are
+   * not allowed here. Use deprecatedRouteProps: true on legacy components. New
+   * components should use the `use{Params,Location}` hooks.
+   * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
    */
-  customerDomainOnlyRoute?: true;
-  /**
-   * Is a index route
-   */
-  index?: boolean;
-  /**
-   * The react router path of this component
-   */
-  path?: string;
-
-  // XXX(epurkhiser): In the future we can introduce a `requiresLegacyProps`
-  // prop here that will pass in the react-router 3 style routing props. We can
-  // use this as a way to slowly get rid of react router 3 style prosp in favor
-  // of using the route hooks.
+  component: React.ComponentType<NoRouteProps>;
 }
 
-interface SentryRouteProps extends React.PropsWithChildren<RouteProps & CustomProps> {}
-
-export function Route(_props: SentryRouteProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-Route.displayName = 'Route';
-
-export function IndexRoute(_props: IndexRouteProps & CustomProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-IndexRoute.displayName = 'IndexRoute';
-
-export function Redirect(_props: RedirectProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-Redirect.displayName = 'Redirect';
-
-export function IndexRedirect(_props: IndexRedirectProps) {
-  // XXX: These routes are NEVER rendered
-  return null;
-}
-IndexRedirect.displayName = 'IndexRedirect';
-
-interface WorkingRedirectProps extends Omit<NavigateProps, 'to'> {
-  /**
-   * Our compat redirect only supports string to
-   */
-  to: string;
+interface NoComponentRoute extends BaseRouteObject {
+  component?: never;
 }
 
-/**
- * Working Redirect component for use in route objects
- * Wraps a declarative `Navigate` component to interpolate the params of `to`
- */
-export function WorkingRedirect({to, ...rest}: WorkingRedirectProps) {
-  const params = useParams();
-  const routes = useRoutes();
-
-  // Capture sentry span for this redirect. This will help us understand if we
-  // have redirects that are unused or used too much.
-  useEffect(() => {
-    const routePath = routes
-      .map(route => route.path ?? '')
-      .filter(path => path !== '')
-      .join('/');
-
-    Sentry.startSpan(
-      {
-        name: 'Redirect route used',
-        op: 'navigation.redirect',
-        attributes: {routePath},
-      },
-      () => {
-        // End span automatically
-      }
-    );
-  }, [routes]);
-
-  return <Navigate to={replaceRouterParams(to, params)} {...rest} />;
-}
+export type SentryRouteObject = RouteObject | DeprecatedPropRoute | NoComponentRoute;

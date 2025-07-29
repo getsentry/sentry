@@ -14,7 +14,7 @@ from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueT
 
 @freeze_time()
 class TestEvaluateMetricDetector(BaseMetricIssueTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.handler = MetricIssueDetectorHandler(self.detector)
 

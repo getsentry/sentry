@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AppPlatformEventSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(username="foo")
         self.organization = self.create_organization(owner=self.user)
         self.sentry_app = self.create_sentry_app(organization=self.organization)

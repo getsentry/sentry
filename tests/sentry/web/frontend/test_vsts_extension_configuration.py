@@ -13,7 +13,7 @@ class VstsExtensionConfigurationTest(TestCase):
     def path(self):
         return reverse("vsts-extension-configuration")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 

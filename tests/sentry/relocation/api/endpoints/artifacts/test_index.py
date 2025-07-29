@@ -17,7 +17,7 @@ class GetRelocationArtifactsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-artifacts-index"
     method = "GET"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="owner@example.com", is_superuser=False, is_staff=False)
         self.superuser = self.create_user(is_superuser=True)
@@ -37,7 +37,7 @@ class GetRelocationArtifactsTest(APITestCase):
 
 
 class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         dir = f"runs/{self.relocation.uuid}"
         self.relocation_storage = get_relocation_storage()

@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.urls import reverse
 
-from sentry.codecov.endpoints.Branches.serializers import BranchNodeSerializer as NodeSerializer
+from sentry.codecov.endpoints.branches.serializers import BranchNodeSerializer as NodeSerializer
 from sentry.constants import ObjectStatus
 from sentry.testutils.cases import APITestCase
 
@@ -52,9 +52,9 @@ mock_graphql_response_empty: dict[str, Any] = {
 
 
 class BranchesEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-repository-branches"
+    endpoint_name = "sentry-api-0-repository-branches"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -69,7 +69,7 @@ class BranchesEndpointTest(APITestCase):
     def reverse_url(self, repository="testrepo"):
         """Custom reverse URL method to handle required URL parameters"""
         return reverse(
-            self.endpoint,
+            self.endpoint_name,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "owner": self.integration.id,
@@ -77,7 +77,7 @@ class BranchesEndpointTest(APITestCase):
             },
         )
 
-    @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.branches.branches.CodecovApiClient")
     def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -97,7 +97,7 @@ class BranchesEndpointTest(APITestCase):
             "filters": {
                 "searchValue": None,
             },
-            "first": 50,
+            "first": 25,
             "last": None,
             "after": None,
             "before": None,
@@ -122,7 +122,7 @@ class BranchesEndpointTest(APITestCase):
             response_keys == serializer_fields
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
-    @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.branches.branches.CodecovApiClient")
     def test_get_with_query_parameters(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
@@ -154,7 +154,7 @@ class BranchesEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.Branches.branches.CodecovApiClient")
+    @patch("sentry.codecov.endpoints.branches.branches.CodecovApiClient")
     def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
         mock_codecov_client_instance = Mock()
         mock_response = Mock()

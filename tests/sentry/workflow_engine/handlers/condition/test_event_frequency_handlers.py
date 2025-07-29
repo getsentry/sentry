@@ -22,7 +22,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 
 class TestEventFrequencyCountCondition(ConditionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition = Condition.EVENT_FREQUENCY_COUNT
         self.payload: dict[str, str | int | float] = {
@@ -158,7 +158,7 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
 
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.condition = Condition.EVENT_FREQUENCY_PERCENT
         self.payload: dict[str, str | int | float] = {
             "interval": "1h",
@@ -313,7 +313,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
 
 
 class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountCondition):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
         self.payload: dict[str, str | int | float] = {
@@ -325,7 +325,7 @@ class TestEventUniqueUserFrequencyCountCondition(TestEventFrequencyCountConditio
 
 
 class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCondition):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
         self.payload: dict[str, str | int | float] = {
@@ -338,7 +338,7 @@ class TestEventUniqueUserFrequencyPercentCondition(TestEventFrequencyPercentCond
 
 
 class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_COUNT
         self.payload: dict[str, str | int | float] = {
@@ -358,7 +358,7 @@ class TestPercentSessionsCountCondition(TestEventFrequencyCountCondition):
 
 
 class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition = Condition.PERCENT_SESSIONS_PERCENT
         self.payload: dict[str, str | int | float] = {
@@ -380,7 +380,7 @@ class TestPercentSessionsPercentCondition(TestEventFrequencyPercentCondition):
 
 
 class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
         self.payload: dict[str, str | int | float] = {

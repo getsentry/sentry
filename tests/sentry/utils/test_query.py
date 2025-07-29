@@ -73,6 +73,11 @@ class RangeQuerySetWrapperTest(TestCase):
         self.range_wrapper(qs, order_by="username")
         assert len(list(self.range_wrapper(qs, order_by="username", step=2))) == 1
 
+    def test_wrapper_over_values_list(self):
+        self.create_user()
+        qs = User.objects.all().values_list("id")
+        assert list(qs) == list(self.range_wrapper(qs, result_value_getter=lambda r: r[0]))
+
 
 @no_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
@@ -85,7 +90,7 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
 
 
 class BulkDeleteObjectsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         UserReport.objects.all().delete()
 

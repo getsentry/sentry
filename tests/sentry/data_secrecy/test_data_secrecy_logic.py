@@ -10,7 +10,7 @@ from sentry.testutils.silo import all_silo_test, create_test_regions
 
 @all_silo_test(regions=create_test_regions("us"))
 class DataSecrecyTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization.flags.prevent_superuser_access = True
         self.rpc_org = RpcOrganization(id=self.organization.id)

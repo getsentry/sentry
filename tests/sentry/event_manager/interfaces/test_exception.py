@@ -261,7 +261,7 @@ def test_context_with_two_exceptions_having_mechanism(make_exception_snapshot):
     )
 
 
-def test_iteration():
+def test_iteration() -> None:
     inst = Exception.to_python({"values": [None, {"type": "ValueError"}, None]})
 
     assert len(inst) == 1

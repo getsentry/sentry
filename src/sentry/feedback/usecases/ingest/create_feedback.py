@@ -8,9 +8,14 @@ from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
+from sentry.feedback.usecases.label_generation import (
+    AI_LABEL_TAG_PREFIX,
+    MAX_AI_LABELS,
+    generate_labels,
+)
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -158,9 +163,9 @@ def validate_issue_platform_event_schema(event_data):
             raise
 
 
-def should_filter_feedback(
-    event, project_id, source: FeedbackCreationSource
-) -> tuple[bool, str | None]:
+def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
+    """Returns a tuple of (should_filter, reason)."""
+
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
@@ -170,77 +175,26 @@ def should_filter_feedback(
         or event["contexts"].get("feedback") is None
         or event["contexts"]["feedback"].get("message") is None
     ):
-        project = Project.objects.get_from_cache(id=project_id)
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={
-                "platform": project.platform,
-                "reason": "missing_context",
-                "referrer": source.value,
-            },
-        )
-        return True, "Missing Feedback Context"
+        return True, "missing_context"
 
     message = event["contexts"]["feedback"]["message"]
 
     if message == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={
-                "reason": "unreal.unattended",
-                "referrer": source.value,
-            },
-        )
-        return True, "Sent in Unreal Unattended Mode"
+        return True, "unreal.unattended"
 
     if message.strip() == "":
-        project = Project.objects.get_from_cache(id=project_id)
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={
-                "platform": project.platform,
-                "reason": "empty",
-                "referrer": source.value,
-            },
-        )
-        return True, "Empty Feedback Message"
+        return True, "empty"
 
     if len(message) > options.get("feedback.message.max-size"):
         # Note options are cached.
-        metrics.distribution(
-            "feedback.large_message",
-            len(message),
-            tags={
-                "entrypoint": "create_feedback_issue",
-                "referrer": source.value,
-            },
-        )
-        if random.random() < 0.1:
-            logger.info(
-                "Feedback message exceeds max size.",
-                extra={
-                    "project_id": project_id,
-                    "entrypoint": "create_feedback_issue",
-                    "referrer": source.value,
-                    "length": len(message),
-                    "feedback_message": message[:100],
-                },
-            )
-        return True, "Too Large"
+        return True, "too_large"
 
     associated_event_id = get_path(event, "contexts", "feedback", "associated_event_id")
     if associated_event_id:
         try:
             UUID(str(associated_event_id))
         except ValueError:
-            metrics.incr(
-                "feedback.create_feedback_issue.filtered",
-                tags={
-                    "reason": "invalid_associated_event_id",
-                    "referrer": source.value,
-                },
-            )
-            return True, "Invalid Event ID"
+            return True, "invalid_associated_event_id"
 
     return False, None
 
@@ -279,7 +233,7 @@ def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
 
 
 def create_feedback_issue(
-    event: dict[str, Any], project_id: int, source: FeedbackCreationSource
+    event: dict[str, Any], project: Project, source: FeedbackCreationSource
 ) -> dict[str, Any] | None:
     """
     Produces a feedback issue occurrence to kafka for issues processing. Applies filters, spam filters, and event validation.
@@ -294,13 +248,44 @@ def create_feedback_issue(
         },
     )
 
-    project = Project.objects.get_from_cache(id=project_id)
-
-    should_filter, filter_reason = should_filter_feedback(event, project_id, source)
+    should_filter, filter_reason = should_filter_feedback(event)
     if should_filter:
+        if filter_reason == "too_large":
+            feedback_message = event["contexts"]["feedback"]["message"]
+            metrics.distribution(
+                "feedback.large_message",
+                len(feedback_message),
+                tags={
+                    "entrypoint": "create_feedback_issue",
+                    "referrer": source.value,
+                    "platform": project.platform,
+                },
+            )
+            if random.random() < 0.1:
+                logger.info(
+                    "Feedback message exceeds max size.",
+                    extra={
+                        "project_id": project.id,
+                        "entrypoint": "create_feedback_issue",
+                        "referrer": source.value,
+                        "length": len(feedback_message),
+                        "feedback_message": feedback_message[:100],
+                        "platform": project.platform,
+                    },
+                )
+        else:
+            metrics.incr(
+                "feedback.create_feedback_issue.filtered",
+                tags={
+                    "platform": project.platform,
+                    "reason": filter_reason,
+                    "referrer": source.value,
+                },
+            )
+
         track_outcome(
             org_id=project.organization_id,
-            project_id=project_id,
+            project_id=project.id,
             key_id=None,
             outcome=Outcome.INVALID,
             reason=filter_reason,
@@ -320,7 +305,7 @@ def create_feedback_issue(
             is_message_spam = is_spam(feedback_message)
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
-            logger.exception("Error checking if message is spam", extra={"project_id": project_id})
+            logger.exception("Error checking if message is spam", extra={"project_id": project.id})
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={
@@ -329,6 +314,8 @@ def create_feedback_issue(
             },
             sample_rate=1.0,
         )
+
+    # Prepare the data for issue platform processing and attach useful tags.
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
@@ -340,8 +327,8 @@ def create_feedback_issue(
     issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
-        event_id=event.get("event_id") or uuid4().hex,
-        project_id=project_id,
+        event_id=event["event_id"],
+        project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title=get_feedback_title(feedback_message),
         subtitle=feedback_message,
@@ -353,15 +340,40 @@ def create_feedback_issue(
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
     )
-    now = datetime.now()
 
-    event_data = {
-        "project_id": project_id,
-        "received": now.isoformat(),
-        "tags": event.get("tags", {}),
-        **event,
-    }
-    event_fixed = fix_for_issue_platform(event_data)
+    event_fixed = fix_for_issue_platform(
+        # Pass in a copy of the event so mutations to the original and fixed don't affect each other.
+        {
+            **event,
+            "project_id": project.id,
+            "received": datetime.now().isoformat(),
+            "tags": event.get("tags", {}),
+        }
+    )
+
+    # Generating labels using Seer, which will later be used to categorize feedbacks
+    if (
+        not is_message_spam
+        and features.has("organizations:user-feedback-ai-categorization", project.organization)
+        and features.has("organizations:gen-ai-features", project.organization)
+    ):
+        try:
+            labels = generate_labels(feedback_message, project.organization_id)
+            if len(labels) > MAX_AI_LABELS:
+                logger.info(
+                    "Feedback message has more than the maximum allowed labels.",
+                    extra={
+                        "project_id": project.id,
+                        "entrypoint": "create_feedback_issue",
+                        "feedback_message": feedback_message[:100],
+                    },
+                )
+                labels = labels[:MAX_AI_LABELS]
+
+            for idx, label in enumerate(labels):
+                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.{idx}"] = label
+        except Exception:
+            logger.exception("Error generating labels", extra={"project_id": project.id})
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
@@ -409,13 +421,14 @@ def create_feedback_issue(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
             "referrer": source.value,
+            "platform": project.platform,
         },
         sample_rate=1.0,
     )
 
     track_outcome(
         org_id=project.organization_id,
-        project_id=project_id,
+        project_id=project.id,
         key_id=None,
         outcome=Outcome.ACCEPTED,
         reason=None,

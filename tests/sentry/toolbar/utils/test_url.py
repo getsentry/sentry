@@ -140,19 +140,19 @@ def test_url_matches_with_path_or_query(referrer, target):
     assert url_matches(urlparse(referrer), target)
 
 
-def test_is_origin_allowed_allows_some():
+def test_is_origin_allowed_allows_some() -> None:
     assert is_origin_allowed("http://sentry.io", ["http://abc.net", "http://sentry.io"])
     assert is_origin_allowed("http://localhost:5173/", ["localhost:5173"])
 
 
-def test_is_origin_allowed_rejects_all():
+def test_is_origin_allowed_rejects_all() -> None:
     assert not is_origin_allowed("http://sentry.io", ["http://abc.net", "http://xyz.net"])
 
 
-def test_is_origin_allowed_rejects_empty():
+def test_is_origin_allowed_rejects_empty() -> None:
     assert not is_origin_allowed("", ["http://abc.net", "http://xyz.net"])
 
 
-def test_is_origin_allowed_rejects_bad_input_scheme():
+def test_is_origin_allowed_rejects_bad_input_scheme() -> None:
     assert not is_origin_allowed("sentry.io", ["sentry.io"])
     assert not is_origin_allowed("ftp://sentry.io", ["sentry.io"])

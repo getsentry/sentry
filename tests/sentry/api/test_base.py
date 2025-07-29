@@ -591,7 +591,7 @@ class FunctionSiloLimitTest(APITestCase):
 
 
 class SuperuserPermissionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.request = self.make_request(user=self.user, method="GET")
         self.superuser_permission_view = DummySuperuserPermissionEndpoint().as_view()
@@ -615,7 +615,7 @@ class SuperuserPermissionTest(APITestCase):
 class RequestAccessTest(APITestCase):
     """Tests for ensuring request.access is properly set before being accessed."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.user = self.create_user()

@@ -19,7 +19,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import Event
-from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -219,7 +218,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         cursor.execute("select abs(hashtext(cast(%s as varchar))) %% %s", [project.id, num_workers])
         return cursor.fetchone()[0]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         bulk_data = self.create_group_event_rows(5)
         self.event = bulk_data["events"][0]
@@ -1150,7 +1149,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def test_nodestore_grouping_config_not_found(
         self, mock_call_next_backfill, mock_lookup_group_data_stacktrace_bulk
     ):
-        exceptions = (GroupingConfigNotFound(), ResourceDoesNotExist(), InvalidEnhancerConfig())
+        exceptions = (ResourceDoesNotExist(), InvalidEnhancerConfig())
 
         for exception in exceptions:
             mock_lookup_group_data_stacktrace_bulk.side_effect = exception
