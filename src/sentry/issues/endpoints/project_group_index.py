@@ -1,6 +1,7 @@
 import functools
 import logging
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -196,14 +197,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         if results and query:
             advanced_search.send(project=project, sender=request.user)
-            analytics.record(
-                ProjectIssueSearchEvent(
-                    user_id=request.user.id,
-                    organization_id=project.organization_id,
-                    project_id=project.id,
-                    query=query,
+            try:
+                analytics.record(
+                    ProjectIssueSearchEvent(
+                        user_id=request.user.id,
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        query=query,
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         return response
 
