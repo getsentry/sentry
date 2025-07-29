@@ -6,6 +6,7 @@ import uuid
 from datetime import timedelta
 from itertools import chain
 
+import sentry_sdk
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
@@ -193,16 +194,19 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
         )
 
         if random.random() < ANALYTICS_SAMPLING_RATE:
-            analytics.record(
-                CheckinProcessingErrorStored(
-                    organization_id=organization.id,
-                    project_id=project.id,
-                    monitor_slug=item.payload["monitor_slug"],
-                    error_types=[
-                        process_error["type"] for process_error in error.processing_errors
-                    ],
+            try:
+                analytics.record(
+                    CheckinProcessingErrorStored(
+                        organization_id=organization.id,
+                        project_id=project.id,
+                        monitor_slug=item.payload["monitor_slug"],
+                        error_types=[
+                            process_error["type"].value for process_error in error.processing_errors
+                        ],
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
         store_error(checkin_processing_error, error.monitor)
