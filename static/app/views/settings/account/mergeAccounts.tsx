@@ -130,7 +130,7 @@ function MergeAccounts() {
     postVerificationCode();
   };
 
-  if (isSubmitPending) {
+  if (isPending) {
     return (
       <Fragment>
         <SentryDocumentTitle title={t('Merge Accounts')} />
@@ -199,7 +199,7 @@ function MergeAccounts() {
           <Button
             priority="danger"
             onClick={() => handleSubmit(selectedUserIds, tokenValue)}
-            disabled={isPending}
+            disabled={isSubmitPending}
           >
             {t('Submit')}
           </Button>
