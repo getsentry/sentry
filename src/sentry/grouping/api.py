@@ -220,7 +220,10 @@ def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingCo
 
 
 def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyConfiguration:
-    """Loads the given grouping config."""
+    """
+    Load the given grouping config, or the default config if none is provided or if the given
+    config is not recognized.
+    """
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
     elif "id" not in config_dict:
