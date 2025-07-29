@@ -385,6 +385,7 @@ type SpecialFieldRenderFunc = (
 type SpecialField = {
   renderFunc: SpecialFieldRenderFunc;
   sortField: string | null;
+  preventCellActions?: boolean;
 };
 
 const DownloadCount = styled('span')`
@@ -450,6 +451,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </RightAlignedContainer>
       );
     },
+    preventCellActions: true,
   },
   minidump: {
     sortField: null,
@@ -481,6 +483,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </RightAlignedContainer>
       );
     },
+    preventCellActions: true,
   },
   id: {
     sortField: 'id',
@@ -491,6 +494,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
       return <Container>{getShortEventId(id)}</Container>;
     },
+    preventCellActions: true,
   },
   span_id: {
     sortField: 'span_id',
@@ -502,6 +506,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{getShortEventId(id)}</Container>;
     },
+    preventCellActions: true,
   },
   'span.description': {
     sortField: 'span.description',
@@ -554,6 +559,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
 
       return <Container>{getShortEventId(id)}</Container>;
     },
+    preventCellActions: true,
   },
   'issue.id': {
     sortField: 'issue.id',
@@ -570,6 +576,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
+    preventCellActions: true,
   },
   replayId: {
     sortField: 'replayId',
@@ -592,6 +599,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
+    preventCellActions: true,
   },
   'profile.id': {
     sortField: 'profile.id',
@@ -635,6 +643,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
+    preventCellActions: true,
   },
   project: {
     sortField: 'project',
@@ -667,6 +676,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         </Container>
       );
     },
+    preventCellActions: true,
   },
   // Two different project ID fields are being used right now. `project_id` is shared between all datasets, but `project.id` is the new one used in spans
   project_id: {
@@ -675,6 +685,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const projectId = data.project_id;
       return getProjectIdLink(projectId, baggage);
     },
+    preventCellActions: true,
   },
   'project.id': {
     sortField: 'project.id',
@@ -682,6 +693,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       const projectId = data['project.id'];
       return getProjectIdLink(projectId, baggage);
     },
+    preventCellActions: true,
   },
   user: {
     sortField: 'user',
@@ -781,6 +793,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       ) : (
         <Container>{emptyValue}</Container>
       ),
+    preventCellActions: true,
   },
   'error.handled': {
     sortField: 'error.handled',
@@ -1156,6 +1169,18 @@ export function getSortField(
   return null;
 }
 
+/**
+ * Some special fields should not use cell actions (e.g., some fields with internal links).
+ * @param field
+ * @returns true if the no cell actions are permitted, false otherwise
+ */
+export function shouldPreventCellActions(field: string) {
+  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
+    return !!SPECIAL_FIELDS[field]!.preventCellActions;
+  }
+  return false;
+}
+
 const isDurationValue = (data: EventData, field: string): boolean => {
   return field in data && typeof data[field] === 'number';
 };
@@ -1305,8 +1330,7 @@ export function getFieldRenderer(
   isAlias = true
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return SPECIAL_FIELDS[field].renderFunc;
+    return SPECIAL_FIELDS[field]!.renderFunc;
   }
 
   if (isRelativeSpanOperationBreakdownField(field)) {

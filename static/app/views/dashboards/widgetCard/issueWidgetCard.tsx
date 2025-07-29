@@ -32,6 +32,7 @@ type Props = {
   theme: Theme;
   widget: Widget;
   errorMessage?: string;
+  isPreview?: boolean;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   tableResults?: TableData[];
 };
@@ -46,6 +47,7 @@ export function IssueWidgetCard({
   location,
   theme,
   onWidgetTableResizeColumn,
+  isPreview,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -113,7 +115,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
-        allowedCellActions={[]}
+        allowedCellActions={isPreview ? [] : undefined}
       />
     </TableContainer>
   ) : (

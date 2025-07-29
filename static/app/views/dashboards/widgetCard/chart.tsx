@@ -97,6 +97,7 @@ type WidgetCardChartProps = Pick<
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isPreview?: boolean;
   isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
@@ -158,6 +159,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       theme,
       onWidgetTableSort,
       onWidgetTableResizeColumn,
+      isPreview,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -229,7 +231,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
-              allowedCellActions={[]}
+              allowedCellActions={isPreview ? [] : undefined}
             />
           ) : (
             <StyledSimpleTableChart

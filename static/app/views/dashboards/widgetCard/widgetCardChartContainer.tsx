@@ -41,6 +41,7 @@ type Props = {
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
   noPadding?: boolean;
@@ -95,6 +96,7 @@ export function WidgetCardChartContainer({
   showLoadingText,
   onWidgetTableSort,
   onWidgetTableResizeColumn,
+  isPreview,
 }: Props) {
   const location = useLocation();
   const theme = useTheme();
@@ -177,6 +179,7 @@ export function WidgetCardChartContainer({
                 theme={theme}
                 organization={organization}
                 onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+                isPreview={isPreview}
               />
             </Fragment>
           );
@@ -223,6 +226,7 @@ export function WidgetCardChartContainer({
               theme={theme}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              isPreview={isPreview}
             />
           </Fragment>
         );

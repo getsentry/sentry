@@ -8,7 +8,10 @@ import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getFieldRenderer,
+  shouldPreventCellActions,
+} from 'sentry/utils/discover/fieldRenderers';
 import type {Column, ColumnValueType, Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
@@ -294,7 +297,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                     break;
                 }
               }}
-              allowActions={allowedCellActions}
+              allowActions={
+                shouldPreventCellActions(column.key) ? [] : allowedCellActions
+              }
             >
               {cell}
             </CellAction>
