@@ -9,6 +9,7 @@ import {
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   getQueryMode,
   useReadQueriesFromLocation,
@@ -97,7 +98,7 @@ function useMultiQueryTimeseriesImpl({
       fields,
       orderby,
       interval,
-      topEvents: mode === Mode.SAMPLES ? undefined : DEFAULT_TOP_EVENTS,
+      topEvents: mode === Mode.SAMPLES ? undefined : TOP_EVENTS_LIMIT,
       enabled,
       ...queryExtras,
     };
