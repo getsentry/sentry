@@ -69,19 +69,19 @@ export function StorySearch() {
       });
     }
 
-    if (layout.length > 0) {
-      sections.push({
-        key: 'layout',
-        label: 'Layout',
-        options: layout,
-      });
-    }
-
     if (typography.length > 0) {
       sections.push({
         key: 'typography',
         label: 'Typography',
         options: typography,
+      });
+    }
+
+    if (layout.length > 0) {
+      sections.push({
+        key: 'layout',
+        label: 'Layout',
+        options: layout,
       });
     }
 
