@@ -168,6 +168,14 @@ sentry_sdk.init(
     # of profile sessions.
     profile_session_sample_rate=1.0,`
           : ''
+    }${
+      params.isLogsSelected
+        ? `
+    # Send logs to Sentry
+    _experiments={
+        "enable_logs": True,
+    },`
+        : ''
     }
 )${
   params.isProfilingSelected &&
@@ -243,6 +251,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 export const crashReportOnboardingPython: OnboardingConfig = {

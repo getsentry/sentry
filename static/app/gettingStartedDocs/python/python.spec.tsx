@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './python';
 
 describe('python onboarding docs', function () {
@@ -80,5 +82,55 @@ describe('python onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
     ).toBeInTheDocument();
+  });
+
+  it('renders logs configuration', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    // Renders logs configuration
+    expect(
+      screen.getByText(textWithMarkupMatcher(/_experiments=\{/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/"enable_logs": True,/))
+    ).toBeInTheDocument();
+
+    // Renders minimum version requirement
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/version 2\.28\.0 or higher for logs support/)
+      )
+    ).toBeInTheDocument();
+
+    // Renders logging integrations link in next steps
+    expect(screen.getByRole('link', {name: 'Logging Integrations'})).toBeInTheDocument();
+  });
+
+  it('renders without logs configuration when not selected', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render logs configuration
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/_experiments=\{/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/"enable_logs": True,/))
+    ).not.toBeInTheDocument();
+
+    // Does not render minimum version requirement for logs
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/version 2\.28\.0 or higher for logs support/)
+      )
+    ).not.toBeInTheDocument();
+
+    // Does not render logging integrations link
+    expect(
+      screen.queryByRole('link', {name: 'Logging Integrations'})
+    ).not.toBeInTheDocument();
   });
 });
