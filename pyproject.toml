@@ -112,7 +112,6 @@ module = [
     "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.paginator",
-    "sentry.db.postgres.base",
     "sentry.eventstore.models",
     "sentry.identity.gitlab.provider",
     "sentry.identity.oauth2",

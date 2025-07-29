@@ -1,7 +1,7 @@
-import psycopg2 as Database
+from types import TracebackType
+from typing import Self
 
-# Some of these imports are unused, but they are inherited from other engines
-# and should be available as part of the backend ``base.py`` namespace.
+import psycopg2
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 from django.db.backends.postgresql.operations import DatabaseOperations
 
@@ -61,10 +61,7 @@ def clean_bad_params(params):
 
 
 class CursorWrapper:
-    """
-    A wrapper around the postgresql_psycopg2 backend which handles various events
-    from cursors, such as auto reconnects and lazy time zone evaluation.
-    """
+    """A wrapper around the postgresql_psycopg2 backend which handles auto reconnects"""
 
     def __init__(self, db, cursor):
         self.db = db
@@ -75,6 +72,18 @@ class CursorWrapper:
 
     def __iter__(self):
         return iter(self.cursor)
+
+    def __enter__(self) -> Self:
+        self.cursor.__enter__()
+        return self
+
+    def __exit__(
+        self,
+        type: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        return self.cursor.__exit__(type, value, traceback)
 
     @capture_transaction_exceptions
     @auto_reconnect_cursor
@@ -92,7 +101,7 @@ class CursorWrapper:
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    SchemaEditorClass = DatabaseSchemaEditorProxy
+    SchemaEditorClass = DatabaseSchemaEditorProxy  # type: ignore[assignment]  # a proxy class isn't exactly the original type
     queries_limit = 15000
 
     def __init__(self, *args, **kwargs):
@@ -100,21 +109,8 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         self.ops = DatabaseOperations(self)
 
     @auto_reconnect_connection
-    def _set_isolation_level(self, level):
-        return super()._set_isolation_level(level)
-
-    @auto_reconnect_connection
-    def _cursor(self, *args, **kwargs):
-        return super()._cursor()
-
-    # We're overriding this internal method that's present in Django 1.11+, because
-    # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
-    # with our CursorWrapper. We need to be passing our wrapped cursor to their wrapped cursor,
-    # not the other way around since then we'll lose things like __enter__ due to the way this
-    # wrapper is working (getattr on self.cursor).
-    def _prepare_cursor(self, cursor):
-        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
-        return cursor
+    def cursor(self) -> CursorWrapper:
+        return CursorWrapper(self, super().cursor())
 
     def close(self, reconnect=False):
         """
@@ -124,7 +120,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
             if not self.connection.closed:
                 try:
                     self.connection.close()
-                except Database.InterfaceError:
+                except psycopg2.InterfaceError:
                     # connection was already closed by something
                     # like pgbouncer idle timeout.
                     pass
