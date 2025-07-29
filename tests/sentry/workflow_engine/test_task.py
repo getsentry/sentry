@@ -123,7 +123,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
 
 class TestProcessWorkflowActivity(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(project=self.project)
         self.activity = Activity(
             project=self.project,

@@ -90,7 +90,7 @@ mock_graphql_response_populated = {
 class TestResultsEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-test-results"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -130,7 +130,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
@@ -273,7 +273,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,
@@ -310,7 +310,7 @@ class TestResultsEndpointTest(APITestCase):
             "owner": "testowner",
             "repo": "testrepo",
             "filters": {
-                "branch": "main",
+                "branch": None,
                 "parameter": None,
                 "interval": "INTERVAL_30_DAY",
                 "flags": None,

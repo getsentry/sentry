@@ -7,7 +7,7 @@ class ExternalTeamTest(APITestCase):
     endpoint = "sentry-api-0-external-team"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.integration = self.create_integration(

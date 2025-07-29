@@ -13,7 +13,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("test@test.com")
         self.login_as(user=self.user)

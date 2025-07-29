@@ -4,6 +4,7 @@ from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
 from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
+from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -22,7 +23,7 @@ if GitHubEnterpriseCreateTicketAction.id not in default_rules:
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -85,13 +86,9 @@ class ProjectRuleConfigurationTest(APITestCase):
         rule = Mock()
         rule.id = APP_ACTION
         rule.rule_type = "action/lol"
-        node = rule.return_value
-        node.id = rule.id
-        node.label = "hello"
-        node.prompt = "hello"
-        node.is_enabled.return_value = True
-        node.form_fields = {}
-        node.get_services.return_value = []
+        node = NotifyEventServiceAction(project=self.project)
+        assert node.get_services() == []
+        rule.return_value = node
         rules.add(rule)
         self.run_mock_rules_test(0, {}, rules=rules)
 

@@ -13,7 +13,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-users"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(
             organization=self.organization, date_added=(timezone.now() - timedelta(hours=2))

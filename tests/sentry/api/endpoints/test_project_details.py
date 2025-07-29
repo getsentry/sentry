@@ -47,7 +47,7 @@ def first_symbol_source_id(sources_json):
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -267,7 +267,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
@@ -445,7 +445,7 @@ class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
@@ -1302,7 +1302,7 @@ class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1500,7 +1500,7 @@ class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -1567,7 +1567,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
@@ -1588,7 +1588,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.new_ds_flag = "organizations:dynamic-sampling"
         self.url = reverse(
@@ -1990,7 +1990,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 class TestTempestProjectDetails(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-project-details",
@@ -2014,6 +2014,16 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchScreenshots"] is True
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
 
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_screenshots_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
     def test_put_tempest_fetch_screenshots_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
@@ -2021,6 +2031,15 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 
     @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_screenshots_options(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_screenshots_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
@@ -2043,6 +2062,16 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchDumps"] is True
         assert self.project.get_option("sentry:tempest_fetch_dumps") is True
 
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_dumps_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+        )
+        assert response.data["tempestFetchDumps"] is True
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
     def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
@@ -2050,6 +2079,15 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 
     @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_dumps_options(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchDumps" in response.data
+        assert response.data["tempestFetchDumps"] is False
+
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_dumps_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
@@ -2066,7 +2104,7 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 class TestSeerProjectDetails(TestProjectDetailsBase):
     endpoint = "sentry-api-0-project-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-api-0-project-details",

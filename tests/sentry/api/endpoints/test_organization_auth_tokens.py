@@ -192,7 +192,7 @@ class OrganizationAuthTokenCreateTest(APITestCase):
 class OrganizationAuthTokensPermissionTest(PermissionTestCase):
     postData = {"name": "token-1"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.path = reverse("sentry-api-0-org-auth-tokens", args=[self.organization.slug])
 

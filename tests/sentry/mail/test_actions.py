@@ -23,7 +23,7 @@ class NotifyEmailFormTest(TestCase):
     FALLTHROUGH_CHOICE_KEY = "fallthroughChoice"
     TARGET_IDENTIFIER_KEY = "targetIdentifier"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="foo@example.com", is_active=True)
         self.user2 = self.create_user(email="baz@example.com", is_active=True)

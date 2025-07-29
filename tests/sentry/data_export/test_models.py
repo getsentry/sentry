@@ -18,7 +18,7 @@ from sentry.utils.http import absolute_uri
 class ExportedDataTest(TestCase):
     TEST_STRING = b"A bunch of test data..."
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()

@@ -2717,7 +2717,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
             feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
             create_feedback_issue(
-                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
             res = self.get_success_response()
@@ -2744,7 +2744,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
             feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
             create_feedback_issue(
-                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
             self.login_as(user=self.user)
             res = self.get_success_response(query="issue.category:feedback")

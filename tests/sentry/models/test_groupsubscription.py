@@ -188,7 +188,7 @@ class SubscribeTest(TestCase):
 
 
 class GetParticipantsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(teams=[self.team], organization=self.org)

@@ -14,7 +14,7 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(organization=self.organization)
 

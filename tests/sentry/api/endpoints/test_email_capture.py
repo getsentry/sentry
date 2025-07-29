@@ -8,7 +8,7 @@ from sentry.utils.marketo_client import MarketoClient
 
 
 class EmailCaptureTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         # demo user

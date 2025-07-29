@@ -22,7 +22,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
     provider = PagerDutyIntegrationProvider
     base_url = "https://app.pagerduty.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.app_id = "app_1"
         self.account_slug = "test-app"

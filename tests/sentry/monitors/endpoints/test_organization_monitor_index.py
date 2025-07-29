@@ -23,7 +23,7 @@ from sentry.utils.outcomes import Outcome
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -365,7 +365,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -577,7 +577,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

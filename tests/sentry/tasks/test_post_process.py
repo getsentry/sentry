@@ -638,8 +638,8 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
     @patch("sentry.rules.processing.processor.RuleProcessor")
-    @patch("sentry.tasks.post_process.process_workflow_engine")
-    def test_workflow_engine_single_processing(self, mock_process_workflow_engine, mock_processor):
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
+    def test_workflow_engine_single_processing(self, mock_process_event, mock_processor):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         mock_callback = Mock()
@@ -657,8 +657,37 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         # With the workflow engine feature flag enabled, RuleProcessor should not be called
         assert mock_processor.call_count == 0
 
-        # But process_workflow_engine should be called instead
-        assert mock_process_workflow_engine.call_count == 1
+        # Call the function inside process_workflow_engine
+        assert mock_process_event.delay.call_count == 1
+
+    @with_feature("organizations:workflow-engine-single-process-workflows")
+    @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
+    @patch("sentry.rules.processing.processor.RuleProcessor")
+    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
+    def test_workflow_engine_single_processing__ignore_archived(
+        self, mock_process_event, mock_processor
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.update(status=GroupStatus.IGNORED)
+
+        mock_callback = Mock()
+        mock_futures = [Mock()]
+
+        mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        # With the workflow engine feature flag enabled, RuleProcessor should not be called
+        assert mock_processor.call_count == 0
+
+        # Don't process workflows for ignored issue
+        assert mock_process_event.delay.call_count == 0
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
@@ -1433,7 +1462,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         "commitAuthorEmail": "admin@localhost",
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.created_event = self.create_event(
             data={
                 "message": "Kaboom!",
@@ -2934,7 +2963,7 @@ class PostProcessGroupErrorTest(
     ProcessSimilarityTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         clear_replay_publisher()
 

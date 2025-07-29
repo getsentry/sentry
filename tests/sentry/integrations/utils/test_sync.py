@@ -15,7 +15,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 
 @region_silo_test
 class TestSyncAssigneeInbound(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",

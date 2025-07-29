@@ -50,7 +50,7 @@ def get_client():
 
 
 class JiraServerIntegrationBaseTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         (
@@ -1282,7 +1282,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         )
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin = JiraPlugin()
         self.plugin.set_option("enabled", True, self.project)

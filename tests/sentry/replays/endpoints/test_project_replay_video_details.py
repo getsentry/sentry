@@ -14,7 +14,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-video-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.replay_id = uuid.uuid4().hex
         self.segment_id = 0

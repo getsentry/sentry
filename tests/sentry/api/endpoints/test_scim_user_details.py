@@ -33,7 +33,7 @@ def generate_put_data(member: OrganizationMember, role: str = "") -> dict:
 
 
 class SCIMMemberTestsPermissions(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -54,7 +54,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.unrestricted_default_role_member = self.create_member(
             user=self.create_user(), organization=self.organization

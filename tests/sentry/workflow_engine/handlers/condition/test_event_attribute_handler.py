@@ -121,7 +121,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.setup_group_event_and_job()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = self.get_event()
         self.setup_group_event_and_job()
         self.dc = self.create_data_condition(

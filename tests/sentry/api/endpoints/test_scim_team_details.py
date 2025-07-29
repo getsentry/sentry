@@ -83,7 +83,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.base_data: dict[str, Any] = {

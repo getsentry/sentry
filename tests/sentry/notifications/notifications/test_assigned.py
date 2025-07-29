@@ -56,7 +56,7 @@ class AssignedNotificationAPITest(APITestCase):
             user=user, identity_provider=self.provider, external_id=user.id
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
