@@ -49,6 +49,7 @@ const onboarding: OnboardingConfig = {
                 openPrivateGamingSdkAccessModal({
                   organization: params.organization,
                   projectSlug: params.projectSlug,
+                  projectId: params.projectId,
                   sdkName: 'Nintendo Switch',
                   gamingPlatform: 'nintendo-switch',
                 });
