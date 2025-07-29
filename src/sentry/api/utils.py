@@ -15,6 +15,7 @@ from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -66,6 +67,10 @@ from sentry.utils.snuba_rpc import SnubaRPCError
 logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
+
+
+class TimeoutException(APIException):
+    status_code = HTTP_504_GATEWAY_TIMEOUT
 
 
 def get_datetime_from_stats_period(
@@ -377,7 +382,7 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except SnubaError as error:
@@ -399,7 +404,7 @@ def handle_query_errors() -> Generator[None]:
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
             raise ParseError(detail=str(error))
