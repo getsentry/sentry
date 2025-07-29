@@ -24,11 +24,10 @@ def create_trusted_relay_signature(secret_key):
     from sentry_relay._lowlevel import lib
     from sentry_relay.utils import decode_str, make_buf, rustcall
 
-    def _methodcall(obj, func, *args):
-        return rustcall(func, obj._get_objptr(), *args)
-
     data_buf = make_buf(b"")
-    signature = decode_str(_methodcall(secret_key, lib.relay_secretkey_sign, data_buf), free=True)
+    signature = decode_str(
+        rustcall(lib.relay_secretkey_sign, secret_key._get_objptr(), data_buf), free=True
+    )
 
     return signature
 
@@ -47,6 +46,8 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             [{"public_key": str(public_key), "name": "test-trusted-relay"}],
         )
 
+        # Feature flag is required so that the "sentry:ingest-through-trusted-relays-only" option
+        # is properly added to the project config.
         with Feature({"organizations:ingest-through-trusted-relays-only": True}):
             self.project.organization.update_option(
                 "sentry:ingest-through-trusted-relays-only", "enabled"
@@ -368,19 +369,28 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "timestamp": before_now(seconds=1).isoformat(),
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers={
-                "x-sentry-auth": self.auth_header,
-                "content-type": "application/json",
-                # This signature is expired, but the relay lib does not expose a method to create expired
-                # signatures. Taken from a relay test:
-                # https://github.com/getsentry/relay/blob/master/tests/integration/test_trusted_relay.py#L93
-                "x-sentry-relay-signature": "Jho91xVt8SEc_yvwKaPtIOCeCr-6zdnrIFa-KVfKoKcpAXInVe_QGE5JGEoZxAa4cP9Imbl5vb8nyNQ54vRvBQ.eyJ0IjoiMjAyNS0wNi0wNFQxMzoyMToyNi41NzIxNzVaIn0",
-                "x-sentry-relay-id": relay_id,
-            },
-        )
+        headers = {
+            "x-sentry-auth": self.auth_header,
+            "content-type": "application/json",
+            # This signature is expired, but the relay lib does not expose a method to create expired
+            # signatures. Taken from a relay test:
+            # https://github.com/getsentry/relay/blob/master/tests/integration/test_trusted_relay.py#L93
+            "x-sentry-relay-signature": "Jho91xVt8SEc_yvwKaPtIOCeCr-6zdnrIFa-KVfKoKcpAXInVe_QGE5JGEoZxAa4cP9Imbl5vb8nyNQ54vRvBQ.eyJ0IjoiMjAyNS0wNi0wNFQxMzoyMToyNi41NzIxNzVaIn0",
+            "x-sentry-relay-id": relay_id,
+        }
+
+        event = self.post_and_try_retrieve_event(event_data, headers=headers)
         assert event is None
+
+        url = self.get_relay_store_url(self.project.id)
+        resp = requests.post(
+            url,
+            headers=headers,
+            json=event_data,
+        )
+        # Once the project config is fetched it gets rejected in the hot path
+        assert resp.status_code == 403
+        assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
 
     def test_invalid_signature(self):
         """
