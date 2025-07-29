@@ -3,6 +3,7 @@ from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from django.db.models import Q
 from django.utils import timezone as django_timezone
 
@@ -292,19 +293,21 @@ def sync_status_inbound(
                 resolution_type=provider.key,
                 sender=f"resolved_with_{provider.key}",
             )
-
-            analytics.record(
-                IssueResolvedEvent(
-                    project_id=group.project.id,
-                    default_user_id="Sentry Jira",
-                    organization_id=organization_id,
-                    group_id=group.id,
-                    resolution_type="with_third_party_app",
-                    provider=provider.key,
-                    issue_type=group.issue_type.slug,
-                    issue_category=group.issue_category.name.lower(),
+            try:
+                analytics.record(
+                    IssueResolvedEvent(
+                        project_id=group.project.id,
+                        default_user_id="Sentry Jira",
+                        organization_id=organization_id,
+                        group_id=group.id,
+                        resolution_type="with_third_party_app",
+                        provider=provider.key,
+                        issue_type=group.issue_type.slug,
+                        issue_category=group.issue_category.name.lower(),
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
