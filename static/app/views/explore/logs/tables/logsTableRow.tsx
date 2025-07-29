@@ -250,7 +250,12 @@ export const LogRowContent = memo(function LogRowContent({
       <LogTableRow
         data-test-id="log-table-row"
         {...rowInteractProps}
-        onMouseEnter={() => setShouldRenderHoverElements(true)}
+        onMouseEnter={e => {
+          setShouldRenderHoverElements(true);
+          if (rowInteractProps.onMouseEnter) {
+            rowInteractProps.onMouseEnter(e);
+          }
+        }}
       >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
@@ -445,6 +450,7 @@ function LogRowDetails({
                     projectSlug,
                     attributes,
                     theme,
+                    disableLazyLoad: true, // We disable lazy loading in the log details view since a user has to open it first.
                   }}
                 />
               </LogAttributeTreeWrapper>
