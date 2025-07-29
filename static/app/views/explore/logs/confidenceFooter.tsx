@@ -40,7 +40,7 @@ interface ConfidenceMessageProps {
   topEvents?: number;
 }
 
-export function ConfidenceMessage({
+function ConfidenceMessage({
   sampleCount,
   dataScanned,
   confidence,
