@@ -4389,14 +4389,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
@@ -4421,14 +4414,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
@@ -4453,14 +4439,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'random value');
@@ -4485,8 +4464,7 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder
           {...defaultProps}
           matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
-        />,
-        {organization: {features: ['search-query-builder-match-key-suggestions']}}
+        />
       );
 
       await userEvent.type(
