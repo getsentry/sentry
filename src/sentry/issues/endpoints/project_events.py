@@ -11,8 +11,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ParseError
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
@@ -46,6 +48,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             CursorQueryParam,
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -68,8 +73,19 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
+        # Parse date range parameters
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams as e:
+            raise ParseError(detail=f"Invalid date range: {e}")
+
         event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
-        if features.has(
+
+        # Apply date filtering based on parameters or feature flag
+        if start and end:
+            event_filter.start = start
+            event_filter.end = end
+        elif features.has(
             "organizations:project-event-date-limit", project.organization, actor=request.user
         ):
             event_filter.start = timezone.now() - timedelta(days=7)
