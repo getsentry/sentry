@@ -1,4 +1,6 @@
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
@@ -38,8 +40,11 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DetectorDetailsOngoingIssues detectorId={detector.id} query={timeProps} />
-          <DetectorDetailsAutomations detector={detector} />
+          <PageFiltersContainer>
+            <DatePageFilter />
+            <DetectorDetailsOngoingIssues detectorId={detector.id} query={timeProps} />
+            <DetectorDetailsAutomations detector={detector} />
+          </PageFiltersContainer>
         </DetailLayout.Main>
         <DetailLayout.Sidebar>
           <Section title={t('Detect')}>{t('Three consecutive failed checks.')}</Section>
