@@ -1,5 +1,6 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -69,7 +70,8 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
       <DetectorDetailsHeader detector={detector} project={project} />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          <DetectorDetailsOngoingIssues />
+          <DatePageFilter />
+          <DetectorDetailsOngoingIssues detectorId={detector.id} />
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>
         <DetailLayout.Sidebar>

@@ -1,5 +1,6 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -17,6 +18,14 @@ describe('UptimeDetectorDetails', function () {
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
       body: [AutomationFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A3&statsPeriod=14d',
+      body: [GroupFixture()],
     });
   });
 
