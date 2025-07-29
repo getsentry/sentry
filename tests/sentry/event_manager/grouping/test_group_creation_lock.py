@@ -55,44 +55,47 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
     ],
     ids=(" lock_disabled: True ", " lock_disabled: False "),
 )
-def test_group_creation_race(monkeypatch, default_project, lock_disabled):
-    if lock_disabled:
-        # Disable transaction isolation just within event manager, but not in
-        # GroupHash.objects.create_or_update
-        monkeypatch.setattr("sentry.event_manager.transaction", FakeTransactionModule)
+def test_group_creation_race(default_project, lock_disabled):
+    with contextlib.ExitStack() as ctx:
+        if lock_disabled:
+            # Disable transaction isolation just within event manager, but not in
+            # GroupHash.objects.create_or_update
+            ctx.enter_context(patch("sentry.event_manager.transaction", FakeTransactionModule))
 
-        # `select_for_update` cannot be used outside of transactions
-        monkeypatch.setattr("django.db.models.QuerySet.select_for_update", lambda self: self)
+            # `select_for_update` cannot be used outside of transactions
+            ctx.enter_context(
+                patch("django.db.models.QuerySet.select_for_update", lambda self: self)
+            )
 
-    with (
-        patch(
-            "sentry.grouping.ingest.hashing._calculate_event_grouping",
-            return_value=(["pound sign", "octothorpe"], {}),
-        ),
-        patch(
-            "sentry.event_manager._get_group_processing_kwargs",
-            return_value={"level": 10, "culprit": "", "data": {}},
-        ),
-        patch("sentry.event_manager._materialize_metadata_many"),
-    ):
-        return_values: list[GroupInfo] = []
-        threads = []
+        with (
+            patch(
+                "sentry.grouping.ingest.hashing._calculate_event_grouping",
+                return_value=(["pound sign", "octothorpe"], {}),
+            ),
+            patch(
+                "sentry.event_manager._get_group_processing_kwargs",
+                return_value={"level": 10, "culprit": "", "data": {}},
+            ),
+            patch("sentry.event_manager._materialize_metadata_many"),
+        ):
+            return_values: list[GroupInfo] = []
+            threads = []
 
-        # Save the same event data in multiple threads. If the lock is working, only one new group
-        # should be created
-        for _ in range(CONCURRENCY):
-            thread = Thread(target=save_event, args=[default_project.id, return_values])
-            thread.start()
-            threads.append(thread)
+            # Save the same event data in multiple threads. If the lock is working, only one new group
+            # should be created
+            for _ in range(CONCURRENCY):
+                thread = Thread(target=save_event, args=[default_project.id, return_values])
+                thread.start()
+                threads.append(thread)
 
-        for thread in threads:
-            thread.join()
+            for thread in threads:
+                thread.join()
 
-    if not lock_disabled:
-        # assert only one new group was created
-        assert len({group_info.group.id for group_info in return_values}) == 1
-        assert sum(group_info.is_new for group_info in return_values) == 1
-    else:
-        # assert multiple new groups were created
-        assert 1 < len({group_info.group.id for group_info in return_values}) <= CONCURRENCY
-        assert 1 < sum(group_info.is_new for group_info in return_values) <= CONCURRENCY
+        if not lock_disabled:
+            # assert only one new group was created
+            assert len({group_info.group.id for group_info in return_values}) == 1
+            assert sum(group_info.is_new for group_info in return_values) == 1
+        else:
+            # assert multiple new groups were created
+            assert 1 < len({group_info.group.id for group_info in return_values}) <= CONCURRENCY
+            assert 1 < sum(group_info.is_new for group_info in return_values) <= CONCURRENCY

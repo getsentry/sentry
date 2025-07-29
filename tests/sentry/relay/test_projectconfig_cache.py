@@ -5,13 +5,12 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import metrics
 
 
-def test_delete_count(monkeypatch):
+def test_delete_count():
     cache = redis.RedisProjectConfigCache()
-    incr_mock = mock.Mock()
-    monkeypatch.setattr(metrics, "incr", incr_mock)
-    cache.set_many({"a": {"foo": "bar"}})
+    with mock.patch.object(metrics, "incr") as incr_mock:
+        cache.set_many({"a": {"foo": "bar"}})
 
-    cache.delete_many(["a", "b"])
+        cache.delete_many(["a", "b"])
 
     assert incr_mock.call_args == mock.call(
         "relay.projectconfig_cache.write", amount=1, tags={"action": "delete"}
