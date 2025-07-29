@@ -6,18 +6,10 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/flex.tsx
 ---
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Container, Flex} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/layout/flex';
-
-export function Card(props) {
-  return (
-    <div style={{padding: '8px', background: 'white', borderRadius: '4px'}}>
-      {props.children}
-    </div>
-  );
-}
 
 export const types = {Flex: APIReference.Flex};
 
@@ -45,9 +37,15 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
 
 <Storybook.Demo>
   <Flex direction="row" gap="md" justify="between" align="center" padding="md">
-    <Card>Item 1</Card>
-    <Card>Item 2</Card>
-    <Card>Item 3</Card>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 1
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 2
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 3
+    </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
@@ -62,9 +60,15 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
 
 <Storybook.Demo>
   <Flex direction="column" gap="md" justify="between" align="center">
-    <Card>Item 1</Card>
-    <Card>Item 2</Card>
-    <Card>Item 3</Card>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 1
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 2
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Item 3
+    </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
@@ -85,9 +89,15 @@ Similarly to `Container`, the `Flex` properties like `gap` follow the same spaci
       <Flex direction="column" gap="sm" key={size}>
         <strong>{size} gap</strong>
         <Flex m="md" gap={size}>
-          <Card>Item 1</Card>
-          <Card>Item 2</Card>
-          <Card>Item 3</Card>
+          <Container padding="md" border="primary" radius="md" background="primary">
+            Item 1
+          </Container>
+          <Container padding="md" border="primary" radius="md" background="primary">
+            Item 2
+          </Container>
+          <Container padding="md" border="primary" radius="md" background="primary">
+            Item 3
+          </Container>
         </Flex>
       </Flex>
     ))}
@@ -109,22 +119,27 @@ Example of a responsive flex container that uses a static gap, but changes direc
 
 <Storybook.Demo>
   <Flex direction={{xs: 'row-reverse', sm: 'column', md: 'row'}} gap="md" p="md">
-    <Card>Responsive</Card>
-    <Card>Layout</Card>
-    <Card>Items</Card>
-    <Card>🔥</Card>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Responsive
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Layout
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      Items
+    </Container>
+    <Container padding="md" border="primary" radius="md" background="primary">
+      🔥
+    </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
 <Flex
   // Direction = column on sm and row on md
   direction={{xs: 'column-reverse', sm: 'column', md: 'row'}}
-
-// Gap = md on all sizes
-gap="md"
-
+  // Gap = md on all sizes
+  gap="md"
 >
-
   <div>Responsive</div>
   <div>Layout</div>
   <div>Items</div>
