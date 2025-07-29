@@ -978,8 +978,8 @@ describe('getOnDemandCategories - AM2 logBytes support', function () {
     const plan = PlanDetailsLookupFixture('am2_business')!;
     expect(plan.categoryDisplayNames?.logBytes).toBeDefined();
     expect(plan.categoryDisplayNames?.logBytes).toEqual({
-      singular: 'log byte',
-      plural: 'log bytes',
+      singular: 'log',
+      plural: 'logs',
     });
   });
 
