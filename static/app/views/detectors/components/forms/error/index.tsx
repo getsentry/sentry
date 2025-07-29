@@ -117,6 +117,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       type: 'error',
       name: detector.name,
       owner: detector.owner,
+      enabled: detector.enabled,
       projectId: detector.projectId,
       workflowIds: data.workflowIds,
       dataSource: {},

@@ -1,14 +1,41 @@
+import {useCallback} from 'react';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {useUpdateDetector} from 'sentry/views/detectors/hooks';
+import {useDeleteDetectorMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorMutation';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 export function DisableDetectorAction({detector}: {detector: Detector}) {
+  const {mutate: updateDetector, isPending: isUpdating} = useUpdateDetector();
+
+  const toggleDisabled = useCallback(() => {
+    const newEnabled = !detector.enabled;
+    updateDetector(
+      {
+        detectorId: detector.id,
+        enabled: newEnabled,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(newEnabled ? t('Monitor enabled') : t('Monitor disabled'));
+        },
+      }
+    );
+  }, [updateDetector, detector.enabled, detector.id]);
+
   const canEdit = useCanEditDetector({
     detectorType: detector.type,
     projectId: detector.projectId,
@@ -18,12 +45,9 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
     return null;
   }
 
-  /**
-   * TODO: Implement disable detector
-   */
   return (
-    <Button size="sm" onClick={() => {}}>
-      {detector.disabled ? t('Enable') : t('Disable')}
+    <Button size="sm" onClick={toggleDisabled} busy={isUpdating}>
+      {detector.enabled ? t('Disable') : t('Enable')}
     </Button>
   );
 }
@@ -52,5 +76,47 @@ export function EditDetectorAction({detector}: {detector: Detector}) {
     >
       {t('Edit')}
     </LinkButton>
+  );
+}
+
+export function DeleteDetectorAction({detector}: {detector: Detector}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const {mutate: deleteDetector, isPending: isDeleting} = useDeleteDetectorMutation();
+
+  const handleDelete = useCallback(() => {
+    openConfirmModal({
+      message: t('Are you sure you want to delete this monitor?'),
+      confirmText: t('Delete'),
+      priority: 'danger',
+      onConfirm: () => {
+        deleteDetector(detector.id, {
+          onSuccess: () => {
+            navigate(makeMonitorBasePathname(organization.slug));
+          },
+        });
+      },
+    });
+  }, [deleteDetector, detector.id, navigate, organization.slug]);
+
+  const canEdit = useCanEditDetector({
+    detectorType: detector.type,
+    projectId: detector.projectId,
+  });
+
+  if (!canEdit) {
+    return null;
+  }
+
+  return (
+    <Button
+      priority="danger"
+      onClick={handleDelete}
+      disabled={isDeleting}
+      busy={isDeleting}
+      size="sm"
+    >
+      {t('Delete')}
+    </Button>
   );
 }

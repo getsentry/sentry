@@ -131,7 +131,7 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
-  disabled: boolean;
+  enabled: boolean;
   id: string;
   lastTriggered: string;
   name: string;
@@ -192,6 +192,7 @@ interface UpdateUptimeDataSourcePayload {
 }
 
 export interface BaseDetectorUpdatePayload {
+  enabled: boolean;
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
