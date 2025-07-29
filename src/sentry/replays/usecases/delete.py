@@ -124,8 +124,10 @@ def fetch_rows_matching_pattern(
 ) -> MatchedRows:
     search_filters = parse_search_query(query, config=replay_url_parser_config)
     having = handle_search_filters(agg_search_config, search_filters)
+
+    where = []
     if environment:
-        having.append(Condition(Column("environment"), Op.IN, environment))
+        where.append(Condition(Column("environment"), Op.IN, environment))
 
     query = Query(
         match=Entity("replays"),
@@ -140,6 +142,7 @@ def fetch_rows_matching_pattern(
             Condition(Column("timestamp"), Op.GTE, start),
             # We only match segment rows because those contain the PII we want to delete.
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            *where,
         ],
         having=having,
         groupby=[Column("replay_id")],
