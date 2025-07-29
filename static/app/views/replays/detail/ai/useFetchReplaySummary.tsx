@@ -18,7 +18,7 @@ function createAISummaryQueryKey(
   projectSlug: string | undefined,
   replayId: string
 ): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/v1/`];
+  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
 }
 
 export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
@@ -30,7 +30,6 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   const queryClient = useQueryClient();
 
   const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
-  const [triggerError, setTriggerError] = useState<boolean>(false);
 
   const {
     data: summaryData,
@@ -52,17 +51,16 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     }
   );
 
-  const {mutate: triggerSummaryMutate} = useMutation({
+  const {mutate: triggerSummaryMutate, isError: triggerError} = useMutation({
     mutationFn: () =>
       api.requestPromise(
-        `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/v1/`,
+        `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
         {
           method: 'POST',
         }
       ),
     onMutate: () => {
       setWaitingForNextRun(true);
-      setTriggerError(false);
     },
     onSuccess: () => {
       // invalidate the query when a summary is triggered
@@ -77,7 +75,6 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     },
     onError: () => {
       setWaitingForNextRun(false);
-      setTriggerError(true);
     },
   });
 
