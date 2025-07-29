@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -29,8 +29,6 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
-
   const {
     data: summaryData,
     isPending,
@@ -41,7 +39,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (isPolling(query.state.data?.[0] || undefined, waitingForNextRun)) {
+        if (isPolling(query.state.data?.[0] || undefined, isTriggerPending)) {
           return POLL_INTERVAL;
         }
         return false;
@@ -51,7 +49,11 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     }
   );
 
-  const {mutate: triggerSummaryMutate, isError: triggerError} = useMutation({
+  const {
+    mutate: triggerSummaryMutate,
+    isError: triggerError,
+    isPending: isTriggerPending,
+  } = useMutation({
     mutationFn: () =>
       api.requestPromise(
         `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
@@ -59,9 +61,6 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
           method: 'POST',
         }
       ),
-    onMutate: () => {
-      setWaitingForNextRun(true);
-    },
     onSuccess: () => {
       // invalidate the query when a summary is triggered
       // so the cached data is marked as stale.
@@ -72,9 +71,6 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
           replayRecord?.id ?? ''
         ),
       });
-    },
-    onError: () => {
-      setWaitingForNextRun(false);
     },
   });
 
@@ -87,20 +83,9 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     triggerSummaryMutate();
   }, [options?.enabled, triggerSummaryMutate]);
 
-  // Reset waitingForNextRun when summary reaches final state
-  useEffect(() => {
-    if (
-      (summaryData?.status === ReplaySummaryStatus.COMPLETED ||
-        summaryData?.status === ReplaySummaryStatus.ERROR) &&
-      waitingForNextRun
-    ) {
-      setWaitingForNextRun(false);
-    }
-  }, [summaryData?.status, waitingForNextRun]);
-
   return {
     summaryData,
-    isPolling: isPolling(summaryData, waitingForNextRun),
+    isPolling: isPolling(summaryData, isTriggerPending),
     isPending: isPending || summaryData?.status === ReplaySummaryStatus.PROCESSING,
     isError: isError || summaryData?.status === ReplaySummaryStatus.ERROR || triggerError,
     triggerSummary,
