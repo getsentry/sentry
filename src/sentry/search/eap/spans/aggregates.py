@@ -52,7 +52,8 @@ def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFi
 def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     aggregate_key = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
-    value = cast(str, args[2])
+    operator = cast(str, args[2])
+    value = cast(str, args[3])
     attr_value = AttributeValue(val_str=value)
 
     if key.type == AttributeKey.TYPE_BOOLEAN:
@@ -63,14 +64,18 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
             )
         attr_value = AttributeValue(val_bool=value == "true")
 
-    filter = TraceItemFilter(
+    trace_filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key,
-            op=ComparisonFilter.OP_EQUALS,
+            op=(
+                ComparisonFilter.OP_EQUALS
+                if operator == "equals"
+                else ComparisonFilter.OP_NOT_EQUALS
+            ),
             value=attr_value,
         )
     )
-    return (aggregate_key, filter)
+    return (aggregate_key, trace_filter)
 
 
 def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
@@ -173,6 +178,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 field_allowlist={"is_transaction"},
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -191,6 +201,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -209,6 +224,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -227,6 +247,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -245,6 +270,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -263,6 +293,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -281,6 +316,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
@@ -299,6 +339,11 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                default_arg="equals",
+                argument_types={"string"},
+                field_allowlist={"equals", "notEquals"},
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
