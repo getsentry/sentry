@@ -21,7 +21,7 @@ export function SeerSearchSkeleton() {
 
   return (
     <LoadingSkeleton>
-      <SeerSearchHeader title={t('Thinking...')} loading />
+      <SeerSearchHeader title={t('Let me think about that...')} loading />
       <SkeletonCellsContainer>
         <SkeletonCell>
           <SkeletonLine width={`${numbers?.[0] ?? 95}%`} />

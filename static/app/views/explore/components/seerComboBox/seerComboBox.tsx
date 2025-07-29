@@ -376,7 +376,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             <SeerSearchSkeleton />
           ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
             <Fragment>
-              <SeerSearchHeader title={t('Do any of these queries look right to you?')} />
+              <SeerSearchHeader title={t('Do any of these look right to you?')} />
               <SeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
@@ -386,7 +386,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           ) : (
             <SeerContent>
               <SeerSearchHeader
-                title={t("Describe what you're looking for!")}
+                title={t("Describe what you're looking for.")}
                 handleExampleClick={handleExampleClick}
               />
             </SeerContent>
