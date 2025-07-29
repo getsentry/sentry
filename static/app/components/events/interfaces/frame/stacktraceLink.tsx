@@ -233,10 +233,11 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
 
   const handleCopyPath = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const filePath = frame.filename;
-    if (!filePath) {
+    if (!frame.filename || !frame.lineNo) {
       return;
     }
+
+    const filePath = frame.filename + ':' + frame.lineNo;
 
     trackAnalytics('integrations.stacktrace_file_path_copied', {
       view: 'stacktrace_issue_details',
