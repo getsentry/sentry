@@ -14,7 +14,6 @@
     ["os.name", "PlayStation"],
     ["runtime", "PS5 11.20.00.05-00.00.00.0.1"],
     ["runtime.name", "PS5"],
-    ["user", "id:42"],
     ["server_name", "5be3652dd663dbdcd044da0f2144b17f"]
   ],
   "breadcrumbs": {
@@ -82,8 +81,8 @@
   "exception": {
     "values": [
       {
-        "type": "SIGSEGV / 0x2d8",
-        "value": "Fatal Error: SIGSEGV / 0x2d8",
+        "type": "Exception",
+        "value": "This is an example of a Playstation exception",
         "stacktrace": {
           "frames": [
             {
