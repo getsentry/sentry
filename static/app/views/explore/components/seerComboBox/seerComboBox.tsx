@@ -506,10 +506,7 @@ const SeerFooter = styled('div')`
   justify-content: flex-end;
   padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
-
-  &:nth-child(2) {
-    border-top: none;
-  }
+  background-color: ${p => p.theme.background};
 `;
 
 const SeerContent = styled('div')`
