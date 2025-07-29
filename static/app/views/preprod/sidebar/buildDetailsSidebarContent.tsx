@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
@@ -26,27 +25,15 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   } = props.buildDetailsQuery;
 
   if (isBuildDetailsPending) {
-    return (
-      <SidebarContainer>
-        <LoadingIndicator />
-      </SidebarContainer>
-    );
+    return <LoadingIndicator />;
   }
 
   if (isBuildDetailsError) {
-    return (
-      <SidebarContainer>
-        <Alert type="error">{buildDetailsError?.message}</Alert>
-      </SidebarContainer>
-    );
+    return <Alert type="error">{buildDetailsError?.message}</Alert>;
   }
 
   if (!buildDetailsData) {
-    return (
-      <SidebarContainer>
-        <Alert type="error">No build details found</Alert>
-      </SidebarContainer>
-    );
+    return <Alert type="error">No build details found</Alert>;
   }
 
   const vcsInfoContentItems: KeyValueDataContentProps[] = [
@@ -95,7 +82,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   ];
 
   return (
-    <SidebarContainer>
+    <Flex direction="column" gap="2xl">
       {/* App info */}
       <BuildDetailsSidebarAppInfo
         appInfo={buildDetailsData.app_info}
@@ -106,12 +93,6 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
 
       {/* VCS info */}
       <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
-    </SidebarContainer>
+    </Flex>
   );
 }
-
-const SidebarContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-`;
