@@ -12,10 +12,10 @@ interface BaseRouteObject {
    * Only enable this route when USING_CUSTOMER_DOMAIN is enabled
    */
   customerDomainOnlyRoute?: true;
-  // XXX(epurkhiser): In the future we can introduce a `requiresLegacyProps`
-  // prop here that will pass in the react-router 3 style routing props. We can
-  // use this as a way to slowly get rid of react router 3 style prosp in favor
-  // of using the route hooks.
+  /**
+   * Injects react router 3 style router props to the component.
+   * Including an `Outlet` component as a child element.
+   */
   deprecatedRouteProps?: never;
   /**
    * Is a index route
@@ -82,7 +82,7 @@ interface DeprecatedPropRoute extends Omit<BaseRouteObject, 'deprecatedRouteProp
 
 interface RouteObject extends BaseRouteObject {
   /**
-   * A react component to render. Components that expect RouteComponentProps are 
+   * A react component to render. Components that expect RouteComponentProps are
    * not allowed here. Use deprecatedRouteProps: true on legacy components. New
    * components should use the `use{Params,Location}` hooks.
    * Components that expect RouteComponentProps are not allowed here - use deprecatedRouteProps: true instead.
