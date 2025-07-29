@@ -751,7 +751,6 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         servicehook: ServiceHook | None = _load_service_hook(
             installation.organization_id, installation.id
         )
-        lifecycle.add_extra("events", installation.sentry_app.events)
         lifecycle.add_extras(
             {
                 "installation_uuid": installation.uuid,
