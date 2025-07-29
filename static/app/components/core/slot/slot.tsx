@@ -24,10 +24,15 @@ function mergeProps(slotProps: SlotProps, childProps: React.ComponentProps<any>)
   const result = {...childProps};
 
   for (const slotPropKey in slotProps) {
-    if (childProps[slotPropKey] === undefined) continue;
+    const slotValue = slotProps[slotPropKey];
+
+    // If child doesn't have this prop, just add the slot prop
+    if (childProps[slotPropKey] === undefined) {
+      result[slotPropKey] = slotValue;
+      continue;
+    }
 
     const childValue = childProps[slotPropKey];
-    const slotValue = slotProps[slotPropKey];
 
     if (typeof childValue === 'function' && typeof slotValue === 'function') {
       result[slotPropKey] = (...args: readonly unknown[]) => {

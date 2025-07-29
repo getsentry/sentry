@@ -1,6 +1,7 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import {Slot} from 'sentry/components/core/slot';
 import type {Theme} from 'sentry/utils/theme';
 
 import {
@@ -18,6 +19,11 @@ import {
 /* eslint-disable typescript-sort-keys/interface */
 interface BaseContainerProps {
   children?: React.ReactNode;
+  /**
+   * If true, the component will spread the props onto the child elements.
+   * When asChild is true, no DOM node will be rendered for the Container component.
+   */
+  asChild?: boolean;
   background?: Responsive<keyof Theme['tokens']['background']>;
   display?: Responsive<
     'block' | 'inline' | 'inline-block' | 'flex' | 'inline-flex' | 'grid' | 'inline-grid'
@@ -90,14 +96,19 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
 ]);
 
 export const Container = styled(
-  <T extends ContainerElement = 'div'>({as, ...rest}: ContainerProps<T>) => {
-    const Component = (as ?? 'div') as T;
-    return <Component {...(rest as any)} />;
+  <T extends ContainerElement = 'div'>({as, asChild, ...rest}: ContainerProps<T>) => {
+    if (asChild) {
+      return <Slot {...(rest as any)} />;
+    }
+    return <Container as={as ?? 'div'} {...(rest as any)} />;
   },
   {
     shouldForwardProp: prop => {
       if (omitContainerProps.has(prop as unknown as keyof ContainerProps<any>)) {
         return false;
+      }
+      if (prop === 'asChild') {
+        return true;
       }
       return isPropValid(prop);
     },

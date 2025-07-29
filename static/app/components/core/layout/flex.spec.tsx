@@ -10,6 +10,23 @@ describe('Flex', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
+  it('implements asChild', () => {
+    render(
+      <section>
+        <Flex asChild justify="center" align="center" aria-label="Hello">
+          <p>Hello</p>
+        </Flex>
+      </section>
+    );
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('Hello').tagName).toBe('P');
+
+    // The Flex component's aria-label should be applied to the child element
+    expect(screen.getByText('Hello')).toHaveAttribute('aria-label', 'Hello');
+    // The child element should be rendered directly as a child of the section
+    expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
+  });
+
   it('passes attributes to the underlying element', () => {
     render(<Flex data-test-id="container">Hello</Flex>);
     expect(screen.getByTestId('container')).toBeInTheDocument();

@@ -10,6 +10,18 @@ describe('Grid', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
+  it('implements asChild', () => {
+    render(
+      <section>
+        <Grid asChild border="primary">
+          <p>Hello</p>
+        </Grid>
+      </section>
+    );
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
+  });
+
   it('passes attributes to the underlying element', () => {
     render(<Grid data-test-id="container">Hello</Grid>);
     expect(screen.getByTestId('container')).toBeInTheDocument();

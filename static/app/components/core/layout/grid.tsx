@@ -1,6 +1,8 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import {Slot} from 'sentry/components/core/slot';
+
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
@@ -84,9 +86,11 @@ type GridProps<T extends ContainerElement = 'div'> = Omit<
 };
 
 export const Grid = styled(
-  <T extends ContainerElement = 'div'>({as, ...rest}: GridProps<T>) => {
-    const Component = (as ?? 'div') as T;
-    return <Container as={Component} {...(rest as any)} />;
+  <T extends ContainerElement = 'div'>({as, asChild, ...rest}: GridProps<T>) => {
+    if (asChild) {
+      return <Slot {...(rest as any)} />;
+    }
+    return <Container as={as ?? 'div'} {...(rest as any)} />;
   },
   {
     shouldForwardProp: prop => {

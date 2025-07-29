@@ -10,6 +10,19 @@ describe('Container', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
+  it('implements asChild', () => {
+    render(
+      <section>
+        <Container asChild border="primary">
+          <p>Hello</p>
+        </Container>
+      </section>
+    );
+
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
+  });
+
   it('passes attributes to the underlying element', () => {
     render(<Container data-test-id="container">Hello</Container>);
     expect(screen.getByTestId('container')).toBeInTheDocument();
