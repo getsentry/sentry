@@ -3,6 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -240,7 +241,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     errorMessage: t('Failed to copy file path'),
   });
 
-  const copyButtonProps = {
+  const copyButtonProps: ButtonProps = {
     size: 'zero' as const,
     priority: 'transparent' as const,
     'aria-label': t('Copy file path'),
@@ -298,7 +299,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <Button {...copyButtonProps} />
+          <FadeInButton {...copyButtonProps} />
         </Tooltip>
         <OpenInLink
           onClick={onOpenLink}
@@ -349,7 +350,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <Button {...copyButtonProps} />
+          <FadeInButton {...copyButtonProps} />
         </Tooltip>
         <Tooltip title={t('GitHub')} skipWrapper>
           <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
@@ -384,7 +385,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     return (
       <StacktraceLinkWrapper>
         <Tooltip title={t('Copy file path')} skipWrapper>
-          <Button {...copyButtonProps} />
+          <FadeInButton {...copyButtonProps} />
         </Tooltip>
         <FixMappingButton
           priority="link"
@@ -476,4 +477,9 @@ const CodecovWarning = styled('div')`
   color: ${p => p.theme.errorText};
   gap: ${space(0.75)};
   align-items: center;
+`;
+
+const FadeInButton = styled(Button)`
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+  padding: 0;
 `;
