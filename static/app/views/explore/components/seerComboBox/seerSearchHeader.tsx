@@ -23,8 +23,8 @@ export function SeerSearchHeader({
   handleExampleClick,
   loading = false,
 }: SeerSearchHeaderProps) {
-  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -40,7 +40,7 @@ export function SeerSearchHeader({
 
   return (
     <HeaderWrapper>
-      <IconSeer variant={loading ? 'loading' : 'default'} color="purple300" />
+      <StyledIconSeer variant={loading ? 'loading' : 'default'} />
       <Text>
         {title}
         {handleExampleClick ? (
@@ -91,4 +91,8 @@ const AnimatedExampleText = styled(Button)<{isAnimating: boolean}>`
     background: ${p => p.theme.translucentGray200};
     border-color: ${p => p.theme.border};
   }
+`;
+
+const StyledIconSeer = styled(IconSeer)`
+  color: ${p => p.theme.purple400};
 `;
