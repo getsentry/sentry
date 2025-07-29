@@ -403,41 +403,30 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
-const IsFieldDescriptions = {
-  RESOLVED: t('Issues marked as fixed'),
-  UNRESOLVED: t('Issues still active and needing attention'),
-  ARCHIVED: t('Issues that have been archived'),
-  ESCALATING: t('Issues occurring significantly more often than they used to'),
-  NEW: t('Issues that first occurred in the last 7 days'),
-  ONGOING: t('Issues created more than 7 days ago or manually been marked as reviewed'),
-  REGRESSED: t('Issues resolved then occurred again'),
-  ASSIGNED: t('Issues assigned to a team member'),
-  UNASSIGNED: t('Issues not assigned to anyone'),
-  FOR_REVIEW: t('Issues pending review'),
-  LINKED: t('Issues linked to other issues'),
-  UNLINKED: t('Issues not linked to other issues'),
-};
-
-const FIELD_VALUE_TO_FIELD_DESCRIPTION = {
-  resolved: IsFieldDescriptions.RESOLVED,
-  unresolved: IsFieldDescriptions.UNRESOLVED,
-  archived: IsFieldDescriptions.ARCHIVED,
-  escalating: IsFieldDescriptions.ESCALATING,
-  new: IsFieldDescriptions.NEW,
-  ongoing: IsFieldDescriptions.ONGOING,
-  regressed: IsFieldDescriptions.REGRESSED,
-  assigned: IsFieldDescriptions.ASSIGNED,
-  unassigned: IsFieldDescriptions.UNASSIGNED,
-  for_review: IsFieldDescriptions.FOR_REVIEW,
-  linked: IsFieldDescriptions.LINKED,
-  unlinked: IsFieldDescriptions.UNLINKED,
+const IsFieldDescriptions: Record<IsFieldValues, string> = {
+  [IsFieldValues.RESOLVED]: t('Issues marked as fixed'),
+  [IsFieldValues.UNRESOLVED]: t('Issues still active and needing attention'),
+  [IsFieldValues.ARCHIVED]: t('Issues that have been archived'),
+  [IsFieldValues.ESCALATING]: t(
+    'Issues occurring significantly more often than they used to'
+  ),
+  [IsFieldValues.NEW]: t('Issues that first occurred in the last 7 days'),
+  [IsFieldValues.ONGOING]: t(
+    'Issues created more than 7 days ago or manually been marked as reviewed'
+  ),
+  [IsFieldValues.REGRESSED]: t('Issues resolved then occurred again'),
+  [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
+  [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
+  [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
+  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
 };
 
 export function getIsFieldDescriptionFromValue(
   isFieldValue: IsFieldValues
 ): string | undefined {
-  if (isFieldValue in FIELD_VALUE_TO_FIELD_DESCRIPTION) {
-    return FIELD_VALUE_TO_FIELD_DESCRIPTION[isFieldValue];
+  if (isFieldValue in IsFieldDescriptions) {
+    return IsFieldDescriptions[isFieldValue];
   }
   return undefined;
 }
