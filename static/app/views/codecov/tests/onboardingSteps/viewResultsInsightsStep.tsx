@@ -18,11 +18,11 @@ export function ViewResultsInsightsStep({step}: ViewResultsInsightsStepProps) {
       <OnboardingStep.Content>
         <StyledP>
           {t(
-            "After the test run completion, you'll be able to see the failed tests result on the following areas:"
+            "After the test run completion, you'll be able to see the failed tests result in the following areas:"
           )}
         </StyledP>
         <StyledUl>
-          <li>{t('Github pull request comment')}</li>
+          <li>{t('GitHub pull request comment')}</li>
           <li>{t('Failed tests dashboard here')}</li>
         </StyledUl>
       </OnboardingStep.Content>
