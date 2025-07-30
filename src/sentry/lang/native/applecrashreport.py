@@ -1,7 +1,8 @@
 import posixpath
 from collections.abc import Mapping
 
-from symbolic.common import parse_addr
+import sentry_sdk
+import symbolic.common
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
@@ -15,6 +16,12 @@ from sentry.lang.native.utils import image_name
 from sentry.utils.safe import get_path
 
 REPORT_VERSION = "104"
+
+
+# symbolic.common.parse_addr with instrumentation
+@sentry_sdk.trace
+def parse_addr(x: int | str | None) -> int:
+    return symbolic.common.parse_addr(x)
 
 
 class AppleCrashReport:
