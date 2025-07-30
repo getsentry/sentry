@@ -215,7 +215,10 @@ def main(context: dict[str, str]) -> int:
         repo,
         reporoot,
         venv_dir,
-        (("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),),
+        (
+            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
+            ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
+        ),
         verbose,
     ):
         return 1
