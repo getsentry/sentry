@@ -23,6 +23,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
@@ -236,6 +237,19 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        operation_id="Bulk Delete an Organization's Workflows",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request, organization):
         """
         Deletes workflows for a given org
@@ -250,9 +264,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_workflows(request, organization)
 
         with transaction.atomic(router.db_for_write(Workflow)):
+            queryset.update(status=ObjectStatus.PENDING_DELETION)
             for workflow in queryset:
                 RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
-                workflow.update(status=ObjectStatus.PENDING_DELETION)
                 create_audit_entry(
                     request=request,
                     organization=organization,
