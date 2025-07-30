@@ -27,6 +27,82 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
 </Grid>
 ```
 
+### Composition
+
+The `Grid` component supports `asChild` to allow composition with other components. When `asChild` is used, the `Grid` component will spread its props to the child component.
+
+<Storybook.Demo>
+  <Grid
+    asChild
+    areas={`
+      "header header"
+      "sidebar main"
+      "footer footer"`}
+    border="primary"
+    radius="md"
+    padding="md"
+  >
+    <div>
+      <Container
+        border="primary"
+        background="primary"
+        radius="md"
+        padding="md"
+        area="header"
+      >
+        Header
+      </Container>
+      <Container
+        border="primary"
+        background="primary"
+        radius="md"
+        padding="md"
+        area="sidebar"
+      >
+        Sidebar
+      </Container>
+      <Container
+        border="primary"
+        background="primary"
+        radius="md"
+        padding="md"
+        area="main"
+      >
+        Main Content
+      </Container>
+      <Container
+        border="primary"
+        background="primary"
+        radius="md"
+        padding="md"
+        area="footer"
+      >
+        Footer
+      </Container>
+    </div>
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid
+  asChild
+  areas={`
+    "header header"
+    "sidebar main"
+    "footer footer"`}
+  border="primary"
+  radius="md"
+  padding="md"
+>
+  {/* the props are spread to the div component */}
+  <div>
+    <Container area="header">Header</Container>
+    <Container area="sidebar">Sidebar</Container>
+    <Container area="main">Main Content</Container>
+    <Container area="footer">Footer</Container>
+  </div>
+</Grid>
+```
+
 ### Grid Areas
 
 <Storybook.Demo>
@@ -96,20 +172,6 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
   <Container area="footer">Footer</Container>
 </Grid>
 ```
-
-### asChild
-
-The `Grid` component can be used as a child of another component.
-
-<Storybook.Demo>
-  <Grid asChild border="primary" radius="md" padding="md">
-    <p>Hello</p>
-  </Grid>
-
-  <Flex asChild border="primary" radius="md" padding="md">
-    <p>Hello</p>
-  </Flex>
-</Storybook.Demo>
 
 ### Alignment
 

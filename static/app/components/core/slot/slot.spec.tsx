@@ -84,6 +84,17 @@ describe('Slot', () => {
     });
   });
 
+  it('manages nested children', () => {
+    render(
+      <Slot>
+        <div>
+          <Text>Hello</Text>
+        </div>
+      </Slot>
+    );
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+  });
+
   it('merges styles', () => {
     render(
       <Slot style={{color: 'red'}}>

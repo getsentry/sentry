@@ -27,6 +27,39 @@ To create a basic flex container, wrap elements in `<Flex>` and they will be lai
 </Flex>
 ```
 
+### Composition
+
+The `Flex` component supports `asChild` to allow composition with other components. When `asChild` is used, the `Flex` component will spread its props to the child component.
+
+<Storybook.Demo>
+  <Flex
+    asChild
+    border="primary"
+    radius="md"
+    padding="md"
+    justify="between"
+    background="primary"
+    width="80%"
+  >
+    <p>
+      <span>Justify</span>
+      <span>Between</span>
+      <span>On</span>
+      <span>Paragraph</span>
+    </p>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex asChild width="80%" justify="between">
+  <p>
+    <span>Justify</span>
+    <span>Between</span>
+    <span>On</span>
+    <span>Paragraph</span>
+  </p>
+</Flex>
+```
+
 ### Flex Properties
 
 Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, `inline` that influence the layout of its children.

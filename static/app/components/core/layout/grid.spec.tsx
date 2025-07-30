@@ -14,7 +14,9 @@ describe('Grid', () => {
     render(
       <section>
         <Grid asChild border="primary" aria-label="Hello">
-          <p>Hello</p>
+          <div>
+            <p>Hello</p>
+          </div>
         </Grid>
       </section>
     );

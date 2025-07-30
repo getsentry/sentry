@@ -12,14 +12,17 @@ export function Slot({children, ...props}: SlotProps): React.ReactNode {
   // Destructure child, or else we'll just end up rendering it as the child prop
   // and negate the entire slot functionality.
   if (React.isValidElement(children)) {
-    return React.cloneElement(children, mergeProps(props, children.props));
+    return React.cloneElement(children, mergePropsWithStyles(props, children.props));
   }
 
   // React.Children.only will throw if there are multiple children.
   return process.env.NODE_ENV === 'production' ? null : React.Children.only(children);
 }
 
-function mergeProps(slotProps: SlotProps, childProps: React.ComponentProps<any>) {
+function mergePropsWithStyles(
+  slotProps: SlotProps,
+  childProps: React.ComponentProps<any>
+) {
   // take all children props and merge them with the slot props
   const result = {...childProps};
 
