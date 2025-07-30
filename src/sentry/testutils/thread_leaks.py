@@ -11,6 +11,7 @@ import os
 import sys
 import threading
 import traceback
+from collections.abc import Generator
 from contextlib import contextmanager
 from logging import getLogger
 from traceback import StackSummary
@@ -31,9 +32,10 @@ _STDLIB_PATH = getattr(sys, "_stdlib_dir", None)
 def _relevant_frames(stack: StackSummary) -> StackSummary:
     for filter in (
         lambda frame: frame.filename == __file__,
+        lambda frame: frame.line is None,  # "frozen" stdlib, generally
         lambda frame: _STDLIB_PATH and frame.filename.startswith(_STDLIB_PATH + "/"),
         lambda frame: frame.filename.startswith(sys.prefix),
-        lambda frame: frame.line is None,
+        lambda frame: "/test_" not in frame.filename,
     ):
         filtered_stack = [frame for frame in stack if not filter(frame)]
         if filtered_stack:
@@ -48,7 +50,7 @@ def _relevant_frames(stack: StackSummary) -> StackSummary:
     return StackSummary.from_list(filtered_stack[-10:])
 
 
-def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
+def _threads_to_diffable(threads: list[threading.Thread]) -> list[str]:
     result: list[str] = []
     for thread in sorted(threads, key=lambda t: t.ident or 0):
         func = getattr(thread, "_target", None)
@@ -63,11 +65,8 @@ def _threads_to_diffable_str(threads: list[threading.Thread]) -> str:
             where = "\n  " + where.replace("\n", "\n  ")
         else:
             where = "\n"
-        result.append(
-            f"""
-{thread!r}@{func_fqname}{where}"""
-        )
-    return "".join(result)
+        result.append(f"{thread!r}@{func_fqname}{where}\n")
+    return result
 
 
 @contextmanager
@@ -85,20 +84,31 @@ def threading_remembers_where():
         yield
 
 
-def diff(left: str, right: str) -> str:
-    return "".join(difflib.ndiff(right.splitlines(True), left.splitlines(True)))
+def diff(old: list[str], new: list[str]) -> Generator[str]:
+    """Generate unambiguous unified diff from structured thread data."""
+    matcher = difflib.SequenceMatcher(None, old, new)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        for tags, threads, prefix in [
+            (("equal",), old[i1:i2], " "),
+            (("delete", "replace"), old[i1:i2], "-"),
+            (("insert", "replace"), new[j1:j2], "+"),
+        ]:
+            if tag in tags:
+                for thread_str in threads:
+                    for line in thread_str.splitlines():
+                        yield f"{prefix} {line}\n"
 
 
 @contextmanager
 def assert_none():
     with threading_remembers_where():
-        expected = _threads_to_diffable_str(threading.enumerate())
+        expected = _threads_to_diffable(threading.enumerate())
         yield
-        actual = _threads_to_diffable_str(threading.enumerate())
+        actual = _threads_to_diffable(threading.enumerate())
         if actual != expected:
-            # I really need this error to be parseable, and the pytest built-in
-            # diff is too buggy.
-            raise AssertionError(diff(actual, expected))
+            # I really need this error to be parseable: use custom diff to
+            # avoid ambiguous string-based diffs.
+            raise AssertionError("\n" + "".join(diff(old=expected, new=actual)))
 
 
 # -- pytest support --
