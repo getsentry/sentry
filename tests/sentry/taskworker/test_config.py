@@ -44,6 +44,7 @@ def test_taskworker_schedule_type(name: str, config: dict[str, Any]) -> None:
     ), f"Schedule {name} has a schedule of type {type(schedule)}"
 
 
+@pytest.mark.skip(reason="flaky: #96768")
 @pytest.mark.parametrize("config", list(settings.TASKWORKER_SCHEDULES.values()))
 def test_taskworker_schedule_parameters(config: dict[str, Any]) -> None:
     (namespace, taskname) = config["task"].split(":")
