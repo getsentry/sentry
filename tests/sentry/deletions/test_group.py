@@ -257,21 +257,29 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
-    dataset = Dataset.IssuePlatform.value
 
-    def create_occurrence(self, type_id: int) -> tuple[IssueOccurrence, Group]:
+    def create_occurrence(self, event: Event, type_id: int) -> tuple[IssueOccurrence, Group]:
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,
-            event_id=uuid4().hex,
+            event_id=event.event_id,
             type=type_id,
-            event_data={},
+            # XXX: Is event.data correct?
+            event_data=dict(event.data),
         )
         assert group_info is not None
         return occurrence, group_info.group
 
-    def select_issue_platform_rows(self, project_id: int) -> None | dict[str, object]:
+    def select_error_events(self, project_id: int) -> object:
+        columns = ["event_id", "group_id"]
+        return self.select_rows(Entity(EntityKey.Events.value), columns, project_id)
+
+    def select_issue_platform_events(self, project_id: int) -> object:
         columns = ["event_id", "group_id", "occurrence_id"]
-        entity = Entity(EntityKey.IssuePlatform.value)
+        return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
+
+    def select_rows(
+        self, entity: Entity, columns: list[str], project_id: int
+    ) -> None | dict[str, object]:
         # Adding the random microseconds is to circumvent Snuba's caching mechanism
         now = datetime.now()
         start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
@@ -285,23 +293,43 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
         query = Query(match=entity, select=select, where=where)
         request = Request(
-            dataset=self.dataset,
+            # XXX: Double check this
+            dataset=Dataset.IssuePlatform.value,
             app_id=self.referrer,
             query=query,
-            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
+            tenant_ids=self.tenant_ids,
         )
         results = bulk_snuba_queries([request])[0]["data"]
         return results[0] if results else None
 
-    def test_simple_issue_platform(self) -> None:
-        assert self.select_issue_platform_rows(self.project.id) is None
+    @property
+    def tenant_ids(self) -> dict[str, str]:
+        return {"referrer": self.referrer, "organization_id": self.organization.id}
 
+    def test_simple_issue_platform(self) -> None:
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_error_events(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
+
+        # Create initial error event and occurrence related to it; two different groups will exist
+        event = self.store_event(data={}, project_id=self.project.id)
         # XXX: We need a different way of creating occurrences which will insert into the nodestore
         occurrence_event, issue_platform_group = self.create_occurrence(
-            type_id=FeedbackGroup.type_id
+            event, type_id=FeedbackGroup.type_id
         )
+
+        # Assertions after creation
+        assert occurrence_event.id != event.event_id
+        assert event.group_id != issue_platform_group.id
+        assert event.group.issue_category == GroupCategory.ERROR
         assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
         assert issue_platform_group.type == FeedbackGroup.type_id
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error
 
         # Assert that the occurrence event has been inserted in the nodestore & Snuba
         # occurrence_node_id = Event.generate_node_id(
@@ -313,7 +341,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             "group_id": issue_platform_group.id,
             "occurrence_id": occurrence_event.id,
         }
-        assert self.select_issue_platform_rows(self.project.id) == expected_occurrence_event
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
 
         # This will delete the group and the events from the node store and Snuba
         with self.tasks():
@@ -323,10 +351,15 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 project_id=self.project.id,
             )
 
+        # The original error event and group still exist
+        assert Group.objects.filter(id=event.group_id).exists()
+        assert nodestore.backend.get(event_node_id)
+        assert self.select_error_events(self.project.id) == expected_error
+
         # The Issue Platform group and occurrence have been deleted
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         # assert not nodestore.backend.get(occurrence_node_id)
-        assert self.select_issue_platform_rows(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
 
     @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
