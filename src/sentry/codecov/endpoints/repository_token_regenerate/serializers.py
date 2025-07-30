@@ -21,7 +21,7 @@ class RepositoryTokenRegenerateSerializer(serializers.Serializer):
             data = graphql_response["data"]["regenerateRepositoryUploadToken"]
 
             if data.get("error"):
-                raise serializers.ValidationError(data["error"])
+                raise serializers.ValidationError(data["error"]["message"])
 
             response_data = {
                 "token": data["token"],
@@ -35,7 +35,7 @@ class RepositoryTokenRegenerateSerializer(serializers.Serializer):
                 "Error parsing GraphQL response",
                 extra={
                     "error": str(e),
-                    "endpoint": "repositories",
+                    "endpoint": "repository-token-regenerate",
                     "response_keys": (
                         list(graphql_response.keys())
                         if isinstance(graphql_response, dict)

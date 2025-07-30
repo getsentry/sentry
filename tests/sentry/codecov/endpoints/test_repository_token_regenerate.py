@@ -86,7 +86,10 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         mock_graphql_response = {
             "data": {
                 "regenerateRepositoryUploadToken": {
-                    "error": "Repository not found",
+                    "error": {
+                        "__typename": "ValidationError",
+                        "message": "Repository not found",
+                    },
                 }
             }
         }
@@ -100,4 +103,5 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
         url = self.reverse_url()
         response = self.client.post(url, data={}, QUERY_STRING="use_codecov=true")
 
-        assert response.status_code == 400  # ValidationError should return 400
+        assert response.status_code == 400
+        assert response.data[0] == "Repository not found"
