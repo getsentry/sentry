@@ -255,7 +255,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         Deletes workflows for a given org
         """
         projects = self.get_projects(request, organization)
-        if not (request.GET.get("id") or request.GET.get("query") or projects):
+        if not (request.GET.getlist("id") or request.GET.get("query") or projects):
             return Response(
                 {"detail": "At least one of 'id', 'query', or 'project' must be provided."},
                 status=status.HTTP_400_BAD_REQUEST,
