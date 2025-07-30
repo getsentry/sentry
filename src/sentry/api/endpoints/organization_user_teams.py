@@ -13,6 +13,7 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.organization import Organization
 from sentry.models.team import Team, TeamStatus
 
 
@@ -37,7 +38,7 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
         },
         examples=TeamExamples.LIST_ORG_TEAMS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a list of teams the user has access to in the specified organization.
         Note that this endpoint is restricted to [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).

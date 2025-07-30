@@ -2,6 +2,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
+  UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -9,7 +10,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -30,15 +31,9 @@ describe('DetectorDetails', function () {
       },
     },
   });
-  const snubaQueryDetector = MetricDetectorFixture({
-    projectId: project.id,
-    dataSources: [dataSource],
-    owner: `team:${ownerTeam.id}`,
-    workflowIds: ['1', '2'], // Add workflow IDs for connected automations
-  });
   const initialRouterConfig = {
     location: {
-      pathname: `/organizations/${organization.slug}/issues/detectors/${snubaQueryDetector.id}/`,
+      pathname: `/organizations/${organization.slug}/issues/detectors/1/`,
     },
     route: '/organizations/:orgId/issues/detectors/:detectorId/',
   };
@@ -46,10 +41,6 @@ describe('DetectorDetails', function () {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData([ownerTeam]);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
-      body: snubaQueryDetector,
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
@@ -76,60 +67,114 @@ describe('DetectorDetails', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
     });
   });
 
-  it('renders the detector details and snuba query', async function () {
-    render(<DetectorDetails />, {
-      organization,
-      initialRouterConfig,
+  describe('metric detectors', function () {
+    const snubaQueryDetector = MetricDetectorFixture({
+      id: '1',
+      projectId: project.id,
+      dataSources: [dataSource],
+      owner: `team:${ownerTeam.id}`,
+      workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
-    expect(
-      await screen.findByRole('heading', {name: snubaQueryDetector.name})
-    ).toBeInTheDocument();
-    // Displays the snuba query
-    expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
-    // Displays the environment
-    expect(
-      screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
-    ).toBeInTheDocument();
-    // Displays the owner team
-    expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
-  });
-
-  describe('connected automations', function () {
-    it('displays empty message when no automations are connected', async function () {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
-        body: {
-          ...snubaQueryDetector,
-          workflowIds: [],
-        },
+        body: snubaQueryDetector,
       });
-      render(<DetectorDetails />, {
-        organization,
-        initialRouterConfig,
+
+      // Metric detectors use different statsPeriod
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
+        body: [GroupFixture()],
       });
-      expect(await screen.findByText('No automations connected')).toBeInTheDocument();
     });
 
-    it('displays connected automations', async function () {
+    it('renders the detector details and snuba query', async function () {
       render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
       });
 
-      // Verify both automations are displayed
-      expect(await screen.findByText('Automation 1')).toBeInTheDocument();
-      expect(await screen.findByText('Automation 2')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: snubaQueryDetector.name})
+      ).toBeInTheDocument();
+      // Displays the snuba query
+      expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
+      // Displays the environment
+      expect(
+        screen.getByText(dataSource.queryObj!.snubaQuery.environment!)
+      ).toBeInTheDocument();
+      // Displays the owner team
+      expect(screen.getByText(`Assign to #${ownerTeam.slug}`)).toBeInTheDocument();
+    });
 
-      // Verify the table shows the correct columns
-      expect(screen.getByText('Name')).toBeInTheDocument();
-      expect(screen.getByText('Last Triggered')).toBeInTheDocument();
-      expect(screen.getByText('Actions')).toBeInTheDocument();
+    it('can edit the detector when the user has alerts:write access', async function () {
+      const {router} = render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      const editButton = await screen.findByRole('button', {name: 'Edit'});
+      await userEvent.click(editButton);
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/organizations/${organization.slug}/issues/monitors/${snubaQueryDetector.id}/edit/`
+        );
+      });
+    });
+
+    it('disables the edit button when the user does not have alerts:write access', async function () {
+      const orgWithoutAlertsWrite = {
+        ...organization,
+        access: organization.access.filter(a => a !== 'alerts:write'),
+      };
+      ProjectsStore.loadInitialData([ProjectFixture({access: []})]);
+      render(<DetectorDetails />, {
+        organization: orgWithoutAlertsWrite,
+        initialRouterConfig,
+      });
+
+      const editButton = await screen.findByRole('button', {name: 'Edit'});
+      expect(editButton).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    describe('connected automations', function () {
+      it('displays empty message when no automations are connected', async function () {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${snubaQueryDetector.id}/`,
+          body: {
+            ...snubaQueryDetector,
+            workflowIds: [],
+          },
+        });
+        render(<DetectorDetails />, {
+          organization,
+          initialRouterConfig,
+        });
+        expect(await screen.findByText('No automations connected')).toBeInTheDocument();
+      });
+
+      it('displays connected automations', async function () {
+        render(<DetectorDetails />, {
+          organization,
+          initialRouterConfig,
+        });
+
+        // Verify both automations are displayed
+        expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+        expect(await screen.findByText('Automation 2')).toBeInTheDocument();
+
+        // Verify the table shows the correct columns
+        expect(screen.getByText('Name')).toBeInTheDocument();
+        expect(screen.getByText('Last Triggered')).toBeInTheDocument();
+        expect(screen.getByText('Actions')).toBeInTheDocument();
+      });
     });
 
     it('displays ongoing issues for the detector', async function () {
@@ -154,6 +199,56 @@ describe('DetectorDetails', function () {
         expect.objectContaining({
           query: `is:unresolved detector:${snubaQueryDetector.id}`,
         })
+      );
+    });
+  });
+
+  describe('uptime detectors', function () {
+    const uptimeDetector = UptimeDetectorFixture({
+      id: '1',
+      projectId: project.id,
+      owner: `team:${ownerTeam.id}`,
+      workflowIds: ['1', '2'], // Add workflow IDs for connected automations
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${uptimeDetector.id}/`,
+        body: uptimeDetector,
+      });
+    });
+
+    it('displays correct detector details', async function () {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: uptimeDetector.name})
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('Three consecutive failed checks.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Three consecutive successful checks.')
+      ).toBeInTheDocument();
+
+      // Interval
+      expect(screen.getByText('Every 1 minute')).toBeInTheDocument();
+      // URL
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
+      // Method
+      expect(screen.getByText('GET')).toBeInTheDocument();
+      // Environment
+      expect(screen.getByText('production')).toBeInTheDocument();
+
+      // Connected automation
+      expect(await screen.findByText('Automation 1')).toBeInTheDocument();
+
+      // Edit button takes you to the edit page
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/monitors/1/edit/'
       );
     });
   });

@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Generator, Iterable, Mapping, Sequence
 from contextlib import contextmanager
+from functools import wraps
 from unittest.mock import patch
 
 import pytest
@@ -141,7 +142,89 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
             yield
 
 
-with_feature = Feature
+class FeatureContextManagerOrDecorator:
+    def __init__(self, feature_names):
+        self.feature_names = feature_names
+        self._context_manager = None
+
+    def __enter__(self):
+        self._context_manager = Feature(self.feature_names)
+        return self._context_manager.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._context_manager:
+            return self._context_manager.__exit__(exc_type, exc_val, exc_tb)
+
+    def __call__(self, func_or_cls):
+        # Check if we're decorating a class
+        if isinstance(func_or_cls, type):
+            # Apply feature flag to the entire class
+            # First, create pytest fixture for compatibility with pytest runs
+            feature_names = self.feature_names
+
+            def _feature_fixture(self: object) -> Generator[None]:
+                with Feature(feature_names):
+                    yield
+
+            name = f"{_feature_fixture.__name__}[{feature_names}]"
+            _feature_fixture.__name__ = name
+            fixture = pytest.fixture(scope="class", autouse=True)(_feature_fixture)
+            setattr(func_or_cls, name, fixture)
+
+            # Additionally, wrap each test method directly so it works when called manually
+            # Use vars() to only get attributes defined on this class, not inherited ones
+            for attr_name in vars(func_or_cls):
+                attr = getattr(func_or_cls, attr_name)
+
+                # More precise method detection
+                if (
+                    callable(attr)
+                    and (
+                        attr_name.startswith("test_")
+                        # Standard unittest lifecycle methods only
+                        or attr_name in ("setUp", "tearDown", "setUpClass", "tearDownClass")
+                    )
+                    # Ensure it's actually a method (has __self__ attribute when bound) or function
+                    and (hasattr(attr, "__func__") or not hasattr(attr, "__self__"))
+                ):
+                    # Check if already wrapped to avoid double-wrapping
+                    if not getattr(attr, "_feature_wrapped", False):
+
+                        def create_wrapped_method(method):
+                            @wraps(method)
+                            def wrapped_method(*args, **kwargs):
+                                with Feature(feature_names):
+                                    return method(*args, **kwargs)
+
+                            # Mark as wrapped by our feature decorator
+                            wrapped_method._feature_wrapped = True  # type: ignore[attr-defined]
+                            return wrapped_method
+
+                        wrapped = create_wrapped_method(attr)
+                        setattr(func_or_cls, attr_name, wrapped)
+
+            return func_or_cls
+
+        # Decorating a function - wrap it with the feature context
+        @wraps(func_or_cls)
+        def wrapper(*args, **kwargs):
+            with Feature(self.feature_names):
+                return func_or_cls(*args, **kwargs)
+
+        return wrapper
+
+
+def with_feature(names: str | Iterable[str] | dict[str, bool]):
+    """
+    Control whether a feature is enabled.
+
+    Can be used as:
+    - Context manager: with with_feature('feature-name'):
+    - Method decorator: @with_feature('feature-name')
+    - Class decorator: @with_feature('feature-name')
+    """
+
+    return FeatureContextManagerOrDecorator(names)
 
 
 def apply_feature_flag_on_cls(feature_flag):

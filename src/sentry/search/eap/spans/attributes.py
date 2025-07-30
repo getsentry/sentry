@@ -392,6 +392,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("runtime"),
         simple_sentry_field("runtime.name"),
         simple_sentry_field("browser"),
+        simple_sentry_field("origin"),
         simple_sentry_field("os"),
         simple_sentry_field("os.rooted"),
         simple_sentry_field("gpu.name"),
