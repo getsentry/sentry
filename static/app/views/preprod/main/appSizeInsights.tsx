@@ -17,7 +17,35 @@ interface InsightItem {
   savings: number;
 }
 
+// Safely formats percentages, always showing at least 1 decimal place
+function formatPercentage(percentage: number): string {
+  if (!isFinite(percentage) || isNaN(percentage)) {
+    return '(0.0%)';
+  }
+
+  const absPercentage = Math.abs(percentage);
+  const sign = percentage < 0 ? '−' : '';
+
+  if (absPercentage >= 0.1) {
+    return `(${sign}${absPercentage.toFixed(1)}%)`;
+  }
+  return `(${sign}${absPercentage.toFixed(2)}%)`;
+}
+
+// Safely format savings amounts
+function formatSavingsAmount(savings: number): string {
+  if (!isFinite(savings) || isNaN(savings) || savings <= 0) {
+    return '0 B';
+  }
+
+  return formatBytesBase10(savings);
+}
+
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
+  if (!totalSize || totalSize <= 0) {
+    return null;
+  }
+
   const insightConfigs = [
     {key: 'image_optimization', name: 'Optimize images'},
     {key: 'duplicate_files', name: 'Remove duplicate files'},
@@ -40,13 +68,19 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
     const insight = insights[config.key as keyof AppleInsightResults];
     const savings = insight?.total_savings;
 
-    if (!savings) return [];
+    // Validate savings is a positive finite number
+    if (!savings || !isFinite(savings) || savings <= 0) return [];
+
+    const percentage = (savings / totalSize) * 100;
+
+    // Additional safety check for percentage calculation
+    if (!isFinite(percentage)) return [];
 
     return [
       {
         name: config.name,
         savings,
-        percentage: (savings / totalSize) * 100,
+        percentage,
       },
     ];
   });
@@ -80,13 +114,9 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
           <InsightRow key={insight.name} isAlternating={index % 2 === 0}>
             <InsightName>{insight.name}</InsightName>
             <SavingsContainer>
-              <SavingsAmount>-{formatBytesBase10(insight.savings)}</SavingsAmount>
+              <SavingsAmount>−{formatSavingsAmount(insight.savings)}</SavingsAmount>
               <SavingsPercentage width="64px">
-                (
-                {insight.percentage >= 0.1
-                  ? `-${insight.percentage.toFixed(1)}%`
-                  : `−${insight.percentage.toFixed(2)}%`}
-                )
+                {formatPercentage(-insight.percentage)}
               </SavingsPercentage>
             </SavingsContainer>
           </InsightRow>
