@@ -71,6 +71,7 @@ class OrganizationSamplingAdminMetricsTest(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(self.get_url())
 
         assert response.status_code == 200
+        assert hasattr(response, "data")
         data = response.data
 
         # Verify response structure matches MetricsAPIQueryResultsTransformer format
@@ -136,6 +137,7 @@ class OrganizationSamplingAdminMetricsTest(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(self.get_url(self.other_org.slug))
 
         assert response.status_code == 200
+        assert hasattr(response, "data")
         data = response.data
         assert "data" in data
 
@@ -155,6 +157,7 @@ class OrganizationSamplingAdminMetricsTest(MetricsEnhancedPerformanceTestCase):
             response = self.client.get(self.get_url())
 
             assert response.status_code == 200
+            assert hasattr(response, "data")
             data = response.data
 
             # Should return empty data structure
@@ -215,6 +218,7 @@ class OrganizationSamplingAdminMetricsTest(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(self.get_url())
 
         assert response.status_code == 200
+        assert hasattr(response, "data")
         data = response.data
 
         # Verify top-level structure
