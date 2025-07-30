@@ -239,4 +239,5 @@ class TestProcessWorkflowActivity(TestCase):
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": self.activity.type},
+                sample_rate=1.0,
             )
