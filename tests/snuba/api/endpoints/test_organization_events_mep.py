@@ -4010,7 +4010,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
     @mock.patch("sentry.snuba.errors.query")
-    def test_errors_request_made_for_saved_error_dashboard_widget_type(self, mock_errors_query):
+    def test_errors_request_made_for_saved_error_dashboard_widget_type(
+        self, mock_errors_query: mock.MagicMock
+    ) -> None:
         mock_errors_query.return_value = {
             "data": [],
             "meta": {},

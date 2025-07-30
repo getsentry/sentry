@@ -618,6 +618,22 @@ def test_which() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "navigation.push",
+                "description": "url",
+                "startTimestamp": 1752530070.378,
+                "endTimestamp": 1752530070.378,
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.NAVIGATION_SPAN
+
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
     }
     assert which(event) == EventType.NAVIGATION
@@ -1387,7 +1403,7 @@ def test_as_trace_item_returns_none_for_unsupported_event() -> None:
 
 
 @mock.patch("sentry.options.get")
-def test_parse_events(options_get):
+def test_parse_events(options_get: mock.MagicMock) -> None:
     """Test "parse_events" function."""
     options_get.return_value = 1
 
@@ -1445,7 +1461,7 @@ def test_parse_events(options_get):
 
 
 @mock.patch("sentry.options.get")
-def test_parse_events_disabled(options_get):
+def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
     """Test "parse_events" function."""
     options_get.return_value = 0
 

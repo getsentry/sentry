@@ -366,7 +366,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
-    def test_create_workflow__basic(self, mock_audit):
+    def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
         response = self.get_success_response(
             self.organization.slug,
             raw_data=self.valid_workflow,
@@ -513,7 +513,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         assert response.status_code == 400
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
-    def test_create_workflow_with_detector_ids(self, mock_audit):
+    def test_create_workflow_with_detector_ids(self, mock_audit: mock.MagicMock) -> None:
         detector_1 = self.create_detector()
         detector_2 = self.create_detector()
 
