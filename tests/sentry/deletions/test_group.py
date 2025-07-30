@@ -1,5 +1,6 @@
 import os
 import random
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import time
 from unittest import mock
@@ -23,6 +24,7 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import bulk_snuba_queries
@@ -256,7 +258,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    referrer = "testing.test"
+    referrer = Referrer.TESTING_TEST.value
+    dataset = Dataset.IssuePlatform.value
 
     def create_occurrence(
         self, event: Event, type_id: int
@@ -278,7 +281,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
 
     def select_rows(
-        self, entity: Entity, columns: list[str], project_id: int
+        self, entity: Entity, columns: Sequence[str], project_id: int
     ) -> None | dict[str, object]:
         # Adding the random microseconds is to circumvent Snuba's caching mechanism
         now = datetime.now()
@@ -293,7 +296,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
         query = Query(match=entity, select=select, where=where)
         request = Request(
-            dataset=Dataset.IssuePlatform.value,
+            dataset=self.dataset,
             app_id=self.referrer,
             query=query,
             tenant_ids=self.tenant_ids,
