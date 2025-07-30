@@ -8,7 +8,7 @@ from typing import Any
 from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.metrics import SentryAppEventType, SentryAppWebhookFailureReason
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.tasks.sentry_apps import send_webhooks
+from sentry.sentry_apps.tasks.sentry_apps import send_resource_change_webhook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,6 @@ def broadcast_webhooks_for_organization(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
 
-        send_webhooks(installation, event_type, data=payload)
+        send_resource_change_webhook.delay(installation.id, event_type, payload)
 
         logger.info("Queued webhook for %s to installation %s", event_type, installation.id)
