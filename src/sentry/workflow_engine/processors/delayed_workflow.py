@@ -694,7 +694,8 @@ def get_groups_to_fire_v2(
 
     for event_key in event_data.events:
         workflow_env = workflows_to_envs[event_key.workflow_id]
-        for when_dcg_id in event_key.when_dcg_ids:
+        result = False
+        for when_dcg_id in event_key.when_dcg_ids:  # there should be 1 of these per workflow lol
             when_dcg = data_condition_group_mapping[when_dcg_id]
             when_slow_conditions = dcg_to_slow_conditions[when_dcg_id]
             group_id = event_key.group_id
@@ -710,28 +711,29 @@ def get_groups_to_fire_v2(
                 logger.warning(
                     "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
                 )
+        if not result:
+            continue
 
-            # the WHEN condition passed, so we can now check the IF conditions
-            for if_dcg_id in event_key.if_dcg_ids:
-                if_dcg = data_condition_group_mapping[if_dcg_id]
-                if_slow_conditions = dcg_to_slow_conditions[if_dcg_id]
-                try:
-                    result = _group_result_for_dcg(
-                        group_id, if_dcg, workflow_env, condition_group_results, if_slow_conditions
-                    )
-                    if not result:
-                        break
-                except MissingQueryResult:
-                    # If we didn't get complete query results, don't fire.
-                    metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
-                    logger.warning(
-                        "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
-                    )
-                groups_to_fire[group_id].add(if_dcg)
+        # the WHEN condition passed, so we can now check the IF conditions
+        for if_dcg_id in event_key.if_dcg_ids:
+            if_dcg = data_condition_group_mapping[if_dcg_id]
+            if_slow_conditions = dcg_to_slow_conditions[if_dcg_id]
+            try:
+                result = _group_result_for_dcg(
+                    group_id, if_dcg, workflow_env, condition_group_results, if_slow_conditions
+                )
+                if result:
+                    groups_to_fire[group_id].add(if_dcg)
+            except MissingQueryResult:
+                # If we didn't get complete query results, don't fire.
+                metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
+                logger.warning(
+                    "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
+                )
 
-            for if_dcg_id in event_key.passing_dcg_ids:
-                if_dcg = data_condition_group_mapping[if_dcg_id]
-                groups_to_fire[group_id].add(if_dcg)
+        for if_dcg_id in event_key.passing_dcg_ids:
+            if_dcg = data_condition_group_mapping[if_dcg_id]
+            groups_to_fire[group_id].add(if_dcg)
 
     return groups_to_fire
 
