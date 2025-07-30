@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrenceData
 from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
@@ -28,7 +29,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
         )
 
-        occurrence_data = {
+        occurrence_data: IssueOccurrenceData = {
             "id": "1",
             "project_id": self.project.id,
             "event_id": event.event_id,

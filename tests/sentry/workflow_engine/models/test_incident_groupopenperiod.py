@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrenceData
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
@@ -25,12 +26,12 @@ class IncidentGroupOpenPeriodTest(TestCase):
         self.group.type = MetricIssue.type_id
         self.group.save()
 
-    def save_issue_occurrence(self, group_type=MetricIssue):
+    def save_issue_occurrence(self, group_type=MetricIssue, include_alert_id=True):
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
         )
 
-        occurrence_data = {
+        occurrence_data: IssueOccurrenceData = {
             "id": "1",
             "project_id": self.project.id,
             "event_id": event.event_id,
@@ -38,7 +39,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
             "issue_title": "Test Issue",
             "subtitle": "Test Subtitle",
             "resource_id": None,
-            "evidence_data": {"alert_id": self.alert_rule.id},
+            "evidence_data": {"alert_id": self.alert_rule.id} if include_alert_id else {},
             "evidence_display": [
                 {"name": "Test Evidence", "value": "Test Value", "important": True}
             ],
@@ -89,30 +90,8 @@ class IncidentGroupOpenPeriodTest(TestCase):
 
     def test_create_from_occurrence_no_alert_id(self):
         """Test handling when no alert_id in evidence_data"""
-        event = self.store_event(
-            data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
-        )
-
-        occurrence_data = {
-            "id": "2",
-            "project_id": self.project.id,
-            "event_id": event.event_id,
-            "fingerprint": ["test-fingerprint-2"],
-            "issue_title": "Test Issue 2",
-            "subtitle": "Test Subtitle 2",
-            "resource_id": None,
-            "evidence_data": {},  # No alert_id
-            "evidence_display": [
-                {"name": "Test Evidence", "value": "Test Value", "important": True}
-            ],
-            "type": MetricIssue.type_id,
-            "detection_time": timezone.now().timestamp(),
-            "level": "error",
-            "culprit": "test-culprit",
-        }
-
         with patch("sentry.issues.ingest.eventstream") as _:
-            occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+            occurrence, group_info = self.save_issue_occurrence(include_alert_id=False)
 
         assert group_info is not None
         open_period = GroupOpenPeriod.objects.get(group=group_info.group)

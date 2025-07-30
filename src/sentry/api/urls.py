@@ -68,8 +68,8 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.auth_v2.urls import AUTH_V2_URLS
-from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
-from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
+from sentry.codecov.endpoints.Branches.branches import RepositoryBranchesEndpoint
+from sentry.codecov.endpoints.Repositories.repositories import RepositoriesEndpoint
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
