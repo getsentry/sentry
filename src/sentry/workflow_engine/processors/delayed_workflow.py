@@ -61,6 +61,7 @@ from sentry.workflow_engine.processors.detector import get_detectors_by_groupeve
 from sentry.workflow_engine.processors.log_util import log_if_slow, track_batch_performance
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY_V2,
     evaluate_action_filters,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
@@ -1300,7 +1301,7 @@ class DelayedWorkflow(DelayedProcessingBase):
 
 # @delayed_processing_registry.register("delayed_workflow_v2")
 class DelayedWorkflowV2(DelayedProcessingBase):
-    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
+    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY_V2
     option = "delayed_workflow.rollout"
 
     @property
