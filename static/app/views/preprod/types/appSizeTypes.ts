@@ -8,18 +8,15 @@ export interface TreemapResults {
   file_count: number;
   platform: 'ios' | 'android';
   root: TreemapElement;
-  total_download_size: number;
-  total_install_size: number;
 }
 
-interface TreemapElement {
+export interface TreemapElement {
   children: TreemapElement[];
   details: Record<string, unknown>;
-  download_size: number;
-  install_size: number;
+  element_type: TreemapType;
   is_directory: boolean;
   name: string;
-  element_type?: TreemapType;
+  size: number;
   path?: string;
 }
 
