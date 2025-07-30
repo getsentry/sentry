@@ -115,7 +115,9 @@ interface CopyFrameLinkProps {
 
 function CopyFrameLink({event, frame, shouldFadeIn = false}: CopyFrameLinkProps) {
   const filePath =
-    frame.filename && frame.lineNo ? `${frame.filename}:${frame.lineNo}` : '';
+    frame.filename && frame.lineNo !== null
+      ? `${frame.filename}:${frame.lineNo}`
+      : frame.filename || '';
 
   const {onClick: handleCopyPath} = useCopyToClipboard({
     text: filePath,
@@ -129,6 +131,11 @@ function CopyFrameLink({event, frame, shouldFadeIn = false}: CopyFrameLinkProps)
   };
 
   const ButtonComponent = shouldFadeIn ? FadeInButton : Button;
+
+  // Don't render if there's no valid file path to copy
+  if (!filePath) {
+    return null;
+  }
 
   return (
     <Tooltip title={t('Copy file path')} skipWrapper>
