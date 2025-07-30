@@ -208,7 +208,6 @@ def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
         "downsampled_storage_meta": rpc_meta_json.get("downsampled_storage_meta", {}),
     }
 
-    # Check if query_info list is not empty before accessing elements
     if query_info and len(query_info) > 0:
         if query_info[0]["stats"]:
             events_meta["query_info"]["stats"] = query_info[0]["stats"]
