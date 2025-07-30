@@ -13,17 +13,42 @@ describe('Container', () => {
   it('implements render prop', () => {
     render(
       <section>
-        <Container border="primary" aria-label="Hello">
-          {props => <p {...props}>Hello</p>}
-        </Container>
+        <Container border="primary">{props => <p {...props}>Hello</p>}</Container>
       </section>
     );
 
     expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
 
-    expect(screen.getByText('Hello')).toHaveAttribute('aria-label', 'Hello');
+    expect(screen.getByText('Hello')).toHaveAttribute('aria-activedescendant', 'what');
     expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
+  });
+
+  it('render prop guards against invalid attributes', () => {
+    render(
+      // @ts-expect-error - aria-activedescendant should be set on the child element
+      <Container border="primary" aria-activedescendant="what">
+        {/* @ts-expect-error - this should be a React.ElementType */}
+        {props => <p {...props}>Hello</p>}
+      </Container>
+    );
+
+    expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
+    expect(screen.getByText('Hello')).toHaveAttribute('border', 'primary');
+  });
+
+  it('render prop type is correctly inferred', () => {
+    // Incompatible className type - should be string
+    function Child({className}: {className: 'invalid'}) {
+      return <p className={className}>Hello</p>;
+    }
+
+    render(
+      <Container border="primary">
+        {/* @ts-expect-error - className is incompatible */}
+        {props => <Child {...props} />}
+      </Container>
+    );
   });
 
   it('passes attributes to the underlying element', () => {

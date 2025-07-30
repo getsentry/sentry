@@ -69,11 +69,19 @@ type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayoutProps &
   ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
 } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
 
-type ContainerPropsWithRenderProp = ContainerLayoutProps & {
-  children: (props: {className: string}) => React.ReactNode | undefined;
-  as?: never;
-  ref?: never;
-};
+type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
+  ContainerLayoutProps & {
+    children: (props: {className: string}) => React.ReactNode | undefined;
+    as?: never;
+    ref?: never;
+  } & Partial<
+      Record<
+        // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
+        // Therefore, we need to exclude it from the map, or the children will produce a never type.
+        Exclude<keyof React.HTMLAttributes<HTMLElementTagNameMap[T]>, 'children'>,
+        never
+      >
+    >;
 
 const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
@@ -96,19 +104,13 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'maxHeight',
 ]);
 
-function isRenderProp(
-  props: ContainerProps<any> | ContainerPropsWithRenderProp
-): props is ContainerPropsWithRenderProp {
-  return typeof props.children === 'function';
-}
-
 export const Container = styled(
   <T extends ContainerElement = 'div'>(
-    props: ContainerProps<T> | ContainerPropsWithRenderProp
+    props: ContainerProps<T> | ContainerPropsWithRenderProp<T>
   ) => {
-    if (isRenderProp(props)) {
+    if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
-      return props.children({className: (props as any).className});
+      return props.children?.({className: (props as any).className});
     }
 
     const {as, ...rest} = props;
