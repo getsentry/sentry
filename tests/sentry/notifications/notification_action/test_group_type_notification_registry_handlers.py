@@ -71,6 +71,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
     def test_handle_metric_issue_resolution(self, mock_execute_metric_alert_handler):
         group = self.create_group(type=MetricIssue.type_id)
         activity = self.create_group_activity(
+            group=group,
             type=ActivityType.SET_RESOLVED.value,
         )
         self.event_data = WorkflowEventData(event=activity, group=group)
