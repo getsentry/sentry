@@ -3,12 +3,10 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
-import random
 from collections.abc import Callable, Generator, Mapping
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pydantic
-import sentry_sdk
 
 from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
@@ -172,10 +170,6 @@ class SiloCacheBackedListCallable(Generic[_R]):
                         "err": type(err).__name__,
                     },
                 )
-                if random.random() < 0.001:
-                    with sentry_sdk.isolation_scope() as scope:
-                        scope.set_level("warning")
-                        sentry_sdk.capture_exception(err)
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value
@@ -183,7 +177,7 @@ class SiloCacheBackedListCallable(Generic[_R]):
         metrics.incr("hybridcloud.caching.list.rpc", tags={"base_key": self.base_key})
         result = self.cb(object_id)
         if result is not None:
-            cache_value = json.dumps([item.json() for item in result])
+            cache_value = json.dumps([item.dict() for item in result])
             _consume_generator(_set_cache(key, cache_value, version, self.timeout))
         return result
 
