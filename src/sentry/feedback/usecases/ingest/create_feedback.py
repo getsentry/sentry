@@ -97,6 +97,9 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
         "replay_id"
     ):
+        # Temporary metric to confirm this behavior is no longer needed.
+        metrics.incr("feedback.create_feedback_issue.filled_missing_replay_context")
+
         ret_event["contexts"]["replay"] = {
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
         }
