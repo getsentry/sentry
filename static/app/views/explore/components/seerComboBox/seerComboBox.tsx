@@ -310,8 +310,14 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 return;
               }
 
+              trackAnalytics('trace.explorer.ai_query_example_clicked', {
+                organization,
+                example_query: item.query,
+              });
+              setSearchQuery(item.query);
+              submitQuery(item.query);
+              inputRef.current?.focus();
               state.close();
-              handleExampleSelect(item.query);
               return;
             }
 
