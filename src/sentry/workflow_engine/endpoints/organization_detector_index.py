@@ -137,6 +137,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             project_id__in=projects,
         )
 
+        if not request.user.is_authenticated:
+            return queryset
+
         if raw_idlist := request.GET.getlist("id"):
             try:
                 ids = [int(id) for id in raw_idlist]
