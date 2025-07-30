@@ -282,4 +282,4 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 )
             queryset.update(status=ObjectStatus.PENDING_DELETION)
 
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
