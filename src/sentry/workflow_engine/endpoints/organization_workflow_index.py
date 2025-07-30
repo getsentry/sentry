@@ -249,15 +249,16 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_workflows(request, organization)
 
-        for workflow in queryset:
-            RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
-            workflow.update(status=ObjectStatus.PENDING_DELETION)
-            create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=workflow.id,
-                event=audit_log.get_event_id("WORKFLOW_REMOVE"),
-                data=workflow.get_audit_log_data(),
-            )
+        with transaction.atomic(router.db_for_write(Workflow)):
+            for workflow in queryset:
+                RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+                workflow.update(status=ObjectStatus.PENDING_DELETION)
+                create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=workflow.id,
+                    event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+                    data=workflow.get_audit_log_data(),
+                )
 
         return Response(status=204)
