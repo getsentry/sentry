@@ -160,7 +160,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 # the annotated value isn't returned in the results.
                 long_ago = ensure_aware(datetime(1970, 1, 1))
                 queryset = queryset.annotate(
-                    last_triggered=Max(Coalesce("workflowfirehistory__date_added", long_ago)),
+                    last_triggered=Max(
+                        Coalesce("workflowfirehistory__date_added", long_ago),
+                        filter=Q(workflowfirehistory__is_single_written=True)
+                        | Q(workflowfirehistory__isnull=True),
+                    ),
                 )
 
         queryset = queryset.order_by(*sort_by.db_order_by)

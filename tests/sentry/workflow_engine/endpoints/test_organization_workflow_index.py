@@ -6,9 +6,13 @@ from sentry.api.serializers import serialize
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.workflow_engine.models import Action, Workflow, WorkflowDataConditionGroup
-from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.models import (
+    Action,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+    WorkflowFireHistory,
+)
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -40,6 +44,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
                 workflow=workflow,
                 group=self.group,
                 event_id=self.event.event_id,
+                is_single_written=True,
             )
 
     def test_simple(self) -> None:
@@ -190,6 +195,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ][0]
 
     def test_sort_by_last_triggered(self) -> None:
+        # Fresh fire for self.workflow that would impact sorting if not ignored.
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=False,
+        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
