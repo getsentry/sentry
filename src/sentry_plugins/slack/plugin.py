@@ -168,7 +168,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         if not self.is_configured(project):
             return
 
-        title = event.title.encode("utf-8")
+        title = event.title[:SLACK_PLUGIN_TITLE_LENGTH_LIMIT].encode("utf-8")
         # TODO(dcramer): we'd like this to be the event culprit, but Sentry
         # does not currently retain it
         if group.culprit:
@@ -235,7 +235,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             "attachments": [
                 {
                     "fallback": b"[%s] %s" % (project_name, title),
-                    "title": title[:SLACK_PLUGIN_TITLE_LENGTH_LIMIT],
+                    "title": title,
                     "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                     "color": self.color_for_event(event),
                     "fields": fields,
