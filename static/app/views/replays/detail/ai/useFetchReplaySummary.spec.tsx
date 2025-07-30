@@ -1,7 +1,8 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -42,12 +43,7 @@ describe('useFetchReplaySummary', () => {
   });
 
   const createWrapper = () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {retry: false},
-        mutations: {retry: false},
-      },
-    });
+    const queryClient = makeTestQueryClient();
 
     return function ({children}: {children: React.ReactNode}) {
       return (
