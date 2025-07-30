@@ -57,7 +57,9 @@ export default function Ai() {
   });
 
   const segmentsIncreased =
-    summaryData?.num_segments && segmentCount > summaryData.num_segments;
+    summaryData?.num_segments !== null &&
+    summaryData?.num_segments !== undefined &&
+    segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
   useEffect(() => {
