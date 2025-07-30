@@ -1,15 +1,18 @@
 from sentry import analytics
 
 
-@analytics.eventclass("integrations.msteams.notification_sent")
 class MSTeamsIntegrationNotificationSent(analytics.Event):
-    organization_id: str
-    project_id: str | None = None
-    category: str
-    actor_id: str | None = None
-    user_id: str | None = None
-    notification_uuid: str
-    alert_id: str | None = None
+    type = "integrations.msteams.notification_sent"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id", required=False),
+        analytics.Attribute("category"),
+        analytics.Attribute("actor_id", required=False),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
+    )
 
 
 analytics.register(MSTeamsIntegrationNotificationSent)

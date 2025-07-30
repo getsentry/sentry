@@ -1,14 +1,17 @@
 from sentry import analytics
 
 
-@analytics.eventclass("integrations.opsgenie.notification_sent")
 class OpsgenieIntegrationNotificationSent(analytics.Event):
-    organization_id: str
-    project_id: str
-    category: str
-    group_id: str
-    notification_uuid: str
-    alert_id: str | None = None
+    type = "integrations.opsgenie.notification_sent"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
+        analytics.Attribute("category"),
+        analytics.Attribute("group_id"),
+        analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
+    )
 
 
 analytics.register(OpsgenieIntegrationNotificationSent)
