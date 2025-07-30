@@ -10,6 +10,5 @@ export default function slugify(str: string): string {
     .normalize('NFKD') // Converts accents/ligatures/etc to latin alphabet
     .toLowerCase()
     .replace(/[^a-z0-9_\s-]/g, '') // Remove all invalid characters
-    .replace(/[-\s]+/g, '-') // Replace multiple spaces or hyphens with a single hyphen
-    .replace(/^[-_]+|[-_]+$/g, ''); // Trim leading/trailing hyphens or underscores
+    .replace(/[-\s]+/g, '-'); // Replace multiple spaces or hyphens with a single hyphen
 }

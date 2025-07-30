@@ -26,12 +26,6 @@ describe('slugify', function () {
   });
 
   it('keeps hyphens and underscores', function () {
-    expect(slugify('_some-chars__should-stay')).toBe('some-chars__should-stay');
-  });
-
-  it('removes leading and trailing whitespace/hyphens/underscores', function () {
-    expect(slugify(' _-leading-and-trailing_characters-_ ')).toBe(
-      'leading-and-trailing_characters'
-    );
+    expect(slugify('_some-chars__should-stay')).toBe('_some-chars__should-stay');
   });
 });
