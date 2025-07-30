@@ -221,7 +221,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieves discover (also known as events) data for a given organization.
 
