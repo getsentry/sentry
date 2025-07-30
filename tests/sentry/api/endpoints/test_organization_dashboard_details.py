@@ -2693,6 +2693,55 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
             )
 
+    def test_dashboard_exisiting_transaction_widget_deprecation_with_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "title": "Test Dashboard",
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "title": "Transaction Widget",
+                        "displayType": "table",
+                        "widgetType": DashboardWidgetTypes.get_type_name(
+                            DashboardWidgetTypes.TRANSACTION_LIKE
+                        ),
+                        "queries": [
+                            {
+                                "name": "Transaction Widget",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "-count()",
+                                "columns": [],
+                                "fieldAliases": [],
+                            }
+                        ],
+                    },
+                    {
+                        "title": "Error Widget",
+                        "displayType": "table",
+                        "widgetType": DashboardWidgetTypes.get_type_name(
+                            DashboardWidgetTypes.ERROR_EVENTS
+                        ),
+                        "queries": [
+                            {
+                                "name": "Error Widget",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "-count()",
+                                "columns": [],
+                                "fieldAliases": [],
+                            }
+                        ],
+                    },
+                ],
+            }
+            # should be able to add widget to dashboard with existing transaction widgets
+
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 200
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
