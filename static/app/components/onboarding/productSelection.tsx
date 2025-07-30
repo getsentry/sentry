@@ -194,6 +194,7 @@ export const platformProductAvailability = {
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
   'node-hapi': [
     ProductSolution.PERFORMANCE_MONITORING,
