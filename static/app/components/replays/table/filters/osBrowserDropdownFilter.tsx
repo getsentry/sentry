@@ -5,7 +5,6 @@ import {
 } from 'sentry/components/replays/table/filters/utils';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -25,72 +24,65 @@ export default function OSBrowserDropdownFilter({
   return (
     <DropdownMenu
       items={[
-        ...(defined(name)
-          ? [
-              {
-                key: 'name',
-                label: tct('[type] name: [name]', {
-                  type: <strong>{type}</strong>,
-                  name: name ? <strong>{name}</strong> : <em>{t('Blank')}</em>,
-                }),
-                children: [
-                  {
-                    key: 'name_add',
-                    label: t('Add to filter'),
-                    onAction: generateAction({
-                      key: `${type}.name`,
-                      value: name,
-                      location,
-                      navigate,
-                    }),
-                  },
-                  {
-                    key: 'name_exclude',
-                    label: t('Exclude from filter'),
-                    onAction: generateAction({
-                      key: `!${type}.name`,
-                      value: name,
-                      location,
-                      navigate,
-                    }),
-                  },
-                ],
-              },
-            ]
-          : []),
-        ...(defined(version)
-          ? [
-              {
-                key: 'version',
-                label: tct('[type] version: [version]', {
-                  type: <strong>{type}</strong>,
-                  version: version ? <strong>{version}</strong> : <em>{t('Blank')}</em>,
-                }),
-                children: [
-                  {
-                    key: 'version_add',
-                    label: t('Add to filter'),
-                    onAction: generateAction({
-                      key: `${type}.version`,
-                      value: version,
-                      location,
-                      navigate,
-                    }),
-                  },
-                  {
-                    key: 'version_exclude',
-                    label: t('Exclude from filter'),
-                    onAction: generateAction({
-                      key: `!${type}.version`,
-                      value: version,
-                      location,
-                      navigate,
-                    }),
-                  },
-                ],
-              },
-            ]
-          : []),
+        {
+          key: 'name',
+          label: tct('[type] name: [name]', {
+            type: <strong>{type}</strong>,
+            name: name ? <strong>{name}</strong> : <em>{t('undefined')}</em>,
+          }),
+          children: [
+            {
+              key: 'name_add',
+              label: t('Add to filter'),
+              onAction: generateAction({
+                key: `${type}.name`,
+                value: name ?? '',
+                location,
+                navigate,
+              }),
+            },
+            {
+              key: 'name_exclude',
+              label: t('Exclude from filter'),
+              onAction: generateAction({
+                key: `!${type}.name`,
+                value: name ?? '',
+                location,
+                navigate,
+              }),
+            },
+          ],
+        },
+
+        {
+          key: 'version',
+          label: tct('[type] version: [version]', {
+            type: <strong>{type}</strong>,
+            version: version ? <strong>{version}</strong> : <em>{t('undefined')}</em>,
+          }),
+          children: [
+            {
+              key: 'version_add',
+              label: t('Add to filter'),
+              onAction: generateAction({
+                key: `${type}.version`,
+                value: version ?? '',
+                location,
+                navigate,
+              }),
+            },
+            {
+              key: 'version_exclude',
+              label: t('Exclude from filter'),
+              onAction: generateAction({
+                key: `!${type}.version`,
+                value: version ?? '',
+                location,
+                navigate,
+              }),
+            },
+          ],
+        },
       ]}
       usePortal
       size="xs"
