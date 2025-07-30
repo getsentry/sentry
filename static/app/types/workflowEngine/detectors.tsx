@@ -192,12 +192,12 @@ interface UpdateUptimeDataSourcePayload {
 }
 
 export interface BaseDetectorUpdatePayload {
-  enabled: boolean;
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  enabled?: boolean;
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
