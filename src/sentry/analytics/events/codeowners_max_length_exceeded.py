@@ -2,8 +2,8 @@ from sentry import analytics
 
 
 @analytics.eventclass("codeowners.max_length_exceeded")
-class CodeownersMaxLengthExceeded(analytics.Event):
+class CodeOwnersMaxLengthExceeded(analytics.Event):
     organization_id: int
 
 
-analytics.register(CodeownersMaxLengthExceeded)
+analytics.register(CodeOwnersMaxLengthExceeded)
