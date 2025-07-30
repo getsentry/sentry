@@ -1,5 +1,6 @@
 import posixpath
 from collections.abc import Mapping
+from timeit import default_timer as timer
 
 import sentry_sdk
 import symbolic.common
@@ -18,12 +19,6 @@ from sentry.utils.safe import get_path
 REPORT_VERSION = "104"
 
 
-# symbolic.common.parse_addr with instrumentation
-@sentry_sdk.trace
-def parse_addr(x: int | str | None) -> int:
-    return symbolic.common.parse_addr(x)
-
-
 class AppleCrashReport:
     def __init__(
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
@@ -33,6 +28,7 @@ class AppleCrashReport:
         self.debug_images = debug_images
         self.symbolicated = symbolicated
         self.exceptions = exceptions
+        self.time_spent_parsing_addrs = 0
 
     def __str__(self):
         rv = []
@@ -41,7 +37,19 @@ class AppleCrashReport:
         rv.append(self.get_threads_apple_string())
         rv.append(self._get_crashed_thread_registers())
         rv.append(self.get_binary_images_apple_string())
+        current_span = sentry_sdk.get_current_span()
+
+        if current_span:
+            current_span.set_data("time_spent_parsing_addrs", self.time_spent_parsing_addrs)
+
         return "\n\n".join(rv) + "\n\nEOF"
+
+    def _parse_addr(self, x: int | str | None) -> int:
+        start = timer()
+        res = symbolic.common.parse_addr(x)
+        end = timer()
+        self.time_spent_parsing_addrs += end - start
+        return res
 
     def _get_meta_header(self):
         return "OS Version: {} {} ({})\nReport Version: {}".format(
@@ -210,15 +218,15 @@ class AppleCrashReport:
         if frame.get("instruction_addr") is None:
             return None
         slide_value = self._get_slide_value(frame.get("image_addr"))
-        instruction_addr = slide_value + parse_addr(frame.get("instruction_addr"))
-        image_addr = slide_value + parse_addr(frame.get("image_addr"))
+        instruction_addr = slide_value + self._parse_addr(frame.get("instruction_addr"))
+        image_addr = slide_value + self._parse_addr(frame.get("image_addr"))
         offset = ""
         if frame.get("image_addr") is not None and (
             not self.symbolicated
             or (frame.get("function") or NATIVE_UNKNOWN_STRING) == NATIVE_UNKNOWN_STRING
         ):
             offset = " + %s" % (
-                instruction_addr - slide_value - parse_addr(frame.get("symbol_addr"))
+                instruction_addr - slide_value - self._parse_addr(frame.get("symbol_addr"))
             )
         symbol = hex(image_addr)
         if self.symbolicated:
@@ -229,7 +237,7 @@ class AppleCrashReport:
                     frame["lineno"],
                 )
             symbol = "{}{}".format(frame.get("function") or NATIVE_UNKNOWN_STRING, file)
-            if next and parse_addr(frame.get("instruction_addr")) == parse_addr(
+            if next and self._parse_addr(frame.get("instruction_addr")) == self._parse_addr(
                 next.get("instruction_addr")
             ):
                 symbol = "[inlined] " + symbol
@@ -244,8 +252,8 @@ class AppleCrashReport:
     def _get_slide_value(self, image_addr):
         if self.debug_images:
             for debug_image in self.debug_images:
-                if parse_addr(debug_image.get("image_addr")) == parse_addr(image_addr):
-                    return parse_addr(debug_image.get("image_vmaddr", 0))
+                if self._parse_addr(debug_image.get("image_addr")) == self._parse_addr(image_addr):
+                    return self._parse_addr(debug_image.get("image_vmaddr", 0))
         return 0
 
     def get_binary_images_apple_string(self):
@@ -256,14 +264,14 @@ class AppleCrashReport:
             lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
             sorted(
                 filter(lambda i: "image_addr" in i, self.debug_images),
-                key=lambda i: parse_addr(i["image_addr"]),
+                key=lambda i: self._parse_addr(i["image_addr"]),
             ),
         )
         return "Binary Images:\n" + "\n".join(binary_images)
 
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
-        slide_value = parse_addr(debug_image.get("image_vmaddr", 0))
-        image_addr = parse_addr(debug_image["image_addr"]) + slide_value
+        slide_value = self._parse_addr(debug_image.get("image_vmaddr", 0))
+        image_addr = self._parse_addr(debug_image["image_addr"]) + slide_value
         return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
             hex(image_addr + debug_image["image_size"] - 1),
