@@ -24,7 +24,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-  TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
@@ -40,6 +39,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
@@ -85,7 +85,7 @@ export function NewMetricDetectorForm() {
   );
 }
 
-function MonitorKind() {
+function DetectionType() {
   const options: Array<[MetricDetectorFormData['detectionType'], string, string]> = [
     ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
     ['percent', t('Change'), t('Percentage changes over defined time windows.')],
@@ -103,7 +103,7 @@ function MonitorKind() {
   }
 
   return (
-    <MonitorKindField
+    <DetectionTypeField
       label={t('\u2026and monitor for changes in the following way:')}
       flexibleControlStateSize
       inline={false}
@@ -202,45 +202,17 @@ function IntervalPicker() {
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const intervalChoices = useIntervalChoices({dataset, detectionType});
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
 
-  const intervalChoices = useMemo((): Array<[seconds: number, label: string]> => {
-    if (!dataset) {
-      return [];
-    }
-
-    // Interval filtering rules:
-    // 1. Releases → No sub-hour intervals (crash-free alert behavior)
-    // 2. Spans/Logs/Dynamic → No 1-minute intervals
-    // 3. Everything else → All intervals allowed
-    const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
-    const shouldExcludeOneMinute =
-      dataset === DetectorDataset.SPANS ||
-      dataset === DetectorDataset.LOGS ||
-      detectionType === 'dynamic';
-
-    const filteredIntervals = baseIntervals.filter(([timeWindow]) => {
-      if (shouldExcludeSubHour) {
-        return timeWindow >= TimeWindow.ONE_HOUR;
-      }
-      if (shouldExcludeOneMinute) {
-        return timeWindow !== TimeWindow.ONE_MINUTE;
-      }
-      return true;
-    });
-
-    return filteredIntervals.map(([timeWindow, label]) => [timeWindow * 60, label]);
-  }, [dataset, detectionType]);
-
-  // Reset form model if dataset changes and the option is no longer available
   useEffect(() => {
-    if (!intervalChoices.some(choice => choice[0] === interval)) {
+    if (interval && !intervalChoices.some(choice => choice[0] === interval)) {
       formContext.form?.setValue(
         METRIC_DETECTOR_FORM_FIELDS.interval,
         intervalChoices[0]![0]
       );
     }
-  }, [intervalChoices, formContext.form, interval, dataset]);
+  }, [interval, intervalChoices, formContext]);
 
   return (
     <IntervalField
@@ -292,18 +264,6 @@ function useDatasetChoices() {
     return datasetChoices;
   }, [organization]);
 }
-
-const baseIntervals: Array<[TimeWindow, string]> = [
-  [TimeWindow.ONE_MINUTE, t('1 minute')],
-  [TimeWindow.FIVE_MINUTES, t('5 minutes')],
-  [TimeWindow.TEN_MINUTES, t('10 minutes')],
-  [TimeWindow.FIFTEEN_MINUTES, t('15 minutes')],
-  [TimeWindow.THIRTY_MINUTES, t('30 minutes')],
-  [TimeWindow.ONE_HOUR, t('1 hour')],
-  [TimeWindow.TWO_HOURS, t('2 hours')],
-  [TimeWindow.FOUR_HOURS, t('4 hours')],
-  [TimeWindow.ONE_DAY, t('1 day')],
-];
 
 function DetectSection() {
   const detectionType = useMetricDetectorFormField(
@@ -357,7 +317,7 @@ function DetectSection() {
           <IntervalPicker />
         </DatasetRow>
         <Visualize />
-        <MonitorKind />
+        <DetectionType />
         <Flex direction="column">
           {(!detectionType || detectionType === 'static') && (
             <Flex direction="column">
@@ -521,7 +481,7 @@ const DirectionField = styled(SelectField)`
   }
 `;
 
-const MonitorKindField = styled(SegmentedRadioField)`
+const DetectionTypeField = styled(SegmentedRadioField)`
   padding-left: 0;
   padding-block: ${space(1)};
   border-bottom: none;
