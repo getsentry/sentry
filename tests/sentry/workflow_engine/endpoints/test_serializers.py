@@ -454,8 +454,14 @@ class TestWorkflowSerializer(TestCase):
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
-            date_added=workflow.date_added + timedelta(seconds=1),
         )
+        WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+        )
+        history.date_added = workflow.date_added + timedelta(seconds=1)
+        history.save()
 
         result = serialize(workflow)
 

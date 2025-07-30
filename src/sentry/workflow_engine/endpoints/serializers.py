@@ -403,6 +403,7 @@ class WorkflowSerializer(Serializer):
             WorkflowFireHistory.objects.filter(
                 workflow__in=item_list,
             )
+            .values("workflow_id")
             .annotate(last_triggered=Max("date_added"))
             .values_list("workflow_id", "last_triggered")
         )
