@@ -1,129 +1,83 @@
 {
   "platform": "native",
-  "title": "PlayStation Error Example",
   "tags": [
-    ["Configuration", "Development"],
-    ["Engine-Mode", "Game"],
-    ["Is-game", "true"],
-    ["device", "PS5"],
-    ["environment", "Development"],
-    ["handled", "no"],
-    ["level", "fatal"],
-    ["mechanism", "minidump"],
-    ["os", "PlayStation 11.20.00.05-00.00.00.0.1"],
+    ["environment", "production"],
+    ["level", "error"],
+    ["mechanism", "SceDbgBacktrace"],
     ["os.name", "PlayStation"],
-    ["runtime", "PS5 11.20.00.05-00.00.00.0.1"],
-    ["runtime.name", "PS5"],
-    ["server_name", "5be3652dd663dbdcd044da0f2144b17f"]
+    ["handled", "no"]
   ],
   "breadcrumbs": {
     "values": [
       {
-        "timestamp": 1751457108.163145,
-        "type": "default",
-        "category": "Menu",
-        "level": "info",
-        "message": "Restart level"
+        "timestamp": 1751457103.2,
+        "message": "Game initialization completed"
       },
       {
-        "timestamp": 1751457127.33404,
-        "type": "default",
-        "category": "Gameplay",
-        "level": "info",
-        "message": "Player reached level 2"
-      },
-      {
-        "timestamp": 1751457140.912829,
-        "type": "default",
-        "category": "Gameplay",
-        "level": "info",
-        "message": "Player selected attack modifier \"Wrath\""
+        "timestamp": 1751457103.205,
+        "message": "About to activate cheat command"
       }
     ]
   },
   "contexts": {
-    "Unreal Engine": {
-      "Configuration": "Development",
-      "Engine mode": "Game",
-      "Engine version": "5.7.0-0",
-      "Game name": "SentryTower",
-      "Plugin version": "1.0.0-beta.2",
-      "Target Type": "Game",
-      "type": "Unreal Engine"
-    },
-    "app": {
-      "app_version": "01.000.000",
-      "type": "app"
-    },
     "device": {
-      "name": "",
-      "model": "PS5",
-      "model_id": "5be3652dd663dbdcd044da0f2144b17f",
-      "arch": "x86_64",
-      "manufacturer": "Sony",
+      "name": "PlayStation 5",
       "type": "device"
     },
     "os": {
-      "os": "PlayStation 11.20.00.05-00.00.00.0.1",
       "name": "PlayStation",
-      "version": "11.20.00.05-00.00.00.0.1",
+      "version": "9.00",
       "type": "os"
-    },
-    "runtime": {
-      "runtime": "PS5 11.20.00.05-00.00.00.0.1",
-      "name": "PS5",
-      "version": "11.20.00.05-00.00.00.0.1",
-      "type": "runtime"
     }
   },
-  "culprit": "main",
-  "environment": "Development",
+  "culprit": "USentryTowerCheatManager::ActivateGodMode",
+  "environment": "production",
   "exception": {
     "values": [
       {
         "type": "Exception",
-        "value": "This is an example of a Playstation exception",
+        "value": "This is an example of a PlayStation exception",
         "stacktrace": {
           "frames": [
             {
-              "function": "main",
-              "symbol": "main",
-              "package": "SentryTower.self",
+              "function": "sentry__unwind_stack_psunwind",
+              "symbol": "sentry__unwind_stack_psunwind",
+              "package": "/app0/eboot.bin",
+              "filename": "sentry_stacktrace_ps.cpp",
+              "abs_path": "D:\\projects\\sentry-playstation\\src\\sentry_stacktrace_ps.cpp",
+              "lineno": 442,
               "in_app": false,
-              "instruction_addr": "0x22fea84f"
+              "instruction_addr": "0x25d31a1f"
             },
             {
-              "function": "ASentryTowerPawn::Tick",
-              "symbol": "_ZN16ASentryTowerPawn4TickEf",
-              "package": "SentryTower.self",
-              "filename": "SentryTowerPawn.cpp",
-              "lineno": 151,
-              "context_line": "\t\tTurretActor->Shoot(Target, Target->GetActorLocation());",
-              "in_app": false,
-              "instruction_addr": "0x23087a0b"
-            },
-            {
-              "function": "ASentryTowerTurret::Shoot",
-              "symbol": "_ZN18ASentryTowerTurret5ShootEP6AActorRKN2UE4Math7TVectorIdEE",
-              "package": "SentryTower.self",
-              "filename": "SentryTowerTurret.cpp",
-              "lineno": 72,
-              "context_line": "\tProjectile->TargetToFollow = TargetActor;",
-              "in_app": false,
-              "instruction_addr": "0x2308ab0f"
+              "function": "USentryTowerCheatManager::ActivateGodMode",
+              "symbol": "_ZN23USentryTowerCheatManager15ActivateGodModeEv",
+              "package": "/app0/eboot.bin",
+              "filename": "SentryTowerCheatManager.cpp",
+              "abs_path": "D:\\projects\\unreal-tower\\Source\\SentryTower\\SentryTowerCheatManager.cpp",
+              "lineno": 67,
+              "pre_context": [
+                "    if (!CheatDatabase) {",
+                "        return;",
+                "    }",
+                "    FCheatData* CheatData = CheatDatabase->FindCheat(TEXT(\"GODMODE\"));"
+              ],
+              "context_line": "    CheatData->Activate();",
+              "post_context": [
+                "}",
+                "",
+                "void USentryTowerCheatManager::SpawnPowerup()",
+                "{"
+              ],
+              "in_app": true,
+              "instruction_addr": "0x2308b442"
             }
-          ],
-          "registers": {
-            "rax": "0x107e347c30",
-            "rip": "0x2308ab0f",
-            "rsp": "0x7ef41dcc0"
-          }
+          ]
         },
-        "thread_id": 102388,
         "mechanism": {
-          "type": "minidump",
-          "synthetic": true,
-          "handled": false
+          "type": "SceDbgBacktrace",
+          "description": "PlayStation stack trace capture",
+          "help_link": "https://www.playstation.com/en-us/support/"
         }
       }
     ]
@@ -135,45 +89,6 @@
       {
         "name": "github:getsentry/sentry-native",
         "version": "0.9.1"
-      }
-    ]
-  },
-  "threads": {
-    "values": [
-      {
-        "id": 102388,
-        "name": "Main Thread",
-        "crashed": true,
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "main",
-              "package": "SentryTower.self",
-              "in_app": false,
-              "instruction_addr": "0x22fea84f"
-            },
-            {
-              "function": "ASentryTowerTurret::Shoot",
-              "package": "SentryTower.self",
-              "in_app": false,
-              "instruction_addr": "0x2308ab0f"
-            }
-          ]
-        }
-      },
-      {
-        "id": 100416,
-        "name": "PS5MemGPO_Thread",
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "sceKernelUsleep",
-              "package": "libkernel.prx",
-              "in_app": false,
-              "instruction_addr": "0x824bb936a"
-            }
-          ]
-        }
       }
     ]
   },
