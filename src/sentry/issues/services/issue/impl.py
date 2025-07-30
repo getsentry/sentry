@@ -48,7 +48,7 @@ class DatabaseBackedIssueService(IssueService):
         # correctly should this fail.
         process_inbound_email(from_email, group_id, text)
 
-    def get_linked_issues(
+    def get_integration_linked_issue_summaries(
         self,
         *,
         region_name: str,

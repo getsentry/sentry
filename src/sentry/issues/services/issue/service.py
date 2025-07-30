@@ -56,7 +56,7 @@ class IssueService(RpcService):
 
     @regional_rpc_method(resolve=ByRegionName(), return_none_if_mapping_not_found=True)
     @abstractmethod
-    def get_linked_issues(
+    def get_integration_linked_issue_summaries(
         self,
         *,
         region_name: str,

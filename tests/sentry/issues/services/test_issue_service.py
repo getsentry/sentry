@@ -92,7 +92,7 @@ class TestIssueService(TestCase):
             integration=self.default_jira_integration,
         )
 
-        response = issue_service.get_linked_issues(
+        response = issue_service.get_integration_linked_issue_summaries(
             region_name=self.us_region_context.region_name,
             integration_id=self.default_jira_integration.id,
             organization_ids=[self.us_region_context.organization.id],
@@ -123,7 +123,7 @@ class TestIssueService(TestCase):
             integration=self.default_jira_integration,
         )
 
-        response = issue_service.get_linked_issues(
+        response = issue_service.get_integration_linked_issue_summaries(
             region_name=self.us_region_context.region_name,
             integration_id=self.default_jira_integration.id,
             organization_ids=[
@@ -145,7 +145,7 @@ class TestIssueService(TestCase):
         ]
 
     def test_get_empty_response_when_no_linked_issues(self):
-        response = issue_service.get_linked_issues(
+        response = issue_service.get_integration_linked_issue_summaries(
             region_name=self.us_region_context.region_name,
             integration_id=self.default_jira_integration.id,
             organization_ids=[self.us_region_context.organization.id],
@@ -163,7 +163,7 @@ class TestIssueService(TestCase):
             integration=self.default_jira_integration,
         )
 
-        response = issue_service.get_linked_issues(
+        response = issue_service.get_integration_linked_issue_summaries(
             region_name=self.us_region_context.region_name,
             integration_id=self.default_jira_integration.id,
             organization_ids=[self.us_region_context.organization.id],
@@ -202,7 +202,7 @@ class TestIssueService(TestCase):
             integration=other_integration,
         )
 
-        response = issue_service.get_linked_issues(
+        response = issue_service.get_integration_linked_issue_summaries(
             region_name=self.us_region_context.region_name,
             integration_id=self.default_jira_integration.id,
             organization_ids=[self.us_region_context.organization.id],
