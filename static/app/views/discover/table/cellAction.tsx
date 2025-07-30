@@ -17,6 +17,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import type {TableColumn} from './types';
 
@@ -30,6 +31,7 @@ export enum Actions {
   EDIT_THRESHOLD = 'edit_threshold',
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
   OPEN_EXTERNAL_LINK = 'open_external_link',
+  OPEN_INTERNAL_LINK = 'open_internal_link',
 }
 
 export function updateQuery(
@@ -182,6 +184,7 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   children?: React.ReactNode;
+  link?: string;
 };
 
 function makeCellActions({
@@ -189,6 +192,7 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
+  link,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -227,6 +231,13 @@ function makeCellActions({
       });
     }
   }
+
+  if (isUrl(link))
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name));
+
+  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (
     !['duration', 'number', 'percentage'].includes(column.type) ||
@@ -271,15 +282,38 @@ function makeCellActions({
     );
   }
 
-  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
-
-  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-
   if (actions.length === 0) {
     return null;
   }
 
   return actions;
+}
+
+/**
+ * Provides the correct text for the dropdown menu based on the field.
+ * @param field column field name
+ */
+function getCellActionText(field: string): string {
+  switch (field) {
+    case SpanFields.ID:
+    case SpanFields.TRACE:
+      return t('Open trace');
+    case 'project':
+    case 'project_id':
+    case 'project.id':
+      return t('Open project');
+    case 'release':
+      return t('View details');
+    case 'issue':
+      return t('Open issue');
+    case 'replay':
+      return t('Open replay');
+    case SpanFields.SPAN_DESCRIPTION:
+      return t('Open summary');
+    default:
+      break;
+  }
+  return t('Open link');
 }
 
 /**
@@ -313,7 +347,7 @@ function CellAction({
   const cellActions = makeCellActions({...props, allowActions: filteredActions});
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
@@ -338,7 +372,18 @@ function CellAction({
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTriggerV2 {...triggerProps} aria-label={t('Actions')}>
+              <ActionMenuTriggerV2
+                {...triggerProps}
+                aria-label={t('Actions')}
+                onClickCapture={e => {
+                  // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
+                  if (e.metaKey || e.shiftKey) {
+                    e.stopPropagation();
+                  } else {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 {children}
               </ActionMenuTriggerV2>
             )}
@@ -350,6 +395,7 @@ function CellAction({
         )}
       </Container>
     );
+  }
 
   return (
     <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
@@ -416,7 +462,7 @@ const ActionMenuTrigger = styled(Button)`
   }
 `;
 
-const ActionMenuTriggerV2 = styled('div')`
+const ActionMenuTriggerV2 = styled('div')<{hasNestedAnchors?: boolean}>`
   :hover {
     cursor: pointer;
     font-weight: ${p => p.theme.fontWeight.bold};
