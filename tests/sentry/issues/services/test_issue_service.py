@@ -85,12 +85,11 @@ class TestIssueService(TestCase):
 
     def test_get_linked_issues(self):
         group = self.create_group(project=self.us_region_context.project)
-        self.create_linked_issue(
+        linked_issue = self.create_linked_issue(
             key="TEST-123",
             region_context=self.us_region_context,
             group=group,
             integration=self.default_jira_integration,
-            title="US Group Link",
         )
 
         response = issue_service.get_linked_issues(
@@ -103,7 +102,7 @@ class TestIssueService(TestCase):
         assert response == [
             RpcLinkedIssueSummary(
                 issue_link=group.get_absolute_url(),
-                title=group.title,
+                date_added=linked_issue.date_added,
             )
         ]
 
@@ -114,7 +113,6 @@ class TestIssueService(TestCase):
             region_context=self.us_region_context,
             group=us_group,
             integration=self.default_jira_integration,
-            title="US Group Link",
         )
 
         de_group = self.create_group(project=self.de_region_context.project)
@@ -123,7 +121,6 @@ class TestIssueService(TestCase):
             region_context=self.de_region_context,
             group=de_group,
             integration=self.default_jira_integration,
-            title="DE Group Link",
         )
 
         response = issue_service.get_linked_issues(
@@ -139,11 +136,11 @@ class TestIssueService(TestCase):
         assert response == [
             RpcLinkedIssueSummary(
                 issue_link=us_group.get_absolute_url(),
-                title=us_linked_issue.title,
+                date_added=us_linked_issue.date_added,
             ),
             RpcLinkedIssueSummary(
                 issue_link=de_group.get_absolute_url(),
-                title=de_linked_issue.title,
+                date_added=de_linked_issue.date_added,
             ),
         ]
 
@@ -159,12 +156,11 @@ class TestIssueService(TestCase):
 
     def test_get_single_linked_issue_when_multiple_organizations_share_integration(self):
         us_group = self.create_group(project=self.us_region_context.project)
-        us_linked_issue = self.create_linked_issue(
+        linked_issue = self.create_linked_issue(
             key="TEST-123",
             region_context=self.us_region_context,
             group=us_group,
             integration=self.default_jira_integration,
-            title="US Group Link",
         )
 
         response = issue_service.get_linked_issues(
@@ -177,7 +173,7 @@ class TestIssueService(TestCase):
         assert response == [
             RpcLinkedIssueSummary(
                 issue_link=us_group.get_absolute_url(),
-                title=us_linked_issue.title,
+                date_added=linked_issue.date_added,
             )
         ]
 
@@ -188,7 +184,6 @@ class TestIssueService(TestCase):
             region_context=self.us_region_context,
             group=us_group,
             integration=self.default_jira_integration,
-            title="US Group Link",
         )
 
         other_integration = self.create_integration(
@@ -205,7 +200,6 @@ class TestIssueService(TestCase):
             region_context=self.us_region_context,
             group=unrelated_us_group,
             integration=other_integration,
-            title="Unrelated US Group Link",
         )
 
         response = issue_service.get_linked_issues(
@@ -218,6 +212,6 @@ class TestIssueService(TestCase):
         assert response == [
             RpcLinkedIssueSummary(
                 issue_link=us_group.get_absolute_url(),
-                title=us_linked_issue.title,
+                date_added=us_linked_issue.date_added,
             )
         ]

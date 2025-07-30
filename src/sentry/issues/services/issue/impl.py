@@ -6,6 +6,7 @@
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.services.issue.model import RpcGroupShareMetadata, RpcLinkedIssueSummary
+from sentry.issues.services.issue.serial import serialize_linked_issue_summary
 from sentry.issues.services.issue.service import IssueService
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -65,6 +66,5 @@ class DatabaseBackedIssueService(IssueService):
         ).order_by("date_added")
 
         return [
-            RpcLinkedIssueSummary.from_external_issue(external_issue)
-            for external_issue in external_issues
+            serialize_linked_issue_summary(external_issue) for external_issue in external_issues
         ]
