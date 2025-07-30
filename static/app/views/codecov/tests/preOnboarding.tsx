@@ -155,34 +155,42 @@ export default function TestPreOnboardingPage() {
 }
 
 const IntroSection = styled('div')`
-  padding: 44px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  min-height: 300px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 44px 40px;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    padding: ${p => p.theme.space['2xl']} 40px;
     flex-wrap: wrap;
-    gap: 0;
-    min-height: 300px;
-    max-width: 1000px;
-    margin: 0 auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    gap: 90px;
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    gap: 0;
   }
 `;
 
 const ImgContainer = styled('div')`
+  flex: 0 0 418px;
+
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
+    flex: 1 0 100%;
   }
-  width: 1 1 418px;
 `;
 
 const StyledDiv = styled('div')`
   flex: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex: 1 0 100%;
+    margin-top: ${p => p.theme.space['2xl']};
+  }
 `;
 
 const SpacedParagraph = styled('p')`
