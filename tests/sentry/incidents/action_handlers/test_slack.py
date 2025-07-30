@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -21,7 +21,7 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
@@ -29,7 +29,7 @@ from . import FireTest
 
 
 @freeze_time()
-@apply_feature_flag_on_cls("organizations:metric-alert-thread-flag")
+@with_feature("organizations:metric-alert-thread-flag")
 class SlackActionHandlerTest(FireTest):
     @pytest.fixture(autouse=True)
     def mock_chat_postEphemeral(self):
@@ -120,7 +120,9 @@ class SlackActionHandlerTest(FireTest):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_fire_metric_alert_sdk(self, mock_post, mock_api_call, mock_record):
+    def test_fire_metric_alert_sdk(
+        self, mock_post: MagicMock, mock_api_call: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -142,7 +144,7 @@ class SlackActionHandlerTest(FireTest):
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert_sdk_error(self, mock_record):
+    def test_fire_metric_alert_sdk_error(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
 
         assert NotificationMessage.objects.all().count() == 1
@@ -163,7 +165,7 @@ class SlackActionHandlerTest(FireTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_fire_metric_alert_slo_halt(self, mock_post, mock_record):
+    def test_fire_metric_alert_slo_halt(self, mock_post: MagicMock, mock_record: MagicMock) -> None:
         mock_post.side_effect = SlackApiError(
             message="account_inactive",
             response=SlackResponse(
@@ -189,7 +191,9 @@ class SlackActionHandlerTest(FireTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_resolve_metric_alert_no_threading(self, mock_post, mock_record):
+    def test_resolve_metric_alert_no_threading(
+        self, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         OrganizationOption.objects.set_value(
             self.organization, "sentry:metric_alerts_thread_flag", False
         )
@@ -216,7 +220,9 @@ class SlackActionHandlerTest(FireTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_resolve_metric_alert_with_threading(self, mock_post, mock_record):
+    def test_resolve_metric_alert_with_threading(
+        self, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
         )
@@ -271,7 +277,7 @@ class SlackActionHandlerTest(FireTest):
             )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_rule_snoozed(self, mock_post):
+    def test_rule_snoozed(self, mock_post: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
@@ -289,7 +295,7 @@ class SlackActionHandlerTest(FireTest):
         assert not mock_post.called
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_rule_snoozed_by_user_still_sends(self, mock_post):
+    def test_rule_snoozed_by_user_still_sends(self, mock_post: MagicMock) -> None:
         """We shouldn't be able to get into this state from the UI, but this test ensures that if an alert whose action
         is to notify an integration is muted for a specific user, that the alert still fires because it should only NOT
         fire if it's muted for everyone"""
@@ -311,7 +317,7 @@ class SlackActionHandlerTest(FireTest):
 
     @patch("sentry.analytics.record")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_alert_sent_recorded(self, mock_api_call, mock_record):
+    def test_alert_sent_recorded(self, mock_api_call: MagicMock, mock_record: MagicMock) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -334,7 +340,9 @@ class SlackActionHandlerTest(FireTest):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_update_metric_alert_in_thread(self, mock_post, mock_api_call, mock_record_event):
+    def test_update_metric_alert_in_thread(
+        self, mock_post: MagicMock, mock_api_call: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """
         Tests that subsequent alerts for the same incident are posted as replies
         in a thread, and that critical alerts broadcast to the channel.

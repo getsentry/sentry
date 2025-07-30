@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from jwt import ExpiredSignatureError
@@ -80,7 +80,7 @@ class JiraIssueHookTest(APITestCase):
         "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
         side_effect=ExpiredSignatureError(),
     )
-    def test_expired_signature_error(self, mock_get_integration_from_request):
+    def test_expired_signature_error(self, mock_get_integration_from_request: MagicMock) -> None:
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert REFRESH_REQUIRED in response.content
@@ -89,7 +89,9 @@ class JiraIssueHookTest(APITestCase):
         "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
         side_effect=AtlassianConnectValidationError(),
     )
-    def test_expired_invalid_installation_error(self, mock_get_integration_from_request):
+    def test_expired_invalid_installation_error(
+        self, mock_get_integration_from_request: MagicMock
+    ) -> None:
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
@@ -97,7 +99,9 @@ class JiraIssueHookTest(APITestCase):
     @patch.object(Group, "get_last_release")
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
-    def test_simple_get(self, mock_get_integration_from_request, mock_get_last_release):
+    def test_simple_get(
+        self, mock_get_integration_from_request: MagicMock, mock_get_last_release: MagicMock
+    ) -> None:
         responses.add(
             responses.PUT, self.properties_url % (self.issue_key, self.properties_key), json={}
         )
@@ -117,7 +121,9 @@ class JiraIssueHookTest(APITestCase):
     @patch.object(Group, "get_last_release")
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
-    def test_multiple_issues(self, mock_get_integration_from_request, mock_get_last_release):
+    def test_multiple_issues(
+        self, mock_get_integration_from_request: MagicMock, mock_get_last_release: MagicMock
+    ) -> None:
         responses.add(
             responses.PUT, self.properties_url % (self.issue_key, self.properties_key), json={}
         )
@@ -147,7 +153,7 @@ class JiraIssueHookTest(APITestCase):
 
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
-    def test_simple_not_linked(self, mock_get_integration_from_request):
+    def test_simple_not_linked(self, mock_get_integration_from_request: MagicMock) -> None:
         issue_key = "bad-key"
         responses.add(
             responses.PUT, self.properties_url % (issue_key, self.properties_key), json={}

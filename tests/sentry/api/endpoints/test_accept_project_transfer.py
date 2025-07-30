@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -141,7 +141,7 @@ class AcceptTransferProjectTest(APITestCase):
         assert p.organization_id != rando_org.id
 
     @patch("sentry.signals.project_transferred.send_robust")
-    def test_transfers_project_to_correct_organization(self, send_robust):
+    def test_transfers_project_to_correct_organization(self, send_robust: MagicMock) -> None:
         self.login_as(self.owner)
         url_data = sign(
             salt=SALT,
@@ -162,7 +162,7 @@ class AcceptTransferProjectTest(APITestCase):
         assert send_robust.called
 
     @patch("sentry.signals.project_transferred.send_robust")
-    def test_use_org_when_team_and_org_provided(self, send_robust):
+    def test_use_org_when_team_and_org_provided(self, send_robust: MagicMock) -> None:
         self.login_as(self.owner)
         url_data = sign(
             salt=SALT,
