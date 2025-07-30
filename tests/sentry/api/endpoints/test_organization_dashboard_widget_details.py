@@ -1352,7 +1352,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_valid_widget_type_with_transactions_deprecation_flag(self) -> None:
+    def test_new_transactions_widget_with_transactions_deprecation_flag(self) -> None:
         with self.feature("organizations:discover-saved-queries-deprecation"):
             data = {
                 "title": "Test Query",
@@ -1379,3 +1379,29 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 response.data["widgetType"][0]
                 == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
             )
+
+    def test_update_transaction_widget_type_with_transactions_deprecation_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "id": "1234",
+                "title": "Test Query",
+                "widgetType": "transaction-like",
+                "displayType": "table",
+                "queries": [
+                    {
+                        "name": "transaction query",
+                        "conditions": "",
+                        "fields": ["count()"],
+                        "columns": [],
+                        "aggregates": ["count()"],
+                    }
+                ],
+            }
+
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            # we need to allow updates to the title of existing transaction widgets
+            assert response.status_code == 200, response.data
