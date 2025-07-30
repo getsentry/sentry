@@ -1,3 +1,4 @@
+import copy
 import posixpath
 from collections.abc import Mapping
 from timeit import default_timer as timer
@@ -24,11 +25,11 @@ class AppleCrashReport:
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
     ):
         self.time_spent_parsing_addrs = 0.0
-        self.threads = threads
+        self.threads = copy.deepcopy(threads)
         self.context = context
-        self.debug_images = debug_images
+        self.debug_images = copy.deepcopy(debug_images)
         self.symbolicated = symbolicated
-        self.exceptions = exceptions
+        self.exceptions = copy.deepcopy(exceptions)
         self.image_addrs_to_vmaddrs = {}
 
         # Replace sundry addresses in frames and debug images by their
