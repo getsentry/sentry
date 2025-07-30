@@ -66,7 +66,7 @@ class AddColWithDefaultTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_add_field_default"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Adding TestTable.field as a not null column with no default is unsafe. "
@@ -80,7 +80,7 @@ class AddColWithNotNullDefaultTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_add_field_notnull_default"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Adding TestTable.field as a not null column with no default is unsafe. Provide a default using db_default.",
@@ -93,7 +93,7 @@ class AddColWithNotNullDbDefaultTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_add_field_notnull_db_default"
 
-    def test(self):
+    def test(self) -> None:
         self.run_migration()
 
 
@@ -102,7 +102,7 @@ class AddColWithNotNullTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_add_field_notnull"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Adding TestTable.field as a not null column with no default is unsafe. Provide a default using db_default",
@@ -115,7 +115,7 @@ class ChangeCharTypeUnsafeTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_change_type_from_char120_to_char100"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Altering the type of column TestTable.field in this way is unsafe",
@@ -128,7 +128,7 @@ class ChangeDecimalToFloatTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_type_conversion"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Altering the type of column Value.amount in this way is unsafe",
@@ -141,7 +141,7 @@ class RenameTableTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_rename_table"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Renaming table for model NewTable from bad_flow_rename_table_app_testtable to bad_flow_rename_table_app_newtable is unsafe",
@@ -154,7 +154,7 @@ class RenameFieldTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_rename_field"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException, match="Renaming column TestTable.field to new_field is unsafe"
         ):
@@ -166,7 +166,7 @@ class DeleteModelTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_delete_model"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Deleting the TestTable model is unsafe.",
@@ -179,7 +179,7 @@ class RemoveFieldTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0002_remove_field"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Removing the TestTable.field field is unsafe",
@@ -192,7 +192,7 @@ class RunSqlDisabledTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0001_initial"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Using `RunSQL` is unsafe because our migrations safety framework can't detect problems with the "
@@ -206,7 +206,7 @@ class RunSqlDisabledNestedTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0001_initial"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Using `RunSQL` is unsafe because our migrations safety framework can't detect problems with the "
@@ -220,7 +220,7 @@ class SafeRunSqlWithRunSqlDisabledTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0001_initial"
 
-    def test(self):
+    def test(self) -> None:
         self.run_migration()
 
 
@@ -229,14 +229,14 @@ class DeleteModelCorrectTest(BaseSafeMigrationTest):
     migrate_from = "0001_initial"
     migrate_to = "0003_delete_table"
 
-    def test(self):
+    def test(self) -> None:
         self.run_migration()
 
 
 class SafeRunSQLLockTimeoutTest(BaseSafeMigrationTest):
     app = "safe_run_sql_app"
 
-    def test(self):
+    def test(self) -> None:
         with override_settings(
             ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="5s",
             ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT="5s",
@@ -280,7 +280,7 @@ class DeletionModelBadDeleteWithoutPendingTest(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0002"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Model must be in the pending deletion state before full deletion",
@@ -293,7 +293,7 @@ class DeletionModelBadDeleteDoublePendingTest(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             LookupError,
             match="App 'bad_flow_delete_model_double_pending_app' doesn't have a 'TestTable' model",
@@ -306,7 +306,7 @@ class DeletionModelBadDeletePendingWithFKConstraints(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0002"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Foreign key db constraints must be removed before dropping "
@@ -321,7 +321,7 @@ class DeletionModelGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
 
         self._run_migration(self.app, "0001_initial")
         assert f"{self.app}_testtable" in connection.introspection.table_names()
@@ -336,7 +336,7 @@ class DeletionModelGoodDeleteSimple(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         self._run_migration(self.app, "0001_initial")
         assert f"{self.app}_testtable" in connection.introspection.table_names()
         self._run_migration(self.app, "0002_set_pending")
@@ -350,7 +350,7 @@ class DeletionFieldBadDeleteWithoutPendingTest(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0002"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Field must be in the pending deletion state before full deletion",
@@ -363,7 +363,7 @@ class DeletionFieldBadDeleteDoublePendingTest(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             FieldDoesNotExist,
             match="TestTable has no field named 'field'",
@@ -376,7 +376,7 @@ class DeletionFieldBadDeletePendingWithFKConstraint(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0002"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Foreign key db constraint must be removed before dropping "
@@ -390,7 +390,7 @@ class DeletionFieldBadDeletePendingWithNotNull(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0002"
 
-    def test(self):
+    def test(self) -> None:
         with pytest.raises(
             UnsafeOperationException,
             match="Field bad_flow_delete_field_pending_with_not_null_app.testtable.field "
@@ -404,7 +404,7 @@ class DeletionFieldGoodDeletePendingWithNotNullM2M(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0002"
 
-    def test(self):
+    def test(self) -> None:
         self.run_migration()
 
 
@@ -423,7 +423,7 @@ class DeletionFieldGoodDeletePendingWithFKConstraint(BaseSafeMigrationTest, ColE
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         self._run_migration(self.app, "0001_initial")
         assert self.col_exists("fk_table_id")
         self._run_migration(self.app, "0002_remove_constraints_and_pending")
@@ -437,7 +437,7 @@ class DeletionFieldGoodDeletePendingWithNotNull(BaseSafeMigrationTest, ColExists
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         self._run_migration(self.app, "0001_initial")
         assert self.col_exists("field")
         self._run_migration(self.app, "0002_remove_not_null_and_pending")
@@ -451,7 +451,7 @@ class DeletionFieldGoodDeleteSimple(BaseSafeMigrationTest, ColExistsMixin):
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         self._run_migration(self.app, "0001_initial")
         assert self.col_exists("field")
         self._run_migration(self.app, "0002_set_pending")
@@ -465,7 +465,7 @@ class DeletionFieldGoodDeleteSimpleLockTimeoutTest(BaseSafeMigrationTest):
     migrate_from = "0001"
     migrate_to = "0003"
 
-    def test(self):
+    def test(self) -> None:
         with override_settings(
             ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="5s",
             ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT="5s",

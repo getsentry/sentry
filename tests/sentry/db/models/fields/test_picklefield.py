@@ -13,7 +13,7 @@ class JsonWritingPickleModel(models.Model):
 
 
 @pytest.mark.django_db
-def test_json_by_default():
+def test_json_by_default() -> None:
     obj = JsonWritingPickleModel.objects.create(
         data={"foo": "bar2"},
     )
@@ -38,11 +38,11 @@ def test_json_by_default():
     assert obj.data == {"foo": "bar"}
 
 
-def test_to_python_int():
+def test_to_python_int() -> None:
     obj = picklefield.PickledObjectField()
     assert obj.to_python(9) == 9
 
 
-def test_to_python_bool():
+def test_to_python_bool() -> None:
     obj = picklefield.PickledObjectField()
     assert obj.to_python(True) is True

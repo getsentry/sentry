@@ -67,7 +67,11 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {
+  HiddenColumnEditorLogFields,
+  HiddenLogSearchFields,
+} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -168,7 +172,7 @@ export function LogsTabContent({
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: groupBy?.length ? 5 : undefined,
+      topEvents: groupBy ? TOP_EVENTS_LIMIT : undefined,
       orderby,
     },
     'explore.ourlogs.main-chart',
@@ -180,10 +184,16 @@ export function LogsTabContent({
     timeseriesIngestDelay
   );
 
-  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemAttributes('string');
-  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemAttributes('number');
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemAttributes('string', HiddenLogSearchFields);
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemAttributes('number', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -218,6 +228,8 @@ export function LogsTabContent({
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
   };
 
   const supportedAggregates = useMemo(() => {

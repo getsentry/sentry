@@ -38,6 +38,8 @@ S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` 
 
 S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
+S014_msg = "S014 Use `unittest.mock` instead"
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -103,6 +105,12 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if node.id == "print":
             self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_arg(self, node: ast.arg) -> None:
+        if node.arg == "monkeypatch":
+            self.errors.append((node.lineno, node.col_offset, S014_msg))
 
         self.generic_visit(node)
 

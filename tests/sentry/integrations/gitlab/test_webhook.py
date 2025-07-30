@@ -42,12 +42,12 @@ class WebhookTest(GitLabTestCase):
         assert link.linked_type == GroupLink.LinkedType.pull_request
         assert link.linked_id == pull.id
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 405
         assert response.reason_phrase == "HTTP method not supported."
 
-    def test_missing_x_gitlab_token(self):
+    def test_missing_x_gitlab_token(self) -> None:
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -59,7 +59,7 @@ class WebhookTest(GitLabTestCase):
             response.reason_phrase == "The customer needs to set a Secret Token in their webhook."
         )
 
-    def test_unknown_event(self):
+    def test_unknown_event(self) -> None:
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -73,7 +73,7 @@ class WebhookTest(GitLabTestCase):
             == "The customer has edited the webhook in Gitlab to include other types of events."
         )
 
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -84,7 +84,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 400
         assert response.reason_phrase == "The customer's Secret Token is malformed."
 
-    def test_valid_id_invalid_secret(self):
+    def test_valid_id_invalid_secret(self) -> None:
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -98,7 +98,7 @@ class WebhookTest(GitLabTestCase):
             == "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."
         )
 
-    def test_invalid_payload(self):
+    def test_invalid_payload(self) -> None:
         response = self.client.post(
             self.url,
             data="lol not json",
@@ -109,7 +109,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 400
         assert response.reason_phrase == "Data received is not JSON."
 
-    def test_push_event_missing_repo(self):
+    def test_push_event_missing_repo(self) -> None:
         response = self.client.post(
             self.url,
             data=PUSH_EVENT,
@@ -140,7 +140,7 @@ class WebhookTest(GitLabTestCase):
 
         assert_failure_metric(mock_record, error)
 
-    def test_push_event_multiple_organizations_one_missing_repo(self):
+    def test_push_event_multiple_organizations_one_missing_repo(self) -> None:
         # Create a repo on the primary organization
         repo = self.create_gitlab_repo("getsentry/sentry")
 
@@ -163,7 +163,7 @@ class WebhookTest(GitLabTestCase):
             assert commit.organization_id == self.organization.id
             assert commit.repository_id == repo.id
 
-    def test_push_event_multiple_organizations(self):
+    def test_push_event_multiple_organizations(self) -> None:
         # Create a repo on the primary organization
         repo = self.create_gitlab_repo("getsentry/sentry")
 
@@ -194,7 +194,7 @@ class WebhookTest(GitLabTestCase):
         for commit in commits:
             assert commit.organization_id == other_org.id
 
-    def test_push_event_create_commits_and_authors(self):
+    def test_push_event_create_commits_and_authors(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
@@ -223,7 +223,7 @@ class WebhookTest(GitLabTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
-    def test_push_event_create_commits_with_no_author_email(self):
+    def test_push_event_create_commits_with_no_author_email(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         push_event = orjson.loads(PUSH_EVENT)
         push_event["commits"][0]["author"]["email"] = None
@@ -258,7 +258,7 @@ class WebhookTest(GitLabTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
-    def test_push_event_ignore_commit(self):
+    def test_push_event_ignore_commit(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(
             self.url,
@@ -270,7 +270,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 204
         assert 0 == Commit.objects.count()
 
-    def test_push_event_known_author(self):
+    def test_push_event_known_author(self) -> None:
         CommitAuthor.objects.create(
             organization_id=self.organization.id, email="jordi@example.org", name="Jordi"
         )
@@ -285,7 +285,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 204
         assert 2 == CommitAuthor.objects.count(), "No dupes made"
 
-    def test_merge_event_missing_repo(self):
+    def test_merge_event_missing_repo(self) -> None:
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
@@ -388,7 +388,7 @@ class WebhookTest(GitLabTestCase):
 
         assert mock_delay.call_count == 0
 
-    def test_update_repo_path(self):
+    def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"
         )
@@ -412,7 +412,7 @@ class WebhookTest(GitLabTestCase):
         repo_out_of_date_path.refresh_from_db()
         assert repo_out_of_date_path.config["path"] == "cool-group/sentry"
 
-    def test_update_repo_url(self):
+    def test_update_repo_url(self) -> None:
         repo_out_of_date_url = self.create_gitlab_repo(
             name="Cool Group / Sentry",
             url="http://example.com/uncool-group/sentry",  # url out of date
@@ -435,7 +435,7 @@ class WebhookTest(GitLabTestCase):
         repo_out_of_date_url.refresh_from_db()
         assert repo_out_of_date_url.url == "http://example.com/cool-group/sentry"
 
-    def test_no_valid_integration_for_organization(self):
+    def test_no_valid_integration_for_organization(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         self.create_group(project=self.project, short_id=9)
 

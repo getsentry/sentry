@@ -11,10 +11,10 @@ from sentry.utils.outcomes import Outcome
 
 
 class QuotaTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = Quota()
 
-    def test_get_project_quota(self):
+    def test_get_project_quota(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -30,7 +30,7 @@ class QuotaTest(TestCase):
             with self.options({"system.rate-limit": 0}):
                 assert self.backend.get_project_quota(project) == (None, 60)
 
-    def test_get_project_quota_use_cache(self):
+    def test_get_project_quota_use_cache(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -44,19 +44,19 @@ class QuotaTest(TestCase):
         ):
             assert self.backend.get_project_quota(project) == (None, 60)
 
-    def test_get_key_quota(self):
+    def test_get_key_quota(self) -> None:
         key = ProjectKey.objects.create(
             project=self.project, rate_limit_window=5, rate_limit_count=60
         )
         assert self.backend.get_key_quota(key) == (60, 5)
 
-    def test_get_key_quota_empty(self):
+    def test_get_key_quota_empty(self) -> None:
         key = ProjectKey.objects.create(
             project=self.project, rate_limit_window=None, rate_limit_count=None
         )
         assert self.backend.get_key_quota(key) == (None, 0)
 
-    def test_get_key_quota_multiple_keys(self):
+    def test_get_key_quota_multiple_keys(self) -> None:
         # This checks for a regression where we'd cache key quotas per project
         # rather than per key.
         key = ProjectKey.objects.create(
@@ -68,25 +68,25 @@ class QuotaTest(TestCase):
         assert self.backend.get_key_quota(key) == (None, 0)
         assert self.backend.get_key_quota(rate_limited_key) == (86400, 200)
 
-    def test_get_organization_quota_with_account_limit_and_higher_system_limit(self):
+    def test_get_organization_quota_with_account_limit_and_higher_system_limit(self) -> None:
         org = self.create_organization()
         OrganizationOption.objects.set_value(org, "sentry:account-rate-limit", 3600)
         with self.options({"system.rate-limit": 61}):
             assert self.backend.get_organization_quota(org) == (3600, 3600)
 
-    def test_get_organization_quota_with_account_limit_and_lower_system_limit(self):
+    def test_get_organization_quota_with_account_limit_and_lower_system_limit(self) -> None:
         org = self.create_organization()
         OrganizationOption.objects.set_value(org, "sentry:account-rate-limit", 3600)
         with self.options({"system.rate-limit": 59}):
             assert self.backend.get_organization_quota(org) == (59, 60)
 
-    def test_get_organization_quota_with_account_limit_and_no_system_limit(self):
+    def test_get_organization_quota_with_account_limit_and_no_system_limit(self) -> None:
         org = self.create_organization()
         OrganizationOption.objects.set_value(org, "sentry:account-rate-limit", 3600)
         with self.options({"system.rate-limit": 0}):
             assert self.backend.get_organization_quota(org) == (3600, 3600)
 
-    def test_get_organization_quota_with_no_account_limit_and_system_limit(self):
+    def test_get_organization_quota_with_no_account_limit_and_system_limit(self) -> None:
         org = self.create_organization()
         with (
             self.settings(
@@ -108,11 +108,11 @@ class QuotaTest(TestCase):
         ):
             assert self.backend.get_organization_quota(org) == (10, 60)
 
-    def test_get_blended_sample_rate(self):
+    def test_get_blended_sample_rate(self) -> None:
         org = self.create_organization()
         assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
 
-    def test_assign_monitor_seat(self):
+    def test_assign_monitor_seat(self) -> None:
         monitor = Monitor.objects.create(
             slug="test-monitor",
             organization_id=self.organization.id,
@@ -122,7 +122,7 @@ class QuotaTest(TestCase):
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
 
-    def test_check_accept_monitor_checkin(self):
+    def test_check_accept_monitor_checkin(self) -> None:
         monitor = Monitor.objects.create(
             slug="test-monitor",
             organization_id=self.organization.id,
@@ -189,7 +189,7 @@ def test_quotas_to_json(obj, json):
     assert obj.to_json() == json
 
 
-def test_seat_assignable_must_have_reason():
+def test_seat_assignable_must_have_reason() -> None:
     with pytest.raises(ValueError):
         SeatAssignmentResult(assignable=False)
     SeatAssignmentResult(assignable=False, reason="because I said so")

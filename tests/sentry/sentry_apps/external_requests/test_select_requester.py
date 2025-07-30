@@ -25,7 +25,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestSelectRequester(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")
@@ -187,7 +187,7 @@ class TestSelectRequester(TestCase):
         )
 
     @responses.activate
-    def test_500_response(self):
+    def test_500_response(self) -> None:
         responses.add(
             method=responses.GET,
             url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",

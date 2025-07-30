@@ -51,7 +51,7 @@ class GithubSearchTest(APITestCase):
             }
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self._create_integration()
         identity = Identity.objects.create(
@@ -107,7 +107,7 @@ class GithubSearchTest(APITestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_finds_external_issue_results_with_id(self):
+    def test_finds_external_issue_results_with_id(self) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%2025",
@@ -183,7 +183,7 @@ class GithubSearchTest(APITestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_finds_no_external_issues_results(self):
+    def test_finds_no_external_issues_results(self) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/search/issues?q=repo:example%20nope",
@@ -197,7 +197,7 @@ class GithubSearchTest(APITestCase):
         assert resp.data == []
 
     @responses.activate
-    def test_finds_no_project_results(self):
+    def test_finds_no_project_results(self) -> None:
         responses.add(responses.GET, self._build_repo_query_path(query="nope"), json={})
         resp = self.client.get(self.url, data={"field": "repo", "query": "nope"})
 
@@ -303,7 +303,7 @@ class GithubSearchTest(APITestCase):
             mock_record, SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_FIELD.value
         )
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         resp = self.client.get(self.url, data={"field": "invalid-field", "query": "nope"})
 
         assert resp.status_code == 400
@@ -335,7 +335,7 @@ class GithubSearchTest(APITestCase):
             mock_record, SourceCodeSearchEndpointHaltReason.MISSING_INTEGRATION.value
         )
 
-    def test_missing_installation(self):
+    def test_missing_installation(self) -> None:
         # remove organization integration aka "uninstalling" installation
         org_integration = OrganizationIntegration.objects.get(
             id=self.installation.org_integration.id
@@ -348,7 +348,7 @@ class GithubSearchTest(APITestCase):
 
     # Distributed System Issues
     @responses.activate
-    def test_search_issues_request_fails(self):
+    def test_search_issues_request_fails(self) -> None:
         responses.add(
             responses.GET, self.base_url + "/search/issues?q=repo:example%20ex", status=503
         )
@@ -358,7 +358,7 @@ class GithubSearchTest(APITestCase):
         assert resp.status_code == 503
 
     @responses.activate
-    def test_projects_request_fails(self):
+    def test_projects_request_fails(self) -> None:
         responses.add(
             responses.GET, self.base_url + "/search/repositories?q=org:test%20ex", status=503
         )

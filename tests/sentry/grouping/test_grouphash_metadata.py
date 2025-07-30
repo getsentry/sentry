@@ -68,7 +68,7 @@ def test_variants_with_full_pipeline(
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
     default_project: Project,
-):
+) -> None:
     """
     Run the grouphash metadata snapshot tests using the full `EventManager.save` process.
 
@@ -192,7 +192,7 @@ def _assert_and_snapshot_results(
 
 @django_db_all
 class GroupHashMetadataTest(TestCase):
-    def test_check_grouphashes_for_positive_fingerprint_match(self):
+    def test_check_grouphashes_for_positive_fingerprint_match(self) -> None:
         grouphash1 = GroupHash.objects.create(hash="dogs", project_id=self.project.id)
         grouphash2 = GroupHash.objects.create(hash="are great", project_id=self.project.id)
 

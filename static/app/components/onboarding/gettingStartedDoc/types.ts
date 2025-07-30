@@ -144,6 +144,7 @@ export enum ProductSolution {
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
   PROFILING = 'profiling',
+  LOGS = 'logs',
 }
 
 export interface DocsParams<
@@ -152,6 +153,7 @@ export interface DocsParams<
   api: Client;
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
+  isLogsSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;

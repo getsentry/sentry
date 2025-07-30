@@ -37,7 +37,7 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_invalid_webhook(self):
+    def test_invalid_webhook(self) -> None:
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             return
 
@@ -52,7 +52,7 @@ class GithubRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_no_organization_integration_found(self):
+    def test_routing_no_organization_integration_found(self) -> None:
         integration = self.get_integration()
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))):
             # Remove all organizations from integration
@@ -72,7 +72,7 @@ class GithubRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_no_integration_found(self):
+    def test_routing_no_integration_found(self) -> None:
         self.get_integration()
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
@@ -86,7 +86,7 @@ class GithubRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_search_properly(self):
+    def test_routing_search_properly(self) -> None:
         path = reverse(
             "sentry-integration-github-search",
             kwargs={
@@ -107,7 +107,7 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request(self):
+    def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
@@ -118,7 +118,7 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_webhook_outbox_creation(self):
+    def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
@@ -138,7 +138,7 @@ class GithubRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_installation_created_routing(self):
+    def test_installation_created_routing(self) -> None:
         self.get_integration()
         request = self.factory.post(
             reverse("sentry-integration-github-webhook"),
@@ -154,7 +154,7 @@ class GithubRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    def test_installation_deleted_routing(self):
+    def test_installation_deleted_routing(self) -> None:
         request = self.factory.post(
             reverse("sentry-integration-github-webhook"),
             data={"installation": {"id": "github:1"}, "action": "deleted"},

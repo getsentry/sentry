@@ -3,6 +3,7 @@ from unittest.mock import patch
 import orjson
 import responses
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
@@ -12,6 +13,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
@@ -36,7 +38,7 @@ SERVICES = [
 class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.project_rule = self.create_project_rule(name="Check #project-channel")
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration, org_integration = self.create_provider_integration_for(
@@ -106,16 +108,17 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["links"][0]["href"] == event.group.get_absolute_url(
             params={"referrer": "pagerduty_integration", "notification_uuid": notification_uuid}
         )
-
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="pagerduty",
-            alert_id=self.project_rule.id,
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=event.project_id,
-            external_id=str(self.service["id"]),
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="pagerduty",
+                alert_id=self.project_rule.id,
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                external_id=str(self.service["id"]),
+                notification_uuid=notification_uuid,
+            ),
         )
         mock_record.assert_any_call(
             "integrations.pagerduty.notification_sent",
@@ -128,7 +131,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
     @responses.activate
-    def test_applies_correctly_performance_issue(self):
+    def test_applies_correctly_performance_issue(self) -> None:
         event = self.create_performance_issue()
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
         results = list(rule.after(event=event))
@@ -154,7 +157,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["payload"]["custom_details"]["title"] == perf_issue_title
 
     @responses.activate
-    def test_applies_correctly_generic_issue(self):
+    def test_applies_correctly_generic_issue(self) -> None:
         occurrence = TEST_ISSUE_OCCURRENCE
         event = self.store_event(
             data={
@@ -190,7 +193,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["payload"]["custom_details"]["title"] == occurrence.issue_title
 
     @responses.activate
-    def test_truncates_summary(self):
+    def test_truncates_summary(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -226,7 +229,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(data["payload"]["summary"]) == PAGERDUTY_SUMMARY_MAX_LENGTH
         assert data["payload"]["summary"].endswith("...")
 
-    def test_render_label_without_severity(self):
+    def test_render_label_without_severity(self) -> None:
         rule_data = {
             "account": self.integration.id,
             "service": self.service["id"],
@@ -238,7 +241,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             == "Send a notification to PagerDuty account Example and service Critical with default severity"
         )
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         rule_data = {
             "account": self.integration.id,
             "service": self.service["id"],
@@ -251,7 +254,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             == "Send a notification to PagerDuty account Example and service Critical with warning severity"
         )
 
-    def test_render_label_without_integration(self):
+    def test_render_label_without_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
@@ -267,7 +270,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             == "Send a notification to PagerDuty account [removed] and service [removed] with default severity"
         )
 
-    def test_valid_service_options(self):
+    def test_valid_service_options(self) -> None:
         # create new org that has the same pd account but different a service added
         new_org = self.create_organization(name="New Org", owner=self.user)
 
@@ -294,14 +297,14 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert service_options == rule.form_fields["service"]["choices"]
 
     @responses.activate
-    def test_valid_service_selected(self):
+    def test_valid_service_selected(self) -> None:
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
 
         form = rule.get_form_instance()
         assert form.is_valid()
 
     @responses.activate
-    def test_notifies_with_multiple_pd_accounts(self):
+    def test_notifies_with_multiple_pd_accounts(self) -> None:
         # make another PagerDuty account and service for the same organization
         service_info = {
             "type": "service",

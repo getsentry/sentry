@@ -25,7 +25,7 @@ from sentry.utils.samples import load_data
 
 
 class TestConvertProfileToExecutionTree(TestCase):
-    def test_convert_profile_to_execution_tree(self):
+    def test_convert_profile_to_execution_tree(self) -> None:
         profile_data = {
             "profile": {
                 "frames": [
@@ -77,7 +77,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert child["lineno"] == 20
         assert len(child["children"]) == 0  # No children for the last in_app frame
 
-    def test_convert_profile_to_execution_tree_non_main_thread(self):
+    def test_convert_profile_to_execution_tree_non_main_thread(self) -> None:
         """Test that non-MainThread samples are excluded from execution tree"""
         profile_data = {
             "profile": {
@@ -101,7 +101,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         # Should be empty since no MainThread samples
         assert len(execution_tree) == 0
 
-    def test_convert_profile_to_execution_tree_merges_duplicate_frames(self):
+    def test_convert_profile_to_execution_tree_merges_duplicate_frames(self) -> None:
         """Test that duplicate frames in different samples are merged correctly"""
         profile_data = {
             "profile": {
@@ -129,7 +129,7 @@ class TestConvertProfileToExecutionTree(TestCase):
         assert len(execution_tree) == 1
         assert execution_tree[0]["function"] == "main"
 
-    def test_convert_profile_to_execution_tree_calculates_durations(self):
+    def test_convert_profile_to_execution_tree_calculates_durations(self) -> None:
         """Test that durations are correctly calculated for nodes in the execution tree"""
         profile_data = {
             "profile": {
@@ -222,7 +222,7 @@ class TestConvertProfileToExecutionTree(TestCase):
 @requires_snuba
 @pytest.mark.django_db
 class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
-    def test_get_trace_tree_for_event(self):
+    def test_get_trace_tree_for_event(self) -> None:
         """
         Tests that a trace tree is correctly created with the expected structure:
 
@@ -1169,7 +1169,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1273,7 +1273,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1313,7 +1313,7 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1427,7 +1427,7 @@ class TestCallAutofix(TestCase):
 
 
 class TestRespondWithError(TestCase):
-    def test_respond_with_error(self):
+    def test_respond_with_error(self) -> None:
         """Tests that the _respond_with_error function returns the expected Response object."""
         response = _respond_with_error("Test error message", 400)
 
@@ -1436,7 +1436,7 @@ class TestRespondWithError(TestCase):
 
 
 class TestBuildSpansTree(TestCase):
-    def test_build_spans_tree_basic(self):
+    def test_build_spans_tree_basic(self) -> None:
         """Test that a simple list of spans is correctly converted to a tree."""
         spans_data: list[dict] = [
             {
@@ -1483,7 +1483,7 @@ class TestBuildSpansTree(TestCase):
         grandchild = root["children"][0]["children"][0]
         assert grandchild["span_id"] == "grandchild"
 
-    def test_build_spans_tree_multiple_roots(self):
+    def test_build_spans_tree_multiple_roots(self) -> None:
         """Test that spans with multiple roots are correctly handled."""
         spans_data: list[dict] = [
             {
@@ -1526,7 +1526,7 @@ class TestBuildSpansTree(TestCase):
         assert len(tree[1]["children"]) == 1
         assert tree[1]["children"][0]["span_id"] == "child1"
 
-    def test_build_spans_tree_orphaned_parent(self):
+    def test_build_spans_tree_orphaned_parent(self) -> None:
         """Test that spans with parent_span_id not in the data are treated as roots."""
         spans_data: list[dict] = [
             {
@@ -1553,11 +1553,11 @@ class TestBuildSpansTree(TestCase):
         assert len(tree[0]["children"]) == 1
         assert tree[0]["children"][0]["span_id"] == "span2"
 
-    def test_build_spans_tree_empty_input(self):
+    def test_build_spans_tree_empty_input(self) -> None:
         """Test handling of empty input."""
         assert build_spans_tree([]) == []
 
-    def test_build_spans_tree_missing_span_ids(self):
+    def test_build_spans_tree_missing_span_ids(self) -> None:
         """Test that spans without span_ids are ignored."""
         spans_data: list[dict] = [
             {
@@ -1588,7 +1588,7 @@ class TestBuildSpansTree(TestCase):
         # No children since the other spans had invalid/missing span_ids
         assert len(tree[0]["children"]) == 0
 
-    def test_build_spans_tree_duration_sorting(self):
+    def test_build_spans_tree_duration_sorting(self) -> None:
         """Test that spans are correctly sorted by duration."""
         spans_data: list[dict] = [
             {
@@ -1631,14 +1631,14 @@ class TestBuildSpansTree(TestCase):
 
 
 class TestGetLogsForEvent(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.trace_id = "1234567890abcdef1234567890abcdef"
         self.now = before_now(minutes=0)
 
-    @patch("sentry.snuba.ourlogs.run_table_query")
+    @patch("sentry.snuba.ourlogs.OurLogs.run_table_query")
     def test_merging_consecutive_logs(self, mock_query):
         # Simulate logs with identical message/severity in sequence
         dt = self.now

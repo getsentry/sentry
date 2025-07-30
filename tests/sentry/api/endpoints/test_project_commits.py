@@ -11,7 +11,7 @@ from sentry.testutils.cases import APITestCase
 class ProjectCommitListTest(APITestCase):
     endpoint = "sentry-api-0-project-commits"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="komal")
         version = "1.1"
         repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
@@ -24,7 +24,7 @@ class ProjectCommitListTest(APITestCase):
         response = self.get_success_response(project.organization.slug, project.slug)
         assert [r["id"] for r in response.data] == [commit.key]
 
-    def test_duplicate_released_commits(self):
+    def test_duplicate_released_commits(self) -> None:
         project = self.create_project(name="komal")
         repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
         release = Release.objects.create(organization_id=project.organization_id, version="1.1")
@@ -56,7 +56,7 @@ class ProjectCommitListTest(APITestCase):
         response = self.get_success_response(project.organization.slug, project.slug)
         assert len(response.data) == 1
 
-    def test_query_filter(self):
+    def test_query_filter(self) -> None:
         project = self.create_project(name="komal")
         version = "1.1"
         repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)

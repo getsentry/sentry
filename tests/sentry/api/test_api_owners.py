@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 class APIOwnersTestCase(TestCase):
     teams: set[str] = set()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         code_owners_file = open(".github/CODEOWNERS")
         lines = code_owners_file.readlines()
@@ -16,7 +16,7 @@ class APIOwnersTestCase(TestCase):
                 tokens = [s.strip() for s in line.split("@getsentry/")]
                 self.teams.update(tokens[1:])
 
-    def test_api_owner_owns_api(self):
+    def test_api_owner_owns_api(self) -> None:
         for owner in ApiOwner:
             if owner != ApiOwner.UNOWNED:
                 assert owner.value in self.teams

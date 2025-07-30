@@ -81,7 +81,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
 
 @freeze_time()
 class BuildEventDataForOccurrenceTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
@@ -124,7 +124,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
 
 
 class ResolveUptimeIssueTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         subscription = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex)
         project_subscription = self.create_project_uptime_subscription(
             uptime_subscription=subscription

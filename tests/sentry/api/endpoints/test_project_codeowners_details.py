@@ -5,12 +5,14 @@ from unittest.mock import patch
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
 
         self.login_as(user=self.user)
@@ -55,7 +57,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.codeowner_mock = self.codeowner_patcher.start()
         self.addCleanup(self.codeowner_patcher.stop)
 
-    def test_basic_delete(self):
+    def test_basic_delete(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.delete(self.url)
         assert response.status_code == 204
@@ -89,7 +91,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         codeowner = ProjectCodeOwners.objects.filter(id=self.codeowners.id)[0]
         assert codeowner.date_updated == date
 
-    def test_wrong_codeowners_id(self):
+    def test_wrong_codeowners_id(self) -> None:
         self.url = reverse(
             "sentry-api-0-project-codeowners-details",
             kwargs={
@@ -103,7 +105,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
 
-    def test_missing_external_associations_update(self):
+    def test_missing_external_associations_update(self) -> None:
         data = {
             "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\nsrc/sentry/*       @AnotherUser\n\n"
         }
@@ -120,13 +122,13 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert errors["teams_without_access"] == []
         assert errors["users_without_access"] == []
 
-    def test_invalid_code_mapping_id_update(self):
+    def test_invalid_code_mapping_id_update(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, {"codeMappingId": 500})
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
-    def test_no_duplicates_code_mappings(self):
+    def test_no_duplicates_code_mappings(self) -> None:
         new_code_mapping = self.create_code_mapping(project=self.project, stack_root="blah")
         self.create_codeowners(project=self.project, code_mapping=new_code_mapping)
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -134,7 +136,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
             assert response.status_code == 400
             assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
-    def test_codeowners_email_update(self):
+    def test_codeowners_email_update(self) -> None:
         data = {"raw": f"\n# cool stuff comment\n*.js {self.user.email}\n# good comment\n\n\n"}
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
@@ -162,11 +164,12 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
                 ]
             }
 
-            mock_record.assert_called_with(
-                "codeowners.max_length_exceeded",
-                organization_id=self.organization.id,
+            assert_last_analytics_event(
+                mock_record,
+                CodeOwnersMaxLengthExceeded(
+                    organization_id=self.organization.id,
+                ),
             )
-
             # Test that we allow this to be modified for existing large rows
             code_mapping = self.create_code_mapping(project=self.project, stack_root="/")
             codeowners = self.create_codeowners(

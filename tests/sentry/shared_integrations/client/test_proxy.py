@@ -26,7 +26,7 @@ class IntegrationProxyClientTest(TestCase):
     base_url = "https://example.com"
     test_url = f"{base_url}/get?query=1&user=me"
 
-    def setUp(self):
+    def setUp(self) -> None:
         class TestClient(IntegrationProxyClient):
             integration_type = "integration"
             integration_name = "test"
@@ -35,7 +35,7 @@ class IntegrationProxyClientTest(TestCase):
 
         self.client_cls = TestClient
 
-    def test_infer_organization_is_active(self):
+    def test_infer_organization_is_active(self) -> None:
         integration = self.create_provider_integration(provider="slack", external_id="workspace:1")
         # Share the slack workspace across two organizations
         organization_invalid = self.create_organization()
@@ -60,7 +60,7 @@ class IntegrationProxyClientTest(TestCase):
         assert second_inference is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_authorize_request_noop(self):
+    def test_authorize_request_noop(self) -> None:
         prepared_request = Request(method="GET", url=self.test_url).prepare()
         raw_headers = prepared_request.headers
         client = self.client_cls(org_integration_id=self.oi_id)
@@ -68,7 +68,7 @@ class IntegrationProxyClientTest(TestCase):
         assert prepared_request.headers == raw_headers
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_authorize_request_basic(self):
+    def test_authorize_request_basic(self) -> None:
         prepared_request = Request(method="POST", url=self.test_url).prepare()
 
         def authorize_request(prepared_request):
@@ -200,7 +200,7 @@ class IntegrationProxyClientTest(TestCase):
         assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
 
 
-def test_get_control_silo_ip_address():
+def test_get_control_silo_ip_address() -> None:
     with override_settings(SENTRY_CONTROL_ADDRESS=None):
         assert get_control_silo_ip_address() is None
 

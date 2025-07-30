@@ -21,7 +21,7 @@ def get_sentry_app_avatars(sentry_app: SentryApp):
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -37,7 +37,7 @@ class SentryAppComponentsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_retrieves_all_components(self):
+    def test_retrieves_all_components(self) -> None:
         response = self.get_success_response(self.sentry_app.slug)
 
         assert response.data[0] == {
@@ -58,7 +58,7 @@ class SentryAppComponentsTest(APITestCase):
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -206,7 +206,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert response.data == expected
 
     @responses.activate
-    def test_component_prep_api_error(self):
+    def test_component_prep_api_error(self) -> None:
         responses.add(
             method=responses.GET,
             url="https://example.com/",
@@ -260,7 +260,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert response.data == expected
 
     @responses.activate
-    def test_component_prep_validation_error(self):
+    def test_component_prep_validation_error(self) -> None:
         component1_uris = self._get_component_uris(
             component_field="link", component=self.component1
         )

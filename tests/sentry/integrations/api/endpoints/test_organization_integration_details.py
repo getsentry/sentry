@@ -21,7 +21,7 @@ from sentry.users.models.identity import Identity
 class OrganizationIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -49,7 +49,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 
 @control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
@@ -58,7 +58,7 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
-    def test_update_config(self):
+    def test_update_config(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
         self.get_success_response(self.organization.slug, self.integration.id, **config)
 
@@ -96,7 +96,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 
-    def test_removal(self):
+    def test_removal(self) -> None:
         self.get_success_response(self.organization.slug, self.integration.id)
         assert Integration.objects.filter(id=self.integration.id).exists()
 
@@ -113,7 +113,7 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
@@ -135,7 +135,7 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
-    def test_serialize_organizationintegration_with_create_issue_config_for_jira(self):
+    def test_serialize_organizationintegration_with_create_issue_config_for_jira(self) -> None:
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""
 

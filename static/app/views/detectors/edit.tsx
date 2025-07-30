@@ -1,11 +1,11 @@
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import {EditExistingDetectorForm} from 'sentry/views/detectors/components/forms';
-import {canEditDetector} from 'sentry/views/detectors/components/forms/config';
+import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
 export default function DetectorEdit() {
@@ -19,7 +19,10 @@ export default function DetectorEdit() {
     refetch,
   } = useDetectorQuery(params.detectorId);
 
-  if (isPending) {
+  const {projects, fetching: isFetchingProjects} = useProjects();
+  const project = projects.find(p => p.id === detector?.projectId);
+
+  if (isPending || isFetchingProjects) {
     return <LoadingIndicator />;
   }
 
@@ -27,18 +30,13 @@ export default function DetectorEdit() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const detectorType = detector.type;
-  if (!canEditDetector(detectorType)) {
-    return (
-      <Layout.Page>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <LoadingError message={t('This monitor type is not editable')} />
-          </Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
-    );
+  if (!project) {
+    return <LoadingError message={t('Project not found')} />;
   }
 
-  return <EditExistingDetectorForm detector={detector} detectorType={detectorType} />;
+  return (
+    <DetectorFormProvider detectorType={detector.type} project={project}>
+      <EditExistingDetectorForm detector={detector} />
+    </DetectorFormProvider>
+  );
 }

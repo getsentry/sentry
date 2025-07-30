@@ -17,7 +17,7 @@ class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
 
 
 class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.url = reverse(
@@ -28,7 +28,7 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
         self.dashboard_2 = self.create_dashboard(title="Dashboard 2")
         self.dashboard_3 = self.create_dashboard(title="Dashboard 3")
 
-    def test_get_favorite_dashboards(self):
+    def test_get_favorite_dashboards(self) -> None:
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 2)
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 0)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 1)
@@ -47,7 +47,7 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
             self.dashboard_1.id,
         ]
 
-    def test_get_request_assigns_positions_if_missing(self):
+    def test_get_request_assigns_positions_if_missing(self) -> None:
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, None)
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 2)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, None)
@@ -84,7 +84,7 @@ class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
 
 
 class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.url = reverse(
@@ -95,7 +95,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
         self.dashboard_2 = self.create_dashboard(title="Dashboard 2")
         self.dashboard_3 = self.create_dashboard(title="Dashboard 3")
 
-    def test_reorder_dashboards(self):
+    def test_reorder_dashboards(self) -> None:
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 0)
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)
@@ -132,7 +132,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
             self.dashboard_2.id,
         ]
 
-    def test_throws_an_error_if_dashboard_ids_are_not_unique(self):
+    def test_throws_an_error_if_dashboard_ids_are_not_unique(self) -> None:
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 0)
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)
@@ -147,7 +147,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
             "dashboard_ids": ["Single dashboard cannot take up multiple positions"]
         }
 
-    def test_throws_an_error_if_reordered_dashboard_ids_are_not_complete(self):
+    def test_throws_an_error_if_reordered_dashboard_ids_are_not_complete(self) -> None:
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 0)
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)
@@ -165,7 +165,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
             )
         }
 
-    def test_allows_reordering_even_if_no_initial_positions(self):
+    def test_allows_reordering_even_if_no_initial_positions(self) -> None:
         self.create_dashboard_favorite(self.dashboard_1, self.user, self.organization, 0)
         self.create_dashboard_favorite(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite(self.dashboard_3, self.user, self.organization, 2)

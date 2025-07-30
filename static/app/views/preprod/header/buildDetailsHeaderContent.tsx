@@ -1,55 +1,54 @@
-import styled from '@emotion/styled';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Heading} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-type BuildDetailsHeaderError = {error: string; status: 'error'};
-type BuildDetailsHeaderLoading = {status: 'loading'};
-type BuildDetailsHeaderSuccess = {
-  buildDetails: BuildDetailsApiResponse;
-  status: 'success';
-};
-
-export type BuildDetailsHeaderContentProps =
-  | BuildDetailsHeaderError
-  | BuildDetailsHeaderLoading
-  | BuildDetailsHeaderSuccess;
+interface BuildDetailsHeaderContentProps {
+  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+}
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
-  const {status} = props;
+  const {buildDetailsQuery} = props;
 
-  if (status === 'loading') {
+  const {
+    data: buildDetailsData,
+    isPending: isBuildDetailsPending,
+    isError: isBuildDetailsError,
+    error: buildDetailsError,
+  } = buildDetailsQuery;
+
+  if (isBuildDetailsPending) {
     return (
-      <HeaderContainer>
+      <Flex direction="column" style={{padding: `0 0 ${space(2)} 0`}}>
         <Placeholder height="20px" width="200px" style={{marginBottom: space(2)}} />
-        <HeaderContent>
-          <Title>
+        <Flex align="center" justify="between" gap="md">
+          <Heading as="h1">
             <Placeholder height="32px" width="300px" />
-          </Title>
-          <Actions>
+          </Heading>
+          <Flex align="center" gap="sm" style={{flexShrink: 0}}>
             <Placeholder height="32px" width="120px" style={{marginRight: space(1)}} />
             <Placeholder height="32px" width="40px" />
-          </Actions>
-        </HeaderContent>
-      </HeaderContainer>
+          </Flex>
+        </Flex>
+      </Flex>
     );
   }
 
-  if (status === 'error') {
-    return (
-      <HeaderContainer>
-        <Alert type="error">{props.error}</Alert>
-      </HeaderContainer>
-    );
+  if (isBuildDetailsError) {
+    return <Alert type="error">{buildDetailsError?.message}</Alert>;
   }
 
-  const {buildDetails} = props;
+  if (!buildDetailsData) {
+    return <Alert type="error">No build details found</Alert>;
+  }
 
   // TODO: Implement proper breadcrumbs once release connection is implemented
   const breadcrumbs: Crumb[] = [
@@ -59,7 +58,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     },
     {
       to: '#',
-      label: buildDetails.app_info.version,
+      label: buildDetailsData.app_info.version,
     },
     {
       label: 'Build Details',
@@ -77,13 +76,13 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   };
 
   return (
-    <HeaderContainer>
+    <Flex direction="column" style={{padding: `0 0 ${space(2)} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
-      <HeaderContent>
-        <Title>
-          v{buildDetails.app_info.version} ({buildDetails.app_info.build_number})
-        </Title>
-        <Actions>
+      <Flex align="center" justify="between" gap="md">
+        <Heading as="h1">
+          v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
+        </Heading>
+        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
           <Button
             size="sm"
             priority="default"
@@ -100,33 +99,8 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
             onClick={handleMoreActions}
             aria-label={'More actions'}
           />
-        </Actions>
-      </HeaderContent>
-    </HeaderContainer>
+        </Flex>
+      </Flex>
+    </Flex>
   );
 }
-
-const HeaderContainer = styled('div')`
-  padding: 0 0 ${space(2)} 0;
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(2)};
-`;
-
-const Actions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  flex-shrink: 0;
-`;
-
-const Title = styled('h1')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
-`;

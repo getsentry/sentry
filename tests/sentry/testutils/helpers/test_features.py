@@ -7,17 +7,17 @@ from sentry.testutils.helpers import with_feature
 
 
 class TestTestUtilsFeatureHelper(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
-    def test_without_feature(self):
+    def test_without_feature(self) -> None:
         assert not features.has("organizations:global-views", self.org)
 
     @with_feature("organizations:global-views")
-    def test_with_feature(self):
+    def test_with_feature(self) -> None:
         assert features.has("organizations:global-views", self.org)
 
-    def test_batch_has(self):
+    def test_batch_has(self) -> None:
         # Test that overrides work, and if no overrides are made that we still fall back to the
         # defaults
         with mock.patch("sentry.features.default_manager._entity_handler", new=None):
@@ -36,7 +36,7 @@ class TestTestUtilsFeatureHelper(TestCase):
                 assert results["organizations:advanced-search"]
                 assert not results["organizations:codecov-integration"]
 
-    def test_feature_with_rpc_organization(self):
+    def test_feature_with_rpc_organization(self) -> None:
         with self.feature({"system:multi-region": False}):
             org_context = organization_service.get_organization_by_slug(
                 slug=self.org.slug, only_visible=False, user_id=None

@@ -23,7 +23,7 @@ def mock_finalize_request(prepared_request: PreparedRequest):
 
 @control_silo_test
 class JiraClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration, _ = self.create_provider_integration_for(
             self.organization,
             self.user,
@@ -82,7 +82,7 @@ class JiraClientTest(TestCase):
         assert res == body
 
     @freeze_time("2023-01-01 01:01:01")
-    def test_finalize_request(self):
+    def test_finalize_request(self) -> None:
         method = "GET"
         params = {"query": "1", "user": "me"}
         request = Request(

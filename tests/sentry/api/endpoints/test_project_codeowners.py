@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
 
         self.login_as(user=self.user)
@@ -38,13 +38,13 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "codeMappingId": self.code_mapping.id,
         }
 
-    def test_no_codeowners(self):
+    def test_no_codeowners(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert resp.data == []
 
-    def test_without_feature_flag(self):
+    def test_without_feature_flag(self) -> None:
         with self.feature({"organizations:integrations-codeowners": False}):
             resp = self.client.get(self.url)
         assert resp.status_code == 403
@@ -104,7 +104,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["teams_without_access"] == []
         assert errors["users_without_access"] == []
 
-    def test_empty_codeowners_text(self):
+    def test_empty_codeowners_text(self) -> None:
         self.data["raw"] = ""
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -216,14 +216,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["teams_without_access"] == []
         assert errors["users_without_access"] == []
 
-    def test_missing_code_mapping_id(self):
+    def test_missing_code_mapping_id(self) -> None:
         self.data.pop("codeMappingId")
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This field is required."]}
 
-    def test_invalid_code_mapping_id(self):
+    def test_invalid_code_mapping_id(self) -> None:
         self.data["codeMappingId"] = 500
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)

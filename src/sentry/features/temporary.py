@@ -279,6 +279,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-vitals-standalone-cls-lcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Web Vital links to Performance Issues
     manager.add("organizations:performance-web-vitals-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer Suggestions for Web Vitals Module
+    manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable default explore queries in the new side nav
     manager.add("organizations:performance-default-explore-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable suspect attributes feature
@@ -335,6 +337,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable Seer Explorer panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable search query builder match key suggestions
+    manager.add("organizations:search-query-builder-match-key-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder raw search replacement
     manager.add("organizations:search-query-builder-raw-search-replacement", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new search query builder wildcard operators
@@ -387,8 +391,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-chart-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
     manager.add("organizations:insights-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Related Issues table in Insights modules
-    manager.add("organizations:insights-related-issues-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to Mobile Screens insights module
     manager.add("organizations:insights-mobile-screens-module", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Removes performance landing page from sidebar and updates transaction summary breadcrumbs for insights
@@ -466,6 +468,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:uptime-eap-uptime-results-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:user-feedback-ai-summaries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable AI categorization of user feedback, both the ingest-time label generation and the frontend categories/filtering
+    manager.add("organizations:user-feedback-ai-categorization", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable User Feedback v2 UI
@@ -514,6 +518,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:workflow-engine-ui-links", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use workflow engine serializers to return data for old rule / incident endpoints
     manager.add("organizations:workflow-engine-rule-serializers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable single processing of metric issues
+    manager.add("organizations:workflow-engine-single-process-metric-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable EventUniqueUserFrequencyConditionWithConditions special alert condition
     manager.add("organizations:event-unique-user-frequency-condition-with-conditions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use spans instead of transactions for dynamic sampling calculations. This will become the new default.
@@ -522,8 +528,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable calculated byte counts on ingested logs.
-    manager.add("organizations:ourlogs-calculated-byte-count", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable extraction of meta attributes for logs.
     manager.add("organizations:ourlogs-meta-attributes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable our logs stats to be displayed in the UI.

@@ -15,6 +15,7 @@ from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 
 TRACKED_STATUSES = [
@@ -46,7 +47,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
     owner = ApiOwner.CRONS
 
     # TODO(epurkhiser): probably convert to snuba
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         # Do not restrict rollups allowing us to define custom resolutions.
         # Important for this endpoint since we want our buckets to align with
         # the UI's timescale markers.
