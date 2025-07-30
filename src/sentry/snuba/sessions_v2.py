@@ -122,6 +122,7 @@ class SessionsField:
         if status is None:
             return row["sessions"]
         if status == "healthy":
+            # TODO(ryan953): Should we also subtract sessions_unhandled & sessions_crashed?
             healthy_sessions = row["sessions"] - row["sessions_errored"]
             return max(healthy_sessions, 0)
         if status == "abnormal":
@@ -154,6 +155,7 @@ class UsersField:
         if status is None:
             return row["users"]
         if status == "healthy":
+            # TODO(ryan953): Should we also subtract users_unhandled & users_crashed?
             healthy_users = row["users"] - row["users_errored"]
             return max(healthy_users, 0)
         if status == "abnormal":
