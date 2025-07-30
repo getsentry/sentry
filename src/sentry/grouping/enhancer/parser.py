@@ -1,11 +1,9 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import Node
-from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
-from parsimonious.nodes import RegexNode
+from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
 from sentry.utils.strings import unescape_string
 
@@ -13,11 +11,6 @@ from .actions import EnhancementAction, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
 from .matchers import CalleeMatch, CallerMatch, EnhancementMatch, FrameMatch
 from .rules import EnhancementRule
-
-if TYPE_CHECKING:
-    NodeVisitor = BaseNodeVisitor[list[EnhancementRule]]
-else:
-    NodeVisitor = BaseNodeVisitor
 
 T = TypeVar("T")
 
@@ -67,7 +60,7 @@ _        = space*
 )
 
 
-class EnhancementsVisitor(NodeVisitor):
+class EnhancementsVisitor(NodeVisitor[list[EnhancementRule]]):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
