@@ -534,11 +534,12 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
@@ -548,6 +549,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -557,6 +559,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": 45.0,
@@ -566,6 +569,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 1,
+                    "users_unhandled": 0,
                 },
             ],
             {
@@ -574,6 +578,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "users_crashed": 0,
                 "users_errored": 0,
                 "users_healthy": 1,
+                "users_unhandled": 0,
             },
         )
 
@@ -590,6 +595,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -599,6 +605,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -608,6 +615,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -617,6 +625,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 1,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
             ],
             {
@@ -625,6 +634,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "users_crashed": 1,
                 "users_errored": 0,
                 "users_healthy": 0,
+                "users_unhandled": 0,
             },
         )
 
@@ -641,6 +651,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -650,6 +661,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -659,6 +671,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": 45.0,
@@ -668,6 +681,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 2,
+                    "sessions_unhandled": 0,
                 },
             ],
             {
@@ -676,6 +690,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
                 "sessions_healthy": 2,
+                "sessions_unhandled": 0,
             },
         )
 
@@ -692,6 +707,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -701,6 +717,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -710,6 +727,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -719,6 +737,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 1,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
             ],
             {
@@ -727,6 +746,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "sessions_crashed": 1,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+                "sessions_unhandled": 0,
             },
         )
 
@@ -747,6 +767,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -756,6 +777,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -765,6 +787,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -774,6 +797,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
             ],
             {
@@ -782,6 +806,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+                "sessions_unhandled": 0,
             },
         )
 
@@ -798,6 +823,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -807,6 +833,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -816,6 +843,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -825,6 +853,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
             ],
             {
@@ -833,6 +862,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "users_crashed": 0,
                 "users_errored": 0,
                 "users_healthy": 0,
+                "users_unhandled": 0,
             },
         )
 
@@ -1564,4 +1594,5 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
             "users_crashed": 1,
             "users_errored": 0,
             "users_healthy": 2,
+            "users_unhandled": 0,
         }
