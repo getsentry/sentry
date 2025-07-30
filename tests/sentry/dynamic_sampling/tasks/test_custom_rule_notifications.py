@@ -60,7 +60,9 @@ class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
         assert num_samples == 3
 
     @mock.patch("sentry.dynamic_sampling.tasks.custom_rule_notifications.send_notification")
-    def test_email_is_sent_when_enough_samples_have_been_collected(self, send_notification_mock):
+    def test_email_is_sent_when_enough_samples_have_been_collected(
+        self, send_notification_mock: mock.MagicMock
+    ) -> None:
         for idx in range(MIN_SAMPLES_FOR_NOTIFICATION):
             self.create_transaction()
 

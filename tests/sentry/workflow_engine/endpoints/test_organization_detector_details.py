@@ -277,7 +277,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.detector.owner_team_id is None
 
         data = {
-            **self.valid_data,
             "owner": self.user.get_actor_identifier(),
         }
 
@@ -309,7 +308,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         team = self.create_team(organization=self.organization)
 
         data = {
-            **self.valid_data,
             "owner": f"team:{team.id}",
         }
 
@@ -338,7 +336,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.detector.save()
 
         data = {
-            **self.valid_data,
             "owner": None,
         }
 
@@ -365,7 +362,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.detector.status == ObjectStatus.ACTIVE
 
         data = {
-            **self.valid_data,
             "enabled": False,
         }
         with self.tasks():
@@ -385,7 +381,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.detector.update(status=ObjectStatus.DISABLED)
 
         data = {
-            **self.valid_data,
             "enabled": True,
         }
         with self.tasks():
@@ -407,7 +402,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 0
 
         data = {
-            **self.valid_data,
             "workflowIds": [workflow1.id, workflow2.id],
         }
 
@@ -446,7 +440,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert DetectorWorkflow.objects.filter(detector=self.detector).count() == 1
 
         data = {
-            **self.valid_data,
             "workflowIds": [new_workflow.id],
         }
 

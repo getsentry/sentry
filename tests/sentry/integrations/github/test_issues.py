@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import cast
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -267,7 +267,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_create_issue_with_invalid_field(self, mock_record):
+    def test_create_issue_with_invalid_field(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",

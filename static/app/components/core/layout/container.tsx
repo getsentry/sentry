@@ -44,6 +44,7 @@ interface BaseContainerProps {
   border?: Responsive<Border>;
 
   area?: Responsive<React.CSSProperties['gridArea']>;
+  order?: Responsive<React.CSSProperties['order']>;
 }
 /* eslint-enable typescript-sort-keys/interface */
 export type ContainerElement =
@@ -77,6 +78,7 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'overflow',
   'overflowX',
   'overflowY',
+  'order',
   'position',
   'radius',
   'width',
@@ -123,6 +125,7 @@ export const Container = styled(
   ${p => rc('max-height', p.maxHeight, p.theme)};
 
   ${p => rc('grid-area', p.area, p.theme)};
+  ${p => rc('order', p.order, p.theme)};
 
   ${p => rc('border', p.border, p.theme, getBorder)};
 
