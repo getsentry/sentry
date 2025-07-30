@@ -832,6 +832,11 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55" },
 ]
 
+[package.optional-dependencies]
+http2 = [
+    { name = "h2", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+
 [[package]]
 name = "httpx"
 version = "0.25.2"
@@ -1999,7 +2004,7 @@ dependencies = [
     { name = "sentry-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-redis-tools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-relay", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "sentry-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "sentry-sdk", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "sentry-usage-accountant", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "setuptools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "simplejson", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2256,7 +2261,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = "==0.3.1" },
     { name = "sentry-redis-tools", specifier = "==0.5.0" },
     { name = "sentry-relay", specifier = "==0.9.10" },
-    { name = "sentry-sdk", specifier = "==2.29.1" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = "==2.29.1" },
     { name = "sentry-usage-accountant", specifier = "==0.0.10" },
     { name = "setuptools", specifier = "==70.0.0" },
     { name = "simplejson", specifier = "==3.17.6" },
@@ -2465,6 +2470,11 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.29.1-py2.py3-none-any.whl", hash = "sha256:90862fe0616ded4572da6c9dadb363121a1ae49a49e21c418f0634e9d10b4c19" },
+]
+
+[package.optional-dependencies]
+http2 = [
+    { name = "httpcore", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 
 [[package]]
