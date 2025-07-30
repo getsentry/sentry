@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -7,7 +8,6 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
@@ -18,6 +18,7 @@ import type {StepProps} from './types';
 
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -70,7 +71,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
             platform: currentPlatformKey,
             project_id: project.id,
           });
-          browserHistory.push(orgIssuesURL);
+          navigate(orgIssuesURL);
         }}
       />
     </Fragment>
