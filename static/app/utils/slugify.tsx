@@ -9,6 +9,6 @@ export default function slugify(str: string): string {
   return str
     .normalize('NFKD') // Converts accents/ligatures/etc to latin alphabet
     .toLowerCase()
-    .replace(' ', '-')
+    .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-_]/g, ''); // Remove all invalid characters
 }
