@@ -44,7 +44,7 @@ export default function Ai() {
     isPending: isSummaryPending,
     isPolling,
     isError,
-    triggerSummary,
+    startSummaryRequest,
   } = useFetchReplaySummary({
     staleTime: 0,
     enabled: Boolean(
@@ -69,14 +69,14 @@ export default function Ai() {
       !isPolling &&
       !isError
     ) {
-      triggerSummary();
+      startSummaryRequest();
     }
   }, [
     segmentsIncreased,
     needsInitialGeneration,
     isSummaryPending,
     isPolling,
-    triggerSummary,
+    startSummaryRequest,
     isError,
   ]);
 
@@ -219,7 +219,7 @@ export default function Ai() {
             type="button"
             size="xs"
             onClick={() => {
-              triggerSummary();
+              startSummaryRequest();
               trackAnalytics('replay.ai-summary.regenerate-requested', {
                 organization,
               });

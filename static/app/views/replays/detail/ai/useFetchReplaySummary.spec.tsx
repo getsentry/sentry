@@ -173,11 +173,11 @@ describe('useFetchReplaySummary', () => {
       });
 
       // Trigger the summary mutation
-      result.current.triggerSummary();
+      result.current.startSummaryRequest();
 
       // Wait for the mutation to be in pending state
       await waitFor(() => {
-        expect(result.current.isTriggerPending).toBe(true);
+        expect(result.current.isStartSummaryRequestPending).toBe(true);
       });
 
       expect(result.current.summaryData).toBeUndefined();

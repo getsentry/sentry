@@ -11,6 +11,34 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
+interface UseFetchReplaySummaryResult {
+  /**
+   * Whether there was an error with the initial query or summary generation,
+   * or the summary data status is errored.
+   */
+  isError: boolean;
+  /**
+   * Whether the initial query is pending, the summary is being processed,
+   * or the summary data status is processing.
+   */
+  isPending: boolean;
+  /**
+   * Whether the hook is currently polling for updates.
+   * Polling will stop when the summary is completed or errored.
+   */
+  isPolling: boolean;
+  /**
+   * Whether a summary generation request is currently pending.
+   * If pending and the summary is not completed or errored,
+   * then polling will continue.
+   */
+  isStartSummaryRequestPending: boolean;
+  /** Function to trigger a new summary generation request. */
+  startSummaryRequest: () => void;
+  /** The summary data response from the API. */
+  summaryData: SummaryResponse | undefined;
+}
+
 const POLL_INTERVAL_MS = 500;
 
 function createAISummaryQueryKey(
@@ -21,7 +49,9 @@ function createAISummaryQueryKey(
   return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
 }
 
-export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
+export function useFetchReplaySummary(
+  options?: UseApiQueryOptions<SummaryResponse>
+): UseFetchReplaySummaryResult {
   const organization = useOrganization();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
@@ -30,9 +60,9 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   const queryClient = useQueryClient();
 
   const {
-    mutate: triggerSummaryMutate,
-    isError: triggerError,
-    isPending: isTriggerPending,
+    mutate: startSummaryRequestMutate,
+    isError: startSummaryRequestError,
+    isPending: isStartSummaryRequestPending,
   } = useMutation({
     mutationFn: () =>
       api.requestPromise(
@@ -42,7 +72,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
         }
       ),
     onSuccess: () => {
-      // invalidate the query when a summary is triggered
+      // invalidate the query when a summary task is requested
       // so the cached data is marked as stale.
       queryClient.invalidateQueries({
         queryKey: createAISummaryQueryKey(
@@ -64,7 +94,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (isPolling(query.state.data?.[0] || undefined, isTriggerPending)) {
+        if (isPolling(query.state.data?.[0] || undefined, isStartSummaryRequestPending)) {
           return POLL_INTERVAL_MS;
         }
         return false;
@@ -74,38 +104,41 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
     }
   );
 
-  const triggerSummary = useCallback(() => {
+  const startSummaryRequest = useCallback(() => {
     // Don't trigger if the feature is disabled
     if (options?.enabled === false) {
       return;
     }
 
-    triggerSummaryMutate();
-  }, [options?.enabled, triggerSummaryMutate]);
+    startSummaryRequestMutate();
+  }, [options?.enabled, startSummaryRequestMutate]);
 
   return {
     summaryData,
-    isPolling: isPolling(summaryData, isTriggerPending),
+    isPolling: isPolling(summaryData, isStartSummaryRequestPending),
     isPending: isPending || summaryData?.status === ReplaySummaryStatus.PROCESSING,
-    isError: isError || summaryData?.status === ReplaySummaryStatus.ERROR || triggerError,
-    triggerSummary,
-    isTriggerPending,
+    isError:
+      isError ||
+      summaryData?.status === ReplaySummaryStatus.ERROR ||
+      startSummaryRequestError,
+    startSummaryRequest,
+    isStartSummaryRequestPending,
   };
 }
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
-  isTriggerPending: boolean
+  isStartSummaryRequestPending: boolean
 ) => {
   if (!summaryData) {
     // No data yet - poll if we've started a run
-    return isTriggerPending;
+    return isStartSummaryRequestPending;
   }
 
   switch (summaryData.status) {
     case ReplaySummaryStatus.NOT_STARTED:
       // Not started - poll if we've initiated a run
-      return isTriggerPending;
+      return isStartSummaryRequestPending;
 
     case ReplaySummaryStatus.PROCESSING:
       // Currently processing - always poll
