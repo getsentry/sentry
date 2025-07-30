@@ -298,7 +298,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # XXX: We need a different way of creating occurrences which will insert into the nodestore
         occurrence_event, issue_platform_group = self.create_occurrence(
-            fingerprint="group-1", type_id=FeedbackGroup.type_id
+            type_id=FeedbackGroup.type_id
         )
         assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
         assert issue_platform_group.type == FeedbackGroup.type_id
