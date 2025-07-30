@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.metadata
 import json
 import os
 import shlex
@@ -8,7 +7,7 @@ import shutil
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, fs, limactl, proc, venv
+from devenv.lib import colima, config, fs, limactl, proc
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -73,16 +72,6 @@ failed command (code {p.returncode}):
     return all_good
 
 
-# Temporary, see https://github.com/getsentry/sentry/pull/78881
-def check_minimum_version(minimum_version: str) -> bool:
-    version = importlib.metadata.version("sentry-devenv")
-
-    parsed_version = tuple(map(int, version.split(".")))
-    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
-
-    return parsed_version >= parsed_minimum_version
-
-
 def installed_pnpm(version: str, binroot: str) -> bool:
     if shutil.which("pnpm", path=binroot) != f"{binroot}/pnpm" or not os.path.exists(
         f"{binroot}/node-env/bin/pnpm"
@@ -119,26 +108,9 @@ exec {binroot}/node-env/bin/pnpm "$@"
 
 
 def main(context: dict[str, str]) -> int:
-    minimum_version = "1.14.2"
-    if not check_minimum_version(minimum_version):
-        raise SystemExit(
-            f"""
-Hi! To reduce potential breakage we've defined a minimum
-devenv version ({minimum_version}) to run sync.
-
-Please run the following to update your global devenv:
-
-devenv update
-
-Then, use it to run sync this one time.
-
-{constants.root}/bin/devenv sync
-"""
-        )
-
     repo = context["repo"]
     reporoot = context["reporoot"]
-    repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
+    cfg = config.get_repo(reporoot)
 
     # TODO: context["verbose"]
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
@@ -153,12 +125,21 @@ Then, use it to run sync this one time.
         colima.uninstall(binroot)
         limactl.uninstall(binroot)
 
+    from devenv.lib import uv
+
+    uv.install(
+        cfg["uv"]["version"],
+        cfg["uv"][constants.SYSTEM_MACHINE],
+        cfg["uv"][f"{constants.SYSTEM_MACHINE}_sha256"],
+        reporoot,
+    )
+
     from devenv.lib import node
 
     node.install(
-        repo_config["node"]["version"],
-        repo_config["node"][constants.SYSTEM_MACHINE],
-        repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+        cfg["node"]["version"],
+        cfg["node"][constants.SYSTEM_MACHINE],
+        cfg["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
         reporoot,
     )
 
@@ -175,33 +156,8 @@ Then, use it to run sync this one time.
 
     # venv's still needed for frontend because repo-local devenv and pre-commit
     # exist inside it
-    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
-    url, sha256 = config.get_python(reporoot, python_version)
-    print(f"ensuring {repo} venv at {venv_dir}...")
-    venv.ensure(venv_dir, python_version, url, sha256)
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
-            (
-                "python dependencies (1/3)",
-                (
-                    # upgrading pip first
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "pip",
-                ),
-                {},
-            ),
-        ),
-        verbose,
-    ):
-        return 1
+    venv_dir = f"{reporoot}/.venv"
 
     if not SKIP_FRONTEND and not run_procs(
         repo,
@@ -211,7 +167,7 @@ Then, use it to run sync this one time.
             (
                 # Spreading out the network load by installing js,
                 # then py in the next batch.
-                "javascript dependencies (1/1)",
+                "javascript dependencies",
                 (
                     "pnpm",
                     "install",
@@ -239,14 +195,14 @@ Then, use it to run sync this one time.
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
-                "python dependencies (2/3)",
+                "python dependencies",
                 (
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "-r",
-                    "requirements-dev-frozen.txt",
+                    "uv",
+                    "sync",
+                    "--extra",
+                    "dev",
+                    "--frozen",
+                    "--quiet",
                 ),
                 {},
             ),
@@ -259,14 +215,7 @@ Then, use it to run sync this one time.
         repo,
         reporoot,
         venv_dir,
-        (
-            (
-                "python dependencies (3/3)",
-                ("python3", "-m", "tools.fast_editable", "--path", "."),
-                {},
-            ),
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
-        ),
+        (("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),),
         verbose,
     ):
         return 1
