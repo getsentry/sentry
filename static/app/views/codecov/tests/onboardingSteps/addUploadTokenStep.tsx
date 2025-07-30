@@ -9,7 +9,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
 
-interface AddUploadTokenProps {
+interface AddUploadTokenStepProps {
   step: string;
 }
 
@@ -17,7 +17,7 @@ interface AddUploadTokenProps {
 const FULL_TOKEN = '91b57316-b1ff-4884-8d55-92b9936a05a3';
 const TRUNCATED_TOKEN = '********05a3';
 
-export function AddUploadToken({step}: AddUploadTokenProps) {
+export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   const [showTokenDetails, setShowTokenDetails] = useState(false);
   // this value is only used when showing token details
   const [showFullToken, setShowFullToken] = useState(true);
