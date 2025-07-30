@@ -3,10 +3,10 @@ from sentry import analytics
 
 @analytics.eventclass("issue.mark_reviewed")
 class IssueMarkReviewedEvent(analytics.Event):
-    user_id: str | None = None
-    default_user_id: str
-    organization_id: str
-    group_id: str
+    user_id: int | None = None
+    default_user_id: int
+    organization_id: int
+    group_id: int
 
 
 analytics.register(IssueMarkReviewedEvent)
