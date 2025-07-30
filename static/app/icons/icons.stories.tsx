@@ -1136,28 +1136,28 @@ const SECTIONS: TSection[] = [
       },
       {
         id: 'graph-type-circle',
-        name: 'Graph',
+        name: 'GraphCircle',
         defaultProps: {
           type: 'circle',
         },
       },
       {
         id: 'graph-type-bar',
-        name: 'Graph',
+        name: 'GraphBar',
         defaultProps: {
           type: 'bar',
         },
       },
       {
         id: 'graph-type-area',
-        name: 'Graph',
+        name: 'GraphArea',
         defaultProps: {
           type: 'area',
         },
       },
       {
         id: 'graph-type-scatter',
-        name: 'Graph',
+        name: 'GraphScatter',
         defaultProps: {
           type: 'scatter',
         },
