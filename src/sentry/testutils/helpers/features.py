@@ -18,7 +18,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
 )
 
-__all__ = ("Feature", "with_feature", "apply_feature_flag_on_cls")
+__all__ = ("Feature", "with_feature")
 
 
 logger = logging.getLogger(__name__)
@@ -225,18 +225,3 @@ def with_feature(names: str | Iterable[str] | dict[str, bool]):
     """
 
     return FeatureContextManagerOrDecorator(names)
-
-
-def apply_feature_flag_on_cls(feature_flag):
-    def decorate(cls):
-        def _feature_fixture(self: object) -> Generator[None]:
-            with Feature(feature_flag):
-                yield
-
-        name = f"{_feature_fixture.__name__}[{feature_flag}]"
-        _feature_fixture.__name__ = name
-        fixture = pytest.fixture(scope="class", autouse=True)(_feature_fixture)
-        setattr(cls, name, fixture)
-        return cls
-
-    return decorate
