@@ -36,6 +36,7 @@ from sentry.explore.models import (
     ExploreSavedQueryStarred,
 )
 from sentry.locks import locks
+from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -297,7 +298,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERIES_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve a list of saved queries that are associated with the given organization.
         """

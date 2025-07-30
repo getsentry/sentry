@@ -65,7 +65,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         return all_features
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -125,7 +125,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
             snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
@@ -186,7 +186,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

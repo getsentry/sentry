@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
 
@@ -23,7 +24,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List one or more plugin configurations, including a `projectList` for each plugin which contains
         all the projects that have that specific plugin both configured and enabled.

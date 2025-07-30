@@ -9,6 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinn
 from sentry.api.serializers import serialize
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.models.organization import Organization
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
@@ -39,7 +40,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationPinnedSearchPermission,)
 
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
 

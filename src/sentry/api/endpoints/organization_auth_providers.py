@@ -8,6 +8,7 @@ from sentry.api.bases.organization import OrganizationAuthProviderPermission, Or
 from sentry.api.serializers import serialize
 from sentry.auth import manager
 from sentry.auth.partnership_configs import ChannelName
+from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
@@ -18,7 +19,7 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuthProviderPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List available auth providers that are available to use for an Organization
         ```````````````````````````````````````````````````````````````````````````

@@ -13,6 +13,7 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.models.organization import Organization
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationsBaseEndpoint
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,
@@ -36,7 +37,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 
         return self.paginate(
