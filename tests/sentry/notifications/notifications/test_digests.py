@@ -76,7 +76,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
             assert len(mail.outbox) == USER_COUNT
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule(project=self.project)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"

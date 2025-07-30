@@ -1,4 +1,4 @@
-import {lazy, Suspense, useCallback, useEffect, useMemo, useRef} from 'react';
+import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -62,37 +62,31 @@ function App({children, params}: Props) {
   const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
-  const commandPaletteHotkeys = useMemo(() => {
-    if (isModalOpen) {
-      return [];
-    }
-    return [
-      {
-        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        callback: () => openCommandPalette(),
-      },
-    ];
-  }, [isModalOpen]);
-
-  useHotkeys(commandPaletteHotkeys);
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            callback: () => openCommandPalette(),
+          },
+        ]
+  );
 
   // Seer explorer panel hook and hotkeys
   const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
 
-  const explorerPanelHotkeys = useMemo(() => {
-    if (isModalOpen) {
-      return [];
-    }
-    return [
-      {
-        match: ['command+/', 'ctrl+/'],
-        callback: () => toggleExplorerPanel(),
-        includeInputs: true,
-      },
-    ];
-  }, [isModalOpen, toggleExplorerPanel]);
-
-  useHotkeys(explorerPanelHotkeys);
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+/', 'ctrl+/'],
+            callback: () => toggleExplorerPanel(),
+            includeInputs: true,
+          },
+        ]
+  );
 
   /**
    * Loads the users organization list into the OrganizationsStore

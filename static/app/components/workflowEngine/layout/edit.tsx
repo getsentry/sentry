@@ -106,7 +106,7 @@ function Footer({children, label}: FooterProps) {
   return (
     <StickyFooter>
       {label && <StickyFooterLabel>{label}</StickyFooterLabel>}
-      <Flex gap="md" flex={label ? undefined : 1} justify="flex-end">
+      <Flex gap="md" flex={label ? undefined : 1} justify="end">
         {children}
       </Flex>
     </StickyFooter>

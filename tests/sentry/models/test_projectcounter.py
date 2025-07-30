@@ -27,18 +27,17 @@ def test_increment(default_project):
 
 
 @contextmanager
-def patch_group_creation(monkeypatch):
+def patch_group_creation():
     group_creation_results: list[Group | Exception] = []
     group_creation_spy = MagicMock(
         side_effect=capture_results(Group.objects.create, group_creation_results)
     )
-    monkeypatch.setattr("sentry.event_manager.Group.objects.create", group_creation_spy)
+    with patch.object(Group.objects, "create", group_creation_spy):
+        yield (group_creation_spy, group_creation_results)
 
-    yield (group_creation_spy, group_creation_results)
 
-
-def create_existing_group(project, monkeypatch, message):
-    with patch_group_creation(monkeypatch) as patches:
+def create_existing_group(project, message):
+    with patch_group_creation() as patches:
         group_creation_spy, group_creation_results = patches
 
         event = save_new_event({"message": message}, project)
@@ -55,8 +54,8 @@ def create_existing_group(project, monkeypatch, message):
 
 
 @django_db_all
-def test_group_creation_simple(default_project, monkeypatch):
-    group = create_existing_group(default_project, monkeypatch, "Dogs are great!")
+def test_group_creation_simple(default_project):
+    group = create_existing_group(default_project, "Dogs are great!")
 
     # See `create_existing_group` for more assertions
     assert group
@@ -68,7 +67,7 @@ def test_group_creation_simple(default_project, monkeypatch):
     [1, 2, 3],
     ids=[" discrepancy = 1 ", " discrepancy = 2 ", " discrepancy = 3 "],
 )
-def test_group_creation_with_stuck_project_counter(default_project, monkeypatch, discrepancy):
+def test_group_creation_with_stuck_project_counter(default_project, discrepancy):
     project = default_project
 
     # Create enough groups that a discripancy larger than 1 will still land us on an existing group
@@ -78,9 +77,9 @@ def test_group_creation_with_stuck_project_counter(default_project, monkeypatch,
         "Bodhi is an adventurous dog",
         "Cory is a loyal dog",
     ]
-    existing_groups = [create_existing_group(project, monkeypatch, message) for message in messages]
+    existing_groups = [create_existing_group(project, message) for message in messages]
 
-    with patch_group_creation(monkeypatch) as patches:
+    with patch_group_creation() as patches:
         group_creation_spy, group_creation_results = patches
 
         # Set the counter value such that it will try to create the next group with the same `short_id` as the
@@ -153,7 +152,7 @@ def test_group_creation_with_stuck_project_counter(default_project, monkeypatch,
     redis.delete(redis_key)
 
     # Just to prove that it now works, here we go (new spies just for convenience)
-    with patch_group_creation(monkeypatch) as patches:
+    with patch_group_creation() as patches:
         group_creation_spy, group_creation_results = patches
 
         new_new_message = "Dogs are still great!"
@@ -334,6 +333,6 @@ def test_preallocation_early_return(default_project):
     )  # Redis values haven't changed
 
 
-def test_calculate_cached_id_block_size():
+def test_calculate_cached_id_block_size() -> None:
     assert calculate_cached_id_block_size(1) == 100
     assert calculate_cached_id_block_size(1000) == 1000

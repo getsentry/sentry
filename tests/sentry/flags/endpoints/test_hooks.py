@@ -18,7 +18,7 @@ from sentry.utils import json
 class OrganizationFlagsHooksEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly"))
 

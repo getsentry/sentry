@@ -9,7 +9,7 @@ from sentry.utils.outcomes import Outcome
 
 @freeze_time("2022-01-01 03:30:00")
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.key = ProjectKey.objects.create(project=self.project)

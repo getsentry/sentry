@@ -15,7 +15,7 @@ def disable_internal_networks():
 
 
 class RelayPublicKeysConfigTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.key_pair = generate_key_pair()

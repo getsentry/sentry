@@ -56,7 +56,7 @@ class TestSiloAwareTransactionPatchInSplitDbMode(TestCase):
 
 
 @no_silo_test
-def test_is_in_test_case_body():
+def test_is_in_test_case_body() -> None:
     """Check that we can correctly detect that we are in a test case body.
 
     It is paradoxically impossible to test the negative case (without doing some

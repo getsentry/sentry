@@ -10,7 +10,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 
 class DiscordIntegrationLinkIdentityTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.guild_id = "guild-id"
@@ -53,7 +53,7 @@ class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase)
 
 @control_silo_test
 class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.identity = self.create_identity(self.user, self.provider, self.discord_user_id)
 

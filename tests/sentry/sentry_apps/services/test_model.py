@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test, region_silo_test
 
 @control_silo_test
 class TestSentryAppAvatar(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.avatar = self.create_sentry_app_avatar(sentry_app=self.sentry_app)
@@ -32,7 +32,7 @@ class TestSentryAppAvatar(TestCase):
 
 @region_silo_test
 class TestRpcApiApplication(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user = self.create_user(name="foo")

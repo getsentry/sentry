@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 
 @control_silo_test(regions=create_test_regions("us"))
 class SentryAppWebhookRequestsGetTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
         self.org = self.create_organization(

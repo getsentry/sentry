@@ -10,7 +10,7 @@ from sentry.types.actor import Actor
 class ProjectTeamDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-team-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

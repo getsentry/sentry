@@ -13,7 +13,7 @@ from . import BaseEventTest
 
 
 class EnableNotificationsActionTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.slack_id = "UXXXXXXX1"
         self.team_id = "TXXXXXXX1"

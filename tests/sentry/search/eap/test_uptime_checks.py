@@ -20,7 +20,7 @@ from sentry.search.events.types import SnubaParams
 
 
 class SearchResolverQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.resolver = SearchResolver(
             params=SnubaParams(),
             config=SearchResolverConfig(),

@@ -297,7 +297,7 @@ def test_scrubbing_after_processing(
 
 
 @django_db_all
-def test_killswitch():
+def test_killswitch() -> None:
     assert not is_process_disabled(1, "asdasdasd", "null")
     options.set("store.load-shed-process-event-projects-gradual", {1: 0.0})
     assert not is_process_disabled(1, "asdasdasd", "null")

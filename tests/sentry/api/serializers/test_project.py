@@ -37,7 +37,7 @@ TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 class ProjectSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()
@@ -283,7 +283,7 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")
@@ -493,6 +493,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasFlags"] is True
+
+    def test_has_logs_flag(self) -> None:
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasLogs"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_logs))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasLogs"] is True
 
     def test_no_environments(self) -> None:
         # remove environments and related models
@@ -734,7 +744,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
 
 class DetailedProjectSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")

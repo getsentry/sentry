@@ -16,7 +16,7 @@ class UserNotificationSettingsOptionsBaseTest(APITestCase):
 
 @control_silo_test
 class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBaseTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -69,7 +69,7 @@ class UserNotificationSettingsOptionsGetTest(UserNotificationSettingsOptionsBase
 class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBaseTest):
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

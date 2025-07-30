@@ -55,7 +55,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
     @patch.dict(NotificationAction._registry, {})
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)

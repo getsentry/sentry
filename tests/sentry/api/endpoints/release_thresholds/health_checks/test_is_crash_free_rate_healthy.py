@@ -169,7 +169,7 @@ class TestGetGroupTotals:
 
 
 class CrashFreeRateThresholdCheckTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.release1 = Release.objects.create(version="v1", organization=self.organization)
         self.sessions_data = mock_sessions_data
