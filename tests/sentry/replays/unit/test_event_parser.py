@@ -960,6 +960,23 @@ def test_as_trace_item_context_navigation_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_navigation_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710793872,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1674298825.0, "type": "default", "category": "navigation"},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "navigation"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_navigation_event_missing_optional_fields() -> None:
     event = {
         "type": 5,

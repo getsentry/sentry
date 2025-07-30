@@ -356,7 +356,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.NAVIGATION:
             payload = event["data"]["payload"]
-            payload_data = payload["data"]
+            payload_data = payload.get("data", {})
 
             navigation_attributes = {"category": "navigation"}
             if "from" in payload_data:
