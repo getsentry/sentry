@@ -62,7 +62,7 @@ function mergePropsWithStyles(
         };
         break;
       case 'className':
-        result[slotPropKey] = [childValue, slotValue].filter(Boolean).join(' ');
+        result[slotPropKey] = [slotValue, childValue].filter(Boolean).join(' ');
         break;
       default:
         // Slot props take precedence over child props.

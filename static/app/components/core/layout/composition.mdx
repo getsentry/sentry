@@ -1,0 +1,110 @@
+# Composition via `asChild`
+
+The layout components (`Container`, `Flex`, and `Grid`) support a `asChild` prop that allows you to merge the styling and behavior of these components with your own custom elements without creating extra DOM nodes.
+
+This is useful for cases where you want to apply layout styles to an existing element without having to create a new styled component.
+
+**⚠️ Rules of using `asChild`:**
+
+- Only a single child is allowed - if multiple are provided, the component will return `null` in production and an error will be thrown during development.
+
+  <br />
+  **Example:**
+
+  ```tsx
+  <Flex asChild padding="md">
+    <Component>Click me</Component>
+    {/* ✅ Only one child of asChild is supported */}
+  </Flex>
+
+  <Flex asChild padding="md">
+    <Component>Click me</Component>
+    <Component>Click me</Component>
+    {/* ❌ This will throw an error in development and return null in production */}
+  </Flex>
+  ```
+
+- The child component must consume all props and forward them to the underlying element
+
+  <br />
+  **Example:**
+
+  ```tsx
+  function Consumer(props) {
+    // ✅ props are forwarded to the underlying element
+    return <div {...props}>{props.children}</div>;
+  }
+
+  function Consumer({first, second, third}) {
+    // ❌ props are being swallowed
+    return (
+      <div first={first} second={second} third={third}>
+        {children}
+      </div>
+    );
+  }
+  ```
+
+### Omitting the DOM Node
+
+When `asChild` is set to `true`, the layout component doesn't render its own DOM element. Instead, it spreads all its props (including styles) onto its single child element using the internal `Slot` component.
+
+```tsx
+// Without asChild - creates extra DOM wrapper
+<Flex padding="md" gap="md">
+  <MyComponent>Click me</MyComponent>
+</Flex>
+// Renders:
+// <div class="flex-styles">
+//   <MyComponent>Click me</MyComponent>
+// </div>
+
+// With asChild - no extra wrapper
+<Flex asChild padding="md" gap="md">
+  <MyComponent>Click me</MyComponent>
+</Flex>
+// Renders:
+// <MyComponent class="flex-styles">Click me</MyComponent>
+```
+
+### Prop Merging Behavior
+
+The `Slot` component merges props from the layout component with the child element's existing props.
+
+- Function type props are merged and result in invocation of the child's function first, followed by the layout component's function.
+- Style props are merged via object spreadand result in the child's style rules taking precedence and overriding the parent.
+- Class names are concatenated and merged.
+- Other props are merged and result in the child's props taking precedence and overriding the parent provided props - this can be a convenient mechanism to selectively opt-out of the parent's props.
+
+#### Style Merging
+
+Styles are merged with child styles taking precedence:
+
+```tsx
+<Container asChild style={{color: 'blue', opacity: 0.5}}>
+  <MyComponent style={{color: 'red'}}>Click me</MyComponent>
+</Container>
+// Result: style={{color: 'red', opacity: 0.5}}
+```
+
+#### ClassName Merging
+
+Class names are concatenated and merged with the child's class names being applied last.
+
+```tsx
+<Flex asChild className="layout-styles">
+  <div className="custom-styles">Content</div>
+</Flex>
+// Result: className="layout-styles custom-styles"
+```
+
+#### Event Handler Merging
+
+Event handlers from both components are called in child to parent order. In this case, `handleButtonClick` will be called first, followed by `handleContainerClick`.
+
+```tsx
+<Container asChild onClick={handleContainerClick}>
+  <MyComponent onClick={handleButtonClick}>Click me</MyComponent>
+</Container>
+// handleButtonClick will be called first, followed by handleContainerClick
+```

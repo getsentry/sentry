@@ -29,7 +29,7 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
 
 ### Composition
 
-The `Grid` component supports `asChild` to allow composition with other components. When `asChild` is used, the `Grid` component will spread its props to the child component.
+The `Grid` component supports composition via <a href="/stories/layout/composition">asChild</a> to allow composition with other components. When `asChild` is used, the `Grid` component will spread its props to the child component.
 
 <Storybook.Demo>
   <Grid
@@ -100,6 +100,16 @@ The `Grid` component supports `asChild` to allow composition with other componen
     <Container area="main">Main Content</Container>
     <Container area="footer">Footer</Container>
   </div>
+</Grid>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Grid` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Grid as="section" padding="md" background="primary">
+  Basic grid content
 </Grid>
 ```
 

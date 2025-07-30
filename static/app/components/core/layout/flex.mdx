@@ -29,7 +29,7 @@ To create a basic flex container, wrap elements in `<Flex>` and they will be lai
 
 ### Composition
 
-The `Flex` component supports `asChild` to allow composition with other components. When `asChild` is used, the `Flex` component will spread its props to the child component.
+The `Flex` component supports composition via <a href="/stories/layout/composition">asChild</a> to allow composition with other components. When `asChild` is used, the `Flex` component will spread its props to the child component.
 
 <Storybook.Demo>
   <Flex
@@ -57,6 +57,16 @@ The `Flex` component supports `asChild` to allow composition with other componen
     <span>On</span>
     <span>Paragraph</span>
   </p>
+</Flex>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Flex` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Flex as="section" padding="md" background="primary">
+  Basic flex content
 </Flex>
 ```
 
