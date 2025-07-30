@@ -4,10 +4,15 @@ import responses
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.analytics.events.sentry_app_installation_updated import (
+    SentryAppInstallationUpdatedEvent,
+)
+from sentry.analytics.events.sentry_app_uninstalled import SentryAppUninstalledEvent
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
@@ -106,11 +111,13 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
         ).exists()
-        record.assert_called_with(
-            "sentry_app.uninstalled",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app=self.installation2.sentry_app.slug,
+        assert_last_analytics_event(
+            record,
+            SentryAppUninstalledEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app=self.installation2.sentry_app.slug,
+            ),
         )
 
         response_body = json.loads(responses.calls[0].request.body)
@@ -155,11 +162,13 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 200
         assert response.data["status"] == "installed"
 
-        record.assert_called_with(
-            "sentry_app_installation.updated",
-            sentry_app_installation_id=self.installation.id,
-            sentry_app_id=self.installation.sentry_app.id,
-            organization_id=self.installation.organization_id,
+        assert_last_analytics_event(
+            record,
+            SentryAppInstallationUpdatedEvent(
+                sentry_app_installation_id=self.installation.id,
+                sentry_app_id=self.installation.sentry_app.id,
+                organization_id=self.installation.organization_id,
+            ),
         )
         self.installation.refresh_from_db()
         assert self.installation.status == SentryAppInstallationStatus.INSTALLED
