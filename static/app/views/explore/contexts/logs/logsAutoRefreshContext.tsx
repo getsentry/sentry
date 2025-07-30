@@ -102,11 +102,6 @@ export function useLogsAutoRefreshEnabled() {
   return isTableFrozen ? false : autoRefresh === 'enabled';
 }
 
-export function useAutorefreshWithinPauseWindow() {
-  const {autoRefresh, pausedAt} = useLogsAutoRefresh();
-  return withinPauseWindow(autoRefresh, pausedAt);
-}
-
 export function useAutorefreshEnabledOrWithinPauseWindow() {
   const {autoRefresh, pausedAt} = useLogsAutoRefresh();
   return (
