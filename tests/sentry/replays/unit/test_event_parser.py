@@ -1333,6 +1333,23 @@ def test_as_trace_item_context_options() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_options_missing_payload() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710752516,
+        "data": {
+            "tag": "options",
+            "payload": {},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1753710752.516  # timestamp is divided by 1000
+    assert result["attributes"]["category"] == "sdk.options"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_memory() -> None:
     event = {
         "type": 5,

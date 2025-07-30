@@ -478,22 +478,34 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
         case EventType.CANVAS:
             return None
         case EventType.OPTIONS:
-            payload = event["data"]["payload"]
+            payload = event["data"].get("payload", {})
             return {
                 "attributes": {
                     "category": "sdk.options",
-                    "shouldRecordCanvas": bool(payload["shouldRecordCanvas"]),
-                    "sessionSampleRate": float(payload["sessionSampleRate"]),
-                    "errorSampleRate": float(payload["errorSampleRate"]),
-                    "useCompressionOption": bool(payload["useCompressionOption"]),
-                    "blockAllMedia": bool(payload["blockAllMedia"]),
-                    "maskAllText": bool(payload["maskAllText"]),
-                    "maskAllInputs": bool(payload["maskAllInputs"]),
-                    "useCompression": bool(payload["useCompression"]),
-                    "networkDetailHasUrls": bool(payload["networkDetailHasUrls"]),
-                    "networkCaptureBodies": bool(payload["networkCaptureBodies"]),
-                    "networkRequestHasHeaders": bool(payload["networkRequestHasHeaders"]),
-                    "networkResponseHasHeaders": bool(payload["networkResponseHasHeaders"]),
+                    **set_if(
+                        [
+                            "shouldRecordCanvas",
+                            "useCompressionOption",
+                            "blockAllMedia",
+                            "maskAllText",
+                            "maskAllInputs",
+                            "useCompression",
+                            "networkDetailHasUrls",
+                            "networkCaptureBodies",
+                            "networkRequestHasHeaders",
+                            "networkResponseHasHeaders",
+                        ],
+                        payload,
+                        bool,
+                    ),
+                    **set_if(
+                        [
+                            "sessionSampleRate",
+                            "errorSampleRate",
+                        ],
+                        payload,
+                        float,
+                    ),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": event["timestamp"] / 1000,
