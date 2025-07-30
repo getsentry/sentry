@@ -181,7 +181,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -204,7 +204,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -227,7 +227,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -250,7 +250,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -273,7 +273,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -296,7 +296,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -319,7 +319,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
@@ -342,7 +342,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(
                 default_arg="equals",
                 argument_types={"string"},
-                field_allowlist={"equals", "notEquals"},
+                validator=literal_validator(["equals", "notEquals"]),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],

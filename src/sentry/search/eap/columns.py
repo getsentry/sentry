@@ -128,7 +128,6 @@ class BaseArgumentDefinition:
 class ValueArgumentDefinition(BaseArgumentDefinition):
     # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid conversion errors
     argument_types: set[Literal["integer", "string", "number"]] | None = None
-    field_allowlist: set[str] | None = None
 
 
 @dataclass
