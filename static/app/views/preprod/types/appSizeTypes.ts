@@ -1,6 +1,7 @@
 export interface AppSizeApiResponse {
   generated_at: string;
   treemap: TreemapResults;
+  insights?: AppleInsightResults;
 }
 
 export interface TreemapResults {
@@ -63,4 +64,102 @@ export enum TreemapType {
   // Generic categories
   OTHER = 'other',
   UNMAPPED = 'unmapped',
+}
+
+// Insights Types
+export interface BaseInsightResult {
+  total_savings: number;
+}
+
+export interface FileSavingsResult {
+  file_path: string;
+  total_savings: number;
+}
+
+export interface FileSavingsResultGroup {
+  files: FileSavingsResult[];
+  name: string;
+  total_savings: number;
+}
+
+export interface FilesInsightResult extends BaseInsightResult {
+  files: FileSavingsResult[];
+}
+
+export interface GroupsInsightResult extends BaseInsightResult {
+  groups: FileSavingsResultGroup[];
+}
+
+export interface DuplicateFilesInsightResult extends GroupsInsightResult {}
+
+export interface LargeImageFileInsightResult extends FilesInsightResult {}
+
+export interface LargeVideoFileInsightResult extends FilesInsightResult {}
+
+export interface LargeAudioFileInsightResult extends FilesInsightResult {}
+
+export interface HermesDebugInfoInsightResult extends FilesInsightResult {}
+
+export interface UnnecessaryFilesInsightResult extends FilesInsightResult {}
+
+export interface WebPOptimizationInsightResult extends FilesInsightResult {}
+
+export interface LocalizedStringInsightResult extends FilesInsightResult {}
+
+export interface LocalizedStringCommentsInsightResult extends FilesInsightResult {}
+
+export interface SmallFilesInsightResult extends FilesInsightResult {}
+
+export interface LooseImagesInsightResult extends GroupsInsightResult {}
+
+export interface MainBinaryExportMetadataResult extends FilesInsightResult {}
+
+export interface OptimizableImageFile {
+  best_optimization_type: 'convert_to_heic' | 'minify' | 'none';
+  conversion_savings: number;
+  current_size: number;
+  file_path: string;
+  heic_size: number | null;
+  minified_size: number | null;
+  minify_savings: number;
+  potential_savings: number;
+}
+
+export interface ImageOptimizationInsightResult extends BaseInsightResult {
+  optimizable_files: OptimizableImageFile[];
+}
+
+export interface StripBinaryFileInfo {
+  debug_sections_savings: number;
+  file_path: string;
+  symbol_table_savings: number;
+  total_savings: number;
+}
+
+export interface StripBinaryInsightResult extends BaseInsightResult {
+  files: StripBinaryFileInfo[];
+  total_debug_sections_savings: number;
+  total_symbol_table_savings: number;
+}
+
+export interface AudioCompressionInsightResult extends FilesInsightResult {}
+
+export interface VideoCompressionInsightResult extends FilesInsightResult {}
+
+export interface AppleInsightResults {
+  audio_compression?: AudioCompressionInsightResult;
+  duplicate_files?: DuplicateFilesInsightResult;
+  hermes_debug_info?: HermesDebugInfoInsightResult;
+  image_optimization?: ImageOptimizationInsightResult;
+  large_audio?: LargeAudioFileInsightResult;
+  large_images?: LargeImageFileInsightResult;
+  large_videos?: LargeVideoFileInsightResult;
+  localized_strings?: LocalizedStringInsightResult;
+  localized_strings_minify?: LocalizedStringCommentsInsightResult;
+  loose_images?: LooseImagesInsightResult;
+  main_binary_exported_symbols?: MainBinaryExportMetadataResult;
+  small_files?: SmallFilesInsightResult;
+  strip_binary?: StripBinaryInsightResult;
+  unnecessary_files?: UnnecessaryFilesInsightResult;
+  video_compression?: VideoCompressionInsightResult;
 }
