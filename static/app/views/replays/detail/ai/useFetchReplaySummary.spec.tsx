@@ -152,6 +152,46 @@ describe('useFetchReplaySummary', () => {
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(false);
     });
+
+    it('should poll when summary data is undefined and trigger mutation is pending', async () => {
+      // Mock the initial query to return undefined data
+      const initialQuery = MockApiClient.addMockResponse({
+        url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
+        body: undefined,
+      });
+
+      // Mock the POST request for triggering the summary - make it hang
+      let resolveTriggerRequest: (value?: any) => void;
+      const triggerPromise = new Promise(resolve => {
+        resolveTriggerRequest = resolve;
+      });
+
+      const triggerRequest = MockApiClient.addMockResponse({
+        url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
+        method: 'POST',
+        body: triggerPromise,
+      });
+
+      const {result} = renderHook(() => useFetchReplaySummary(), {
+        wrapper: createWrapper(),
+      });
+
+      // Trigger the summary mutation
+      result.current.triggerSummary();
+
+      // Wait for the mutation to be in pending state
+      await waitFor(() => {
+        expect(result.current.isTriggerPending).toBe(true);
+      });
+
+      expect(result.current.summaryData).toBeUndefined();
+      expect(result.current.isPolling).toBe(true);
+      expect(initialQuery).toHaveBeenCalledTimes(1);
+      expect(triggerRequest).toHaveBeenCalledTimes(1);
+
+      // Resolve the promise to clean up
+      resolveTriggerRequest!();
+    });
   });
 
   describe('polling behavior', () => {
