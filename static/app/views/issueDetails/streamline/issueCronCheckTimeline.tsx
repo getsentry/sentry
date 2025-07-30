@@ -209,6 +209,7 @@ const ChartContainer = styled('div')<{envCount: number}>`
 
 const TimelineLegend = styled('div')`
   position: absolute;
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
   user-select: none;
   display: flex;
   gap: ${p => p.theme.space.md};
@@ -225,6 +226,7 @@ const TimelineContainer = styled('div')`
   top: 36px;
   left: ${p => p.theme.space.lg};
   right: ${p => p.theme.space.lg};
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
 `;
 
 const EnvironmentLabel = styled(Tooltip)`
@@ -245,4 +247,5 @@ const IssueGridLineOverlay = styled(GridLineOverlay)<{envCount: number}>`
   ${Gridline} {
     top: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 68}px;
   }
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
 `;
