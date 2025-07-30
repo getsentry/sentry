@@ -196,7 +196,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
   ],
   'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-nestjs': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
