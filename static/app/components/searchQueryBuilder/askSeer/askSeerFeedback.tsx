@@ -37,7 +37,7 @@ export function AskSeerFeedback() {
           size="zero"
           icon={<IconThumb />}
           onClick={() => handleClick('yes')}
-          aria-label="Seer feedback worked"
+          aria-label="Yep, correct results"
         >
           Yep
         </Button>
@@ -45,7 +45,7 @@ export function AskSeerFeedback() {
           size="zero"
           icon={<IconThumb direction="down" />}
           onClick={() => handleClick('no')}
-          aria-label="Seer feedback did not work"
+          aria-label="Nope, incorrect results"
         >
           Nope
         </Button>
