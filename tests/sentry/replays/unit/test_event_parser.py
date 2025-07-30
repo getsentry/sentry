@@ -1516,3 +1516,150 @@ def test_parse_events_disabled(options_get):
 
     assert len(trace_items) == 0
     assert len(parsed.click_events) == 1
+
+
+def test_as_trace_item_context_click_minimal() -> None:
+    click_event = {
+        "data": {
+            "payload": {
+                "timestamp": 1674298825.403,
+                "data": {
+                    "node": {
+                        "id": 123,
+                        "tagName": "button",
+                        "textContent": "Click me",
+                        "attributes": {},
+                    }
+                },
+            }
+        }
+    }
+    result = as_trace_item_context(EventType.CLICK, click_event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.403
+    assert result["attributes"]["category"] == "ui.click"
+    assert result["attributes"]["node_id"] == 123
+    assert result["attributes"]["tag"] == "button"
+    assert result["attributes"]["text"] == "Click me"
+    assert result["attributes"]["is_dead"] is False
+    assert result["attributes"]["is_rage"] is False
+    assert result["attributes"]["testid"] == ""
+    assert len(result["attributes"]) == 7
+
+
+def test_as_trace_item_context_navigation_minimal() -> None:
+    navigation_event = {
+        "data": {"payload": {"timestamp": 1674298825.403, "data": {}}}  # No from/to
+    }
+    result = as_trace_item_context(EventType.NAVIGATION, navigation_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "navigation"
+    assert len(result["attributes"]) == 1
+
+
+def test_as_trace_item_context_resource_fetch_minimal() -> None:
+    resource_fetch_event = {
+        "data": {
+            "payload": {  # no description, endTimestamp
+                "startTimestamp": 1674298825.0,
+                "data": {},  # no method, statusCode, etc.
+            }
+        }
+    }
+    result = as_trace_item_context(EventType.RESOURCE_FETCH, resource_fetch_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.fetch"
+    assert len(result["attributes"]) == 1
+
+
+def test_as_trace_item_context_resource_script_minimal() -> None:
+    resource_script_event = {
+        "data": {
+            "payload": {
+                "startTimestamp": 1674298825.0,
+                "description": "https://example.com/script.js",
+                "data": {
+                    "size": 1024,
+                    "statusCode": 200,
+                    "decodedBodySize": 2048,
+                    "encodedBodySize": 1500,
+                },
+            }
+        }
+    }
+    result = as_trace_item_context(EventType.RESOURCE_SCRIPT, resource_script_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.script"
+    assert result["attributes"]["size"] == 1024
+    assert result["attributes"]["statusCode"] == 200
+    assert result["attributes"]["decodedBodySize"] == 2048
+    assert result["attributes"]["encodedBodySize"] == 1500
+
+
+def test_as_trace_item_context_lcp_minimal() -> None:
+    lcp_event = {
+        "data": {
+            "payload": {"startTimestamp": 1674298825.0, "data": {}}  # no size, value, or rating
+        }
+    }
+    result = as_trace_item_context(EventType.LCP, lcp_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "web-vital.lcp"
+    assert len(result["attributes"]) == 1
+
+
+def test_as_trace_item_context_hydration_error_minimal() -> None:
+    hydration_error_event = {
+        "data": {
+            "payload": {"timestamp": 1674298825.403, "data": {"url": "https://example.com/page"}}
+        }
+    }
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, hydration_error_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == "https://example.com/page"
+
+
+def test_as_trace_item_context_mutations_minimal() -> None:
+    mutations_event = {"timestamp": 1674298825000, "data": {"payload": {"data": {"count": 42}}}}
+    result = as_trace_item_context(EventType.MUTATIONS, mutations_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "replay.mutations"
+    assert result["attributes"]["count"] == 42
+
+
+def test_as_trace_item_context_options_minimal() -> None:
+    options_event = {
+        "timestamp": 1753710752516,
+        "data": {
+            "tag": "options",
+            "payload": {
+                "shouldRecordCanvas": True,
+                "sessionSampleRate": 0.1,
+                "errorSampleRate": 1.0,
+                "useCompressionOption": False,
+                "blockAllMedia": True,
+                "maskAllText": False,
+                "maskAllInputs": True,
+                "useCompression": False,
+                "networkDetailHasUrls": True,
+                "networkCaptureBodies": False,
+                "networkRequestHasHeaders": True,
+                "networkResponseHasHeaders": False,
+            },
+        },
+    }
+    result = as_trace_item_context(EventType.OPTIONS, options_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "sdk.options"
+    assert result["attributes"]["shouldRecordCanvas"] is True
+    assert result["attributes"]["sessionSampleRate"] == 0.1
+    assert len(result["attributes"]) == 13
+
+
+def test_as_trace_item_context_memory_minimal() -> None:
+    memory_event = {"data": {"payload": {"startTimestamp": 1674298825.0, "data": {"memory": {}}}}}
+    result = as_trace_item_context(EventType.MEMORY, memory_event)
+    assert result is not None
+    assert result["attributes"]["category"] == "memory"
+    assert len(result["attributes"]) == 1

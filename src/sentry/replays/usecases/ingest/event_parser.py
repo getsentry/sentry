@@ -489,18 +489,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 payload_data,
                 method=("method", as_string_strict),
                 status_code=("statusCode", int),
-                duration=("endTimestamp", float),
             )
             map_attrs(
                 resource_attributes,
                 payload,
                 url=("description", as_string_strict),
-            )
-            map_attrs(
-                resource_attributes,
-                payload_data,
-                method=("method", as_string_strict),
-                status_code=("statusCode", int),
             )
             if "endTimestamp" in payload and "startTimestamp" in payload:
                 map_attr(
@@ -570,14 +563,6 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "category": category,
             }
 
-            map_attrs(
-                web_vital_attributes,
-                payload_data,
-                size=("size", float),
-                value=("value", float),
-                rating=("rating", as_string_strict),
-                duration=("endTimestamp", float),
-            )
             map_attrs(
                 web_vital_attributes,
                 payload_data,
