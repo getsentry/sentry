@@ -1257,33 +1257,31 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     error = body["error"]
                     if response.status == 429:
                         if options.get("issues.use-snuba-error-data"):
-                            if "stats" not in error:
-                                # Should not hit this - snuba always returns stats when there is an error
-                                raise RateLimitExceeded(error["message"])
+                            try:
+                                if "stats" not in error:
+                                    # Should not hit this - snuba always returns stats when there is an error
+                                    raise RateLimitExceeded(error["message"])
+                                quota_allowance_summary = error["stats"]["quota_allowance"][
+                                    "details"
+                                ]["summary"]
+                                rejected_by = quota_allowance_summary["rejected_by"]
+                                throttled_by = quota_allowance_summary["throttled_by"]
 
-                            quota_allowance_summary = error["stats"]["quota_allowance"]["details"][
-                                "summary"
-                            ]
-                            rejected_by = quota_allowance_summary["rejected_by"]
-                            throttled_by = quota_allowance_summary["throttled_by"]
+                                policy_info = rejected_by or throttled_by
 
-                            if rejected_by:
-                                raise RateLimitExceeded(
-                                    error["message"],
-                                    policy=rejected_by["policy"],
-                                    quota_unit=rejected_by["quota_unit"],
-                                    storage_key=rejected_by["storage_key"],
-                                    quota_used=rejected_by["quota_used"],
-                                    rejection_threshold=rejected_by["rejection_threshold"],
-                                )
-                            elif throttled_by:
-                                raise RateLimitExceeded(
-                                    error["message"],
-                                    policy=throttled_by["policy"],
-                                    quota_unit=throttled_by["quota_unit"],
-                                    storage_key=throttled_by["storage_key"],
-                                    quota_used=throttled_by["quota_used"],
-                                    rejection_threshold=throttled_by["rejection_threshold"],
+                                if policy_info:
+                                    raise RateLimitExceeded(
+                                        error["message"],
+                                        policy=policy_info["policy"],
+                                        quota_unit=policy_info["quota_unit"],
+                                        storage_key=policy_info["storage_key"],
+                                        quota_used=policy_info["quota_used"],
+                                        rejection_threshold=policy_info["rejection_threshold"],
+                                    )
+                            except KeyError:
+                                logger.warning(
+                                    "Failed to parse rate limit error details from Snuba response",
+                                    extra={"error": error["message"]},
                                 )
 
                         raise RateLimitExceeded(error["message"])

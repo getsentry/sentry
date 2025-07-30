@@ -544,3 +544,31 @@ class SnubaQueryRateLimitTest(TestCase):
         assert (
             str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
         )
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    @override_options({"issues.use-snuba-error-data": 1.0})
+    def test_rate_limit_error_handling_with_stats_but_no_quota_details(self, mock_snuba_query):
+        """
+        Test that error handling gracefully handles stats but no quota details
+        """
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 429
+        mock_response.data = json.dumps(
+            {
+                "error": {
+                    "message": "Query on could not be run due to allocation policies, info: ...",
+                    "stats": {"quota_allowance": {"details": {"summary": {}}}},
+                }
+            }
+        ).encode()
+
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(RateLimitExceeded) as exc_info:
+            _bulk_snuba_query([self.snuba_request])
+
+        assert exc_info.value.quota_used is None
+        assert exc_info.value.rejection_threshold is None
+        assert (
+            str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
+        )
