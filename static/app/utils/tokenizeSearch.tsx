@@ -160,14 +160,15 @@ export class MutableSearch {
             formattedTokens.push(`${token.key}:""`);
           } else if (
             // Don't quote if it's already a properly formatted bracket expression
-            /^\[.*\]$/.test(token.value) ||
-            // Don't quote if it's already properly quoted
-            /^".*"$/.test(token.value)
+            // This should only match actual bracket expressions like [value1,value2] or ["value1","value2"]
+            // Not literal strings that happen to start and end with brackets like [Filtered]
+            /^\[.*\]$/.test(token.value) &&
+            (token.value.includes(',') || token.value.includes('"'))
           ) {
             formattedTokens.push(`${token.key}:${token.value}`);
           } else if (
-            // Quote if contains spaces, parens, or quotes
-            /[\s\(\)\\"]/g.test(token.value)
+            // Quote if contains spaces, parens, quotes, or brackets
+            /[\s\(\)\\"\[\]]/g.test(token.value)
           ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
@@ -175,7 +176,7 @@ export class MutableSearch {
           }
           break;
         case TokenType.FREE_TEXT:
-          if (/[\s\(\)\\"]/g.test(token.value)) {
+          if (/[\s\(\)\\"\[\]]/g.test(token.value)) {
             formattedTokens.push(`"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(token.value);
