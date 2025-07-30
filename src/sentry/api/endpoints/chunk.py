@@ -17,6 +17,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRele
 from sentry.api.utils import generate_region_url
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.organization import Organization
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.http import absolute_uri
@@ -93,7 +94,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (ChunkUploadPermission,)
     rate_limits = RateLimitConfig(group="CLI")
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return chunk upload parameters
         ``````````````````````````````

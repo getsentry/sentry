@@ -2,7 +2,7 @@
 shim_to_feedback unit tests. Integration testing is done in test_create_feedback, test_project_user_reports, test_post_process, and test_update_user_reports.
 """
 
-from unittest.mock import Mock
+from unittest import mock
 
 import pytest
 
@@ -107,20 +107,18 @@ def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_
 
 
 @django_db_all
-def test_shim_to_feedback_fails_if_required_fields_missing(default_project, monkeypatch):
+def test_shim_to_feedback_fails_if_required_fields_missing(default_project):
     # Email and comments are required to shim. Tests key errors are handled.
-    mock_create_feedback_issue = Mock()
-    monkeypatch.setattr(
-        "sentry.feedback.usecases.ingest.shim_to_feedback.create_feedback_issue",
-        mock_create_feedback_issue,
-    )
     report_dict = {
         "name": "andrew",
         "event_id": "a" * 32,
         "level": "error",
     }
     event = Event(event_id="a" * 32, project_id=default_project.id)
-    shim_to_feedback(
-        report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
-    )
+    with mock.patch(
+        "sentry.feedback.usecases.ingest.shim_to_feedback.create_feedback_issue"
+    ) as mock_create_feedback_issue:
+        shim_to_feedback(
+            report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
+        )
     assert mock_create_feedback_issue.call_count == 0

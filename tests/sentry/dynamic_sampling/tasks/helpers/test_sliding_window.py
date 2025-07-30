@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 @freeze_time("2023-02-03 12:00:00")
-def test_extrapolate_monthly_volume_with_28_days():
+def test_extrapolate_monthly_volume_with_28_days() -> None:
     result = extrapolate_monthly_volume(volume=10, hours=24)
     assert result == 280
 
@@ -26,6 +26,6 @@ def test_extrapolate_monthly_volume_with_30_days(volume, hours, expected_result)
 
 
 @freeze_time("2023-05-03 12:00:00")
-def test_extrapolate_monthly_volume_with_31_days():
+def test_extrapolate_monthly_volume_with_31_days() -> None:
     result = extrapolate_monthly_volume(volume=10, hours=24)
     assert result == 310

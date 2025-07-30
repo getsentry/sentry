@@ -401,6 +401,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             resolved_field = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
 
             values: set[Any] = set()
+            array_values: list[Any] = []
             for event in top_events:
                 if field in event:
                     alias = field
@@ -410,11 +411,12 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     continue
 
                 # Note that because orderby shouldn't be an array field its not included in the values
-                if isinstance(event.get(alias), list):
-                    continue
+                event_value = event.get(alias)
+                if isinstance(event_value, list) and event_value not in array_values:
+                    array_values.append(event_value)
                 else:
-                    values.add(event.get(alias))
-            values_list = list(values)
+                    values.add(event_value)
+            values_list = list(values) + array_values
 
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
@@ -451,6 +453,21 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                             conditions.append(And(conditions=[null_condition, non_none_condition]))
                     else:
                         conditions.append(null_condition)
+                elif any(isinstance(value, list) for value in values_list):
+                    list_conditions = []
+                    for values in values_list:
+                        # This depends on a weird clickhouse behaviour where the best way to compare arrays is to do
+                        # array("foo", "bar") IN array("foo", "bar") == 1
+                        list_conditions.append(
+                            Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values)
+                        )
+                    if len(list_conditions) > 1:
+                        if not other:
+                            conditions.append(Or(conditions=list_conditions))
+                        else:
+                            conditions.append(And(conditions=list_conditions))
+                    else:
+                        conditions.extend(list_conditions)
                 else:
                     conditions.append(
                         Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)

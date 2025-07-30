@@ -15,7 +15,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_process_recording_event_without_video():
+def test_process_recording_event_without_video() -> None:
     """Test process_recording_event without replay video data"""
     payload = b'[{"type": "test"}]'
     payload_compressed = zlib.compress(payload)
@@ -49,7 +49,7 @@ def test_process_recording_event_without_video():
 
 
 @django_db_all
-def test_process_recording_event_with_video():
+def test_process_recording_event_with_video() -> None:
     """Test process_recording_event with replay video data"""
     payload = b'[{"type": "test"}]'
     payload_compressed = zlib.compress(payload)
@@ -88,7 +88,7 @@ def test_process_recording_event_with_video():
     assert unpacked_video == video_data
 
 
-def test_parse_replay_events_empty():
+def test_parse_replay_events_empty() -> None:
     (result, trace_items) = parse_replay_events(
         {
             "context": {
@@ -110,7 +110,7 @@ def test_parse_replay_events_empty():
     assert trace_items == []
 
 
-def test_parse_replay_events_invalid_json():
+def test_parse_replay_events_invalid_json() -> None:
     result = parse_replay_events(
         {
             "context": {
@@ -131,7 +131,7 @@ def test_parse_replay_events_invalid_json():
     assert result is None
 
 
-def test_pack_replay_video():
+def test_pack_replay_video() -> None:
     result = pack_replay_video(b"hello", b"world")
     video, rrweb = unpack(zlib.decompress(result))
     assert rrweb == b"hello"

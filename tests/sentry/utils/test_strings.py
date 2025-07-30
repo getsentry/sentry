@@ -46,7 +46,7 @@ def test_unescape_string(s, expected):
     assert unescape_string(s) == expected
 
 
-def test_codec_lookup():
+def test_codec_lookup() -> None:
     assert codec_lookup("utf-8").name == "utf-8"
     assert codec_lookup("utf8").name == "utf-8"
     assert codec_lookup("zlib").name == "utf-8"
@@ -57,7 +57,7 @@ def test_codec_lookup():
     assert codec_lookup("unknowable", default="latin1").name == "iso8859-1"
 
 
-def test_soft_break():
+def test_soft_break() -> None:
     assert soft_break(
         "com.example.package.method(argument).anotherMethod(argument)", 15
     ) == ZWSP.join(
@@ -65,14 +65,14 @@ def test_soft_break():
     )
 
 
-def test_soft_break_and_hyphenate():
+def test_soft_break_and_hyphenate() -> None:
     hyphenate = functools.partial(soft_hyphenate, length=6)
     assert soft_break("com.reallyreallyreally.long.path", 6, hyphenate) == ZWSP.join(
         ["com.", SHY.join(["really"] * 3) + ".", "long.", "path"]
     )
 
 
-def test_is_valid_dot_atom():
+def test_is_valid_dot_atom() -> None:
     assert is_valid_dot_atom("foo")
     assert is_valid_dot_atom("foo.bar")
     assert not is_valid_dot_atom(".foo.bar")
@@ -80,7 +80,7 @@ def test_is_valid_dot_atom():
     assert not is_valid_dot_atom("foo.\x00")
 
 
-def test_truncatechars():
+def test_truncatechars() -> None:
     assert truncatechars("12345", 6) == "12345"
     assert truncatechars("12345", 5) == "12345"
     assert truncatechars("12345", 4) == "1..."
@@ -100,7 +100,7 @@ def test_truncatechars():
     assert truncatechars(None, 1) is None
 
 
-def test_oxfordize_list():
+def test_oxfordize_list() -> None:
     assert oxfordize_list([]) == ""
     assert oxfordize_list(["A"]) == "A"
     assert oxfordize_list(["A", "B"]) == "A and B"

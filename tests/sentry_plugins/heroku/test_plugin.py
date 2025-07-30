@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import orjson
 import pytest
@@ -29,7 +29,7 @@ class SetRefsTest(TestCase):
     """
 
     @patch("sentry.tasks.commits.fetch_commits")
-    def test_minimal(self, mock_fetch_commits):
+    def test_minimal(self, mock_fetch_commits: MagicMock) -> None:
         project = self.create_project()
         version = "bbee5b51f84611e4b14834363b8514c2"
         data_list = [
@@ -131,7 +131,7 @@ class HookHandleTest(TestCase):
             yield
 
     @patch.object(HerokuReleaseHook, "set_refs")
-    def test_user_success(self, set_refs_mock):
+    def test_user_success(self, set_refs_mock: MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
@@ -152,7 +152,7 @@ class HookHandleTest(TestCase):
         assert set_refs_mock.call_count == 1
 
     @patch.object(HerokuReleaseHook, "set_refs")
-    def test_only_run_on_update(self, set_refs_mock):
+    def test_only_run_on_update(self, set_refs_mock: MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
@@ -173,7 +173,7 @@ class HookHandleTest(TestCase):
         assert set_refs_mock.call_count == 0
 
     @patch.object(HerokuReleaseHook, "set_refs")
-    def test_actor_email_success(self, set_refs_mock):
+    def test_actor_email_success(self, set_refs_mock: MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)

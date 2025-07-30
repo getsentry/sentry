@@ -153,6 +153,7 @@ export const platformProductAvailability = {
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solid': [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -177,22 +178,61 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
   ],
-  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  node: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-awslambda': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-connect': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-express': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-hapi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-nestjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-workers': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-pages': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -225,9 +265,21 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
   ],
-  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ruby: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rack': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rails': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {

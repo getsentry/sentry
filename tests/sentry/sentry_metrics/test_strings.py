@@ -66,7 +66,7 @@ REINDEXED_INTS = {12345678: "release"}
 
 
 @override_settings(SENTRY_METRICS_INDEXER_REINDEXED_INTS=REINDEXED_INTS)
-def test_reverse_resolve_reindexed():
+def test_reverse_resolve_reindexed() -> None:
     """
     If we have deleted a record accidentally and whose id still lives in
     ClickHouse, then we need to account for the re-indexed id. Since the
