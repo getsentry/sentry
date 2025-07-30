@@ -86,6 +86,7 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'apple-ios': [
     ProductSolution.PERFORMANCE_MONITORING,
