@@ -177,9 +177,6 @@ export function PageOverviewSidebar({
             <InsightGrid>
               {isLoadingPageSummary && <Placeholder height="1.5rem" />}
               {insightCards.map(card => {
-                if (!card.insight) {
-                  return null;
-                }
                 if (!card.insight || typeof card.insight !== 'object') {
                   return null;
                 }

@@ -55,7 +55,7 @@ describe('PageOverviewSidebar', () => {
     render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
 
     expect(screen.getByText('Seer Suggestions')).toBeInTheDocument();
-    expect(await screen.findByText('- Seer Suggestion 1')).toBeInTheDocument();
+    expect(await screen.findByText('— Seer Suggestion 1')).toBeInTheDocument();
     expect(screen.getByText('ui.interaction.click')).toBeInTheDocument();
     expect(screen.getByText('Suggestion 1')).toBeInTheDocument();
     expect(screen.getByText('Suggestion 2')).toBeInTheDocument();
