@@ -1,11 +1,11 @@
 import {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 
 import {Alert} from 'sentry/components/core/alert';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 type Props = {
   authConfig: AuthConfig;
@@ -13,6 +13,7 @@ type Props = {
 
 function SsoForm({authConfig}: Props) {
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const {serverHostname} = authConfig;
 
@@ -21,7 +22,7 @@ function SsoForm({authConfig}: Props) {
       apiMethod="POST"
       apiEndpoint="/auth/sso-locate/"
       onSubmitSuccess={response => {
-        browserHistory.push({pathname: response.nextUri});
+        navigate(response.nextUri);
       }}
       onSubmitError={response => {
         setError(response.responseJSON.detail);

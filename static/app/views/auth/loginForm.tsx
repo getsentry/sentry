@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -12,7 +13,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
@@ -53,6 +53,7 @@ type Props = {
 
 function LoginForm({authConfig}: Props) {
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const {githubLoginLink, vstsLoginLink} = authConfig;
   const hasLoginProvider = !!(githubLoginLink || vstsLoginLink);
@@ -71,7 +72,7 @@ function LoginForm({authConfig}: Props) {
 
           // TODO(epurkhiser): Reconfigure sentry SDK identity
 
-          browserHistory.push({pathname: response.nextUri});
+          navigate(response.nextUri);
         }}
         onSubmitError={response => {
           // TODO(epurkhiser): Need much better error handling here

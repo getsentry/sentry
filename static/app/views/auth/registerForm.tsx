@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -10,7 +11,6 @@ import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 type Props = {
   authConfig: AuthConfig;
@@ -20,6 +20,7 @@ function RegisterForm({authConfig}: Props) {
   const {hasNewsletter} = authConfig;
 
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   return (
     <Form
@@ -29,7 +30,7 @@ function RegisterForm({authConfig}: Props) {
       submitLabel={t('Continue')}
       onSubmitSuccess={response => {
         ConfigStore.set('user', response.user);
-        browserHistory.push({pathname: response.nextUri});
+        navigate(response.nextUri);
       }}
       onSubmitError={response => {
         setError(response.responseJSON.detail);
