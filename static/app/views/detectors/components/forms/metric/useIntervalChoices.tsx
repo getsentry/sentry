@@ -41,12 +41,8 @@ export function useIntervalChoices({dataset, detectionType}: UseIntervalChoicesP
     // 2. Dynamic detection → Only 15min, 30min, 1hour
     // 3. Spans/Logs → No 1-minute intervals (EAP dataset behavior)
     // 4. Everything else → All intervals allowed
-
     const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
-
-    // Dynamic detection should match alert system: only 15min, 30min, 1hour
     const isDynamicDetection = detectionType === 'dynamic';
-
     // EAP-derived datasets (spans, logs) exclude 1-minute intervals
     const isEAPDerivedDataset =
       dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS;
