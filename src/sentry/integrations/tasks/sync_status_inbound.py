@@ -16,11 +16,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
-from sentry.models.release import (
-    Release,
-    ReleaseStatus,
-    follows_semver_versioning_scheme,
-)
+from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation

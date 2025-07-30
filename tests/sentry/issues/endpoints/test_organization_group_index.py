@@ -15,9 +15,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.analytics.events.advanced_search_feature_gated import (
-    AdvancedSearchFeatureGateEvent,
-)
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -34,11 +32,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphistory import (
-    GroupHistory,
-    GroupHistoryStatus,
-    record_group_history,
-)
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,

@@ -5,14 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.http import QueryDict
 
-from sentry.analytics.events.advanced_search_feature_gated import (
-    AdvancedSearchFeatureGateEvent,
-)
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
-from sentry.api.helpers.group_index import (
-    update_groups,
-    validate_search_filter_permissions,
-)
+from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
     get_group_list,
