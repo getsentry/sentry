@@ -119,7 +119,7 @@ function withinPauseWindow(autoRefresh: AutoRefreshState, pausedAt: number | und
   return (
     (autoRefresh === 'paused' || autoRefresh === 'enabled') &&
     pausedAt &&
-    MAX_AUTO_REFRESH_PAUSED_TIME_MS - (Date.now() - pausedAt) > 0
+    Date.now() - pausedAt < MAX_AUTO_REFRESH_PAUSED_TIME_MS
   );
 }
 
