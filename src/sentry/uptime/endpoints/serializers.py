@@ -154,10 +154,10 @@ class EapCheckEntrySerializer(Serializer):
 
 
 class UptimeSummarySerializerResponse(TypedDict):
-    total_checks: int
-    failed_checks: int
-    downtime_checks: int
-    missed_window_checks: int
+    totalChecks: int
+    failedChecks: int
+    downtimeChecks: int
+    missedWindowChecks: int
 
 
 @register(UptimeSummary)
@@ -167,8 +167,8 @@ class UptimeSummarySerializer(Serializer):
         self, obj: UptimeSummary, attrs: Any, user: Any, **kwargs: Any
     ) -> UptimeSummarySerializerResponse:
         return {
-            "total_checks": obj.total_checks,
-            "failed_checks": obj.failed_checks,
-            "downtime_checks": obj.downtime_checks,
-            "missed_window_checks": obj.missed_window_checks,
+            "totalChecks": obj.total_checks,
+            "failedChecks": obj.failed_checks,
+            "downtimeChecks": obj.downtime_checks,
+            "missedWindowChecks": obj.missed_window_checks,
         }
