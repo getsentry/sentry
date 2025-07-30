@@ -19,7 +19,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.payload = {
@@ -34,7 +34,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -47,7 +47,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_dual_write__negative_value(self):
+    def test_dual_write__negative_value(self) -> None:
         self.payload["value"] = "-10"
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
@@ -61,7 +61,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         self.dc.comparison.update({"comparison_type": AgeComparisonType.NEWER})
         self.dc.save()
 
@@ -77,7 +77,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_older_applies_correctly(self):
+    def test_older_applies_correctly(self) -> None:
         self.dc.comparison.update(
             {"comparison_type": AgeComparisonType.OLDER, "value": 10, "time": "hour"}
         )
@@ -91,7 +91,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         )
         self.assert_passes(self.dc, self.event_data)
 
-    def test_newer_applies_correctly(self):
+    def test_newer_applies_correctly(self) -> None:
         self.dc.comparison.update(
             {"comparison_type": AgeComparisonType.NEWER, "value": 10, "time": "hour"}
         )

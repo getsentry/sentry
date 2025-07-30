@@ -22,7 +22,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
 
-    def test_member_constraints(self):
+    def test_member_constraints(self) -> None:
         user = self.create_user(is_superuser=True)
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
@@ -39,7 +39,7 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project.id)
         assert response.data[0]["organization"]["id"] == str(org.id)
 
-    def test_show_all_with_superuser(self):
+    def test_show_all_with_superuser(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -55,7 +55,7 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
 
-    def test_show_all_without_superuser(self):
+    def test_show_all_without_superuser(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -71,7 +71,7 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response()
         assert len(response.data) == 0
 
-    def test_filter_by_org_id(self):
+    def test_filter_by_org_id(self) -> None:
         user = self.create_user(is_superuser=True)
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
@@ -88,7 +88,7 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project.id)
         assert response.data[0]["organization"]["id"] == str(org.id)
 
-    def test_status_filter(self):
+    def test_status_filter(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -108,7 +108,7 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project2.id)
 
-    def test_query_filter(self):
+    def test_query_filter(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -127,7 +127,7 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "baz"})
         assert len(response.data) == 0
 
-    def test_slug_query(self):
+    def test_slug_query(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -146,7 +146,7 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
 
-    def test_dsn_filter(self):
+    def test_dsn_filter(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -166,7 +166,7 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "dsn:nope"})
         assert len(response.data) == 0
 
-    def test_id_query(self):
+    def test_id_query(self) -> None:
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
@@ -185,7 +185,7 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0
 
-    def test_valid_with_internal_integration(self):
+    def test_valid_with_internal_integration(self) -> None:
         project = self.create_project(organization=self.organization, teams=[self.team])
         internal_integration = self.create_internal_integration(
             name="my_app",
@@ -200,7 +200,7 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert project.name.encode("utf-8") in response.content
 
-    def test_deleted_token_with_internal_integration(self):
+    def test_deleted_token_with_internal_integration(self) -> None:
         internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
@@ -239,7 +239,7 @@ class ProjectsListTest(APITestCase):
         )
         return installation.api_token.token
 
-    def test_valid_with_public_integration(self):
+    def test_valid_with_public_integration(self) -> None:
         token = self.get_installed_unpublished_sentry_app_access_token()
 
         # there should only be one record created so just grab the first one
@@ -249,7 +249,7 @@ class ProjectsListTest(APITestCase):
         assert self.project.name.encode("utf-8") in response.content
 
     @responses.activate
-    def test_deleted_token_with_public_integration(self):
+    def test_deleted_token_with_public_integration(self) -> None:
         token = self.get_installed_unpublished_sentry_app_access_token()
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():

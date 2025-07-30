@@ -79,7 +79,7 @@ class GroupCurrentReleaseTest(APITestCase):
         assert response.status_code == 200
         return response.data["currentRelease"], target_releases
 
-    def test_current_release_has_group_on_one_env(self):
+    def test_current_release_has_group_on_one_env(self) -> None:
         current_release, target_releases = self._test_current_release(True, ["production"])
         prod_release = target_releases["production"]
 
@@ -87,7 +87,7 @@ class GroupCurrentReleaseTest(APITestCase):
         assert current_release["firstSeen"] == prod_release.first_seen
         assert current_release["lastSeen"] == prod_release.last_seen
 
-    def test_current_release_is_later(self):
+    def test_current_release_is_later(self) -> None:
         for envs in [[], ["production"], ["development"], ["production", "development"]]:
             current_release, target_releases = self._test_current_release(False, envs)
             assert current_release is None

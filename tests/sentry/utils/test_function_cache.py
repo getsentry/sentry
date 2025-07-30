@@ -37,7 +37,7 @@ class CacheFuncForModelsTest(TestCase):
             len([ca for ca in mock_test_func.call_args_list if ca.args[0] == text_search]) == count
         )
 
-    def test(self):
+    def test(self) -> None:
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
         decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)])(mock_test_func)
@@ -60,7 +60,7 @@ class CacheFuncForModelsTest(TestCase):
         self.assert_called_with_count(mock_test_func, "test", 3)
         assert decorated_test_func("test") == 2
 
-    def test_no_recalculate(self):
+    def test_no_recalculate(self) -> None:
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
         decorated_test_func = cache_func_for_models(
@@ -83,7 +83,7 @@ class CacheFuncForModelsTest(TestCase):
         self.assert_called_with_count(mock_test_func, "test", 3)
         assert decorated_test_func("test") == 2
 
-    def test_batch(self):
+    def test_batch(self) -> None:
         mock_test_func = create_autospec(count_func)
         mock_test_func.side_effect = count_func
         decorated_test_func = cache_func_for_models([(CacheModel, arg_extractor)])(mock_test_func)
@@ -113,7 +113,7 @@ class CacheFuncTest(TestCase):
             len([ca for ca in mock_test_func.call_args_list if ca.args[0] == text_search]) == count
         )
 
-    def test(self):
+    def test(self) -> None:
         mock_test_func = create_autospec(simple_func)
         mock_test_func.side_effect = simple_func
         decorated_test_func = cache_func()(mock_test_func)
@@ -129,7 +129,7 @@ class CacheFuncTest(TestCase):
         assert decorated_test_func("test_2") == "test_2_yay"
         self.assert_called_with_count(mock_test_func, "test_2", 1)
 
-    def test_batch(self):
+    def test_batch(self) -> None:
         mock_test_func = create_autospec(simple_func)
         mock_test_func.side_effect = simple_func
 

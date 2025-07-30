@@ -2,21 +2,21 @@ import pytest
 
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
-from sentry.snuba.spans_rpc import get_resolver
+from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 
 
 class TestBulkTableQueries(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.snuba_params = SnubaParams()
         self.config = SearchResolverConfig()
-        self.resolver = get_resolver(self.snuba_params, self.config)
+        self.resolver = Spans.get_resolver(self.snuba_params, self.config)
 
-    def test_missing_name(self):
+    def test_missing_name(self) -> None:
         with pytest.raises(ValueError):
-            run_bulk_table_queries(
+            RPCBase.run_bulk_table_queries(
                 [
                     TableQuery("test", ["test"], None, 0, 1, "TestReferrer", None, self.resolver),
                     TableQuery(
@@ -33,9 +33,9 @@ class TestBulkTableQueries(TestCase):
                 ]
             )
 
-    def test_duplicate_name(self):
+    def test_duplicate_name(self) -> None:
         with pytest.raises(ValueError):
-            run_bulk_table_queries(
+            RPCBase.run_bulk_table_queries(
                 [
                     TableQuery(
                         "test",

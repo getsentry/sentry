@@ -26,6 +26,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
@@ -115,6 +116,8 @@ function AddToDashboardModal({
   );
   const [orderBy, setOrderBy] = useState<string>();
   const [tableWidths, setTableWidths] = useState<number[]>();
+
+  const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
@@ -256,19 +259,24 @@ function AddToDashboardModal({
         label: t('+ Create New Dashboard'),
         value: 'new',
       },
-      ...dashboards.map(({title, id, widgetDisplay}) => ({
-        label: title,
-        value: id,
-        disabled: widgetDisplay.length >= MAX_WIDGETS,
-        tooltip:
-          widgetDisplay.length >= MAX_WIDGETS &&
-          tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-            maxWidgets: MAX_WIDGETS,
-          }),
-        tooltipOptions: {position: 'right'},
-      })),
+      ...dashboards
+        .filter(dashboard =>
+          // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
+          currentDashboardId ? dashboard.id !== currentDashboardId : true
+        )
+        .map(({title, id, widgetDisplay}) => ({
+          label: title,
+          value: id,
+          disabled: widgetDisplay.length >= MAX_WIDGETS,
+          tooltip:
+            widgetDisplay.length >= MAX_WIDGETS &&
+            tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+              maxWidgets: MAX_WIDGETS,
+            }),
+          tooltipOptions: {position: 'right'},
+        })),
     ].filter(Boolean) as Array<SelectValue<string>>;
-  }, [allowCreateNewDashboard, dashboards]);
+  }, [allowCreateNewDashboard, currentDashboardId, dashboards]);
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location,

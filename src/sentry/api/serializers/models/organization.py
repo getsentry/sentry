@@ -572,7 +572,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(  # type: ignore[explicit-override, override]
+    def serialize(  # type: ignore[override]
         self,
         obj: Organization,
         attrs: Mapping[str, Any],
@@ -834,7 +834,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return team_list
 
-    def serialize(  # type: ignore[explicit-override, override]
+    def serialize(  # type: ignore[override]
         self,
         obj: Organization,
         attrs: Mapping[str, Any],

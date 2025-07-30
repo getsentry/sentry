@@ -1,0 +1,249 @@
+---
+title: Heading
+description: Heading components display semantic heading elements with appropriate typography and styling controls.
+source: 'sentry/components/core/text'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/heading.tsx
+  a11y:
+    WCAG 1.3.1: https://www.w3.org/TR/WCAG22/#info-and-relationships
+    WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
+    WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
+    WCAG 1.4.6: https://www.w3.org/TR/WCAG22/#contrast-enhanced
+    WCAG 1.4.8: https://www.w3.org/TR/WCAG22/#visual-presentation
+    WCAG 1.4.12: https://www.w3.org/TR/WCAG22/#text-spacing
+    WCAG 2.4.6: https://www.w3.org/TR/WCAG22/#headings-and-labels
+---
+
+import {Heading} from 'sentry/components/core/text';
+import * as Storybook from 'sentry/stories';
+
+import types from '!!type-loader!sentry/components/core/text/heading';
+
+export {types};
+
+The `<Heading>` component creates semantic heading elements with appropriate default sizes and styling. It ensures proper heading hierarchy while providing visual consistency.
+
+```jsx
+<Heading as="h1">Page Title</Heading>
+<Heading as="h2">Section Title</Heading>
+<Heading as="h3">Subsection Title</Heading>
+```
+
+### Semantic Heading Levels
+
+Use the required `as` prop to specify the semantic heading level. Each level has a default size that follows standard typography hierarchy.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Heading as="h1">Heading 1</Heading>
+    <Heading as="h2">Heading 2</Heading>
+    <Heading as="h3">Heading 3</Heading>
+    <Heading as="h4">Heading 4</Heading>
+    <Heading as="h5">Heading 5</Heading>
+    <Heading as="h6">Heading 6</Heading>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h1">Heading 1</Heading>
+<Heading as="h2">Heading 2</Heading>
+<Heading as="h3">Heading 3</Heading>
+<Heading as="h4">Heading 4</Heading>
+<Heading as="h5">Heading 5</Heading>
+<Heading as="h6">Heading 6</Heading>
+```
+
+### Custom Sizes
+
+Override the default size with the `size` prop to decouple visual appearance from semantic meaning.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Heading as="h3" size="2xl">
+      H3 with 2xl size
+    </Heading>
+    <Heading as="h1" size="md">
+      H1 with medium size
+    </Heading>
+    <Heading as="h5" size="xl">
+      H5 with extra large size
+    </Heading>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h3" size="2xl">
+  H3 with 2xl size
+</Heading>
+<Heading as="h1" size="md">
+  H1 with medium size
+</Heading>
+<Heading as="h5" size="xl">
+  H5 with extra large size
+</Heading>
+```
+
+### Variants
+
+Headings support various color variants: `primary` (default), `muted`, `accent`, `success`, `warning`, `danger`, and `promotion`.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Heading as="h3" variant="primary">
+      Primary heading (default)
+    </Heading>
+    <Heading as="h3" variant="muted">
+      Muted heading
+    </Heading>
+    <Heading as="h3" variant="accent">
+      Accent heading
+    </Heading>
+    <Heading as="h3" variant="success">
+      Success heading
+    </Heading>
+    <Heading as="h3" variant="warning">
+      Warning heading
+    </Heading>
+    <Heading as="h3" variant="danger">
+      Danger heading
+    </Heading>
+    <Heading as="h3" variant="promotion">
+      Promotion heading
+    </Heading>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h3" variant="primary">
+  Primary heading (default)
+</Heading>
+<Heading as="h3" variant="muted">
+  Muted heading
+</Heading>
+<Heading as="h3" variant="accent">
+  Accent heading
+</Heading>
+<Heading as="h3" variant="success">
+  Success heading
+</Heading>
+<Heading as="h3" variant="warning">
+  Warning heading
+</Heading>
+<Heading as="h3" variant="danger">
+  Danger heading
+</Heading>
+<Heading as="h3" variant="promotion">
+  Promotion heading
+</Heading>
+```
+
+### Typography Features
+
+Headings support various typography options including italic, underline, strikethrough, and uppercase.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Heading as="h3" italic>
+      Italic heading
+    </Heading>
+    <Heading as="h3" underline>
+      Underlined heading
+    </Heading>
+    <Heading as="h3" strikethrough>
+      Strikethrough heading
+    </Heading>
+    <Heading as="h3" uppercase>
+      Uppercase heading
+    </Heading>
+    <Heading as="h3" italic underline>
+      Italic underlined heading
+    </Heading>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h3" italic>
+  Italic heading
+</Heading>
+<Heading as="h3" underline>
+  Underlined heading
+</Heading>
+<Heading as="h3" strikethrough>
+  Strikethrough heading
+</Heading>
+<Heading as="h3" uppercase>
+  Uppercase heading
+</Heading>
+<Heading as="h3" italic underline>
+  Italic underlined heading
+</Heading>
+```
+
+### Text Alignment
+
+Control text alignment with the `align` prop: `left` (default), `center`, `right`, or `justify`.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <div style={{width: '300px', border: '1px solid #ccc', padding: '8px'}}>
+      <Heading as="h4" align="left">
+        Left aligned heading
+      </Heading>
+    </div>
+    <div style={{width: '300px', border: '1px solid #ccc', padding: '8px'}}>
+      <Heading as="h4" align="center">
+        Center aligned heading
+      </Heading>
+    </div>
+    <div style={{width: '300px', border: '1px solid #ccc', padding: '8px'}}>
+      <Heading as="h4" align="right">
+        Right aligned heading
+      </Heading>
+    </div>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h4" align="left">
+  Left aligned heading
+</Heading>
+<Heading as="h4" align="center">
+  Center aligned heading
+</Heading>
+<Heading as="h4" align="right">
+  Right aligned heading
+</Heading>
+```
+
+### Ellipsis Overflow
+
+Handle text overflow with the `ellipsis` prop to truncate long headings with an ellipsis.
+
+<Storybook.Demo>
+  <div style={{width: '200px', border: '1px solid #ccc', padding: '8px'}}>
+    <Heading as="h4" ellipsis>
+      This is a very long heading that will be truncated
+    </Heading>
+  </div>
+</Storybook.Demo>
+```jsx
+<div style={{width: '200px'}}>
+  <Heading as="h4" ellipsis>
+    This is a very long heading that will be truncated
+  </Heading>
+</div>
+```
+
+### Monospace
+
+Use `monospace` for fixed-width headings, useful for code-related content.
+
+<Storybook.Demo>
+  <Storybook.SideBySide vertical>
+    <Heading as="h4">API Response Format</Heading>
+    <Heading as="h4" monospace>
+      API Response Format
+    </Heading>
+  </Storybook.SideBySide>
+</Storybook.Demo>
+```jsx
+<Heading as="h4">API Response Format</Heading>
+<Heading as="h4" monospace>
+  API Response Format
+</Heading>
+```

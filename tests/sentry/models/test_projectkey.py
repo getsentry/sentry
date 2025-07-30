@@ -14,25 +14,25 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(organization=self.organization)
 
-    def test_get_dsn_custom_prefix(self):
+    def test_get_dsn_custom_prefix(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.options(
             {"system.url-prefix": "http://example.com", "system.region-api-url-template": ""}
         ):
             self.assertEqual(key.get_dsn(), f"http://public:secret@example.com/{self.project.id}")
 
-    def test_get_dsn_with_ssl(self):
+    def test_get_dsn_with_ssl(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.options(
             {"system.url-prefix": "https://example.com", "system.region-api-url-template": ""}
         ):
             self.assertEqual(key.get_dsn(), f"https://public:secret@example.com/{self.project.id}")
 
-    def test_get_dsn_with_port(self):
+    def test_get_dsn_with_port(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.options(
             {"system.url-prefix": "http://example.com:81", "system.region-api-url-template": ""}
@@ -41,28 +41,28 @@ class ProjectKeyTest(TestCase):
                 key.get_dsn(), f"http://public:secret@example.com:81/{self.project.id}"
             )
 
-    def test_get_dsn_with_public_endpoint_setting(self):
+    def test_get_dsn_with_public_endpoint_setting(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
             self.assertEqual(
                 key.get_dsn(public=True), f"http://public@endpoint.com/{self.project.id}"
             )
 
-    def test_get_dsn_with_endpoint_setting(self):
+    def test_get_dsn_with_endpoint_setting(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
             self.assertEqual(key.get_dsn(), f"http://public:secret@endpoint.com/{self.project.id}")
 
-    def test_key_is_created_for_project(self):
+    def test_key_is_created_for_project(self) -> None:
         self.create_user("admin@example.com")
         team = self.create_team(name="Test")
         project = self.create_project(name="Test", teams=[team])
         assert project.key_set.exists() is True
 
-    def test_generate_api_key(self):
+    def test_generate_api_key(self) -> None:
         assert len(self.model.generate_api_key()) == 32
 
-    def test_from_dsn(self):
+    def test_from_dsn(self) -> None:
         key = self.model.objects.create(
             project_id=self.project.id, public_key="abc", secret_key="xyz"
         )
@@ -76,7 +76,7 @@ class ProjectKeyTest(TestCase):
         with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("abc")
 
-    def test_get_default(self):
+    def test_get_default(self) -> None:
         key = self.projectkey
         self.model.objects.create(project=self.project, status=ProjectKeyStatus.INACTIVE)
         assert (
@@ -84,12 +84,12 @@ class ProjectKeyTest(TestCase):
         ), self.model.objects.all()
         assert self.model.get_default(self.project) == key
 
-    def test_is_active(self):
+    def test_is_active(self) -> None:
         assert self.model(project=self.project, status=ProjectKeyStatus.INACTIVE).is_active is False
 
         assert self.model(project=self.project, status=ProjectKeyStatus.ACTIVE).is_active is True
 
-    def test_get_dsn(self):
+    def test_get_dsn(self) -> None:
         with self.options({"system.region-api-url-template": ""}):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             assert key.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
@@ -109,7 +109,7 @@ class ProjectKeyTest(TestCase):
             )
             assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
-    def test_get_dsn_org_subdomain(self):
+    def test_get_dsn_org_subdomain(self) -> None:
         with (
             self.feature("organizations:org-ingest-subdomains"),
             self.options({"system.region-api-url-template": ""}),
@@ -134,7 +134,7 @@ class ProjectKeyTest(TestCase):
             )
 
     @override_settings(SENTRY_REGION="us")
-    def test_get_dsn_multiregion(self):
+    def test_get_dsn_multiregion(self) -> None:
         key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
         host = "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
 
@@ -151,7 +151,7 @@ class ProjectKeyTest(TestCase):
         )
 
     @override_settings(SENTRY_REGION="us")
-    def test_get_dsn_org_subdomain_and_multiregion(self):
+    def test_get_dsn_org_subdomain_and_multiregion(self) -> None:
         with self.feature("organizations:org-ingest-subdomains"):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest." + (

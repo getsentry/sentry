@@ -1,15 +1,12 @@
 from sentry import analytics
 
 
+@analytics.eventclass("issue_alert.fired")
 class IssueAlertFiredEvent(analytics.Event):
-    type = "issue_alert.fired"
-
-    attributes = (
-        analytics.Attribute("issue_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("rule_id"),
-    )
+    issue_id: int
+    project_id: int
+    organization_id: int
+    rule_id: int
 
 
 analytics.register(IssueAlertFiredEvent)

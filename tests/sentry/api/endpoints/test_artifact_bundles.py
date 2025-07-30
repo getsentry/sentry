@@ -16,7 +16,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 @freeze_time("2023-03-15 00:00:00")
 class ArtifactBundlesEndpointTest(APITestCase):
-    def test_get_artifact_bundles_with_multiple_bundles(self):
+    def test_get_artifact_bundles_with_multiple_bundles(self) -> None:
         project = self.create_project(name="foo")
 
         artifact_bundle_1 = self.create_artifact_bundle(
@@ -201,7 +201,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             },
         ]
 
-    def test_get_artifact_bundles_with_single_bundle_without_release_dist_pair(self):
+    def test_get_artifact_bundles_with_single_bundle_without_release_dist_pair(self) -> None:
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
@@ -239,7 +239,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             }
         ]
 
-    def test_get_artifact_bundles_with_multiple_release_dist_pairs_to_same_bundle(self):
+    def test_get_artifact_bundles_with_multiple_release_dist_pairs_to_same_bundle(self) -> None:
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
@@ -351,7 +351,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             },
         ]
 
-    def test_get_artifact_bundles_with_no_bundles(self):
+    def test_get_artifact_bundles_with_no_bundles(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -368,7 +368,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_get_artifact_bundles_pagination(self):
+    def test_get_artifact_bundles_pagination(self) -> None:
         project = self.create_project(name="foo")
         for index in range(0, 15):
             artifact_bundle = self.create_artifact_bundle(
@@ -396,7 +396,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             assert response.status_code == 200, response.content
             assert len(response.data) == expected
 
-    def test_get_artifact_bundles_sorting(self):
+    def test_get_artifact_bundles_sorting(self) -> None:
         project = self.create_project(name="foo")
         bundle_ids = []
         for index in range(0, 5):
@@ -449,7 +449,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             == "You can either sort via 'date_added' or 'date_modified'"
         )
 
-    def test_delete_artifact_bundle_with_single_project_connected(self):
+    def test_delete_artifact_bundle_with_single_project_connected(self) -> None:
         project = self.create_project(name="foo")
         artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
@@ -495,7 +495,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         ).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
 
-    def test_delete_artifact_bundle_with_multiple_projects_connected(self):
+    def test_delete_artifact_bundle_with_multiple_projects_connected(self) -> None:
         project_a = self.create_project(name="foo")
         artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
 
@@ -546,7 +546,9 @@ class ArtifactBundlesEndpointTest(APITestCase):
             project_id=project_a.id, artifact_bundle=artifact_bundle
         ).exists()
 
-    def test_delete_artifact_bundles_with_same_bundle_id_and_connected_to_the_same_project(self):
+    def test_delete_artifact_bundles_with_same_bundle_id_and_connected_to_the_same_project(
+        self,
+    ) -> None:
         bundle_id = "42fa3539-63a2-468e-b4e8-81afdd4fdc9e"
         # We create two bundles with the same bundle_id. This is technically not possible anymore, but we still need to
         # support this case since the database was left into an inconsistent state and the consistency is not enforced

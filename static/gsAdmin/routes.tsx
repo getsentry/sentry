@@ -1,5 +1,5 @@
-import {IndexRoute, Route} from 'sentry/components/route';
-import {buildReactRouter6Routes} from 'sentry/utils/reactRouter6Compat/router';
+import type {SentryRouteObject} from 'sentry/components/route';
+import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
 import BeaconDetails from 'admin/views/beaconDetails';
 import Beacons from 'admin/views/beacons';
@@ -40,101 +40,271 @@ import UserDetails from 'admin/views/userDetails';
 import Users from 'admin/views/users';
 
 function buildRoutes() {
-  return (
-    <Route path="/_admin/" component={Layout}>
-      <IndexRoute component={Home} />
+  const routes: SentryRouteObject = {
+    path: '/_admin/',
+    component: Layout,
+    deprecatedRouteProps: true,
+    children: [
+      {
+        index: true,
+        component: Home,
+        deprecatedRouteProps: true,
+      },
+      {
+        path: 'beacons/',
+        children: [
+          {
+            index: true,
+            component: Beacons,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':beaconId/',
+            component: BeaconDetails,
+            deprecatedRouteProps: true,
+          },
+        ],
+      },
+      {
+        path: 'broadcasts/',
+        children: [
+          {
+            index: true,
+            component: Broadcasts,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':broadcastId/',
+            component: BroadcastDetails,
+            deprecatedRouteProps: true,
+          },
+        ],
+      },
+      {
+        path: 'customers/',
+        children: [
+          {
+            index: true,
+            component: Customers,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':orgId/',
+            children: [
+              {
+                index: true,
+                component: CustomerDetails,
+              },
+              {
+                path: 'upgrade-request/',
+                component: CustomerUpgradeRequest,
+              },
+              {
+                path: 'projects/:projectId/',
+                component: ProjectDetails,
+              },
+              {
+                path: 'invoices/:region/:invoiceId/',
+                component: InvoiceDetails,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'doc-integrations/',
+        children: [
+          {
+            index: true,
+            component: DocIntegrations,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':docIntegrationSlug/',
+            component: DocIntegrationDetails,
+          },
+        ],
+      },
+      {
+        path: 'debugging-tools/',
+        children: [
+          {
+            index: true,
+            component: DebuggingTools,
+          },
+        ],
+      },
+      {
+        path: 'policies/',
+        children: [
+          {
+            index: true,
+            component: Policies,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':policySlug',
+            component: PolicyDetails,
+            deprecatedRouteProps: true,
+          },
+        ],
+      },
+      {
+        path: 'private-apis/',
+        children: [
+          {
+            index: true,
+            component: PrivateAPIs,
+          },
+        ],
+      },
+      {
+        path: 'relocations/',
+        children: [
+          {
+            index: true,
+            component: Relocations,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: 'new/',
+            component: RelocationCreate,
+          },
+          {
+            path: ':regionName/:relocationUuid/',
+            component: RelocationDetails,
+          },
+          {
+            path: ':regionName/:relocationUuid/:artifactKind/:fileName/',
+            component: RelocationArtifactDetails,
+          },
+        ],
+      },
+      {
+        path: 'employees/',
+        children: [
+          {
+            index: true,
+            component: SentryEmployees,
+            deprecatedRouteProps: true,
+          },
+        ],
+      },
+      {
+        path: 'promocodes/',
+        children: [
+          {
+            index: true,
+            component: PromoCodes,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':codeId/',
+            component: PromoCodeDetails,
+          },
+        ],
+      },
+      {
+        path: 'sentry-apps/',
+        children: [
+          {
+            index: true,
+            component: SentryApps,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':sentryAppSlug/',
+            component: SentryAppDetails,
+          },
+        ],
+      },
+      {
+        path: 'users/',
+        children: [
+          {
+            index: true,
+            component: Users,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':userId/',
+            component: UserDetails,
+          },
+        ],
+      },
+      {
+        path: 'options/',
+        children: [
+          {
+            index: true,
+            component: Options,
+            deprecatedRouteProps: true,
+          },
+        ],
+      },
+      {
+        path: 'data-requests/',
+        component: DataRequests,
+        deprecatedRouteProps: true,
+      },
+      {
+        path: 'billingadmins/',
+        component: BillingAdmins,
+        deprecatedRouteProps: true,
+      },
+      {
+        path: 'invoices/',
+        children: [
+          {
+            index: true,
+            component: Invoices,
+            deprecatedRouteProps: true,
+          },
+          {
+            path: ':invoiceId/',
+            component: InvoiceDetails,
+          },
+        ],
+      },
+      {
+        path: 'instance-level-oauth',
+        children: [
+          {
+            index: true,
+            component: InstanceLevelOAuth,
+          },
+          {
+            path: ':clientID/',
+            component: InstanceLevelOAuthDetails,
+          },
+        ],
+      },
+      {
+        path: 'billing-plans/',
+        children: [
+          {
+            index: true,
+            component: BillingPlans,
+          },
+        ],
+      },
+      {
+        path: 'spike-projection-generation/',
+        children: [
+          {
+            index: true,
+            component: GenerateSpikeProjectionsForBatch,
+          },
+        ],
+      },
+      {
+        path: '*',
+        component: NotFound,
+      },
+    ],
+  };
 
-      <Route path="beacons/">
-        <IndexRoute component={Beacons} />
-        <Route path=":beaconId/" component={BeaconDetails} />
-      </Route>
-
-      <Route path="broadcasts/">
-        <IndexRoute component={Broadcasts} />
-        <Route path=":broadcastId/" component={BroadcastDetails} />
-      </Route>
-
-      <Route path="customers/">
-        <IndexRoute component={Customers} />
-        <Route path=":orgId/">
-          <IndexRoute component={CustomerDetails} />
-          <Route path="upgrade-request/" component={CustomerUpgradeRequest} />
-          <Route path="projects/:projectId/" component={ProjectDetails} />
-          <Route path="invoices/:region/:invoiceId/" component={InvoiceDetails} />
-        </Route>
-      </Route>
-
-      <Route path="doc-integrations/">
-        <IndexRoute component={DocIntegrations} />
-        <Route path=":docIntegrationSlug/" component={DocIntegrationDetails} />
-      </Route>
-      <Route path="debugging-tools/">
-        <IndexRoute component={DebuggingTools} />
-      </Route>
-      <Route path="policies/">
-        <IndexRoute component={Policies} />
-        <Route path=":policySlug" component={PolicyDetails} />
-      </Route>
-
-      <Route path="private-apis/">
-        <IndexRoute component={PrivateAPIs} />
-      </Route>
-
-      <Route path="relocations/">
-        <IndexRoute component={Relocations} />
-        <Route path="new/" component={RelocationCreate} />
-        <Route path=":regionName/:relocationUuid/" component={RelocationDetails} />
-        <Route
-          path=":regionName/:relocationUuid/:artifactKind/:fileName/"
-          component={RelocationArtifactDetails}
-        />
-      </Route>
-
-      <Route path="employees/">
-        <IndexRoute component={SentryEmployees} />
-      </Route>
-
-      <Route path="promocodes/">
-        <IndexRoute component={PromoCodes} />
-        <Route path=":codeId/" component={PromoCodeDetails} />
-      </Route>
-
-      <Route path="sentry-apps/">
-        <IndexRoute component={SentryApps} />
-        <Route path=":sentryAppSlug/" component={SentryAppDetails} />
-      </Route>
-
-      <Route path="users/">
-        <IndexRoute component={Users} />
-        <Route path=":userId/" component={UserDetails} />
-      </Route>
-
-      <Route path="options/">
-        <IndexRoute component={Options} />
-      </Route>
-      <Route path="data-requests/" component={DataRequests} />
-      <Route path="billingadmins/" component={BillingAdmins} />
-
-      <Route path="invoices/">
-        <IndexRoute component={Invoices} />
-        <Route path=":invoiceId/" component={InvoiceDetails} />
-      </Route>
-
-      <Route path="instance-level-oauth">
-        <IndexRoute component={InstanceLevelOAuth} />
-        <Route path=":clientID/" component={InstanceLevelOAuthDetails} />
-      </Route>
-
-      <Route path="billing-plans/">
-        <IndexRoute component={BillingPlans} />
-      </Route>
-
-      <Route path="spike-projection-generation/">
-        <IndexRoute component={GenerateSpikeProjectionsForBatch} />
-      </Route>
-      <Route path="*" component={NotFound} />
-    </Route>
-  );
+  return [translateSentryRoute(routes)];
 }
 
-export const routes6 = buildReactRouter6Routes(buildRoutes());
+export const routes = buildRoutes();

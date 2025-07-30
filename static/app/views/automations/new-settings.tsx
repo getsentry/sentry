@@ -63,6 +63,7 @@ function AutomationBreadcrumbs() {
 const initialData = {
   environment: null,
   frequency: 1440,
+  enabled: true,
 };
 
 export default function AutomationNewSettings() {

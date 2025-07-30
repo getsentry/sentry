@@ -22,6 +22,7 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
@@ -65,7 +66,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.LIST_PROJECTS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of projects bound to a organization.
         """
@@ -204,7 +205,7 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()

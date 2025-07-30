@@ -7,7 +7,22 @@ import sentry_sdk
 from django.db.models import F
 
 from sentry import analytics
+from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
+from sentry.analytics.events.first_event_sent import (
+    FirstEventSentEvent,
+    FirstEventSentForProjectEvent,
+)
+from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
+from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
+from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
+from sentry.analytics.events.first_log_sent import FirstLogSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
+from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_transferred import ProjectTransferredEvent
+from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
+from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
@@ -29,6 +44,7 @@ from sentry.signals import (
     first_feedback_received,
     first_flag_received,
     first_insight_span_received,
+    first_log_received,
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
@@ -115,10 +131,11 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             project_id=project.id,
         )
         analytics.record(
-            "second_platform.added",
-            user_id=default_user_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
+            SecondPlatformAddedEvent(
+                user_id=default_user_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
         )
 
 
@@ -132,15 +149,16 @@ def record_first_event(project, event, **kwargs):
         return
 
     analytics.record(
-        "first_event_for_project.sent",
-        user_id=owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=event.platform,
-        project_platform=project.platform,
-        url=dict(event.tags).get("url", None),
-        has_minified_stack_trace=has_event_minified_stack_trace(event),
-        sdk_name=get_path(event, "sdk", "name"),
+        FirstEventSentForProjectEvent(
+            user_id=owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform=project.platform,
+            url=dict(event.tags).get("url", None),
+            has_minified_stack_trace=has_event_minified_stack_trace(event),
+            sdk_name=get_path(event, "sdk", "name"),
+        )
     )
 
     if has_completed_onboarding_task(project.organization, OnboardingTask.FIRST_EVENT):
@@ -155,12 +173,13 @@ def record_first_event(project, event, **kwargs):
 
     if completed:
         analytics.record(
-            "first_event.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
+            FirstEventSentEvent(
+                user_id=owner_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+            )
         )
 
 
@@ -172,11 +191,12 @@ def record_first_transaction(project, event, **kwargs):
         date_completed=event.datetime,
     )
     analytics.record(
-        "first_transaction.sent",
-        default_user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstTransactionSentEvent(
+            default_user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
@@ -204,11 +224,12 @@ def record_first_replay(project, **kwargs):
     if completed:
         logger.info("record_first_replay_analytics_start")
         analytics.record(
-            "first_replay.sent",
-            user_id=get_owner_id(project),
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
+            FirstReplaySentEvent(
+                user_id=get_owner_id(project),
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            )
         )
         logger.info("record_first_replay_analytics_end")
 
@@ -216,21 +237,23 @@ def record_first_replay(project, **kwargs):
 @first_flag_received.connect(weak=False, dispatch_uid="onboarding.record_first_flag")
 def record_first_flag(project, **kwargs):
     analytics.record(
-        "first_flag.sent",
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstFlagSentEvent(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
 @first_feedback_received.connect(weak=False, dispatch_uid="onboarding.record_first_feedback")
 def record_first_feedback(project, **kwargs):
     analytics.record(
-        "first_feedback.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstFeedbackSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
@@ -274,25 +297,39 @@ def record_cron_monitor_created(project, user, from_upsert, **kwargs):
 )
 def record_first_cron_checkin(project, monitor_id, **kwargs):
     analytics.record(
-        "first_cron_checkin.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        monitor_id=monitor_id,
+        FirstCronCheckinSent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            monitor_id=monitor_id,
+        )
     )
 
 
 @first_insight_span_received.connect(
     weak=False, dispatch_uid="onboarding.record_first_insight_span"
 )
-def record_first_insight_span(project, module, **kwargs):
+def record_first_insight_span(project, module: InsightModules, **kwargs):
     analytics.record(
-        "first_insight_span.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-        module=module,
+        FirstInsightSpanSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+            module=module.value,
+        )
+    )
+
+
+@first_log_received.connect(weak=False, dispatch_uid="onboarding.record_first_log")
+def record_first_log(project, **kwargs):
+    analytics.record(
+        FirstLogSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
@@ -305,11 +342,12 @@ def record_member_invited(member, user, **kwargs):
     )
 
     analytics.record(
-        "member.invited",
-        invited_member_id=member.id,
-        inviter_user_id=user.id if user else None,
-        organization_id=member.organization_id,
-        referrer=kwargs.get("referrer"),
+        MemberInvitedEvent(
+            invited_member_id=member.id,
+            inviter_user_id=user.id if user else None,
+            organization_id=member.organization_id,
+            referrer=kwargs.get("referrer"),
+        )
     )
 
 
@@ -477,11 +515,12 @@ def record_integration_added(
 def record_project_transferred(old_org_id: int, project: Project, **kwargs):
 
     analytics.record(
-        "project.transferred",
-        old_organization_id=old_org_id,
-        new_organization_id=project.organization.id,
-        project_id=project.id,
-        platform=project.platform,
+        ProjectTransferredEvent(
+            old_organization_id=old_org_id,
+            new_organization_id=project.organization.id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
     transfer_onboarding_tasks(

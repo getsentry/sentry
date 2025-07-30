@@ -139,9 +139,9 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
         example_span = location_spans[-1]
-        desc: str = example_span.get("description", None)
+        desc: str = example_span.get("description", "")
 
-        location_span_ids = [span.get("span_id", None) for span in location_spans]
+        location_span_ids = [span["span_id"] for span in location_spans]
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,

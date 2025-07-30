@@ -1,88 +1,44 @@
-import {useCallback, useMemo} from 'react';
-import {useNavigate} from 'react-router-dom';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
-import {
-  StickyFooter,
-  StickyFooterLabel,
-} from 'sentry/components/workflowEngine/ui/footer';
-import {t} from 'sentry/locale';
+import type {Data} from 'sentry/components/forms/types';
+import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import type {
+  BaseDetectorUpdatePayload,
+  DetectorType,
+} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  DETECTOR_FORM_CONFIG,
-  type DetectorFormData,
-  type EditableDetectorType,
-} from 'sentry/views/detectors/components/forms/config';
+import {NewDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {DetectorBaseFields} from 'sentry/views/detectors/components/forms/detectorBaseFields';
-import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
-import {useCreateDetector} from 'sentry/views/detectors/hooks';
-import {
-  makeMonitorBasePathname,
-  makeMonitorDetailsPathname,
-} from 'sentry/views/detectors/pathnames';
+import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 
-type NewDetectorLayoutProps = {
+type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
-  detectorType: EditableDetectorType;
-  handleSubmit?: OnSubmitCallback;
-  initialFormData?: Partial<DetectorFormData>;
+  detectorType: DetectorType;
+  formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
+  initialFormData: Partial<TFormData>;
   previewChart?: React.ReactNode;
 };
 
-export function NewDetectorLayout({
+export function NewDetectorLayout<
+  TFormData extends Data,
+  TUpdatePayload extends BaseDetectorUpdatePayload,
+>({
   children,
-  handleSubmit,
+  formDataToEndpointPayload,
   initialFormData,
   previewChart,
   detectorType,
-}: NewDetectorLayoutProps) {
+}: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
-  const organization = useOrganization();
   const {projects} = useProjects();
-  const navigate = useNavigate();
-  const {mutateAsync: createDetector} = useCreateDetector();
-  const config = DETECTOR_FORM_CONFIG[detectorType];
 
-  const formSubmitHandler = useCallback<OnSubmitCallback>(
-    async (data, onSubmitSuccess, onSubmitError, event, formModel) => {
-      if (handleSubmit) {
-        handleSubmit(data, onSubmitSuccess, onSubmitError, event, formModel);
-        return;
-      }
-
-      const hasErrors = formModel.validateForm();
-      if (!hasErrors) {
-        return;
-      }
-
-      try {
-        const detector = await createDetector(
-          config.formDataToEndpointPayload(data as any)
-        );
-        navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
-      } catch (error) {
-        addErrorMessage(t('Unable to create monitor'));
-      }
-    },
-    [config, createDetector, navigate, handleSubmit, organization.slug]
-  );
+  const formSubmitHandler = useCreateDetectorFormSubmit({
+    formDataToEndpointPayload,
+  });
 
   const initialData = useMemo(() => {
-    if (initialFormData) {
-      return initialFormData;
-    }
-
     const defaultProjectId = projects.find(p => p.isMember)?.id ?? projects[0]?.id;
 
     return {
@@ -91,10 +47,9 @@ export function NewDetectorLayout({
       name: (location.query.name as string | undefined) || '',
       owner: (location.query.owner as string | undefined) || '',
       workflowIds: [],
-      ...config.getInitialFormData(),
+      ...initialFormData,
     };
   }, [
-    config,
     initialFormData,
     location.query.environment,
     location.query.name,
@@ -103,52 +58,27 @@ export function NewDetectorLayout({
     projects,
   ]);
 
+  const formProps = {
+    initialData,
+    onSubmit: formSubmitHandler,
+  };
+
   return (
-    <FullHeightForm hideFooter initialData={initialData} onSubmit={formSubmitHandler}>
-      <SentryDocumentTitle
-        title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
-      />
-      <Layout.Page>
-        <StyledLayoutHeader noActionWrap>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
-                {
-                  label: t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType]),
-                },
-              ]}
-            />
-          </Layout.HeaderContent>
-          {/* Header actions placeholder - currently unused */}
-          <div />
-          <Flex direction="column" gap="xl">
-            <DetectorBaseFields />
-            {previewChart}
-          </Flex>
-        </StyledLayoutHeader>
-        <Layout.Body>
-          <Layout.Main fullWidth>{children}</Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
-      <StickyFooter>
-        <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
-        <Flex gap="md">
-          <LinkButton
-            priority="default"
-            to={`${makeMonitorBasePathname(organization.slug)}new/`}
-          >
-            {t('Back')}
-          </LinkButton>
-          <Button priority="primary" type="submit">
-            {t('Create Monitor')}
-          </Button>
-        </Flex>
-      </StickyFooter>
-    </FullHeightForm>
+    <EditLayout formProps={formProps}>
+      <EditLayout.Header noActionWrap>
+        <EditLayout.HeaderContent>
+          <NewDetectorBreadcrumbs detectorType={detectorType} />
+        </EditLayout.HeaderContent>
+
+        <EditLayout.HeaderFields>
+          <DetectorBaseFields />
+          {previewChart}
+        </EditLayout.HeaderFields>
+      </EditLayout.Header>
+
+      <EditLayout.Body>{children}</EditLayout.Body>
+
+      <NewDetectorFooter />
+    </EditLayout>
   );
 }
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.background};
-`;

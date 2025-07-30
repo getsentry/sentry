@@ -70,7 +70,7 @@ multiregion_client_config_test = control_silo_test(
 
 @no_silo_test
 @django_db_all
-def test_client_config_default():
+def test_client_config_default() -> None:
     cfg = get_client_config()
     assert cfg["sentryMode"] == "SELF_HOSTED"
 
@@ -117,7 +117,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
 
 @no_silo_test
 @django_db_all(transaction=True)
-def test_client_config_deleted_user():
+def test_client_config_deleted_user() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
@@ -130,7 +130,7 @@ def test_client_config_deleted_user():
 
 @no_silo_test
 @django_db_all
-def test_client_config_features():
+def test_client_config_features() -> None:
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
@@ -152,7 +152,7 @@ def test_client_config_features():
 
 @no_silo_test
 @django_db_all
-def test_client_config_default_region_data():
+def test_client_config_default_region_data() -> None:
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
@@ -170,7 +170,7 @@ def test_client_config_default_region_data():
 
 @no_silo_test
 @django_db_all
-def test_client_config_empty_region_data():
+def test_client_config_empty_region_data() -> None:
     region_directory = region.load_from_config([])
 
     # Usually, we would want to use other testutils functions rather than calling
@@ -189,7 +189,7 @@ def test_client_config_empty_region_data():
 
 @multiregion_client_config_test
 @django_db_all
-def test_client_config_with_region_data():
+def test_client_config_with_region_data() -> None:
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
@@ -220,7 +220,7 @@ hidden_regions = [
 
 @control_silo_test(regions=hidden_regions, include_monolith_run=True)
 @django_db_all
-def test_client_config_with_hidden_region_data():
+def test_client_config_with_hidden_region_data() -> None:
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
@@ -233,7 +233,7 @@ def test_client_config_with_hidden_region_data():
 
 @multiregion_client_config_test
 @django_db_all
-def test_client_config_with_multiple_membership():
+def test_client_config_with_multiple_membership() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
@@ -257,7 +257,7 @@ def test_client_config_with_multiple_membership():
 
 @multiregion_client_config_test
 @django_db_all
-def test_client_config_with_single_tenant_membership():
+def test_client_config_with_single_tenant_membership() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
@@ -278,7 +278,7 @@ def test_client_config_with_single_tenant_membership():
 
 @multiregion_client_config_test
 @django_db_all
-def test_client_config_links_regionurl():
+def test_client_config_links_regionurl() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
@@ -303,7 +303,7 @@ def test_client_config_links_regionurl():
     include_monolith_run=True,
 )
 @django_db_all
-def test_client_config_region_display_order():
+def test_client_config_region_display_order() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
@@ -318,7 +318,7 @@ def test_client_config_region_display_order():
 
 @multiregion_client_config_test
 @django_db_all
-def test_client_config_links_with_priority_org():
+def test_client_config_links_with_priority_org() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
@@ -346,7 +346,7 @@ def test_client_config_links_with_priority_org():
 
 
 @django_db_all
-def test_project_key_default():
+def test_project_key_default() -> None:
     organization = Factories.create_organization(name="test-org")
     project = Factories.create_project(organization=organization)
     project_key = Factories.create_project_key(project)
@@ -358,7 +358,7 @@ def test_project_key_default():
 
 @no_silo_test
 @django_db_all
-def test_client_config_no_preload_data_if_accept_invitation_view():
+def test_client_config_no_preload_data_if_accept_invitation_view() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 

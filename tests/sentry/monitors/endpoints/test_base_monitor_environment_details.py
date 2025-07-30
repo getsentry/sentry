@@ -9,11 +9,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor(status=MonitorStatus.ACTIVE)
         monitor_environment = self._create_monitor_environment(monitor)
         # Test disable
@@ -68,11 +68,11 @@ class BaseUpdateMonitorEnvironmentTest(MonitorTestCase):
 class BaseDeleteMonitorTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         super().setUp()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor(status=MonitorStatus.ACTIVE)
         monitor_environment = self._create_monitor_environment(monitor)
         monitor_environment_2 = self._create_monitor_environment(monitor, name="second")

@@ -17,7 +17,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 
 @pytest.mark.django_db
 class QueryInjectionDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -26,7 +26,7 @@ class QueryInjectionDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_query_injection_detection_in_query_params(self):
+    def test_query_injection_detection_in_query_params(self) -> None:
         injection_event = get_event("query-injection/query-injection-mongo-event")
 
         problems = self.find_problems(injection_event)

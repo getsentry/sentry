@@ -15,7 +15,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 
 @region_silo_test
 class TestSyncAssigneeInbound(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",
@@ -47,7 +47,7 @@ class TestSyncAssigneeInbound(TestCase):
         assert group_assignee is not None and group_assignee.id == user.id
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_no_affected_groups(self, mock_record_event):
+    def test_no_affected_groups(self, mock_record_event: mock.MagicMock) -> None:
         self.assign_default_group_to_user(self.test_user)
 
         sync_group_assignee_inbound(
@@ -60,7 +60,7 @@ class TestSyncAssigneeInbound(TestCase):
         mock_record_event.record_event(EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unassign(self, mock_record_event):
+    def test_unassign(self, mock_record_event: mock.MagicMock) -> None:
         self.assign_default_group_to_user(self.test_user)
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -79,7 +79,7 @@ class TestSyncAssigneeInbound(TestCase):
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_assignment(self, mock_record_event):
+    def test_assignment(self, mock_record_event: mock.MagicMock) -> None:
         assert self.group.get_assignee() is None
 
         external_issue = self.create_integration_external_issue(
@@ -102,7 +102,7 @@ class TestSyncAssigneeInbound(TestCase):
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_assign_with_multiple_groups(self, mock_record_event):
+    def test_assign_with_multiple_groups(self, mock_record_event: mock.MagicMock) -> None:
         # Create a couple new test unassigned test groups
         groups_to_assign: list[Group] = []
         for i in range(2):
@@ -152,7 +152,7 @@ class TestSyncAssigneeInbound(TestCase):
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_assign_with_no_user_found(self, mock_record_halt):
+    def test_assign_with_no_user_found(self, mock_record_halt: mock.MagicMock) -> None:
         assert self.group.get_assignee() is None
 
         external_issue = self.create_integration_external_issue(
@@ -181,7 +181,9 @@ class TestSyncAssigneeInbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch("sentry.models.groupassignee.GroupAssigneeManager.assign")
-    def test_assignment_fails(self, mock_group_assign, mock_record_failure):
+    def test_assignment_fails(
+        self, mock_group_assign: mock.MagicMock, mock_record_failure: mock.MagicMock
+    ) -> None:
         def raise_exception(*args, **kwargs):
             raise Exception("oops, something went wrong")
 

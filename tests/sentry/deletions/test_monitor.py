@@ -13,7 +13,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
 

@@ -56,7 +56,7 @@ def test_normalize(s, expected):
 
 
 class ReleaseFileTestCase(TestCase):
-    def test_count_artifacts(self):
+    def test_count_artifacts(self) -> None:
         assert self.release.count_artifacts() == 0
         for count in (3, 1, None, 0):
             file = self.create_file(name=f"dummy-{count}.txt")
@@ -89,7 +89,7 @@ class ReleaseArchiveTestCase(TestCase):
 
         return update_artifact_index(self.release, dist, file_)
 
-    def test_multi_archive(self):
+    def test_multi_archive(self) -> None:
         assert read_artifact_index(self.release, None) is None
 
         # Delete does nothing
@@ -186,7 +186,7 @@ class ReleaseArchiveTestCase(TestCase):
         expected["files"].pop("fake://foo")
         assert read_artifact_index(self.release, None) == expected
 
-    def test_same_sha(self):
+    def test_same_sha(self) -> None:
         """Stand-alone release file has same sha1 as one in manifest"""
         self.create_archive(fields={}, files={"foo": "bar"})
         file_ = File.objects.create()
@@ -211,7 +211,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
 
         return f
 
-    def test_locking(self):
+    def test_locking(self) -> None:
         release = self.release
         dist = None
 
@@ -249,7 +249,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         assert index is not None
         assert index["files"].keys() == {"123", "abc"}
 
-    def test_lock_existing(self):
+    def test_lock_existing(self) -> None:
         release = self.release
         dist = None
 

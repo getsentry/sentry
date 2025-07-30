@@ -583,32 +583,16 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-# https://github.com/python/mypy/issues/18520
-# without this mypy thinks that AggregateFilter and SearchFilter are
-# structurally equivalent and will refuse to narrow them
-if TYPE_CHECKING:
+class AggregateFilter(NamedTuple):
+    key: AggregateKey
+    operator: str
+    value: SearchValue
 
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+    def to_query_string(self) -> str:
+        return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
-        def to_query_string(self) -> str:
-            return ""
-
-else:  # real implementation here!
-
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-
-        def to_query_string(self) -> str:
-            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
-
-        def __str__(self) -> str:
-            return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    def __str__(self) -> str:
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass  # pycqa/pycodestyle#1277

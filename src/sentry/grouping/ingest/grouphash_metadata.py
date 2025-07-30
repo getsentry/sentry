@@ -463,8 +463,8 @@ def _get_message_hashing_metadata(
 def _get_fingerprint_hashing_metadata(
     contributing_variant: CustomFingerprintVariant | SaltedComponentVariant, is_hybrid: bool = False
 ) -> FingerprintHashingMetadata:
-    client_fingerprint = contributing_variant.info.get("client_fingerprint")
-    matched_rule = contributing_variant.info.get("matched_rule")
+    client_fingerprint = contributing_variant.fingerprint_info.get("client_fingerprint")
+    matched_rule = contributing_variant.fingerprint_info.get("matched_rule")
 
     metadata: FingerprintHashingMetadata = {
         # For simplicity, we stringify fingerprint values (which are always lists) to keep

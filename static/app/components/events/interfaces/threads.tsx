@@ -259,7 +259,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Wrapper>
-                  <ButtonBar merged gap="none">
+                  <ButtonBar merged gap="0">
                     <Button
                       title={t('Previous Thread')}
                       tooltipProps={{delay: 1000}}

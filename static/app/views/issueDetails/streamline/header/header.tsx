@@ -116,7 +116,7 @@ export default function StreamlinedGroupHeader({
   return (
     <Fragment>
       <Header>
-        <Flex justify="space-between">
+        <Flex justify="between">
           <Flex align="center">
             <Breadcrumbs
               crumbs={[
@@ -402,7 +402,7 @@ const Workflow = styled('div')`
 
 const Title = styled('div')`
   display: grid;
-  grid-template-columns: auto min-content;
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
-  gap: ${space(0.5)};
+  column-gap: ${p => p.theme.space.sm};
 `;

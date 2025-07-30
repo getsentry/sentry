@@ -9,7 +9,7 @@ from sentry.web.frontend.generic import FOREVER_CACHE
 class DocIntegrationAvatartest(APITestCase):
     endpoint = "sentry-doc-integration-avatar-url"
 
-    def test_headers(self):
+    def test_headers(self) -> None:
         doc = self.create_doc_integration(name="spiderman", has_avatar=True)
         url = reverse(self.endpoint, args=[doc.avatar.get().ident])
         response = self.client.get(url)

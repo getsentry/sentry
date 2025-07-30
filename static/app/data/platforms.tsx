@@ -416,6 +416,19 @@ export const platforms: PlatformIntegration[] = [
     type: 'console',
     language: 'console',
     link: 'https://docs.sentry.io/platforms/nintendo-switch/',
+    iconConfig: {
+      withLanguageIcon: false,
+    },
+  },
+  {
+    id: 'nintendo-switch-2',
+    name: 'Nintendo Switch 2',
+    type: 'console',
+    language: 'console',
+    link: 'https://docs.sentry.io/platforms/nintendo-switch/',
+    iconConfig: {
+      withLanguageIcon: false,
+    },
   },
   {
     id: 'node',

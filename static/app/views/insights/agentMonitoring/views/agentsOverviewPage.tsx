@@ -59,7 +59,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -120,8 +120,10 @@ function AgentsMonitoringPage() {
     [organization, activeTable, onActiveTableChange]
   );
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -132,9 +134,18 @@ function AgentsMonitoringPage() {
       searchSource: 'agent-monitoring',
       numberTags,
       stringTags,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
       replaceRawSearchKeys: ['span.description'],
     }),
-    [searchQuery, numberTags, stringTags, setSearchQuery]
+    [
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -148,7 +159,7 @@ function AgentsMonitoringPage() {
         headerActions={<AiModuleToggleButton />}
         headerTitle={
           <Fragment>
-            {AGENTS_LANDING_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }
