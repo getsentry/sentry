@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -38,6 +38,7 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
+  const navigate = useNavigate();
   const endpoint = `/organizations/${orgSlug}/`;
   const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
     staleTime: 0,
@@ -55,7 +56,7 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
     );
   }
   if (data.status.id === 'active') {
-    browserHistory.replace(normalizeUrl(`/organizations/${orgSlug}/issues/`));
+    navigate(normalizeUrl(`/organizations/${orgSlug}/issues/`), {replace: true});
     return null;
   }
   if (data.status.id === 'pending_deletion') {
