@@ -1247,6 +1247,17 @@ def test_as_trace_item_context_hydration_error() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_hydration_error_missing_data_key() -> None:
+    event = {"data": {"payload": {"timestamp": 1674298825.0}}}
+
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == ""
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_mutations() -> None:
     event = {"timestamp": 1674298825000, "data": {"payload": {"data": {"count": 42}}}}
 

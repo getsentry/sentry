@@ -450,10 +450,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
         case EventType.HYDRATION_ERROR:
             payload = event["data"]["payload"]
+            payload_data = payload.get("data", {})
             return {
                 "attributes": {
                     "category": "replay.hydrate-error",
-                    "url": as_string_strict(payload["data"]["url"]),
+                    "url": as_string_strict(payload_data.get("url", "")),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["timestamp"]),
