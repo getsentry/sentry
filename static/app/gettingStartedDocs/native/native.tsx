@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -42,61 +40,79 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install the SDK by downloading the [releasesLink:latest release]. Next, follow the instructions in the [nativeSDKDocumentationLink:Native SDK Documentation] to build and link the SDK library.',
+      content: [
         {
-          releasesLink: (
-            <ExternalLink href="https://github.com/getsentry/sentry-native/releases" />
+          type: 'text',
+          text: tct(
+            'Install the SDK by downloading the [releasesLink:latest release]. Next, follow the instructions in the [nativeSDKDocumentationLink:Native SDK Documentation] to build and link the SDK library.',
+            {
+              releasesLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-native/releases" />
+              ),
+              nativeSDKDocumentationLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/native/" />
+              ),
+            }
           ),
-          nativeSDKDocumentationLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/native/" />
-          ),
-        }
-      ),
+        },
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'Import and initialize the Sentry SDK early in your application setup:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'Import and initialize the Sentry SDK early in your application setup:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'c',
           code: getConfigureSnippet(params),
         },
-      ],
-      additionalInfo: tct(
-        'Alternatively, the DSN can be passed as [code:SENTRY_DSN] environment variable during runtime. This can be especially useful for server applications.',
         {
-          code: <code />,
-        }
-      ),
+          type: 'text',
+          text: tct(
+            'Alternatively, the DSN can be passed as [code:SENTRY_DSN] environment variable during runtime. This can be especially useful for server applications.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+      ],
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'The quickest way to verify Sentry in your Native application is by capturing a message:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'The quickest way to verify Sentry in your Native application is by capturing a message:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'c',
           code: getVerifySnippet(),
         },
-      ],
-      additionalInfo: (
-        <Fragment>
-          {t(
+        {
+          type: 'text',
+          text: t(
             "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-          )}
-          {t(
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
             "If you're an existing user and have disabled alerts, you won't receive this email."
-          )}
-        </Fragment>
-      ),
+          ),
+        },
+      ],
     },
   ],
 };
