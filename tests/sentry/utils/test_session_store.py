@@ -15,7 +15,7 @@ class RedisSessionStoreTestCase(TestCase):
 
         self.store = self.TestRedisSessionStore(self.request, "test-store")
 
-    def test_store_values(self):
+    def test_store_values(self) -> None:
         self.store.regenerate()
 
         assert "store:test-store" in self.request.session
@@ -33,7 +33,7 @@ class RedisSessionStoreTestCase(TestCase):
         self.store.clear()
         assert self.request.session.modified
 
-    def test_store_complex_object(self):
+    def test_store_complex_object(self) -> None:
         self.store.regenerate({"some_value": {"deep_object": "value"}})
 
         store2 = self.TestRedisSessionStore(self.request, "test-store")
@@ -42,14 +42,14 @@ class RedisSessionStoreTestCase(TestCase):
 
         self.store.clear()
 
-    def test_uninitialized_store(self):
+    def test_uninitialized_store(self) -> None:
         assert self.store.is_valid() is False
         assert self.store.get_state() is None
         assert self.store.some_value is None
 
         self.store.clear()
 
-    def test_malformed_state(self):
+    def test_malformed_state(self) -> None:
         self.store.regenerate()
         client = self.store._client
 

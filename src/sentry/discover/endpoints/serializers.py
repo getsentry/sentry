@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
+import sentry
 from sentry import features
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
@@ -179,6 +180,19 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
             )
+
+        if (
+            sentry.features.has(
+                "organizations:discover-saved-queries-deprecation",
+                self.context["organization"],
+                actor=self.context["user"],
+            )
+            and dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        ):
+            raise serializers.ValidationError(
+                f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.context['organization'].slug}/explore/saved/` endpoint with the filter to save new transaction queries."
+            )
+
         return dataset
 
     def validate(self, data):

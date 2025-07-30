@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from snuba_sdk import Column, Condition, Op
 
@@ -123,7 +123,9 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         assert _get_oldest_non_null(group).event_id == event_all_helpful_params.event_id
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_get_recommended_event_for_environments_retention_limit(self, mock_get_event_retention):
+    def test_get_recommended_event_for_environments_retention_limit(
+        self, mock_get_event_retention: MagicMock
+    ) -> None:
         """
         If last_seen is outside of the retention limit, falls back to the latest event behavior.
         """

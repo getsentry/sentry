@@ -4,11 +4,11 @@ from sentry.testutils.cases import APITestCase
 class ProjectTeamsTest(APITestCase):
     endpoint = "sentry-api-0-project-teams"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         team = self.create_team()
         project = self.create_project(teams=[team])
 

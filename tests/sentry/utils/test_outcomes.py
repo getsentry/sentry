@@ -61,7 +61,7 @@ def test_parse_outcome(name, outcome):
     assert Outcome.parse(name) == outcome
 
 
-def test_outcome_parse_invalid_name():
+def test_outcome_parse_invalid_name() -> None:
     """
     Tests that `Outcome.parse` raises a KeyError for invalid outcome names.
     """
@@ -174,7 +174,7 @@ def test_track_outcome_billing_cluster(settings, setup):
         assert outcomes.outcomes_publisher is None
 
 
-def test_outcome_api_name():
+def test_outcome_api_name() -> None:
     """
     Tests that the `api_name` method returns the lowercase name of the outcome.
     """
@@ -250,7 +250,7 @@ def test_track_outcome_with_category(setup, category):
     assert data["category"] == category.value
 
 
-def test_track_outcome_with_invalid_inputs():
+def test_track_outcome_with_invalid_inputs() -> None:
     """
     Tests that `track_outcome` raises AssertionError when invalid inputs are provided.
     """

@@ -41,7 +41,7 @@ class SnQLTest(TestCase, SnubaTestCase):
         return event_id
 
     @mock.patch("sentry.utils.metrics.incr")
-    def test_basic(self, mock_metrics_incr) -> None:
+    def test_basic(self, mock_metrics_incr: mock.MagicMock) -> None:
         now = datetime.now()
         self._insert_event_for_time(now)
 

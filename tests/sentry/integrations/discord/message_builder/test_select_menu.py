@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestDiscordSelectMenu(TestCase):
-    def test_empty(self):
+    def test_empty(self) -> None:
         menu = DiscordSelectMenu("custom-id", [])
         result = menu.build()
         assert result == {
@@ -19,7 +19,7 @@ class TestDiscordSelectMenu(TestCase):
             "disabled": False,
         }
 
-    def test_disabled(self):
+    def test_disabled(self) -> None:
         menu = DiscordSelectMenu("custom-id", [], disabled=True)
         result = menu.build()
         assert result == {
@@ -31,7 +31,7 @@ class TestDiscordSelectMenu(TestCase):
             "disabled": True,
         }
 
-    def test_non_empty(self):
+    def test_non_empty(self) -> None:
         option = DiscordSelectMenuOption("option", "first", "descriptionnn", True)
         other_option = DiscordSelectMenuOption("other", "second")
         menu = DiscordSelectMenu(

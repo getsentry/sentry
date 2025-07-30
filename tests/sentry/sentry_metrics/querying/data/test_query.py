@@ -28,7 +28,7 @@ def test_compile_mql_query(formula, queries, expected_formula):
     assert compiled_query.mql == expected_formula
 
 
-def test_compile_mql_query_recursive():
+def test_compile_mql_query_recursive() -> None:
     query_1 = MQLQuery("sum(duration)")
     query_2 = MQLQuery("$query_1 * 2", query_1=query_1)
     compiled_query = MQLQuery("$query_2 + 1 / $query_1", query_1=query_1, query_2=query_2).compile()
@@ -36,6 +36,6 @@ def test_compile_mql_query_recursive():
     assert compiled_query.mql == "sum(duration) * 2 + 1 / sum(duration)"
 
 
-def test_compile_mql_query_with_wrong_sub_queries():
+def test_compile_mql_query_with_wrong_sub_queries() -> None:
     with pytest.raises(InvalidMetricsQueryError):
         MQLQuery("$query_1 * 2", query_1="sum(duration)").compile()

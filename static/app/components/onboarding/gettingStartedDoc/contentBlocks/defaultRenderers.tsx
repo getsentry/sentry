@@ -28,6 +28,7 @@ function AlertBlock({
   showIcon,
   system,
   trailingItems,
+  icon,
 }: Extract<ContentBlock, {type: 'alert'}>) {
   return (
     <div css={baseBlockStyles}>
@@ -36,6 +37,7 @@ function AlertBlock({
         showIcon={showIcon}
         system={system}
         trailingItems={trailingItems}
+        icon={icon}
       >
         {text}
       </Alert>

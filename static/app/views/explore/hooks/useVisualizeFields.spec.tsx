@@ -41,6 +41,7 @@ function useWrapper(yAxis: string) {
     numberTags,
     stringTags,
     parsedFunction: parseFunction(yAxis) ?? undefined,
+    traceItemType: TraceItemDataset.SPANS,
   });
 }
 

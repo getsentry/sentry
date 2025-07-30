@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
@@ -71,7 +71,7 @@ def exclude_on_exception_task(param):
 
 
 @override_settings(SILO_MODE=SiloMode.REGION)
-def test_task_silo_limit_call_region():
+def test_task_silo_limit_call_region() -> None:
     result = region_task("hi")
     assert "Region task hi" == result
 
@@ -80,7 +80,7 @@ def test_task_silo_limit_call_region():
 
 
 @override_settings(SILO_MODE=SiloMode.CONTROL)
-def test_task_silo_limit_call_control():
+def test_task_silo_limit_call_control() -> None:
     with pytest.raises(SiloLimit.AvailabilityError):
         region_task("hi")
 
@@ -88,27 +88,27 @@ def test_task_silo_limit_call_control():
 
 
 @override_settings(SILO_MODE=SiloMode.MONOLITH)
-def test_task_silo_limit_call_monolith():
+def test_task_silo_limit_call_monolith() -> None:
     assert "Region task hi" == region_task("hi")
     assert "Control task hi" == control_task("hi")
 
 
 @patch("sentry_sdk.capture_exception")
-def test_ignore_and_retry(capture_exception):
+def test_ignore_and_retry(capture_exception: MagicMock) -> None:
     ignore_and_capture_retry_task("bruh")
 
     assert capture_exception.call_count == 1
 
 
 @patch("sentry_sdk.capture_exception")
-def test_ignore_exception_retry(capture_exception):
+def test_ignore_exception_retry(capture_exception: MagicMock) -> None:
     ignore_on_exception_task("bruh")
 
     assert capture_exception.call_count == 0
 
 
 @patch("sentry_sdk.capture_exception")
-def test_exclude_exception_retry(capture_exception):
+def test_exclude_exception_retry(capture_exception: MagicMock) -> None:
     with pytest.raises(Exception):
         exclude_on_exception_task("bruh")
 
@@ -127,7 +127,7 @@ def test_exclude_exception_retry(capture_exception):
 )
 @patch("sentry.tasks.base.metrics.distribution")
 @freeze_time("2025-01-01 00:00:00")  # so size of params isn't impacted by current time.
-def test_capture_payload_metrics(mock_distribution):
+def test_capture_payload_metrics(mock_distribution: MagicMock) -> None:
     region_task.apply_async(args=("bruh",))
 
     mock_distribution.assert_called_once_with(
@@ -148,7 +148,7 @@ def test_capture_payload_metrics(mock_distribution):
         "taskworker.route.overrides": {},
     }
 )
-def test_validate_parameters_call():
+def test_validate_parameters_call() -> None:
     with pytest.raises(TypeError) as err:
         region_task.apply_async(args=(datetime.datetime.now(),))
     assert "region_task was called with a parameter that cannot be JSON encoded" in str(err)
@@ -165,7 +165,7 @@ def test_validate_parameters_call():
 @override_settings(SILO_MODE=SiloMode.CONTROL)
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_on(capture_exception, current_task):
+def test_retry_on(capture_exception: MagicMock, current_task: MagicMock) -> None:
     class ExpectedException(Exception):
         pass
 

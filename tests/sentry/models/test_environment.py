@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GetOrCreateTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
 
         with pytest.raises(Environment.DoesNotExist):

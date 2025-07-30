@@ -16,7 +16,7 @@ from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -28,7 +28,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
     def setup_pd_service(self) -> PagerDutyServiceDict:
@@ -144,17 +144,17 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert actions is not None
         assert actions == ["An unexpected error occurred. Error ID: 'abc-1234'"]
 
-    def test_no_events(self):
+    def test_no_events(self) -> None:
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400
 
 
-@apply_feature_flag_on_cls("organizations:workflow-engine-single-process-workflows")
+@with_feature("organizations:workflow-engine-single-process-workflows")
 class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.workflow = self.create_workflow()
@@ -195,7 +195,7 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
         assert action.called
 
-    def test_unknown_action_returns_400(self):
+    def test_unknown_action_returns_400(self) -> None:
         action_data = [
             {
                 "id": "sentry.rules.actions.fake_action.FakeAction",
@@ -310,6 +310,6 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         assert actions is not None
         assert actions == ["An unexpected error occurred. Error ID: 'abc-1234'"]
 
-    def test_no_events(self):
+    def test_no_events(self) -> None:
         response = self.get_response(self.organization.slug, self.project.slug)
         assert response.status_code == 400

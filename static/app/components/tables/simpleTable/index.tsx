@@ -6,7 +6,6 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Flex} from 'sentry/components/core/layout/flex';
 import Panel from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -117,7 +116,7 @@ const StyledPanelHeader = styled('div')`
 
 const StyledRowCell = styled(Flex)`
   overflow: hidden;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const StyledRow = styled('div', {
@@ -160,7 +159,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   background: none;
   outline: none;
   border: none;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
   text-transform: inherit;
   font-weight: ${p => p.theme.fontWeight.bold};
   text-align: left;
@@ -171,7 +170,7 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   height: 100%;
 
   &:first-child {
@@ -202,7 +201,7 @@ const SortIndicator = styled(IconArrow, {
 const StyledEmptyMessage = styled('div')`
   grid-column: 1 / -1;
   min-height: 200px;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   display: flex;
   justify-content: center;
   align-items: center;

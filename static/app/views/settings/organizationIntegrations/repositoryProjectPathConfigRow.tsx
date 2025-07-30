@@ -116,7 +116,7 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export const ButtonWrapper = styled(Column)`
+export const ButtonWrapper = styled('span')`
   display: flex;
   gap: ${space(1)};
 `;

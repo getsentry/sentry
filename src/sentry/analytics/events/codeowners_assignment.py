@@ -1,7 +1,7 @@
 from sentry import analytics
 
 
-class CodeownersAssignment(analytics.Event):
+class CodeOwnersAssignment(analytics.Event):
     type = "codeowners.assignment"
 
     attributes = (
@@ -12,4 +12,4 @@ class CodeownersAssignment(analytics.Event):
     )
 
 
-analytics.register(CodeownersAssignment)
+analytics.register(CodeOwnersAssignment)

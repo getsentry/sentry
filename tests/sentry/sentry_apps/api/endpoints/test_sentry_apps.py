@@ -74,7 +74,7 @@ class MockOrganizationRoles:
 class SentryAppsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
@@ -189,14 +189,14 @@ class SentryAppsTest(APITestCase):
 
 @control_silo_test
 class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.setup_apps()
 
         self.superuser = self.create_user(is_superuser=True)
         self.login_as(self.superuser, superuser=True)
 
-    def test_staff_sees_all_apps(self):
+    def test_staff_sees_all_apps(self) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(staff_user, staff=True)
 
@@ -210,7 +210,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.get_success_response(status_code=200)
 
-    def test_superuser_sees_all_apps(self):
+    def test_superuser_sees_all_apps(self) -> None:
         response = self.get_success_response(status_code=200)
         response_uuids = {o["uuid"] for o in response.data}
 
@@ -223,13 +223,13 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_write_sees_all_apps(self):
+    def test_superuser_read_write_sees_all_apps(self) -> None:
         self.get_success_response(status_code=200)
 
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(status_code=200)
 
-    def test_superusers_filter_on_internal_apps(self):
+    def test_superusers_filter_on_internal_apps(self) -> None:
         self.setup_internal_app()
         new_org = self.create_organization()
         self.create_project(organization=new_org)
@@ -246,7 +246,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_superuser_filter_on_published(self):
+    def test_superuser_filter_on_published(self) -> None:
         response = self.get_success_response(qs_params={"status": "published"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
@@ -259,7 +259,7 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_superuser_filter_on_unpublished(self):
+    def test_superuser_filter_on_unpublished(self) -> None:
         response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
 
         response_uuids = {o["uuid"] for o in response.data}
@@ -270,12 +270,12 @@ class SuperuserStaffGetSentryAppsTest(SentryAppsTest):
 
 @control_silo_test
 class GetSentryAppsTest(SentryAppsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.setup_apps()
         self.login_as(self.user)
 
-    def test_users_see_published_apps(self):
+    def test_users_see_published_apps(self) -> None:
         response = self.get_success_response(status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
@@ -284,7 +284,7 @@ class GetSentryAppsTest(SentryAppsTest):
             has_features=True,
         )
 
-    def test_users_filter_on_internal_apps(self):
+    def test_users_filter_on_internal_apps(self) -> None:
         self.setup_internal_app()
         response = self.get_success_response(qs_params={"status": "internal"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
@@ -297,7 +297,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_user_filter_on_unpublished(self):
+    def test_user_filter_on_unpublished(self) -> None:
         response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
         self.assert_response_has_serialized_sentry_app(
             response=response,
@@ -309,14 +309,14 @@ class GetSentryAppsTest(SentryAppsTest):
         assert self.published_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_user_filter_on_published(self):
+    def test_user_filter_on_published(self) -> None:
         response = self.get_success_response(qs_params={"status": "published"}, status_code=200)
         response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid in response_uuids
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
-    def test_client_secret_is_not_masked(self):
+    def test_client_secret_is_not_masked(self) -> None:
         manager_user = self.create_user(email="bleep@example.com")
         self.create_member(organization=self.organization, user=manager_user, role="manager")
 
@@ -336,7 +336,7 @@ class GetSentryAppsTest(SentryAppsTest):
             scopes=["org:write"],
         )
 
-    def test_client_secret_is_masked(self):
+    def test_client_secret_is_masked(self) -> None:
         manager_user = self.create_user(email="bloop@example.com")
         self.create_member(organization=self.organization, user=manager_user, role="manager")
 
@@ -356,15 +356,15 @@ class GetSentryAppsTest(SentryAppsTest):
             scopes=["org:admin"],
         )
 
-    def test_users_dont_see_unpublished_apps_their_org_owns(self):
+    def test_users_dont_see_unpublished_apps_their_org_owns(self) -> None:
         response = self.get_success_response(status_code=200)
         assert self.unpublished_app.uuid not in [a["uuid"] for a in response.data]
 
-    def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
+    def test_users_dont_see_unpublished_apps_outside_their_orgs(self) -> None:
         response = self.get_success_response(status_code=200)
         assert self.unowned_unpublished_app.uuid not in [a["uuid"] for a in response.data]
 
-    def test_users_dont_see_internal_apps_outside_their_orgs(self):
+    def test_users_dont_see_internal_apps_outside_their_orgs(self) -> None:
         new_org = self.create_organization()
         self.create_project(organization=new_org)
 
@@ -373,7 +373,7 @@ class GetSentryAppsTest(SentryAppsTest):
         response = self.get_success_response(status_code=200)
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
 
-    def test_billing_users_dont_see_apps(self):
+    def test_billing_users_dont_see_apps(self) -> None:
         mock_org_roles = MockOrganizationRoles()
         with (patch("sentry.roles.organization_roles.get", mock_org_roles.get),):
             alice = self.create_member(
@@ -393,13 +393,13 @@ class GetSentryAppsTest(SentryAppsTest):
 class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
         self.login_as(self.superuser, superuser=True)
 
-    def test_staff_cannot_create_app(self):
+    def test_staff_cannot_create_app(self) -> None:
         """We do not allow staff to create Sentry Apps b/c this cannot be done in _admin."""
         self.login_as(self.staff_user, staff=True)
         response = self.get_error_response(**self.get_data(), status_code=401)
@@ -408,7 +408,7 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
             == "User must be a part of the Org they're trying to create the app in"
         )
 
-    def test_superuser_cannot_create_app_in_nonexistent_organization(self):
+    def test_superuser_cannot_create_app_in_nonexistent_organization(self) -> None:
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
         data = self.get_data(name=sentry_app.name, organization="some-non-existent-org")
@@ -417,7 +417,7 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
             "detail": "Organization 'some-non-existent-org' does not exist.",
         }
 
-    def test_superuser_can_create_with_popularity(self):
+    def test_superuser_can_create_with_popularity(self) -> None:
         response = self.get_success_response(
             **self.get_data(popularity=POPULARITY), status_code=201
         )
@@ -430,19 +430,19 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_cannot_create(self):
+    def test_superuser_read_cannot_create(self) -> None:
         self.get_error_response(**self.get_data(name="POPULARITY"))
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_superuser_read_can_create(self):
+    def test_superuser_read_can_create(self) -> None:
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(**self.get_data(popularity=POPULARITY), status_code=201)
 
 
 @control_silo_test
 class PostWithTokenSentryAppsTest(SentryAppsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.setup_internal_app()
@@ -458,21 +458,21 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
         assert response.status_code == 403
         assert response.data["detail"].startswith("You do not have permission")
 
-    def test_internal_sentry_app_cannot_create_app(self):
+    def test_internal_sentry_app_cannot_create_app(self) -> None:
         self.assert_no_permission(
             organization=self.internal_organization,
             sentry_app=self.internal_app,
             slug=self.internal_organization.slug,
         )
 
-    def test_internal_sentry_app_cannot_create_app_without_organization(self):
+    def test_internal_sentry_app_cannot_create_app_without_organization(self) -> None:
         self.assert_no_permission(
             organization=self.internal_organization,
             sentry_app=self.internal_app,
             slug=None,
         )
 
-    def test_internal_sentry_app_cannot_create_app_in_alien_organization(self):
+    def test_internal_sentry_app_cannot_create_app_in_alien_organization(self) -> None:
         other_organization = self.create_organization()
         self.assert_no_permission(
             organization=other_organization,
@@ -480,7 +480,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
             slug=other_organization.slug,
         )
 
-    def test_internal_sentry_app_cannot_create_app_in_nonexistent_organization(self):
+    def test_internal_sentry_app_cannot_create_app_in_nonexistent_organization(self) -> None:
         self.assert_no_permission(
             organization=self.organization,
             sentry_app=self.internal_app,
@@ -492,7 +492,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
 class PostSentryAppsTest(SentryAppsTest):
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -511,7 +511,7 @@ class PostSentryAppsTest(SentryAppsTest):
             )
             assert response.status_code == status_code
 
-    def test_creates_sentry_app(self):
+    def test_creates_sentry_app(self) -> None:
         response = self.get_success_response(**self.get_data(), status_code=201)
         content = orjson.loads(response.content)
         for key, value in EXPECTED.items():
@@ -521,7 +521,7 @@ class PostSentryAppsTest(SentryAppsTest):
             else:
                 assert content[key] == value
 
-    def test_non_unique_app_slug_fails(self):
+    def test_non_unique_app_slug_fails(self) -> None:
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
         deletions.exec_sync(sentry_app)
 
@@ -529,7 +529,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {"name": ["Name Foo Bar is already taken, please use another."]}
 
-    def test_same_name_internal_integration(self):
+    def test_same_name_internal_integration(self) -> None:
         self.create_project(organization=self.organization)
         sentry_app = self.create_internal_integration(
             name="Foo Bar", organization=self.organization
@@ -540,7 +540,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["name"] == sentry_app.name
         assert response.data["slug"] != sentry_app.slug
 
-    def test_cannot_create_app_without_organization(self):
+    def test_cannot_create_app_without_organization(self) -> None:
         self.create_project(organization=self.organization)
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
@@ -550,7 +550,7 @@ class PostSentryAppsTest(SentryAppsTest):
             "detail": "Please provide a valid value for the 'organization' field.",
         }
 
-    def test_cannot_create_app_in_alien_organization(self):
+    def test_cannot_create_app_in_alien_organization(self) -> None:
         other_organization = self.create_organization()
         self.create_project(organization=other_organization)
         sentry_app = self.create_internal_integration(name="Foo Bar")
@@ -559,7 +559,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self.get_error_response(**data, status_code=403)
         assert response.data["detail"].startswith("User does not belong to")
 
-    def test_user_cannot_create_app_in_nonexistent_organization(self):
+    def test_user_cannot_create_app_in_nonexistent_organization(self) -> None:
         self.create_project(organization=self.organization)
         sentry_app = self.create_internal_integration(name="Foo Bar")
 
@@ -567,7 +567,7 @@ class PostSentryAppsTest(SentryAppsTest):
         response = self.get_error_response(**data, status_code=403)
         assert response.data["detail"].startswith("User does not belong to")
 
-    def test_nonsuperuser_cannot_create_with_popularity(self):
+    def test_nonsuperuser_cannot_create_with_popularity(self) -> None:
         response = self.get_success_response(
             **self.get_data(popularity=POPULARITY), status_code=201
         )
@@ -575,23 +575,23 @@ class PostSentryAppsTest(SentryAppsTest):
             response.content
         ).items()
 
-    def test_long_name_internal_integration(self):
+    def test_long_name_internal_integration(self) -> None:
         self.create_project(organization=self.organization)
 
         response = self.get_error_response(**self.get_data(name="k" * 58), status_code=400)
         assert response.data == {"name": ["Cannot exceed 57 characters"]}
 
-    def test_invalid_with_missing_webhook_url_scheme(self):
+    def test_invalid_with_missing_webhook_url_scheme(self) -> None:
         data = self.get_data(webhookUrl="example.com")
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {"webhookUrl": ["URL must start with http[s]://"]}
 
-    def test_cannot_create_app_without_correct_permissions(self):
+    def test_cannot_create_app_without_correct_permissions(self) -> None:
         data = self.get_data(scopes=("project:read",))
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {"events": ["issue webhooks require the event:read permission."]}
 
-    def test_create_alert_rule_action(self):
+    def test_create_alert_rule_action(self) -> None:
         expected = {**EXPECTED, "schema": {"elements": [self.create_alert_rule_action_schema()]}}
 
         data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
@@ -651,7 +651,7 @@ class PostSentryAppsTest(SentryAppsTest):
         )
 
     @with_feature("organizations:integrations-event-hooks")
-    def test_can_create_with_error_created_hook_with_flag(self):
+    def test_can_create_with_error_created_hook_with_flag(self) -> None:
         expected = {**EXPECTED, "events": ["error"]}
         response = self.get_success_response(**self.get_data(events=("error",)), status_code=201)
         content = orjson.loads(response.content)
@@ -662,7 +662,7 @@ class PostSentryAppsTest(SentryAppsTest):
             else:
                 assert content[key] == value
 
-    def test_cannot_create_with_error_created_hook_without_flag(self):
+    def test_cannot_create_with_error_created_hook_without_flag(self) -> None:
         with Feature({"organizations:integrations-event-hooks": False}):
             response = self.get_error_response(**self.get_data(events=("error",)), status_code=403)
             assert response.data == {
@@ -671,36 +671,36 @@ class PostSentryAppsTest(SentryAppsTest):
                 ]
             }
 
-    def test_allows_empty_schema(self):
+    def test_allows_empty_schema(self) -> None:
         self.get_success_response(**self.get_data(shema={}), status_code=201)
 
-    def test_generated_slug_not_entirely_numeric(self):
+    def test_generated_slug_not_entirely_numeric(self) -> None:
         response = self.get_success_response(**self.get_data(name="1234"), status_code=201)
         slug = response.data["slug"]
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
-    def test_missing_name(self):
+    def test_missing_name(self) -> None:
         response = self.get_error_response(**self.get_data(name=None), status_code=400)
         assert "name" in response.data
 
-    def test_invalid_events(self):
+    def test_invalid_events(self) -> None:
         response = self.get_error_response(**self.get_data(events=["project"]), status_code=400)
         assert "events" in response.data
 
-    def test_invalid_scope(self):
+    def test_invalid_scope(self) -> None:
         response = self.get_error_response(**self.get_data(scopes="not:ascope"), status_code=400)
         assert "scopes" in response.data
 
-    def test_missing_webhook_url(self):
+    def test_missing_webhook_url(self) -> None:
         response = self.get_error_response(**self.get_data(webhookUrl=None), status_code=400)
         assert "webhookUrl" in response.data
 
-    def test_allows_empty_permissions(self):
+    def test_allows_empty_permissions(self) -> None:
         response = self.get_success_response(**self.get_data(scopes=None), status_code=201)
         assert response.data["scopes"] == []
 
-    def test_creates_internal_integration(self):
+    def test_creates_internal_integration(self) -> None:
         self.create_project(organization=self.organization)
 
         response = self.get_success_response(**self.get_data(isInternal=True), status_code=201)
@@ -715,16 +715,16 @@ class PostSentryAppsTest(SentryAppsTest):
         with pytest.raises(SentryAppInstallationToken.DoesNotExist):
             SentryAppInstallationToken.objects.get(sentry_app_installation=sentry_app_installation)
 
-    def test_no_author_public_integration(self):
+    def test_no_author_public_integration(self) -> None:
         response = self.get_error_response(**self.get_data(author=None), status_code=400)
         assert response.data == {"author": ["author required for public integrations"]}
 
-    def test_no_author_internal_integration(self):
+    def test_no_author_internal_integration(self) -> None:
         self.create_project(organization=self.organization)
 
         self.get_success_response(**self.get_data(isInternal=True, author=None), status_code=201)
 
-    def test_create_integration_with_allowed_origins(self):
+    def test_create_integration_with_allowed_origins(self) -> None:
         response = self.get_success_response(
             **self.get_data(allowedOrigins=("google.com", "example.com")), status_code=201
         )
@@ -732,7 +732,7 @@ class PostSentryAppsTest(SentryAppsTest):
         assert sentry_app.application is not None
         assert sentry_app.application.get_allowed_origins() == ["google.com", "example.com"]
 
-    def test_create_internal_integration_with_allowed_origins_and_test_route(self):
+    def test_create_internal_integration_with_allowed_origins_and_test_route(self) -> None:
         self.create_project(organization=self.organization)
 
         data = self.get_data(
@@ -747,7 +747,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         self.assert_sentry_app_status_code(sentry_app, status_code=200)
 
-    def test_create_internal_integration_without_allowed_origins_and_test_route(self):
+    def test_create_internal_integration_without_allowed_origins_and_test_route(self) -> None:
         self.create_project(organization=self.organization)
 
         data = self.get_data(isInternal=True, scopes=("project:read", "event:read", "org:read"))
@@ -758,7 +758,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         self.assert_sentry_app_status_code(sentry_app, status_code=400)
 
-    def test_members_cant_create(self):
+    def test_members_cant_create(self) -> None:
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
         with assume_test_silo_mode(SiloMode.REGION):
@@ -770,7 +770,7 @@ class PostSentryAppsTest(SentryAppsTest):
 
         self.get_error_response(**self.get_data(), status_code=403)
 
-    def test_create_integration_exceeding_scopes(self):
+    def test_create_integration_exceeding_scopes(self) -> None:
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
         with assume_test_silo_mode(SiloMode.REGION):
@@ -789,7 +789,7 @@ class PostSentryAppsTest(SentryAppsTest):
             ]
         }
 
-    def test_create_internal_integration_with_non_globally_unique_name(self):
+    def test_create_internal_integration_with_non_globally_unique_name(self) -> None:
         # Internal integration names should only need to be unique within an organization.
         self.create_project(organization=self.organization)
 

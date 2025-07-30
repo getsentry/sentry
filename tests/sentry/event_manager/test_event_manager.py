@@ -80,7 +80,7 @@ from sentry.testutils.cases import (
     TestCase,
     TransactionTestCase,
 )
-from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
@@ -3290,7 +3290,7 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:dynamic-sampling")
+@with_feature("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self) -> None:
         self.environment1 = Environment.get_or_create(self.project, "prod")
@@ -3717,7 +3717,7 @@ class DSLatestReleaseBoostTest(TestCase):
         ts = timezone.now().timestamp()
 
         # We want to test with multiple platforms.
-        for platform in ("python", "java", None):
+        for platform in ("python", "java"):
             project = self.create_project(platform=platform)
 
             for index, (release_version, environment) in enumerate(

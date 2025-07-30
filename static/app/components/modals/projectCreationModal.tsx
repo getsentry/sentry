@@ -10,7 +10,11 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  type ModalRenderProps,
+  openConsoleModal,
+  openProjectCreationModal,
+} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import PlatformPicker, {
@@ -25,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,6 +62,28 @@ export default function ProjectCreationModal({
       setPlatform(undefined);
       return;
     }
+
+    if (
+      isDisabledGamingPlatform({
+        platform: selectedPlatform,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
+    ) {
+      openConsoleModal({
+        organization,
+        selectedPlatform: {
+          ...selectedPlatform,
+          key: selectedPlatform.id,
+        },
+        onClose: () => {
+          openProjectCreationModal({
+            defaultCategory: selectedPlatform.category,
+          });
+        },
+      });
+      return;
+    }
+
     setPlatform({
       ...omit(selectedPlatform, 'id'),
       key: selectedPlatform.id,

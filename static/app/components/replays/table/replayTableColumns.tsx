@@ -421,7 +421,13 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
 
 export const ReplaySelectColumn: ReplayTableColumn = {
   Header: ({
-    listItemCheckboxState: {isAllSelected, deselectAll, knownIds, toggleSelected},
+    listItemCheckboxState: {
+      deselectAll,
+      isAllSelected,
+      knownIds,
+      selectedIds,
+      toggleSelected,
+    },
     replays,
   }) => {
     const organization = useOrganization();
@@ -435,13 +441,17 @@ export const ReplaySelectColumn: ReplayTableColumn = {
           checked={isAllSelected}
           disabled={knownIds.length === 0}
           onChange={() => {
-            if (isAllSelected === true) {
+            // If the replay is archived, don't include it in the selection
+            const eligibleIds = knownIds.filter(
+              id => !replays.find(r => r.id === id)?.is_archived
+            );
+
+            if (isAllSelected === true || selectedIds.length === eligibleIds.length) {
               deselectAll();
             } else {
-              // If the replay is archived, don't include it in the selection
-              toggleSelected(
-                knownIds.filter(id => !replays.find(r => r.id === id)?.is_archived)
-              );
+              // Make everything visible selected
+              const unselectedIds = eligibleIds.filter(id => !selectedIds.includes(id));
+              toggleSelected(unselectedIds);
             }
           }}
         />
@@ -560,7 +570,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
             size={24}
           />
           <SubText>
-            <Flex gap="xs" align="flex-start">
+            <Flex gap="xs" align="start">
               <DisplayName data-underline-on-hover>
                 {replay.user.display_name || t('Anonymous User')}
               </DisplayName>

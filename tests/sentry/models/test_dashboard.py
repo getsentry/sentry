@@ -5,52 +5,52 @@ from sentry.users.models.user import User
 
 
 class IncrementalNameTest(TestCase):
-    def test_no_conflict(self):
+    def test_no_conflict(self) -> None:
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats"
 
-    def test_one_preexisting(self):
+    def test_one_preexisting(self) -> None:
         self.create_dashboard(title="Stats", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy"
 
-    def test_two_consecutive_preexisting(self):
+    def test_two_consecutive_preexisting(self) -> None:
         self.create_dashboard(title="Stats", organization=self.organization)
         self.create_dashboard(title="Stats copy", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy 1"
 
-    def test_two_preexisting_non_starting(self):
+    def test_two_preexisting_non_starting(self) -> None:
         self.create_dashboard(title="Stats copy 4", organization=self.organization)
         self.create_dashboard(title="Stats copy 5", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy 6"
 
-    def test_two_preexisting_non_starting_non_consecutive(self):
+    def test_two_preexisting_non_starting_non_consecutive(self) -> None:
         self.create_dashboard(title="Stats copy 4", organization=self.organization)
         self.create_dashboard(title="Stats copy 17", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy 18"
 
-    def test_copy_of_copy(self):
+    def test_copy_of_copy(self) -> None:
         self.create_dashboard(title="Stats copy 4", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 5"
 
-    def test_name_with_copy_in_it(self):
+    def test_name_with_copy_in_it(self) -> None:
         assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 4"
 
-    def test_similar_names(self):
+    def test_similar_names(self) -> None:
         self.create_dashboard(title="Stats", organization=self.organization)
         self.create_dashboard(title="Statstististicks", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy"
 
-    def test_similar_name_substring(self):
+    def test_similar_name_substring(self) -> None:
         self.create_dashboard(title="Statstististicks", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats"
 
-    def test_across_organizations(self):
+    def test_across_organizations(self) -> None:
         first_organization = self.create_organization()
         second_organization = self.create_organization()
 
@@ -70,7 +70,7 @@ class DashboardFavoriteUserTest(TestCase):
             dashboard=dashboard, user_id=user.id, organization=organization, position=position
         )
 
-    def test_inserts_to_last_position(self):
+    def test_inserts_to_last_position(self) -> None:
         for index, title in enumerate(["Existing Favorite", "Another Favorite"]):
             dashboard = self.create_dashboard(title=title, organization=self.organization)
             self.create_dashboard_favorite_user(dashboard, self.user, self.organization, index)
@@ -89,7 +89,7 @@ class DashboardFavoriteUserTest(TestCase):
         assert new_favorite is not None
         assert new_favorite.position == 2
 
-    def test_inserts_to_first_position_when_none_exist(self):
+    def test_inserts_to_first_position_when_none_exist(self) -> None:
         new_dashboard = self.create_dashboard(title="New Dashboard", organization=self.organization)
         DashboardFavoriteUser.objects.insert_favorite_dashboard(
             self.organization, self.user.id, new_dashboard
@@ -103,7 +103,7 @@ class DashboardFavoriteUserTest(TestCase):
         assert new_favorite is not None
         assert new_favorite.position == 0
 
-    def test_reorders_to_new_positions(self):
+    def test_reorders_to_new_positions(self) -> None:
         should_be_second = self.create_dashboard(
             title="Should be second", organization=self.organization
         )
@@ -131,7 +131,7 @@ class DashboardFavoriteUserTest(TestCase):
         assert second_favorite_dashboard.position == 1
         assert first_favorite_dashboard.position == 0
 
-    def test_reorders_to_new_positions_with_missing_positions(self):
+    def test_reorders_to_new_positions_with_missing_positions(self) -> None:
         should_be_second = self.create_dashboard(
             title="Should be second", organization=self.organization
         )
@@ -159,7 +159,7 @@ class DashboardFavoriteUserTest(TestCase):
         assert second_favorite_dashboard.position == 1
         assert first_favorite_dashboard.position == 0
 
-    def test_deletes_and_increments_existing_positions(self):
+    def test_deletes_and_increments_existing_positions(self) -> None:
         first_dashboard = self.create_dashboard(
             title="First Dashboard", organization=self.organization
         )

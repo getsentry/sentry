@@ -62,6 +62,10 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "apdex(1000):>0.5 OR user_misery(1000):>0.5",
             "(apdex(span.duration,1000):>0.5 OR user_misery(span.duration,1000):>0.5) AND is_transaction:1",
         ),
+        pytest.param(
+            "platform.name:python",
+            "(platform:python) AND is_transaction:1",
+        ),
     ],
 )
 def test_mep_to_eap_simple_query(input: str, expected: str):
@@ -122,6 +126,10 @@ def test_mep_to_eap_simple_query(input: str, expected: str):
         pytest.param(
             ["any(transaction.duration)", "count_miserable(user,300)", "transaction", "count()"],
             ["transaction", "count(span.duration)"],
+        ),
+        pytest.param(
+            ["platform.name", "count()"],
+            ["platform", "count(span.duration)"],
         ),
     ],
 )

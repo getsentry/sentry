@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 class WorkflowGroupHistoryEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-workflow-group-history"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -28,11 +28,21 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         self.workflow = self.create_workflow(organization=self.organization)
         for i in range(3):
             self.history.append(
-                WorkflowFireHistory(workflow=self.workflow, group=self.group, event_id=uuid4().hex)
+                WorkflowFireHistory(
+                    workflow=self.workflow,
+                    group=self.group,
+                    event_id=uuid4().hex,
+                    is_single_written=True,
+                )
             )
         self.group_2 = self.create_group()
         self.history.append(
-            WorkflowFireHistory(workflow=self.workflow, group=self.group_2, event_id=uuid4().hex)
+            WorkflowFireHistory(
+                workflow=self.workflow,
+                group=self.group_2,
+                event_id=uuid4().hex,
+                is_single_written=True,
+            )
         )
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
 
@@ -45,7 +55,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
 
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.workflow.id,
@@ -69,7 +79,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             WorkflowGroupHistorySerializer(),
         )
 
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.workflow.id,
@@ -109,7 +119,7 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             WorkflowGroupHistorySerializer(),
         )
 
-    def test_invalid_dates_error(self):
+    def test_invalid_dates_error(self) -> None:
         self.get_error_response(
             self.organization.slug,
             self.workflow.id,

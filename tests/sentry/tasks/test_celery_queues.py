@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CeleryQueueRegisteredTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         queue_names = {q.name for q in settings.CELERY_QUEUES}
         missing_queue_tasks = []
         for task in current_app.tasks.values():
@@ -23,7 +23,7 @@ class CeleryQueueRegisteredTest(TestCase):
 
 
 class CeleryQueuesUseCrontabTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         crontab_tasks = settings.CELERYBEAT_SCHEDULE.keys() - settings.TIMEDELTA_ALLOW_LIST
         for task_name in crontab_tasks:
             config = settings.CELERYBEAT_SCHEDULE[task_name]

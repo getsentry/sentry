@@ -33,13 +33,13 @@ function ServiceBreakdown({
   if (!displayBreakdown) {
     return (
       <BreakDownWrapper>
-        <Flex align="center" justify="space-between">
+        <Flex align="center" justify="between">
           <div>{t('server side')}</div>
           <Flex>
             <span>{'N/A'}</span>
           </Flex>
         </Flex>
-        <Flex align="center" justify="space-between">
+        <Flex align="center" justify="between">
           <div>{t('client side')}</div>
           <Flex>
             <span>{'N/A'}</span>
@@ -58,14 +58,14 @@ function ServiceBreakdown({
 
   return httpDuration ? (
     <BreakDownWrapper>
-      <Flex align="center" justify="space-between">
+      <Flex align="center" justify="between">
         <div>{t('server side')}</div>
         <Flex>
           <Dur>{getDuration(httpDuration, 2, true)}</Dur>
           <Pct>{serverSidePct}%</Pct>
         </Flex>
       </Flex>
-      <Flex align="center" justify="space-between">
+      <Flex align="center" justify="between">
         <div>{t('client side')}</div>
         <Flex>
           <Dur>{getDuration(totalDuration - httpDuration, 2, true)}</Dur>

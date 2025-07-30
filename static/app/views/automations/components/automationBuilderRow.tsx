@@ -50,11 +50,13 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   min-height: 46px;
   align-items: center;
 
-  .delete-row {
-    opacity: 0;
-  }
-  :hover .delete-row {
-    opacity: 1;
+  /* Only hide delete button when hover is supported */
+  @media (hover: hover) {
+    &:not(:hover):not(:focus-within) {
+      .delete-row {
+        ${p => p.theme.visuallyHidden}
+      }
+    }
   }
 `;
 
@@ -62,5 +64,4 @@ const DeleteButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.75)};
-  opacity: 0;
 `;

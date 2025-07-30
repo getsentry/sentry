@@ -15,31 +15,31 @@ from sentry.uptime.types import IncidentStatus
 
 
 class TestHelperFunctions(TestCase):
-    def test_anyvalue_string(self):
+    def test_anyvalue_string(self) -> None:
         result = _anyvalue("test")
         assert result.string_value == "test"
 
-    def test_anyvalue_int(self):
+    def test_anyvalue_int(self) -> None:
         result = _anyvalue(123)
         assert result.int_value == 123
 
-    def test_anyvalue_float(self):
+    def test_anyvalue_float(self) -> None:
         result = _anyvalue(123.45)
         assert result.double_value == 123.45
 
-    def test_anyvalue_bool(self):
+    def test_anyvalue_bool(self) -> None:
         result = _anyvalue(True)
         assert result.bool_value is True
 
-    def test_anyvalue_fallback(self):
+    def test_anyvalue_fallback(self) -> None:
         with pytest.raises(ValueError):
             _anyvalue([1, 2, 3])  # type: ignore[arg-type] # Test with unsupported type
 
-    def test_microseconds_conversion(self):
+    def test_microseconds_conversion(self) -> None:
         assert ms_to_us(1000) == 1000000
         assert ms_to_us(1.5) == 1500
 
-    def test_timestamp_conversion(self):
+    def test_timestamp_conversion(self) -> None:
         timestamp = Timestamp()
         timestamp.FromMilliseconds(1609459200000)
         assert timestamp.ToMilliseconds() == 1609459200000
@@ -91,7 +91,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert trace_item.timestamp.ToMilliseconds() == int(expected_scheduled_time_ms)
         assert trace_item.received.ToMilliseconds() == int(expected_actual_time_ms)
 
-    def test_convert_single_request_with_denormalized_data(self):
+    def test_convert_single_request_with_denormalized_data(self) -> None:
         result = self._create_base_result()
         request_info = self._create_base_request_info()
 
@@ -122,7 +122,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["request_body_size_bytes"].int_value == 0
         assert attributes["response_body_size_bytes"].int_value == 1024
 
-    def test_convert_with_status_reason_denormalized(self):
+    def test_convert_with_status_reason_denormalized(self) -> None:
         """Test that status reason is included in denormalized data."""
         result = self._create_base_result(
             status="failure",
@@ -145,7 +145,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             == "Request timed out after 30 seconds"
         )
 
-    def test_convert_with_timing_breakdown(self):
+    def test_convert_with_timing_breakdown(self) -> None:
         """Test detailed timing breakdown in request data."""
         result = self._create_base_result()
         request_info = self._create_base_request_info(
@@ -175,7 +175,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["time_to_first_byte_start_us"].int_value == 106000
         assert attributes["time_to_first_byte_duration_us"].int_value == 80000
 
-    def test_timestamp_conversion_accuracy(self):
+    def test_timestamp_conversion_accuracy(self) -> None:
         """Test that timestamps are accurately converted from milliseconds to seconds."""
         custom_scheduled_time = 1609459999000  # Different timestamp
         custom_actual_time = 1609460001000  # Different timestamp
@@ -201,7 +201,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert trace_item.timestamp.ToMilliseconds() == 1609459999000
         assert trace_item.received.ToMilliseconds() == 1609460001000
 
-    def test_complete_timing_breakdown_all_phases(self):
+    def test_complete_timing_breakdown_all_phases(self) -> None:
         """Test all timing phases including send_request and receive_response."""
         result = self._create_base_result()
         request_info = self._create_base_request_info(
@@ -235,7 +235,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["receive_response_start_us"].int_value == 81000
         assert attributes["receive_response_duration_us"].int_value == 25000
 
-    def test_method_and_original_url_from_request_info_list(self):
+    def test_method_and_original_url_from_request_info_list(self) -> None:
         """Test that method and original_url are set from request_info_list."""
         result = self._create_base_result(
             request_info_list=[
@@ -287,7 +287,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
         base.update(overrides)
         return base
 
-    def test_convert_redirect_chain_denormalized(self):
+    def test_convert_redirect_chain_denormalized(self) -> None:
         result = self._create_base_result(
             duration_ms=250,
             request_info_list=[
@@ -335,7 +335,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
         assert second_item.attributes["http_status_code"].int_value == 200
         assert second_item.attributes["request_duration_us"].int_value == 150000
 
-    def test_convert_legacy_request_info_denormalized(self):
+    def test_convert_legacy_request_info_denormalized(self) -> None:
         result = self._create_base_result(
             region="us-west-2",
             request_info={
@@ -362,7 +362,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
         assert attributes["request_sequence"].int_value == 0
         assert attributes["request_url"].string_value == "https://example.com"
 
-    def test_convert_with_no_requests(self):
+    def test_convert_with_no_requests(self) -> None:
         """Test conversion when there are no requests to convert (e.g., missed_window status)."""
         result = self._create_base_result()  # Has request_info=None and no request_info_list
 

@@ -17,7 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features, options, quotas
+from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
@@ -45,13 +45,13 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, IncidentStatus, UptimeMonitorMode
+from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.processors.data_packet import process_data_packet
+from sentry.workflow_engine.processors import process_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -186,8 +186,6 @@ def produce_snuba_uptime_result(
     Produces a message to Snuba's Kafka topic for uptime check results.
     """
     try:
-        retention_days = quotas.backend.get_event_retention(organization=project.organization) or 90
-
         if uptime_subscription.uptime_status == UptimeStatus.FAILED:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
@@ -208,7 +206,7 @@ def produce_snuba_uptime_result(
             # Add required Snuba-specific fields
             "organization_id": project.organization_id,
             "project_id": project.id,
-            "retention_days": retention_days,
+            "retention_days": 90,
             "incident_status": incident_status.value,
             "region": result["region"],
         }
@@ -312,9 +310,8 @@ def handle_active_result(
             subscription=uptime_subscription,
             metric_tags=metric_tags,
         )
-        process_data_packet(
-            DataPacket(source_id=str(uptime_subscription.id), packet=packet),
-            DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        process_detectors(
+            DataPacket(source_id=str(uptime_subscription.id), packet=packet), [detector]
         )
 
         # Bail if we're doing issue creation via detectors, we don't want to
@@ -446,7 +443,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if should_run_region_checks(subscription, result):
             try_check_and_update_regions(subscription, subscription_regions)
 
-        detector = get_detector(subscription)
+        detector = get_detector(subscription, prefetch_workflow_data=True)
 
         # Nothing to do if there's an orphaned project subscription
         if not detector:

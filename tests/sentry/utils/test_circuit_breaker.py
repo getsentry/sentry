@@ -12,16 +12,16 @@ from sentry.utils.circuit_breaker import (
 
 
 class TestCircuitBreaker(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.key = "test"
         self.error_limit = 5
         self.passthrough_data = CircuitBreakerPassthrough(limit=2, window=1)
         cache.set(ERROR_COUNT_CACHE_KEY(self.key), self.error_limit)
 
-    def test_not_activated(self):
+    def test_not_activated(self) -> None:
         assert not circuit_breaker_activated(self.key, self.error_limit + 1)
 
-    def test_activated_at_error_limit(self):
+    def test_activated_at_error_limit(self) -> None:
         assert circuit_breaker_activated(key=self.key, error_limit=self.error_limit)
 
     @patch("sentry.utils.circuit_breaker.metrics.incr")

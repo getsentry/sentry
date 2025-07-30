@@ -370,9 +370,9 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.content.muted};
+  color: ${p => p.theme.tokens.component.link.muted.default};
   padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
-  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? 'none' : 'md']};
+  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -395,12 +395,12 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.content.muted};
+    color: ${p => p.theme.tokens.component.link.muted.default};
     background-color: ${p => p.theme.colors.gray100};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.colors.blue400};
+    color: ${p => p.theme.tokens.component.link.accent.default};
     background-color: ${p => p.theme.colors.blue100};
 
     &::before {
@@ -408,7 +408,7 @@ const ChonkItem = chonkStyled(Link)<ItemProps>`
     }
     /* Override the default hover styles */
     &:hover {
-      background-color: ${p => p.theme.colors.blue100};
+      background-color: ${p => p.theme.colors.blue200};
     }
   }
 `;

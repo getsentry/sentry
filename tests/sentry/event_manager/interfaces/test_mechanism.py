@@ -92,7 +92,7 @@ def test_full_errno_meta(make_mechanism_snapshot):
     make_mechanism_snapshot(data)
 
 
-def test_upgrade():
+def test_upgrade() -> None:
     data = {
         "posix_signal": {"name": "SIGSEGV", "code_name": "SEGV_NOOP", "signal": 11, "code": 0},
         "relevant_address": "0x1",

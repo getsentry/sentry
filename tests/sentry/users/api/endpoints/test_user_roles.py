@@ -7,13 +7,13 @@ from sentry.users.models.userrole import UserRole
 class UserUserRolesTest(APITestCase):
     endpoint = "sentry-api-0-user-userroles"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=True)
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "users.admin")
 
-    def test_fails_without_superuser(self):
+    def test_fails_without_superuser(self) -> None:
         self.user = self.create_user(is_superuser=False)
         self.login_as(self.user)
 
@@ -25,7 +25,7 @@ class UserUserRolesTest(APITestCase):
         resp = self.get_response("me")
         assert resp.status_code == 403
 
-    def test_fails_without_users_admin_permission(self):
+    def test_fails_without_users_admin_permission(self) -> None:
         self.user = self.create_user(is_superuser=True)
         self.login_as(self.user, superuser=True)
         resp = self.get_response("me")
@@ -34,7 +34,7 @@ class UserUserRolesTest(APITestCase):
 
 @control_silo_test
 class UserUserRolesGetTest(UserUserRolesTest):
-    def test_lookup_self(self):
+    def test_lookup_self(self) -> None:
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
         role.users.add(self.user)
         role2 = UserRole.objects.create(name="admin", permissions=["users.admin"])

@@ -190,11 +190,11 @@ describe('SpansTabContent', function () {
         .mockImplementation(type => {
           switch (type) {
             case 'number':
-              return {tags: mockNumberTags, isLoading: false};
+              return {tags: mockNumberTags, isLoading: false, secondaryAliases: {}};
             case 'string':
-              return {tags: mockStringTags, isLoading: false};
+              return {tags: mockStringTags, isLoading: false, secondaryAliases: {}};
             default:
-              return {tags: {}, isLoading: false};
+              return {tags: {}, isLoading: false, secondaryAliases: {}};
           }
         });
 

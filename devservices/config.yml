@@ -289,7 +289,7 @@ x-programs:
   devserver:
     command: sentry devserver
   taskworker:
-    command: sentry run taskworker --autoreload
+    command: sentry run taskworker
   taskworker-scheduler:
     command: sentry run taskworker-scheduler
   ingest-events:

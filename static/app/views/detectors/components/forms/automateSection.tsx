@@ -183,7 +183,7 @@ export function AutomateSection() {
             limit={null}
           />
         </Section>
-        <ButtonWrapper justify="space-between">
+        <ButtonWrapper justify="between">
           {/* TODO: Implement create automation flow */}
           <Button size="sm" icon={<IconAdd />} disabled>
             {t('Create New Automation')}

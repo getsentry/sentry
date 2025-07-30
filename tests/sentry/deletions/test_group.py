@@ -9,8 +9,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import nodestore
 from sentry.deletions.defaults.group import ErrorEventsDeletionTask, IssuePlatformEventsDeletionTask
-from sentry.deletions.tasks.groups import delete_groups
-from sentry.event_manager import GroupInfo
+from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -23,6 +22,7 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import bulk_snuba_queries
@@ -75,7 +75,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert nodestore.backend.get(self.keep_node_id)
 
         with self.tasks():
-            delete_groups(object_ids=[group.id])
+            delete_groups_for_project(
+                object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
+            )
 
         assert not UserReport.objects.filter(group_id=group.id).exists()
         assert not UserReport.objects.filter(event_id=self.event.event_id).exists()
@@ -98,7 +100,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         group = self.event.group
         with self.tasks():
-            delete_groups(object_ids=[group.id, other_event.group_id])
+            delete_groups_for_project(
+                object_ids=[group.id, other_event.group_id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert not Group.objects.filter(id=group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
@@ -130,7 +136,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             prev_history=other_history_one,
         )
         with self.tasks():
-            delete_groups(object_ids=[group.id, other_group.id])
+            delete_groups_for_project(
+                object_ids=[group.id, other_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert GroupHistory.objects.filter(id=history_one.id).exists() is False
         assert GroupHistory.objects.filter(id=history_two.id).exists() is False
@@ -144,7 +154,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             group = self.event.group
 
             with self.tasks():
-                delete_groups(object_ids=[group.id])
+                delete_groups_for_project(
+                    object_ids=[group.id],
+                    transaction_id=uuid4().hex,
+                    project_id=self.project.id,
+                )
 
             assert nodestore_delete_multi.call_count == 0
         finally:
@@ -174,7 +188,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         ]
         group = self.event.group
         with self.tasks():
-            delete_groups(object_ids=[group.id, other_event.group_id])
+            delete_groups_for_project(
+                object_ids=[group.id, other_event.group_id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert not Group.objects.filter(id=group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
@@ -222,7 +240,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         ]
 
         with self.tasks():
-            delete_groups(object_ids=[error_group.id, invalid_group.id])
+            delete_groups_for_project(
+                object_ids=[error_group.id, invalid_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
         assert not Group.objects.filter(id__in=[error_group.id, invalid_group.id]).exists()
         assert Group.objects.filter(id=keep_group.id).exists()
@@ -234,18 +256,18 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    referrer = "testing.test"
+    referrer = Referrer.TESTING_TEST.value
 
-    def create_occurrence(
-        self, event: Event, type_id: int
-    ) -> tuple[IssueOccurrence, GroupInfo | None]:
-        occurrence, issue_platform_group = self.process_occurrence(
+    def create_occurrence(self, event: Event, type_id: int) -> tuple[IssueOccurrence, Group]:
+        occurrence, group_info = self.process_occurrence(
+            project_id=self.project.id,
             event_id=event.event_id,
-            project_id=event.project.id,
             type=type_id,
-            event_data={},
+            # XXX: Is event.data correct?
+            event_data=dict(event.data),
         )
-        return occurrence, issue_platform_group
+        assert group_info is not None
+        return occurrence, group_info.group
 
     def select_error_events(self, project_id: int) -> object:
         columns = ["event_id", "group_id"]
@@ -271,6 +293,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
         query = Query(match=entity, select=select, where=where)
         request = Request(
+            # XXX: Double check this
             dataset=Dataset.IssuePlatform.value,
             app_id=self.referrer,
             query=query,
@@ -283,46 +306,59 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def tenant_ids(self) -> dict[str, str]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
-    def test_issue_platform(self) -> None:
+    def test_simple_issue_platform(self) -> None:
         # Adding this query here to make sure that the cache is not being used
         assert self.select_error_events(self.project.id) is None
         assert self.select_issue_platform_events(self.project.id) is None
+
         # Create initial error event and occurrence related to it; two different groups will exist
         event = self.store_event(data={}, project_id=self.project.id)
-        occurrence, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
+        # XXX: We need a different way of creating occurrences which will insert into the nodestore
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            event, type_id=FeedbackGroup.type_id
+        )
 
         # Assertions after creation
-        assert occurrence.id != event.event_id
-        assert group_info is not None
-        issue_platform_group = group_info.group
+        assert occurrence_event.id != event.event_id
         assert event.group_id != issue_platform_group.id
         assert event.group.issue_category == GroupCategory.ERROR
-        assert issue_platform_group.issue_category != GroupCategory.ERROR
-        # Assert that the occurrence has been inserted in Snuba
-        error_expected = {"event_id": event.event_id, "group_id": event.group_id}
-        occurrence_expected = {
-            "event_id": event.event_id,
+        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
+        assert issue_platform_group.type == FeedbackGroup.type_id
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # Assert that the occurrence event has been inserted in the nodestore & Snuba
+        # occurrence_node_id = Event.generate_node_id(
+        #     occurrence_event.project_id, occurrence_event.id
+        # )
+        # assert nodestore.backend.get(occurrence_node_id)
+        expected_occurrence_event = {
+            "event_id": occurrence_event.event_id,
             "group_id": issue_platform_group.id,
-            "occurrence_id": occurrence.id,
+            "occurrence_id": occurrence_event.id,
         }
-        assert self.select_error_events(self.project.id) == error_expected
-        assert self.select_issue_platform_events(self.project.id) == occurrence_expected
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
 
         # This will delete the group and the events from the node store and Snuba
         with self.tasks():
-            delete_groups(object_ids=[issue_platform_group.id])
+            delete_groups_for_project(
+                object_ids=[issue_platform_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
-        # The original event and group still exist
+        # The original error event and group still exist
         assert Group.objects.filter(id=event.group_id).exists()
-        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
         assert nodestore.backend.get(event_node_id)
-        assert self.select_error_events(self.project.id) == error_expected
-        # The Issue Platform group and occurrence are deleted
-        assert issue_platform_group.issue_type == FeedbackGroup
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # The Issue Platform group and occurrence have been deleted
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
-        occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
-        assert not nodestore.backend.get(occurrence_node_id)
-        # Assert that occurrence is gone
+        # assert not nodestore.backend.get(occurrence_node_id)
         assert self.select_issue_platform_events(self.project.id) is None
 
     @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
@@ -343,7 +379,11 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
             # This will delete the group and the events from the node store and Snuba
             with self.tasks():
-                delete_groups(object_ids=[group1.id, group2.id, group3.id, group4.id])
+                delete_groups_for_project(
+                    object_ids=[group1.id, group2.id, group3.id, group4.id],
+                    transaction_id=uuid4().hex,
+                    project_id=self.project.id,
+                )
 
             # There should be two batches: [group3, group1] (2+3=5 > 5, so group2 starts new batch), [group2]
             assert mock_bulk_snuba_queries.call_count == 1

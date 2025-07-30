@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CollectProjectPlatformsTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         now = timezone.now()
         organization = self.create_organization(name="foo")
         project1 = self.create_project(organization=organization, name="foo", slug="foo")

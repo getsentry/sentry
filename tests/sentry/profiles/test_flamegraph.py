@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sentry.profiles.flamegraph import split_datetime_range_exponential
 
 
-def test_split_datetime_range_exponential_with_days():
+def test_split_datetime_range_exponential_with_days() -> None:
     start = datetime(2023, 1, 1)
     end = datetime(2023, 1, 31)
     initial_delta = timedelta(days=1)
@@ -26,7 +26,7 @@ def test_split_datetime_range_exponential_with_days():
     assert result == expected_chunks
 
 
-def test_split_datetime_range_exponential_with_hours():
+def test_split_datetime_range_exponential_with_hours() -> None:
     start_time = datetime(2024, 5, 1, 6, 0, 0)
     end_time = datetime(2024, 5, 2, 12, 0, 0)
     initial_h_delta = timedelta(hours=2)
@@ -50,7 +50,7 @@ def test_split_datetime_range_exponential_with_hours():
     assert result == expected_chunks
 
 
-def test_split_datetime_range_exponential_with_days_reverse():
+def test_split_datetime_range_exponential_with_days_reverse() -> None:
     start = datetime(2023, 1, 1)
     end = datetime(2023, 1, 31)
     initial_delta = timedelta(days=1)
@@ -75,7 +75,7 @@ def test_split_datetime_range_exponential_with_days_reverse():
     assert result == expected_chunks
 
 
-def test_split_datetime_range_exponential_with_hours_reverse():
+def test_split_datetime_range_exponential_with_hours_reverse() -> None:
     start_time = datetime(2024, 5, 1, 6, 0, 0)
     end_time = datetime(2024, 5, 2, 12, 0, 0)
     initial_h_delta = timedelta(hours=2)

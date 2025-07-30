@@ -15,7 +15,7 @@ def disable_internal_networks():
 
 
 class RelayPublicKeysConfigTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.key_pair = generate_key_pair()
@@ -50,7 +50,7 @@ class RelayPublicKeysConfigTest(APITestCase):
         self.project = self.create_project()
         self.path = reverse("sentry-api-0-relay-publickeys")
 
-    def test_get_project_config_internal(self):
+    def test_get_project_config_internal(self) -> None:
         result = self._call_endpoint(self.internal_relay)
         legacy_keys = result["public_keys"]
         keys = result["relays"]
@@ -71,7 +71,7 @@ class RelayPublicKeysConfigTest(APITestCase):
 
         assert keys[self.non_existing_key] is None
 
-    def test_get_project_config_external(self):
+    def test_get_project_config_external(self) -> None:
 
         with disable_internal_networks():
             result = self._call_endpoint(self.external_relay)

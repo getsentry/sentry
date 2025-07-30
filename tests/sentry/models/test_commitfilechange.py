@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CommitFileChangeTest(TestCase):
-    def test_get_count_for_commits(self):
+    def test_get_count_for_commits(self) -> None:
         group = self.create_group()
         organization_id = group.organization.id
         repo = Repository.objects.create(name="example", organization_id=organization_id)

@@ -80,7 +80,7 @@ def shim_to_feedback(
         feedback_event["tags"] = [list(item) for item in event.tags]
 
         # Entrypoint for "new" (issue platform based) feedback. This emits outcomes.
-        create_feedback_issue(feedback_event, project.id, source)
+        create_feedback_issue(feedback_event, project, source)
     except Exception:
         logger.exception("Error attempting to create new user feedback by shimming a user report")
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})

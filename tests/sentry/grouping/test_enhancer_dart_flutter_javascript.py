@@ -5,6 +5,8 @@ executed in a JavaScript runtime).
 
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
 from sentry.testutils.fixtures import Fixtures
@@ -13,11 +15,11 @@ from sentry.testutils.fixtures import Fixtures
 class _BaseJavaScriptDartFlutterEnhancerTest(TestCase, Fixtures):
     PLATFORM = "javascript"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
 
-    def apply_rules(self, frame: dict[str, str]):
+    def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
         frames = [frame]
         self.enhancements.apply_category_and_updated_in_app_to_frames(frames, self.PLATFORM, {})
         return frames[0]
@@ -30,7 +32,7 @@ class TestDartFlutterEnhancerJavaScript(_BaseJavaScriptDartFlutterEnhancerTest):
     # Dart SDK
     # ------------------------------------------------------------------
 
-    def test_dart_sdk_not_in_app(self):
+    def test_dart_sdk_not_in_app(self) -> None:
         """All frames coming from the Dart SDK must be out-of-app."""
         sdk_paths = [
             "org-dartlang-sdk:///sdk/lib/core/object.dart",
@@ -47,7 +49,7 @@ class TestDartFlutterEnhancerJavaScript(_BaseJavaScriptDartFlutterEnhancerTest):
     # Flutter framework (compiled to JS)
     # ------------------------------------------------------------------
 
-    def test_flutter_packages_not_in_app(self):
+    def test_flutter_packages_not_in_app(self) -> None:
         """Flutter framework modules compiled to JS (dart2js) are out-of-app."""
         frame = {"module": "packages/flutter/src/widgets/framework.dart"}
         result = self.apply_rules(frame)
@@ -62,7 +64,7 @@ class TestDartFlutterEnhancerJavaScript(_BaseJavaScriptDartFlutterEnhancerTest):
     # Ensure native-specific rules do not leak into JS
     # ------------------------------------------------------------------
 
-    def test_android_app_rule_does_not_apply_on_javascript(self):
+    def test_android_app_rule_does_not_apply_on_javascript(self) -> None:
         """The APK rule is native-specific and must not affect JS frames."""
         frame = {
             "package": "/data/app/com.example.myapp-1/base.apk",

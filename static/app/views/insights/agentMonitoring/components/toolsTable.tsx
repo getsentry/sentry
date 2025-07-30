@@ -9,6 +9,7 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -77,7 +78,7 @@ export function ToolsTable() {
         pathname,
         query: {
           ...previousQuery,
-          tableCursor: cursor,
+          toolsCursor: cursor,
         },
       },
       {replace: true, preventScrollReset: true}
@@ -85,6 +86,8 @@ export function ToolsTable() {
   };
 
   const {sortField, sortOrder} = useTableSortParams();
+
+  const cursor = decodeScalar(location.query?.toolsCursor);
 
   const toolsRequest = useSpans(
     {
@@ -99,10 +102,7 @@ export function ToolsTable() {
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
       limit: 10,
-      cursor:
-        typeof location.query.toolsCursor === 'string'
-          ? location.query.toolsCursor
-          : undefined,
+      cursor,
       keepPreviousData: true,
     },
     Referrer.TOOLS_TABLE

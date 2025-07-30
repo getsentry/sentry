@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class ReleaseDetailsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -49,7 +49,7 @@ class ReleaseDetailsTest(APITestCase):
 
 
 class UpdateReleaseDetailsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -75,7 +75,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.ref == "master"
 
-    def test_commits(self):
+    def test_commits(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -106,7 +106,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id
 
-    def test_activity_generation(self):
+    def test_activity_generation(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -136,7 +136,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
-    def test_activity_generation_long_version(self):
+    def test_activity_generation_long_version(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -166,7 +166,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         )
         assert activity.exists()
 
-    def test_org_auth_token(self):
+    def test_org_auth_token(self) -> None:
         project = self.create_project(name="foo")
         project2 = self.create_project(name="bar", organization=project.organization)
 
@@ -206,7 +206,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
 
 class ReleaseDeleteTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -235,7 +235,7 @@ class ReleaseDeleteTest(APITestCase):
 
         assert not Release.objects.filter(id=release.id).exists()
 
-    def test_existing_group(self):
+    def test_existing_group(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -261,14 +261,14 @@ class ReleaseDeleteTest(APITestCase):
 
 
 class ReleaseSerializerTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.commits = [{"id": "a" * 40}, {"id": "b" * 40}]
         self.ref = "master"
         self.url = "https://example.com"
         self.dateReleased = "1000-10-10T06:06"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = ReleaseSerializer(
             data={
                 "ref": self.ref,
@@ -287,15 +287,15 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
-    def test_fields_not_required(self):
+    def test_fields_not_required(self) -> None:
         serializer = ReleaseSerializer(data={})
         assert serializer.is_valid()
 
-    def test_do_not_allow_null_commits(self):
+    def test_do_not_allow_null_commits(self) -> None:
         serializer = ReleaseSerializer(data={"commits": None})
         assert not serializer.is_valid()
 
-    def test_ref_limited_by_max_version_length(self):
+    def test_ref_limited_by_max_version_length(self) -> None:
         serializer = ReleaseSerializer(data={"ref": "a" * MAX_VERSION_LENGTH})
         assert serializer.is_valid()
         serializer = ReleaseSerializer(data={"ref": "a" * (MAX_VERSION_LENGTH + 1)})

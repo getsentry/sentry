@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -371,7 +371,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
         self.features["organizations:use-metrics-layer"] = True
 
     @patch("sentry.snuba.metrics.datasource")
-    def test_metrics_layer_is_not_used(self, get_series):
+    def test_metrics_layer_is_not_used(self, get_series: MagicMock) -> None:
         self.store_span_metric(
             4,
             metric="http.response_content_length",

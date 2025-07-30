@@ -13,7 +13,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 class TeamTimeToResolutionTest(APITestCase):
     endpoint = "sentry-api-0-team-time-to-resolution"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         group1 = self.create_group(project=project1, times_seen=10)
@@ -95,7 +95,7 @@ class TeamTimeToResolutionTest(APITestCase):
         assert response.data[two_days_ago]["avg"] == timedelta(days=3).total_seconds()
         assert response.data[yesterday]["avg"] == 0
 
-    def test_filter_by_environment(self):
+    def test_filter_by_environment(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         group1 = self.create_group(project=project1, times_seen=10)
         env1 = self.create_environment(project=project1, name="prod")

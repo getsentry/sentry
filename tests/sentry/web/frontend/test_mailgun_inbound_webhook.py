@@ -14,13 +14,13 @@ body_plain = "foo bar"
 
 @control_silo_test
 class TestMailgunInboundWebhookView(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
             self.event = self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
         self.mailto = group_id_to_email(self.group.pk)
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         with self.options({"mail.mailgun-api-key": "a" * 32}):
             resp = self.client.post(
                 reverse("sentry-mailgun-inbound-hook"),
@@ -38,7 +38,7 @@ class TestMailgunInboundWebhookView(TestCase):
         qs = ControlOutbox.objects.filter(category=OutboxCategory.ISSUE_COMMENT_UPDATE)
         assert qs.exists() is False
 
-    def test_missing_api_key(self):
+    def test_missing_api_key(self) -> None:
         resp = self.client.post(
             reverse("sentry-mailgun-inbound-hook"),
             {
@@ -54,7 +54,7 @@ class TestMailgunInboundWebhookView(TestCase):
         qs = ControlOutbox.objects.filter(category=OutboxCategory.ISSUE_COMMENT_UPDATE)
         assert qs.exists() is False
 
-    def test_missing_body_plain(self):
+    def test_missing_body_plain(self) -> None:
         token = "a" * 50
         timestamp = "1422513193"
         signature = "e018afea61a8eeb2f309972385b123e376079462895ebd1ede5391fb7680b6db"
@@ -73,7 +73,7 @@ class TestMailgunInboundWebhookView(TestCase):
         qs = ControlOutbox.objects.filter(category=OutboxCategory.ISSUE_COMMENT_UPDATE)
         assert qs.exists() is False
 
-    def test_success(self):
+    def test_success(self) -> None:
         token = "a" * 50
         timestamp = "1422513193"
         signature = "414a4705e6c12a39905748549f9135fbe8b739a5b12b2349ee40f31d3ee12f83"
@@ -100,7 +100,7 @@ class TestMailgunInboundWebhookView(TestCase):
             activity = Activity.objects.get(group_id=self.group.id, user_id=self.user.id)
             assert activity.data == {"text": body_plain}
 
-    def test_success_no_duplicates(self):
+    def test_success_no_duplicates(self) -> None:
         token = "a" * 50
         timestamp = "1422513193"
         signature = "414a4705e6c12a39905748549f9135fbe8b739a5b12b2349ee40f31d3ee12f83"

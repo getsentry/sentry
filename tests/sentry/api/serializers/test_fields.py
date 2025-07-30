@@ -20,7 +20,7 @@ class DummySerializer(serializers.Serializer):
 
 
 class TestListField(unittest.TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         data = {"a_field": [{"b_field": "abcdefg", "d_field": "gfedcba"}]}
 
         serializer = DummySerializer(data=data)
@@ -29,7 +29,7 @@ class TestListField(unittest.TestCase):
             "a_field": [{"b_field": "abcdefg", "d_field": "gfedcba"}]
         }
 
-    def test_allow_null(self):
+    def test_allow_null(self) -> None:
         data = {"a_field": [None]}
 
         serializer = DummySerializer(data=data)
@@ -38,7 +38,7 @@ class TestListField(unittest.TestCase):
             "a_field": [ErrorDetail(string="This field may not be null.", code="null")]
         }
 
-    def test_child_validates(self):
+    def test_child_validates(self) -> None:
         data = {"a_field": [{"b_field": "abcdefg"}]}
 
         serializer = DummySerializer(data=data)
@@ -49,7 +49,7 @@ class TestListField(unittest.TestCase):
 
 
 class TestActorField(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         data = {"actor_field": f"user:{self.user.id}"}
 
         serializer = DummySerializer(data=data, context={"organization": self.organization})
@@ -58,7 +58,7 @@ class TestActorField(TestCase):
         assert serializer.validated_data["actor_field"].is_user
         assert serializer.validated_data["actor_field"].id == self.user.id
 
-    def test_legacy_user_fallback(self):
+    def test_legacy_user_fallback(self) -> None:
         data = {"actor_field": f"{self.user.id}"}
 
         serializer = DummySerializer(data=data, context={"organization": self.organization})
@@ -67,7 +67,7 @@ class TestActorField(TestCase):
         assert serializer.validated_data["actor_field"].is_user
         assert serializer.validated_data["actor_field"].id == self.user.id
 
-    def test_team(self):
+    def test_team(self) -> None:
         data = {"actor_field": f"team:{self.team.id}"}
 
         serializer = DummySerializer(data=data, context={"organization": self.organization})
@@ -75,7 +75,7 @@ class TestActorField(TestCase):
         assert serializer.validated_data["actor_field"].actor_type == ActorType.TEAM
         assert serializer.validated_data["actor_field"].id == self.team.id
 
-    def test_permissions(self):
+    def test_permissions(self) -> None:
         other_org = self.create_organization()
         serializer = DummySerializer(
             data={"actor_field": f"user:{self.user.id}"}, context={"organization": other_org}
@@ -93,7 +93,7 @@ class TestActorField(TestCase):
             ErrorDetail("Team is not a member of this organization", "invalid")
         ]
 
-    def test_validates(self):
+    def test_validates(self) -> None:
         data = {"actor_field": "foo:1"}
 
         serializer = DummySerializer(data=data, context={"organization": self.organization})

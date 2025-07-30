@@ -4,6 +4,8 @@ Tests for Dart/Flutter enhancement rules on the *native* platform.
 
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
 from sentry.testutils.fixtures import Fixtures
@@ -14,12 +16,12 @@ class _BaseNativeDartFlutterEnhancerTest(TestCase, Fixtures):
 
     PLATFORM = "native"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Load the default enhancement rules that include Dart/Flutter logic.
         self.enhancements = ENHANCEMENT_BASES["newstyle:2023-01-11"]
 
-    def apply_rules(self, frame: dict[str, str]):
+    def apply_rules(self, frame: dict[str, str]) -> dict[str, Any]:
         """Apply enhancement rules to a single frame and return the processed frame."""
         frames = [frame]
         self.enhancements.apply_category_and_updated_in_app_to_frames(frames, self.PLATFORM, {})
@@ -33,7 +35,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # Android application frames
     # ---------------------------------------------------------------------
 
-    def test_dart_android_app_files_are_in_app(self):
+    def test_dart_android_app_files_are_in_app(self) -> None:
         """Dart files shipped in an Android APK of the app should be in-app."""
         frame = {
             "package": "/data/app/com.example.myapp-1/base.apk",
@@ -62,7 +64,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # Flutter framework & engine
     # ------------------------------------------------------------------
 
-    def test_flutter_packages_not_in_app(self):
+    def test_flutter_packages_not_in_app(self) -> None:
         """Flutter framework sources should be out-of-app on the native platform."""
         frame = {"abs_path": "/Users/dev/project/packages/flutter/lib/src/material/app.dart"}
         result = self.apply_rules(frame)
@@ -89,7 +91,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # Sentry Dart SDK
     # ------------------------------------------------------------------
 
-    def test_sentry_dart_packages_not_in_app(self):
+    def test_sentry_dart_packages_not_in_app(self) -> None:
         """All Sentry Dart SDK packages should always be out-of-app."""
         sentry_packages = [
             "package:sentry/sentry.dart",
@@ -117,7 +119,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # pub-cache packages
     # ------------------------------------------------------------------
 
-    def test_pub_cache_not_in_app(self):
+    def test_pub_cache_not_in_app(self) -> None:
         """Third-party packages coming from the pub-cache are out-of-app."""
         pub_cache_paths = [
             "/Users/dev/.pub-cache/hosted/pub.dev/http-0.13.5/lib/http.dart",
@@ -134,7 +136,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # User code – default behaviour
     # ------------------------------------------------------------------
 
-    def test_user_dart_files_default_behavior(self):
+    def test_user_dart_files_default_behavior(self) -> None:
         """User Dart files that do not match any rule should keep their original in_app status."""
         frames = [
             {"abs_path": "lib/main.dart"},
@@ -149,7 +151,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # Rules specific to *other* platforms should not fire
     # ------------------------------------------------------------------
 
-    def test_javascript_specific_rule_does_not_apply_on_native(self):
+    def test_javascript_specific_rule_does_not_apply_on_native(self) -> None:
         """Rules that are only defined for the JavaScript family must not affect native frames."""
         frames = [
             {"module": "packages/flutter/src/widgets/container.dart"},
@@ -163,7 +165,7 @@ class TestDartFlutterEnhancerNative(_BaseNativeDartFlutterEnhancerTest):
     # Misc / edge-cases
     # ------------------------------------------------------------------
 
-    def test_edge_cases(self):
+    def test_edge_cases(self) -> None:
         """Cover miscellaneous edge-cases for native frames."""
         # Android rule – requires *.dart extension
         frame = {

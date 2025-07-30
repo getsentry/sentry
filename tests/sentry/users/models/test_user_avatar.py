@@ -7,7 +7,7 @@ from sentry.users.models.user_avatar import UserAvatar
 
 @control_silo_test
 class UserAvatarTestCase(TestCase):
-    def test_set_null(self):
+    def test_set_null(self) -> None:
         with self.options(
             {
                 "filestore.control.backend": options_store.get("filestore.backend"),

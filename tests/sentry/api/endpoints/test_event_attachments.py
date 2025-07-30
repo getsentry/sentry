@@ -7,7 +7,7 @@ pytestmark = [requires_snuba]
 
 
 class EventAttachmentsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()
@@ -71,7 +71,7 @@ class EventAttachmentsTest(APITestCase):
         assert response.data[0]["sha1"] == "1234"
         assert response.data[0]["headers"] == {"Content-Type": "image/png"}
 
-    def test_is_screenshot(self):
+    def test_is_screenshot(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()

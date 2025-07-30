@@ -17,46 +17,46 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class TestSiloAwareTransactionPatchInSingleDbMode(TestCase):
-    def test_correctly_accepts_using_for_atomic(self):
+    def test_correctly_accepts_using_for_atomic(self) -> None:
         transaction_in_test = siloed_atomic(using="foobar")
         assert transaction_in_test.using == "foobar"
 
-    def test_accepts_cross_silo_atomics_in_monolith_mode(self):
+    def test_accepts_cross_silo_atomics_in_monolith_mode(self) -> None:
         siloed_atomic(using=router.db_for_write(Organization))
         siloed_atomic(using=router.db_for_write(OrganizationMapping))
 
 
 @no_silo_test  # use inline override_settings to test individual silo modes
 class TestSiloAwareTransactionPatchInSplitDbMode(TestCase):
-    def test_fails_if_silo_mismatch_with_using_in_region_silo(self):
+    def test_fails_if_silo_mismatch_with_using_in_region_silo(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.REGION),
             pytest.raises(MismatchedSiloTransactionError),
         ):
             siloed_atomic(using=router.db_for_write(OrganizationMapping))
 
-    def test_fails_if_silo_mismatch_with_using_in_control_silo(self):
+    def test_fails_if_silo_mismatch_with_using_in_control_silo(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.CONTROL),
             pytest.raises(MismatchedSiloTransactionError),
         ):
             siloed_atomic(using=router.db_for_write(Organization))
 
-    def test_fails_if_no_using_provided(self):
+    def test_fails_if_no_using_provided(self) -> None:
         with pytest.raises(TransactionMissingDBException):
             siloed_atomic()
 
-    def test_accepts_control_silo_routing_in_control_silo(self):
+    def test_accepts_control_silo_routing_in_control_silo(self) -> None:
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             siloed_atomic(using=router.db_for_write(OrganizationMapping))
 
-    def test_accepts_control_silo_routing_in_region_silo(self):
+    def test_accepts_control_silo_routing_in_region_silo(self) -> None:
         with override_settings(SILO_MODE=SiloMode.REGION):
             siloed_atomic(using=router.db_for_write(Organization))
 
 
 @no_silo_test
-def test_is_in_test_case_body():
+def test_is_in_test_case_body() -> None:
     """Check that we can correctly detect that we are in a test case body.
 
     It is paradoxically impossible to test the negative case (without doing some
@@ -71,5 +71,5 @@ class TestIsInTestCaseBody(TestCase):
     """Repeat the function above in a test class, just in case doing so produces
     small differences in the execution stack."""
 
-    def test_is_in_test_case_body(self):
+    def test_is_in_test_case_body(self) -> None:
         assert is_in_test_case_body()

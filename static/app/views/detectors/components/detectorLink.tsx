@@ -81,14 +81,17 @@ function DetailItem({children}: {children: React.ReactNode}) {
 }
 
 function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
-  const type = detector.config.detectionType;
+  const detectionType = detector.config.detectionType;
   const conditions = detector.conditionGroup?.conditions;
   if (!conditions?.length) {
     return null;
   }
 
-  const unit = getMetricDetectorSuffix(detector);
-  switch (type) {
+  const unit = getMetricDetectorSuffix(
+    detectionType,
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
+  switch (detectionType) {
     case 'static': {
       const text = conditions
         .map(condition => formatCondition({condition, unit}))
@@ -112,7 +115,7 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
     case 'dynamic':
       return <DetailItem>{t('Dynamic')}</DetailItem>;
     default:
-      unreachable(type);
+      unreachable(detectionType);
       return null;
   }
 }

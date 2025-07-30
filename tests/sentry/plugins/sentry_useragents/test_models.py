@@ -16,7 +16,7 @@ class UserAgentPlugins(TestCase):
         }
     ]
 
-    def test_plugins(self):
+    def test_plugins(self) -> None:
         for row in self.data:
             ua = Parse(row["user_agent"])
             assert BrowserPlugin().get_tag_from_ua(ua) == row["browser_plugin_output"]

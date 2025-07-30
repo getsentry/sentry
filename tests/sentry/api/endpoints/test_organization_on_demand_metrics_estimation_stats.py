@@ -61,11 +61,11 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
         )
         return self.store_event(data, project_id=self.project.id)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """
         Tests that the volume estimation endpoint correctly looks up the data in the Db and
         returns the correct volume.
@@ -140,7 +140,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
                 )
                 assert pytest.approx(count, 0.001) == expected
 
-    def test_apdex(self):
+    def test_apdex(self) -> None:
         """
         Tests that the apdex calculation works as expected.
 

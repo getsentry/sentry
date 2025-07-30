@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry.analytics.events.checkin_processing_error_stored import CheckinProcessingErrorStored
 from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
     ProcessingErrorsException,
@@ -18,6 +19,7 @@ from sentry.monitors.processing_errors.manager import (
 )
 from sentry.monitors.testutils import build_checkin_item, build_checkin_processing_error
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 
 def assert_processing_errors_equal(
@@ -29,7 +31,7 @@ def assert_processing_errors_equal(
 
 
 class CheckinProcessErrorsManagerTest(TestCase):
-    def test_store_with_monitor(self):
+    def test_store_with_monitor(self) -> None:
         monitor = self.create_monitor()
         processing_error = build_checkin_processing_error()
         store_error(processing_error, monitor)
@@ -37,7 +39,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(fetched_processing_error) == 1
         assert_processing_errors_equal(processing_error, fetched_processing_error[0])
 
-    def test_store_with_slug_exists(self):
+    def test_store_with_slug_exists(self) -> None:
         monitor = self.create_monitor()
         processing_error = build_checkin_processing_error(
             message_overrides={"project_id": self.project.id},
@@ -48,7 +50,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(fetched_processing_error) == 1
         assert_processing_errors_equal(processing_error, fetched_processing_error[0])
 
-    def test_store_with_slug_not_exist(self):
+    def test_store_with_slug_not_exist(self) -> None:
         processing_error = build_checkin_processing_error(
             message_overrides={"project_id": self.project.id},
             payload_overrides={"monitor_slug": "hi"},
@@ -59,7 +61,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(fetched_processing_error) == 1
         assert_processing_errors_equal(processing_error, fetched_processing_error[0])
 
-    def test_store_max(self):
+    def test_store_max(self) -> None:
         monitor = self.create_monitor()
         processing_errors = [
             build_checkin_processing_error(
@@ -99,14 +101,14 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert redis_client.exists(build_error_identifier(processing_errors[2].id))
         assert redis_client.exists(build_error_identifier(processing_errors[3].id))
 
-    def test_get_for_monitor_empty(self):
+    def test_get_for_monitor_empty(self) -> None:
         monitor = self.create_monitor()
         assert len(get_errors_for_monitor(monitor)) == 0
 
-    def test_get_for_project(self):
+    def test_get_for_project(self) -> None:
         assert len(get_errors_for_projects([self.project])) == 0
 
-    def test_get_missing_data(self):
+    def test_get_missing_data(self) -> None:
         # Validate that we don't error if a processing error has expired but is still
         # in the set
         monitor = self.create_monitor()
@@ -130,7 +132,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(fetched_processing_error) == 1
         assert_processing_errors_equal(processing_errors[1], fetched_processing_error[0])
 
-    def test_delete_for_monitor(self):
+    def test_delete_for_monitor(self) -> None:
         monitor = self.create_monitor()
         processing_error = build_checkin_processing_error(
             message_overrides={"project_id": self.project.id},
@@ -141,7 +143,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         delete_error(self.project, processing_error.id)
         assert len(get_errors_for_monitor(monitor)) == 0
 
-    def test_delete_for_project(self):
+    def test_delete_for_project(self) -> None:
         processing_error = build_checkin_processing_error(
             message_overrides={"project_id": self.project.id},
         )
@@ -150,7 +152,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         delete_error(self.project, processing_error.id)
         assert len(get_errors_for_projects([self.project])) == 0
 
-    def test_delete_for_monitor_by_type(self):
+    def test_delete_for_monitor_by_type(self) -> None:
         monitor = self.create_monitor()
         processing_error1 = build_checkin_processing_error(
             processing_errors=[{"type": ProcessingErrorType.CHECKIN_FINISHED}],
@@ -190,7 +192,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
         project_errors = get_errors_for_monitor(monitor)
         assert len(project_errors) == 0
 
-    def test_delete_for_project_by_type(self):
+    def test_delete_for_project_by_type(self) -> None:
         processing_error1 = build_checkin_processing_error(
             processing_errors=[{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
             message_overrides={"project_id": self.project.id},
@@ -248,10 +250,12 @@ class HandleProcessingErrorsTest(TestCase):
         errors = get_errors_for_monitor(monitor)
         assert len(errors) == 1
 
-        mock_record.assert_called_with(
-            "checkin_processing_error.stored",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            monitor_slug=monitor.slug,
-            error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID],
+        assert_last_analytics_event(
+            mock_record,
+            CheckinProcessingErrorStored(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                monitor_slug=monitor.slug,
+                error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID.value],
+            ),
         )

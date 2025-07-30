@@ -27,7 +27,7 @@ from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import ingest_errors_tasks
+from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks, ingest_errors_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -481,6 +481,29 @@ def should_update_escalating_metrics(event: Event) -> bool:
 
 
 @instrumented_task(
+    name="sentry.issues.tasks.post_process.post_process_group",
+    time_limit=120,
+    soft_time_limit=110,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_postprocess_tasks,
+        processing_deadline_duration=120,
+    ),
+)
+def post_process_group_shim(*args, **kwargs) -> None:
+    """
+    Deployment shim for post_process_group.
+
+    We need to move this task to a new taskworker namespace, but don't want to change the
+    celery queue, or task name of inflight tasks.
+
+    Once all inflight work is going through this task, we can rename this function and remove
+    the binding to the old namespace.
+    """
+    post_process_group(*args, **kwargs)
+
+
+@instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
@@ -624,7 +647,7 @@ def post_process_group(
                     "is_reprocessed": is_reprocessed,
                     "has_reappeared": bool(not group_state["is_new"]),
                     "has_alert": False,
-                    "has_escalated": False,
+                    "has_escalated": kwargs.get("has_escalated", False),
                 }
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
@@ -723,7 +746,7 @@ def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)  # type: ignore[assignment]  # python/mypy#3004
+    event.data = EventDict(event.data, skip_renormalization=True)
     return event
 
 
@@ -794,7 +817,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
 
 def process_snoozes(job: PostProcessJob) -> None:
     """
-    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved",
+    Set has_reappeared to True if the group is transitioning from "resolved" to "unresolved" and
+    set has_escalated to True if the group is transitioning from "archived until escalating" to "unresolved"
     otherwise set to False.
     """
     # we process snoozes before rules as it might create a regression
@@ -833,8 +857,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             manage_issue_states(
                 group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
             )
-
-            job["has_reappeared"] = True
+            job["has_escalated"] = True
         return
 
     with metrics.timer("post_process.process_snoozes.duration"):
@@ -960,6 +983,9 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         logger.error("Missing event to schedule workflow task", extra={"job": job})
         return
 
+    if not job["event"].group.is_unresolved():
+        return
+
     try:
         process_workflows_event.delay(
             project_id=job["event"].project_id,
@@ -999,7 +1025,10 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
         return
 
     org = job["event"].project.organization
-    if not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
+    if not (
+        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
+        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
+    ):
         return
 
     process_workflow_engine(job)

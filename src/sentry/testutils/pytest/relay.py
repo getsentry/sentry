@@ -154,7 +154,10 @@ def relay_server(relay_server_setup, settings):
     else:
         raise ValueError("relay did not start in time")
 
-    return {"url": relay_server_setup["url"]}
+    try:
+        yield {"url": relay_server_setup["url"]}
+    finally:
+        container.stop(timeout=10)
 
 
 def adjust_settings_for_relay_tests(settings):

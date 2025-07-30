@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -15,7 +18,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         self.data_condition_group = self.create_data_condition_group()
         self.data_condition = self.create_data_condition(condition_group=self.data_condition_group)
         self.snuba_query = self.create_snuba_query()
@@ -44,7 +47,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         self.detector.status = ObjectStatus.PENDING_DELETION
         self.detector.save()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.detector, days=0)
 
         with self.tasks():
@@ -59,7 +62,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
-    def test_multiple_data_sources(self):
+    def test_multiple_data_sources(self) -> None:
         snuba_query_2 = self.create_snuba_query()
         subscription_2 = QuerySubscription.objects.create(
             project=self.project,
@@ -95,7 +98,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             id__in=[self.snuba_query.id, snuba_query_2.id]
         ).exists()
 
-    def test_data_source_not_deleted(self):
+    def test_data_source_not_deleted(self) -> None:
         """
         Test that we do not delete a DataSource that is connected to another Detector
         """
@@ -119,3 +122,20 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
         assert DataSource.objects.filter(id=self.data_source.id).exists()
         assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
+
+    def test_delete_uptime_detector(self):
+        proj_sub = self.create_project_uptime_subscription()
+        uptime_sub = proj_sub.uptime_subscription
+        detector = get_detector(uptime_sub)
+        assert detector
+        self.ScheduledDeletion.schedule(instance=detector, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        with pytest.raises(Detector.DoesNotExist):
+            detector.refresh_from_db()
+        with pytest.raises(ProjectUptimeSubscription.DoesNotExist):
+            proj_sub.refresh_from_db()
+        with pytest.raises(UptimeSubscription.DoesNotExist):
+            uptime_sub.refresh_from_db()

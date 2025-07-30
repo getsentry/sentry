@@ -19,11 +19,11 @@ def additional_attachment_generator_block_kit(integration, organization):
 
 
 class SlackNotificationsTest(SlackActivityNotificationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification = DummyNotification(self.organization)
 
-    def test_additional_attachment(self):
+    def test_additional_attachment(self) -> None:
         with (
             patch.dict(
                 manager.attachment_generators,
@@ -63,7 +63,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             assert blocks[3]["text"]["text"] == self.organization.slug
             assert blocks[4]["text"]["text"] == self.integration.id
 
-    def test_no_additional_attachment(self):
+    def test_no_additional_attachment(self) -> None:
         with self.tasks():
             send_notification_as_slack(self.notification, [self.user], {}, {})
 
@@ -94,7 +94,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             "type": "actions",
         }
 
-    def test_send_notification_as_slack(self):
+    def test_send_notification_as_slack(self) -> None:
         with patch.dict(
             manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
@@ -102,7 +102,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             with self.tasks():
                 send_notification_as_slack(self.notification, [self.user], {}, {})
 
-    def test_send_notification_as_slack_error(self):
+    def test_send_notification_as_slack_error(self) -> None:
         mock_slack_response = SlackResponse(
             client=None,
             http_verb="POST",

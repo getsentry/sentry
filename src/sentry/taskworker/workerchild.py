@@ -344,13 +344,18 @@ def child_process(
             name=activation.taskname,
             origin="taskworker",
         )
+        sampling_context = {
+            "taskworker": {
+                "task": activation.taskname,
+            }
+        }
         with (
             track_memory_usage(
                 "taskworker.worker.memory_change",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             ),
             sentry_sdk.isolation_scope(),
-            sentry_sdk.start_transaction(transaction),
+            sentry_sdk.start_transaction(transaction, custom_sampling_context=sampling_context),
         ):
             transaction.set_data(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}

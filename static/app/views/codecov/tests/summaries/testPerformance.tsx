@@ -52,7 +52,7 @@ function CumulativeFailuresTooltip() {
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
-        The sum of all test failures, incremented each time any test has failed.
+        The number of individual runs of tests that failed.
       </p>
     </Fragment>
   );
@@ -63,7 +63,7 @@ function SkippedTestsTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
-        The number of tests that were skipped.
+        The number of individual runs of tests that were skipped.
       </p>
     </Fragment>
   );
@@ -95,8 +95,8 @@ function TestPerformanceBody({
   skippedTestsChange,
 }: TestPerformanceBodyProps) {
   return (
-    <SummaryEntries largeColumnSpan={4} smallColumnSpan={1}>
-      <SummaryEntry>
+    <SummaryEntries largeColumnSpan={15} smallColumnSpan={1}>
+      <SummaryEntry columns={4}>
         <SummaryEntryLabel showUnderline body={<FlakyTestsTooltip />}>
           {t('Flaky Tests')}
         </SummaryEntryLabel>
@@ -115,7 +115,7 @@ function TestPerformanceBody({
           </SummaryEntryValue>
         )}
       </SummaryEntry>
-      <SummaryEntry>
+      <SummaryEntry columns={4}>
         <SummaryEntryLabel showUnderline body={<AverageFlakeTooltip />}>
           {t('Avg. Flake Rate')}
         </SummaryEntryLabel>
@@ -128,7 +128,7 @@ function TestPerformanceBody({
           )}
         </SummaryEntryValue>
       </SummaryEntry>
-      <SummaryEntry>
+      <SummaryEntry columns={4}>
         <SummaryEntryLabel showUnderline body={<CumulativeFailuresTooltip />}>
           {t('Cumulative Failures')}
         </SummaryEntryLabel>
@@ -148,7 +148,7 @@ function TestPerformanceBody({
           </SummaryEntryValue>
         )}
       </SummaryEntry>
-      <SummaryEntry>
+      <SummaryEntry columns={3}>
         <SummaryEntryLabel showUnderline body={<SkippedTestsTooltip />}>
           {t('Skipped Tests')}
         </SummaryEntryLabel>
@@ -190,6 +190,6 @@ const TestPerformancePanel = styled(Panel)`
   grid-column: span 24;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 16;
+    grid-column: span 15;
   }
 `;

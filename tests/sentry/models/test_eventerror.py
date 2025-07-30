@@ -25,7 +25,7 @@ def test_event_error(error, type, message, data):
     assert EventError(error).data == data
 
 
-def test_api_context():
+def test_api_context() -> None:
     error = {"type": "unknown_error", "foo": "bar"}
     assert EventError(error).get_api_context() == {
         "type": "unknown_error",

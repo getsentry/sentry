@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -9,6 +10,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
+from sentry.analytics.events.auth_v2 import AuthV2DeleteLogin
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
@@ -310,7 +313,6 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
-
         # Allows demo user to log out from its current session but not others
         if is_demo_user(request.user) and request.data.get("all", None) is True:
             return Response(status=status.HTTP_403_FORBIDDEN)
@@ -323,6 +325,22 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         logout(request._request)
         request.user = AnonymousUser()
 
+        # Force cookies to be deleted
+        response = Response()
+        response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
+        response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
+
+        if referrer := request.GET.get("referrer"):
+            analytics.record(
+                AuthV2DeleteLogin(
+                    event=referrer,
+                )
+            )
+
         if slo_url:
-            return Response(status=status.HTTP_200_OK, data={"sloUrl": slo_url})
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            response.status_code = status.HTTP_200_OK
+            response.data = {"sloUrl": slo_url}
+        else:
+            response.status_code = status.HTTP_204_NO_CONTENT
+
+        return response

@@ -55,7 +55,7 @@ class OrganizationRelayHistoryTest(APITestCase):
             },
         ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         for relay_data in self._history_fixture():
             RelayUsage.objects.create(**relay_data)
 
@@ -74,7 +74,7 @@ class OrganizationRelayHistoryTest(APITestCase):
         assert resp.status_code == 200
 
     @with_feature("organizations:relay")
-    def test_no_valid_public_keys(self):
+    def test_no_valid_public_keys(self) -> None:
         """
         An organization with no valid public keys should return an
         empty history list
@@ -85,13 +85,13 @@ class OrganizationRelayHistoryTest(APITestCase):
         assert response.data == []
 
     @with_feature({"organizations:relay": False})
-    def test_endpoint_checks_feature_present(self):
+    def test_endpoint_checks_feature_present(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
     @with_feature("organizations:relay")
-    def test_only_records_for_known_public_keys_are_returned(self):
+    def test_only_records_for_known_public_keys_are_returned(self) -> None:
         """
         Only the relay history for relays belonging to the origanization are
         returned.

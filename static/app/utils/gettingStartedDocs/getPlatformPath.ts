@@ -1,6 +1,11 @@
 import type {PlatformIntegration} from 'sentry/types/project';
 
 export function getPlatformPath(platform: PlatformIntegration) {
+  // handle console platforms (xbox, playstation, nintendo-switch, etc.)
+  if (platform.type === 'console') {
+    return `console/${platform.id === 'nintendo-switch-2' ? 'nintendo-switch' : platform.id}`;
+  }
+
   // some platforms use a naming convention that combines 'language' and 'id' with a hyphen in between. For example, 'react-native'.
   if (platform.id === platform.language) {
     return `${platform.language}/${platform.language}`;

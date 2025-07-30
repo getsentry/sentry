@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         app = ApiApplication.objects.create(
             owner=self.user, status=ApiApplicationStatus.pending_deletion
         )
@@ -40,7 +40,7 @@ class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
             schedule_hybrid_cloud_foreign_key_jobs()
             assert not ServiceHook.objects.filter(id=sh_id).exists()
 
-    def test_skip_active(self):
+    def test_skip_active(self) -> None:
         app = ApiApplication.objects.create(owner=self.user, status=ApiApplicationStatus.active)
         ApiToken.objects.create(application=app, user=self.user, scopes=0)
         ApiGrant.objects.create(

@@ -10,7 +10,7 @@ from sentry.types.actor import Actor
 class ProjectTeamDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-team-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -18,7 +18,7 @@ class ProjectTeamDetailsTest(APITestCase):
 class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     method = "post"
 
-    def test_add_team(self):
+    def test_add_team(self) -> None:
         project = self.create_project()
         team = self.create_team()
 
@@ -40,7 +40,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
 
         assert ProjectTeam.objects.filter(project=project, team=team).exists()
 
-    def test_add_team_not_found(self):
+    def test_add_team_not_found(self) -> None:
         project = self.create_project()
 
         response = self.get_error_response(
@@ -53,7 +53,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
         assert response.data["detail"] == "Team does not exist."
 
     @with_feature("organizations:team-roles")
-    def test_add_team_with_team_role(self):
+    def test_add_team_with_team_role(self) -> None:
         user = self.create_user(username="foo")
         team_to_add = self.create_team(organization=self.organization)
         team_1 = self.create_team(organization=self.organization, slug="admin-team")
@@ -86,7 +86,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     method = "delete"
 
-    def test_remove_team(self):
+    def test_remove_team(self) -> None:
         team = self.create_team(members=[self.user])
         another_team = self.create_team(members=[self.user])
         project = self.create_project(teams=[team])
@@ -162,7 +162,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         ar3.refresh_from_db()
         assert r3.owner_team == ar3.team is None
 
-    def test_remove_team_not_found(self):
+    def test_remove_team_not_found(self) -> None:
         project = self.create_project()
 
         response = self.get_error_response(
@@ -175,7 +175,7 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         assert response.data["detail"] == "Team does not exist."
 
     @with_feature("organizations:team-roles")
-    def test_remove_team_with_team_role(self):
+    def test_remove_team_with_team_role(self) -> None:
         user = self.create_user(username="foo")
         team_to_remove = self.create_team(organization=self.organization)
         team_1 = self.create_team(organization=self.organization, slug="admin-team")

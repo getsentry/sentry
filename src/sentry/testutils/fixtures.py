@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from django.db.utils import IntegrityError
@@ -18,6 +19,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -311,6 +314,23 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
+
+    def create_n_groups_with_hashes(
+        self, number_of_groups: int, project: Project, group_type: int | None = None
+    ) -> list[Group]:
+        groups = []
+        for _ in range(number_of_groups):
+            if group_type:
+                group = self.create_group(
+                    project=project, status=GroupStatus.RESOLVED, type=group_type
+                )
+            else:
+                group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+            hash = uuid4().hex
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+            groups.append(group)
+
+        return groups
 
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)

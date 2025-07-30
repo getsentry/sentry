@@ -31,7 +31,7 @@ class GetRelocationArtifactDetailsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-artifacts-details"
     method = "GET"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(email="owner@example.com", is_superuser=False, is_staff=False)
         self.superuser = self.create_user(is_superuser=True)
@@ -51,7 +51,7 @@ class GetRelocationArtifactDetailsTest(APITestCase):
 
 
 class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         dir = f"runs/{self.relocation.uuid}"
         self.relocation_storage = get_relocation_storage()
@@ -144,7 +144,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
 
 
 class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         dir = f"runs/{self.relocation.uuid}"
         self.relocation_storage = get_relocation_storage()
@@ -156,14 +156,14 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         )
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_unprivileged_user(self):
+    def test_bad_unprivileged_user(self) -> None:
         self.login_as(user=self.owner, superuser=False, staff=False)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=403)
 
-    def test_bad_superuser_disabled(self):
+    def test_bad_superuser_disabled(self) -> None:
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.superuser, superuser=False)
 
@@ -172,7 +172,7 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=403)
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_staff_disabled(self):
+    def test_bad_staff_disabled(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=False)
 
@@ -180,7 +180,7 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=403)
 
-    def test_bad_has_superuser_but_no_relocation_admin_permission(self):
+    def test_bad_has_superuser_but_no_relocation_admin_permission(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
@@ -192,7 +192,7 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_has_staff_but_no_relocation_admin_permission(self):
+    def test_bad_has_staff_but_no_relocation_admin_permission(self) -> None:
         self.login_as(user=self.staff_user, staff=True)
 
         # Ensures we don't reveal existence info to improperly authenticated users.
@@ -204,14 +204,14 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_relocation_not_found(self):
+    def test_bad_relocation_not_found(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=404)
 
     @override_options({"staff.ga-rollout": True})
-    def test_bad_file_not_found(self):
+    def test_bad_file_not_found(self) -> None:
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
         self.get_error_response(

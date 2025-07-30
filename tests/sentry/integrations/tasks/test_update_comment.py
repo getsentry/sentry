@@ -18,7 +18,7 @@ def raise_update_comment_exception(*args, **kwargs):
 
 
 class TestUpdateComment(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.example_integration = self.create_integration(
             organization=self.group.organization,
             external_id="123456",
@@ -42,7 +42,9 @@ class TestUpdateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "update_comment")
-    def test_updates_comment(self, mock_update_comment, mock_record_event):
+    def test_updates_comment(
+        self, mock_update_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         external_issue = self.create_integration_external_issue(
             group=self.group,
             key="foo-1234",
@@ -56,7 +58,9 @@ class TestUpdateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "update_comment")
-    def test_missing_external_issue(self, mock_update_comment, mock_record_event):
+    def test_missing_external_issue(
+        self, mock_update_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         update_comment(999999, self.user.id, self.activity.id)
         mock_update_comment.assert_not_called()
 
@@ -65,7 +69,9 @@ class TestUpdateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "update_comment")
-    def test_missing_activity(self, mock_update_comment, mock_record_event):
+    def test_missing_activity(
+        self, mock_update_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         external_issue = self.create_integration_external_issue(
             group=self.group,
             key="foo-1234",
@@ -80,7 +86,9 @@ class TestUpdateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "update_comment")
-    def test_missing_integration_installation(self, mock_update_comment, mock_record_event):
+    def test_missing_integration_installation(
+        self, mock_update_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         external_issue = self.create_integration_external_issue(
             group=self.group,
             key="foo-1234",
@@ -101,7 +109,9 @@ class TestUpdateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "update_comment")
-    def test_comment_sync_disabled(self, mock_update_comment, mock_record_event):
+    def test_comment_sync_disabled(
+        self, mock_update_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         # Create integration with sync_comments disabled
         integration = self.create_integration(
             organization=self.group.organization,
@@ -128,7 +138,9 @@ class TestUpdateComment(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "update_comment")
-    def test_update_comment_failure(self, mock_update_comment, mock_record_event):
+    def test_update_comment_failure(
+        self, mock_update_comment: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         mock_update_comment.side_effect = raise_update_comment_exception
 
         external_issue = self.create_integration_external_issue(

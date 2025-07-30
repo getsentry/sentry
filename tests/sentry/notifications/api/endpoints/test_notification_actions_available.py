@@ -15,16 +15,16 @@ from sentry.testutils.cases import APITestCase
 class NotificationActionsAvailableEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-available-actions"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("chrisredfield@re.com")
         self.organization = self.create_organization(name="bsaa", owner=self.user)
         self.login_as(self.user)
 
-    def test_get_success(self):
+    def test_get_success(self) -> None:
         self.get_success_response(self.organization.slug)
 
     @patch("sentry.notifications.models.notificationaction.ActionTrigger")
-    def test_get_dynamic_response(self, mock_action_trigger):
+    def test_get_dynamic_response(self, mock_action_trigger: MagicMock) -> None:
         """
         Note: This test assumes the ActionTrigger already contains reference to the trigger. Only
         validates that new action registrations get serialized (as is the case for getsentry)

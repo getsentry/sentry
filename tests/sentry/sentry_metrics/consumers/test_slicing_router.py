@@ -1,4 +1,6 @@
+from collections.abc import Generator
 from datetime import datetime
+from unittest import mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -42,28 +44,37 @@ def metrics_message(org_id: int) -> Message[RoutingPayload]:
 
 
 @pytest.fixture
-def setup_slicing(monkeypatch) -> None:
-    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "generic_metrics", {(0, 128): 0, (128, 256): 1})
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,
-        (KAFKA_SNUBA_GENERIC_METRICS, 0),
-        {"topic": "sliced_topic_0", "cluster": "generic_metrics_0"},
-    )
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,
-        (KAFKA_SNUBA_GENERIC_METRICS, 1),
-        {"topic": "sliced_topic_1", "cluster": "generic_metrics_1"},
-    )
-    monkeypatch.setitem(
-        KAFKA_CLUSTERS,
-        "generic_metrics_0",
-        {"bootstrap.servers": "127.0.0.1:9092"},
-    )
-    monkeypatch.setitem(
-        KAFKA_CLUSTERS,
-        "generic_metrics_1",
-        {"bootstrap.servers": "127.0.0.1:9092"},
-    )
+def setup_slicing() -> Generator[None]:
+    with (
+        mock.patch.dict(SENTRY_SLICING_CONFIG, {"generic_metrics": {(0, 128): 0, (128, 256): 1}}),
+        mock.patch.dict(
+            SLICED_KAFKA_TOPICS,
+            {
+                (KAFKA_SNUBA_GENERIC_METRICS, 0): {
+                    "topic": "sliced_topic_0",
+                    "cluster": "generic_metrics_0",
+                }
+            },
+        ),
+        mock.patch.dict(
+            SLICED_KAFKA_TOPICS,
+            {
+                (KAFKA_SNUBA_GENERIC_METRICS, 1): {
+                    "topic": "sliced_topic_1",
+                    "cluster": "generic_metrics_1",
+                }
+            },
+        ),
+        mock.patch.dict(
+            KAFKA_CLUSTERS,
+            {"generic_metrics_0": {"bootstrap.servers": "127.0.0.1:9092"}},
+        ),
+        mock.patch.dict(
+            KAFKA_CLUSTERS,
+            {"generic_metrics_1": {"bootstrap.servers": "127.0.0.1:9092"}},
+        ),
+    ):
+        yield
 
 
 @pytest.mark.parametrize("org_id", [1, 127, 128, 256, 257])
@@ -110,27 +121,26 @@ def test_with_no_org_in_routing_header(setup_slicing) -> None:
 
 
 @pytest.mark.parametrize("org_id", [100])
-def test_with_misconfiguration(metrics_message, monkeypatch):
+def test_with_misconfiguration(metrics_message):
     """
     Configuring topic override only does not kick in routing logic. So the
     messages should be routed to the logical topic.
     """
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,
-        (KAFKA_SNUBA_GENERIC_METRICS, 0),
-        {"topic": "sliced_topic_0"},
-    )
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,
-        (KAFKA_SNUBA_GENERIC_METRICS, 1),
-        {"topic": "sliced_topic_1"},
-    )
+    with (
+        mock.patch.dict(
+            SLICED_KAFKA_TOPICS,
+            {(KAFKA_SNUBA_GENERIC_METRICS, 0): {"topic": "sliced_topic_0"}},
+        ),
+        mock.patch.dict(
+            SLICED_KAFKA_TOPICS,
+            {(KAFKA_SNUBA_GENERIC_METRICS, 1): {"topic": "sliced_topic_1"}},
+        ),
+        pytest.raises(SlicingConfigurationException),
+    ):
+        SlicingRouter("generic_metrics")
 
-    with pytest.raises(SlicingConfigurationException):
-        _ = SlicingRouter("generic_metrics")
 
-
-def test_validate_slicing_consumer_config(monkeypatch) -> None:
+def test_validate_slicing_consumer_config() -> None:
     """
     Validate that the slicing consumer config is valid.
     """
@@ -140,62 +150,61 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
         _validate_slicing_consumer_config("generic_metrics")
 
     # Let the check for slicing config pass
-    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "generic_metrics", {(0, 128): 0, (128, 256): 1})
+    with (
+        mock.patch.dict(SENTRY_SLICING_CONFIG, {"generic_metrics": {(0, 128): 0, (128, 256): 1}}),
+        # Create the sliced kafka topics but omit defining the broker config in
+        # KAFKA_CLUSTERS
+        mock.patch.dict(
+            SLICED_KAFKA_TOPICS,
+            {("generic_metrics", 0): {"topic": "sliced_topic_0", "cluster": "generic_metrics_0"}},
+        ),
+        mock.patch.dict(
+            SLICED_KAFKA_TOPICS,
+            {("generic_metrics", 1): {"topic": "sliced_topic_1", "cluster": "generic_metrics_1"}},
+        ),
+        mock.patch.dict(
+            KAFKA_CLUSTERS,
+            {"generic_metrics_0": {"bootstrap.servers": "127.0.0.1:9092"}},
+        ),
+    ):
+        with pytest.raises(SlicingConfigurationException, match=r"Broker configuration missing"):
+            _validate_slicing_consumer_config("generic_metrics")
 
-    # Create the sliced kafka topics but omit defining the broker config in
-    # KAFKA_CLUSTERS
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,
-        ("generic_metrics", 0),
-        {"topic": "sliced_topic_0", "cluster": "generic_metrics_0"},
-    )
-    monkeypatch.setitem(
-        SLICED_KAFKA_TOPICS,
-        ("generic_metrics", 1),
-        {"topic": "sliced_topic_1", "cluster": "generic_metrics_1"},
-    )
-    monkeypatch.setitem(
-        KAFKA_CLUSTERS,
-        "generic_metrics_0",
-        {"bootstrap.servers": "127.0.0.1:9092"},
-    )
-    with pytest.raises(SlicingConfigurationException, match=r"Broker configuration missing"):
-        _validate_slicing_consumer_config("generic_metrics")
-
-    # Now add the broker config for the second slice
-    monkeypatch.setitem(
-        KAFKA_CLUSTERS,
-        "generic_metrics_1",
-        {"bootstrap.servers": "127.0.0.1:9092"},
-    )
-
-    _validate_slicing_consumer_config("generic_metrics")  # should not raise
+        # Now add the broker config for the second slice
+        with mock.patch.dict(
+            KAFKA_CLUSTERS,
+            {"generic_metrics_1": {"bootstrap.servers": "127.0.0.1:9092"}},
+        ):
+            _validate_slicing_consumer_config("generic_metrics")  # should not raise
 
 
-def test_validate_slicing_config(monkeypatch) -> None:
+def test_validate_slicing_config() -> None:
     # Valid setup(s)
-    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "generic_metrics", {(0, 128): 0, (128, 256): 1})
-    _validate_slicing_config()
+    with mock.patch.dict(SENTRY_SLICING_CONFIG, {"generic_metrics": {(0, 128): 0, (128, 256): 1}}):
+        _validate_slicing_config()
 
-    monkeypatch.setitem(
+    with mock.patch.dict(
         SENTRY_SLICING_CONFIG,
-        "generic_metrics",
-        {(0, 64): 0, (64, 66): 1, (66, 100): 0, (100, 256): 1},
-    )
-    _validate_slicing_config()
+        {"generic_metrics": {(0, 64): 0, (64, 66): 1, (66, 100): 0, (100, 256): 1}},
+    ):
+        _validate_slicing_config()
 
     # Assign a given logical partition to two slices
-    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "generic_metrics", {(0, 129): 0, (128, 256): 1})
-    with pytest.raises(
-        SlicingConfigurationException,
-        match=r"'generic_metrics' has two assignments to logical partition 128",
+    with (
+        mock.patch.dict(SENTRY_SLICING_CONFIG, {"generic_metrics": {(0, 129): 0, (128, 256): 1}}),
+        pytest.raises(
+            SlicingConfigurationException,
+            match=r"'generic_metrics' has two assignments to logical partition 128",
+        ),
     ):
         _validate_slicing_config()
 
     # Fail to assign a logical partition to a slice
-    monkeypatch.setitem(SENTRY_SLICING_CONFIG, "generic_metrics", {(0, 127): 0, (128, 256): 1})
-    with pytest.raises(
-        SlicingConfigurationException,
-        match=r"'generic_metrics' is missing logical partition assignments: \{127\}",
+    with (
+        mock.patch.dict(SENTRY_SLICING_CONFIG, {"generic_metrics": {(0, 127): 0, (128, 256): 1}}),
+        pytest.raises(
+            SlicingConfigurationException,
+            match=r"'generic_metrics' is missing logical partition assignments: \{127\}",
+        ),
     ):
         _validate_slicing_config()

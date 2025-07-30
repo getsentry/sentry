@@ -117,7 +117,7 @@ def test_incident_mark_unknown(
 
 class MonitorsClockTickEndToEndTest(TestCase):
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_end_to_end(self):
+    def test_end_to_end(self) -> None:
         ts = timezone.now().replace(second=0, microsecond=0)
 
         broker: LocalBroker[KafkaPayload] = LocalBroker(MemoryMessageStorage())

@@ -62,6 +62,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {data: null},
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'GET',
       body: {

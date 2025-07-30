@@ -14,12 +14,12 @@ class UserEmailsConfirmTest(APITestCase):
     endpoint = "sentry-api-0-user-emails-confirm"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @mock.patch("sentry.users.models.user.User.send_confirm_email_singular")
-    def test_can_confirm(self, send_confirm_email):
+    def test_can_confirm(self, send_confirm_email: mock.MagicMock) -> None:
         email = UserEmail.objects.create(email="bar@example.com", is_verified=False, user=self.user)
         email.save()
 
@@ -27,7 +27,7 @@ class UserEmailsConfirmTest(APITestCase):
         send_confirm_email.assert_called_once_with(UserEmail.objects.get(email="bar@example.com"))
 
     @mock.patch("sentry.users.models.user.User.send_confirm_email_singular")
-    def test_can_confirm_with_uppercase(self, send_confirm_email):
+    def test_can_confirm_with_uppercase(self, send_confirm_email: mock.MagicMock) -> None:
         email = UserEmail.objects.create(email="Bar@example.com", is_verified=False, user=self.user)
         email.save()
 
@@ -35,7 +35,7 @@ class UserEmailsConfirmTest(APITestCase):
         send_confirm_email.assert_called_once_with(UserEmail.objects.get(email="Bar@example.com"))
 
     @mock.patch("sentry.users.models.user.User.send_confirm_email_singular")
-    def test_cant_confirm_verified_email(self, send_confirm_email):
+    def test_cant_confirm_verified_email(self, send_confirm_email: mock.MagicMock) -> None:
         email = UserEmail.objects.create(email="bar@example.com", is_verified=True, user=self.user)
         email.save()
 
@@ -43,7 +43,7 @@ class UserEmailsConfirmTest(APITestCase):
         assert send_confirm_email.call_count == 0
 
     @mock.patch("sentry.users.models.user.User.send_confirm_email_singular")
-    def test_validate_email(self, send_confirm_email):
+    def test_validate_email(self, send_confirm_email: mock.MagicMock) -> None:
         self.get_error_response(self.user.id, email="", status_code=400)
         assert send_confirm_email.call_count == 0
 
@@ -53,7 +53,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_signed_url(self):
+    def test_confirm_email_signed_url(self) -> None:
         from sentry import options
 
         EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
@@ -87,7 +87,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_invalid_signed_url(self):
+    def test_confirm_email_invalid_signed_url(self) -> None:
         self.login_as(self.user)
 
         new_email = "newemailfromsignedurl@example.com"
@@ -121,7 +121,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_already_verified(self):
+    def test_confirm_email_already_verified(self) -> None:
         from sentry import options
 
         EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
@@ -161,7 +161,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_expired_signature(self):
+    def test_confirm_email_expired_signature(self) -> None:
         from datetime import timedelta
 
         from django.utils import timezone
@@ -199,7 +199,7 @@ class UserEmailsConfirmTest(APITestCase):
             "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
         }
     )
-    def test_confirm_email_signed_urls_disabled(self):
+    def test_confirm_email_signed_urls_disabled(self) -> None:
         self.login_as(self.user)
 
         new_email = "newemailfromsignedurl@example.com"

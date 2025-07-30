@@ -18,7 +18,7 @@ Message = namedtuple("Message", ["project_id", "replay_id"])
 class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
     endpoint = "sentry-api-0-project-replay-recording-segment-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.replay_id = uuid.uuid4().hex
@@ -39,7 +39,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
         )
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
-    def test_index_download_basic_compressed(self):
+    def test_index_download_basic_compressed(self) -> None:
         for i in range(0, 3):
             self.save_recording_segment(i, f'[{{"test":"hello {i}"}}]'.encode())
 
@@ -53,7 +53,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
             == close_streaming_response(response)
         )
 
-    def test_index_download_basic_compressed_over_chunk_size(self):
+    def test_index_download_basic_compressed_over_chunk_size(self) -> None:
         self.save_recording_segment(1, b"a" * 5000)
 
         with self.feature("organizations:session-replay"):
@@ -63,7 +63,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
         assert response.get("Content-Type") == "application/json"
         assert len(close_streaming_response(response)) == 5002
 
-    def test_index_download_basic_not_compressed(self):
+    def test_index_download_basic_not_compressed(self) -> None:
         for i in range(0, 3):
             self.save_recording_segment(i, f'[{{"test":"hello {i}"}}]'.encode(), compressed=False)
 
@@ -77,7 +77,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
             == close_streaming_response(response)
         )
 
-    def test_index_download_paginate(self):
+    def test_index_download_paginate(self) -> None:
         for i in range(0, 3):
             self.save_recording_segment(i, f'[{{"test":"hello {i}"}}]'.encode())
 
@@ -102,7 +102,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
         assert response.get("Content-Type") == "application/json"
         assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == close_streaming_response(response)
 
-    def test_index_download_packed(self):
+    def test_index_download_packed(self) -> None:
         """Test packed segment data is readable."""
         self.save_recording_segment(0, pack(b'[{"test":"hello 0"}]', b"video-bytes"))
         self.save_recording_segment(1, pack(b'[{"test":"hello 1"}]', None))
@@ -118,7 +118,7 @@ class FilestoreProjectReplayRecordingSegmentIndexTestCase(TransactionTestCase):
 class StorageProjectReplayRecordingSegmentIndexTestCase(
     FilestoreProjectReplayRecordingSegmentIndexTestCase, APITestCase, ReplaysSnubaTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {"organizations:session-replay": True}
 
@@ -164,7 +164,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         )
         StorageBlob().set(metadata, zlib.compress(data) if compressed else data)
 
-    def test_archived_segment_metadata_returns_no_results(self):
+    def test_archived_segment_metadata_returns_no_results(self) -> None:
         """Assert archived segment metadata returns no results."""
         self.save_recording_segment(0, b"[{}]", compressed=True, is_archived=True)
 
@@ -175,7 +175,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         assert response.get("Content-Type") == "application/json"
         assert close_streaming_response(response) == b"[]"
 
-    def test_delayed_ingestion_returns_empty_lists(self):
+    def test_delayed_ingestion_returns_empty_lists(self) -> None:
         """Assert archived segment metadata returns no results."""
         self.store_replays(
             mock_replay(
@@ -205,7 +205,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         assert response.get("Content-Type") == "application/json"
         assert close_streaming_response(response) == b"[[],[]]"
 
-    def test_blob_does_not_exist(self):
+    def test_blob_does_not_exist(self) -> None:
         """Assert missing blobs return default value."""
         self.store_replays(
             mock_replay(
@@ -224,7 +224,7 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
         assert response.get("Content-Type") == "application/json"
         assert close_streaming_response(response) == b"[[]]"
 
-    def test_missing_segment_meta(self):
+    def test_missing_segment_meta(self) -> None:
         """Assert missing segment meta returns no blob data."""
         metadata = RecordingSegmentStorageMeta(
             project_id=self.project.id,

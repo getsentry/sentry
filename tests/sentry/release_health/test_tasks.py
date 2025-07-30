@@ -33,7 +33,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         backend = self.backend_class()
         self.backend = mock.patch("sentry.release_health.tasks.release_monitor", backend)
@@ -117,7 +117,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
     def tearDown(self):
         self.backend.__exit__(None, None, None)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(11)])
         self.bulk_store_sessions(
             [
@@ -181,7 +181,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
         ).exists()
 
-    def test_simple_no_sessions(self):
+    def test_simple_no_sessions(self) -> None:
         now = timezone.now()
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -241,7 +241,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
         ).exists()
 
-    def test_release_is_unadopted_with_sessions(self):
+    def test_release_is_unadopted_with_sessions(self) -> None:
         # Releases that are returned with sessions but no longer meet the threshold get unadopted
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(1)])
         self.bulk_store_sessions(
@@ -311,7 +311,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             unadopted=None,
         ).exists()
 
-    def test_release_is_unadopted_without_sessions(self):
+    def test_release_is_unadopted_without_sessions(self) -> None:
         # This test should verify that releases that have no sessions (i.e. no result from snuba)
         # get marked as unadopted
         now = timezone.now()
@@ -339,7 +339,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             unadopted__gte=now,
         ).exists()
 
-    def test_multi_proj_env_release_counter(self):
+    def test_multi_proj_env_release_counter(self) -> None:
         self.bulk_store_sessions(
             [
                 self.build_session(
@@ -413,7 +413,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
         ).exists()
 
-    def test_monitor_release_adoption(self):
+    def test_monitor_release_adoption(self) -> None:
         now = timezone.now()
         self.org2 = self.create_organization(
             name="Yet Another Test Org",
@@ -474,7 +474,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             unadopted=None,
         ).exists()
 
-    def test_missing_rpe_is_created(self):
+    def test_missing_rpe_is_created(self) -> None:
         self.bulk_store_sessions(
             [
                 self.build_session(
@@ -521,7 +521,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             environment__name="",
         ).exists()
 
-    def test_has_releases_is_set(self):
+    def test_has_releases_is_set(self) -> None:
         no_release_project = self.create_project()
         assert not no_release_project.flags.has_releases
 
@@ -536,7 +536,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
         no_release_project.refresh_from_db()
         assert no_release_project.flags.has_releases
 
-    def test_no_env(self):
+    def test_no_env(self) -> None:
         no_env_project = self.create_project()
         assert not no_env_project.flags.has_releases
 
@@ -553,7 +553,7 @@ class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):
     backend_class = MetricReleaseMonitorBackend
 
 
-def test_iter_adopted_releases():
+def test_iter_adopted_releases() -> None:
     """Test the totals object is flattened into a list of tuple of values."""
     assert (
         list(iter_adopted_releases({1: {"": {"releases": {"0.1": 1}, "total_sessions": 1}}})) == []
@@ -579,14 +579,14 @@ def test_iter_adopted_releases():
     )
 
 
-def test_valid_environment():
+def test_valid_environment() -> None:
     """A valid environment is one that has at least one session and a non-empty name."""
     assert valid_environment("production", 20)
     assert not valid_environment("", 20)
     assert not valid_environment("production", 0)
 
 
-def test_valid_and_adopted_release():
+def test_valid_and_adopted_release() -> None:
     """A valid release has a valid name and at least 10% of the environment's sessions."""
     assert valid_and_adopted_release("release", 10, 100)
     assert not valid_and_adopted_release("", 10, 100)
@@ -594,7 +594,7 @@ def test_valid_and_adopted_release():
     assert not valid_and_adopted_release("release", 10, 101)
 
 
-def test_has_been_adopted():
+def test_has_been_adopted() -> None:
     """An adopted session has at least 10% of the environment's sessions."""
     assert has_been_adopted(10, 1)
     assert has_been_adopted(100, 10)

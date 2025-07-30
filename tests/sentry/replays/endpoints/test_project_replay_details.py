@@ -20,7 +20,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.replay_id = uuid4().hex
@@ -28,16 +28,16 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_replay_found(self):
+    def test_no_replay_found(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 404
 
-    def test_get_one_replay(self):
+    def test_get_one_replay(self) -> None:
         """Test only one replay returned."""
         replay1_id = self.replay_id
         replay2_id = uuid4().hex
@@ -68,7 +68,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"]["id"] == replay2_id
 
-    def test_get_replay_schema(self):
+    def test_get_replay_schema(self) -> None:
         """Test replay schema is well-formed."""
         replay1_id = self.replay_id
         replay2_id = uuid4().hex
@@ -151,7 +151,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_delete_replay_from_filestore(self):
+    def test_delete_replay_from_filestore(self) -> None:
         """Test deleting files uploaded through the filestore interface."""
         # test deleting as a member, as they should be able to
         user = self.create_user(is_superuser=False)
@@ -192,7 +192,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         except File.DoesNotExist:
             pass
 
-    def test_delete_replay_from_clickhouse_data(self):
+    def test_delete_replay_from_clickhouse_data(self) -> None:
         """Test deleting files uploaded through the direct storage interface."""
         kept_replay_id = uuid4().hex
 

@@ -14,12 +14,12 @@ pytestmark = [requires_snuba]
 
 
 class BasePostgresRuleHistoryBackendTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = PostgresRuleHistoryBackend()
 
 
 class RecordTest(BasePostgresRuleHistoryBackendTest):
-    def test(self):
+    def test(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         self.backend.record(rule, self.group)
         assert RuleFireHistory.objects.filter(rule=rule, group=self.group).count() == 1
@@ -44,7 +44,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         assert result.results == expected, (result.results, expected)
         return result
 
-    def test(self):
+    def test(self) -> None:
         history = []
         rule = Rule.objects.create(project=self.event.project)
         for i in range(3):
@@ -144,7 +144,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
             ],
         )
 
-    def test_event_id(self):
+    def test_event_id(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         for i in range(3):
             RuleFireHistory.objects.create(
@@ -197,7 +197,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    def test_combined_rule_and_workflow_history(self):
+    def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
         workflow = self.create_workflow(organization=self.event.project.organization)
@@ -312,7 +312,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
 
 @freeze_time()
 class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
-    def test(self):
+    def test(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         rule_2 = Rule.objects.create(project=self.event.project)
         history = []
@@ -349,7 +349,7 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         assert [r.count for r in results[-5:]] == [0, 0, 1, 1, 0]
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
-    def test_combined_rule_and_workflow_history(self):
+    def test_combined_rule_and_workflow_history(self) -> None:
         """Test combining RuleFireHistory and WorkflowFireHistory for hourly stats when feature flag is enabled"""
         rule = self.create_project_rule(project=self.event.project)
         workflow = self.create_workflow(organization=self.event.project.organization)

@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
@@ -36,6 +36,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.performance_issues.base import get_url_from_span
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
@@ -202,20 +203,18 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
-def get_span_evidence_value(
-    span: dict[str, str | float] | None = None, include_op: bool = True
-) -> str:
+def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
     if not span:
         return value
     if not span.get("op") and span.get("description"):
-        value = cast(str, span["description"])
+        value = span["description"]
     if span.get("op") and not span.get("description"):
-        value = cast(str, span["op"])
+        value = span["op"]
     if span.get("op") and span.get("description"):
-        op = cast(str, span["op"])
-        desc = cast(str, span["description"])
+        op = span["op"]
+        desc = span["description"]
         value = f"{op} - {desc}"
         if not include_op:
             value = desc
@@ -223,8 +222,8 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: list[dict[str, str | float]] | None, problem: PerformanceProblem
-) -> tuple[dict[str, str | float] | None, dict[str, str | float] | None]:
+    spans: list[Span] | None, problem: PerformanceProblem
+) -> tuple[Span | None, Span | None]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
@@ -252,15 +251,15 @@ def occurrence_perf_to_email_html(context: Any) -> str:
 
 def get_spans(
     entries: list[dict[str, list[dict[str, str | float]] | str]],
-) -> list[dict[str, str | float]] | None:
+) -> list[Span] | None:
     """Get the given event's spans"""
     if not len(entries):
         return None
 
-    spans: list[dict[str, str | float]] | None = None
+    spans: list[Span] | None = None
     for entry in entries:
         if entry.get("type") == "spans":
-            spans = cast(Optional[list[dict[str, Union[str, float]]]], entry.get("data"))
+            spans = cast(Optional[list[Span]], entry.get("data"))
             break
 
     return spans
@@ -340,7 +339,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
 @dataclass
 class PerformanceProblemContext:
     problem: PerformanceProblem
-    spans: list[dict[str, str | float]] | None
+    spans: list[Span] | None
     event: Event | None
 
     def __post_init__(self) -> None:
@@ -381,7 +380,7 @@ class PerformanceProblemContext:
 
         return (end - start) * 1000
 
-    def _find_span_by_id(self, id: str) -> dict[str, Any] | None:
+    def _find_span_by_id(self, id: str) -> Span | None:
         if not self.spans:
             return None
 
@@ -391,12 +390,12 @@ class PerformanceProblemContext:
                 return span
         return None
 
-    def get_span_duration(self, span: dict[str, Any] | None) -> timedelta:
+    def get_span_duration(self, span: Span | None) -> timedelta:
         if span:
             return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
         return timedelta(0)
 
-    def _sum_span_duration(self, spans: list[dict[str, Any] | None]) -> float:
+    def _sum_span_duration(self, spans: list[Span | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
         sum = 0.0
         for span in spans:
@@ -408,7 +407,7 @@ class PerformanceProblemContext:
     def from_problem_and_spans(
         cls,
         problem: PerformanceProblem,
-        spans: list[dict[str, str | float]] | None,
+        spans: list[Span] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
         if problem.type in (
@@ -543,7 +542,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
         }
 
     @property
-    def slow_span(self) -> dict[str, str | float] | None:
+    def slow_span(self) -> Span | None:
         if not self.spans:
             return None
 

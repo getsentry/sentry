@@ -5,7 +5,7 @@ import pytest
 from sentry.killswitches import normalize_value, value_matches
 
 
-def test_normalize_value():
+def test_normalize_value() -> None:
     assert normalize_value("store.load-shed-group-creation-projects", [1, 2, 3]) == [
         {"project_id": "1", "platform": None},
         {"project_id": "2", "platform": None},

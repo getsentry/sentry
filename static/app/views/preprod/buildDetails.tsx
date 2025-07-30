@@ -1,18 +1,15 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  BuildDetailsHeaderContent,
-  type BuildDetailsHeaderContentProps,
-} from 'sentry/views/preprod/header/buildDetailsHeaderContent';
+import {BuildDetailsHeaderContent} from 'sentry/views/preprod/header/buildDetailsHeaderContent';
 
-import {
-  BuildDetailsSidebarContent,
-  type BuildDetailsSidebarContentProps,
-} from './sidebar/buildDetailsSidebarContent';
-import type {BuildDetailsApiResponse} from './types';
+import {BuildDetailsMainContent} from './main/buildDetailsMainContent';
+import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
+import type {AppSizeApiResponse} from './types/appSizeTypes';
+import type {BuildDetailsApiResponse} from './types/buildDetailsTypes';
 
 export default function BuildDetails() {
   const organization = useOrganization();
@@ -20,62 +17,46 @@ export default function BuildDetails() {
   const artifactId = params.artifactId;
   const projectId = params.projectId;
 
-  const {
-    data: buildDetailsData,
-    isPending,
-    isError,
-    error,
-  } = useApiQuery<BuildDetailsApiResponse>(
-    [
-      `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
-    ],
-    {
-      staleTime: 0,
-      enabled: !!projectId && !!artifactId,
-    }
-  );
+  const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
+    useApiQuery<BuildDetailsApiResponse>(
+      [
+        `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
+      ],
+      {
+        staleTime: 0,
+        enabled: !!projectId && !!artifactId,
+      }
+    );
 
-  let sidebarContentProps: BuildDetailsSidebarContentProps;
-  let headerContentProps: BuildDetailsHeaderContentProps;
-  if (isError) {
-    sidebarContentProps = {
-      status: 'error',
-      error: error?.message || 'Failed to fetch build details data',
-    };
-    headerContentProps = {
-      status: 'error',
-      error: error?.message || 'Failed to fetch build details data',
-    };
-  } else if (isPending) {
-    sidebarContentProps = {status: 'loading'};
-    headerContentProps = {status: 'loading'};
-  } else if (buildDetailsData) {
-    sidebarContentProps = {
-      status: 'success',
-      buildDetails: buildDetailsData,
-      projectId,
-      artifactId,
-    };
-    headerContentProps = {status: 'success', buildDetails: buildDetailsData};
-  } else {
-    throw new Error('No build details data');
-  }
+  const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
+    useApiQuery<AppSizeApiResponse>(
+      [
+        `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/size-analysis/`,
+      ],
+      {
+        staleTime: 0,
+        enabled: !!projectId && !!artifactId,
+      }
+    );
 
   return (
     <SentryDocumentTitle title="Build details">
       <Layout.Page>
         <Layout.Header>
-          <BuildDetailsHeaderContent {...headerContentProps} />
+          <BuildDetailsHeaderContent buildDetailsQuery={buildDetailsQuery} />
         </Layout.Header>
 
         <Layout.Body>
           <Layout.Main>
-            {/* TODO: Main content */}
-            <div>Main</div>
+            <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
           </Layout.Main>
 
           <Layout.Side>
-            <BuildDetailsSidebarContent {...sidebarContentProps} />
+            <BuildDetailsSidebarContent
+              buildDetailsQuery={buildDetailsQuery}
+              artifactId={artifactId}
+              projectId={projectId}
+            />
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>

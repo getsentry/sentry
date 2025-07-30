@@ -5,7 +5,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteQuerySubscriptionTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def test_alert_rule(self):
+    def test_alert_rule(self) -> None:
         """
         Test that we do not delete a SnubaQuery if it's still attached to an AlertRule
         """
@@ -26,7 +26,7 @@ class DeleteQuerySubscriptionTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert incident.subscription_id is None
         assert not QuerySubscription.objects.filter(id=subscription.id).exists()
 
-    def test_data_source(self):
+    def test_data_source(self) -> None:
         """
         Test that we delete the related SnubaQuery when the QuerySubscription was linked from a DataSource
         """

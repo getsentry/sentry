@@ -11,7 +11,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class ProjectReleaseStatsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         """Minimal test to ensure code coverage of the endpoint"""
         self.login_as(user=self.user)
 

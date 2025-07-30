@@ -19,7 +19,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-ownership"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(
@@ -43,7 +43,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             },
         )
 
-    def test_empty_state(self):
+    def test_empty_state(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data == {
@@ -57,7 +57,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "schema": None,
         }
 
-    def test_update(self):
+    def test_update(self) -> None:
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is True
@@ -133,7 +133,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is False
 
-    def test_audit_log_entry(self):
+    def test_audit_log_entry(self) -> None:
         with outbox_runner():
             resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
         assert resp.status_code == 200
@@ -147,7 +147,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
 
-    def test_audit_log_ownership_change(self):
+    def test_audit_log_ownership_change(self) -> None:
         with outbox_runner():
             resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
@@ -161,7 +161,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert len(auditlog) == 1
         assert "modified" in auditlog[0].data["ownership_rules"]
 
-    def test_update_schema(self):
+    def test_update_schema(self) -> None:
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.data["schema"] == {
             "$version": 1,
@@ -176,7 +176,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             ],
         }
 
-    def test_get(self):
+    def test_get(self) -> None:
         self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         resp = self.client.get(self.path)
         assert "schema" in resp.data.keys()
@@ -206,7 +206,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             }
         ]
 
-    def test_get_empty_schema(self):
+    def test_get_empty_schema(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data == {
@@ -220,7 +220,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "schema": None,
         }
 
-    def test_get_schema_empty_raw(self):
+    def test_get_schema_empty_raw(self) -> None:
         # Create ProjectOwnership...
         self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         # ...then remove its contents
@@ -240,7 +240,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
 
-    def test_get_rule_deleted_owner(self):
+    def test_get_rule_deleted_owner(self) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -263,7 +263,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             ],
         }
 
-    def test_get_no_rule_deleted_owner(self):
+    def test_get_no_rule_deleted_owner(self) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -279,7 +279,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.data["schema"] == {"$version": 1, "rules": []}
 
-    def test_get_multiple_rules_deleted_owners(self):
+    def test_get_multiple_rules_deleted_owners(self) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -322,24 +322,24 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             ],
         }
 
-    def test_invalid_email(self):
+    def test_invalid_email(self) -> None:
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
         assert resp.status_code == 400
         assert resp.data == {"raw": ["Invalid rule owners: idont@exist.com"]}
 
-    def test_invalid_team(self):
+    def test_invalid_team(self) -> None:
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #faketeam"})
         assert resp.status_code == 400
         assert resp.data == {"raw": ["Invalid rule owners: #faketeam"]}
 
-    def test_invalid_mixed(self):
+    def test_invalid_mixed(self) -> None:
         resp = self.client.put(
             self.path, {"raw": "*.js idont@exist.com admin@localhost #faketeam #tiger-team"}
         )
         assert resp.status_code == 400
         assert resp.data == {"raw": ["Invalid rule owners: #faketeam, idont@exist.com"]}
 
-    def test_invalid_matcher_type(self):
+    def test_invalid_matcher_type(self) -> None:
         """Check for matcher types that aren't allowed when updating issue owners"""
 
         # Codeowners cannot be added by modifying issue owners
@@ -349,7 +349,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "raw": ["Codeowner type paths can only be added by importing CODEOWNER files"]
         }
 
-    def test_max_raw_length(self):
+    def test_max_raw_length(self) -> None:
         new_raw = f"*.py admin@localhost #{self.team.slug}"
         with mock.patch("sentry.api.endpoints.project_ownership.DEFAULT_MAX_RAW_LENGTH", 10):
             resp = self.get_error_response(
@@ -376,7 +376,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         ownership.refresh_from_db()
         assert ownership.raw == new_raw
 
-    def test_update_by_member(self):
+    def test_update_by_member(self) -> None:
         self.login_as(user=self.member_user)
 
         resp = self.client.put(self.path, {"raw": "*.js member@localhost #tiger-team"})
@@ -388,7 +388,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
 
-    def test_update_by_member_denied(self):
+    def test_update_by_member_denied(self) -> None:
         self.login_as(user=self.member_user)
 
         resp = self.client.put(self.path, {"fallthrough": False})

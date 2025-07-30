@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class OrganizationRepositoryCommitsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")

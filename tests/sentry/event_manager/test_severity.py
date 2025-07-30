@@ -20,7 +20,7 @@ from sentry.event_manager import (
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
 
@@ -321,8 +321,8 @@ class TestGetEventSeverity(TestCase):
         assert cache.get(SEER_ERROR_COUNT_KEY) == 1
 
 
-@apply_feature_flag_on_cls("projects:first-event-severity-calculation")
-@apply_feature_flag_on_cls("organizations:seer-based-priority")
+@with_feature("projects:first-event-severity-calculation")
+@with_feature("organizations:seer-based-priority")
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock):

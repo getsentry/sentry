@@ -77,27 +77,27 @@ class DiscordUninstallTest(APITestCase):
         assert responses.assert_call_count(count=count, url=LEAVE_GUILD_URL)
 
     @responses.activate
-    def test_uninstall(self):
+    def test_uninstall(self) -> None:
         self.mock_discord_guild_leave()
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
 
     @responses.activate
-    def test_uninstall_bot_already_left_guild(self):
+    def test_uninstall_bot_already_left_guild(self) -> None:
         self.mock_discord_guild_leave(status=404)
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.integration.logger.error")
-    def test_uninstall_unexpected_failure(self, mock_log_error):
+    def test_uninstall_unexpected_failure(self, mock_log_error: mock.MagicMock) -> None:
         self.mock_discord_guild_leave(status=500)
         self.uninstall()
         self.assert_leave_guild_api_call_count(1)
         assert mock_log_error.call_count == 1
 
     @responses.activate
-    def test_uninstall_multiple_orgs(self):
+    def test_uninstall_multiple_orgs(self) -> None:
         self.mock_discord_guild_leave()
 
         other_org = self.create_organization(owner=self.user)

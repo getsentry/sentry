@@ -8,7 +8,7 @@ pytestmark = requires_snuba
 
 
 class GroupHistoryTest(TestCase):
-    def test_owner(self):
+    def test_owner(self) -> None:
         team = self.create_team()
 
         GroupAssignee.objects.assign(self.group, self.user)
@@ -37,7 +37,7 @@ class GroupHistoryTest(TestCase):
 
 
 class FilterToTeamTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         GroupAssignee.objects.assign(self.group, self.user)
         proj_1_group_2 = self.store_event(data={}, project_id=self.project.id).group
         GroupAssignee.objects.assign(self.group, self.team)
@@ -61,17 +61,17 @@ class FilterToTeamTest(TestCase):
 
 
 class GetPrevHistoryTest(TestCase):
-    def test_no_history(self):
+    def test_no_history(self) -> None:
         # Test both statuses with/without a previous status
         assert get_prev_history(self.group, GroupHistoryStatus.UNRESOLVED) is None
         assert get_prev_history(self.group, GroupHistoryStatus.DELETED) is None
 
-    def test_history(self):
+    def test_history(self) -> None:
         prev_history = self.create_group_history(self.group, GroupHistoryStatus.UNRESOLVED)
         assert get_prev_history(self.group, GroupHistoryStatus.RESOLVED) == prev_history
         assert get_prev_history(self.group, GroupHistoryStatus.DELETED) is None
 
-    def test_multi_history(self):
+    def test_multi_history(self) -> None:
         other_group = self.create_group()
         self.create_group_history(other_group, GroupHistoryStatus.UNRESOLVED)
         assert get_prev_history(self.group, GroupHistoryStatus.UNRESOLVED) is None

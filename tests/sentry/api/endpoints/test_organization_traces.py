@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -21,7 +21,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -288,15 +288,15 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 **kwargs,
             )
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request({}, features=[])
         assert response.status_code == 404, response.data
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request({})
         assert response.status_code == 404, response.data
 
-    def test_bad_params_too_many_per_page(self):
+    def test_bad_params_too_many_per_page(self) -> None:
         query = {
             "project": [self.project.id],
             "field": ["id"],
@@ -312,7 +312,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             ),
         }
 
-    def test_no_traces(self):
+    def test_no_traces(self) -> None:
         query = {
             "project": [self.project.id],
             "field": ["id", "parent_span"],
@@ -335,7 +335,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         }
 
-    def test_query_not_required(self):
+    def test_query_not_required(self) -> None:
         query = {
             "project": [self.project.id],
             "field": ["id"],
@@ -348,7 +348,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.api.endpoints.organization_traces.process_breakdowns")
-    def test_process_breakdown_error(self, mock_process_breakdowns, mock_capture_exception):
+    def test_process_breakdown_error(
+        self, mock_process_breakdowns: MagicMock, mock_capture_exception: MagicMock
+    ) -> None:
         exception = Exception()
 
         mock_process_breakdowns.side_effect = exception
@@ -422,7 +424,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}},
         )
 
-    def test_use_first_span_for_name(self):
+    def test_use_first_span_for_name(self) -> None:
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
@@ -485,7 +487,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
-    def test_use_root_span_for_name(self):
+    def test_use_root_span_for_name(self) -> None:
         trace_id = uuid4().hex
         span_id_1 = "1" + uuid4().hex[:15]
         span_id_2 = "1" + uuid4().hex[:15]
@@ -572,7 +574,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
-    def test_use_pageload_for_name(self):
+    def test_use_pageload_for_name(self) -> None:
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
@@ -635,7 +637,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
-    def test_use_separate_referrers(self):
+    def test_use_separate_referrers(self) -> None:
         now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
         start = now - timedelta(days=2)
         end = now - timedelta(days=1)
@@ -668,7 +670,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
         } == actual_referrers
 
-    def test_matching_tag(self):
+    def test_matching_tag(self) -> None:
         (
             project_1,
             project_2,
@@ -799,7 +801,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     },
                 ]
 
-    def test_environment_filter(self):
+    def test_environment_filter(self) -> None:
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         timestamp = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
@@ -903,18 +905,18 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 **kwargs,
             )
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         query = {
             "project": [self.project.id],
         }
         response = self.do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request(uuid4().hex, {})
         assert response.status_code == 404, response.data
 
-    def test_bad_params_missing_field(self):
+    def test_bad_params_missing_field(self) -> None:
         query = {
             "project": [self.project.id],
         }
@@ -926,7 +928,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             ],
         }
 
-    def test_get_spans_for_trace(self):
+    def test_get_spans_for_trace(self) -> None:
         (
             project_1,
             project_2,
@@ -961,7 +963,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         }
         assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[:4])]
 
-    def test_get_spans_for_trace_matching_tags(self):
+    def test_get_spans_for_trace_matching_tags(self) -> None:
         (
             project_1,
             project_2,
@@ -2268,7 +2270,9 @@ def test_process_breakdowns(data, traces_range, expected):
 
 @patch("sentry_sdk.capture_exception")
 @patch("sentry.api.endpoints.organization_traces.quantize_range")
-def test_quantize_range_error(mock_quantize_range, mock_capture_exception):
+def test_quantize_range_error(
+    mock_quantize_range: MagicMock, mock_capture_exception: MagicMock
+) -> None:
     exception = Exception()
 
     mock_quantize_range.side_effect = exception
@@ -2302,7 +2306,9 @@ def test_quantize_range_error(mock_quantize_range, mock_capture_exception):
 
 @patch("sentry_sdk.capture_exception")
 @patch("sentry.api.endpoints.organization_traces.new_trace_interval")
-def test_build_breakdown_error(mock_new_trace_interval, mock_capture_exception):
+def test_build_breakdown_error(
+    mock_new_trace_interval: MagicMock, mock_capture_exception: MagicMock
+) -> None:
     exception = Exception()
 
     mock_new_trace_interval.side_effect = exception
@@ -2337,7 +2343,7 @@ def test_build_breakdown_error(mock_new_trace_interval, mock_capture_exception):
 class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
     is_eap: bool = True
 
-    def test_invalid_sort(self):
+    def test_invalid_sort(self) -> None:
         for sort in ["foo", "-foo"]:
             query = {
                 "project": [self.project.id],
@@ -2351,7 +2357,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "detail": ErrorDetail(string=f"Unsupported sort: {sort}", code="parse_error"),
             }
 
-    def test_sort_by_timestamp(self):
+    def test_sort_by_timestamp(self) -> None:
         (
             project_1,
             project_2,
@@ -2496,7 +2502,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             next_link = next(link for link in links.values() if link["rel"] == "next")
             assert next_link["results"] == "false"
 
-    def test_use_separate_referrers(self):
+    def test_use_separate_referrers(self) -> None:
         now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
         start = now - timedelta(days=2)
         end = now - timedelta(days=1)

@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -35,7 +35,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
             "sentry-api-0-sentry-app-installation-service-hook-projects", args=[self.install.uuid]
         )
 
-    def test_get_service_hook_projects(self):
+    def test_get_service_hook_projects(self) -> None:
         # Create a service hook project
         ServiceHookProject.objects.create(
             project_id=self.project.id, service_hook_id=self.service_hook.id
@@ -48,7 +48,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["project_id"] == str(self.project.id)
 
-    def test_post_service_hook_projects(self):
+    def test_post_service_hook_projects(self) -> None:
         ServiceHookProject.objects.create(
             project_id=self.project2.id, service_hook_id=self.service_hook.id
         )
@@ -73,7 +73,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         project_ids = {hp.project_id for hp in hook_projects}
         assert project_ids == {self.project.id, self.project2.id}
 
-    def test_post_service_hook_projects_mixed_types(self):
+    def test_post_service_hook_projects_mixed_types(self) -> None:
         data = {"projects": [self.project.slug, self.project2.id]}
 
         response = self.client.post(
@@ -81,7 +81,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_service_hook_projects_with_invalid_project(self):
+    def test_post_service_hook_projects_with_invalid_project(self) -> None:
         data = {"projects": ["invalid-project"]}
 
         response = self.client.post(
@@ -89,13 +89,13 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_service_hook_projects_without_projects(self):
+    def test_post_service_hook_projects_without_projects(self) -> None:
         response = self.client.post(
             self.url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 400
 
-    def test_delete_service_hook_projects(self):
+    def test_delete_service_hook_projects(self) -> None:
         # Create some service hook projects first
         ServiceHookProject.objects.create(
             project_id=self.project.id, service_hook_id=self.service_hook.id

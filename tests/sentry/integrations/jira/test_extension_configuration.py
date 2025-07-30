@@ -5,7 +5,7 @@ from sentry.utils.signing import sign
 
 
 class JiraExtensionConfigurationTest(TestCase):
-    def test_map_params_to_state(self):
+    def test_map_params_to_state(self) -> None:
         config_view = JiraExtensionConfigurationView()
         metadata = {"my_param": "test"}
         data = {"metadata": json.dumps(metadata)}

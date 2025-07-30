@@ -22,14 +22,14 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="foo@example.com")
         self.login_as(self.user)
 
-    def test_get_subscriptions(self):
+    def test_get_subscriptions(self) -> None:
         self.get_success_response(self.user.id, method="get")
 
-    def test_subscribe(self):
+    def test_subscribe(self) -> None:
         self.get_success_response(self.user.id, listId="123", subscribed=True, status_code=204)
         results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
@@ -37,14 +37,14 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         assert results[0].subscribed
         assert results[0].verified
 
-    def test_requires_subscribed(self):
+    def test_requires_subscribed(self) -> None:
         self.get_error_response(self.user.id, listId="123", status_code=400)
 
-    def test_unverified_emails(self):
+    def test_unverified_emails(self) -> None:
         UserEmail.objects.get(email=self.user.email).update(is_verified=False)
         self.get_success_response(self.user.id, listId="123", subscribed=True, status_code=204)
 
-    def test_unsubscribe(self):
+    def test_unsubscribe(self) -> None:
         self.get_success_response(self.user.id, listId="123", subscribed=False, status_code=204)
         results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
@@ -52,7 +52,7 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         assert not results[0].subscribed
         assert results[0].verified
 
-    def test_default_subscription(self):
+    def test_default_subscription(self) -> None:
         self.get_success_response(self.user.id, method="post", subscribed=True, status_code=204)
         results = newsletter.backend.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
