@@ -73,10 +73,7 @@ export function useVirtualStreaming(
 
   // If we've received data, initialize the virtual timestamp to be refreshEvery seconds before the max ingest delay timestamp
   const initializeVirtualTimestamp = useCallback(() => {
-    if (
-      !data?.pages?.length ||
-      (!isWithinPauseWindow && virtualTimestamp !== undefined)
-    ) {
+    if (!data?.pages?.length || (isWithinPauseWindow && virtualTimestamp !== undefined)) {
       return;
     }
 
@@ -113,10 +110,10 @@ export function useVirtualStreaming(
 
   // Initialize when auto refresh is enabled and we have data
   useEffect(() => {
-    if (autoRefresh && virtualTimestamp === undefined) {
+    if ((autoRefresh && virtualTimestamp === undefined) || !isWithinPauseWindow) {
       initializeVirtualTimestamp();
     }
-  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp]);
+  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp, isWithinPauseWindow]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {
