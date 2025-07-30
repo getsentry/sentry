@@ -114,6 +114,7 @@ function scrollToHash() {
 
 function useScrollToHash() {
   useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
     let attempts = 0;
     const maxAttempts = 20; // Maximum number of attempts
     const baseDelay = 50; // Base delay in ms
@@ -133,13 +134,18 @@ function useScrollToHash() {
       const delay = Math.min(baseDelay * Math.pow(1.5, attempts), maxDelay);
       const jitter = Math.random() * 0.1 * delay; // Add up to 10% jitter
 
-      setTimeout(tryScroll, delay + jitter);
+      timers.push(setTimeout(tryScroll, delay + jitter));
     };
 
     // Start with a small initial delay to allow initial render
     requestAnimationFrame(() => {
-      setTimeout(tryScroll, 100);
+      timers.push(setTimeout(tryScroll, 100));
     });
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+    };
   }, []);
 }
 
