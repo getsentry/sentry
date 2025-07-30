@@ -185,7 +185,7 @@ class UserOption(Model):
      - self_notifications
         - "Notify Me About My Own Activity"
      - stacktrace_order
-        - default, most recent first, most recent last
+        - default, most recent first, most recent last (see `StacktraceOrder` enum)
      - subscribe_by_default
         - "Only On Issues I Subscribe To", "Only On Deploys With My Commits"
      - subscribe_notes
