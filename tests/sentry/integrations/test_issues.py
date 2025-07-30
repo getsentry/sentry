@@ -4,13 +4,8 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
-from sentry.integrations.example.integration import (
-    AliasedIntegrationProvider,
-    ExampleIntegration,
-)
-from sentry.integrations.mixins.issues import (
-    IssueSyncIntegration as IssueSyncIntegrationBase,
-)
+from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncIntegrationBase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
