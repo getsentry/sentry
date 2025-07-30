@@ -259,13 +259,12 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
     dataset = Dataset.IssuePlatform.value
 
-    def create_occurrence(self, fingerprint: str, type_id: int) -> tuple[IssueOccurrence, Group]:
+    def create_occurrence(self, type_id: int) -> tuple[IssueOccurrence, Group]:
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,
             event_id=uuid4().hex,
             type=type_id,
             event_data={},
-            evidence_data={"breakpoint": before_now(minutes=10).timestamp()},
         )
         assert group_info is not None
         return occurrence, group_info.group
