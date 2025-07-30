@@ -168,8 +168,10 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     filterKeys,
     getFieldDefinition,
     setDisplaySeerResults,
+    setAutoSubmitSeer,
     enableAISearch,
     gaveSeerConsent,
+    currentInputValue,
   } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -391,6 +393,13 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           action: 'opened',
         });
         setDisplaySeerResults(true);
+
+        // Set flag to auto-submit if there's text in the input
+        if (currentInputValue?.trim()) {
+          setAutoSubmitSeer(true);
+        } else {
+          setAutoSubmitSeer(false);
+        }
         return;
       }
 
@@ -403,7 +412,13 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         return;
       }
     },
-    [organization, seerAcknowledgeMutate, setDisplaySeerResults]
+    [
+      organization,
+      seerAcknowledgeMutate,
+      setDisplaySeerResults,
+      setAutoSubmitSeer,
+      currentInputValue,
+    ]
   );
 
   return {
