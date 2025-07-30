@@ -201,6 +201,7 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
     return f"User submitted feedback: '{message}' at {timestamp}"
 
 
+@sentry_sdk.trace
 def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
