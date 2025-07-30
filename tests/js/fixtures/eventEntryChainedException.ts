@@ -1,6 +1,9 @@
 import type {EntryException} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
+/**
+ * Exception group chained exceptions
+ */
 export function EventEntryExceptionGroupFixture(): EntryException {
   return {
     type: EntryType.EXCEPTION,
@@ -15,8 +18,8 @@ export function EventEntryExceptionGroupFixture(): EntryException {
             handled: true,
             type: '',
             exception_id: 4,
-            is_exception_group: false,
             parent_id: 3,
+            is_exception_group: false,
             source: 'exceptions[2]',
           },
           stacktrace: {
@@ -151,6 +154,93 @@ export function EventEntryExceptionGroupFixture(): EntryException {
                 lineNo: 50,
                 colNo: null,
                 context: [[50, 'raise ExceptionGroup("parent")']],
+                inApp: true,
+                rawFunction: null,
+                package: null,
+                platform: null,
+                instructionAddr: null,
+                symbol: null,
+                symbolAddr: null,
+                trust: null,
+                vars: null,
+              },
+            ],
+          },
+          module: 'helpers',
+          threadId: null,
+          rawStacktrace: null,
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Non-exception group chained exceptions
+ */
+export function EventEntryChainedExceptionFixture(): EntryException {
+  return {
+    type: EntryType.EXCEPTION,
+    data: {
+      excOmitted: null,
+      hasSystemFrames: false,
+      values: [
+        {
+          type: 'ValueError',
+          value: 'test',
+          mechanism: {
+            handled: true,
+            type: '',
+          },
+          stacktrace: {
+            framesOmitted: null,
+            hasSystemFrames: false,
+            registers: null,
+            frames: [
+              {
+                function: 'func4',
+                module: 'helpers',
+                filename: 'file4.py',
+                absPath: 'file4.py',
+                lineNo: 50,
+                colNo: null,
+                context: [[50, 'raise ValueError("test")']],
+                inApp: true,
+                rawFunction: null,
+                package: null,
+                platform: null,
+                instructionAddr: null,
+                symbol: null,
+                symbolAddr: null,
+                trust: null,
+                vars: null,
+              },
+            ],
+          },
+          module: 'helpers',
+          threadId: null,
+          rawStacktrace: null,
+        },
+        {
+          type: 'TypeError',
+          value: 'nested',
+          mechanism: {
+            handled: true,
+            type: '',
+          },
+          stacktrace: {
+            framesOmitted: null,
+            hasSystemFrames: false,
+            registers: null,
+            frames: [
+              {
+                function: 'func2',
+                module: 'helpers',
+                filename: 'file2.py',
+                absPath: 'file2.py',
+                lineNo: 50,
+                colNo: null,
+                context: [[50, 'raise TypeError("int")']],
                 inApp: true,
                 rawFunction: null,
                 package: null,
