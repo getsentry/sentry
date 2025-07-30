@@ -247,7 +247,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
       query: extractQuery(query),
       region: this.props.isRegional
         ? regionUrl
-          ? ConfigStore.get('regions').find((r: any) => r.url === regionUrl)
+          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
           : ConfigStore.get('regions')[0]
         : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
