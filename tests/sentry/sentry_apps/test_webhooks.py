@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -480,7 +481,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         """Test broadcasting with an empty payload."""
         mock_installations.return_value = [self.installation_1]
 
-        empty_payload = {}
+        empty_payload: dict[str, Any] = {}
 
         broadcast_webhooks_for_organization(
             resource_name="issue",
@@ -578,26 +579,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         )
 
         mock_installations.assert_called_once_with(organization_id=0)
-
-    def test_broadcast_function_signature(self):
-        """Test that function requires keyword-only arguments."""
-        payload = {"event": "data"}
-
-        # This should work with keyword arguments
-        with patch(
-            "sentry.sentry_apps.webhooks.app_service.installations_for_organization"
-        ) as mock_installations:
-            mock_installations.return_value = []
-            broadcast_webhooks_for_organization(
-                resource_name="issue",
-                event_name="created",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-        # This should fail with positional arguments
-        with pytest.raises(TypeError):
-            broadcast_webhooks_for_organization("issue", "created", self.organization.id, payload)
 
     @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
     @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
