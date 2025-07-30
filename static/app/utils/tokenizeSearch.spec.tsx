@@ -528,6 +528,16 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
         string: 'transaction:["this has a space",thisdoesnot]',
       },
+      {
+        name: 'should not remove quotes or brackets from literal values',
+        object: new MutableSearch(['transaction:"[beta]"']),
+        string: 'transaction:"[beta]"',
+      },
+      {
+        name: 'should not remove quotes or brackets from literal values in array',
+        object: new MutableSearch(['transaction:["[beta]", alpha]']),
+        string: 'transaction:["[beta]", alpha]',
+      },
     ];
 
     for (const {name, string, object} of cases) {
