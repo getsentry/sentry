@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 
 
-@apply_feature_flag_on_cls("organizations:seer-explorer")
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

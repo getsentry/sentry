@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from sentry import options
 from sentry.event_manager import EventManager
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
@@ -16,8 +16,8 @@ pytestmark = [requires_snuba]
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("projects:first-event-severity-calculation")
-@apply_feature_flag_on_cls("organizations:seer-based-priority")
+@with_feature("projects:first-event-severity-calculation")
+@with_feature("organizations:seer-based-priority")
 class TestEventManagerPriority(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock):

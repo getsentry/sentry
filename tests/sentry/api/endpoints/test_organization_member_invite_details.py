@@ -5,7 +5,6 @@ from sentry.models.organizationmemberinvite import InviteStatus
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -19,7 +18,7 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
     return wrapped_method
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class OrganizationMemberInviteTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-details"
 
@@ -28,7 +27,7 @@ class OrganizationMemberInviteTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     def test_simple(self) -> None:
         invited_member = self.create_member_invite(
@@ -54,7 +53,7 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         self.get_error_response(self.organization.slug, "-1", status_code=404)
 
 
-@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+@with_feature("organizations:new-organization-member-invite")
 class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     method = "put"
 

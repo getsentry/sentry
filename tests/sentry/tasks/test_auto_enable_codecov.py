@@ -7,13 +7,12 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.tasks.auto_enable_codecov import enable_for_org
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of
 
 
-@apply_feature_flag_on_cls("organizations:auto-enable-codecov")
+@with_feature("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()
