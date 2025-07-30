@@ -33,6 +33,7 @@ class EventDict(TypedDict):
     category: str
 
 
+@sentry_sdk.trace
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict]:
     """Fetch error details given error IDs and return a list of EventDict objects."""
     try:
@@ -75,6 +76,7 @@ def parse_timestamp(timestamp_value: Any, unit: str) -> float:
     return 0.0
 
 
+@sentry_sdk.trace
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
