@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
@@ -141,7 +142,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get the list of repository project path configs
 

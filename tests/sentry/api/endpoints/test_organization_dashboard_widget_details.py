@@ -741,7 +741,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 assert mock_query.mock_calls[0] == mock.call(["someothertag"], mock.ANY, "1h")
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_dashboard_widget_ondemand_multiple_fields(self, mock_query):
+    def test_dashboard_widget_ondemand_multiple_fields(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {
             "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
         }, [
@@ -795,7 +795,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert len(mock_query.mock_calls) == 1
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
-    def test_dashboard_hits_max_specs(self, mock_max):
+    def test_dashboard_hits_max_specs(self, mock_max: mock.MagicMock) -> None:
         # create another widget so we already have a widget spec
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -858,7 +858,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.data == {"warnings": {"columns": {}, "queries": [None]}}
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_warnings_show_up_with_error(self, mock_query):
+    def test_warnings_show_up_with_error(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {
             "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
         }, [
@@ -893,7 +893,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.data["queries"][0]["conditions"], response.data
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
-    def test_first_query_without_ondemand_but_second_with(self, mock_max):
+    def test_first_query_without_ondemand_but_second_with(self, mock_max: mock.MagicMock) -> None:
         # create another widget so we already have a widget spec
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -1003,7 +1003,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             assert len(mock_query.mock_calls) == 0
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
-    def test_ondemand_disabled_adds_queries(self, mock_max):
+    def test_ondemand_disabled_adds_queries(self, mock_max: mock.MagicMock) -> None:
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -1351,3 +1351,57 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_new_transactions_widget_with_transactions_deprecation_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "title": "Test Query",
+                "widgetType": "transaction-like",
+                "displayType": "table",
+                "queries": [
+                    {
+                        "name": "transaction query",
+                        "conditions": "",
+                        "fields": ["count()"],
+                        "columns": [],
+                        "aggregates": ["count()"],
+                    }
+                ],
+            }
+
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            assert response.status_code == 400, response.data
+            assert (
+                response.data["widgetType"][0]
+                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+            )
+
+    def test_update_transaction_widget_type_with_transactions_deprecation_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "id": "1234",
+                "title": "Test Query",
+                "widgetType": "transaction-like",
+                "displayType": "table",
+                "queries": [
+                    {
+                        "name": "transaction query",
+                        "conditions": "",
+                        "fields": ["count()"],
+                        "columns": [],
+                        "aggregates": ["count()"],
+                    }
+                ],
+            }
+
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            # we need to allow updates to the title of existing transaction widgets
+            assert response.status_code == 200, response.data

@@ -1098,7 +1098,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1151,7 +1151,9 @@ class ProjectUpdateTest(APITestCase):
             )
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets_unknown_secret(
+        self, create_audit_entry: mock.MagicMock
+    ) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1482,7 +1484,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(project, teams=[team])
 
     @mock.patch("sentry.models.project.Project.copy_settings_from")
-    def test_copy_project_settings_fails(self, mock_copy_settings_from):
+    def test_copy_project_settings_fails(self, mock_copy_settings_from: mock.MagicMock) -> None:
         mock_copy_settings_from.return_value = False
         project = self.create_project(fire_project_created=True)
         resp = self.get_error_response(
@@ -2014,6 +2016,16 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchScreenshots"] is True
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
 
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_screenshots_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
     def test_put_tempest_fetch_screenshots_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
@@ -2021,6 +2033,15 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 
     @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_screenshots_options(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_screenshots_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )
@@ -2043,6 +2064,16 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchDumps"] is True
         assert self.project.get_option("sentry:tempest_fetch_dumps") is True
 
+    @with_feature("organizations:project-creation-games-tab")
+    def test_put_tempest_fetch_dumps_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
+        )
+        assert response.data["tempestFetchDumps"] is True
+        assert self.project.get_option("sentry:tempest_fetch_dumps") is True
+
     def test_put_tempest_fetch_dumps_without_feature_flag(self) -> None:
         self.get_error_response(
             self.organization.slug, self.project.slug, method="put", tempestFetchDumps=True
@@ -2050,6 +2081,15 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
 
     @with_feature("organizations:tempest-access")
     def test_get_tempest_fetch_dumps_options(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchDumps" in response.data
+        assert response.data["tempestFetchDumps"] is False
+
+    @with_feature("organizations:project-creation-games-tab")
+    def test_get_tempest_fetch_dumps_options_enabled_console_platforms(self) -> None:
+        self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
         )

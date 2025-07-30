@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -43,7 +43,7 @@ class SlackClientTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_api_call_success(self, mock_api_call, mock_metrics):
+    def test_api_call_success(self, mock_api_call: MagicMock, mock_metrics: MagicMock) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -61,7 +61,7 @@ class SlackClientTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_api_call_error(self, mock_api_call, mock_metrics):
+    def test_api_call_error(self, mock_api_call: MagicMock, mock_metrics: MagicMock) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": False}).decode() + "'",
             "headers": {},
@@ -81,7 +81,9 @@ class SlackClientTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_api_call_timeout_error(self, mock_api_call, mock_metrics):
+    def test_api_call_timeout_error(
+        self, mock_api_call: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         mock_api_call.side_effect = TimeoutError()
 
         client = SlackSdkClient(integration_id=self.integration.id)

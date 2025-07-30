@@ -59,6 +59,8 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
                 if status_code == 200:
                     return summary_result
                 return None
-    except (concurrent.futures.TimeoutError, Exception) as e:
+    except concurrent.futures.TimeoutError:
+        return None
+    except Exception as e:
         logger.exception("Error generating issue summary: %s", e)
         return None

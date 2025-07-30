@@ -1,17 +1,17 @@
 import datetime
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:performance-web-vitals-seer-suggestions")
+@with_feature("organizations:performance-web-vitals-seer-suggestions")
 class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -126,7 +126,9 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
         "sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationPageWebVitalsSummaryEndpoint.get_snuba_params"
     )
     @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.query_trace_data")
-    def test_endpoint_with_error_response(self, mock_query_trace_data, mock_get_snuba_params):
+    def test_endpoint_with_error_response(
+        self, mock_query_trace_data: MagicMock, mock_get_snuba_params: MagicMock
+    ) -> None:
         mock_get_snuba_params.return_value = {}
         mock_query_trace_data.side_effect = Exception("Test exception")
         response = self.client.post(self.url, data={"traceSlugs": [self.trace_id]}, format="json")
@@ -137,7 +139,9 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
         "sentry.seer.endpoints.organization_page_web_vitals_summary.OrganizationPageWebVitalsSummaryEndpoint.get_snuba_params"
     )
     @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.query_trace_data")
-    def test_endpoint_with_missing_trace_tree(self, mock_query_trace_data, mock_get_snuba_params):
+    def test_endpoint_with_missing_trace_tree(
+        self, mock_query_trace_data: MagicMock, mock_get_snuba_params: MagicMock
+    ) -> None:
         mock_get_snuba_params.return_value = {}
         mock_query_trace_data.return_value = []
         response = self.client.post(self.url, data={"traceSlugs": [self.trace_id]}, format="json")

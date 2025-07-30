@@ -119,6 +119,7 @@ first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"
 cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]
 first_insight_span_received = BetterSignal()  # ["project", "module"]
+first_log_received = BetterSignal()  # ["project"]
 member_invited = BetterSignal()  # ["member", "user"]
 member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
 plugin_enabled = BetterSignal()  # ["plugin", "project", "user"]

@@ -398,7 +398,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
     )
-    def test_no_parent_notification(self, mock_send):
+    def test_no_parent_notification(self, mock_send: mock.MagicMock) -> None:
         self.parent_notification.delete()
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_send.called
@@ -704,7 +704,7 @@ class TestSlackServiceMethods(TestCase):
         )
 
     @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_send_notification_to_slack_channel(self, mock_api_call):
+    def test_send_notification_to_slack_channel(self, mock_api_call: mock.MagicMock) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},

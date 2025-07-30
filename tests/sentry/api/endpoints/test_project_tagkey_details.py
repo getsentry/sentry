@@ -46,7 +46,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
 
 class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch("sentry.eventstream.backend")
-    def test_simple(self, mock_eventstream):
+    def test_simple(self, mock_eventstream: mock.MagicMock) -> None:
         key = "foo"
         val = "bar"
 

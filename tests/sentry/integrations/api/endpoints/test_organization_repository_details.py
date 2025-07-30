@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -191,7 +191,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         ).exists()
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo(self, mock_cleanup_task):
+    def test_put_hide_repo(self, mock_cleanup_task: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -222,7 +222,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         )
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_with_commits(self, mock_cleanup_task):
+    def test_put_hide_repo_with_commits(self, mock_cleanup_task: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
@@ -283,7 +283,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert Repository.objects.get(id=repo.id).name == "example"
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_triggers_cleanup(self, mock_cleanup_task):
+    def test_put_hide_repo_triggers_cleanup(self, mock_cleanup_task: MagicMock) -> None:
         """Test that hiding a repository triggers Seer cleanup task."""
         self.login_as(user=self.user)
 
@@ -314,7 +314,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         )
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_null_fields(self, mock_cleanup_task):
+    def test_put_hide_repo_no_cleanup_when_null_fields(self, mock_cleanup_task: MagicMock) -> None:
         """Test that hiding a repository with null external_id/provider does not trigger Seer cleanup."""
         self.login_as(user=self.user)
 
@@ -339,7 +339,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_not_called()
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_external_id_null(self, mock_cleanup_task):
+    def test_put_hide_repo_no_cleanup_when_external_id_null(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
         """Test that hiding a repository with null external_id does not trigger Seer cleanup."""
         self.login_as(user=self.user)
 
@@ -364,7 +366,9 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         mock_cleanup_task.assert_not_called()
 
     @patch("sentry.tasks.seer.cleanup_seer_repository_preferences.apply_async")
-    def test_put_hide_repo_no_cleanup_when_provider_null(self, mock_cleanup_task):
+    def test_put_hide_repo_no_cleanup_when_provider_null(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
         """Test that hiding a repository with null provider does not trigger Seer cleanup."""
         self.login_as(user=self.user)
 
