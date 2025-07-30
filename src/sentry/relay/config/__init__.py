@@ -65,7 +65,6 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
     "projects:relay-otel-endpoint",
-    "organizations:ourlogs-calculated-byte-count",
     "organizations:ourlogs-ingestion",
     "organizations:ourlogs-meta-attributes",
     "organizations:view-hierarchy-scrubbing",

@@ -27,6 +27,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
@@ -196,7 +197,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List all organization members.
 

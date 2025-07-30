@@ -13,7 +13,6 @@ const omitFlexProps = new Set<keyof FlexProps>([
   'align',
   'justify',
   'wrap',
-  'order',
 ]);
 
 type FlexProps<T extends ContainerElement = 'div'> = Omit<
@@ -39,7 +38,6 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
   justify?: Responsive<
     'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
   >;
-  order?: Responsive<CSSProperties['order']>;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 };
 

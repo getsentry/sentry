@@ -188,7 +188,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """Get organization details."""
         return Response(
             serialize(
