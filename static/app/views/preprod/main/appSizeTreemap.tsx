@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
@@ -223,11 +224,11 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
 
       return `
             <div style="font-family: Rubik;">
-              <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: 8px; gap: 8px">
+              <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${space(1)}; gap: ${space(1)}">
                 <div style="flex: initial; width: 8px !important; height: 8px !important; border-radius: 50%; background-color: ${params.data?.itemStyle?.borderColor || theme.border};"></div>
                 <span style="color: ${theme.textColor}">${params.data?.category || 'Other'}</span>
               </div>
-              <div style="display: flex; flex-direction: column; line-height: 1; gap: 4px">
+              <div style="display: flex; flex-direction: column; line-height: 1; gap: ${space(0.5)}">
                 <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
                 ${pathElement || ''}
                 <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
