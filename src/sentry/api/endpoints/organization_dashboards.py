@@ -322,7 +322,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
             if dashboard_limit is not None and dashboard_count >= dashboard_limit:
                 return Response(
-                    f"You may not exceed {dashboard_limit} dashboards per organization on your current plan.",
+                    f"You may not exceed {dashboard_limit} dashboards on your current plan.",
                     status=400,
                 )
 
