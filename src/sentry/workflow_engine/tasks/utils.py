@@ -93,6 +93,8 @@ def retry_timeouts(func):
     """
     Schedule a task retry if the function raises ProcessingDeadlineExceeded.
     This exists because the standard retry decorator doesn't allow BaseExceptions.
+
+    TODO: This should be part of the standard retry config/decorator.
     """
 
     @wraps(func)
