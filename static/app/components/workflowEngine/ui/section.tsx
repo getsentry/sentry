@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 
 type SectionProps = {
-  title: string;
+  title: React.ReactNode;
   children?: React.ReactNode;
   description?: string;
 };
@@ -20,7 +20,7 @@ export default function Section({children, title, description}: SectionProps) {
 
 const SectionContainer = styled(Flex)`
   > p {
-    margin-bottom: ${p => p.theme.space.none};
+    margin-bottom: ${p => p.theme.space['0']};
   }
 
   p + p {

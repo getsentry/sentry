@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -41,7 +41,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             "identifier": "issue-1",
         }
 
-    def test_creates_external_issue(self):
+    def test_creates_external_issue(self) -> None:
         self._set_up_sentry_app("Testin", ["event:write"])
         data = self._post_data()
 
@@ -60,7 +60,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             "webUrl": "https://somerandom.io/project/issue-id",
         }
 
-    def test_invalid_group_id(self):
+    def test_invalid_group_id(self) -> None:
         self._set_up_sentry_app("Testin", ["event:write"])
         data = self._post_data()
         data["issueId"] = self.create_group(project=self.create_project()).id
@@ -71,7 +71,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
 
         assert response.status_code == 404
 
-    def test_invalid_scopes(self):
+    def test_invalid_scopes(self) -> None:
         self._set_up_sentry_app("Testin", ["project:read"])
         data = self._post_data()
 
@@ -80,7 +80,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
         assert response.status_code == 403
 
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         """
         You can only create external issues for the integration
         whose token you are using to hit this endpoint.

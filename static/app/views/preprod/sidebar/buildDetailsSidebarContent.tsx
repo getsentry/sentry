@@ -1,62 +1,98 @@
-import styled from '@emotion/styled';
-
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
+import {
+  KeyValueData,
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/sidebar/buildDetailsSidebarAppInfo';
-import {type BuildDetailsApiResponse} from 'sentry/views/preprod/types';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-type BuildDetailsSidebarError = {error: string; status: 'error'};
-type BuildDetailsSidebarLoading = {status: 'loading'};
-type BuildDetailsSidebarSuccess = {
-  buildDetails: BuildDetailsApiResponse;
-  status: 'success';
-};
-
-export type BuildDetailsSidebarContentProps =
-  | BuildDetailsSidebarError
-  | BuildDetailsSidebarLoading
-  | BuildDetailsSidebarSuccess;
-
-export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {status} = props;
-
-  if (status === 'loading') {
-    return (
-      <SidebarContainer>
-        <LoadingIndicator />
-      </SidebarContainer>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SidebarContainer>
-        <Alert type="error">{props.error}</Alert>
-      </SidebarContainer>
-    );
-  }
-
-  const {app_info, state} = props.buildDetails;
-
-  return (
-    <SidebarContainer>
-      {/* App info */}
-      <BuildDetailsSidebarAppInfo
-        appInfo={app_info}
-        state={state}
-        // TODO: Get from size data when available
-        installSizeBytes={1000000}
-        downloadSizeBytes={1000000}
-      />
-
-      {/* TODO: VCS info */}
-    </SidebarContainer>
-  );
+interface BuildDetailsSidebarContentProps {
+  artifactId: string;
+  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  projectId: string;
 }
 
-const SidebarContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-`;
+export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
+  const {
+    data: buildDetailsData,
+    isPending: isBuildDetailsPending,
+    isError: isBuildDetailsError,
+    error: buildDetailsError,
+  } = props.buildDetailsQuery;
+
+  if (isBuildDetailsPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isBuildDetailsError) {
+    return <Alert type="error">{buildDetailsError?.message}</Alert>;
+  }
+
+  if (!buildDetailsData) {
+    return <Alert type="error">No build details found</Alert>;
+  }
+
+  const vcsInfoContentItems: KeyValueDataContentProps[] = [
+    {
+      item: {
+        key: 'SHA',
+        subject: 'SHA',
+        value: buildDetailsData.vcs_info?.commit_id ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Base SHA',
+        subject: 'Base SHA',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'Previous SHA',
+        subject: 'Previous SHA',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'PR Number',
+        subject: 'PR Number',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'Branch',
+        subject: 'Branch',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+    {
+      item: {
+        key: 'Repo Name',
+        subject: 'Repo Name',
+        value: '-', // TODO: Implement in the future when available
+      },
+    },
+  ];
+
+  return (
+    <Flex direction="column" gap="2xl">
+      {/* App info */}
+      <BuildDetailsSidebarAppInfo
+        appInfo={buildDetailsData.app_info}
+        sizeInfo={buildDetailsData.size_info}
+        projectId={props.projectId}
+        artifactId={props.artifactId}
+      />
+
+      {/* VCS info */}
+      <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
+    </Flex>
+  );
+}

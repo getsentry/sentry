@@ -11,7 +11,7 @@ pytestmark = [requires_snuba]
 
 
 class OrganizationReleasePreviousCommitsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(is_staff=False, is_superuser=False)
 
         project = self.create_project(organization=self.organization)
@@ -55,7 +55,7 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
             },
         )
 
-    def test_previous_release_has_commits(self):
+    def test_previous_release_has_commits(self) -> None:
         self.login_as(user=self.user)
 
         response = self.client.get(self.url)
@@ -63,7 +63,7 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["version"] == self.release_with_commit.version
 
-    def test_no_previous_release_with_commit(self):
+    def test_no_previous_release_with_commit(self) -> None:
         self.login_as(user=self.user)
         new_release = Release.objects.create(
             organization_id=self.organization.id, version="123123123"
@@ -80,7 +80,7 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.content == b"{}"
 
-    def test_wrong_release_version(self):
+    def test_wrong_release_version(self) -> None:
         self.login_as(user=self.user)
         release = Release.objects.create(organization_id=self.organization.id, version="456456456")
 

@@ -32,8 +32,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -41,7 +41,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
-from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, ObjectStatus
+from sentry.constants import (
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
+    ObjectStatus,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -229,8 +233,8 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-            seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
-            github_extension_enabled = org.id in options.get("github-extension.enabled-orgs")
+
+            hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             pr_review_test_generation_enabled = bool(
                 org.get_option(
                     "sentry:enable_pr_review_test_generation",
@@ -238,9 +242,7 @@ def get_organization_seer_consent_by_org_name(
                 )
             )
 
-            if (
-                seer_org_acknowledgement or github_extension_enabled
-            ) and pr_review_test_generation_enabled:
+            if not hide_ai_features and pr_review_test_generation_enabled:
                 return {"consent": True}
         except Organization.DoesNotExist:
             continue
@@ -428,6 +430,7 @@ def get_attributes_and_values(
     max_values: int = 100,
     max_attributes: int = 1000,
     sampled: bool = True,
+    attributes_ignored: list[str] | None = None,
 ) -> dict:
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
@@ -460,7 +463,25 @@ def get_attributes_and_values(
         trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
         downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
     )
-    filter = TraceItemFilter()
+
+    if attributes_ignored:
+        filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="attr_key",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                op=ComparisonFilter.OP_NOT_IN,
+                value=AttributeValue(
+                    val_str_array=StrArray(
+                        values=attributes_ignored,
+                    ),
+                ),
+            ),
+        )
+    else:
+        filter = TraceItemFilter()
+
     stats_type = StatsType(
         attribute_distributions=AttributeDistributionsRequest(
             max_buckets=max_values,
@@ -529,14 +550,15 @@ def get_github_enterprise_integration_config(
     assert isinstance(installation, GitHubEnterpriseIntegration)
 
     client = installation.get_client()
-    access_token = client.get_access_token()
+    access_token_data = client.get_access_token()
 
-    if not access_token:
+    if not access_token_data:
         logger.error("No access token found for integration %s", integration.id)
         return {"success": False}
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
+        access_token = access_token_data["access_token"]
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         logger.exception("Failed to encrypt access token")
@@ -544,9 +566,10 @@ def get_github_enterprise_integration_config(
 
     return {
         "success": True,
-        "base_url": f"https://{installation.model.metadata["domain_name"].split("/")[0]}/api/v3",
+        "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
+        "permissions": access_token_data["permissions"],
     }
 
 

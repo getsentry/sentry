@@ -15,8 +15,6 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
-const DEFAULT_HOVER_TIMEOUT = 200;
-
 interface UseTraceItemDetailsProps {
   /**
    * Every trace item belongs to a project.
@@ -49,7 +47,17 @@ export interface TraceItemDetailsResponse {
   attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;
+  links?: TraceItemResponseLink[];
 }
+
+// Span links are stored as JSON-encoded attributes in EAP for now. The backend
+// decodes the JSON for us. Since links are so structurally similar to spans, the types are similar as well.
+export type TraceItemResponseLink = {
+  itemId: string;
+  sampled: boolean;
+  traceId: string;
+  attributes?: TraceItemResponseAttribute[];
+};
 
 type TraceItemDetailsUrlParams = {
   organizationSlug: string;
@@ -137,12 +145,17 @@ export function usePrefetchTraceItemDetailsOnHover({
   referrer,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
+  timeout,
 }: UseTraceItemDetailsProps & {
   /**
    * A ref to a shared timeout so multiple hover events can be handled
    * without creating multiple timeouts and firing multiple prefetches.
    */
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  /**
+   * Custom timeout for the prefetched item.
+   */
+  timeout: number;
   /**
    * Whether the hover prefetch should be disabled.
    */
@@ -172,9 +185,9 @@ export function usePrefetchTraceItemDetailsOnHover({
             },
           }),
           queryFn: fetchDataQuery,
-          staleTime: 30_000,
+          staleTime: Infinity, // Prefetched items are never stale as the row is either entirely stored or not stored at all.
         });
-      }, DEFAULT_HOVER_TIMEOUT);
+      }, timeout);
     },
     onHoverEnd: () => {
       if (sharedHoverTimeoutRef.current) {

@@ -264,7 +264,7 @@ def test_parse_conditions(query_string, expected):
 
 
 @freeze_time("2018-12-11 03:21:00")
-def test_round_range():
+def test_round_range() -> None:
     # since data is not exactly aligned it will return 2d + 1h (+ one interval to cover everything)
     start, end, interval = get_date_range({"statsPeriod": "2d"})
     assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
@@ -313,7 +313,7 @@ def test_get_date_range(now, interval, parameters, expected):
         assert (start_actual, end_actual) == (start_expected, end_expected)
 
 
-def test_invalid_interval():
+def test_invalid_interval() -> None:
     # get_date_range is now only responsible for parsing start, end and interval,
     # and not responsible for validation so just letting it bubble up the ZeroDivisionError if
     # the requested interval is 0d
@@ -321,7 +321,7 @@ def test_invalid_interval():
         get_date_range({"interval": "0d"})
 
 
-def test_round_exact():
+def test_round_exact() -> None:
     start, end, interval = get_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
@@ -329,7 +329,7 @@ def test_round_exact():
     assert end == datetime(2021, 1, 18, tzinfo=timezone.utc)
 
 
-def test_exclusive_end():
+def test_exclusive_end() -> None:
     start, end, interval = get_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
@@ -338,7 +338,7 @@ def test_exclusive_end():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_timestamps():
+def test_timestamps() -> None:
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
 
     # one day before now aligned downward at 12h
@@ -1147,7 +1147,7 @@ def test_translate_results_missing_slots(_1, _2):
     ]
 
 
-def test_translate_meta_results():
+def test_translate_meta_results() -> None:
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
         {"name": "team_key_transaction", "type": "UInt8"},
@@ -1194,7 +1194,7 @@ def test_translate_meta_results():
     )
 
 
-def test_translate_meta_results_with_duplicates():
+def test_translate_meta_results_with_duplicates() -> None:
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
@@ -1497,7 +1497,7 @@ def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase
 
 
 class QueryDefinitionTestCase(TestCase):
-    def test_valid_latest_release_alias_filter(self):
+    def test_valid_latest_release_alias_filter(self) -> None:
         self.create_release(version="foo", project=self.project, date_added=before_now(days=4))
         self.create_release(
             version="bar", project=self.project, date_added=before_now(days=2)
@@ -1520,7 +1520,7 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
-    def test_single_environment_is_passed_through_to_metrics_query(self):
+    def test_single_environment_is_passed_through_to_metrics_query(self) -> None:
         self.create_environment(name="alpha", project=self.project)
         query_params = MultiValueDict(
             {
@@ -1541,7 +1541,7 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
-    def test_multiple_environments_are_passed_through_to_metrics_query(self):
+    def test_multiple_environments_are_passed_through_to_metrics_query(self) -> None:
         self.create_environment(name="alpha", project=self.project)
         self.create_environment(name="beta", project=self.project)
         query_params = MultiValueDict(
@@ -1565,11 +1565,11 @@ class QueryDefinitionTestCase(TestCase):
 
 
 class ResolveTagsTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = ORG_ID
         self.use_case_id = UseCaseID.TRANSACTIONS
 
-    def test_resolve_tags_with_unary_tuple(self):
+    def test_resolve_tags_with_unary_tuple(self) -> None:
         transactions = ["/foo", "/bar"]
 
         for transaction in ["transaction"] + transactions:
@@ -1630,7 +1630,7 @@ class ResolveTagsTestCase(TestCase):
             ),
         )
 
-    def test_resolve_tags_with_binary_tuple(self):
+    def test_resolve_tags_with_binary_tuple(self) -> None:
         tags = [("/foo", "ios"), ("/bar", "android")]
 
         for transaction, platform in [("transaction", "platform")] + tags:
@@ -1705,7 +1705,7 @@ class ResolveTagsTestCase(TestCase):
             ),
         )
 
-    def test_resolve_tags_with_has(self):
+    def test_resolve_tags_with_has(self) -> None:
         tag_key = "transaction"
 
         indexer.record(
@@ -1747,7 +1747,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_filterable_tag(self):
+    def test_resolve_tags_with_match_and_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1787,7 +1787,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_deep_filterable_tag(self):
+    def test_resolve_tags_with_match_and_deep_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1832,7 +1832,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_non_filterable_tag(self):
+    def test_resolve_tags_with_match_and_non_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1863,7 +1863,7 @@ class ResolveTagsTestCase(TestCase):
                 [],
             )
 
-    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
+    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,

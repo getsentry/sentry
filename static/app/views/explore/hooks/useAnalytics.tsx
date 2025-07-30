@@ -8,6 +8,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsFields,
   useLogsSearch,
@@ -370,7 +371,7 @@ export function useCompareAnalytics({
 > & {
   query: ReadableExploreQueryParts;
 }) {
-  const dataset = DiscoverDatasets.SPANS_EAP_RPC;
+  const dataset = DiscoverDatasets.SPANS;
   const query = queryParts.query;
   const fields = queryParts.fields;
   const visualizes = queryParts.yAxes.map(
@@ -414,9 +415,11 @@ export function useLogAnalytics({
 
   const tableError = logsTableResult.error?.message ?? '';
   const query_status = tableError ? 'error' : 'success';
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
   useEffect(() => {
-    if (logsTableResult.isPending || isLoadingSubscriptionDetails) {
+    if (logsTableResult.isPending || isLoadingSubscriptionDetails || autorefreshEnabled) {
+      // Auto-refresh causes constant metadata events, so we don't want to track them.
       return;
     }
 
@@ -462,6 +465,7 @@ export function useLogAnalytics({
     logsTableResult.isPending,
     logsTableResult.data?.length,
     search,
+    autorefreshEnabled,
   ]);
 }
 

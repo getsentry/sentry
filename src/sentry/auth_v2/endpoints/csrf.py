@@ -4,21 +4,28 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 
+from sentry import analytics
+from sentry.analytics.events.auth_v2 import AuthV2CsrfTokenRotated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import control_silo_endpoint
-from sentry.auth_v2.endpoints.base import AuthV2Endpoint
-from sentry.auth_v2.serializers import SessionSerializer
+from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth_v2.utils.session import SessionSerializer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @control_silo_endpoint
-class CsrfTokenEndpoint(AuthV2Endpoint):
+class CsrfTokenEndpoint(Endpoint):
+    """
+    NOTE: This endpoint is not protected by the feature flag in AuthV2Endpoint!
+    """
+
     owner = ApiOwner.ENTERPRISE
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = ()
+
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -60,6 +67,13 @@ class CsrfTokenEndpoint(AuthV2Endpoint):
     @method_decorator(ensure_csrf_cookie)
     def put(self, request, *args, **kwargs):
         rotate_token(request)
+        if referrer := request.GET.get("referrer"):
+            analytics.record(
+                AuthV2CsrfTokenRotated(
+                    event=referrer,
+                )
+            )
+
         return self.respond(
             {
                 "detail": "Rotated CSRF cookie",

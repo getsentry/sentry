@@ -34,6 +34,7 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
@@ -177,7 +178,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         sort options
         Inputs:-
             * release: current release object
-            * org: organisation object
+            * org: organization object
             * filter_params
             * stats_period
             * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
@@ -261,7 +262,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         """
         Method that returns the first and last release based on `date_added`
         Inputs:-
-            * org: organisation object
+            * org: organization object
             * environment
             * project_id
             * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
@@ -428,7 +429,7 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def put(self, request: Request, organization, version) -> Response:
+    def put(self, request: Request, organization: Organization, version) -> Response:
         """
 
         Update a release. This can change some metadata associated with

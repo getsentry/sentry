@@ -26,9 +26,9 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -238,6 +238,7 @@ class FlamegraphExecutor:
             "profiling.flamegraph.query.initial_chunk_delta.hours"
         )
         max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
+        multiplier = options.get("profiling.flamegraph.query.multiplier")
 
         initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
         max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
@@ -249,7 +250,12 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start, original_end, initial_chunk_delta, max_chunk_delta
+            original_start,
+            original_end,
+            initial_chunk_delta,
+            max_chunk_delta,
+            multiplier,
+            reverse=True,
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -636,6 +642,7 @@ class FlamegraphExecutor:
             "profiling.flamegraph.query.initial_chunk_delta.hours"
         )
         max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
+        multiplier = options.get("profiling.flamegraph.query.multiplier")
 
         initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
         max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
@@ -648,7 +655,12 @@ class FlamegraphExecutor:
         original_start, original_end = self.snuba_params.start, self.snuba_params.end
 
         for chunk_start, chunk_end in split_datetime_range_exponential(
-            original_start, original_end, initial_chunk_delta, max_chunk_delta
+            original_start,
+            original_end,
+            initial_chunk_delta,
+            max_chunk_delta,
+            multiplier,
+            reverse=True,
         ):
             self.snuba_params.start = chunk_start
             self.snuba_params.end = chunk_end
@@ -835,9 +847,9 @@ class FlamegraphExecutor:
             query = f"{query} and {profiling_constraint}"
         else:
             query = profiling_constraint
-        return spans_rpc.run_table_query(
-            self.snuba_params,
-            query,
+        return Spans.run_table_query(
+            params=self.snuba_params,
+            query_string=query,
             selected_columns=[
                 "id",
                 "project.id",
@@ -864,18 +876,22 @@ def split_datetime_range_exponential(
     end_datetime: datetime,
     initial_chunk_delta: timedelta,
     max_delta: timedelta,
+    multiplier: int,
+    reverse: bool = False,
 ) -> Iterator[tuple[datetime, datetime]]:
     """
     Splits a datetime range into exponentially increasing chunks, yielded by a generator.
 
-    The duration of each chunk doubles from the previous one until it reaches the
-    max_delta, at which point the chunk size remains constant.
+    The duration of each chunk increase `multiplier` times from the previous one until
+    it reaches the max_delta, at which point the chunk size remains constant.
 
     Args:
         start_datetime (datetime): The start of the datetime range.
         end_datetime (datetime): The end of the datetime range.
         initial_chunk_delta (timedelta): The duration of the first chunk.
         max_delta (timedelta): The maximum duration for any chunk.
+        multiplier (int): The value by which the current delta is multiplied.
+        reverse (bool): If True, generate chunks in reverse order from end to start.
 
     Yields:
         tuple: A tuple representing a datetime chunk (start_of_chunk, end_of_chunk).
@@ -900,20 +916,44 @@ def split_datetime_range_exponential(
     if initial_chunk_delta > max_delta:
         raise ValueError("initial_chunk_delta cannot be greater than max_delta.")
 
-    current_datetime = start_datetime
-    current_delta = initial_chunk_delta
+    if multiplier <= 0:
+        raise ValueError("multiplier must be a positive integer.")
 
-    while current_datetime < end_datetime:
-        chunk_end = current_datetime + current_delta
+    if reverse:
+        # Generate chunks in reverse order (from end to start)
+        current_datetime = end_datetime
+        current_delta = initial_chunk_delta
 
-        # Ensure the last chunk does not go past the end_datetime
-        if chunk_end > end_datetime:
-            chunk_end = end_datetime
+        while current_datetime > start_datetime:
+            chunk_start = current_datetime - current_delta
 
-        yield (current_datetime, chunk_end)
+            # Ensure the first chunk does not go past the start_datetime
+            if chunk_start < start_datetime:
+                chunk_start = start_datetime
 
-        # Prepare for the next iteration
-        current_datetime = chunk_end
+            yield (chunk_start, current_datetime)
 
-        # Double the delta for the next chunk, but cap it at max_delta
-        current_delta = min(current_delta * 2, max_delta)
+            # Prepare for the next iteration
+            current_datetime = chunk_start
+
+            # Multiply the delta for the next chunk, but cap it at max_delta
+            current_delta = min(current_delta * multiplier, max_delta)
+    else:
+        # Original forward logic
+        current_datetime = start_datetime
+        current_delta = initial_chunk_delta
+
+        while current_datetime < end_datetime:
+            chunk_end = current_datetime + current_delta
+
+            # Ensure the last chunk does not go past the end_datetime
+            if chunk_end > end_datetime:
+                chunk_end = end_datetime
+
+            yield (current_datetime, chunk_end)
+
+            # Prepare for the next iteration
+            current_datetime = chunk_end
+
+            # Double the delta for the next chunk, but cap it at max_delta
+            current_delta = min(current_delta * multiplier, max_delta)

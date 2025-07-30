@@ -27,6 +27,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
@@ -92,8 +93,11 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
             Q(email=email) | Q(user_id__in=[u.id for u in users]),
             organization=self.context["organization"],
         )
+        approved_queryset = queryset.filter(invite_status=InviteStatus.APPROVED.value)
 
-        if queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
+        if approved_queryset.exists():
+            if approved_queryset.filter(user_id__isnull=True).exists():
+                raise MemberConflictValidationError("The user %s has already been invited" % email)
             raise MemberConflictValidationError("The user %s is already a member" % email)
 
         if not self.context.get("allow_existing_invite_request"):
@@ -193,7 +197,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List all organization members.
 

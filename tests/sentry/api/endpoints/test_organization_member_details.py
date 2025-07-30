@@ -31,13 +31,13 @@ from tests.sentry.api.endpoints.test_organization_member_index import (
 class OrganizationMemberTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
 
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
-    def test_me(self):
+    def test_me(self) -> None:
         response = self.get_success_response(self.organization.slug, "me")
 
         assert response.data["role"] == "owner"
@@ -45,7 +45,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["email"] == self.user.email
 
-    def test_get_by_id(self):
+    def test_get_by_id(self) -> None:
         user = self.create_user("dummy@example.com")
         member = OrganizationMember.objects.create(
             organization=self.organization, user_id=user.id, role="member"
@@ -57,10 +57,10 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.data["orgRole"] == "member"
         assert response.data["id"] == str(member.id)
 
-    def test_get_by_garbage(self):
+    def test_get_by_garbage(self) -> None:
         self.get_error_response(self.organization.slug, "trash", status_code=404)
 
-    def test_cannot_get_unapproved_invite(self):
+    def test_cannot_get_unapproved_invite(self) -> None:
         join_request = self.create_member(
             organization=self.organization,
             email="test@gmail.com",
@@ -76,7 +76,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
 
-    def test_invite_link_does_not_exist(self):
+    def test_invite_link_does_not_exist(self) -> None:
         pending_om = self.create_member(
             user=None,
             email="bar@example.com",
@@ -88,7 +88,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         response = self.get_success_response(self.organization.slug, pending_om.id)
         assert "invite_link" not in response.data
 
-    def test_member_cannot_get_invite_link(self):
+    def test_member_cannot_get_invite_link(self) -> None:
         pending_om = self.create_member(
             user=None,
             email="bar@example.com",
@@ -104,7 +104,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         response = self.get_success_response(self.organization.slug, pending_om.id)
         assert "invite_link" not in response.data
 
-    def test_get_member_list_teams(self):
+    def test_get_member_list_teams(self) -> None:
         team = self.create_team(organization=self.organization, name="Team")
 
         member = self.create_user("baz@example.com")
@@ -118,7 +118,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.data["teamRoles"][0]["teamSlug"] == team.slug
         assert response.data["teamRoles"][0]["role"] is None
 
-    def test_lists_organization_roles(self):
+    def test_lists_organization_roles(self) -> None:
         response = self.get_success_response(self.organization.slug, "me")
         assert response.data["roles"] == response.data["orgRoleList"]
 
@@ -126,7 +126,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert role_ids == ["member", "admin", "manager", "owner"]
 
     @with_feature("organizations:team-roles")
-    def test_hides_retired_organization_roles(self):
+    def test_hides_retired_organization_roles(self) -> None:
         """
         Note: Admin will be hidden after team-roles EA.
         """
@@ -136,13 +136,13 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
 
-    def test_lists_team_roles(self):
+    def test_lists_team_roles(self) -> None:
         response = self.get_success_response(self.organization.slug, "me")
 
         role_ids = [role["id"] for role in response.data["teamRoleList"]]
         assert role_ids == ["contributor", "admin"]
 
-    def test_does_not_include_secondary_emails(self):
+    def test_does_not_include_secondary_emails(self) -> None:
         # Create a user with multiple email addresses
         user = self.create_user("primary@example.com", username="multi_email_user")
         self.create_useremail(user, "secondary1@example.com")
@@ -158,7 +158,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert "emails" not in response.data["user"]
         assert "emails" not in response.data.get("serializedUser", {})
 
-    def test_does_not_serialize_placeholder_member(self):
+    def test_does_not_serialize_placeholder_member(self) -> None:
         invite = self.create_member_invite(organization=self.organization)
         placeholder_om = invite.organization_member
 
@@ -169,7 +169,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.curr_user = self.create_user("member@example.com")
@@ -196,7 +196,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             inviter_id=self.other_user.id,
         )
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
         self.get_error_response(self.organization.slug, "trash", reinvite=1, status_code=404)
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
@@ -464,7 +464,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             self.organization.slug, member.id, reinvite=1, regenerate=1, status_code=404
         )
 
-    def test_reinvite_sso_link(self):
+    def test_reinvite_sso_link(self) -> None:
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -477,7 +477,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         assert len(mail.outbox) == 1
 
-    def test_can_update_member_membership(self):
+    def test_can_update_member_membership(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -489,7 +489,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert member_om.role == "manager"
         self.assert_org_member_mapping(org_member=member_om)
 
-    def test_cannot_update_own_membership(self):
+    def test_cannot_update_own_membership(self) -> None:
         member_om = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id
         )
@@ -501,7 +501,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         member_om = OrganizationMember.objects.get(user_id=self.user.id)
         assert member_om.role == "owner"
 
-    def test_can_update_teams(self):
+    def test_can_update_teams(self) -> None:
         foo = self.create_team(organization=self.organization, name="Team Foo")
         bar = self.create_team(organization=self.organization, name="Team Bar")
 
@@ -523,10 +523,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert bar.slug in teams
 
     @with_feature("organizations:team-roles")
-    def test_can_update_teams_with_feature_flag(self):
+    def test_can_update_teams_with_feature_flag(self) -> None:
         self.test_can_update_teams()
 
-    def test_can_update_teams_using_teamRoles(self):
+    def test_can_update_teams_using_teamRoles(self) -> None:
         foo = self.create_team(organization=self.organization, name="Team Foo")
         bar = self.create_team(organization=self.organization, name="Team Bar")
 
@@ -555,7 +555,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert foo.id in team_ids
         assert bar.id in team_ids
 
-    def test_cannot_update_with_invalid_team(self):
+    def test_cannot_update_with_invalid_team(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -569,7 +569,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert len(teams) == 0
 
-    def test_can_update_org_role(self):
+    def test_can_update_org_role(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -585,7 +585,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.assert_org_member_mapping(org_member=member_om)
 
     @with_feature("organizations:team-roles")
-    def test_can_update_team_role(self):
+    def test_can_update_team_role(self) -> None:
         foo = self.create_team(organization=self.organization, name="Team Foo")
 
         member = self.create_user("baz@example.com")
@@ -624,7 +624,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
         assert member_omt.role is None
 
-    def test_cannot_update_with_invalid_role(self):
+    def test_cannot_update_with_invalid_role(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -640,7 +640,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert member_om.role == "member"
 
     @with_feature({"organizations:team-roles": False})
-    def test_can_update_from_retired_role_without_flag(self):
+    def test_can_update_from_retired_role_without_flag(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="admin", teams=[]
@@ -656,7 +656,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.assert_org_member_mapping(org_member=member_om)
 
     @with_feature("organizations:team-roles")
-    def test_can_update_from_retired_role_with_flag(self):
+    def test_can_update_from_retired_role_with_flag(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="admin", teams=[]
@@ -672,7 +672,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.assert_org_member_mapping(org_member=member_om)
 
     @with_feature({"organizations:team-roles": False})
-    def test_can_update_to_retired_role_without_flag(self):
+    def test_can_update_to_retired_role_without_flag(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -688,7 +688,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         self.assert_org_member_mapping(org_member=member_om)
 
     @with_feature("organizations:team-roles")
-    def test_cannot_update_to_retired_role_with_flag(self):
+    def test_cannot_update_to_retired_role_with_flag(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
@@ -708,7 +708,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.get_error_response(self.organization.slug, member_om.id, reinvite=1, status_code=400)
 
-    def test_cannot_lower_superior_role(self):
+    def test_cannot_lower_superior_role(self) -> None:
         owner = self.create_user("baz@example.com")
         owner_om = self.create_member(
             organization=self.organization, user=owner, role="owner", teams=[]
@@ -723,7 +723,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         owner_om = OrganizationMember.objects.get(organization=self.organization, user_id=owner.id)
         assert owner_om.role == "owner"
 
-    def test_with_internal_integration(self):
+    def test_with_internal_integration(self) -> None:
         member = self.create_user("baz@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
         internal_integration = self.create_internal_integration(
@@ -748,7 +748,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         # a graceful authorization failure.
         assert response.status_code == 400
 
-    def test_cannot_update_partnership_member(self):
+    def test_cannot_update_partnership_member(self) -> None:
         member = self.create_user("bar@example.com")
         member_om = self.create_member(
             organization=self.organization,
@@ -902,7 +902,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         mock_on_role_change.assert_not_called()
 
-    def test_cannot_edit_placeholder_member(self):
+    def test_cannot_edit_placeholder_member(self) -> None:
         invite = self.create_member_invite(organization=self.organization)
         placeholder_om = invite.organization_member
 
@@ -913,7 +913,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.curr_user = self.create_user("member@example.com")
@@ -925,7 +925,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             organization=self.organization, role="member", user=self.other_user
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
 
@@ -933,7 +933,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert not OrganizationMember.objects.filter(id=member_om.id).exists()
 
-    def test_simple_related_user_options_are_deleted(self):
+    def test_simple_related_user_options_are_deleted(self) -> None:
         """
         Test that ensures that when a member is removed from an org, their corresponding
         `UserOption` instances for that the projects in that org are deleted as well
@@ -960,13 +960,13 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             # deleted when that same member is deleted from another org
             assert UserOption.objects.filter(id=u2.id).exists()
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
         member = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, user=member, role="member")
 
         self.get_error_response(self.organization.slug, "trash", status_code=404)
 
-    def test_cannot_delete_member_with_higher_access(self):
+    def test_cannot_delete_member_with_higher_access(self) -> None:
         other_user = self.create_user("bar@example.com")
 
         self.create_member(organization=self.organization, role="manager", user=other_user)
@@ -982,7 +982,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
-    def test_cannot_delete_only_owner(self):
+    def test_cannot_delete_only_owner(self) -> None:
         # create a pending member, which shouldn't be counted in the checks
         self.create_member(organization=self.organization, role="owner", email="bar@example.com")
 
@@ -996,7 +996,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
-    def test_can_delete_self(self):
+    def test_can_delete_self(self) -> None:
         other_user = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, role="member", user=other_user)
 
@@ -1007,7 +1007,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             user_id=other_user.id, organization=self.organization
         ).exists()
 
-    def test_missing_scope(self):
+    def test_missing_scope(self) -> None:
         no_scope_user = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, role="member", user=no_scope_user)
 
@@ -1021,7 +1021,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
 
-    def test_cannot_delete_unapproved_invite(self):
+    def test_cannot_delete_unapproved_invite(self) -> None:
         join_request = self.create_member(
             organization=self.organization,
             email="test@gmail.com",
@@ -1037,7 +1037,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
 
-    def test_disabled_member_can_remove(self):
+    def test_disabled_member_can_remove(self) -> None:
         other_user = self.create_user("bar@example.com")
         self.create_member(
             organization=self.organization,
@@ -1053,7 +1053,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
             user_id=other_user.id, organization=self.organization
         ).exists()
 
-    def test_cannot_delete_idp_provisioned_member(self):
+    def test_cannot_delete_idp_provisioned_member(self) -> None:
         member = self.create_user("bar@example.com")
         member_om = self.create_member(
             organization=self.organization,
@@ -1066,13 +1066,13 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
 
-    def test_can_delete_pending_invite(self):
+    def test_can_delete_pending_invite(self) -> None:
         invite = self.create_member(
             organization=self.organization, user=None, email="invitee@example.com", role="member"
         )
         self.get_success_response(self.organization.slug, invite.id)
 
-    def test_cannot_delete_partnership_member(self):
+    def test_cannot_delete_partnership_member(self) -> None:
         member = self.create_user("bar@example.com")
         member_om = self.create_member(
             organization=self.organization,
@@ -1083,7 +1083,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
-    def test_member_delete_pending_invite(self):
+    def test_member_delete_pending_invite(self) -> None:
         curr_invite = self.create_member(
             organization=self.organization,
             user=None,
@@ -1111,7 +1111,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, curr_invite.id)
         self.get_error_response(self.organization.slug, other_invite.id, status_code=400)
 
-    def test_member_cannot_delete_members(self):
+    def test_member_cannot_delete_members(self) -> None:
         self.login_as(self.curr_user)
 
         self.organization.flags.disable_member_invite = True
@@ -1124,7 +1124,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_cannot_delete_as_superuser_read(self):
+    def test_cannot_delete_as_superuser_read(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
 
@@ -1139,7 +1139,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_can_delete_as_superuser_write(self):
+    def test_can_delete_as_superuser_write(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.add_user_permission(superuser, "superuser.write")
         self.login_as(superuser, superuser=True)
@@ -1153,7 +1153,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_success_response(self.organization.slug, member_om.id)
 
-    def test_related_invitations_are_deleted(self):
+    def test_related_invitations_are_deleted(self) -> None:
         manager_user = self.create_user("manager@localhost")
         self.manager = self.create_member(
             user=manager_user, organization=self.organization, role="manager"
@@ -1181,7 +1181,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
 
-    def test_invitations_dont_get_deleted_on_invite_detetion(self):
+    def test_invitations_dont_get_deleted_on_invite_detetion(self) -> None:
         # create manager
         manager_user = self.create_user("manager@localhost")
         self.manager = self.create_member(
@@ -1215,7 +1215,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         assert members_and_invites_count_after == members_and_invites_count_before - 1
         assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
 
-    def test_cannot_delete_placeholder_member(self):
+    def test_cannot_delete_placeholder_member(self) -> None:
         invite = self.create_member_invite(organization=self.organization)
         placeholder_om = invite.organization_member
 
@@ -1224,7 +1224,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
 
 class ResetOrganizationMember2faTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
 
@@ -1291,7 +1291,7 @@ class ResetOrganizationMember2faTest(APITestCase):
 
         mock_generate_security_email.assert_called_once()
 
-    def test_owner_must_have_org_membership(self):
+    def test_owner_must_have_org_membership(self) -> None:
         owner = self.create_user()
         self.create_organization(owner=owner)
         self.login_as(owner)
@@ -1315,7 +1315,7 @@ class ResetOrganizationMember2faTest(APITestCase):
 
         mock_generate_security_email.assert_called_once()
 
-    def test_org_admin_cannot_reset_member_2fa(self):
+    def test_org_admin_cannot_reset_member_2fa(self) -> None:
         admin = self.create_user()
         self.create_member(organization=self.org, user=admin, role="admin", teams=[])
         self.login_as(admin)
@@ -1323,7 +1323,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.assert_cannot_get_authenticators()
         self.assert_cannot_remove_authenticators()
 
-    def test_org_member_cannot_reset_member_2fa(self):
+    def test_org_member_cannot_reset_member_2fa(self) -> None:
         member = self.create_user()
         self.create_member(organization=self.org, user=member, role="member", teams=[])
         self.login_as(member)
@@ -1331,7 +1331,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.assert_cannot_get_authenticators()
         self.assert_cannot_remove_authenticators()
 
-    def test_cannot_reset_member_2fa__has_multiple_org_membership(self):
+    def test_cannot_reset_member_2fa__has_multiple_org_membership(self) -> None:
         self.create_organization(owner=self.member)
         self.login_as(self.owner)
 
@@ -1348,7 +1348,7 @@ class ResetOrganizationMember2faTest(APITestCase):
 
         self.assert_cannot_remove_authenticators()
 
-    def test_cannot_reset_member_2fa__org_requires_2fa(self):
+    def test_cannot_reset_member_2fa__org_requires_2fa(self) -> None:
         self.login_as(self.owner)
         with assume_test_silo_mode(SiloMode.CONTROL):
             TotpInterface().enroll(self.owner)
@@ -1359,7 +1359,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.assert_cannot_remove_authenticators()
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_owner_can_only_reset_member_2fa(self):
+    def test_owner_can_only_reset_member_2fa(self) -> None:
         self.login_as(self.owner)
 
         path = reverse(

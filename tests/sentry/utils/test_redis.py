@@ -28,10 +28,10 @@ def _options_manager():
 
 
 class ClusterManagerTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         imports._cache.clear()
 
-    def test_get(self):
+    def test_get(self) -> None:
         manager = RBClusterManager(_options_manager())
         assert manager.get("foo") is manager.get("foo")
         assert manager.get("foo") is not manager.get("bar")
@@ -66,7 +66,7 @@ class ClusterManagerTestCase(TestCase):
         manager.get("baz")
 
 
-def test_get_cluster_from_options_cluster_provided():
+def test_get_cluster_from_options_cluster_provided() -> None:
     backend = mock.sentinel.backend
     manager = RBClusterManager(_options_manager())
 
@@ -80,7 +80,7 @@ def test_get_cluster_from_options_cluster_provided():
     assert options == {"foo": "bar"}
 
 
-def test_get_cluster_from_options_legacy_hosts_option():
+def test_get_cluster_from_options_legacy_hosts_option() -> None:
     backend = mock.sentinel.backend
     manager = RBClusterManager(_options_manager())
 
@@ -101,7 +101,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
     assert options == {"foo": "bar"}
 
 
-def test_get_cluster_from_options_both_options_invalid():
+def test_get_cluster_from_options_both_options_invalid() -> None:
     backend = mock.sentinel.backend
     manager = RBClusterManager(_options_manager())
 

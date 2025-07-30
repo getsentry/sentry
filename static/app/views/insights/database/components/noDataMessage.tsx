@@ -16,7 +16,7 @@ interface Props {
   isDataAvailable?: boolean;
 }
 
-function DivWrapper(props: any) {
+function DivWrapper(props: React.ComponentProps<'div'>) {
   return <div {...props} />;
 }
 

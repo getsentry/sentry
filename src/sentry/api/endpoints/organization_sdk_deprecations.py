@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
 
@@ -42,7 +43,7 @@ class OrganizationSdkDeprecationsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         serializer = SDKDeprecationsSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

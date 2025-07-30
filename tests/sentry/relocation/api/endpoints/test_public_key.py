@@ -15,7 +15,7 @@ class GetRelocationPublicKeyTest(APITestCase):
     endpoint = "sentry-api-0-relocations-public-key"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("user", is_superuser=False, is_staff=False, is_active=True)
 

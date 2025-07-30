@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
@@ -172,7 +172,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
 
 
 class ProjectManager(BaseManager["Project"]):
-    def get_by_users(self, users: Iterable[User | RpcUser]) -> Mapping[int, Iterable[int]]:
+    def get_by_users(self, users: Iterable[User | RpcUser]) -> dict[int, set[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
@@ -355,6 +355,9 @@ class Project(Model):
         # This Project has sent insight MCP spans
         has_insights_mcp: bool
 
+        # This project has sent logs
+        has_logs: bool
+
         bitfield_default = 10
 
     objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
@@ -480,7 +483,7 @@ class Project(Model):
             user_id__isnull=False,
         ).distinct()
 
-    def get_members_as_rpc_users(self) -> Iterable[RpcUser]:
+    def get_members_as_rpc_users(self) -> list[RpcUser]:
         member_ids = self.member_set.values_list("user_id", flat=True)
         return user_service.get_many_by_id(ids=list(member_ids))
 

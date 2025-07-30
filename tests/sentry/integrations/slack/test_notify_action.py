@@ -6,6 +6,7 @@ import responses
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web.slack_response import SlackResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
@@ -13,6 +14,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.slack.test_notifications import (
@@ -50,7 +52,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
         return mock_slack_response("chat_deleteScheduledMessage", {"ok": True})
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.get_event().project.organization
         self.integration, self.org_integration = self.create_provider_integration_for(
             organization=self.organization,
@@ -95,7 +97,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
 
-    def test_render_label_with_notes(self):
+    def test_render_label_with_notes(self) -> None:
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
@@ -111,7 +113,7 @@ class SlackNotifyActionTest(RuleTestCase):
             == 'Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] and notes "fix this @colleen" in notification'
         )
 
-    def test_render_label_without_integration(self):
+    def test_render_label_without_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
@@ -128,7 +130,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert label == "Send a notification to the [removed] Slack workspace to #my-channel"
 
     @responses.activate
-    def test_valid_bot_channel_selected(self):
+    def test_valid_bot_channel_selected(self) -> None:
         integration, _ = self.create_provider_integration_for(
             organization=self.event.project.organization,
             user=self.user,
@@ -152,7 +154,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 self.assert_form_valid(form, "chan-id", "#my-channel")
 
     @responses.activate
-    def test_valid_member_selected(self):
+    def test_valid_member_selected(self) -> None:
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
@@ -172,7 +174,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 self.assert_form_valid(form, "morty-id", "@morty")
 
     @responses.activate
-    def test_invalid_channel_selected(self):
+    def test_invalid_channel_selected(self) -> None:
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
         )
@@ -232,7 +234,7 @@ class SlackNotifyActionTest(RuleTestCase):
             assert not form.is_valid()
             assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
 
-    def test_channel_id_provided_sdk(self):
+    def test_channel_id_provided_sdk(self) -> None:
         channel = {"name": "my-channel", "id": "C2349874"}
         with self.mock_conversations_info(channel):
             rule = self.get_rule(
@@ -247,7 +249,7 @@ class SlackNotifyActionTest(RuleTestCase):
             form = rule.get_form_instance()
             assert form.is_valid()
 
-    def test_invalid_channel_id_provided_sdk(self):
+    def test_invalid_channel_id_provided_sdk(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.conversations_info",
             side_effect=SlackApiError("", response={"ok": False, "error": "channel_not_found"}),
@@ -265,7 +267,7 @@ class SlackNotifyActionTest(RuleTestCase):
             assert not form.is_valid()
             assert "Channel not found. Invalid ID provided." in str(form.errors.values())
 
-    def test_invalid_channel_name_provided_sdk(self):
+    def test_invalid_channel_name_provided_sdk(self) -> None:
         channel = {"name": "my-channel", "id": "C2349874"}
         with self.mock_conversations_info(channel):
             rule = self.get_rule(
@@ -283,7 +285,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 form.errors.values()
             )
 
-    def test_invalid_workspace(self):
+    def test_invalid_workspace(self) -> None:
         # the workspace _should_ be the integration id
 
         rule = self.get_rule(data={"workspace": "unknown", "channel": "#my-channel", "tags": ""})
@@ -293,7 +295,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert ["Slack: Workspace is a required field."] in form.errors.values()
 
     @responses.activate
-    def test_display_name_conflict(self):
+    def test_display_name_conflict(self) -> None:
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
@@ -314,7 +316,7 @@ class SlackNotifyActionTest(RuleTestCase):
                     "Slack: Multiple users were found with display name '@morty'. Please use your username, found at sentry.slack.com/account/settings#username."
                 ] in form.errors.values()
 
-    def test_disabled_org_integration(self):
+    def test_disabled_org_integration(self) -> None:
         org = self.create_organization(owner=self.user)
         self.create_organization_integration(
             organization_id=org.id, integration=self.integration, status=ObjectStatus.DISABLED
@@ -366,15 +368,17 @@ class SlackNotifyActionTest(RuleTestCase):
             assert event.title in blocks[0]["elements"][0]["elements"][-1]["text"]
             assert blocks[5]["text"]["text"] == self.organization.slug
             assert blocks[6]["text"]["text"] == self.integration.id
-            mock_record.assert_called_with(
-                "alert.sent",
-                provider="slack",
-                alert_id="",
-                alert_type="issue_alert",
-                organization_id=self.organization.id,
-                project_id=event.project_id,
-                external_id="123",
-                notification_uuid=notification_uuid,
+            assert_last_analytics_event(
+                mock_record,
+                AlertSentEvent(
+                    provider="slack",
+                    alert_id="",
+                    alert_type="issue_alert",
+                    organization_id=self.organization.id,
+                    project_id=event.project_id,
+                    external_id="123",
+                    notification_uuid=notification_uuid,
+                ),
             )
             mock_record.assert_any_call(
                 "integrations.slack.notification_sent",
@@ -387,7 +391,7 @@ class SlackNotifyActionTest(RuleTestCase):
             )
 
     @responses.activate
-    def test_multiple_integrations(self):
+    def test_multiple_integrations(self) -> None:
         org = self.create_organization(owner=self.user)
         self.create_organization_integration(organization_id=org.id, integration=self.integration)
 

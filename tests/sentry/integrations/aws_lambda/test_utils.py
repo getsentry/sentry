@@ -22,7 +22,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ParseArnTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         arn = (
             "arn:aws:cloudformation:us-east-2:599817902985:stack/"
             "Sentry-Monitoring-Stack/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
@@ -33,12 +33,12 @@ class ParseArnTest(TestCase):
 
 
 class GetVersionOfArnTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert get_version_of_arn("arn:aws:lambda:us-east-2:1234:layer:my-layer:3") == 3
 
 
 class GetLatestLayerForFunctionTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         fn = {
             "Runtime": "nodejs10.x",
             "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaB",
@@ -47,7 +47,7 @@ class GetLatestLayerForFunctionTest(TestCase):
 
 
 class GetLatestLayerVersionTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         fn = {
             "Runtime": "nodejs10.x",
             "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaB",
@@ -56,7 +56,7 @@ class GetLatestLayerVersionTest(TestCase):
 
 
 class GetIndexOfSentryLayerTest(TestCase):
-    def test_layer_found(self):
+    def test_layer_found(self) -> None:
         layers = [
             "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
             "arn:aws:lambda:us-east-2:1234:layer:my-layer:1",  # match old version
@@ -65,7 +65,7 @@ class GetIndexOfSentryLayerTest(TestCase):
             get_index_of_sentry_layer(layers, "arn:aws:lambda:us-east-2:1234:layer:my-layer:3") == 1
         )
 
-    def test_layer_not_found(self):
+    def test_layer_not_found(self) -> None:
         layers = [
             "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
             "arn:aws:lambda:us-east-2:1234:layer:hey-this-is-different:3",
@@ -77,7 +77,7 @@ class GetIndexOfSentryLayerTest(TestCase):
 
 
 class GetFunctionLayerArns(TestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         function = {
             "Layers": [
                 {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
@@ -158,7 +158,7 @@ class GetOptionValueTest(TestCase):
         },
     }
 
-    def test_no_cache(self):
+    def test_no_cache(self) -> None:
         assert get_option_value(self.node_fn, OPTION_VERSION) == "3"
         assert get_option_value(self.node_fn, OPTION_LAYER_NAME) == "my-layer"
         assert get_option_value(self.node_fn, OPTION_ACCOUNT_NUMBER) == "1234"

@@ -23,6 +23,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import COLUMN_MAP, QueryDefinition, run_outcomes_query_totals
@@ -136,7 +137,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_SUMMARY_EVENT_COUNT,
     )
-    def get(self, request: Request, organization) -> HttpResponse:
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
         """
         Query summarized event counts by project for your Organization. Also see https://docs.sentry.io/api/organizations/retrieve-event-counts-for-an-organization-v2/ for reference.
         """

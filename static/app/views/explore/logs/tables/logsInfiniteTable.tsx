@@ -23,9 +23,12 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {
+  useAutorefreshEnabledOrWithinPauseWindow,
+  useLogsAutoRefreshEnabled,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAutoRefresh,
   useLogsFields,
   useLogsIsTableFrozen,
   useLogsSearch,
@@ -72,7 +75,7 @@ export function LogsInfiniteTable({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const isTableFrozen = useLogsIsTableFrozen();
-  const autoRefresh = useLogsAutoRefresh();
+  const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {
     isPending,
@@ -94,6 +97,10 @@ export function LogsInfiniteTable({
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
+  const isAutorefreshEnabledOrWithinPauseWindow =
+    useAutorefreshEnabledOrWithinPauseWindow();
+  const scrollFetchDisabled =
+    isFunctionScrolling || !isAutorefreshEnabledOrWithinPauseWindow;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -161,7 +168,7 @@ export function LogsInfiniteTable({
   }, [isFunctionScrolling, isScrolling, scrollOffset]);
 
   useEffect(() => {
-    if (isScrolling && !isFunctionScrolling) {
+    if (isScrolling && !scrollFetchDisabled) {
       if (
         scrollDirection === 'backward' &&
         scrollOffset &&
@@ -187,6 +194,7 @@ export function LogsInfiniteTable({
     lastPageLength,
     scrollOffset,
     isFunctionScrolling,
+    scrollFetchDisabled,
   ]);
 
   const handleExpand = useCallback((logItemId: string) => {

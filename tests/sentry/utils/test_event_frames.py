@@ -15,7 +15,7 @@ from sentry.utils.safe import get_path
 
 
 class SdkNameTestCase(TestCase):
-    def test_sdk_data_pathing(self):
+    def test_sdk_data_pathing(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -31,7 +31,7 @@ class SdkNameTestCase(TestCase):
         assert str(get_path(event.data, "sdk", "version", filter=True)) == "1.2.3"
         assert not get_path(event.data, "sdk", "does_not_exist", filter=True)
 
-    def test_sdk_data_not_exist(self):
+    def test_sdk_data_not_exist(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -44,39 +44,39 @@ class SdkNameTestCase(TestCase):
 
 
 class CrashingThreadTestCase(unittest.TestCase):
-    def test_return_none(self):
+    def test_return_none(self) -> None:
         assert not get_crashing_thread([])
         assert not get_crashing_thread(None)
         assert not get_crashing_thread([{}, {}, {}])
         assert not get_crashing_thread([{}])
 
-    def test_single_crashed_thread(self):
+    def test_single_crashed_thread(self) -> None:
         thread_frames = [{"id": 1, "crashed": True}, {"id": 2, "crashed": False}]
         assert get_crashing_thread(thread_frames) == thread_frames[0]
 
-    def test_multiple_crashed_threads(self):
+    def test_multiple_crashed_threads(self) -> None:
         thread_frames = [{"id": 1, "crashed": True}, {"id": 2, "crashed": True}]
         assert not get_crashing_thread(thread_frames)
 
-    def test_single_current_thread(self):
+    def test_single_current_thread(self) -> None:
         thread_frames = [{"id": 1, "current": True}, {"id": 2, "crashed": False}]
         assert get_crashing_thread(thread_frames) == thread_frames[0]
 
-    def test_multiple_current_thread(self):
+    def test_multiple_current_thread(self) -> None:
         thread_frames = [{"id": 1, "current": True}, {"id": 2, "current": True}]
         assert not get_crashing_thread(thread_frames)
 
 
 class FilenameMungingTestCase(unittest.TestCase):
-    def test_platform_other(self):
+    def test_platform_other(self) -> None:
         fake_frame = [{"filename": "should_not_change.py"}]
         assert not munged_filename_and_frames("other", fake_frame)
         assert fake_frame[0]["filename"] == "should_not_change.py"
 
-    def test_platform_sdk_name_not_supported(self):
+    def test_platform_sdk_name_not_supported(self) -> None:
         assert not munged_filename_and_frames("javascript", [], "munged", "sdk.other")
 
-    def test_supported_platform_sdk_name_not_required(self):
+    def test_supported_platform_sdk_name_not_required(self) -> None:
         frames = [
             {
                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
@@ -88,7 +88,7 @@ class FilenameMungingTestCase(unittest.TestCase):
 
 
 class JavaFilenameMungingTestCase(unittest.TestCase):
-    def test_platform_java(self):
+    def test_platform_java(self) -> None:
         frames = [
             {
                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
@@ -116,14 +116,14 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
         for z in zip(frames, munged_frames):
             assert z[0].items() <= z[1].items()
 
-    def test_platform_java_no_filename(self):
+    def test_platform_java_no_filename(self) -> None:
         no_filename = {
             "module": "io.sentry.example.Application",
         }
         no_munged = munged_filename_and_frames("java", [no_filename])
         assert not no_munged
 
-    def test_platform_java_no_module(self):
+    def test_platform_java_no_module(self) -> None:
         no_module = {
             "filename": "Application.java",
         }
@@ -140,7 +140,7 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
         munged = munged_filename_and_frames("java", [frame])
         assert munged is None
 
-    def test_platform_android_kotlin(self):
+    def test_platform_android_kotlin(self) -> None:
         exception_frames = [
             {
                 "function": "main",
@@ -279,7 +279,7 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
 
 
 class CocoaFilenameMungingTestCase(unittest.TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         exception_frame = {
             "function": "main",
             "symbol": "main",
@@ -297,7 +297,7 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
         munged_filename = cocoa_frame_munger(EventFrame.from_dict(exception_frame))
         assert munged_filename == "SampleProject/Classes/App Delegate/AppDelegate.swift"
 
-    def test_missing_required_no_munging(self):
+    def test_missing_required_no_munging(self) -> None:
         assert cocoa_frame_munger(
             EventFrame(
                 package="SampleProject",
@@ -317,7 +317,7 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             )
         )
 
-    def test_package_relative_repeats(self):
+    def test_package_relative_repeats(self) -> None:
         exception_frame = {
             "package": "SampleProject",
             "filename": "AppDelegate.swift",
@@ -330,7 +330,7 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             == "SampleProject/more/dirs/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
         )
 
-    def test_path_relative(self):
+    def test_path_relative(self) -> None:
         assert not package_relative_path("", "")
         assert not package_relative_path(None, None)
         assert package_relative_path("/a/b/c/d/e/file.txt", "/d/") == "d/e/file.txt"
@@ -357,7 +357,7 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
 
 
 class ReactNativeFilenameMungingTestCase(TestCase):
-    def test_not_munged(self):
+    def test_not_munged(self) -> None:
         frames = [
             {
                 "function": "callFunctionReturnFlushedQueue",
@@ -389,7 +389,7 @@ class ReactNativeFilenameMungingTestCase(TestCase):
 
 
 class FlutterFilenameMungingTestCase(TestCase):
-    def test_not_munged(self):
+    def test_not_munged(self) -> None:
         frames = [
             {
                 "package": "my_package",
@@ -401,7 +401,7 @@ class FlutterFilenameMungingTestCase(TestCase):
         munged_frames = munged_filename_and_frames("other", frames, "doesnt_matter", "sentry.sdk")
         assert not munged_frames
 
-    def test_flutter_munger_supported(self):
+    def test_flutter_munger_supported(self) -> None:
         frames = [
             {
                 "function": "tryCatchModule",
@@ -421,12 +421,12 @@ class FlutterFilenameMungingTestCase(TestCase):
         assert munged_first_frame.items() > frames[0].items()
         assert munged_first_frame["munged_filename"] == "a/b/test.dart"
 
-    def test_dart_prefix_not_munged(self):
+    def test_dart_prefix_not_munged(self) -> None:
         assert not flutter_frame_munger(
             EventFrame(abs_path="dart:ui/a/b/test.dart"),
         )
 
-    def test_abs_path_not_present_not_munged(self):
+    def test_abs_path_not_present_not_munged(self) -> None:
         assert not flutter_frame_munger(
             EventFrame(
                 function="tryCatchModule",
@@ -435,7 +435,7 @@ class FlutterFilenameMungingTestCase(TestCase):
             )
         )
 
-    def test_different_package_not_munged(self):
+    def test_different_package_not_munged(self) -> None:
         assert not flutter_frame_munger(
             EventFrame(
                 package="sentry_flutter_example",
@@ -443,7 +443,7 @@ class FlutterFilenameMungingTestCase(TestCase):
             )
         )
 
-    def test_no_package_not_munged(self):
+    def test_no_package_not_munged(self) -> None:
         assert not flutter_frame_munger(
             EventFrame(
                 abs_path="package:different_package/a/b/test.dart",
@@ -854,7 +854,7 @@ class CocoaWaterFallTestCase(TestCase):
 
 
 class WaterFallTestCase(TestCase):
-    def test_only_exception_interface_with_no_stacktrace(self):
+    def test_only_exception_interface_with_no_stacktrace(self) -> None:
         event = self.store_event(
             data={
                 "exception": {
@@ -872,7 +872,7 @@ class WaterFallTestCase(TestCase):
         frames = find_stack_frames(event.data)
         assert len(frames) == 0
 
-    def test_only_exception_interface_single_stacktrace(self):
+    def test_only_exception_interface_single_stacktrace(self) -> None:
         event = self.store_event(
             data={
                 "exception": {
@@ -904,7 +904,7 @@ class WaterFallTestCase(TestCase):
         assert frames[0]["function"] == "invoke0"
         assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
-    def test_only_stacktrace_interface(self):
+    def test_only_stacktrace_interface(self) -> None:
         event = self.store_event(
             data={
                 "stacktrace": {
@@ -928,7 +928,7 @@ class WaterFallTestCase(TestCase):
         assert frames[0]["function"] == "invoke0"
         assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
-    def test_only_thread_interface(self):
+    def test_only_thread_interface(self) -> None:
         event = self.store_event(
             data={
                 "threads": {
@@ -961,7 +961,7 @@ class WaterFallTestCase(TestCase):
         assert frames[0]["function"] == "invoke0"
         assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
-    def test_only_thread_interface_flattened(self):
+    def test_only_thread_interface_flattened(self) -> None:
         event = self.store_event(
             data={
                 "threads": [
@@ -992,7 +992,7 @@ class WaterFallTestCase(TestCase):
         assert frames[0]["function"] == "invoke0"
         assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
-    def test_exception_and_stacktrace_interfaces(self):
+    def test_exception_and_stacktrace_interfaces(self) -> None:
         exception_frame = {
             "function": "invoke0",
             "abs_path": "NativeMethodAccessorImpl.java",
@@ -1028,7 +1028,7 @@ class WaterFallTestCase(TestCase):
         assert len(frames) == 1
         assert exception_frame.items() <= frames[0].items()
 
-    def test_exception_and_stacktrace_and_thread_interfaces(self):
+    def test_exception_and_stacktrace_and_thread_interfaces(self) -> None:
         # no stacktrace frame in exception interface, so we waterfall to the threads interface
         event = self.store_event(
             data={

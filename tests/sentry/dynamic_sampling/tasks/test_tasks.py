@@ -330,7 +330,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         num_orgs = 3
@@ -549,7 +549,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
     def now(self):
         return MOCK_DATETIME
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.orgs_info = []
         self.orgs = []
@@ -683,7 +683,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @with_feature("organizations:dynamic-sampling-custom")
-    def test_recalibrate_orgs_with_custom_ds(self):
+    def test_recalibrate_orgs_with_custom_ds(self) -> None:
         """
         Test several organizations with mixed sampling mode.
 

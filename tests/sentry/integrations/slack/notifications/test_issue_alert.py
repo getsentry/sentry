@@ -46,7 +46,7 @@ def fake_get_tags(event_for_tags, tags):
 
 
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
@@ -62,7 +62,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             },
         )
 
-    def test_issue_alert_user_block(self):
+    def test_issue_alert_user_block(self) -> None:
         """
         Test that issues alert are sent to a Slack user with the proper payload when block kit is
         enabled.
@@ -140,7 +140,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @responses.activate
-    def test_crons_issue_alert_user_block(self):
+    def test_crons_issue_alert_user_block(self) -> None:
         orig_event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -314,7 +314,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             issue_link_extra_params="&workflow_id=1234567890&alert_type=issue",
         )
 
-    def test_disabled_org_integration_for_user(self):
+    def test_disabled_org_integration_for_user(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.get(integration=self.integration).update(
                 status=ObjectStatus.DISABLED
@@ -333,7 +333,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert not self.mock_post.called
 
-    def test_issue_alert_issue_owners_block(self):
+    def test_issue_alert_issue_owners_block(self) -> None:
         """
         Test that issue alerts are sent to issue owners in Slack with the proper payload when block
         kit is enabled.
@@ -387,7 +387,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
-    def test_issue_alert_issue_owners_environment_block(self):
+    def test_issue_alert_issue_owners_environment_block(self) -> None:
         """
         Test that issue alerts are sent to issue owners in Slack with the environment in the query
         params when the alert rule filters by environment and block kit is enabled.
@@ -450,7 +450,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_team_issue_owners_block(self):
+    def test_issue_alert_team_issue_owners_block(self) -> None:
         """
         Test that issue alerts are sent to a team in Slack via an Issue Owners rule action with the
         proper payload when block kit is enabled.
@@ -552,7 +552,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_disabled_org_integration_for_team(self):
+    def test_disabled_org_integration_for_team(self) -> None:
         # update the team's notification settings
         ExternalActor.objects.create(
             team_id=self.team.id,
@@ -712,7 +712,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{self.project.slug} | <http://testserver/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
-    def test_issue_alert_team_block(self):
+    def test_issue_alert_team_block(self) -> None:
         """Test that issue alerts are sent to a team in Slack when block kit is enabled."""
         # add a second organization
         org = self.create_organization(owner=self.user)
@@ -804,7 +804,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{event.project.slug} | <http://example.com/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
-    def test_issue_alert_team_new_project(self):
+    def test_issue_alert_team_new_project(self) -> None:
         """Test that issue alerts are sent to a team in Slack when the team has added a new project"""
 
         # add a second user to the team so we can be sure it's only
@@ -887,7 +887,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{project2.slug} | <http://example.com/settings/{self.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
-    def test_not_issue_alert_team_removed_project(self):
+    def test_not_issue_alert_team_removed_project(self) -> None:
         """Test that issue alerts are not sent to a team in Slack when the team has removed the project the issue belongs to"""
 
         # create the team's notification settings
@@ -934,7 +934,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert self.mock_post.call_count == 0
 
-    def test_issue_alert_team_fallback(self):
+    def test_issue_alert_team_fallback(self) -> None:
         """Test that issue alerts are sent to each member of a team in Slack."""
 
         user2 = self.create_user(is_superuser=False)

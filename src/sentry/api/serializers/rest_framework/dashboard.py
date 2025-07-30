@@ -376,6 +376,15 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
             )
+        if (
+            features.has(
+                "organizations:discover-saved-queries-deprecation", self.context["organization"]
+            )
+            and widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
+        ):
+            raise serializers.ValidationError(
+                "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+            )
         return widget_type
 
     validate_id = validate_id
@@ -980,6 +989,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
+    )
+    is_favorited = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Favorite the dashboard automatically for the request user",
     )
 
 

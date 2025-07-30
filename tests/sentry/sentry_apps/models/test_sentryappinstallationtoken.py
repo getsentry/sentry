@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppInstallationTokenTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.application = ApiApplication.objects.create(owner=self.user)
         self.provider = "provider"
 
@@ -36,13 +36,13 @@ class SentryAppInstallationTokenTest(TestCase):
             sentry_app_installation=self.install,
         )
 
-    def test_get_token_empty(self):
+    def test_get_token_empty(self) -> None:
         assert not SentryAppInstallationToken.objects.get_token(self.organization.id, self.provider)
 
-    def test_get_token_invalid(self):
+    def test_get_token_invalid(self) -> None:
         assert not SentryAppInstallationToken.objects.get_token(self.organization.id, "")
 
-    def test_get_token(self):
+    def test_get_token(self) -> None:
         SentryAppInstallationToken.objects.create(
             api_token=self.api_token, sentry_app_installation=self.install
         )

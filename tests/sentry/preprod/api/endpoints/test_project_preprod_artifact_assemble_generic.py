@@ -14,7 +14,7 @@ from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 
 @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
 class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
@@ -121,7 +121,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         )
         self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
 
-    def test_unsupported_assemble_type(self):
+    def test_unsupported_assemble_type(self) -> None:
         data = {
             "checksum": "b" * 40,
             "chunks": ["c" * 40],
@@ -132,7 +132,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert response.status_code == 400
         assert "assemble_type" in response.json()["error"]
 
-    def test_missing_chunks_and_empty_chunks(self):
+    def test_missing_chunks_and_empty_chunks(self) -> None:
         # Test missing chunks
         response = self._make_request(
             {
@@ -157,7 +157,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert response.status_code == 200
         assert response.json()["state"] == ChunkFileState.NOT_FOUND
 
-    def test_existing_status(self):
+    def test_existing_status(self) -> None:
         blob = self._create_blobs(1)[0]
         checksum = "e" * 40
 
@@ -182,7 +182,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert resp_data["state"] == ChunkFileState.ASSEMBLING
         assert resp_data["detail"] == "Processing"
 
-    def test_validation_errors(self):
+    def test_validation_errors(self) -> None:
         test_cases = [
             (b"invalid json", "Invalid json body"),
             ({"chunks": ["a" * 40], "assemble_type": "size_analysis"}, "checksum"),
@@ -217,7 +217,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
                 assert response.status_code == 400
                 assert expected_error_contains in response.json()["error"]
 
-    def test_unauthorized(self):
+    def test_unauthorized(self) -> None:
         response = self._make_request(
             {
                 "checksum": "0" * 40,
@@ -228,7 +228,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         )
         assert response.status_code == 403
 
-    def test_artifact_id_passed_to_task(self):
+    def test_artifact_id_passed_to_task(self) -> None:
         """Test that arbitrary artifact_id values are accepted and passed to the task."""
         blob = self._create_blobs(1)[0]
         checksum = "9" * 40

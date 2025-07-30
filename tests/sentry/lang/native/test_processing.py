@@ -22,13 +22,13 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 
-def test_merge_symbolicator_image_empty():
+def test_merge_symbolicator_image_empty() -> None:
     data: dict[str, Any] = {}
     _merge_image({}, {}, None, data)
     assert not data.get("errors")
 
 
-def test_merge_symbolicator_image_basic():
+def test_merge_symbolicator_image_basic() -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo"}
     sdk_info = {"sdk_name": "linux"}
     complete_image = {
@@ -52,7 +52,7 @@ def test_merge_symbolicator_image_basic():
     }
 
 
-def test_merge_symbolicator_image_basic_success():
+def test_merge_symbolicator_image_basic_success() -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo"}
     sdk_info = {"sdk_name": "linux"}
     complete_image = {
@@ -76,7 +76,7 @@ def test_merge_symbolicator_image_basic_success():
     }
 
 
-def test_merge_symbolicator_image_remove_unknown_arch():
+def test_merge_symbolicator_image_remove_unknown_arch() -> None:
     raw_image = {"instruction_addr": 0xFEEBEE}
     sdk_info = {"sdk_name": "linux"}
     complete_image = {"debug_status": "found", "unwind_status": "found", "arch": "unknown"}
@@ -163,7 +163,7 @@ def test_cocoa_function_name(mock_symbolicator, default_project):
     assert function_name == "thunk for closure"
 
 
-def test_filter_frames():
+def test_filter_frames() -> None:
 
     frames = [
         {
@@ -183,7 +183,7 @@ def test_filter_frames():
     assert len(filtered_frames) == 0
 
 
-def test_instruction_addr_adjustment_auto():
+def test_instruction_addr_adjustment_auto() -> None:
     frames = [
         {"instruction_addr": "0xdeadbeef", "platform": "native"},
         {"instruction_addr": "0xbeefdead", "platform": "native"},
@@ -195,7 +195,7 @@ def test_instruction_addr_adjustment_auto():
     assert "adjust_instruction_addr" not in processed_frames[1].keys()
 
 
-def test_instruction_addr_adjustment_all():
+def test_instruction_addr_adjustment_all() -> None:
     frames = [
         {"instruction_addr": "0xdeadbeef", "platform": "native"},
         {"instruction_addr": "0xbeefdead", "platform": "native"},
@@ -207,7 +207,7 @@ def test_instruction_addr_adjustment_all():
     assert "adjust_instruction_addr" not in processed_frames[1].keys()
 
 
-def test_instruction_addr_adjustment_all_but_first():
+def test_instruction_addr_adjustment_all_but_first() -> None:
     frames = [
         {"instruction_addr": "0xdeadbeef", "platform": "native"},
         {"instruction_addr": "0xbeefdead", "platform": "native"},
@@ -219,7 +219,7 @@ def test_instruction_addr_adjustment_all_but_first():
     assert "adjust_instruction_addr" not in processed_frames[1].keys()
 
 
-def test_instruction_addr_adjustment_none():
+def test_instruction_addr_adjustment_none() -> None:
     frames = [
         {"instruction_addr": "0xdeadbeef", "platform": "native"},
         {"instruction_addr": "0xbeefdead", "platform": "native"},
@@ -231,7 +231,7 @@ def test_instruction_addr_adjustment_none():
     assert not processed_frames[1]["adjust_instruction_addr"]
 
 
-def test_rewrite_electron_debug_file():
+def test_rewrite_electron_debug_file() -> None:
     def rewrite(debug_file):
         for rule in ELECTRON_FIRST_MODULE_REWRITE_RULES:
             # Need to patch the regexes and replacement strings here
@@ -282,7 +282,7 @@ def test_il2cpp_symbolication(mock_symbolicator, default_project):
             "values": [
                 {
                     "type": "System.InvalidOperationException",
-                    "value": "Exception from a lady beetle \uD83D\uDC1E",
+                    "value": "Exception from a lady beetle \ud83d\udc1e",
                     "module": "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
                     "thread_id": 1,
                     "stacktrace": {

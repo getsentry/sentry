@@ -3611,6 +3611,34 @@ describe('Customer Details', function () {
       expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
     });
   });
+
+  describe('generate spike projections', function () {
+    const org = OrganizationFixture({});
+
+    it('renders generate spike projections in the dropdown', async function () {
+      setUpMocks(org);
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: `/customers/${org.slug}`,
+          route: `/customers/:orgId`,
+        },
+        organization: org,
+      });
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[0]!
+      );
+
+      expect(
+        screen.getByRole('option', {name: /Generate Spike Projections/})
+      ).toBeInTheDocument();
+    });
+  });
 });
 
 describe('Gift Categories Availability', function () {

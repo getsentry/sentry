@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectReleaseSetupCompletionTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         release = self.create_release(project, self.user)
         self.create_group(project=project, first_release=release)
@@ -40,7 +40,7 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
         assert response.data[3]["step"] == "deploy"
         assert response.data[3]["complete"] is False
 
-    def test_commit_different_project(self):
+    def test_commit_different_project(self) -> None:
         project = self.create_project()
         other_project = self.create_project()
 
