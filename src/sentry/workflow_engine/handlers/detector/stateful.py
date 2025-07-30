@@ -613,7 +613,10 @@ class StatefulDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None, new_priority
 
-        condition_evaluation, _ = process_data_condition_group(self.condition_group, value)
+        condition_evaluation, remaining_slow_conditions = process_data_condition_group(
+            self.condition_group, value
+        )
+        assert not remaining_slow_conditions, "Slow conditions should not be present"
 
         if condition_evaluation.logic_result:
             validated_condition_results: list[DetectorPriorityLevel] = [
