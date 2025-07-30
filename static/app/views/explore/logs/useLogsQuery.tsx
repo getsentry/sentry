@@ -79,10 +79,12 @@ export function usePrefetchLogTableRowOnHover({
   traceId,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
+  timeout,
 }: {
   logId: string | number;
   projectId: string;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  timeout: number;
   traceId: string;
   hoverPrefetchDisabled?: boolean;
 }) {
@@ -93,6 +95,7 @@ export function usePrefetchLogTableRowOnHover({
     traceItemType: TraceItemDataset.LOGS,
     hoverPrefetchDisabled,
     sharedHoverTimeoutRef,
+    timeout,
     referrer: 'api.explore.log-item-details',
   });
 }

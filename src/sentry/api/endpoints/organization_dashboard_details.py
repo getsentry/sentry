@@ -30,6 +30,7 @@ from sentry.models.dashboard import (
     DashboardLastVisited,
     DashboardTombstone,
 )
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 
 EDIT_FEATURE = "organizations:dashboards-edit"
@@ -139,7 +140,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         },
         examples=DashboardExamples.DASHBOARD_PUT_RESPONSE,
     )
-    def put(self, request: Request, organization, dashboard) -> Response:
+    def put(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Edit an organization's custom dashboard as well as any bulk
         edits on widgets that may have been made. (For example, widgets
@@ -227,7 +228,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def put(self, request: Request, organization, dashboard) -> Response:
+    def put(self, request: Request, organization: Organization, dashboard) -> Response:
         """
         Toggle favorite status for current user by adding or removing
         current user from dashboard favorites
