@@ -3,14 +3,14 @@ from unittest.mock import ANY, patch
 
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:single-trace-summary")
-@apply_feature_flag_on_cls("organizations:trace-spans-format")
+@with_feature("organizations:single-trace-summary")
+@with_feature("organizations:trace-spans-format")
 class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

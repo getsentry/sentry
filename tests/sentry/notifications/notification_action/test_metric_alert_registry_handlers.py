@@ -34,7 +34,7 @@ from sentry.notifications.notification_action.types import BaseMetricAlertHandle
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Condition
@@ -60,7 +60,7 @@ class TestHandler(BaseMetricAlertHandler):
         pass
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
+@with_feature("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
         self.project = self.create_project()
@@ -271,7 +271,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
+@with_feature("organizations:issue-open-periods")
 class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         super().setUp()

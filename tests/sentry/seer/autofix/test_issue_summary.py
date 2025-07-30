@@ -14,7 +14,7 @@ from sentry.seer.autofix.issue_summary import (
 )
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -22,7 +22,7 @@ from sentry.utils.locking import UnableToAcquireLock
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 class IssueSummaryTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

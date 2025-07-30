@@ -9,11 +9,11 @@ from sentry.models.repository import Repository
 from sentry.seer.endpoints.group_autofix_setup_check import get_repos_and_access
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

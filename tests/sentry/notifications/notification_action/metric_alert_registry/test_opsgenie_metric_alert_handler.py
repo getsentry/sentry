@@ -13,14 +13,14 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     OpsgenieMetricAlertHandler,
 )
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import Action
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
+@with_feature("organizations:issue-open-periods")
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
         self.create_models()

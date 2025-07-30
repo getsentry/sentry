@@ -5,13 +5,13 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:performance-web-vitals-seer-suggestions")
+@with_feature("organizations:performance-web-vitals-seer-suggestions")
 class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

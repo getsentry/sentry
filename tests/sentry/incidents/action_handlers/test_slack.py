@@ -21,7 +21,7 @@ from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
@@ -29,7 +29,7 @@ from . import FireTest
 
 
 @freeze_time()
-@apply_feature_flag_on_cls("organizations:metric-alert-thread-flag")
+@with_feature("organizations:metric-alert-thread-flag")
 class SlackActionHandlerTest(FireTest):
     @pytest.fixture(autouse=True)
     def mock_chat_postEphemeral(self):
