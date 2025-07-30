@@ -1,8 +1,15 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
+
+jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/usePageFilters');
 
 const TRANSACTION_NAME = 'transaction';
 
@@ -12,6 +19,10 @@ describe('PageOverviewSidebar', () => {
   });
 
   beforeEach(() => {
+    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {
@@ -22,7 +33,7 @@ describe('PageOverviewSidebar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
-        data: [],
+        data: [{trace: '123'}],
       },
     });
 
@@ -43,8 +54,12 @@ describe('PageOverviewSidebar', () => {
     });
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should render', () => {
-    render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />);
+    render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
 
     expect(screen.getByText('Performance Score')).toBeInTheDocument();
     expect(screen.getByText('Page Loads')).toBeInTheDocument();

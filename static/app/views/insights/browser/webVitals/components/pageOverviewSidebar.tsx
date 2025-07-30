@@ -115,22 +115,17 @@ export function PageOverviewSidebar({
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   // Query for 3 trace samples, targetting pageloads
-  const {data: traceSamples, isLoading: isLoadingTraceSamples} =
-    useSpanSamplesWebVitalsQuery({
-      transaction,
-      limit: 3,
-      webVital: 'ttfb', // Using TTFB as a proxy for pageloads
-      enabled: hasSeerWebVitalsSuggestions,
-    });
+  const {data: traceSamples} = useSpanSamplesWebVitalsQuery({
+    transaction,
+    limit: 3,
+    webVital: 'ttfb', // Using TTFB as a proxy for pageloads
+    enabled: hasSeerWebVitalsSuggestions,
+  });
 
   const traceIds = traceSamples?.map(sample => sample.trace);
 
   const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary(traceIds, {
-    enabled:
-      traceIds &&
-      traceIds.length > 0 &&
-      hasSeerWebVitalsSuggestions &&
-      !isLoadingTraceSamples,
+    enabled: hasSeerWebVitalsSuggestions && traceIds && traceIds.length > 0,
   });
 
   const insightCards = [
