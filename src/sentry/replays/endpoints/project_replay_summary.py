@@ -160,7 +160,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         segment_md = fetch_segments_metadata(project.id, replay_id, 0, MAX_SEGMENTS_TO_SUMMARIZE)
         if len(segment_md) >= MAX_SEGMENTS_TO_SUMMARIZE:
             logger.warning(
-                "Replay hit max segment limit.",
+                "Replay Summary: hit max segment limit.",
                 extra={
                     "replay_id": replay_id,
                     "project_id": project.id,
