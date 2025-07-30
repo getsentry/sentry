@@ -64,10 +64,23 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 return None
 
             # Try to find the active incident for this alert rule and project
-            incident = Incident.objects.get_active_incident(
-                alert_rule_id=alert_id,
-                project=group.project,
-            )
+            from sentry.incidents.models.alert_rule import AlertRule
+
+            try:
+                alert_rule = AlertRule.objects.get(id=alert_id)
+                incident = Incident.objects.get_active_incident(
+                    alert_rule=alert_rule,
+                    project=group.project,
+                )
+            except AlertRule.DoesNotExist:
+                logger.warning(
+                    "AlertRule not found for alert_id",
+                    extra={
+                        "alert_id": alert_id,
+                        "group_id": group.id,
+                    },
+                )
+                incident = None
 
             if incident:
                 # Incident exists, create the relationship immediately
@@ -173,7 +186,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             # Find all open periods that have a pending incident alert_id for this alert rule
             pending_open_periods = GroupOpenPeriod.objects.filter(
                 data__pending_incident_alert_id=alert_rule.id,
-                group__project=incident.project,
+                group__project__in=incident.projects.all(),
             )
 
             for open_period in pending_open_periods:
