@@ -11,7 +11,7 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
-const POLL_INTERVAL = 500;
+const POLL_INTERVAL_MS = 500;
 
 function createAISummaryQueryKey(
   orgSlug: string,
@@ -65,7 +65,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
       retry: false,
       refetchInterval: query => {
         if (isPolling(query.state.data?.[0] || undefined, isTriggerPending)) {
-          return POLL_INTERVAL;
+          return POLL_INTERVAL_MS;
         }
         return false;
       },
