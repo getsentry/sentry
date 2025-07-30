@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import random
 import uuid
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeVar
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -408,6 +408,9 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "timestamp": float(payload["startTimestamp"]),
             }
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
+            payload = event["data"]["payload"]
+            payload_data = payload.get("data", {})
+
             return {
                 "attributes": {
                     "category": (
@@ -415,13 +418,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                         if event_type == EventType.RESOURCE_SCRIPT
                         else "resource.img"
                     ),
-                    "size": int(event["data"]["payload"]["data"]["size"]),
-                    "statusCode": int(event["data"]["payload"]["data"]["statusCode"]),
-                    "decodedBodySize": int(event["data"]["payload"]["data"]["decodedBodySize"]),
-                    "encodedBodySize": int(event["data"]["payload"]["data"]["encodedBodySize"]),
-                    "url": as_string_strict(event["data"]["payload"]["description"]),
-                    "duration": float(event["data"]["payload"]["endTimestamp"])
-                    - float(event["data"]["payload"]["startTimestamp"]),
+                    "url": as_string_strict(payload["description"]),
+                    "duration": float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
+                    # Optional fields are extracted safely but type coerced strictly.
+                    **set_if(
+                        ["size", "statusCode", "decodedBodySize", "encodedBodySize"],
+                        payload_data,
+                        int,
+                    ),
                 },
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
@@ -519,6 +523,13 @@ def as_string_strict(value: Any) -> str:
     if isinstance(value, str):
         return value
     raise ValueError("Value was not a string.")
+
+
+T = TypeVar("T")
+
+
+def set_if(keys: list[str], data: dict[str, Any], value_fn: Callable[[Any], T]) -> dict[str, T]:
+    return {key: value_fn(data[key]) for key in keys if key in data}
 
 
 #

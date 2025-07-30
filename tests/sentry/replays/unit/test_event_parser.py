@@ -1114,6 +1114,28 @@ def test_as_trace_item_context_resource_script_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_resource_script_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.script",
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.script"
+    assert "duration" in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_resource_image_event() -> None:
     event = {
         "type": 5,
