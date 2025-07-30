@@ -56,7 +56,6 @@ export function useIntervalChoices({dataset, detectionType}: UseIntervalChoicesP
         return timeWindow >= TimeWindow.ONE_HOUR;
       }
       if (isDynamicDetection) {
-        // Match alert system dynamic detection: only 15min, 30min, 1hour
         return dynamicIntervalChoices.includes(timeWindow);
       }
       if (isEAPDerivedDataset) {
