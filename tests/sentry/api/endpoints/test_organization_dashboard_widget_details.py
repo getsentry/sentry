@@ -1351,3 +1351,31 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_valid_widget_type_with_transactions_deprecation_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "title": "Test Query",
+                "widgetType": "transaction-like",
+                "displayType": "table",
+                "queries": [
+                    {
+                        "name": "transaction query",
+                        "conditions": "",
+                        "fields": ["count()"],
+                        "columns": [],
+                        "aggregates": ["count()"],
+                    }
+                ],
+            }
+
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+            assert response.status_code == 400, response.data
+            assert (
+                response.data["widgetType"][0]
+                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+            )

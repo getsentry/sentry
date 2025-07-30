@@ -2661,6 +2661,38 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["queries"][0]["fields"] == ["issue", "title"]
         assert response.data["widgets"][0]["widgetType"] == "issue"
 
+    def test_dashboard_transaction_widget_deprecation_with_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "title": "Test Dashboard",
+                "widgets": [
+                    {
+                        "title": "Transaction Widget",
+                        "displayType": "table",
+                        "widgetType": DashboardWidgetTypes.get_type_name(
+                            DashboardWidgetTypes.TRANSACTION_LIKE
+                        ),
+                        "queries": [
+                            {
+                                "name": "Transaction Widget",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "-count()",
+                                "columns": [],
+                                "fieldAliases": [],
+                            }
+                        ],
+                    }
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400
+            assert (
+                response.data["widgets"][0]["widgetType"][0]
+                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+            )
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
