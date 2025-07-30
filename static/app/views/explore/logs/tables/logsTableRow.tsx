@@ -29,7 +29,6 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsAnalyticsPageSource,
-  useLogsBlockRowExpanding,
   useLogsFields,
   useLogsIsTableFrozen,
   useLogsSearch,
@@ -80,6 +79,7 @@ type LogsRowProps = {
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  blockRowExpanding?: boolean;
   canDeferRenderElements?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
@@ -117,6 +117,7 @@ export const LogRowContent = memo(function LogRowContent({
   onExpand,
   onCollapse,
   onExpandHeight,
+  blockRowExpanding,
   canDeferRenderElements,
 }: LogsRowProps) {
   const location = useLocation();
@@ -125,7 +126,6 @@ export const LogRowContent = memo(function LogRowContent({
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
   const isTableFrozen = useLogsIsTableFrozen();
-  const blockRowExpanding = useLogsBlockRowExpanding();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
