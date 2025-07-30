@@ -12,6 +12,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     as_trace_item,
     as_trace_item_context,
     parse_events,
+    set_if,
     which,
 )
 from sentry.utils import json
@@ -1583,3 +1584,12 @@ def test_parse_events_disabled(options_get):
 
     assert len(trace_items) == 0
     assert len(parsed.click_events) == 1
+
+
+def test_set_if():
+    assert set_if(["a", "b"], {"a": 1}, str) == {"a": "1"}
+    assert set_if(["a", "b"], {"b": 2}, str) == {"b": "2"}
+    assert set_if(["a", "b"], {}, str) == {}
+
+    with pytest.raises(ValueError):
+        assert set_if(["a", "b"], {"b": "hello"}, int)
