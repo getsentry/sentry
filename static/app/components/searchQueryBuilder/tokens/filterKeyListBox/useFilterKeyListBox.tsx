@@ -394,7 +394,6 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         });
         setDisplaySeerResults(true);
 
-        // Set flag to auto-submit if there's text in the input
         if (currentInputValue?.trim()) {
           setAutoSubmitSeer(true);
         } else {
