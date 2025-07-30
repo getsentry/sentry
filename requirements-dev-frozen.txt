@@ -4,6 +4,7 @@
 #
 #    make freeze-requirements
 #
+--index-url https://pypi.devinfra.sentry.io/simple
 
 amqp==5.3.1
 anyio==3.7.1
