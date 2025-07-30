@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 from uuid import UUID
 
+from sentry.analytics.events.relocation_forked import RelocationForkedEvent
 from sentry.api.endpoints.organization_fork import (
     ERR_CANNOT_FORK_FROM_REGION,
     ERR_CANNOT_FORK_INTO_SAME_REGION,
@@ -13,6 +14,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 
@@ -82,14 +84,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
@@ -121,14 +125,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options(
@@ -159,14 +165,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options(
@@ -197,14 +205,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options(
@@ -245,14 +255,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
@@ -291,14 +303,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
@@ -470,14 +484,16 @@ class OrganizationForkTest(APITestCase):
             )
 
             assert analytics_record_mock.call_count == 1
-            analytics_record_mock.assert_called_with(
-                "relocation.forked",
-                creator_id=int(response.data["creator"]["id"]),
-                owner_id=int(response.data["owner"]["id"]),
-                uuid=response.data["uuid"],
-                from_org_slug=self.requested_org_slug,
-                requesting_region_name=REQUESTING_TEST_REGION,
-                replying_region_name=EXPORTING_TEST_REGION,
+            assert_last_analytics_event(
+                analytics_record_mock,
+                RelocationForkedEvent(
+                    creator_id=int(response.data["creator"]["id"]),
+                    owner_id=int(response.data["owner"]["id"]),
+                    uuid=response.data["uuid"],
+                    from_org_slug=self.requested_org_slug,
+                    requesting_region_name=REQUESTING_TEST_REGION,
+                    replying_region_name=EXPORTING_TEST_REGION,
+                ),
             )
 
     for stat in [
@@ -553,14 +569,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
@@ -602,14 +620,16 @@ class OrganizationForkTest(APITestCase):
         )
 
         assert analytics_record_mock.call_count == 1
-        analytics_record_mock.assert_called_with(
-            "relocation.forked",
-            creator_id=int(response.data["creator"]["id"]),
-            owner_id=int(response.data["owner"]["id"]),
-            uuid=response.data["uuid"],
-            from_org_slug=self.requested_org_slug,
-            requesting_region_name=REQUESTING_TEST_REGION,
-            replying_region_name=EXPORTING_TEST_REGION,
+        assert_last_analytics_event(
+            analytics_record_mock,
+            RelocationForkedEvent(
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            ),
         )
 
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
