@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import orjson
@@ -118,7 +118,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
-    def test_basic_flow(self, mock_sha):
+    def test_basic_flow(self, mock_sha: MagicMock) -> None:
         sha = Mock()
         sha.hexdigest.return_value = "secret-token"
         mock_sha.return_value = sha
@@ -325,7 +325,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_get_stacktrace_link_use_default_if_version_404(self, mock_record_halt):
+    def test_get_stacktrace_link_use_default_if_version_404(
+        self, mock_record_halt: MagicMock
+    ) -> None:
         self.assert_setup_flow()
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
@@ -586,7 +588,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
-    def test_basic_flow(self, mock_sha):
+    def test_basic_flow(self, mock_sha: MagicMock) -> None:
         sha = Mock()
         sha.hexdigest.return_value = "secret-token"
         mock_sha.return_value = sha

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.alert_rule import (
@@ -226,7 +226,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
         return_value=AlertTarget(123, "test"),
     )
-    def test_trigger_actions(self, mock_get):
+    def test_trigger_actions(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "test", 1000)

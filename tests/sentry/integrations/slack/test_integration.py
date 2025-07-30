@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
@@ -136,7 +136,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_bot_flow(self, mock_api_call):
+    def test_bot_flow(self, mock_api_call: MagicMock) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -164,7 +164,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_bot_flow_customer_domains(self, mock_api_call):
+    def test_bot_flow_customer_domains(self, mock_api_call: MagicMock) -> None:
         with self.tasks():
             self.assert_setup_flow(customer_domain=f"{self.organization.slug}.testserver")
 
@@ -192,7 +192,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_multiple_integrations(self, mock_api_call):
+    def test_multiple_integrations(self, mock_api_call: MagicMock) -> None:
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
@@ -222,7 +222,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identities[0].idp != identities[1].idp
 
     @responses.activate
-    def test_reassign_user(self, mock_api_call):
+    def test_reassign_user(self, mock_api_call: MagicMock) -> None:
         """Test that when you install and then later re-install and the user who installs it
         has a different external ID, their Identity is updated to reflect that
         """
@@ -332,7 +332,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         )
 
     @responses.activate
-    def test_link_multiple_users(self, mock_api_call):
+    def test_link_multiple_users(self, mock_api_call: MagicMock) -> None:
         """
         Test that with an organization with multiple users, we create Identity records for them
         if their Sentry email matches their Slack email
@@ -357,7 +357,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user2_identity.user.email == "foo@example.com"
 
     @responses.activate
-    def test_link_multiple_users_pagination(self, mock_api_call):
+    def test_link_multiple_users_pagination(self, mock_api_call: MagicMock) -> None:
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
@@ -406,7 +406,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user5_identity.user.email == "hello@example.com"
 
     @responses.activate
-    def test_link_multiple_users_pagination_error(self, mock_api_call):
+    def test_link_multiple_users_pagination_error(self, mock_api_call: MagicMock) -> None:
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
@@ -438,7 +438,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user5_identity is None
 
     @responses.activate
-    def test_email_no_match(self, mock_api_call):
+    def test_email_no_match(self, mock_api_call: MagicMock) -> None:
         """
         Test that a user whose email does not match does not have an Identity created
         """
@@ -455,7 +455,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert identities.count() == 3
 
     @responses.activate
-    def test_update_identity(self, mock_api_call):
+    def test_update_identity(self, mock_api_call: MagicMock) -> None:
         """
         Test that when an additional user who already has an Identity's Slack external ID
         changes, that we update the Identity's external ID to match
