@@ -93,26 +93,26 @@ function StoriesLayout(props: PropsWithChildren) {
   );
 }
 
-function useScrollToHash() {
-  const scrollToHash = () => {
-    if (window.location.hash) {
-      const hash = window.location.hash.replace(/^#/, '');
+function scrollToHash() {
+  if (window.location.hash) {
+    const hash = window.location.hash.replace(/^#/, '');
 
-      try {
-        const element = document.querySelector(`#${hash}`);
-        if (element) {
-          element.scrollIntoView({behavior: 'instant', block: 'start'});
-          return true; // Successfully scrolled
-        }
-        return false; // Element not found
-      } catch {
-        // hash might be an invalid querySelector and lead to a DOMException
-        return false;
+    try {
+      const element = document.querySelector(`#${hash}`);
+      if (element) {
+        element.scrollIntoView({behavior: 'instant', block: 'start'});
+        return true; // Successfully scrolled
       }
+      return false; // Element not found
+    } catch {
+      // hash might be an invalid querySelector and lead to a DOMException
+      return false;
     }
-    return true; // No hash to scroll to
-  };
+  }
+  return true; // No hash to scroll to
+}
 
+function useScrollToHash() {
   useEffect(() => {
     let attempts = 0;
     const maxAttempts = 20; // Maximum number of attempts
