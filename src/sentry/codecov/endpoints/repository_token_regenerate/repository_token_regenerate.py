@@ -26,6 +26,12 @@ class RepositoryTokenRegenerateEndpoint(CodecovEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
 
+    def dispatch(self, request, *args, **kwargs):
+        """Override dispatch to bypass CSRF checks for the repository token regenerate endpoint"""
+
+        request._dont_enforce_csrf_checks = True  # type: ignore[attr-defined]
+        return super().dispatch(request, *args, **kwargs)
+
     @extend_schema(
         operation_id="Regenerates a repository upload token and returns the new token",
         parameters=[
