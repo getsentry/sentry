@@ -25,6 +25,7 @@ from sentry.integrations.repository.notification_action import (
 )
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
+from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -54,6 +55,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     prompt = "Send a Slack notification"
     provider = IntegrationProviderSlug.SLACK.value
     integration_key = "workspace"
+    analytics_cls = SlackIntegrationNotificationSent
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

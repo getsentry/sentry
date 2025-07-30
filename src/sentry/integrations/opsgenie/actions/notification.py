@@ -6,6 +6,7 @@ from typing import cast
 import sentry_sdk
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
+from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
 from sentry.integrations.opsgenie.client import (
     OPSGENIE_DEFAULT_PRIORITY,
     OpsgenieClient,
@@ -27,6 +28,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     )
     prompt = "Send an Opsgenie notification"
     provider = IntegrationProviderSlug.OPSGENIE.value
+    analytics_cls = OpsgenieIntegrationNotificationSent
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):

@@ -3,6 +3,8 @@ from typing import Any
 
 from django.urls import reverse
 
+from sentry import analytics
+from sentry.integrations.discord.analytics import DiscordIntegrationIdentityUnlinked
 from sentry.integrations.discord.views.linkage import DiscordIdentityLinkageView
 from sentry.integrations.messaging.linkage import UnlinkIdentityView
 from sentry.integrations.models.integration import Integration
@@ -29,5 +31,5 @@ class DiscordUnlinkIdentityView(DiscordIdentityLinkageView, UnlinkIdentityView):
         return "sentry/integrations/discord/unlinked.html", {}
 
     @property
-    def analytics_operation_key(self) -> str | None:
-        return "identity_unlinked"
+    def analytics_cls(self) -> analytics.Event | None:
+        return DiscordIntegrationIdentityUnlinked

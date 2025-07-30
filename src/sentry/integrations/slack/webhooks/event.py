@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.analytics import IntegrationSlackChartUnfurl
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
@@ -189,9 +190,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 and features.has("organizations:discover-basic", organization, actor=request.user)
             ):
                 analytics.record(
-                    "integrations.slack.chart_unfurl",
-                    organization_id=organization.id,
-                    unfurls_count=0,
+                    IntegrationSlackChartUnfurl(
+                        organization_id=organization.id,
+                        unfurls_count=0,
+                    )
                 )
                 self.prompt_link(slack_request)
                 return True

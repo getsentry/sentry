@@ -3,6 +3,8 @@ from typing import Any
 
 from django.urls import reverse
 
+from sentry import analytics
+from sentry.integrations.discord.analytics import DiscordIntegrationIdentityLinked
 from sentry.integrations.discord.views.linkage import DiscordIdentityLinkageView
 from sentry.integrations.messaging.linkage import LinkIdentityView
 from sentry.integrations.models.integration import Integration
@@ -35,5 +37,5 @@ class DiscordLinkIdentityView(DiscordIdentityLinkageView, LinkIdentityView):
         }
 
     @property
-    def analytics_operation_key(self) -> str | None:
-        return "identity_linked"
+    def analytics_cls(self) -> analytics.Event | None:
+        return DiscordIntegrationIdentityLinked
