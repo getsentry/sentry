@@ -83,7 +83,7 @@ class IntegrationProxyClientTest(TestCase):
             assert prepared_request.headers.get("Authorization") == "Bearer tkn"
 
     @patch.object(IntegrationProxyClient, "authorize_request")
-    def test_finalize_request_noop(self, mock_authorize):
+    def test_finalize_request_noop(self, mock_authorize: MagicMock) -> None:
         """Only applies proxy details if the request originates from a region silo."""
         prepared_request = Request(method="PATCH", url=self.test_url).prepare()
         raw_url = prepared_request.url
@@ -103,7 +103,7 @@ class IntegrationProxyClientTest(TestCase):
             assert prepared_request.headers == raw_headers
 
     @patch.object(IntegrationProxyClient, "authorize_request")
-    def test_finalize_request_region(self, mock_authorize):
+    def test_finalize_request_region(self, mock_authorize: MagicMock) -> None:
         """In a region silo, should change the URL and headers"""
         prepared_request = Request(method="DELETE", url=self.test_url).prepare()
         raw_url = prepared_request.url
@@ -189,7 +189,7 @@ class IntegrationProxyClientTest(TestCase):
         assert mock_is_control_silo_ip_address.call_count == 0
 
     @patch.object(Session, "send")
-    def test_custom_timeout(self, mock_session_send):
+    def test_custom_timeout(self, mock_session_send: MagicMock) -> None:
         client = self.client_cls(org_integration_id=self.oi_id)
         response = MagicMock()
         response.status_code = 204

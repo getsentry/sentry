@@ -914,7 +914,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}], [{"count": 1}]]
 
     @mock.patch("sentry.snuba.discover.timeseries_query", return_value={})
-    def test_multiple_yaxis_only_one_query(self, mock_query):
+    def test_multiple_yaxis_only_one_query(self, mock_query: mock.MagicMock) -> None:
         self.do_request(
             data={
                 "project": self.project.id,
@@ -928,7 +928,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert mock_query.call_count == 1
 
     @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": []}])
-    def test_invalid_interval(self, mock_query):
+    def test_invalid_interval(self, mock_query: mock.MagicMock) -> None:
         self.do_request(
             data={
                 "end": before_now(),
@@ -969,7 +969,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 400
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         mock_quantize.return_value = before_now(days=1)
         # Don't quantize short time periods
         self.do_request(
@@ -1153,7 +1153,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ]
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_profiles_dataset_simple(self, mock_snql_query):
+    def test_profiles_dataset_simple(self, mock_snql_query: mock.MagicMock) -> None:
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         query = {
@@ -1922,7 +1922,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert "ok" in data
 
     @mock.patch("sentry.models.GroupManager.get_issues_mapping")
-    def test_top_events_with_unknown_issue(self, mock_issues_mapping):
+    def test_top_events_with_unknown_issue(self, mock_issues_mapping: mock.MagicMock) -> None:
         event = self.events[0]
         event_data = self.event_data[0]
 
@@ -1957,7 +1957,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         "sentry.search.events.builder.base.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
-    def test_top_events_with_issue_check_query_conditions(self, mock_query):
+    def test_top_events_with_issue_check_query_conditions(self, mock_query: mock.MagicMock) -> None:
         """ "Intentionally separate from test_top_events_with_issue
 
         This is to test against a bug where the condition for issues wasn't included and we'd be missing data for
@@ -2603,7 +2603,9 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         "sentry.search.events.builder.base.raw_snql_query",
         return_value={"data": [], "meta": []},
     )
-    def test_invalid_interval(self, mock_raw_query, mock_bulk_query):
+    def test_invalid_interval(
+        self, mock_raw_query: mock.MagicMock, mock_bulk_query: mock.MagicMock
+    ) -> None:
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -3381,7 +3383,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [3, 0]
 
     @mock.patch("sentry.models.GroupManager.get_issues_mapping")
-    def test_top_events_with_unknown_issue(self, mock_issues_mapping):
+    def test_top_events_with_unknown_issue(self, mock_issues_mapping: mock.MagicMock) -> None:
         event = self.events[0]
         event_data = self.event_data[0]
 
@@ -3417,7 +3419,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         "sentry.search.events.builder.base.raw_snql_query",
         side_effect=[{"data": [{"issue.id": 1}], "meta": []}, {"data": [], "meta": []}],
     )
-    def test_top_events_with_issue_check_query_conditions(self, mock_query):
+    def test_top_events_with_issue_check_query_conditions(self, mock_query: mock.MagicMock) -> None:
         """ "Intentionally separate from test_top_events_with_issue
 
         This is to test against a bug where the condition for issues wasn't included and we'd be missing data for
@@ -3579,7 +3581,7 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
-    def test_error_upsampling_with_allowlisted_projects(self, mock_options):
+    def test_error_upsampling_with_allowlisted_projects(self, mock_options: mock.MagicMock) -> None:
         # Set up allowlisted projects
         mock_options.get.return_value = [self.project.id, self.project2.id]
 
@@ -3612,7 +3614,7 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         ), f"Expected 'count' to be 'integer' type, got: {meta['fields']['count']}"
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
-    def test_error_upsampling_with_partial_allowlist(self, mock_options):
+    def test_error_upsampling_with_partial_allowlist(self, mock_options: mock.MagicMock) -> None:
         # Set up partial allowlist - only one project is allowlisted
         mock_options.get.return_value = [self.project.id]
 
@@ -3637,7 +3639,7 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         assert data[1][1][0]["count"] == 10
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
-    def test_error_upsampling_with_transaction_events(self, mock_options):
+    def test_error_upsampling_with_transaction_events(self, mock_options: mock.MagicMock) -> None:
         # Set up allowlisted projects
         mock_options.get.return_value = [self.project.id, self.project2.id]
 
@@ -3682,7 +3684,9 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         assert data[1][1][0]["count"] == 0
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
-    def test_error_upsampling_with_no_allowlisted_projects(self, mock_options):
+    def test_error_upsampling_with_no_allowlisted_projects(
+        self, mock_options: mock.MagicMock
+    ) -> None:
         # Set up no allowlisted projects
         mock_options.get.return_value = []
 
@@ -3707,7 +3711,9 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         assert data[1][1][0]["count"] == 1
 
     @mock.patch("sentry.api.helpers.error_upsampling.options")
-    def test_error_upsampling_count_unique_user_with_allowlisted_projects(self, mock_options):
+    def test_error_upsampling_count_unique_user_with_allowlisted_projects(
+        self, mock_options: mock.MagicMock
+    ) -> None:
         """Test that count_unique(user) works correctly with error upsampling for Events Stats API."""
         # Set up allowlisted projects
         mock_options.get.return_value = [self.project.id, self.project2.id]

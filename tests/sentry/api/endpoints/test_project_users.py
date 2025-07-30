@@ -67,7 +67,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: mock.MagicMock) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -77,7 +77,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         self._assert_simple_response(response, mock_record)
 
     @mock.patch("sentry.analytics.record")
-    def test_superuser_simple(self, mock_record):
+    def test_superuser_simple(self, mock_record: mock.MagicMock) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -87,7 +87,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         self._assert_simple_response(response, mock_record)
 
     @mock.patch("sentry.analytics.record")
-    def test_staff_simple(self, mock_record):
+    def test_staff_simple(self, mock_record: mock.MagicMock) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
 

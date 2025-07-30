@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -426,7 +426,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_boost_low_volume_transactions_with_blended_sample_rate(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_with_blended_sample_rate(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis.
@@ -452,7 +454,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_boost_low_volume_transactions_with_sliding_window_org(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_with_sliding_window_org(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis with the sliding window per org enabled.
@@ -501,7 +505,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_boost_low_volume_transactions_partial(self, get_blended_sample_rate):
+    def test_boost_low_volume_transactions_partial(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         """
         Test the V2 algorithm is used, only specified projects are balanced and the
         rest get a global rate
@@ -625,7 +631,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_recalibrate_orgs_with_sliding_window_org(self, get_blended_sample_rate):
+    def test_recalibrate_orgs_with_sliding_window_org(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         """
         Test that the org are going to be rebalanced at 20% and that the sample rate used is the one from the sliding
         window org.
@@ -738,7 +746,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_rules_generation_with_recalibrate_orgs(self, get_blended_sample_rate):
+    def test_rules_generation_with_recalibrate_orgs(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
         """
         Test that we pass rebalancing values all the way to the rules.
         """

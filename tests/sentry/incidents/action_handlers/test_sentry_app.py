@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -87,7 +87,7 @@ class SentryAppActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_rule_snoozed(self, mock_record):
+    def test_rule_snoozed(self, mock_record: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
@@ -123,7 +123,7 @@ class SentryAppActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_rule_bad_response(self, mock_record):
+    def test_rule_bad_response(self, mock_record: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
 
@@ -161,7 +161,7 @@ class SentryAppActionHandlerTest(FireTest):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert(self, mock_record):
+    def test_fire_metric_alert(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
 
         # SLO asserts
@@ -176,7 +176,7 @@ class SentryAppActionHandlerTest(FireTest):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_resolve_metric_alert(self, mock_record):
+    def test_resolve_metric_alert(self, mock_record: MagicMock) -> None:
         self.run_fire_test("resolve")
         # SLO asserts
         assert_success_metric(mock_record)
@@ -272,7 +272,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
         ]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert(self, mock_record):
+    def test_fire_metric_alert(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
 
         # SLO asserts
@@ -287,7 +287,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_resolve_metric_alert(self, mock_record):
+    def test_resolve_metric_alert(self, mock_record: MagicMock) -> None:
         self.run_fire_test("resolve")
 
         # SLO asserts
@@ -303,7 +303,9 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record, mock_record_event):
+    def test_alert_sent_recorded(
+        self, mock_record: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         self.run_fire_test()
         assert_last_analytics_event(
             mock_record,

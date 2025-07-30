@@ -85,7 +85,9 @@ def _validate_rules(project):
 
 @patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
+def test_generate_rules_capture_exception(
+    get_blended_sample_rate: MagicMock, sentry_sdk: MagicMock
+) -> None:
     get_blended_sample_rate.return_value = None
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
