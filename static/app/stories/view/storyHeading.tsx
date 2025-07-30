@@ -15,7 +15,7 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const {story} = useStory();
   const storyTitle = (story.exports.frontmatter as any)?.title;
   const text = stringifyChildren(props.children);
-  const id = props.id ?? slugify(text.replace(/\s+/g, '-'));
+  const id = props.id ?? slugify(text);
   const {onClick} = useCopyToClipboard({
     text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
     successMessage: (
