@@ -190,7 +190,11 @@ export const platformProductAvailability = {
   'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
