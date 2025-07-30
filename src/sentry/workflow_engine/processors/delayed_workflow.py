@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any, TypeAlias
@@ -235,6 +235,135 @@ class EventRedisData:
         return result
 
 
+@dataclass(frozen=True)
+class EventKeyV2:
+    """
+    A key for an event in the Redis buffer.
+    """
+
+    workflow_id: WorkflowId
+    group_id: GroupId
+    when_dcg_ids: frozenset[DataConditionGroupId]
+    if_dcg_ids: frozenset[DataConditionGroupId]
+    passing_dcg_ids: frozenset[DataConditionGroupId]
+    original_key: str
+
+    @classmethod
+    def from_redis_key(cls, key: str) -> EventKeyV2:
+        parts = key.split(":")
+        return cls(
+            workflow_id=int(parts[0]),
+            group_id=int(parts[1]),
+            when_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[2].split(",")),
+            if_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[3].split(",")),
+            passing_dcg_ids=frozenset(int(dcg_id) for dcg_id in parts[4].split(",")),
+            original_key=key,
+        )
+
+    def __str__(self) -> str:
+        return self.original_key
+
+    def __hash__(self) -> int:
+        return hash(self.original_key)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, EventKey):
+            return NotImplemented
+        return self.original_key == other.original_key
+
+
+@dataclass(frozen=True)
+class EventRedisDataV2:
+    """
+    Immutable container for all data from Redis.
+    Any lookups or summaries or other processing that can be purely derived
+    from the data should be done on this object so that it's obvious where we're operating
+    based on parameter data.
+    """
+
+    events: Mapping[EventKeyV2, EventInstance]
+
+    @classmethod
+    def from_redis_data(
+        cls, redis_data: dict[str, str], *, continue_on_error: bool
+    ) -> EventRedisDataV2:
+        events = {}
+        for key, value in redis_data.items():
+            try:
+                event_key = EventKeyV2.from_redis_key(key)
+                event_instance = EventInstance.parse_raw(value)
+                events[event_key] = event_instance
+            except Exception as e:
+                logger.exception(
+                    "Failed to parse workflow event data",
+                    extra={"key": key, "value": value, "error": str(e)},
+                )
+                if not continue_on_error:
+                    raise ValueError(f"Failed to parse Redis data: {str(e)}") from e
+        return cls(events=events)
+
+    @cached_property
+    def dcg_ids(self) -> set[DataConditionGroupId]:
+        ids = {dcg_id for key in self.events for dcg_id in key.when_dcg_ids}
+        ids.update(dcg_id for key in self.events for dcg_id in key.if_dcg_ids)
+        ids.update(dcg_id for key in self.events for dcg_id in key.passing_dcg_ids)
+        return ids
+
+    @cached_property
+    def dcg_to_workflow(self) -> dict[DataConditionGroupId, WorkflowId]:
+        """Get mapping of DCG IDs to workflow IDs, combining both trigger and action filter groups."""
+        dcg_to_workflow = {}
+        for key in self.events:
+            for dcg_id in key.when_dcg_ids.union(key.if_dcg_ids):
+                dcg_to_workflow[dcg_id] = key.workflow_id
+
+        return dcg_to_workflow
+
+    @cached_property
+    def dcg_to_groups(self) -> Mapping[DataConditionGroupId, set[GroupId]]:
+        dcg_to_groups: dict[DataConditionGroupId, set[GroupId]] = defaultdict(set)
+        for key in self.events:
+            for dcg_id in key.when_dcg_ids.union(key.if_dcg_ids):
+                dcg_to_groups[dcg_id].add(key.group_id)
+        return dcg_to_groups
+
+    @cached_property
+    def workflow_ids(self) -> set[WorkflowId]:
+        return {key.workflow_id for key in self.events}
+
+    @cached_property
+    def event_ids(self) -> set[str]:
+        return {instance.event_id for instance in self.events.values() if instance.event_id}
+
+    @cached_property
+    def occurrence_ids(self) -> set[str]:
+        return {
+            instance.occurrence_id for instance in self.events.values() if instance.occurrence_id
+        }
+
+    @cached_property
+    def group_ids(self) -> set[GroupId]:
+        return {key.group_id for key in self.events}
+
+    @cached_property
+    def dcg_to_timestamp(self) -> dict[int, datetime | None]:
+        """
+        A DCG can be recorded with an event for later processing multiple times.
+        We need to pick a time to use when processing them in bulk, so to bias for recency we associate each DCG with the latest timestamp.
+        """
+        result: dict[int, datetime | None] = defaultdict(lambda: None)
+
+        for key, instance in self.events.items():
+            timestamp = instance.timestamp
+            for dcg_id in key.when_dcg_ids.union(key.if_dcg_ids):
+                existing_timestamp = result[dcg_id]
+                if timestamp is None:
+                    continue
+                elif existing_timestamp is not None and timestamp > existing_timestamp:
+                    result[dcg_id] = timestamp
+        return result
+
+
 @dataclass
 class GroupQueryParams:
     """
@@ -394,7 +523,7 @@ def generate_unique_queries(
 @sentry_sdk.trace
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
-    event_data: EventRedisData,
+    event_data: EventRedisData | EventRedisDataV2,
     workflows_to_envs: Mapping[WorkflowId, int | None],
     dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
 ) -> dict[UniqueConditionQuery, GroupQueryParams]:
@@ -554,6 +683,60 @@ def get_groups_to_fire(
 
 
 @sentry_sdk.trace
+def get_groups_to_fire_v2(
+    data_condition_group_mapping: dict[int, DataConditionGroup],
+    workflows_to_envs: Mapping[WorkflowId, int | None],
+    event_data: EventRedisDataV2,
+    condition_group_results: dict[UniqueConditionQuery, QueryResult],
+    dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
+) -> dict[GroupId, set[DataConditionGroup]]:
+    groups_to_fire: dict[GroupId, set[DataConditionGroup]] = defaultdict(set)
+
+    for event_key in event_data.events:
+        workflow_env = workflows_to_envs[event_key.workflow_id]
+        for when_dcg_id in event_key.when_dcg_ids:
+            when_dcg = data_condition_group_mapping[when_dcg_id]
+            when_slow_conditions = dcg_to_slow_conditions[when_dcg_id]
+            group_id = event_key.group_id
+            try:
+                result = _group_result_for_dcg(
+                    group_id, when_dcg, workflow_env, condition_group_results, when_slow_conditions
+                )
+                if not result:
+                    break
+            except MissingQueryResult:
+                # If we didn't get complete query results, don't fire.
+                metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
+                logger.warning(
+                    "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
+                )
+
+            # the WHEN condition passed, so we can now check the IF conditions
+            for if_dcg_id in event_key.if_dcg_ids:
+                if_dcg = data_condition_group_mapping[if_dcg_id]
+                if_slow_conditions = dcg_to_slow_conditions[if_dcg_id]
+                try:
+                    result = _group_result_for_dcg(
+                        group_id, if_dcg, workflow_env, condition_group_results, if_slow_conditions
+                    )
+                    if not result:
+                        break
+                except MissingQueryResult:
+                    # If we didn't get complete query results, don't fire.
+                    metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
+                    logger.warning(
+                        "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
+                    )
+                groups_to_fire[group_id].add(if_dcg)
+
+            for if_dcg_id in event_key.passing_dcg_ids:
+                if_dcg = data_condition_group_mapping[if_dcg_id]
+                groups_to_fire[group_id].add(if_dcg)
+
+    return groups_to_fire
+
+
+@sentry_sdk.trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -583,7 +766,7 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
 )
 @sentry_sdk.trace
 def get_group_to_groupevent(
-    event_data: EventRedisData,
+    event_data: EventRedisData | EventRedisDataV2,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project: Project,
 ) -> dict[Group, GroupEvent]:
@@ -743,6 +926,7 @@ def fire_actions_for_groups(
                     workflows_actions = evaluate_action_filters(
                         workflow_event_data,
                         filter_dcg_to_workflow,
+                        {},
                     )
 
                 filtered_actions = filter_recently_fired_workflow_actions(
@@ -791,6 +975,70 @@ def fire_actions_for_groups(
 
 
 @sentry_sdk.trace
+def fire_actions_for_groups_v2(
+    organization: Organization,
+    groups_to_fire: dict[GroupId, set[DataConditionGroup]],
+    group_to_groupevent: dict[Group, GroupEvent],
+) -> None:
+    """
+    Fire actions for filter data condition groups (deduping if necessary)
+    """
+    # Bulk fetch detectors
+    event_id_to_detector = get_detectors_by_groupevents_bulk(list(group_to_groupevent.values()))
+
+    dcg_to_workflow: dict[DataConditionGroup, Workflow] = {
+        wdcg.condition_group: wdcg.workflow
+        for wdcg in WorkflowDataConditionGroup.objects.select_related(
+            "workflow", "condition_group"
+        ).filter(condition_group__in=list(groups_to_fire.values()))
+    }
+    workflow_to_env = {workflow.id: workflow.environment for workflow in dcg_to_workflow.values()}
+
+    # Feature check caching to keep us within the trace budget.
+    trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
+    single_processing_ff = features.has(
+        "organizations:workflow-engine-single-process-workflows", organization
+    )
+    ga_type_ids = options.get("workflow_engine.issue_alert.group.type_id.ga")
+    rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
+
+    should_trigger_actions = lambda type_id: (
+        type_id in ga_type_ids
+        or (type_id in rollout_type_ids and single_processing_ff)
+        or trigger_actions_ff
+    )
+
+    for group, group_event in group_to_groupevent.items():
+        workflow_event_data = WorkflowEventData(event=group_event, group=group)
+        detector = event_id_to_detector.get(group_event.event_id)
+
+        if detector is None:
+            continue
+
+        dcgs_for_group = groups_to_fire.get(group.id, set())
+        filtered_actions = filter_recently_fired_workflow_actions(
+            dcgs_for_group, workflow_event_data
+        )
+        create_workflow_fire_histories(
+            detector,
+            filtered_actions,
+            workflow_event_data,
+            should_trigger_actions(group_event.group.type),
+        )
+
+        if should_trigger_actions(group_event.group.type):
+            for action in filtered_actions:
+                action_workflow_env = workflow_to_env.get(
+                    getattr(action, "workflow_id"), None
+                )  # populated via annotate() in filter_recently_fired_workflow_actions
+                workflow_event_data = replace(workflow_event_data, workflow_env=action_workflow_env)
+                task_params = build_trigger_action_task_params(
+                    action, detector, workflow_event_data
+                )
+                trigger_action.delay(**task_params)
+
+
+@sentry_sdk.trace
 def cleanup_redis_buffer(
     project_id: int, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
@@ -800,6 +1048,18 @@ def cleanup_redis_buffer(
         filters["batch_key"] = batch_key
 
     buffer.backend.delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
+
+
+@sentry_sdk.trace
+def cleanup_redis_buffer_v2(
+    project_id: int, event_keys: Iterable[EventKeyV2], batch_key: str | None
+) -> None:
+    hashes_to_delete = [key.original_key for key in event_keys]
+    filters: dict[str, BufferField] = {"project_id": project_id}
+    if batch_key:
+        filters["batch_key"] = batch_key
+
+    buffer.backend.delete_hash(model=DataCondition, filters=filters, fields=hashes_to_delete)
 
 
 def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
@@ -836,6 +1096,79 @@ def _summarize_by_first[
 @retry
 @retry_timeouts
 @log_context.root()
+def process_delayed_workflows_v2(
+    project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
+) -> None:
+    """
+    Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
+    """
+    project = fetch_project(project_id)
+    if not project:
+        return
+
+    redis_data = fetch_group_to_event_data(project_id, Workflow, batch_key)  # TODO:
+    event_data = EventRedisDataV2.from_redis_data(redis_data, continue_on_error=True)
+
+    workflows_to_envs = fetch_workflows_envs(list(event_data.workflow_ids))
+    data_condition_groups = fetch_data_condition_groups(
+        list(event_data.dcg_ids)
+    )  # now contains WHEN and IF slow conditions
+    data_condition_group_mapping = {dcg.id: dcg for dcg in data_condition_groups}
+    dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
+
+    # Get unique query groups to query Snuba
+    condition_groups = get_condition_query_groups(
+        data_condition_groups, event_data, workflows_to_envs, dcg_to_slow_conditions
+    )
+    if not condition_groups:
+        return
+
+    try:
+        condition_group_results = get_condition_group_results(condition_groups)
+    except SnubaError:
+        # We expect occasional errors, so we report as warning and retry.
+        logger.warning("delayed_workflow.snuba_error", exc_info=True)
+        retry_task()
+
+    # Evaluate DCGs
+    groups_to_dcgs = get_groups_to_fire_v2(
+        data_condition_group_mapping,
+        workflows_to_envs,
+        event_data,
+        condition_group_results,
+        dcg_to_slow_conditions,
+    )
+
+    group_to_groupevent = get_group_to_groupevent(
+        event_data,
+        groups_to_dcgs,
+        project,
+    )
+
+    fire_actions_for_groups_v2(project.organization, groups_to_dcgs, group_to_groupevent)
+    cleanup_redis_buffer_v2(project_id, event_data.events.keys(), batch_key)
+
+
+@instrumented_task(
+    name="sentry.workflow_engine.processors.delayed_workflow",
+    queue="delayed_rules",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=50,
+    time_limit=60,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
+)
+@retry
+@retry_timeouts
+@log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
 ) -> None:
@@ -848,7 +1181,9 @@ def process_delayed_workflows(
         if not project:
             return
 
-        redis_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
+        redis_data = fetch_group_to_event_data(
+            project_id, DataCondition, batch_key
+        )  # different key
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
 
         metrics.incr(
@@ -959,3 +1294,17 @@ class DelayedWorkflow(DelayedProcessingBase):
     @property
     def processing_task(self) -> Task:
         return process_delayed_workflows
+
+
+# @delayed_processing_registry.register("delayed_workflow_v2")
+class DelayedWorkflowV2(DelayedProcessingBase):
+    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
+    option = "delayed_workflow.rollout"
+
+    @property
+    def hash_args(self) -> BufferHashKeys:
+        return BufferHashKeys(model=DataCondition, filters=FilterKeys(project_id=self.project_id))
+
+    @property
+    def processing_task(self) -> Task:
+        return process_delayed_workflows_v2
