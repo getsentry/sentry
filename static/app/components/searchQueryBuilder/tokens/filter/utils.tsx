@@ -21,7 +21,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 
-const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
+const SHOULD_ESCAPE_REGEX = /[\s"(),\[\]]/;
 
 export const OP_LABELS = {
   [TermOperator.DEFAULT]: 'is',
