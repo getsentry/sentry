@@ -655,6 +655,11 @@ def test_massage_unbalanced_results():
                     "totals": {"count_unique(user)": 1, "sum(session)": 8},
                 },
                 {
+                    "by": {"session.status": "unhandled"},
+                    "series": {"count_unique(user)": [0, 0, 0, 0], "sum(session)": [0, 0, 0, 0]},
+                    "totals": {"count_unique(user)": 0, "sum(session)": 0},
+                },
+                {
                     "by": {"session.status": "errored"},
                     "series": {"count_unique(user)": [0, 0, 0, 0], "sum(session)": [0, 4, 0, 0]},
                     "totals": {"count_unique(user)": 0, "sum(session)": 1},
@@ -724,6 +729,11 @@ def test_massage_unbalanced_results():
                 {
                     "by": {"session.status": "crashed"},
                     "series": {"count_unique(user)": [0, 2], "sum(session)": [0, 2]},
+                    "totals": {"count_unique(user)": 0, "sum(session)": 0},
+                },
+                {
+                    "by": {"session.status": "unhandled"},
+                    "series": {"count_unique(user)": [0, 0], "sum(session)": [0, 0]},
                     "totals": {"count_unique(user)": 0, "sum(session)": 0},
                 },
                 {
