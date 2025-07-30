@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.interfaces.user import User
 from sentry.issues.services.issue.model import RpcLinkedIssueSummary
 from sentry.issues.services.issue.service import issue_service
 from sentry.models.group import Group
@@ -11,11 +10,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, create_test_regions
+from sentry.users.models import User
 
 
 @dataclass
 class HcExternalIssueContext:
-    org_owner: User
+    org_owner: User | None
     region_name: str
     organization: Organization
     project: Project
@@ -34,19 +34,16 @@ class TestIssueService(TestCase):
         self.us_region_context = self.create_region_context(
             "us",
             org_owner=self.create_user(email="us_test@example.com"),
-            integration=self.default_jira_integration,
         )
         self.de_region_context = self.create_region_context(
             "de",
             org_owner=self.create_user(email="de_test@example.com"),
-            integration=self.default_jira_integration,
         )
 
     def create_region_context(
         self,
         region_name: str,
         org_owner: User | None = None,
-        integration: Integration | None = None,
     ) -> HcExternalIssueContext:
         organization = self.create_organization(
             name="test_org",
