@@ -37,21 +37,18 @@ class AppleCrashReport:
         for t in ts:
             frames = get_path(t, "stacktrace", "frames", filter=True) or []
             for f in frames:
-                if addr := f.pop("instruction_addr", None):
-                    f["instruction_addr"] = self._parse_addr(addr)
-                if addr := f.pop("symbol_addr", None):
-                    f["symbol_addr"] = self._parse_addr(addr)
-                if addr := f.pop("image_addr", None):
-                    f["image_addr"] = self._parse_addr(addr)
+                for key in ["instruction_addr", "image_addr", "symbol_addr"]:
+                    if key in f:
+                        f[key] = self._parse_addr(f[key])
 
         for i in self.debug_images or []:
             image_addr = None
             image_vmaddr = None
-            if addr := i.pop("image_addr", None):
-                image_addr = self._parse_addr(addr)
+            if "image_addr" in i:
+                image_addr = self._parse_addr(i["image_addr"])
                 i["image_addr"] = image_addr
-            if addr := i.pop("image_vmaddr", None):
-                image_vmaddr = self._parse_addr(addr)
+            if "image_vmaddr" in i:
+                image_vmaddr = self._parse_addr(i["image_vmaddr"])
                 i["image_vmaddr"] = image_vmaddr
 
             # If the image has both an `image_addr` and an `image_vmaddr`
