@@ -62,7 +62,7 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn, info} = Sentry.logger;
+const {error, warn} = Sentry.logger;
 
 export interface BoxSelectProps {
   /**
@@ -225,18 +225,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : rightYAxisDataTypes.length === 1
         ? rightYAxisDataTypes.at(0)
         : FALLBACK_TYPE;
-
-  if (axisTypes.length > 0) {
-    info('`TimeSeriesWidgetVisualization` assigned axes', {
-      labels: props.plottables.map(plottable => plottable.label),
-      types: props.plottables.map(plottable => plottable.dataType),
-      units: props.plottables.map(plottable => plottable.dataUnit),
-      leftYAxisDataTypes,
-      rightYAxisDataTypes,
-      leftYAxisType,
-      rightYAxisType,
-    });
-  }
 
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>
