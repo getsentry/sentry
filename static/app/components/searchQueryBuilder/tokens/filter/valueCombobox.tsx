@@ -115,10 +115,9 @@ function prepareInputValueForSaving(valueType: FieldValueType, inputValue: strin
         if (item.value?.quoted) {
           // For quoted values, use the inner content and escape it properly
           return escapeTagValue(item.value?.value ?? '');
-        } else {
-          // For unquoted values, clean them
-          return cleanFilterValue({valueType, value: item.value?.text ?? ''});
         }
+        // For unquoted values, clean them
+        return cleanFilterValue({valueType, value: item.value?.text ?? ''});
       })
       .filter(text => text?.length) ?? [];
 
