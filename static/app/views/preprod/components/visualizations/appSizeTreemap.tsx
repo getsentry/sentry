@@ -64,7 +64,9 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     };
 
     if (element.children && element.children.length > 0) {
-      data.children = element.children.map((child: TreemapElement) => convertToEChartsData(child));
+      data.children = element.children.map((child: TreemapElement) =>
+        convertToEChartsData(child)
+      );
     }
 
     return data;
