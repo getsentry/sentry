@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
-const omitFlexProps = new Set<keyof FlexProps>([
+const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
   'as',
   'direction',
   'flex',
@@ -15,10 +15,7 @@ const omitFlexProps = new Set<keyof FlexProps>([
   'wrap',
 ]);
 
-type FlexProps<T extends ContainerElement = 'div'> = Omit<
-  ContainerProps<T>,
-  'display'
-> & {
+interface FlexLayoutProps {
   /**
    * Aligns flex items along the cross axis of the current line of flex items.
    * Uses CSS align-items property.
@@ -39,11 +36,13 @@ type FlexProps<T extends ContainerElement = 'div'> = Omit<
     'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
   >;
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
-};
+}
+
+type FlexProps<T extends ContainerElement = 'div'> = ContainerProps<T> & FlexLayoutProps;
 
 export const Flex = styled(Container, {
   shouldForwardProp: prop => {
-    return !omitFlexProps.has(prop as unknown as keyof FlexProps);
+    return !omitFlexProps.has(prop as any);
   },
 })<FlexProps<any>>`
   ${p => rc('display', p.as === 'span' || p.inline ? 'inline-flex' : 'flex', p.theme)};

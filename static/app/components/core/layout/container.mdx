@@ -29,11 +29,11 @@ The simplest usage renders a `div` element with enhanced layout properties:
 
 ### Composition
 
-The `Container` component supports composition via <a href="/stories/layout/composition">asChild</a> to allow composition with other components. When `asChild` is used, the `Container` component will spread its props to the child component.
+The `Container` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
 
 ```tsx
-<Container asChild padding="md" background="primary">
-  <div>Basic container content</div>
+<Container padding="md" background="primary">
+  {props => <div {...props}>Basic container content</div>}
 </Container>
 ```
 

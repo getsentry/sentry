@@ -63,11 +63,12 @@ export type ContainerElement =
   | 'summary'
   | 'ul';
 
-type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayoutProps & {
-  as?: T;
-  children?: React.ReactNode;
-  ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
-} & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+type ContainerPropsWithChildren<T extends ContainerElement = 'div'> =
+  ContainerLayoutProps & {
+    as?: T;
+    children?: React.ReactNode;
+    ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
+  } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
 
 type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
   ContainerLayoutProps & {
@@ -83,7 +84,11 @@ type ContainerPropsWithRenderProp<T extends ContainerElement = 'div'> =
       >
     >;
 
-const omitContainerProps = new Set<keyof ContainerProps<any>>([
+export type ContainerProps<T extends ContainerElement = 'div'> =
+  | ContainerPropsWithChildren<T>
+  | ContainerPropsWithRenderProp<T>;
+
+const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'as',
   'area',
   'border',
@@ -105,9 +110,7 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
 ]);
 
 export const Container = styled(
-  <T extends ContainerElement = 'div'>(
-    props: ContainerProps<T> | ContainerPropsWithRenderProp<T>
-  ) => {
+  <T extends ContainerElement = 'div'>(props: ContainerProps<T>) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
       return props.children?.({className: (props as any).className});
@@ -118,7 +121,7 @@ export const Container = styled(
   },
   {
     shouldForwardProp: prop => {
-      if (omitContainerProps.has(prop as unknown as keyof ContainerProps<any>)) {
+      if (omitContainerProps.has(prop as any)) {
         return false;
       }
       return true;
@@ -157,5 +160,5 @@ export const Container = styled(
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: ContainerProps<T> | ContainerPropsWithRenderProp
+  props: ContainerProps<T>
 ) => React.ReactElement;

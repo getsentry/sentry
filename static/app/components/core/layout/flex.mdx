@@ -29,11 +29,10 @@ To create a basic flex container, wrap elements in `<Flex>` and they will be lai
 
 ### Composition
 
-The `Flex` component supports composition via <a href="/stories/layout/composition">asChild</a> to allow composition with other components. When `asChild` is used, the `Flex` component will spread its props to the child component.
+The `Flex` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
 
 <Storybook.Demo>
   <Flex
-    asChild
     border="primary"
     radius="md"
     padding="md"
@@ -41,22 +40,26 @@ The `Flex` component supports composition via <a href="/stories/layout/compositi
     background="primary"
     width="80%"
   >
-    <p>
+    {props => (
+      <p {...props}>
+        <span>Justify</span>
+        <span>Between</span>
+        <span>On</span>
+        <span>Paragraph</span>
+      </p>
+    )}
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex width="80%" justify="between">
+  {props => (
+    <p {...props}>
       <span>Justify</span>
       <span>Between</span>
       <span>On</span>
       <span>Paragraph</span>
     </p>
-  </Flex>
-</Storybook.Demo>
-```jsx
-<Flex asChild width="80%" justify="between">
-  <p>
-    <span>Justify</span>
-    <span>Between</span>
-    <span>On</span>
-    <span>Paragraph</span>
-  </p>
+  )}
 </Flex>
 ```
 

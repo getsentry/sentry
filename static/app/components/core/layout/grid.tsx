@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
-const omitGridProps = new Set<keyof GridProps>([
+const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'align',
   'as',
   'autoColumns',
@@ -18,10 +18,7 @@ const omitGridProps = new Set<keyof GridProps>([
   'rows',
 ]);
 
-type GridProps<T extends ContainerElement = 'div'> = Omit<
-  ContainerProps<T>,
-  'display'
-> & {
+interface GridLayoutProps {
   /**
    * Aligns grid items along the column axis within their grid cells.
    * Uses CSS align-items property.
@@ -81,11 +78,13 @@ type GridProps<T extends ContainerElement = 'div'> = Omit<
    * Uses CSS grid-template-rows property.
    */
   rows?: Responsive<CSSProperties['gridTemplateRows']>;
-};
+}
+
+type GridProps<T extends ContainerElement = 'div'> = ContainerProps<T> & GridLayoutProps;
 
 export const Grid = styled(Container, {
   shouldForwardProp: prop => {
-    return !omitGridProps.has(prop as unknown as keyof GridProps);
+    return !omitGridProps.has(prop as any);
   },
 })<GridProps<any>>`
   ${p => rc('display', p.as === 'span' || p.inline ? 'inline-grid' : 'grid', p.theme)};

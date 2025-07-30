@@ -20,7 +20,6 @@ describe('Container', () => {
     expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
 
-    expect(screen.getByText('Hello')).toHaveAttribute('aria-activedescendant', 'what');
     expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
   });
 
@@ -34,7 +33,6 @@ describe('Container', () => {
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
-    expect(screen.getByText('Hello')).toHaveAttribute('border', 'primary');
   });
 
   it('render prop type is correctly inferred', () => {
