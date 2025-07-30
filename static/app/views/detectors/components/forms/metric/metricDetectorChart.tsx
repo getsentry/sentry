@@ -11,6 +11,7 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {useMetricDetectorAnomalySeries} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalySeries';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 
@@ -86,6 +87,30 @@ export function MetricDetectorChart({
       comparisonSeries,
     });
 
+  const isAnomalyDetection = detectionType === 'dynamic';
+  const shouldFetchAnomalies =
+    isAnomalyDetection && !isPending && !isError && series.length > 0;
+
+  // Add anomaly detection when detection type is dynamic and series data is ready
+  const anomalyResult = useMetricDetectorAnomalySeries({
+    series: shouldFetchAnomalies ? series : [],
+    dataset,
+    aggregate,
+    query,
+    environment,
+    projectId,
+    statsPeriod,
+    timePeriod: interval, // Convert interval (seconds) to timePeriod
+    direction: 'both',
+    sensitivity: 'high',
+    expectedSeasonality: 'auto',
+    enabled: shouldFetchAnomalies,
+  });
+
+  const anomalySeries = shouldFetchAnomalies ? anomalyResult.anomalySeries : [];
+  const anomalyLoading = shouldFetchAnomalies ? anomalyResult.isLoading : false;
+  const anomalyError = shouldFetchAnomalies ? anomalyResult.error : null;
+
   // Calculate y-axis bounds to ensure all thresholds are visible
   const maxValue = useMemo(() => {
     // Get max from series data
@@ -111,7 +136,7 @@ export function MetricDetectorChart({
     return roundedMax + padding;
   }, [series, thresholdMaxValue]);
 
-  if (isPending) {
+  if (isPending || anomalyLoading) {
     return (
       <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
         <Placeholder height={`${CHART_HEIGHT - 20}px`} />
@@ -119,7 +144,7 @@ export function MetricDetectorChart({
     );
   }
 
-  if (isError) {
+  if (isError || anomalyError) {
     return (
       <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
         <ErrorPanel>
@@ -136,7 +161,7 @@ export function MetricDetectorChart({
       showTimeInTooltip
       height={CHART_HEIGHT}
       stacked={false}
-      series={series}
+      series={[...series, ...anomalySeries]}
       additionalSeries={additionalSeries}
       yAxis={{
         max: maxValue > 0 ? maxValue : undefined,
