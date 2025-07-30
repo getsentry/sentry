@@ -378,11 +378,11 @@ export function renderEventIdAsLinkable(
   });
 
   return (
-    <StyledTooltip title={t('View Event')}>
-      <Link data-test-id="view-event" to={target}>
+    <Link data-test-id="view-event" to={target}>
+      <StyledTooltip title={t('View Event')}>
         <Container>{getShortEventId(id)}</Container>
-      </Link>
-    </StyledTooltip>
+      </StyledTooltip>
+    </Link>
   );
 }
 
@@ -415,11 +415,11 @@ export function renderTraceAsLinkable(widget?: Widget) {
     });
 
     return (
-      <StyledTooltip title={t('View Trace')}>
-        <Link data-test-id="view-trace" to={target}>
+      <Link data-test-id="view-trace" to={target}>
+        <StyledTooltip title={t('View Trace')}>
           <Container>{getShortEventId(id)}</Container>
-        </Link>
-      </StyledTooltip>
+        </StyledTooltip>
+      </Link>
     );
   };
 }
