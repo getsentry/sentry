@@ -1,9 +1,11 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {IconSettings} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/appSizeInsightsSidebar';
 import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeInsightsProps {
@@ -42,6 +44,8 @@ function formatSavingsAmount(savings: number): string {
 }
 
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   if (!totalSize || totalSize <= 0) {
     return null;
   }
@@ -99,13 +103,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
     <InsightsContainer>
       <Header>
         <Title>Top insights</Title>
-        <Button
-          size="sm"
-          icon={<IconSettings />}
-          onClick={() => {
-            // TODO: Open sidebar with all insights
-          }}
-        >
+        <Button size="sm" icon={<IconSettings />} onClick={() => setIsSidebarOpen(true)}>
           View all insights
         </Button>
       </Header>
@@ -122,6 +120,13 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
           </InsightRow>
         ))}
       </InsightsList>
+
+      <AppSizeInsightsSidebar
+        insights={insights}
+        totalSize={totalSize}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
     </InsightsContainer>
   );
 }
