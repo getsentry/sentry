@@ -19,7 +19,7 @@ from sentry.seer.autofix.autofix import (
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -1166,7 +1166,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -1270,7 +1270,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -1310,7 +1310,7 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
