@@ -5,9 +5,12 @@ from sentry import analytics
 class AlertCreatedEvent(analytics.Event):
     user_id: int | None = None
     default_user_id: str
-    organization_id: str
+    organization_id: int
+    project_id: int
     rule_id: int
     rule_type: str
+    referrer: str | None = None
+    session_id: str | None = None
     is_api_token: bool
     # `alert_rule_ui_component` can be `alert-rule-action`
     alert_rule_ui_component: str | None = None

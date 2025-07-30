@@ -393,6 +393,7 @@ def record_alert_rule_created(
             user_id=user_id,
             default_user_id=default_user_id,
             organization_id=project.organization_id,
+            project_id=project.id,
             rule_id=rule_id,
             rule_type=rule_type,
             is_api_token=is_api_token,
