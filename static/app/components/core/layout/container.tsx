@@ -1,4 +1,5 @@
 import type React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import type {Theme} from 'sentry/utils/theme';
@@ -125,7 +126,7 @@ export const Container = styled(
       if (omitContainerProps.has(prop as any)) {
         return false;
       }
-      return true;
+      return isPropValid(prop);
     },
   }
 )`
