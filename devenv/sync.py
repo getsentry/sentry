@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.metadata
 import json
 import os
 import shlex
@@ -107,7 +108,31 @@ exec {binroot}/node-env/bin/pnpm "$@"
     )
 
 
+# Temporary, see https://github.com/getsentry/sentry/pull/78881
+def check_minimum_version(minimum_version: str) -> bool:
+    version = importlib.metadata.version("sentry-devenv")
+
+    parsed_version = tuple(map(int, version.split(".")))
+    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
+
+    return parsed_version >= parsed_minimum_version
+
+
 def main(context: dict[str, str]) -> int:
+    minimum_version = "1.22.0"
+    if not check_minimum_version(minimum_version):
+        raise SystemExit(
+            f"""
+In order to use uv, devenv must be at least version {minimum_version}.
+
+Please run the following to update your global devenv:
+devenv update
+
+Then, use it to run sync this time:
+{constants.root}/bin/devenv sync
+"""
+        )
+
     repo = context["repo"]
     reporoot = context["reporoot"]
     cfg = config.get_repo(reporoot)
