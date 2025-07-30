@@ -197,7 +197,7 @@ class FeatureContextManagerOrDecorator:
                                     return method(*args, **kwargs)
 
                             # Mark as wrapped by our feature decorator
-                            wrapped_method._feature_wrapped = True
+                            wrapped_method._feature_wrapped = True  # type: ignore[attr-defined]
                             return wrapped_method
 
                         wrapped = create_wrapped_method(attr)
