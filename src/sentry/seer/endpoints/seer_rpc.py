@@ -242,7 +242,6 @@ def get_organization_seer_consent_by_org_name(
                 )
             )
 
-            # If NOT hide_ai_features AND pr_review_test_generation_enabled, return True
             if not hide_ai_features and pr_review_test_generation_enabled:
                 return {"consent": True}
         except Organization.DoesNotExist:
