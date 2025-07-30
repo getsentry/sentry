@@ -13,7 +13,7 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import run_trace_query
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.numbers import base32_encode
 
 # Mostly here for testing
@@ -294,12 +294,12 @@ def query_trace_data(
     query_thread_pool = ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=3)
     with query_thread_pool:
         spans_future = query_thread_pool.submit(
-            run_trace_query,
-            trace_id,
-            snuba_params,
-            Referrer.API_TRACE_VIEW_GET_EVENTS.value,
-            SearchResolverConfig(),
-            additional_attributes,
+            Spans.run_trace_query,
+            trace_id=trace_id,
+            params=snuba_params,
+            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            config=SearchResolverConfig(),
+            additional_attributes=additional_attributes,
         )
         errors_future = query_thread_pool.submit(
             _run_errors_query,

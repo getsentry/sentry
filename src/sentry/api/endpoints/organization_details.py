@@ -1010,7 +1010,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return details on an individual organization, including various details
         such as membership access and teams.

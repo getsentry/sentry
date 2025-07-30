@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.explore_logs import ExploreLogsPage
 from sentry.testutils.cases import AcceptanceTestCase, OurLogTestCase, SnubaTestCase
@@ -44,7 +44,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_opening_log_row_shows_attributes(self, mock_now):
+    def test_opening_log_row_shows_attributes(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 
         assert (

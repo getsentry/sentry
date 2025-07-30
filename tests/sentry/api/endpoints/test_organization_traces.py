@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -348,7 +348,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.api.endpoints.organization_traces.process_breakdowns")
-    def test_process_breakdown_error(self, mock_process_breakdowns, mock_capture_exception):
+    def test_process_breakdown_error(
+        self, mock_process_breakdowns: MagicMock, mock_capture_exception: MagicMock
+    ) -> None:
         exception = Exception()
 
         mock_process_breakdowns.side_effect = exception
@@ -2268,7 +2270,9 @@ def test_process_breakdowns(data, traces_range, expected):
 
 @patch("sentry_sdk.capture_exception")
 @patch("sentry.api.endpoints.organization_traces.quantize_range")
-def test_quantize_range_error(mock_quantize_range, mock_capture_exception):
+def test_quantize_range_error(
+    mock_quantize_range: MagicMock, mock_capture_exception: MagicMock
+) -> None:
     exception = Exception()
 
     mock_quantize_range.side_effect = exception
@@ -2302,7 +2306,9 @@ def test_quantize_range_error(mock_quantize_range, mock_capture_exception):
 
 @patch("sentry_sdk.capture_exception")
 @patch("sentry.api.endpoints.organization_traces.new_trace_interval")
-def test_build_breakdown_error(mock_new_trace_interval, mock_capture_exception):
+def test_build_breakdown_error(
+    mock_new_trace_interval: MagicMock, mock_capture_exception: MagicMock
+) -> None:
     exception = Exception()
 
     mock_new_trace_interval.side_effect = exception

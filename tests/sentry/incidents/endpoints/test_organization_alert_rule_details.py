@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from functools import cached_property
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -359,7 +359,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_detection_type(self, mock_seer_request):
+    def test_dynamic_detection_type(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -880,7 +880,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert len(resp.data["triggers"]) == 1
 
     @mock.patch("sentry.incidents.serializers.alert_rule.dual_delete_migrated_alert_rule_trigger")
-    def test_dual_delete_trigger(self, mock_dual_delete):
+    def test_dual_delete_trigger(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1050,7 +1050,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_timeout(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1072,7 +1072,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_max_retry(self, mock_seer_request: MagicMock) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1097,7 +1097,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_other_error(self, mock_seer_request: MagicMock) -> None:
         """
         Test the catch-all in case Seer returns something that we don't expect.
         """
@@ -1124,7 +1124,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_update_validation_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_update_validation_error(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
         alert_rule = self.dynamic_alert_rule
@@ -1189,7 +1191,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     @mock.patch(
         "sentry.incidents.serializers.alert_rule_trigger.dual_delete_migrated_alert_rule_trigger_action"
     )
-    def test_dual_delete_action(self, mock_dual_delete):
+    def test_dual_delete_action(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -1763,7 +1765,9 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
-    def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+    def test_async_lookup_outside_transaction(
+        self, mock_uuid4: MagicMock, mock_get_channel_id: MagicMock
+    ) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -2115,7 +2119,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     @patch(
         "sentry.incidents.endpoints.organization_alert_rule_details.dual_delete_migrated_alert_rule"
     )
-    def test_dual_delete(self, mock_dual_delete):
+    def test_dual_delete(self, mock_dual_delete: MagicMock) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )

@@ -1,5 +1,5 @@
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.core.files.base import ContentFile
@@ -314,7 +314,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
-    def test_assemble_basic(self, mock_assemble_preprod_artifact):
+    def test_assemble_basic(self, mock_assemble_preprod_artifact: MagicMock) -> None:
         content = b"test preprod artifact content"
         total_checksum = sha1(content).hexdigest()
 
@@ -347,7 +347,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
     )
-    def test_assemble_with_metadata(self, mock_assemble_preprod_artifact):
+    def test_assemble_with_metadata(self, mock_assemble_preprod_artifact: MagicMock) -> None:
         content = b"test preprod artifact with metadata"
         total_checksum = sha1(content).hexdigest()
 

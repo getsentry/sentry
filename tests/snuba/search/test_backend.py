@@ -1823,7 +1823,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert set(results) == set()
 
     @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_snuba_not_called_optimization(self, query_mock):
+    def test_snuba_not_called_optimization(self, query_mock: mock.MagicMock) -> None:
         assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
         assert not query_mock.called
 
@@ -1837,7 +1837,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert query_mock.called
 
     @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_reduce_bulk_results_none_total(self, bulk_raw_query_mock):
+    def test_reduce_bulk_results_none_total(self, bulk_raw_query_mock: mock.MagicMock) -> None:
         bulk_raw_query_mock.return_value = [
             {"data": [], "totals": {"total": None}},
             {"data": [], "totals": {"total": None}},
@@ -1853,7 +1853,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert bulk_raw_query_mock.called
 
     @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_reduce_bulk_results_none_data(self, bulk_raw_query_mock):
+    def test_reduce_bulk_results_none_data(self, bulk_raw_query_mock: mock.MagicMock) -> None:
         bulk_raw_query_mock.return_value = [
             {"data": None, "totals": {"total": 0}},
             {"data": None, "totals": {"total": 0}},

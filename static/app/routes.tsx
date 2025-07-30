@@ -680,13 +680,13 @@ function buildRoutes(): RouteObject[] {
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'toolbar/',
       name: t('Developer Toolbar'),
       component: make(() => import('sentry/views/settings/project/projectToolbar')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'source-maps/',
@@ -1728,7 +1728,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
-      deprecatedRouteProps: true,
     },
   ];
   const replayRoutes: SentryRouteObject = {
@@ -1736,7 +1735,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
-    deprecatedRouteProps: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -2653,7 +2651,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
-      deprecatedRouteProps: true,
       children: [
         ...issueTabs,
         {

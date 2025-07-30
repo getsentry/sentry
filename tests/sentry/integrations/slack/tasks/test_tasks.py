@@ -1,4 +1,4 @@
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 from uuid import uuid4
 
 import orjson
@@ -74,7 +74,7 @@ class SlackTasksTest(TestCase):
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    def test_task_new_rule(self, mock_set_value):
+    def test_task_new_rule(self, mock_set_value: MagicMock) -> None:
         data = {
             "name": "New Rule",
             "environment": None,
@@ -117,7 +117,7 @@ class SlackTasksTest(TestCase):
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    def test_task_new_rule_project_id(self, mock_set_value):
+    def test_task_new_rule_project_id(self, mock_set_value: MagicMock) -> None:
         # Task should work if project_id is passed instead of project
         data = {
             "name": "New Rule",
@@ -161,7 +161,7 @@ class SlackTasksTest(TestCase):
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    def test_task_existing_rule(self, mock_set_value):
+    def test_task_existing_rule(self, mock_set_value: MagicMock) -> None:
         action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
         rule = Rule.objects.create(
@@ -211,7 +211,9 @@ class SlackTasksTest(TestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", "chan-id", False),
     )
-    def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
+    def test_task_new_alert_rule(
+        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
+    ) -> None:
         alert_rule_data = self.metric_alert_data()
 
         data = {
@@ -241,7 +243,9 @@ class SlackTasksTest(TestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", None, False),
     )
-    def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
+    def test_task_failed_id_lookup(
+        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
+    ) -> None:
         alert_rule_data = self.metric_alert_data()
 
         data = {
@@ -266,7 +270,9 @@ class SlackTasksTest(TestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", None, True),
     )
-    def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
+    def test_task_timeout_id_lookup(
+        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
+    ) -> None:
         alert_rule_data = self.metric_alert_data()
 
         data = {
@@ -332,7 +338,9 @@ class SlackTasksTest(TestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", "chan-id", False),
     )
-    def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
+    def test_task_existing_metric_alert(
+        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
+    ) -> None:
         alert_rule_data = self.metric_alert_data()
         alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project], name="New Rule", user=self.user
@@ -365,7 +373,9 @@ class SlackTasksTest(TestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", "chan-id", False),
     )
-    def test_task_existing_metric_alert_with_sdk(self, mock_get_channel_id, mock_set_value):
+    def test_task_existing_metric_alert_with_sdk(
+        self, mock_get_channel_id: MagicMock, mock_set_value: MagicMock
+    ) -> None:
         alert_rule_data = self.metric_alert_data()
         alert_rule = self.create_alert_rule(
             organization=self.organization, projects=[self.project], name="New Rule", user=self.user
@@ -395,7 +405,7 @@ class SlackTasksTest(TestCase):
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @responses.activate
-    def test_post_message_success(self, mock_api_call, mock_metrics):
+    def test_post_message_success(self, mock_api_call: MagicMock, mock_metrics: MagicMock) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -420,7 +430,7 @@ class SlackTasksTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @responses.activate
-    def test_post_message_failure_sdk(self, mock_metrics):
+    def test_post_message_failure_sdk(self, mock_metrics: MagicMock) -> None:
         with self.tasks():
             post_message.apply_async(
                 kwargs={

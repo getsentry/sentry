@@ -4,6 +4,7 @@ import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
+  useAutorefreshEnabledOrWithinPauseWindow,
   useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -52,6 +53,8 @@ export function useVirtualStreaming(
   data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
 ) {
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const isAutoRefreshEnabledOrWithinPauseWindow =
+    useAutorefreshEnabledOrWithinPauseWindow();
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
@@ -108,10 +111,17 @@ export function useVirtualStreaming(
 
   // Initialize when auto refresh is enabled and we have data
   useEffect(() => {
-    if (autoRefresh && virtualTimestamp === undefined) {
-      initializeVirtualTimestamp();
+    if (!isAutoRefreshEnabledOrWithinPauseWindow || virtualTimestamp !== undefined) {
+      return;
     }
-  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp]);
+
+    initializeVirtualTimestamp();
+  }, [
+    isAutoRefreshEnabledOrWithinPauseWindow,
+    initializeVirtualTimestamp,
+    virtualTimestamp,
+    data?.pages?.length,
+  ]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {

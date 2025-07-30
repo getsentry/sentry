@@ -346,7 +346,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             assert subscription_regions == {"region1", "region2"}
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector")
-    def test_status_disable(self, mock_disable_uptime_detector):
+    def test_status_disable(self, mock_disable_uptime_detector: mock.MagicMock) -> None:
         create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -359,7 +359,9 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         mock_disable_uptime_detector.assert_called()
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector")
-    def test_status_disable_not_called_onboarding(self, mock_disable_uptime_detector):
+    def test_status_disable_not_called_onboarding(
+        self, mock_disable_uptime_detector: mock.MagicMock
+    ) -> None:
         create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -372,7 +374,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         mock_disable_uptime_detector.assert_not_called()
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector")
-    def test_status_enable(self, mock_enable_uptime_detector):
+    def test_status_enable(self, mock_enable_uptime_detector: mock.MagicMock) -> None:
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
                 self.project,
@@ -388,7 +390,9 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             mock_enable_uptime_detector.assert_called_with(detector, ensure_assignment=True)
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector")
-    def test_status_enable_not_called_onboarding(self, mock_enable_uptime_detector):
+    def test_status_enable_not_called_onboarding(
+        self, mock_enable_uptime_detector: mock.MagicMock
+    ) -> None:
         with self.tasks():
             create_project_uptime_subscription(
                 self.project,
@@ -405,7 +409,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
     )
-    def test_no_seat_assignment(self, _mock_check_assign_seat):
+    def test_no_seat_assignment(self, _mock_check_assign_seat: mock.MagicMock) -> None:
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
                 self.project,
@@ -552,7 +556,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         )
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector")
-    def test_status_disable(self, mock_disable_uptime_detector):
+    def test_status_disable(self, mock_disable_uptime_detector: mock.MagicMock) -> None:
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
                 self.project,
@@ -579,7 +583,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         mock_disable_uptime_detector.assert_called()
 
     @mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector")
-    def test_status_enable(self, mock_enable_uptime_detector):
+    def test_status_enable(self, mock_enable_uptime_detector: mock.MagicMock) -> None:
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
                 self.project,
@@ -610,7 +614,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
 
 class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
     @mock.patch("sentry.quotas.backend.remove_seat")
-    def test_other_subscriptions(self, mock_remove_seat):
+    def test_other_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
         other_project = self.create_project()
         proj_sub = create_project_uptime_subscription(
             self.project,
@@ -647,7 +651,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
         mock_remove_seat.assert_called_with(DataCategory.UPTIME, mock.ANY)
 
     @mock.patch("sentry.quotas.backend.remove_seat")
-    def test_single_subscriptions(self, mock_remove_seat):
+    def test_single_subscriptions(self, mock_remove_seat: mock.MagicMock) -> None:
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -749,7 +753,7 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
 
 class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
     @mock.patch("sentry.quotas.backend.disable_seat")
-    def test(self, mock_disable_seat):
+    def test(self, mock_disable_seat: mock.MagicMock) -> None:
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -773,7 +777,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert not detector.enabled
 
     @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_disable_failed(self, mock_disable_seat):
+    def test_disable_failed(self, mock_disable_seat: mock.MagicMock) -> None:
         with (
             self.tasks(),
             self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()),
@@ -816,7 +820,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert not detector.enabled
 
     @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_already_disabled(self, mock_disable_seat):
+    def test_already_disabled(self, mock_disable_seat: mock.MagicMock) -> None:
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -836,7 +840,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         mock_disable_seat.assert_not_called()
 
     @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_skip_quotas(self, mock_disable_seat):
+    def test_skip_quotas(self, mock_disable_seat: mock.MagicMock) -> None:
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -869,7 +873,9 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=True),
     )
-    def test(self, mock_assign_seat, mock_check_assign_seat):
+    def test(
+        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
+    ) -> None:
         # Mock out enable_uptime_detector here to avoid calling it
         # and polluting our mock quota calls.
         with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):
@@ -923,7 +929,9 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
     )
-    def test_no_seat_assignment(self, mock_check_assign_seat, mock_assign_seat):
+    def test_no_seat_assignment(
+        self, mock_check_assign_seat: mock.MagicMock, mock_assign_seat: mock.MagicMock
+    ) -> None:
         # Mock out enable_uptime_detector here to avoid calling it
         # and polluting our mock quota calls.
         with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):
@@ -956,7 +964,7 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         mock_assign_seat.assert_not_called()
 
     @mock.patch("sentry.quotas.backend.check_assign_seat")
-    def test_already_enabled(self, mock_check_assign_seat):
+    def test_already_enabled(self, mock_check_assign_seat: mock.MagicMock) -> None:
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -985,7 +993,9 @@ class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=True),
     )
-    def test_skip_quotas(self, mock_assign_seat, mock_check_assign_seat):
+    def test_skip_quotas(
+        self, mock_assign_seat: mock.MagicMock, mock_check_assign_seat: mock.MagicMock
+    ) -> None:
         # Mock out enable_uptime_detector here to avoid calling it
         # and polluting our mock quota calls.
         with mock.patch("sentry.uptime.subscriptions.subscriptions.enable_uptime_detector"):

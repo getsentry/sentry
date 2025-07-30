@@ -23,7 +23,7 @@ import {
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';

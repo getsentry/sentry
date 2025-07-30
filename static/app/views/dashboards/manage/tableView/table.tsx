@@ -106,7 +106,7 @@ export function DashboardTable({
                   await updateDashboardFavorite(
                     api,
                     queryClient,
-                    organization.slug,
+                    organization,
                     dashboard.id,
                     !dashboard.isFavorited
                   );

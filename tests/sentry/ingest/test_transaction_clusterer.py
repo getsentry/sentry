@@ -213,7 +213,7 @@ def test_sort_rules() -> None:
 
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @django_db_all
-def test_max_rule_threshold_merge_composite_store(default_project):
+def test_max_rule_threshold_merge_composite_store(default_project: mock.MagicMock) -> None:
     assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
 
     with freeze_time("2000-01-01 01:00:00"):

@@ -77,7 +77,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert len(response.data) == 6
             most_recent = response.data[0]
             for key in [
-                "uptimeSubscriptionId",
+                "projectUptimeSubscriptionId",
                 "uptimeCheckId",
                 "scheduledCheckTime",
                 "timestamp",
@@ -93,7 +93,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
                 assert key in most_recent, f"{key} not in {most_recent}"
 
             assert most_recent["uptimeCheckId"]
-            assert most_recent["uptimeSubscriptionId"] == self.project_uptime_subscription.id
+            assert most_recent["projectUptimeSubscriptionId"] == self.project_uptime_subscription.id
             assert most_recent["regionName"] == "Default Region"
             assert most_recent["checkStatusReason"] == "failure"
 

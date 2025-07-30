@@ -475,7 +475,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_resolve_with_integration(self, mock_sync_status_outbound):
+    def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.organization
@@ -534,7 +534,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
+    def test_set_unresolved_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
         org = self.organization
@@ -1316,7 +1316,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
+    def test_merge(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -1350,7 +1352,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+    def test_merge_performance_issues(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -1468,7 +1472,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         "sentry.models.OrganizationMember.get_scopes",
         return_value=frozenset(s for s in settings.SENTRY_SCOPES if s != "event:admin"),
     )
-    def test_discard_requires_events_admin(self, mock_get_scopes):
+    def test_discard_requires_events_admin(self, mock_get_scopes: MagicMock) -> None:
         group1 = self.create_group(is_public=True)
         user = self.user
 
@@ -1548,7 +1552,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.assert_groups_not_deleted([group3])
 
     @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream):
+    def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
         eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 

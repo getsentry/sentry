@@ -19,6 +19,7 @@ from sentry.integrations.api.serializers.models.integration import (
     IntegrationProviderSerializer,
 )
 from sentry.integrations.manager import default_manager as integrations
+from sentry.models.organization import Organization
 
 
 class OrganizationConfigIntegrationsEndpointResponse(TypedDict):
@@ -48,7 +49,7 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         },
         examples=IntegrationExamples.ORGANIZATION_CONFIG_INTEGRATIONS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get integration provider information about all available integrations for an organization.
         """

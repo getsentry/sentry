@@ -171,7 +171,7 @@ class FooBarError(Exception):
 
 class HandleQueryErrorsTest(APITestCase):
     @patch("sentry.api.utils.ParseError")
-    def test_handle_query_errors(self, mock_parse_error):
+    def test_handle_query_errors(self, mock_parse_error: MagicMock) -> None:
         exceptions = [
             DatasetSelectionError,
             IncompatibleMetricsQuery,
@@ -224,7 +224,7 @@ class HandleQueryErrorsTest(APITestCase):
             assert isinstance(e, UserCancelError)  # Should propagate original error
 
     @patch("sentry.api.utils.ParseError")
-    def test_handle_other_operational_error(self, mock_parse_error):
+    def test_handle_other_operational_error(self, mock_parse_error: MagicMock) -> None:
         class OtherError(OperationalError):
             pass
 

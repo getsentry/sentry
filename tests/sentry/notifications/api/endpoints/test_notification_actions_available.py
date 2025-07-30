@@ -24,7 +24,7 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
         self.get_success_response(self.organization.slug)
 
     @patch("sentry.notifications.models.notificationaction.ActionTrigger")
-    def test_get_dynamic_response(self, mock_action_trigger):
+    def test_get_dynamic_response(self, mock_action_trigger: MagicMock) -> None:
         """
         Note: This test assumes the ActionTrigger already contains reference to the trigger. Only
         validates that new action registrations get serialized (as is the case for getsentry)

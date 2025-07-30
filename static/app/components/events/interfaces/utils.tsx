@@ -9,7 +9,7 @@ import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/type
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import type {AvatarUser} from 'sentry/types/user';
+import {type AvatarUser, StacktraceOrder} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -382,11 +382,11 @@ export function isStacktraceNewestFirst() {
   }
 
   switch (user.options.stacktraceOrder) {
-    case 2:
+    case StacktraceOrder.MOST_RECENT_FIRST:
       return true;
-    case 1:
+    case StacktraceOrder.MOST_RECENT_LAST:
       return false;
-    case -1:
+    case StacktraceOrder.DEFAULT:
     default:
       return true;
   }

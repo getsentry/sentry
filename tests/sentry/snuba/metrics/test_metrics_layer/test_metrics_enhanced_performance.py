@@ -2113,7 +2113,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         ]
 
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
-    def test_broken_custom_metric(self, mocked_parse_mri):
+    def test_broken_custom_metric(self, mocked_parse_mri: mock.MagicMock) -> None:
         # Store valid metric
         self.store_transaction_metric(
             1,

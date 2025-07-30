@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
@@ -330,7 +330,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             assert oi.grace_period_end is None
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_incident_alert_missing_sentryapp(self, mock_record) -> None:
+    def test_send_incident_alert_missing_sentryapp(self, mock_record: MagicMock) -> None:
         result = integration_service.send_incident_alert_notification(
             sentry_app_id=9876,  # does not exist
             action_id=1,

@@ -1,6 +1,6 @@
 import unittest
 from datetime import timedelta
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -49,7 +49,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.data == correct_get_data
 
     @patch("sentry.scim.endpoints.members.metrics")
-    def test_post_users_successful(self, mock_metrics):
+    def test_post_users_successful(self, mock_metrics: MagicMock) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
             response = self.client.post(url, post_data())
@@ -84,7 +84,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         )
 
     @patch("sentry.scim.endpoints.members.metrics")
-    def test_update_role_metric_called_when_role_specified(self, mock_metrics):
+    def test_update_role_metric_called_when_role_specified(self, mock_metrics: MagicMock) -> None:
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
             response = self.client.post(

@@ -286,7 +286,9 @@ class CustomRulesEndpoint(APITestCase):
         assert rule_id == new_rule_id
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_project_config(self, mock_invalidate_project_config):
+    def test_invalidates_project_config(
+        self, mock_invalidate_project_config: mock.MagicMock
+    ) -> None:
         """
         Tests that project rules invalidates all the configurations for the
         passed projects
@@ -308,7 +310,9 @@ class CustomRulesEndpoint(APITestCase):
         )
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_organization_config(self, mock_invalidate_project_config):
+    def test_invalidates_organization_config(
+        self, mock_invalidate_project_config: mock.MagicMock
+    ) -> None:
         """
         Tests that org rules invalidates all the configurations for the projects
         in the organization

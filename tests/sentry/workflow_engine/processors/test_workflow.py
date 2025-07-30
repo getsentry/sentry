@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import DefaultDict
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -93,7 +93,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
     @with_feature("organizations:workflow-engine-process-workflows-logs")
     @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_error_event__logger(self, mock_logger):
+    def test_error_event__logger(self, mock_logger: MagicMock) -> None:
         self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
 
         rule = Rule.objects.get(project=self.project)
@@ -114,7 +114,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
-    def test_populate_workflow_env_for_filters(self, mock_filter):
+    def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())
         error_workflow_filters = self.create_data_condition_group(
@@ -235,7 +235,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
-    def test_no_detector(self, mock_logger, mock_incr):
+    def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         triggered_workflows = process_workflows(self.event_data)
@@ -254,7 +254,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
-    def test_no_environment(self, mock_logger, mock_incr):
+    def test_no_environment(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         Environment.objects.all().delete()
         triggered_workflows = process_workflows(self.event_data)
 
@@ -270,7 +270,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
-    def test_no_metrics_triggered(self, mock_logger, mock_incr):
+    def test_no_metrics_triggered(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
         self.event_data.event.project_id = 0
 
         process_workflows(self.event_data)
@@ -278,7 +278,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_logger.exception.assert_called_once()
 
     @patch("sentry.utils.metrics.incr")
-    def test_metrics_with_workflows(self, mock_incr):
+    def test_metrics_with_workflows(self, mock_incr: MagicMock) -> None:
         process_workflows(self.event_data)
 
         mock_incr.assert_any_call(
@@ -288,7 +288,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     @patch("sentry.utils.metrics.incr")
-    def test_metrics_triggered_workflows(self, mock_incr):
+    def test_metrics_triggered_workflows(self, mock_incr: MagicMock) -> None:
         process_workflows(self.event_data)
 
         mock_incr.assert_any_call(
@@ -566,7 +566,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-process-workflows")
     @with_feature("organizations:workflow-engine-metric-alert-dual-processing-logs")
     @patch("sentry.utils.metrics.incr")
-    def test_metrics_issue_dual_processing_metrics(self, mock_incr):
+    def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
         with self.tasks():
             process_workflows(self.event_data)
         mock_incr.assert_any_call(

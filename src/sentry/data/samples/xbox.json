@@ -1,0 +1,253 @@
+{
+  "platform": "csharp",
+  "tags": [
+    ["device", "XboxSeriesX"],
+    ["environment", "production"],
+    ["gpu.name", "Xbox One"],
+    ["gpu.vendor", "REFERENCE"],
+    ["handled", "no"],
+    ["level", "error"],
+    ["mechanism", "Unity.LogException"],
+    ["os.name", "Xbox"],
+    ["runtime.name", "Mono Unity IL2CPP"],
+    ["unity.device.device_type", "Console"],
+    ["unity.device.unique_identifier", "UnityGameCorePlayer"],
+    ["unity.gpu.supports_instancing", "true"],
+    ["unity.install_mode", "Unknown"],
+    ["unity.is_main_thread", "true"]
+  ],
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1749840901.411,
+        "type": "default",
+        "category": "unity.logger",
+        "level": "error",
+        "message": "System.NullReferenceException: Object reference not set to an instance of an object."
+      },
+      {
+        "timestamp": 1749840901.413,
+        "type": "default",
+        "category": "unity.logger",
+        "level": "error",
+        "message": "NullReferenceException while executing 'performed' callbacks of 'UI/Submit[/GXDKGamepad/buttonSouth]'"
+      },
+      {
+        "timestamp": 1749840924.755,
+        "type": "default",
+        "category": "unity.logger",
+        "level": "info",
+        "message": "Enemy HP modifier is now 10 (60s elapsed )"
+      },
+      {
+        "timestamp": 1749840927.307,
+        "type": "default",
+        "category": "unity.logger",
+        "level": "info",
+        "message": "HealthBar.SetHealth: Setting health to 1"
+      },
+      {
+        "timestamp": 1749840939.466,
+        "type": "default",
+        "category": "Exception",
+        "level": "fatal",
+        "message": "Object reference not set to an instance of an object."
+      }
+    ]
+  },
+  "contexts": {
+    "Current Culture": {
+      "calendar": "GregorianCalendar",
+      "display_name": "English (United States)",
+      "name": "en-US",
+      "type": "Current Culture"
+    },
+    "ThreadPool Info": {
+      "available_completion_port_threads": 700,
+      "available_worker_threads": 695,
+      "max_completion_port_threads": 700,
+      "max_worker_threads": 700,
+      "min_completion_port_threads": 7,
+      "min_worker_threads": 7,
+      "type": "ThreadPool Info"
+    },
+    "app": {
+      "app_start_time": "2025-06-13T18:48:52.5401811+00:00",
+      "build_type": "release",
+      "type": "app"
+    },
+    "device": {
+      "name": "XBOX",
+      "model": "XboxSeriesX",
+      "memory_size": 10703863808,
+      "boot_time": "2025-06-13T16:28:52.5025328+00:00",
+      "timezone": "Pacific Standard Time",
+      "processor_count": 7,
+      "cpu_description": "AMD x64",
+      "device_type": "Console",
+      "battery_status": "Unknown",
+      "device_unique_identifier": "UnityGameCorePlayer",
+      "supports_vibration": true,
+      "timezone_display_name": "(UTC-08:00) Pacific",
+      "type": "device"
+    },
+    "gpu": {
+      "name": "Xbox One",
+      "version": "Direct3D 12 [level 12.0]",
+      "id": 0,
+      "vendor_id": "0",
+      "vendor_name": "REFERENCE",
+      "memory_size": 5120,
+      "api_type": "GameCoreXboxSeries",
+      "multi_threaded_rendering": false,
+      "npot_support": "Full",
+      "max_texture_size": 16384,
+      "graphics_shader_level": "Shader Model 5.0",
+      "supports_draw_call_instancing": true,
+      "supports_ray_tracing": true,
+      "supports_compute_shaders": true,
+      "supports_geometry_shaders": true,
+      "type": "gpu"
+    },
+    "os": {
+      "name": "Xbox",
+      "kernel_version": "10.0.26100",
+      "raw_description": "Xbox 10.0.26100",
+      "type": "os"
+    },
+    "runtime": {
+      "name": "Mono Unity IL2CPP",
+      "raw_description": "Mono Unity IL2CPP (Mar 18 2025 18:14:06)",
+      "type": "runtime"
+    },
+    "unity": {
+      "copy_texture_support": "Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture",
+      "editor_version": "6000.0.40f1",
+      "install_mode": "Unknown",
+      "rendering_threading_mode": "NativeGraphicsJobsSplitThreading",
+      "target_frame_rate": "-1",
+      "type": "unity"
+    }
+  },
+  "culprit": "SceneManagers.HUDManager in OnSubmitPerformed",
+  "environment": "production",
+  "exception": {
+    "values": [
+      {
+        "type": "Exception",
+        "value": "This is an example of a Xbox exception",
+        "module": "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "OnUpdate",
+              "symbol": "InputManager_OnUpdate_mE87B624D7707E3882ADB60914DBD5617B368A664",
+              "module": "UnityEngine.InputSystem.InputManager",
+              "package": "Unity.InputSystem, Version=1.13.0.0, Culture=neutral, PublicKeyToken=null",
+              "filename": "InputManager.cs",
+              "abs_path": "Library/PackageCache/com.unity.inputsystem@ea5ab5b33a26/InputSystem/InputManager.cs",
+              "lineno": 3529,
+              "in_app": false,
+              "instruction_addr": "0x80000000015dda68"
+            },
+            {
+              "function": "CallActionListeners",
+              "symbol": "InputActionState_CallActionListeners_mAAF093B0FB0498719E81AF0F30E7D3806F39D501",
+              "module": "UnityEngine.InputSystem.InputActionState",
+              "package": "Unity.InputSystem, Version=1.13.0.0, Culture=neutral, PublicKeyToken=null",
+              "filename": "InputActionState.cs",
+              "abs_path": "Library/PackageCache/com.unity.inputsystem@ea5ab5b33a26/InputSystem/Actions/InputActionState.cs",
+              "lineno": 2548,
+              "in_app": false,
+              "instruction_addr": "0x8000000001541874"
+            },
+            {
+              "function": "OnSubmitPerformed",
+              "symbol": "HUDManager_OnSubmitPerformed_mEA4F4E265315D5AE290EF16458F876177FC70F0F",
+              "module": "SceneManagers.HUDManager",
+              "package": "Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+              "filename": "HUDManager.cs",
+              "abs_path": "C:\\Workspace\\sentaur-survivors\\Assets\\Scripts\\SceneManagers\\HUDManager.cs",
+              "lineno": 41,
+              "pre_context": [
+                "        private void OnSubmitPerformed(InputAction.CallbackContext context)",
+                "        {"
+              ],
+              "context_line": "            if (!gameObject.activeSelf)",
+              "post_context": [
+                "            {",
+                "                return;",
+                "            }"
+              ],
+              "in_app": true,
+              "data": {
+                "client_in_app": true,
+                "symbolicator_status": "symbolicated"
+              },
+              "instruction_addr": "0x800000000033daac"
+            },
+            {
+              "function": "get_gameObject",
+              "symbol": "Component_get_gameObject_m57AEFBB14DB39EC476F740BA000E170355DE691B",
+              "module": "UnityEngine.Component",
+              "package": "UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+              "filename": "UnityEngine.CoreModule__2.cpp",
+              "abs_path": "C:\\Workspace\\sentaur-survivors\\Library\\Bee\\artifacts\\GameCorePlayerBuildProgram\\il2cppOutput\\cpp\\UnityEngine.CoreModule__2.cpp",
+              "lineno": 20619,
+              "context_line": "\t\tThrowHelper_ThrowNullReferenceException_mA9C7629D32240EE0218631933DAC647668CA63CF(__this, NULL);",
+              "in_app": false,
+              "data": {
+                "client_in_app": false,
+                "symbolicator_status": "symbolicated"
+              },
+              "instruction_addr": "0x80000000019b887b"
+            },
+            {
+              "function": "ThrowNullReferenceException",
+              "symbol": "ThrowHelper_ThrowNullReferenceException_mA9C7629D32240EE0218631933DAC647668CA63CF",
+              "module": "UnityEngine.Bindings.ThrowHelper",
+              "package": "UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+              "filename": "UnityEngine.CoreModule__3.cpp",
+              "abs_path": "C:\\Workspace\\sentaur-survivors\\Library\\Bee\\artifacts\\GameCorePlayerBuildProgram\\il2cppOutput\\cpp\\UnityEngine.CoreModule__3.cpp",
+              "lineno": 19964,
+              "context_line": "\t\tIL2CPP_RAISE_MANAGED_EXCEPTION(L_4, ((RuntimeMethod*)il2cpp_codegen_initialize_runtime_metadata_inline((uintptr_t*)&ThrowHelper_ThrowNullR {snip}",
+              "in_app": false,
+              "data": {
+                "client_in_app": false,
+                "symbolicator_status": "symbolicated"
+              },
+              "instruction_addr": "0x80000000019f8dd7"
+            }
+          ],
+          "instruction_addr_adjustment": "all"
+        },
+        "thread_id": 1,
+        "mechanism": {
+          "type": "Unity.LogException",
+          "handled": false
+        }
+      }
+    ]
+  },
+  "sdk": {
+    "name": "sentry.dotnet.unity",
+    "version": "3.1.0+dc525e699f1f5cfe331e915e504087effb1e50f7",
+    "integrations": ["IL2CPPLineNumbers"],
+    "packages": [
+      {
+        "name": "nuget:sentry.dotnet",
+        "version": "5.2.0-dev"
+      },
+      {
+        "name": "upm:sentry.unity",
+        "version": "3.1.0+dc525e699f1f5cfe331e915e504087effb1e50f7"
+      }
+    ]
+  },
+  "user": {
+    "id": "42",
+    "email": "jane.doe@example.com",
+    "ip_address": "127.0.0.1",
+    "username": "Jane Doe"
+  }
+}

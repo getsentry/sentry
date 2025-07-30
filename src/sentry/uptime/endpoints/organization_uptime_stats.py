@@ -2,7 +2,6 @@ import datetime
 import logging
 import uuid
 from collections import defaultdict
-from collections.abc import Callable
 
 from drf_spectacular.utils import extend_schema
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -31,14 +30,14 @@ from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.endpoints.utils import (
+    MAX_UPTIME_SUBSCRIPTION_IDS,
+    authorize_and_map_project_uptime_subscription_ids,
+)
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.snuba_rpc import timeseries_rpc
 
 logger = logging.getLogger(__name__)
-
-
-MAX_UPTIME_SUBSCRIPTION_IDS = 100
 
 
 @region_silo_endpoint
@@ -78,7 +77,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
             subscription_id_to_project_uptime_subscription_id, subscription_ids = (
-                self._authorize_and_map_project_uptime_subscription_ids(
+                authorize_and_map_project_uptime_subscription_ids(
                     project_uptime_subscription_ids, projects, subscription_id_formatter
                 )
             )
@@ -134,45 +133,6 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         return self.respond(response_with_extra_buckets)
-
-    def _authorize_and_map_project_uptime_subscription_ids(
-        self,
-        project_uptime_subscription_ids: list[str],
-        projects: list[Project],
-        sub_id_formatter: Callable[[str], str],
-    ) -> tuple[dict[str, int], list[str]]:
-        """
-        Authorize the project uptime subscription ids and return their corresponding subscription ids
-        we don't store the project uptime subscription id in snuba, so we need to map it to the subscription id
-        """
-        project_uptime_subscription_ids_ints = [int(_id) for _id in project_uptime_subscription_ids]
-        project_uptime_subscriptions = ProjectUptimeSubscription.objects.filter(
-            project_id__in=[project.id for project in projects],
-            id__in=project_uptime_subscription_ids_ints,
-        ).values_list("id", "uptime_subscription__subscription_id")
-
-        validated_project_uptime_subscription_ids = {
-            project_uptime_subscription[0]
-            for project_uptime_subscription in project_uptime_subscriptions
-            if project_uptime_subscription[0] is not None
-        }
-        if set(project_uptime_subscription_ids_ints) != validated_project_uptime_subscription_ids:
-            raise ValueError("Invalid project uptime subscription ids provided")
-
-        subscription_id_to_project_uptime_subscription_id = {
-            sub_id_formatter(project_uptime_subscription[1]): project_uptime_subscription[0]
-            for project_uptime_subscription in project_uptime_subscriptions
-            if project_uptime_subscription[0] is not None
-            and project_uptime_subscription[1] is not None
-        }
-
-        validated_subscription_ids = [
-            sub_id_formatter(project_uptime_subscription[1])
-            for project_uptime_subscription in project_uptime_subscriptions
-            if project_uptime_subscription[1] is not None
-        ]
-
-        return subscription_id_to_project_uptime_subscription_id, validated_subscription_ids
 
     def _make_eap_request(
         self,

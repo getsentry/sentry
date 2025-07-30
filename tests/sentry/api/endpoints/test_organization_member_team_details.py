@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from rest_framework import status
@@ -191,7 +191,7 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get: MagicMock) -> None:
         self.login_as(self.manager)
         response = self.get_error_response(
             self.org.slug, self.member.id, self.team.slug, status_code=403

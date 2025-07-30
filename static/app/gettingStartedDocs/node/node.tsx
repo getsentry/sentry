@@ -44,7 +44,7 @@ server.listen(3000, "127.0.0.1");
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+    tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
   install: (params: Params) => [
@@ -173,7 +173,7 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure they are imported using \`import * as Sentry from "@sentry/node"\`
-Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
+Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
 Reference the logger using \`const { logger } = Sentry\`
 Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
@@ -189,9 +189,8 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  // Send structured logs to Sentry
+  enableLogs: true,
 });
 \`\`\`
 
@@ -266,6 +265,22 @@ try {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/node/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {

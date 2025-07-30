@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -201,7 +201,7 @@ class SCIMIndexCreateTest(SCIMTestCase):
         }
 
     @patch("sentry.scim.endpoints.teams.metrics")
-    def test_scim_team_index_create(self, mock_metrics):
+    def test_scim_team_index_create(self, mock_metrics: MagicMock) -> None:
         with receivers_raise_on_send():
             response = self.get_success_response(
                 self.organization.slug, **self.post_data, status_code=201

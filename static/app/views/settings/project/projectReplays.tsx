@@ -12,11 +12,10 @@ import ReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/repla
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -25,19 +24,14 @@ const ReplaySettingsAlert = HookOrDefault({
   defaultComponent: null,
 });
 
-type RouteParams = {
-  projectId: string;
-};
-type Props = RouteComponentProps<RouteParams> & {
-  organization: Organization;
-  project: Project;
-};
+interface Props {
+  project: Project; // Passed in by the parent route
+}
 
-export default function ProjectReplaySettings({
-  organization,
-  project,
-  params: {projectId},
-}: Props) {
+export default function ProjectReplaySettings({project}: Props) {
+  const organization = useOrganization();
+  const {projectId} = useParams();
+
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
@@ -141,5 +135,5 @@ export default function ProjectReplaySettings({
 }
 
 const TabsWithGap = styled(Tabs)`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;

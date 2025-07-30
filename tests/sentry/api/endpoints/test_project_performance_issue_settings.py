@@ -21,7 +21,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
     @patch("sentry.models.ProjectOption.objects.get_value")
     @with_feature("organizations:performance-view")
-    def test_get_project_options_overrides_detection_defaults(self, get_value):
+    def test_get_project_options_overrides_detection_defaults(self, get_value: MagicMock) -> None:
         response = self.get_success_response(
             self.project.organization.slug, self.project.slug, format="json"
         )
@@ -67,7 +67,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
     @patch("sentry.models.ProjectOption.objects.get_value")
     @with_feature("organizations:performance-view")
-    def test_get_project_options_overrides_threshold_defaults(self, get_value):
+    def test_get_project_options_overrides_threshold_defaults(self, get_value: MagicMock) -> None:
         with override_options(
             {
                 "performance.issues.slow_db_query.duration_threshold": 1000,
@@ -232,7 +232,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
     @patch("sentry.models.ProjectOption.objects.get_value")
     @with_feature("organizations:performance-view")
-    def test_put_does_not_update_disabled_option(self, get_value):
+    def test_put_does_not_update_disabled_option(self, get_value: MagicMock) -> None:
         self.login_as(user=self.user, superuser=False)
         get_value.return_value = {
             "n_plus_one_db_queries_detection_enabled": False,

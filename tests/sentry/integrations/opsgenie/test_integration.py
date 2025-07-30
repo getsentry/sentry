@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -65,7 +65,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_installation_no_key(self, mock_record):
+    def test_installation_no_key(self, mock_record: MagicMock) -> None:
         self.assert_setup_flow(self.config_no_key)
 
         # SLO assertions
@@ -265,7 +265,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.login_as(self.user)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_migrate_plugin(self, mock_record):
+    def test_migrate_plugin(self, mock_record: MagicMock) -> None:
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
         and distinct API keys are successfully migrated.

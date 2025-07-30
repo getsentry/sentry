@@ -50,7 +50,9 @@ def test_generate_dart_symbols_map() -> None:
 
 @mock.patch("sentry.lang.dart.utils.generate_dart_symbols_map", return_value=MOCK_DEBUG_MAP)
 @mock.patch("sentry.lang.dart.utils.get_dart_symbols_images", return_value=["test-uuid"])
-def test_view_hierarchy_deobfuscation(mock_images, mock_map):
+def test_view_hierarchy_deobfuscation(
+    mock_images: mock.MagicMock, mock_map: mock.MagicMock
+) -> None:
     test_view_hierarchy = {
         "windows": [
             {

@@ -47,7 +47,7 @@ class TestWorkflowValidator(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    def test_valid_data__with_action_filters(self, mock_action_handler):
+    def test_valid_data__with_action_filters(self, mock_action_handler: mock.MagicMock) -> None:
         self.valid_data["actionFilters"] = [
             {
                 "logicType": "any",
@@ -70,7 +70,9 @@ class TestWorkflowValidator(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    def test_valid_data__with_invalid_action_filters(self, mock_action_handler):
+    def test_valid_data__with_invalid_action_filters(
+        self, mock_action_handler: mock.MagicMock
+    ) -> None:
         self.valid_data["actionFilters"] = [
             {
                 "logicType": "any",
@@ -174,7 +176,9 @@ class TestWorkflowValidatorCreate(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    def test_create__with_actions__creates_workflow_group(self, mock_action_handler):
+    def test_create__with_actions__creates_workflow_group(
+        self, mock_action_handler: mock.MagicMock
+    ) -> None:
         self.valid_data["actionFilters"] = [
             {
                 "actions": [
@@ -204,7 +208,9 @@ class TestWorkflowValidatorCreate(TestCase):
         "sentry.workflow_engine.registry.action_handler_registry.get",
         return_value=MockActionHandler,
     )
-    def test_create__with_actions__creates_action_group(self, mock_action_handler):
+    def test_create__with_actions__creates_action_group(
+        self, mock_action_handler: mock.MagicMock
+    ) -> None:
         self.valid_data["actionFilters"] = [
             {
                 "actions": [

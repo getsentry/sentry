@@ -4,6 +4,7 @@ import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {AppSizeInsights} from 'sentry/views/preprod/main/appSizeInsights';
 import {AppSizeTreemap} from 'sentry/views/preprod/main/appSizeTreemap';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 
@@ -45,12 +46,24 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   return (
     <MainContentContainer>
-      <AppSizeTreemap treemapData={appSizeData.treemap} />
+      <TreemapContainer>
+        <AppSizeTreemap treemapData={appSizeData.treemap} />
+      </TreemapContainer>
+      {appSizeData.insights && (
+        <AppSizeInsights
+          insights={appSizeData.insights}
+          totalSize={appSizeData.treemap.root.size || 0}
+        />
+      )}
     </MainContentContainer>
   );
 }
 
 const MainContentContainer = styled('div')`
+  width: 100%;
+`;
+
+const TreemapContainer = styled('div')`
   width: 100%;
   height: 508px;
 `;

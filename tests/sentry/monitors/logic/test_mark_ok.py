@@ -1,6 +1,6 @@
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -108,7 +108,7 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.last_checkin == now
 
     @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
-    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
+    def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         recovery_threshold = 8
@@ -240,7 +240,7 @@ class MarkOkTestCase(TestCase):
         ) == dict(status_change)
 
     @mock.patch("sentry.analytics.record")
-    def test_mark_ok_broken_recovery(self, mock_record):
+    def test_mark_ok_broken_recovery(self, mock_record: MagicMock) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         monitor = Monitor.objects.create(

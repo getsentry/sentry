@@ -51,7 +51,6 @@ interface LogsPageParams {
   /** In the 'aggregates' table, if you GROUP BY, there can be many rows. This is the 'sort by' for that table. */
   readonly aggregateSortBys: Sort[];
   readonly analyticsPageSource: LogsAnalyticsPageSource;
-  readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
@@ -120,7 +119,6 @@ interface LogsPageParamsProviderProps {
     autoRefresh?: AutoRefreshState;
     refreshInterval?: number;
   };
-  blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
@@ -132,7 +130,6 @@ export function LogsPageParamsProvider({
   limitToTraceId,
   limitToSpanId,
   limitToProjectIds,
-  blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
   _testContext,
@@ -200,7 +197,6 @@ export function LogsPageParamsProvider({
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
-        blockRowExpanding,
         baseSearch,
         projectIds,
         analyticsPageSource,
@@ -389,11 +385,6 @@ export function useSetLogsCursor() {
 export function useLogsIsTableFrozen() {
   const {isTableFrozen} = useLogsPageParams();
   return !!isTableFrozen;
-}
-
-export function useLogsBlockRowExpanding() {
-  const {blockRowExpanding} = useLogsPageParams();
-  return !!blockRowExpanding;
 }
 
 export function usePersistedLogsPageParams() {

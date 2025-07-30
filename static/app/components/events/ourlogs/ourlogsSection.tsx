@@ -40,7 +40,6 @@ export function OurlogsSection({
     <LogsPageParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
       isTableFrozen
-      blockRowExpanding
       limitToTraceId={event.contexts?.trace?.trace_id}
     >
       <LogsPageDataProvider>
@@ -127,6 +126,7 @@ function OurlogsSectionContent({
                 highlightTerms={[]}
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}
+                blockRowExpanding
               />
             ))}
           </TableBody>

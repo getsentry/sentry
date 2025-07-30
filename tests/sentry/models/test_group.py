@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import cache
@@ -326,7 +326,7 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group2.get_last_release() is None
 
     @patch("sentry.models.group.logger.error")
-    def test_group_substatus_defaults(self, mock_logger):
+    def test_group_substatus_defaults(self, mock_logger: MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         assert group.substatus is None
         assert mock_logger.call_count == 1

@@ -1,6 +1,7 @@
 import time
 from time import sleep
 from typing import Any
+from unittest import mock
 
 import orjson
 import pytest
@@ -19,79 +20,78 @@ def _payload(span_id: str) -> bytes:
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
-def test_backpressure(monkeypatch):
+def test_backpressure():
     # Flush very aggressively to make join() faster
-    monkeypatch.setattr("time.sleep", lambda _: None)
+    with mock.patch("time.sleep"):
+        messages = []
 
-    messages = []
+        def append(msg):
+            messages.append(msg)
+            sleep(1.0)
 
-    def append(msg):
-        messages.append(msg)
-        sleep(1.0)
+        buffer = SpansBuffer(assigned_shards=list(range(1)))
+        flusher = SpanFlusher(
+            buffer,
+            next_step=Noop(),
+            produce_to_pipe=append,
+        )
 
-    buffer = SpansBuffer(assigned_shards=list(range(1)))
-    flusher = SpanFlusher(
-        buffer,
-        next_step=Noop(),
-        produce_to_pipe=append,
-    )
+        try:
+            now = time.time()
 
-    try:
-        now = time.time()
+            for i in range(200):
+                trace_id = f"{i:0>32x}"
 
-        for i in range(200):
-            trace_id = f"{i:0>32x}"
+                spans = [
+                    Span(
+                        payload=_payload("a" * 16),
+                        trace_id=trace_id,
+                        span_id="a" * 16,
+                        parent_span_id="b" * 16,
+                        project_id=1,
+                        end_timestamp_precise=now,
+                    ),
+                    Span(
+                        payload=_payload("d" * 16),
+                        trace_id=trace_id,
+                        span_id="d" * 16,
+                        parent_span_id="b" * 16,
+                        project_id=1,
+                        end_timestamp_precise=now,
+                    ),
+                    Span(
+                        payload=_payload("c" * 16),
+                        trace_id=trace_id,
+                        span_id="c" * 16,
+                        parent_span_id="b" * 16,
+                        project_id=1,
+                        end_timestamp_precise=now,
+                    ),
+                    Span(
+                        payload=_payload("b" * 16),
+                        trace_id=trace_id,
+                        span_id="b" * 16,
+                        parent_span_id=None,
+                        is_segment_span=True,
+                        project_id=1,
+                        end_timestamp_precise=now,
+                    ),
+                ]
 
-            spans = [
-                Span(
-                    payload=_payload("a" * 16),
-                    trace_id=trace_id,
-                    span_id="a" * 16,
-                    parent_span_id="b" * 16,
-                    project_id=1,
-                    end_timestamp_precise=now,
-                ),
-                Span(
-                    payload=_payload("d" * 16),
-                    trace_id=trace_id,
-                    span_id="d" * 16,
-                    parent_span_id="b" * 16,
-                    project_id=1,
-                    end_timestamp_precise=now,
-                ),
-                Span(
-                    payload=_payload("c" * 16),
-                    trace_id=trace_id,
-                    span_id="c" * 16,
-                    parent_span_id="b" * 16,
-                    project_id=1,
-                    end_timestamp_precise=now,
-                ),
-                Span(
-                    payload=_payload("b" * 16),
-                    trace_id=trace_id,
-                    span_id="b" * 16,
-                    parent_span_id=None,
-                    is_segment_span=True,
-                    project_id=1,
-                    end_timestamp_precise=now,
-                ),
-            ]
+                buffer.process_spans(spans, now=int(now))
 
-            buffer.process_spans(spans, now=int(now))
+            # Advance drift to trigger idle timeout of all segments. The flusher should
+            # have way too much to do due to `max_flush_segments=1` and enter
+            # backpressure state.
 
-        # Advance drift to trigger idle timeout of all segments. The flusher should
-        # have way too much to do due to `max_flush_segments=1` and enter
-        # backpressure state.
+            flusher.current_drift.value = 20000
+            sleep(0.1)
 
-        flusher.current_drift.value = 20000
-        sleep(0.1)
+            assert messages
 
-        assert messages
-
-        assert any(x.value for x in flusher.process_backpressure_since.values())
-    finally:
-        flusher.join()
+            assert any(x.value for x in flusher.process_backpressure_since.values())
+        finally:
+            flusher.join()
 
 
 def create_memory_producer_factory():
@@ -161,7 +161,7 @@ def test_multi_producer_sliced_integration_with_arroyo_local_producer() -> None:
     manager.close()
 
 
-def test_flusher_waits_for_processes_to_start(monkeypatch):
+def test_flusher_waits_for_processes_to_start():
     """Test that the flusher waits for all processes to become healthy during initialization."""
     buffer = SpansBuffer(assigned_shards=[0])
 
@@ -172,13 +172,15 @@ def test_flusher_waits_for_processes_to_start(monkeypatch):
         # Don't set healthy_since.value, simulating a process that never becomes healthy
         return
 
-    monkeypatch.setattr(SpanFlusher, "main", never_healthy_main)
-
-    with override_options({"spans.buffer.flusher.max-unhealthy-seconds": 0.5}):
-        # Should raise RuntimeError because the process never reports as healthy
-        with pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) didn't start up"):
-            SpanFlusher(
-                buffer,
-                next_step=Noop(),
-                produce_to_pipe=lambda _: None,
-            )
+    with (
+        mock.patch.object(SpanFlusher, "main", never_healthy_main),
+        override_options(
+            {"spans.buffer.flusher.max-unhealthy-seconds": 0.5}
+        ),  # Should raise RuntimeError because the process never reports as healthy
+        pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) didn't start up"),
+    ):
+        SpanFlusher(
+            buffer,
+            next_step=Noop(),
+            produce_to_pipe=lambda _: None,
+        )

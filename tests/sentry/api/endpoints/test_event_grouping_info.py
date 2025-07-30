@@ -5,6 +5,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
+from sentry.grouping.api import _load_default_grouping_config, load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.skips import requires_snuba
@@ -121,7 +122,10 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         with mock.patch(
             "sentry.grouping.api.get_grouping_variants_for_event"
         ) as mock_get_grouping_variants:
-            get_grouping_info("fake-config", self.project, event)
+            event.data["grouping_config"]["id"] = "fake-config"
+            grouping_config = load_grouping_config(event.get_grouping_config())
+
+            get_grouping_info(grouping_config, self.project, event)
 
             mock_get_grouping_variants.assert_called_once()
             assert mock_get_grouping_variants.call_args.args[0] == event
@@ -129,7 +133,9 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
 
     @mock.patch("sentry.grouping.grouping_info.logger")
     @mock.patch("sentry.grouping.grouping_info.metrics")
-    def test_get_grouping_info_hash_mismatch(self, mock_metrics, mock_logger):
+    def test_get_grouping_info_hash_mismatch(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
         # Make a Python event
         data = load_data(platform="python")
         python_event = self.store_event(data=data, project_id=self.project.id)
@@ -148,7 +154,9 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "sentry.eventstore.models.BaseEvent.get_grouping_variants"
         ) as mock_get_grouping_variants:
             mock_get_grouping_variants.return_value = python_grouping_variants
-            get_grouping_info(None, self.project, javascript_event)
+            default_grouping_config = _load_default_grouping_config()
+
+            get_grouping_info(default_grouping_config, self.project, javascript_event)
 
         mock_metrics.incr.assert_called_with("event_grouping_info.hash_mismatch")
         mock_logger.error.assert_called_with(

@@ -209,7 +209,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_release_bundle.organization_id == self.target_org.id
 
     @mock.patch("sentry.demo_mode.tasks._sync_release_artifact_bundle", side_effect=IntegrityError)
-    def test_sync_artifact_bundles_rolls_back_on_error(self, _):
+    def test_sync_artifact_bundles_rolls_back_on_error(self, _: mock.MagicMock) -> None:
         self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
 
         _sync_artifact_bundles(

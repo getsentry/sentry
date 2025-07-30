@@ -504,7 +504,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         )
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_query):
+    def test_handling_snuba_errors(self, mock_query: mock.MagicMock) -> None:
         mock_query.side_effect = ParseError("test")
         with self.feature(self.features):
             response = self.client.get(self.url, format="json")
@@ -599,7 +599,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert response.status_code == 400
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         mock_quantize.return_value = before_now(days=1)
         with self.feature("organizations:discover-basic"):
             # Don't quantize short time periods
@@ -936,7 +936,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert len(response.data) == 23
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_dont_turbo_trace_queries(self, mock_run):
+    def test_dont_turbo_trace_queries(self, mock_run: mock.MagicMock) -> None:
         # Need to create more projects so we'll even want to turbo in the first place
         for _ in range(3):
             self.create_project()
@@ -947,7 +947,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert not mock_run.mock_calls[0].args[0].flags.turbo
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_use_turbo_without_trace(self, mock_run):
+    def test_use_turbo_without_trace(self, mock_run: mock.MagicMock) -> None:
         # Need to create more projects so we'll even want to turbo in the first place
         for _ in range(3):
             self.create_project()

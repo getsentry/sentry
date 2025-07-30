@@ -1794,7 +1794,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         "sentry.utils.snuba_rpc._snuba_pool.urlopen",
         side_effect=urllib3.exceptions.TimeoutError,
     )
-    def test_timeout(self, mock_rpc):
+    def test_timeout(self, mock_rpc: mock.MagicMock) -> None:
         response = self.do_request(
             {
                 "field": ["span.status", "description", "count()"],
@@ -4600,7 +4600,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
     @mock.patch("sentry.api.utils.sentry_sdk.capture_exception")
     @mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen")
-    def test_snuba_error_handles_correctly(self, mock_sdk, mock_rpc_query):
+    def test_snuba_error_handles_correctly(
+        self, mock_sdk: mock.MagicMock, mock_rpc_query: mock.MagicMock
+    ) -> None:
         mock_rpc_query.side_effect = urllib3.exceptions.HTTPError()
         response = self.do_request(
             {

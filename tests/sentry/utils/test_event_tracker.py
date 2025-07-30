@@ -10,7 +10,7 @@ STATUS = TransactionStageStatus.REDIS_PUT
 
 
 @mock.patch.object(logger, "info")
-def test_track_sampled_event_logs_event(mock_do_record):
+def test_track_sampled_event_logs_event(mock_do_record: mock.MagicMock) -> None:
     with override_options({"performance.event-tracker.sample-rate.transactions": 1.0}):
         track_sampled_event(EVENT_ID, CONSUMER_TYPE, STATUS)
     mock_do_record.assert_called_once_with(
@@ -20,7 +20,7 @@ def test_track_sampled_event_logs_event(mock_do_record):
 
 
 @mock.patch.object(logger, "info")
-def test_track_sampled_event_does_not_log_event(mock_do_record):
+def test_track_sampled_event_does_not_log_event(mock_do_record: mock.MagicMock) -> None:
     with override_options({"performance.event-tracker.sample-rate.transactions": 0.0}):
         track_sampled_event(EVENT_ID, CONSUMER_TYPE, STATUS)
     mock_do_record.assert_not_called()

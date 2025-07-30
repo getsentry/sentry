@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -170,7 +170,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_inactive_integration(self, mock_get_commit_context):
+    def test_inactive_integration(self, mock_get_commit_context: MagicMock) -> None:
         """
         Early return if the integration is not active
         """
@@ -202,7 +202,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_existing_commit(self, mock_get_commit_context, mock_record):
+    def test_success_existing_commit(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Tests a simple successful case, where get_commit_context_all_frames returns
         a single blame item. A GroupOwner should be created, but Commit and CommitAuthor
@@ -266,7 +268,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_create_commit(self, mock_get_commit_context, mock_record):
+    def test_success_create_commit(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         A simple success case where a new commit needs to be created.
         """
@@ -312,7 +316,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_success_multiple_blames(self, mock_get_commit_context, mock_record):
+    def test_success_multiple_blames(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         A simple success case where multiple blames are returned.
         The most recent blame should be selected.
@@ -348,7 +354,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_maps_correct_files(self, mock_get_commit_context, mock_record):
+    def test_maps_correct_files(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Tests that the get_commit_context_all_frames function is called with the correct
         files. Code mappings should be applied properly and non-matching files thrown out.
@@ -620,7 +628,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         side_effect=ApiError("Unknown API error"),
     )
-    def test_retry_on_bad_api_error(self, mock_get_commit_context, mock_process_suspect_commits):
+    def test_retry_on_bad_api_error(
+        self, mock_get_commit_context: MagicMock, mock_process_suspect_commits: MagicMock
+    ) -> None:
         """
         A failure case where the integration hits an unknown API error.
         The task should be retried.
@@ -754,7 +764,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
-    def test_filters_invalid_and_dedupes_frames(self, mock_get_commit_context, mock_record):
+    def test_filters_invalid_and_dedupes_frames(
+        self, mock_get_commit_context: MagicMock, mock_record: MagicMock
+    ) -> None:
         """
         Tests that invalid frames are filtered out and that duplicate frames are deduped.
         """
@@ -903,7 +915,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             json=[{"merge_commit_sha": self.pull_request.merge_commit_sha, "state": "closed"}],
         )
 
-    def test_gh_comment_not_github(self, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_not_github(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
         """Non github repos shouldn't be commented on"""
         mock_get_commit_context.return_value = [self.blame]
         self.repo.provider = "integrations:gitlab"
@@ -919,7 +933,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             )
             assert not mock_comment_workflow.called
 
-    def test_gh_comment_org_option(self, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_org_option(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
         """No comments on org with organization option disabled"""
         mock_get_commit_context.return_value = [self.blame]
         OrganizationOption.objects.set_value(
@@ -1040,7 +1056,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_pr_too_old(
+        self,
+        get_jwt: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comment on pr that's older than PR_COMMENT_WINDOW"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request.date_added = before_now(days=PR_COMMENT_WINDOW + 1)
@@ -1087,7 +1108,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_repeat_issue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_repeat_issue(
+        self,
+        get_jwt: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """No comment on a pr that has a comment with the issue in the same pr list"""
         mock_get_commit_context.return_value = [self.blame]
         self.pull_request_comment.group_ids.append(self.event.group_id)
@@ -1164,7 +1190,12 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_gh_comment_update_queue(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_update_queue(
+        self,
+        get_jwt: MagicMock,
+        mock_comment_workflow: MagicMock,
+        mock_get_commit_context: MagicMock,
+    ) -> None:
         """Task queued if new issue for prior comment"""
         mock_get_commit_context.return_value = [self.blame]
         self.add_responses()
@@ -1185,7 +1216,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             assert len(pr_commits) == 1
             assert pr_commits[0].commit == self.commit
 
-    def test_gh_comment_no_repo(self, mock_comment_workflow, mock_get_commit_context):
+    def test_gh_comment_no_repo(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
         """No comments on suspect commit if no repo row exists"""
         mock_get_commit_context.return_value = [self.blame]
         self.repo.delete()

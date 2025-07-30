@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.variants import BaseVariant, PerformanceProblemVariant
 from sentry.models.project import Project
 from sentry.performance_issues.performance_detection import EventPerformanceProblem
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_grouping_info(
-    config_name: str | None, project: Project, event: Event | GroupEvent
+    grouping_config: StrategyConfiguration, project: Project, event: Event | GroupEvent
 ) -> dict[str, dict[str, Any]]:
     # We always fetch the stored hashes here. The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
@@ -34,7 +35,7 @@ def get_grouping_info(
             if problem
         }
     else:
-        variants = event.get_grouping_variants(force_config=config_name, normalize_stacktraces=True)
+        variants = event.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
     grouping_info = get_grouping_info_from_variants(variants)
 

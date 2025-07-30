@@ -8,6 +8,7 @@ MSTEAMS_HALT_ERROR_CODES = [
     "ConversationBlockedByUser",
     "ConversationNotFound",
     "TenantNoPermission",
+    "CapabilityOverride",
 ]
 
 
