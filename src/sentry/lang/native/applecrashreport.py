@@ -30,6 +30,7 @@ class AppleCrashReport:
         self.exceptions = exceptions
         self.time_spent_parsing_addrs = 0
 
+    @sentry_sdk.trace
     def __str__(self):
         rv = []
         rv.append(self._get_meta_header())
@@ -51,6 +52,7 @@ class AppleCrashReport:
         self.time_spent_parsing_addrs += end - start
         return res
 
+    @sentry_sdk.trace
     def _get_meta_header(self):
         return "OS Version: {} {} ({})\nReport Version: {}".format(
             get_path(self.context, "os", "name"),
@@ -96,6 +98,7 @@ class AppleCrashReport:
         except Exception:
             return value
 
+    @sentry_sdk.trace
     def _get_crashed_thread_registers(self):
         rv = []
         exception = get_path(self.exceptions, 0)
@@ -137,6 +140,7 @@ class AppleCrashReport:
 
         return "\n".join(rv)
 
+    @sentry_sdk.trace
     def _get_exception_info(self):
         rv = []
 
@@ -174,6 +178,7 @@ class AppleCrashReport:
 
         return "\n".join(rv)
 
+    @sentry_sdk.trace
     def get_threads_apple_string(self):
         rv = []
         exception = self.exceptions or []
@@ -256,6 +261,7 @@ class AppleCrashReport:
                     return self._parse_addr(debug_image.get("image_vmaddr", 0))
         return 0
 
+    @sentry_sdk.trace
     def get_binary_images_apple_string(self):
         # We don't need binary images on symbolicated crashreport
         if self.symbolicated or self.debug_images is None:
