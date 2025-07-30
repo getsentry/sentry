@@ -14,4 +14,5 @@ export interface ChartInfo {
   isSampled?: boolean | null;
   sampleCount?: number;
   samplingMode?: SamplingMode;
+  topEvents?: number;
 }

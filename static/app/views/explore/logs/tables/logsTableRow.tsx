@@ -35,7 +35,11 @@ import {
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
+import {
+  DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
+  DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
+  HiddenLogDetailFields,
+} from 'sentry/views/explore/logs/constants';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {
   LogAttributesRendererMap,
@@ -163,7 +167,7 @@ export const LogRowContent = memo(function LogRowContent({
       setExpanded(e => !e);
     }
     if (!isExpanded && autorefreshEnabled) {
-      setAutorefresh('idle');
+      setAutorefresh('paused');
     }
 
     trackAnalytics('logs.table.row_expanded', {
@@ -212,11 +216,15 @@ export const LogRowContent = memo(function LogRowContent({
     typeof severityText === 'string' ? severityText : null
   );
   const logColors = getLogColors(level, theme);
+  const prefetchTimeout = autorefreshEnabled
+    ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
+    : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
   const hoverProps = usePrefetchLogTableRowOnHover({
     logId: String(dataRow[OurLogKnownFieldKey.ID]),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     sharedHoverTimeoutRef,
+    timeout: prefetchTimeout,
   });
 
   const rendererExtra = {
