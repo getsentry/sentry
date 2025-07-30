@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import uuid
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypedDict
@@ -317,8 +317,6 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             if not isinstance(current, dict):
                 return {}
             current = current.get(key, {})
-            if current is None:
-                return {}
         return current
 
     def _get_timestamp(dictionary: dict[str, Any], key: str = "timestamp") -> float | None:
@@ -332,7 +330,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             return None
 
     def _map_attr(
-        target_dict: dict[str, Any], key: str, value: Any, converter: callable | None = None
+        target_dict: dict[str, Any], key: str, value: Any, converter: Callable | None = None
     ) -> None:
         """Add an attribute to the target dictionary if the value is not None."""
         if value is not None:
@@ -344,7 +342,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
     def _map_attrs(
         target_dict: dict[str, Any],
         source_dict: dict[str, Any],
-        **mappings: str | tuple[str, callable],
+        **mappings: str | tuple[str, Callable],
     ) -> None:
         """Map attributes from source_dict to target_dict using keyword arguments.
 
@@ -490,8 +488,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             _map_attrs(
                 resource_attributes,
                 payload_data,
-                method=("method", as_string_strict),
-                status_code=("statusCode", int),
+                method=("method", str),
+                statusCode=("statusCode", int),
             )
             _map_attrs(
                 resource_attributes,
