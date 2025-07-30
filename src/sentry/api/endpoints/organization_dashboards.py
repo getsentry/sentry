@@ -316,14 +316,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
-        dashboard_count = Dashboard.objects.filter(organization=organization).count()
-        dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
+        if features.has("organizations:dashboards-plan-limits", organization, actor=request.user):
+            dashboard_count = Dashboard.objects.filter(organization=organization).count()
+            dashboard_limit = quotas.backend.get_dashboard_limit(organization.id)
 
-        if dashboard_limit is not None and dashboard_count >= dashboard_limit:
-            return Response(
-                f"You may not exceed {dashboard_limit} dashboards per organization on your current plan.",
-                status=400,
-            )
+            if dashboard_limit is not None and dashboard_count >= dashboard_limit:
+                return Response(
+                    f"You may not exceed {dashboard_limit} dashboards per organization on your current plan.",
+                    status=400,
+                )
 
         serializer = DashboardSerializer(
             data=request.data,
