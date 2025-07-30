@@ -50,6 +50,14 @@
         "stacktrace": {
           "frames": [
             {
+              "module": "0D570D257E61E339E740A6DB116D5442C1643083",
+              "package": "nnSdk",
+              "filename": "nnSdk",
+              "abs_path": "nnSdk",
+              "in_app": false,
+              "instruction_addr": "0x1dc44e3574"
+            },
+            {
               "function": "nnMain",
               "symbol": "nnMain",
               "module": "792DEB574467EFAF89F8386B018D1357",
@@ -68,31 +76,15 @@
               "post_context": [
                 "    } else {",
                 "        // message-capture",
-                "        sentry_uuid_t event_id = sentry_capture_event(",
+                "        sentry_capture_event(",
                 "            sentry_value_new_message_event(SENTRY_LEVEL_INFO, \"test\", \"Integration test message\"));",
                 ""
               ],
               "in_app": true,
-              "vars": {
-                "exception_address": "0x0000000000000000",
-                "exception_code": 2,
-                "exception_code_description": "Access Violation Data",
-                "exception_thread": "4227"
-              },
               "instruction_addr": "0x1dc3c0faec"
             }
-          ],
-          "registers": {
-            "LR": "0x1dc3c0fae4",
-            "PC": "0x1dc3c0faec",
-            "SP": "0x79200a4ed0",
-            "X00": "0x0",
-            "X01": "0x1dc3c180e0",
-            "X29": "0x79200a4f68",
-            "X30": "0x1dc3c0fae4"
-          }
+          ]
         },
-        "thread_id": "4227",
         "mechanism": {
           "type": "2168-0002",
           "description": "Please contact Nintendo Developer Portal Forum",
@@ -109,50 +101,6 @@
       {
         "name": "github:getsentry/sentry-native",
         "version": "0.9.1"
-      }
-    ]
-  },
-  "threads": {
-    "values": [
-      {
-        "id": "4227",
-        "stacktrace": {
-          "frames": [
-            {
-              "function": "nnMain",
-              "symbol": "nnMain",
-              "module": "792DEB574467EFAF89F8386B018D1357",
-              "package": "C:\\dev\\src\\sentry-switch\\build\\nx64\\integration-test\\test-app\\Develop\\SentryIntegrationTest.nsp.nss",
-              "filename": "main.cpp",
-              "abs_path": "C:\\dev\\src\\sentry-switch\\integration-test\\test-app\\main.cpp",
-              "lineno": 160,
-              "context_line": "        *p = 42;",
-              "in_app": true,
-              "instruction_addr": "0x1dc3c0faec"
-            }
-          ]
-        },
-        "crashed": true,
-        "main": false,
-        "state": "Runnable"
-      },
-      {
-        "id": "4238",
-        "stacktrace": {
-          "frames": [
-            {
-              "module": "0D570D257E61E339E740A6DB116D5442C1643083",
-              "package": "nnSdk",
-              "filename": "nnSdk",
-              "abs_path": "nnSdk",
-              "in_app": false,
-              "instruction_addr": "0x1dc44e3574"
-            }
-          ]
-        },
-        "crashed": false,
-        "main": false,
-        "state": "Waiting"
       }
     ]
   },
