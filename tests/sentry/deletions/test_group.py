@@ -312,26 +312,37 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # Adding this query here to make sure that the cache is not being used
         assert self.select_error_events(self.project.id) is None
         assert self.select_issue_platform_events(self.project.id) is None
+
         # Create initial error event and occurrence related to it; two different groups will exist
         event = self.store_event(data={}, project_id=self.project.id)
-        occurrence, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
+        occurrence_event, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
+        issue_platform_group = group_info.group
 
         # Assertions after creation
-        assert occurrence.id != event.event_id
-        assert group_info is not None
-        issue_platform_group = group_info.group
+        assert occurrence_event.id != event.event_id
         assert event.group_id != issue_platform_group.id
         assert event.group.issue_category == GroupCategory.ERROR
         assert issue_platform_group.issue_category != GroupCategory.ERROR
-        # Assert that the occurrence has been inserted in Snuba
-        error_expected = {"event_id": event.event_id, "group_id": event.group_id}
-        occurrence_expected = {
+        assert issue_platform_group.issue_type == FeedbackGroup
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error_event = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error_event
+
+        # Assert that the occurrence event has been inserted in the nodestore & Snuba
+        occurrence_node_id = Event.generate_node_id(
+            occurrence_event.project_id, occurrence_event.id
+        )
+        # XXX: For some reason, the occurrence event is not inserted in the nodestore
+        # assert nodestore.backend.get(occurrence_node_id)
+        expected_occurrence_event = {
             "event_id": event.event_id,
             "group_id": issue_platform_group.id,
-            "occurrence_id": occurrence.id,
+            "occurrence_id": occurrence_event.id,
         }
-        assert self.select_error_events(self.project.id) == error_expected
-        assert self.select_issue_platform_events(self.project.id) == occurrence_expected
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
 
         # This will delete the group and the events from the node store and Snuba
         with self.tasks():
@@ -341,17 +352,14 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 project_id=self.project.id,
             )
 
-        # The original event and group still exist
+        # The original error event and group still exist
         assert Group.objects.filter(id=event.group_id).exists()
-        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
         assert nodestore.backend.get(event_node_id)
-        assert self.select_error_events(self.project.id) == error_expected
-        # The Issue Platform group and occurrence are deleted
-        assert issue_platform_group.issue_type == FeedbackGroup
+        assert self.select_error_events(self.project.id) == expected_error_event
+
+        # The Issue Platform group and occurrence have been deleted
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
-        occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
         assert not nodestore.backend.get(occurrence_node_id)
-        # Assert that occurrence is gone
         assert self.select_issue_platform_events(self.project.id) is None
 
     @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
