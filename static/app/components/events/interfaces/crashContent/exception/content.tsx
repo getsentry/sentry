@@ -180,7 +180,6 @@ export function Content({
 
     return (
       <Fragment>
-        {' '}
         <StyledPre>
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
@@ -262,7 +261,9 @@ export function Content({
           }
           disableCollapsePersistence
           initialCollapse={excIdx !== values.length - 1}
-          additionalIdentifier={exc.mechanism?.exception_id?.toString() ?? ''}
+          additionalIdentifier={
+            exc.mechanism?.exception_id?.toString() ?? excIdx.toString()
+          }
         >
           {getInnerContent({excIdx, exc})}
         </StyledFoldSection>
