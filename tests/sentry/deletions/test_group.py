@@ -254,13 +254,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
 
-    def create_occurrence(self, event: Event, type_id: int) -> tuple[IssueOccurrence, Group]:
+    def create_occurrence(self, type_id: int) -> tuple[IssueOccurrence, Group]:
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,
-            event_id=event.event_id,
             type=type_id,
-            # XXX: Is event.data correct?
-            event_data=dict(event.data),
+            event_data={"level": "info"},
         )
         assert group_info is not None
         return occurrence, group_info.group
@@ -310,9 +308,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # Create initial error event and occurrence related to it; two different groups will exist
         event = self.store_event(data={}, project_id=self.project.id)
         # XXX: We need a different way of creating occurrences which will insert into the nodestore
-        occurrence_event, issue_platform_group = self.create_occurrence(
-            event, type_id=FeedbackGroup.type_id
-        )
+        occurrence_event, issue_platform_group = self.create_occurrence(FeedbackGroup.type_id)
 
         # Assertions after creation
         assert occurrence_event.id != event.event_id
