@@ -1,13 +1,23 @@
 import type {Series} from 'sentry/types/echarts';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+} from 'sentry/views/alerts/rules/metric/types';
 import type {AnomalyType} from 'sentry/views/alerts/types';
+
+export const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
+  [AlertRuleThresholdType.ABOVE]: 'up',
+  [AlertRuleThresholdType.BELOW]: 'down',
+  [AlertRuleThresholdType.ABOVE_AND_BELOW]: 'both',
+} as const;
 
 interface EventAnomalyPayload extends Record<string, unknown> {
   config: {
     direction: 'up' | 'down' | 'both';
-    expected_seasonality: string;
-    sensitivity: string;
+    expected_seasonality: 'auto';
+    sensitivity: 'low' | 'medium' | 'high';
     /**
      * Time period in minutes (why)
      */
@@ -20,12 +30,11 @@ interface EventAnomalyPayload extends Record<string, unknown> {
 }
 
 interface UseMetricDetectorAnomaliesProps {
-  direction: 'up' | 'down' | 'both';
-  expectedSeasonality: string;
   historicalSeries: Series[];
   projectId: string;
-  sensitivity: string;
+  sensitivity: AlertRuleSensitivity;
   series: Series[];
+  thresholdType: AlertRuleThresholdType;
   timePeriod: number;
   enabled?: boolean;
 }
@@ -55,9 +64,8 @@ function transformSeriesToDataPoints(series: Series[]): Array<[number, {count: n
 export function useMetricDetectorAnomalies({
   series,
   historicalSeries,
-  direction,
+  thresholdType,
   sensitivity,
-  expectedSeasonality,
   timePeriod,
   projectId,
   enabled = true,
@@ -82,8 +90,8 @@ export function useMetricDetectorAnomalies({
     organization_id: organization.id,
     project_id: projectId,
     config: {
-      direction,
-      expected_seasonality: expectedSeasonality,
+      direction: ANOMALY_DETECTION_THRESHOLD_TYPE_MAP[thresholdType],
+      expected_seasonality: 'auto',
       sensitivity,
       time_period: timePeriod / 60,
     },
@@ -101,7 +109,7 @@ export function useMetricDetectorAnomalies({
     ],
     {
       staleTime: 30_000,
-      enabled: currentData.length > 0 && enabled,
+      enabled: filteredHistoricalData.length > 0 && currentData.length > 0 && enabled,
     }
   );
 

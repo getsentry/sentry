@@ -3,7 +3,11 @@ import {useTheme} from '@emotion/react';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import type {Series} from 'sentry/types/echarts';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
@@ -18,15 +22,14 @@ import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 interface UseMetricDetectorAnomalySeriesProps {
   aggregate: string;
   dataset: DetectorDataset;
-  direction: 'up' | 'down' | 'both';
   enabled: boolean;
   environment: string | undefined;
-  expectedSeasonality: string;
   projectId: string;
   query: string;
-  sensitivity: string;
+  sensitivity: AlertRuleSensitivity;
   series: Series[];
   statsPeriod: TimePeriod;
+  thresholdType: AlertRuleThresholdType;
   timePeriod: number;
 }
 
@@ -47,9 +50,8 @@ export function useMetricDetectorAnomalySeries({
   projectId,
   statsPeriod,
   timePeriod,
-  direction,
+  thresholdType,
   sensitivity,
-  expectedSeasonality,
   enabled,
 }: UseMetricDetectorAnomalySeriesProps): AnomalySeries {
   const theme = useTheme();
@@ -83,9 +85,8 @@ export function useMetricDetectorAnomalySeries({
     series,
     historicalSeries,
     projectId,
-    direction,
+    thresholdType,
     sensitivity,
-    expectedSeasonality,
     timePeriod,
     enabled,
   });

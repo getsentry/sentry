@@ -9,7 +9,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useMetricDetectorAnomalySeries} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalySeries';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
@@ -52,9 +56,17 @@ interface MetricDetectorChartProps {
    */
   query: string;
   /**
+   * Used in anomaly detection
+   */
+  sensitivity: AlertRuleSensitivity;
+  /**
    * The time period for the chart data (optional, defaults to 7d)
    */
   statsPeriod: TimePeriod;
+  /**
+   * Used in anomaly detection
+   */
+  thresholdType: AlertRuleThresholdType;
 }
 
 export function MetricDetectorChart({
@@ -68,6 +80,8 @@ export function MetricDetectorChart({
   detectionType,
   statsPeriod,
   comparisonDelta,
+  sensitivity,
+  thresholdType,
 }: MetricDetectorChartProps) {
   const {series, comparisonSeries, isPending, isError} = useMetricDetectorSeries({
     dataset,
@@ -101,9 +115,8 @@ export function MetricDetectorChart({
     projectId,
     statsPeriod,
     timePeriod: interval, // Convert interval (seconds) to timePeriod
-    direction: 'both',
-    sensitivity: 'high',
-    expectedSeasonality: 'auto',
+    thresholdType,
+    sensitivity,
     enabled: shouldFetchAnomalies,
   });
 
