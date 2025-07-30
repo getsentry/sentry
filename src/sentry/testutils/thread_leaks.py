@@ -36,12 +36,11 @@ def _relevant_frames(stack: StackSummary) -> StackSummary:
         lambda frame: _STDLIB_PATH and frame.filename.startswith(_STDLIB_PATH + "/"),
         lambda frame: frame.filename.startswith(sys.prefix),
         lambda frame: "/test_" not in frame.filename,
+        lambda frame: "/testutils/" not in frame.filename,
     ):
         filtered_stack = [frame for frame in stack if not filter(frame)]
         if filtered_stack:
             stack = StackSummary.from_list(filtered_stack)
-        else:
-            break
 
     filtered_stack = [
         traceback.FrameSummary(frame.filename.replace(_CWD, "./"), frame.lineno, frame.name)
