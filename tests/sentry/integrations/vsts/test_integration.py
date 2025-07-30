@@ -735,8 +735,8 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 @control_silo_test
 @with_feature("organizations:migrate-azure-devops-integration")
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
-    def test_get_organization_config(self) -> None:
-        self.assert_installation()
+    def test_get_organization_config(self):
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         fields = installation.get_organization_config()
@@ -749,8 +749,8 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
             "sync_reverse_assignment",
         ]
 
-    def test_get_organization_config_failure(self) -> None:
-        self.assert_installation()
+    def test_get_organization_config_failure(self):
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
@@ -760,17 +760,24 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         identity.data["expires"] = 1566851050
         identity.save()
 
+        # Mock both legacy and new OAuth token endpoints to ensure failure regardless of which is used
         responses.replace(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",
             status=400,
             json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
         )
+        responses.replace(
+            responses.POST,
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            status=400,
+            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
+        )
         fields = installation.get_organization_config()
         assert fields[0]["disabled"], "Fields should be disabled"
 
-    def test_update_organization_config_remove_all(self) -> None:
-        self.assert_installation()
+    def test_update_organization_config_remove_all(self):
+        self.assert_installation(new=True)
 
         model = Integration.objects.get(provider="vsts")
         integration = VstsIntegration(model, self.organization.id)
@@ -812,8 +819,8 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
 
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
-    def test_update_organization_config(self) -> None:
-        self.assert_installation()
+    def test_update_organization_config(self):
+        self.assert_installation(new=True)
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
 
@@ -881,7 +888,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         account_name = "MyVSTSAccount.visualstudio.com"
         account_uri = "https://MyVSTSAccount.visualstudio.com/"
 
-        self.assert_installation()
+        self.assert_installation(new=True)
 
         model = Integration.objects.get(provider="vsts")
         model.metadata["domain_name"] = account_name
@@ -890,20 +897,22 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
         integration.get_client()
 
-        domain_name = integration.model.metadata["domain_name"]
+        model.refresh_from_db()
+
+        domain_name = model.metadata["domain_name"]
         assert domain_name == account_uri
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
-    def test_get_repositories(self) -> None:
-        self.assert_installation()
+    def test_get_repositories(self):
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         result = installation.get_repositories()
         assert len(result) == 1
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
-    def test_get_repositories_identity_error(self) -> None:
-        self.assert_installation()
+    def test_get_repositories_identity_error(self):
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
@@ -913,9 +922,16 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         identity.data["expires"] = 1566851050
         identity.save()
 
+        # Mock both legacy and new OAuth token endpoints to ensure failure regardless of which is used
         responses.replace(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
+        )
+        responses.replace(
+            responses.POST,
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             status=400,
             json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
         )
