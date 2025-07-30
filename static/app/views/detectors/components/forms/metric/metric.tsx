@@ -206,13 +206,13 @@ function IntervalPicker() {
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
 
   useEffect(() => {
-    if (interval && !intervalChoices.some(choice => choice[0] === interval)) {
+    if (!intervalChoices.some(choice => choice[0] === interval)) {
       formContext.form?.setValue(
         METRIC_DETECTOR_FORM_FIELDS.interval,
         intervalChoices[0]![0]
       );
     }
-  }, [interval, intervalChoices, formContext]);
+  }, [intervalChoices, formContext.form, interval, dataset]);
 
   return (
     <IntervalField
