@@ -111,7 +111,7 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
   ],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
-  go: [ProductSolution.PERFORMANCE_MONITORING],
+  go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
   'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING],
   'go-gin': [ProductSolution.PERFORMANCE_MONITORING],
