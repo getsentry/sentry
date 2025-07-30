@@ -1,7 +1,10 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
+import {
+  ALL_BRANCHES,
+  BranchSelector,
+} from 'sentry/components/codecov/branchSelector/branchSelector';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
@@ -48,6 +51,8 @@ export default function TestsPage() {
     navigation: location.query?.navigation as 'next' | 'prev' | undefined,
   });
   const defaultBranch = response.data?.defaultBranch;
+  const shouldDisplayTestSuiteDropdown =
+    branch === ALL_BRANCHES || branch === defaultBranch;
 
   const shouldDisplayContent = integratedOrgId && repository && branch && codecovPeriod;
 
@@ -60,7 +65,7 @@ export default function TestsPage() {
           <BranchSelector />
           <DateSelector />
         </PageFilterBar>
-        {(!branch || branch === defaultBranch) && <TestSuiteDropdown />}
+        {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
       {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
     </LayoutGap>
@@ -85,6 +90,8 @@ function Content({response}: TestResultsContentData) {
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
   const defaultBranch = response.data?.defaultBranch;
+  const shouldDisplaySummaries =
+    selectedBranch === ALL_BRANCHES || selectedBranch === defaultBranch;
 
   const handleCursor = useCallback(
     (
@@ -116,7 +123,7 @@ function Content({response}: TestResultsContentData) {
 
   return (
     <Fragment>
-      {(!selectedBranch || selectedBranch === defaultBranch) && <Summaries />}
+      {shouldDisplaySummaries && <Summaries />}
       <TestSearchBar testCount={response.totalCount} />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
       {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to

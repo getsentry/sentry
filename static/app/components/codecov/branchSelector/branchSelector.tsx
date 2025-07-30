@@ -14,6 +14,8 @@ import {space} from 'sentry/styles/space';
 
 import {IconBranch} from './iconBranch';
 
+export const ALL_BRANCHES = 'All Branches';
+
 export function BranchSelector() {
   const {branch, repository, changeContextValue} = useCodecovContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
@@ -38,6 +40,7 @@ export function BranchSelector() {
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const optionSet = new Set<string>([
+      ...[ALL_BRANCHES],
       ...(branch ? [branch] : []),
       ...(branches.length > 0 ? branches.map(item => item.name) : []),
     ]);
@@ -108,7 +111,7 @@ export function BranchSelector() {
                 <IconContainer>
                   <IconBranch />
                 </IconContainer>
-                <TriggerLabel>{branch || t('Select branch')}</TriggerLabel>
+                <TriggerLabel>{branch || ALL_BRANCHES}</TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
           </DropdownButton>
