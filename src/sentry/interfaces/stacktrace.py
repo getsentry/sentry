@@ -1,4 +1,5 @@
 import math
+from enum import Enum
 
 from django.utils.translation import gettext as _
 
@@ -9,6 +10,12 @@ from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 
 __all__ = ("Stacktrace",)
+
+
+class StacktraceOrder(str, Enum):
+    DEFAULT = "-1"  # Equivalent to `MOST_RECENT_FIRST`
+    MOST_RECENT_LAST = "1"
+    MOST_RECENT_FIRST = "2"
 
 
 def max_addr(cur, addr):
