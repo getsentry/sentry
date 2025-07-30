@@ -6,14 +6,14 @@ from sentry.seer.models import PageWebVitalsInsight, SummarizePageWebVitalsRespo
 from sentry.seer.page_web_vitals_summary import get_page_web_vitals_summary
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:performance-web-vitals-seer-suggestions")
+@with_feature("organizations:performance-web-vitals-seer-suggestions")
 class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
