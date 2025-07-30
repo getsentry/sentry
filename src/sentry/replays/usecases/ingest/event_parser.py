@@ -324,10 +324,8 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
     def get_timestamp(dictionary: dict[str, Any], key: str = "timestamp") -> float | None:
         """Safely extract timestamp from dictionary, returning None if not found."""
         timestamp = dictionary.get(key)
-
         if timestamp is None:
             return None
-
         try:
             return float(timestamp)
         except (TypeError, ValueError):
@@ -369,12 +367,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
     def make_trace_item_context(
         attributes: dict[str, Any],
         timestamp: float | None,
+        event_type: EventType,
         event: dict[str, Any],
     ) -> TraceItemContext | None:
         """Make a trace-item context from the attributes and timestamp, returning None if the timestamp is missing."""
         if timestamp is None:
+            msg = f"[EVENT PARSE FAIL] Missing timestamp for {event_type} event"
             logger.warning(
-                "[EVENT PARSE FAIL] Missing timestamp for event",
+                msg,
                 extra={"event": event},
             )
             return None
@@ -384,6 +384,22 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             "event_hash": uuid.uuid4().bytes,
             "timestamp": timestamp,
         }
+
+    def check_attr_dict_length(
+        attributes_dict: dict[str, Any],
+        event_type: EventType,
+        event: dict[str, Any],
+        original_length: int = 1,
+    ) -> bool:
+        """Check if the attributes dictionary has at least one attribute; raise a warning if it doesn't."""
+        if len(attributes_dict) <= original_length:
+            msg = f"[EVENT PARSE FAIL] {event_type} event has no attributes."
+            logger.warning(
+                msg,
+                extra={"event": event},
+            )
+            return False
+        return True
 
     match event_type:
         case EventType.CLICK | EventType.DEAD_CLICK | EventType.RAGE_CLICK | EventType.SLOW_CLICK:
@@ -434,7 +450,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             map_attr(click_attributes, "testid", _get_testid(node_attributes))
 
             timestamp = get_timestamp(payload)
-            return make_trace_item_context(click_attributes, timestamp, event)
+            return make_trace_item_context(click_attributes, timestamp, event_type, event)
 
         case EventType.NAVIGATION:
             payload = get_in(event, ["data", "payload"])
@@ -449,7 +465,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             )
 
             timestamp = get_timestamp(payload)
-            return make_trace_item_context(navigation_attributes, timestamp, event)
+            return make_trace_item_context(navigation_attributes, timestamp, event_type, event)
 
         case EventType.CONSOLE:
             return None
@@ -471,7 +487,6 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             map_attrs(
                 resource_attributes,
                 payload_data,
-                url=("description", as_string_strict),
                 method=("method", as_string_strict),
                 status_code=("statusCode", int),
                 duration=("endTimestamp", float),
@@ -488,8 +503,10 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 status_code=("statusCode", int),
             )
             if "endTimestamp" in payload and "startTimestamp" in payload:
-                resource_attributes["duration"] = float(payload["endTimestamp"]) - float(
-                    payload["startTimestamp"]
+                map_attr(
+                    resource_attributes,
+                    "duration",
+                    float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
                 )
 
             for key, value in get_in(payload_data, ["request", "headers"]).items():
@@ -504,7 +521,7 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 resource_attributes["response_size"] = response_size
 
             timestamp = get_timestamp(payload, key="startTimestamp")
-            return make_trace_item_context(resource_attributes, timestamp, event)
+            return make_trace_item_context(resource_attributes, timestamp, event_type, event)
 
         case EventType.RESOURCE_SCRIPT | EventType.RESOURCE_IMAGE:
             payload = get_in(event, ["data", "payload"])
@@ -526,12 +543,17 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             )
             map_attr(resource_attributes, "url", payload.get("description"), as_string_strict)
             if "endTimestamp" in payload and "startTimestamp" in payload:
-                resource_attributes["duration"] = float(payload["endTimestamp"]) - float(
-                    payload["startTimestamp"]
+                map_attr(
+                    resource_attributes,
+                    "duration",
+                    float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
                 )
 
+            if not check_attr_dict_length(resource_attributes, event_type, event):
+                return None
+
             timestamp = get_timestamp(payload, key="startTimestamp")
-            return make_trace_item_context(resource_attributes, timestamp, event)
+            return make_trace_item_context(resource_attributes, timestamp, event_type, event)
 
         case EventType.LCP | EventType.FCP | EventType.CLS:
             payload = get_in(event, ["data", "payload"])
@@ -564,12 +586,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 rating=("rating", as_string_strict),
             )
             if "endTimestamp" in payload and "startTimestamp" in payload:
-                web_vital_attributes["duration"] = float(payload["endTimestamp"]) - float(
-                    payload["startTimestamp"]
+                map_attr(
+                    web_vital_attributes,
+                    "duration",
+                    float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
                 )
 
             timestamp = get_timestamp(payload, key="startTimestamp")
-            return make_trace_item_context(web_vital_attributes, timestamp, event)
+            return make_trace_item_context(web_vital_attributes, timestamp, event_type, event)
 
         case EventType.HYDRATION_ERROR:
             payload = get_in(event, ["data", "payload"])
@@ -580,8 +604,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
             map_attr(hydration_attributes, "url", payload_data.get("url"), as_string_strict)
 
+            if not check_attr_dict_length(hydration_attributes, event_type, event):
+                return None
+
             timestamp = get_timestamp(payload)
-            return make_trace_item_context(hydration_attributes, timestamp, event)
+            return make_trace_item_context(hydration_attributes, timestamp, event_type, event)
 
         case EventType.MUTATIONS:
             payload_data = get_in(event, ["data", "payload", "data"])
@@ -591,8 +618,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             }
             map_attr(mutations_attributes, "count", payload_data.get("count"), int)
 
+            if not check_attr_dict_length(mutations_attributes, event_type, event):
+                return None
+
             timestamp = get_timestamp(event)
-            return make_trace_item_context(mutations_attributes, timestamp, event)
+            return make_trace_item_context(mutations_attributes, timestamp, event_type, event)
 
         case EventType.UNKNOWN:
             return None
@@ -623,10 +653,13 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 networkResponseHasHeaders=("networkResponseHasHeaders", bool),
             )
 
+            if not check_attr_dict_length(options_attributes, event_type, event):
+                return None
+
             timestamp = get_timestamp(event)
             if timestamp is not None:
                 timestamp /= 1000
-            return make_trace_item_context(options_attributes, timestamp, event)
+            return make_trace_item_context(options_attributes, timestamp, event_type, event)
 
         case EventType.FEEDBACK:
             return None
@@ -649,12 +682,14 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
             )
             map_attr(memory_attributes, "endTimestamp", payload.get("endTimestamp"), float)
             if "endTimestamp" in payload and "startTimestamp" in payload:
-                memory_attributes["duration"] = float(payload["endTimestamp"]) - float(
-                    payload["startTimestamp"]
+                map_attr(
+                    memory_attributes,
+                    "duration",
+                    float(payload["endTimestamp"]) - float(payload["startTimestamp"]),
                 )
 
             timestamp = get_timestamp(payload, key="startTimestamp")
-            return make_trace_item_context(memory_attributes, timestamp, event)
+            return make_trace_item_context(memory_attributes, timestamp, event_type, event)
         case EventType.NAVIGATION_SPAN:
             return None
 
