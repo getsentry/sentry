@@ -4,7 +4,7 @@ import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
-  useAutorefreshWithinPauseWindow,
+  useAutorefreshEnabledOrWithinPauseWindow,
   useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -53,7 +53,8 @@ export function useVirtualStreaming(
   data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
 ) {
   const autoRefresh = useLogsAutoRefreshEnabled();
-  const isWithinPauseWindow = useAutorefreshWithinPauseWindow();
+  const isAutoRefreshEnabledOrWithinPauseWindow =
+    useAutorefreshEnabledOrWithinPauseWindow();
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
@@ -73,7 +74,7 @@ export function useVirtualStreaming(
 
   // If we've received data, initialize the virtual timestamp to be refreshEvery seconds before the max ingest delay timestamp
   const initializeVirtualTimestamp = useCallback(() => {
-    if (!data?.pages?.length || (isWithinPauseWindow && virtualTimestamp !== undefined)) {
+    if (!data?.pages?.length || virtualTimestamp !== undefined) {
       return;
     }
 
@@ -106,14 +107,21 @@ export function useVirtualStreaming(
         );
 
     setVirtualTimestamp(initialTimestamp);
-  }, [data, virtualTimestamp, refreshInterval, isWithinPauseWindow]);
+  }, [data, virtualTimestamp, refreshInterval]);
 
   // Initialize when auto refresh is enabled and we have data
   useEffect(() => {
-    if ((autoRefresh && virtualTimestamp === undefined) || !isWithinPauseWindow) {
-      initializeVirtualTimestamp();
+    if (!isAutoRefreshEnabledOrWithinPauseWindow || virtualTimestamp !== undefined) {
+      return;
     }
-  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp, isWithinPauseWindow]);
+
+    initializeVirtualTimestamp();
+  }, [
+    isAutoRefreshEnabledOrWithinPauseWindow,
+    initializeVirtualTimestamp,
+    virtualTimestamp,
+    data?.pages?.length,
+  ]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {
