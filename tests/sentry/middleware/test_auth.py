@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory
 
@@ -139,7 +139,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.auth is None
 
     @patch("sentry.users.models.userip.geo_by_addr")
-    def test_process_request_log_userip(self, mock_geo_by_addr):
+    def test_process_request_log_userip(self, mock_geo_by_addr: MagicMock) -> None:
         mock_geo_by_addr.return_value = {
             "country_code": "US",
             "region": "CA",

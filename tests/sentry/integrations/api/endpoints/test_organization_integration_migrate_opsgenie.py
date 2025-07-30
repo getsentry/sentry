@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 
@@ -29,7 +29,7 @@ class OrganizationIntegrationMigrateOpsgenieTest(APITestCase):
     @patch(
         "sentry.integrations.opsgenie.integration.OpsgenieIntegration.schedule_migrate_opsgenie_plugin"
     )
-    def test_simple(self, mock_migrate_opsgenie_plugin, mock_metrics):
+    def test_simple(self, mock_migrate_opsgenie_plugin: MagicMock, mock_metrics: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="opsgenie", external_id="cool_opsgenie"
         )

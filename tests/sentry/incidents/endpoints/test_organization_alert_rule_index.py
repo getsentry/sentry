@@ -1,7 +1,7 @@
 from copy import deepcopy
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -347,7 +347,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert(self, mock_seer_request):
+    def test_anomaly_detection_alert(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -458,7 +458,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
         wraps=create_subscription_in_snuba,
     )
-    def test_create_alert_rule_eap_spans(self, mock_create_subscription_in_snuba):
+    def test_create_alert_rule_eap_spans(
+        self, mock_create_subscription_in_snuba: MagicMock
+    ) -> None:
         for event_type in ["transaction", "trace_item_span", None]:
             data = deepcopy(self.alert_rule_dict)
             data["dataset"] = "events_analytics_platform"
@@ -498,7 +500,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         "sentry.snuba.subscriptions.create_subscription_in_snuba.delay",
         wraps=create_subscription_in_snuba,
     )
-    def test_create_alert_rule_logs(self, mock_create_subscription_in_snuba):
+    def test_create_alert_rule_logs(self, mock_create_subscription_in_snuba: MagicMock) -> None:
         data = deepcopy(self.alert_rule_dict)
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
@@ -543,7 +545,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request):
+    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request: MagicMock) -> None:
         """
         For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We
         will repurpose this test once we have a plan in place to handle them.
@@ -568,7 +570,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_timeout(self, mock_seer_request):
+    def test_anomaly_detection_alert_timeout(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         mock_seer_request.side_effect = TimeoutError
         with outbox_runner():
@@ -586,7 +588,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_max_retry(self, mock_seer_request):
+    def test_anomaly_detection_alert_max_retry(self, mock_seer_request: MagicMock) -> None:
         data = self.dynamic_alert_rule_dict
         mock_seer_request.side_effect = MaxRetryError(
             seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
@@ -606,7 +608,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_anomaly_detection_alert_other_error(self, mock_seer_request):
+    def test_anomaly_detection_alert_other_error(self, mock_seer_request: MagicMock) -> None:
         """
         Test the catch-all in case Seer returns something that we don't expect.
         """
@@ -1334,7 +1336,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
-    def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
+    def test_async_lookup_outside_transaction(
+        self, mock_uuid4: MagicMock, mock_get_channel_id: MagicMock
+    ) -> None:
         mock_uuid4.return_value = self.get_mock_uuid()
         name = "MySpecialAsyncTestRule"
         test_params = {
@@ -1519,7 +1523,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
 
     @patch("sentry.analytics.record")
-    def test_performance_alert(self, record_analytics):
+    def test_performance_alert(self, record_analytics: MagicMock) -> None:
         valid_alert_rule = {
             **self.alert_rule_dict,
             "queryType": 1,

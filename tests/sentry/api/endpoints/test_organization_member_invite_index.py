@@ -1,5 +1,5 @@
 from dataclasses import replace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.roles import organization_roles
@@ -210,7 +210,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
         assert response.data["email"][0] == "Enter a valid email address."
 
     @patch.object(OrganizationMemberInvite, "send_invite_email")
-    def test_simple(self, mock_send_invite_email):
+    def test_simple(self, mock_send_invite_email: MagicMock) -> None:
         data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
         response = self.get_success_response(self.organization.slug, **data)
 
@@ -235,7 +235,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
         assert omi.inviter_id == self.user.id
 
     @patch.object(OrganizationMemberInvite, "send_invite_email")
-    def test_referrer_param(self, mock_send_invite_email):
+    def test_referrer_param(self, mock_send_invite_email: MagicMock) -> None:
         data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
         response = self.get_success_response(
             self.organization.slug, **data, qs_params={"referrer": "test_referrer"}
@@ -252,7 +252,9 @@ class OrganizationMemberInvitePostTest(APITestCase):
         mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch.object(OrganizationMemberInvite, "send_invite_email")
-    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+    def test_internal_integration_token_can_only_invite_member_role(
+        self, mock_send_invite_email: MagicMock
+    ) -> None:
         internal_integration = self.create_internal_integration(
             name="Internal App", organization=self.organization, scopes=["member:write"]
         )
@@ -299,7 +301,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
         mock_send_invite_email.assert_called_once()
 
     @patch("sentry.ratelimits.for_organization_member_invite")
-    def test_rate_limited(self, mock_rate_limit):
+    def test_rate_limited(self, mock_rate_limit: MagicMock) -> None:
         mock_rate_limit.return_value = True
 
         data = {"email": "mifu@email.com", "orgRole": "member"}
@@ -310,7 +312,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get: MagicMock) -> None:
         owner_user = self.create_user("owner@localhost")
         self.owner = self.create_member(
             user=owner_user, organization=self.organization, role="owner"

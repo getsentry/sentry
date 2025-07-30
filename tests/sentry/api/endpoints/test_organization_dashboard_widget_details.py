@@ -741,7 +741,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 assert mock_query.mock_calls[0] == mock.call(["someothertag"], mock.ANY, "1h")
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_dashboard_widget_ondemand_multiple_fields(self, mock_query):
+    def test_dashboard_widget_ondemand_multiple_fields(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {
             "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
         }, [
@@ -795,7 +795,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert len(mock_query.mock_calls) == 1
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
-    def test_dashboard_hits_max_specs(self, mock_max):
+    def test_dashboard_hits_max_specs(self, mock_max: mock.MagicMock) -> None:
         # create another widget so we already have a widget spec
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -858,7 +858,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.data == {"warnings": {"columns": {}, "queries": [None]}}
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_warnings_show_up_with_error(self, mock_query):
+    def test_warnings_show_up_with_error(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {
             "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
         }, [
@@ -893,7 +893,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.data["queries"][0]["conditions"], response.data
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
-    def test_first_query_without_ondemand_but_second_with(self, mock_max):
+    def test_first_query_without_ondemand_but_second_with(self, mock_max: mock.MagicMock) -> None:
         # create another widget so we already have a widget spec
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -1003,7 +1003,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             assert len(mock_query.mock_calls) == 0
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
-    def test_ondemand_disabled_adds_queries(self, mock_max):
+    def test_ondemand_disabled_adds_queries(self, mock_max: mock.MagicMock) -> None:
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {

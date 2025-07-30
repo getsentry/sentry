@@ -1,5 +1,5 @@
 from dataclasses import replace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationmemberinvite import InviteStatus
 from sentry.roles import organization_roles
@@ -160,7 +160,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_update_teams_invalid_new_teams(self, mock_get):
+    def test_update_teams_invalid_new_teams(self, mock_get: MagicMock) -> None:
         """
         If adding team assignments to an existing invite with orgRole that can't have team-level
         permissions, then we should raise an error.
@@ -181,7 +181,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_update_teams_invalid_new_role(self, mock_get):
+    def test_update_teams_invalid_new_role(self, mock_get: MagicMock) -> None:
         """
         If updating an orgRole to one that can't have team-level assignments when the existing
         invite has team assignments, then we should raise an error.

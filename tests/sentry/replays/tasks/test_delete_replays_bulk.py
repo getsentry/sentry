@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
@@ -34,7 +34,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_first_run(self, mock_delete_matched_rows, mock_fetch_rows):
+    def test_run_bulk_replay_delete_job_first_run(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
         """Test the first run of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return some rows
         mock_fetch_rows.return_value = {
@@ -79,7 +81,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_completion(self, mock_delete_matched_rows, mock_fetch_rows):
+    def test_run_bulk_replay_delete_job_completion(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
         """Test the completion of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return no more rows
         mock_fetch_rows.return_value = {
@@ -123,7 +127,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_no_rows(self, mock_delete_matched_rows, mock_fetch_rows):
+    def test_run_bulk_replay_delete_job_no_rows(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
         """Test the bulk deletion job when no rows are found"""
         # Mock the fetch_rows_matching_pattern to return no rows
         mock_fetch_rows.return_value = {

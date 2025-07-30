@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 
@@ -30,7 +30,7 @@ class SocketTest(TestCase):
 
     @override_blocklist("10.0.0.0/8", "127.0.0.1")
     @patch("socket.getaddrinfo")
-    def test_is_safe_hostname(self, mock_getaddrinfo):
+    def test_is_safe_hostname(self, mock_getaddrinfo: MagicMock) -> None:
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("81.0.0.1", 0))]
         assert is_safe_hostname("example.com") is True
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("127.0.0.1", 0))]

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 
@@ -629,7 +629,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
 
     @patch("sentry.analytics.record")
-    def test_bad_schema(self, record):
+    def test_bad_schema(self, record: MagicMock) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         schema = {"bad_key": "bad_value"}
 
@@ -778,7 +778,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         ).exists()
 
     @patch("sentry.analytics.record")
-    def test_superuser_delete_unpublished_app(self, record):
+    def test_superuser_delete_unpublished_app(self, record: MagicMock) -> None:
         self.get_success_response(
             self.unpublished_app.slug,
             status_code=204,
