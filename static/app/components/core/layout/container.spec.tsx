@@ -10,11 +10,11 @@ describe('Container', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
-  it('implements asChild', () => {
+  it('implements render prop', () => {
     render(
       <section>
-        <Container asChild border="primary" aria-label="Hello">
-          <p>Hello</p>
+        <Container border="primary" aria-label="Hello">
+          {props => <p {...props}>Hello</p>}
         </Container>
       </section>
     );

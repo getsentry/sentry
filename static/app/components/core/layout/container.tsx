@@ -1,6 +1,6 @@
+import type React from 'react';
 import styled from '@emotion/styled';
 
-import {Slot} from 'sentry/components/core/slot';
 import type {Theme} from 'sentry/utils/theme';
 
 import {
@@ -16,13 +16,7 @@ import {
 } from './styles';
 
 /* eslint-disable typescript-sort-keys/interface */
-interface BaseContainerProps {
-  children?: React.ReactNode;
-  /**
-   * If true, the component will spread the props onto the child elements.
-   * When asChild is true, no DOM node will be rendered for the Container component.
-   */
-  asChild?: boolean;
+interface ContainerLayoutProps {
   background?: Responsive<keyof Theme['tokens']['background']>;
   display?: Responsive<
     'block' | 'inline' | 'inline-block' | 'flex' | 'inline-flex' | 'grid' | 'inline-grid'
@@ -51,6 +45,7 @@ interface BaseContainerProps {
   area?: Responsive<React.CSSProperties['gridArea']>;
   order?: Responsive<React.CSSProperties['order']>;
 }
+
 /* eslint-enable typescript-sort-keys/interface */
 export type ContainerElement =
   | 'article'
@@ -68,10 +63,17 @@ export type ContainerElement =
   | 'summary'
   | 'ul';
 
-export type ContainerProps<T extends ContainerElement = 'div'> = BaseContainerProps & {
+type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayoutProps & {
   as?: T;
+  children?: React.ReactNode;
   ref?: React.Ref<HTMLElementTagNameMap[T] | null>;
 } & React.HTMLAttributes<HTMLElementTagNameMap[T]>;
+
+type ContainerPropsWithRenderProp = ContainerLayoutProps & {
+  children: (props: {className: string}) => React.ReactNode | undefined;
+  as?: never;
+  ref?: never;
+};
 
 const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'as',
@@ -94,11 +96,22 @@ const omitContainerProps = new Set<keyof ContainerProps<any>>([
   'maxHeight',
 ]);
 
+function isRenderProp(
+  props: ContainerProps<any> | ContainerPropsWithRenderProp
+): props is ContainerPropsWithRenderProp {
+  return typeof props.children === 'function';
+}
+
 export const Container = styled(
-  <T extends ContainerElement = 'div'>({as, asChild, ...rest}: ContainerProps<T>) => {
-    if (asChild) {
-      return <Slot {...(rest as any)} />;
+  <T extends ContainerElement = 'div'>(
+    props: ContainerProps<T> | ContainerPropsWithRenderProp
+  ) => {
+    if (isRenderProp(props)) {
+      // When using render prop, only pass className to the child function
+      return props.children({className: (props as any).className});
     }
+
+    const {as, ...rest} = props;
     return <Container as={as ?? 'div'} {...(rest as any)} />;
   },
   {
@@ -109,7 +122,7 @@ export const Container = styled(
       return true;
     },
   }
-)<ContainerProps>`
+)`
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
 
@@ -142,5 +155,5 @@ export const Container = styled(
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends ContainerElement = 'div'>(
-  props: ContainerProps<T>
+  props: ContainerProps<T> | ContainerPropsWithRenderProp
 ) => React.ReactElement;
