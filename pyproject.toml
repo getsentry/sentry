@@ -147,6 +147,8 @@ dependencies = [
     "ua-parser==0.10.0",
     "unidiff==0.7.4",
     "uritemplate==4.1.1",
+    # note: we cannot resolve urllib3[brotli] but brotli is installed
+    #       and will be used
     "urllib3==2.2.2",
     "vine==5.1.0",
     "vroomrs==0.1.17",
