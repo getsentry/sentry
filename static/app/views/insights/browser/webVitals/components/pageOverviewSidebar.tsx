@@ -126,7 +126,11 @@ export function PageOverviewSidebar({
   const traceIds = traceSamples?.map(sample => sample.trace);
 
   const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary(traceIds, {
-    enabled: hasSeerWebVitalsSuggestions && !isLoadingTraceSamples,
+    enabled:
+      traceIds &&
+      traceIds.length > 0 &&
+      hasSeerWebVitalsSuggestions &&
+      !isLoadingTraceSamples,
   });
 
   const insightCards = [
