@@ -112,7 +112,7 @@ class EapCheckEntry:
     """
 
     uptime_check_id: str
-    uptime_subscription_id: int
+    uptime_monitor_id: int
     timestamp: datetime
     scheduled_check_time: datetime
     check_status: CheckStatus
