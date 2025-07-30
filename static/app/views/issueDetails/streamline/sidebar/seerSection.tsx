@@ -32,8 +32,16 @@ function SeerSectionContent({
 }) {
   const aiConfig = useAiConfig(group, project);
 
-  if (!event || aiConfig.isAutofixSetupLoading) {
+  if (aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
+  }
+
+  if (!event) {
+    return (
+      <Summary>
+        <div>{t('No event to summarize.')}</div>
+      </Summary>
+    );
   }
 
   if (aiConfig.hasSummary) {
