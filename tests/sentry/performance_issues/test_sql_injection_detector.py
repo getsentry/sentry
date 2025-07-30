@@ -17,7 +17,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 
 @pytest.mark.django_db
 class SQLInjectionDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -79,6 +79,10 @@ class SQLInjectionDetectorTest(TestCase):
         injection_event = get_event("sql-injection/sql-injection-event-non-vulnerable")
         assert len(self.find_problems(injection_event)) == 0
 
-    def test_sql_injection_on_invalid_package(self) -> None:
-        injection_event = get_event("sql-injection/sql-injection-event-invalid-package")
+    def test_sql_injection_on_laravel_query(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-laravel-query")
+        assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_query_with_bindings(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-query-with-bindings")
         assert len(self.find_problems(injection_event)) == 0

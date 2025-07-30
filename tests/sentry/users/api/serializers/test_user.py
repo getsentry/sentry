@@ -101,7 +101,7 @@ class DetailedUserSerializerTest(TestCase):
 
 @control_silo_test
 class DetailedSelfUserSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         UserPermission.objects.create(user=self.user, permission="foo")

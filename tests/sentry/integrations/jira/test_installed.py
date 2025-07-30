@@ -76,7 +76,7 @@ class JiraInstalledTest(APITestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
-    def test_missing_body(self, mock_record_failure):
+    def test_missing_body(self, mock_record_failure: MagicMock) -> None:
         self.get_error_response(
             extra_headers=dict(HTTP_AUTHORIZATION="JWT anexampletoken"),
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -101,7 +101,7 @@ class JiraInstalledTest(APITestCase):
         side_effect=AtlassianConnectValidationError(),
     )
     @responses.activate
-    def test_no_claims(self, mock_authenticate_asymmetric_jwt):
+    def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
         self.add_response()
 
         self.get_error_response(

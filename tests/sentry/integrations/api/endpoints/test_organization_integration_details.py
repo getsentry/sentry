@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -21,7 +21,7 @@ from sentry.users.models.identity import Identity
 class OrganizationIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -76,7 +76,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         ).exists()
 
     @patch.object(IntegrationInstallation, "update_organization_config")
-    def test_update_config_error(self, mock_update_config):
+    def test_update_config_error(self, mock_update_config: MagicMock) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
 
         mock_update_config.side_effect = IntegrationError("hello")
@@ -113,7 +113,7 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(

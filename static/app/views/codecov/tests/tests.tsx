@@ -1,7 +1,10 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {BranchSelector} from 'sentry/components/codecov/branchSelector/branchSelector';
+import {
+  ALL_BRANCHES,
+  BranchSelector,
+} from 'sentry/components/codecov/branchSelector/branchSelector';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {DateSelector} from 'sentry/components/codecov/dateSelector/dateSelector';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
@@ -15,7 +18,10 @@ import {space} from 'sentry/styles/space';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useInfiniteTestResults} from 'sentry/views/codecov/tests/queries/useGetTestResults';
+import {
+  useInfiniteTestResults,
+  type UseInfiniteTestResultsResult,
+} from 'sentry/views/codecov/tests/queries/useGetTestResults';
 import {DEFAULT_SORT} from 'sentry/views/codecov/tests/settings';
 import {Summaries} from 'sentry/views/codecov/tests/summaries/summaries';
 import type {ValidSort} from 'sentry/views/codecov/tests/testAnalyticsTable/testAnalyticsTable';
@@ -38,6 +44,15 @@ function EmptySelectorsMessage() {
 
 export default function TestsPage() {
   const {integratedOrgId, repository, branch, codecovPeriod} = useCodecovContext();
+  const location = useLocation();
+
+  const response = useInfiniteTestResults({
+    cursor: location.query?.cursor as string | undefined,
+    navigation: location.query?.navigation as 'next' | 'prev' | undefined,
+  });
+  const defaultBranch = response.data?.defaultBranch;
+  const shouldDisplayTestSuiteDropdown =
+    branch === ALL_BRANCHES || branch === defaultBranch;
 
   const shouldDisplayContent = integratedOrgId && repository && branch && codecovPeriod;
 
@@ -50,9 +65,9 @@ export default function TestsPage() {
           <BranchSelector />
           <DateSelector />
         </PageFilterBar>
-        <TestSuiteDropdown />
+        {shouldDisplayTestSuiteDropdown && <TestSuiteDropdown />}
       </ControlsContainer>
-      {shouldDisplayContent ? <Content /> : <EmptySelectorsMessage />}
+      {shouldDisplayContent ? <Content response={response} /> : <EmptySelectorsMessage />}
     </LayoutGap>
   );
 }
@@ -62,16 +77,21 @@ const LayoutGap = styled('div')`
   gap: ${space(2)};
 `;
 
-function Content() {
+interface TestResultsContentData {
+  response: UseInfiniteTestResultsResult;
+}
+
+function Content({response}: TestResultsContentData) {
   const location = useLocation();
   const navigate = useNavigate();
+  const {branch: selectedBranch} = useCodecovContext();
+
   const sorts: [ValidSort] = [
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
-  const response = useInfiniteTestResults({
-    cursor: location.query?.cursor as string | undefined,
-    navigation: location.query?.navigation as 'next' | 'prev' | undefined,
-  });
+  const defaultBranch = response.data?.defaultBranch;
+  const shouldDisplaySummaries =
+    selectedBranch === ALL_BRANCHES || selectedBranch === defaultBranch;
 
   const handleCursor = useCallback(
     (
@@ -103,8 +123,7 @@ function Content() {
 
   return (
     <Fragment>
-      {/* TODO: Conditionally show these if the branch we're in is the main branch */}
-      <Summaries />
+      {shouldDisplaySummaries && <Summaries />}
       <TestSearchBar testCount={response.totalCount} />
       <TestAnalyticsTable response={response} sort={sorts[0]} />
       {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to

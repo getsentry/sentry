@@ -22,7 +22,7 @@ class CustomRulesGetEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         second_project = self.create_project(organization=self.organization)
@@ -190,7 +190,7 @@ class CustomRulesEndpoint(APITestCase):
     endpoint = "sentry-api-0-organization-dynamic_sampling-custom_rules"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.second_project = self.create_project(organization=self.organization)
@@ -286,7 +286,9 @@ class CustomRulesEndpoint(APITestCase):
         assert rule_id == new_rule_id
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_project_config(self, mock_invalidate_project_config):
+    def test_invalidates_project_config(
+        self, mock_invalidate_project_config: mock.MagicMock
+    ) -> None:
         """
         Tests that project rules invalidates all the configurations for the
         passed projects
@@ -308,7 +310,9 @@ class CustomRulesEndpoint(APITestCase):
         )
 
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
-    def test_invalidates_organization_config(self, mock_invalidate_project_config):
+    def test_invalidates_organization_config(
+        self, mock_invalidate_project_config: mock.MagicMock
+    ) -> None:
         """
         Tests that org rules invalidates all the configurations for the projects
         in the organization
@@ -348,7 +352,7 @@ def test_custom_rule_serializer(what, value, valid):
     assert serializer.is_valid() == valid
 
 
-def test_custom_rule_serializer_creates_org_rule_when_no_projects_given():
+def test_custom_rule_serializer_creates_org_rule_when_no_projects_given() -> None:
     """
     Test that the serializer creates an org level rule when no projects are given
     """

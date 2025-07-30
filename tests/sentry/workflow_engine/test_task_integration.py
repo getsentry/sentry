@@ -13,7 +13,7 @@ from tests.sentry.issues.test_status_change_consumer import get_test_message_sta
 
 
 class IssuePlatformIntegrationTests(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(project=self.project)
         self.group = self.create_group(

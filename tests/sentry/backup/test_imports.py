@@ -6,7 +6,7 @@ import tarfile
 import tempfile
 from datetime import UTC, date, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
@@ -386,7 +386,7 @@ class SanitizationTests(ImportTestCase):
                 assert err.value.context.on.model == "sentry.user"
 
     @patch("sentry.users.models.userip.geo_by_addr")
-    def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
+    def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr: MagicMock) -> None:
         mock_geo_by_addr.return_value = {
             "country_code": "US",
             "region": "CA",
@@ -423,7 +423,9 @@ class SanitizationTests(ImportTestCase):
 
     # Regression test for getsentry/self-hosted#2468.
     @patch("sentry.users.models.userip.geo_by_addr")
-    def test_good_multiple_user_ips_per_user_in_global_scope(self, mock_geo_by_addr):
+    def test_good_multiple_user_ips_per_user_in_global_scope(
+        self, mock_geo_by_addr: MagicMock
+    ) -> None:
         mock_geo_by_addr.return_value = {
             "country_code": "US",
             "region": "CA",

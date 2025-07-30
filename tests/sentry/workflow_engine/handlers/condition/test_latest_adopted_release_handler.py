@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -33,7 +33,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         group_event = self.event.for_group(group)
         return group, group_event
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = datetime.now(UTC)
         self.prod_env = self.create_environment(name="prod")
@@ -254,14 +254,16 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_passes(self.dc, self.event_data)
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
-    def test_release_does_not_exist(self, mock_get_first_last_release):
+    def test_release_does_not_exist(self, mock_get_first_last_release: MagicMock) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
         "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
         return_value=None,
     )
-    def test_latest_release_for_env_does_not_exist(self, mock_get_latest_release_for_env):
+    def test_latest_release_for_env_does_not_exist(
+        self, mock_get_latest_release_for_env: MagicMock
+    ) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
@@ -277,5 +279,5 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         "sentry.models.environment.Environment.get_for_organization_id",
         side_effect=Environment.DoesNotExist,
     )
-    def test_environment_does_not_exist(self, mock_get_env):
+    def test_environment_does_not_exist(self, mock_get_env: MagicMock) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)

@@ -20,7 +20,7 @@ GITHUB_CODEOWNERS = {
 class GitHubEnterpriseApiClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         patcher_1 = mock.patch(

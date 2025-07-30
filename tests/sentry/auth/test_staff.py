@@ -54,7 +54,7 @@ def override_org_id(new_org_id: int):
 @control_silo_test
 @freeze_time(BASETIME)
 class StaffTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.current_datetime = timezone.now()
         self.default_token = "abcdefghijklmnog"
@@ -304,7 +304,7 @@ class StaffTestCase(TestCase):
         assert not is_active_staff(request)
 
     @mock.patch.object(Staff, "is_active", return_value=True)
-    def test_is_active_staff_from_request(self, mock_is_active):
+    def test_is_active_staff_from_request(self, mock_is_active: mock.MagicMock) -> None:
         request = self.build_request()
         request.staff = None
         assert is_active_staff(request)

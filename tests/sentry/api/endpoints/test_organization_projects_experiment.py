@@ -1,6 +1,6 @@
 import re
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.utils.text import slugify
 
@@ -25,7 +25,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     p1 = "project-one"
     p2 = "project-two"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.email_username = fetch_slugifed_email_username(self.user.email)
@@ -55,7 +55,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     @patch.object(
         OrganizationProjectsExperimentEndpoint, "should_add_creator_to_team", return_value=False
     )
-    def test_not_authenticated(self, mock_add_creator):
+    def test_not_authenticated(self, mock_add_creator: MagicMock) -> None:
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=401)
         assert response.data == {"detail": "User is not authenticated"}
         mock_add_creator.assert_called_once()
@@ -69,7 +69,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     @patch("sentry.models.team.Team.objects.filter")
-    def test_exceed_unique_team_slug_attempts(self, mock_filter):
+    def test_exceed_unique_team_slug_attempts(self, mock_filter: MagicMock) -> None:
         mock_filter.exists.return_value = True
         response = self.get_error_response(self.organization.slug, name=self.p1, status_code=409)
         assert response.data == {
@@ -289,7 +289,7 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
     @patch(
         "sentry.api.endpoints.organization_projects_experiment.OrganizationProjectsExperimentEndpoint.create_audit_entry"
     )
-    def test_create_project_with_origin(self, create_audit_entry):
+    def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
         signal_handler = Mock()
         project_created.connect(signal_handler)
 

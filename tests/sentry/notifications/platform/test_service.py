@@ -18,7 +18,7 @@ from sentry.testutils.notifications.platform import (
 
 
 class NotificationServiceTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.target = GenericNotificationTarget(
             provider_key=NotificationProviderKey.EMAIL,
             resource_type=NotificationTargetResourceType.EMAIL,
@@ -31,7 +31,7 @@ class NotificationServiceTest(TestCase):
         service.notify(targets=[self.target])
 
     @mock.patch("sentry.notifications.platform.service.logger")
-    def test_validation_on_notify(self, mock_logger):
+    def test_validation_on_notify(self, mock_logger: mock.MagicMock) -> None:
         service = NotificationService(data=MockNotification(message="this is a test notification"))
         with pytest.raises(
             NotificationServiceError,

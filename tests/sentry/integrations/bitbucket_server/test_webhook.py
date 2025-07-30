@@ -1,6 +1,6 @@
 from time import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -22,7 +22,7 @@ PROVIDER = "bitbucket_server"
 class WebhookTestBase(APITestCase):
     endpoint = "sentry-extensions-bitbucketserver-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.base_url = "https://api.bitbucket.org"
@@ -120,7 +120,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
 
@@ -131,7 +131,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
 
     @patch("sentry.integrations.bitbucket_server.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_webhook_error_metric(self, mock_record, mock_event):
+    def test_webhook_error_metric(self, mock_record: MagicMock, mock_event: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
 

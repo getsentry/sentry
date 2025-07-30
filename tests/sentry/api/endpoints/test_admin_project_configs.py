@@ -12,7 +12,7 @@ from sentry.testutils.silo import no_silo_test
 class AdminRelayProjectConfigsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-project-config"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="example@example.com", is_superuser=False, is_staff=True, is_active=True

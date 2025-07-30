@@ -106,7 +106,7 @@ export default function ConnectedMonitorsList({
               <DetectorAssigneeCell assignee={detector.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
+              <SimpleTable.RowCell data-column-name="connected" justify="end">
                 <Button onClick={() => toggleConnected?.({detector})} size="sm">
                   {connectedDetectorIds?.includes(detector.id)
                     ? t('Disconnect')

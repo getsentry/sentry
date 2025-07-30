@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationCodeMappingDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-code-mapping-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)

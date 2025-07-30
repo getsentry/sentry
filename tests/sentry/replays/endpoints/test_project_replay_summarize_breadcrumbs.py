@@ -1,7 +1,7 @@
 import uuid
 import zlib
 from datetime import UTC, datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import requests
 from django.conf import settings
@@ -24,7 +24,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
 ):
     endpoint = "sentry-api-0-project-replay-summarize-breadcrumbs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.replay_id = uuid.uuid4().hex
@@ -88,7 +88,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         )
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_simple(self, make_seer_request):
+    def test_get_simple(self, make_seer_request: MagicMock) -> None:
         return_value = json.dumps({"hello": "world"}).encode()
         make_seer_request.return_value = return_value
 
@@ -156,7 +156,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
                 assert response.status_code == 404
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_seer_failed(self, make_seer_request):
+    def test_get_seer_failed(self, make_seer_request: MagicMock) -> None:
         def x(x):
             raise ParseError("e")
 
@@ -177,7 +177,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.json() == {"detail": "e"}
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_error(self, make_seer_request):
+    def test_get_with_error(self, make_seer_request: MagicMock) -> None:
         """Test handling of breadcrumbs with error"""
         return_value = json.dumps({"error": "An error happened"}).encode()
         make_seer_request.return_value = return_value
@@ -252,7 +252,9 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_error_context_disabled_and_enabled(self, make_seer_request):
+    def test_get_with_error_context_disabled_and_enabled(
+        self, make_seer_request: MagicMock
+    ) -> None:
         """Test handling of breadcrumbs with error context disabled"""
         return_value = json.dumps({"error": "An error happened"}).encode()
         make_seer_request.return_value = return_value
@@ -339,7 +341,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_trace_connected_errors(self, make_seer_request):
+    def test_get_with_trace_connected_errors(self, make_seer_request: MagicMock) -> None:
         """Test handling of breadcrumbs with trace connected errors"""
         return_value = json.dumps({"trace_errors": "Trace connected errors found"}).encode()
         make_seer_request.return_value = return_value
@@ -416,7 +418,9 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_both_direct_and_trace_connected_errors(self, make_seer_request):
+    def test_get_with_both_direct_and_trace_connected_errors(
+        self, make_seer_request: MagicMock
+    ) -> None:
         """Test handling of breadcrumbs with both direct and trace connected errors"""
         return_value = json.dumps({"errors": "Both types of errors found"}).encode()
         make_seer_request.return_value = return_value
@@ -517,7 +521,7 @@ class ProjectReplaySummarizeBreadcrumbsTestCase(
         assert response.content == return_value
 
     @patch("sentry.replays.endpoints.project_replay_summarize_breadcrumbs.make_seer_request")
-    def test_get_with_feedback(self, make_seer_request):
+    def test_get_with_feedback(self, make_seer_request: MagicMock) -> None:
         """Test handling of breadcrumbs with user feedback"""
         return_value = json.dumps({"feedback": "Feedback was submitted"}).encode()
         make_seer_request.return_value = return_value

@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from unittest.mock import ANY, Mock, call, patch
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import pytest
 from django.utils import timezone
@@ -78,7 +78,7 @@ def dcg_ids_to_str(dcgs: list[DataConditionGroup]) -> str:
 
 
 class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.workflow1, self.workflow1_dcgs = self.create_project_event_freq_workflow(
@@ -291,7 +291,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
 
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         (
             self.workflow,
@@ -608,7 +608,7 @@ class TestGetSnubaResults(BaseWorkflowTest):
 
 
 class TestGetGroupsToFire(TestDelayedWorkflowBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
@@ -800,7 +800,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
 
 
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         action1 = self.create_action(
@@ -859,7 +859,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
     @with_feature("organizations:workflow-engine-trigger-actions")
-    def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
+    def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
         event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
@@ -886,7 +886,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
     @freeze_time()
     @patch("sentry.workflow_engine.processors.workflow.enqueue_workflows")
-    def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
+    def test_fire_actions_for_groups__enqueue(self, mock_enqueue: MagicMock) -> None:
         # enqueue the IF DCGs with slow conditions!
         self._push_base_events()
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
@@ -931,7 +931,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
-    def test_fire_actions_for_groups__workflow_fire_history(self, mock_process):
+    def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
             ProcessedDataConditionGroup(logic_result=True, condition_results=[]),
             [],
@@ -990,7 +990,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
     @patch(
         "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.apply_async"
     )
-    def test_batched_cleanup(self, mock_process_delayed):
+    def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
@@ -1102,7 +1102,7 @@ class TestEventKeyAndInstance:
         assert instance.occurrence_id == "test"
 
     @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
-    def test_from_redis_data_continue_on_error(self, mock_logger):
+    def test_from_redis_data_continue_on_error(self, mock_logger: MagicMock) -> None:
         # Create a mix of valid and invalid data
         redis_data = {
             "1:2:3:workflow_trigger": '{"event_id": "valid-1"}',  # valid
@@ -1135,7 +1135,7 @@ class TestEventKeyAndInstance:
             EventRedisData.from_redis_data(redis_data, continue_on_error=False)
 
     @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
-    def test_from_redis_data_invalid_keys(self, mock_logger):
+    def test_from_redis_data_invalid_keys(self, mock_logger: MagicMock) -> None:
         # Create data with an invalid key structure
         redis_data = {
             "1:2:3:workflow_trigger": '{"event_id": "valid-1"}',  # valid

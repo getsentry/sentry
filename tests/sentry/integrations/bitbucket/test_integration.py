@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import quote, urlencode
 
 import pytest
@@ -18,7 +18,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class BitbucketIntegrationTest(APITestCase):
     provider = BitbucketIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
@@ -210,7 +210,9 @@ class BitbucketIntegrationTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_get_repository_choices_halt_lifecycle(self, mock_record_halt, mock_record_failure):
+    def test_get_repository_choices_halt_lifecycle(
+        self, mock_record_halt: MagicMock, mock_record_failure: MagicMock
+    ) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/sentryuser",
@@ -228,7 +230,9 @@ class BitbucketIntegrationTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_get_repository_choices_failure_lifecycle(self, mock_record_halt, mock_record_failure):
+    def test_get_repository_choices_failure_lifecycle(
+        self, mock_record_halt: MagicMock, mock_record_failure: MagicMock
+    ) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/sentryuser",

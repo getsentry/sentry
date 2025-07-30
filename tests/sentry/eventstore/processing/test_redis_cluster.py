@@ -5,7 +5,7 @@ from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 @use_redis_cluster()
-def test_mark_event_reprocessed():
+def test_mark_event_reprocessed() -> None:
     group_id = 5
     store = RedisReprocessingStore()
     date_created = datetime.now()

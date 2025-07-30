@@ -10,7 +10,7 @@ pytestmark = [requires_snuba]
 class ExistingHighPriorityIssueConditionTest(RuleTestCase):
     rule_cls = ExistingHighPriorityIssueCondition
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = Rule(environment_id=1, project=self.project, label="label")
 
     def test_applies_correctly(self) -> None:

@@ -19,7 +19,7 @@ class WebHooksPluginTest(TestCase):
     def plugin(self):
         return WebHooksPlugin()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )

@@ -1,4 +1,4 @@
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 from django.urls import reverse
 
@@ -8,7 +8,7 @@ from sentry.testutils.cases import APITestCase
 class TestResultsAggregatesEndpointTest(APITestCase):
     endpoint_name = "sentry-api-0-test-results-aggregates"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.organization = self.create_organization(owner=self.user)
@@ -34,7 +34,7 @@ class TestResultsAggregatesEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates.CodecovApiClient"
     )
-    def test_get_returns_mock_response(self, mock_codecov_client_class):
+    def test_get_returns_mock_response(self, mock_codecov_client_class: MagicMock) -> None:
         mock_graphql_response = {
             "data": {
                 "owner": {
@@ -96,7 +96,7 @@ class TestResultsAggregatesEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates.CodecovApiClient"
     )
-    def test_get_with_interval_query_param(self, mock_codecov_client_class):
+    def test_get_with_interval_query_param(self, mock_codecov_client_class: MagicMock) -> None:
         mock_graphql_response = {
             "data": {
                 "owner": {

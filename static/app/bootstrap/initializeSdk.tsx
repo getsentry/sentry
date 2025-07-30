@@ -191,9 +191,7 @@ export function initializeSdk(config: Config) {
 
       return event;
     },
-    _experiments: {
-      enableLogs: true,
-    },
+    enableLogs: true,
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations

@@ -32,7 +32,7 @@ BITBUCKET_SERVER_CODEOWNERS = {
 )
 @control_silo_test
 class BitbucketServerClientTest(TestCase, BaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_provider_integration(
             provider="bitbucket_server",
             name="Bitbucket Server",

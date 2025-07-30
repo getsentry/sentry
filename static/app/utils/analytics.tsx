@@ -12,6 +12,10 @@ import {
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
 import {
+  type GamingAnalyticsEventParameters,
+  gamingEventMap,
+} from 'sentry/utils/analytics/gamingAnalyticsEvents';
+import {
   logsAnalyticsEventMap,
   type LogsAnalyticsEventParameters,
 } from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -105,6 +109,7 @@ interface EventParameters
     TeamInsightsEventParameters,
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
+    GamingAnalyticsEventParameters,
     StackTraceEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
@@ -142,6 +147,7 @@ const allEventMap: Record<string, string | null> = {
   ...workflowEventMap,
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
+  ...gamingEventMap,
   ...stackTraceEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,

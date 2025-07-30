@@ -131,16 +131,6 @@ def create_audit_entries(
             },
         )
 
-        delete_logger.info(
-            "object.delete.queued",
-            extra={
-                "object_id": group.id,
-                "project_id": group.project_id,
-                "transaction_id": transaction_id,
-                "model": type(group).__name__,
-            },
-        )
-
         issue_deleted.send_robust(
             group=group, user=request.user, delete_type=delete_type, sender=delete_group_list
         )

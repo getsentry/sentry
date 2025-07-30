@@ -5,7 +5,7 @@ from sentry.cache.django import DjangoCache
 
 
 class DjangoCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.cache = DjangoCache()
         self.cache_key = "test-key"
         self.cache_val = "test-val"

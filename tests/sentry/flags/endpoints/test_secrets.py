@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks-signing-secrets"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.obj = FlagWebHookSigningSecretModel.objects.create(
@@ -274,7 +274,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
 class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks-signing-secret"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.obj = FlagWebHookSigningSecretModel.objects.create(

@@ -331,7 +331,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         assert response.data == []
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_tag_caching(self, mock_snuba_query):
+    def test_tag_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -353,7 +353,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 1
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_different_statsperiod_caching(self, mock_snuba_query):
+    def test_different_statsperiod_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -376,7 +376,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 2
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_different_times_caching(self, mock_snuba_query):
+    def test_different_times_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)

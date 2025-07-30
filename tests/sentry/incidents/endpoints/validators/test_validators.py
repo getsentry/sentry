@@ -31,7 +31,7 @@ from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidator
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "type": Condition.GREATER,
@@ -113,7 +113,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
 
 
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(
@@ -184,7 +184,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit):
+    def test_create_with_valid_data(self, mock_audit: mock.MagicMock) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -219,7 +219,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_anomaly_detection(self, mock_audit):
+    def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {

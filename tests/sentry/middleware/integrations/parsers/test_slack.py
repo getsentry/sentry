@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import responses
@@ -29,7 +29,7 @@ class SlackRequestParserTest(TestCase):
     factory = RequestFactory()
     timestamp = "123123123"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -44,7 +44,7 @@ class SlackRequestParserTest(TestCase):
         "slack_sdk.signature.SignatureVerifier.is_valid",
         return_value=True,
     )
-    def test_webhook(self, mock_verify):
+    def test_webhook(self, mock_verify: MagicMock) -> None:
         # Retrieve the correct integration
         data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
         signature = _encode_data(secret="slack-signing-secret", data=data, timestamp=self.timestamp)
@@ -114,7 +114,9 @@ class SlackRequestParserTest(TestCase):
         return_value=True,
     )
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_triggers_async_response(self, mock_slack_task, mock_signing_secret):
+    def test_triggers_async_response(
+        self, mock_slack_task: MagicMock, mock_signing_secret: MagicMock
+    ) -> None:
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
             "payload": json.dumps(

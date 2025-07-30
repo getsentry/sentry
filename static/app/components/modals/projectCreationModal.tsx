@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,11 +58,19 @@ export default function ProjectCreationModal({
   const organization = useOrganization();
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
+    if (!selectedPlatform) {
+      setPlatform(undefined);
+      return;
+    }
+
     if (
-      selectedPlatform?.type === 'console' &&
-      !organization.enabledConsolePlatforms?.includes(selectedPlatform.id)
+      isDisabledGamingPlatform({
+        platform: selectedPlatform,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
     ) {
       openConsoleModal({
+        organization,
         selectedPlatform: {
           ...selectedPlatform,
           key: selectedPlatform.id,
@@ -72,11 +81,6 @@ export default function ProjectCreationModal({
           });
         },
       });
-      return;
-    }
-
-    if (!selectedPlatform) {
-      setPlatform(undefined);
       return;
     }
 

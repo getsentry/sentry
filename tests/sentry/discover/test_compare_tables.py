@@ -25,7 +25,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
     def now(self):
         return datetime.now(UTC).replace(microsecond=0)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -354,6 +354,28 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             aggregates=["p75(measurements.app_start_warm)"],
             columns=["p75(measurements.app_start_warm)"],
             fields=["p75(measurements.app_start_warm)"],
+        )
+
+        comparison_result = compare_tables_for_dashboard_widget_queries(widget_query)
+        assert comparison_result["passed"] is True
+
+    def test_compare_widget_query_with_no_fields(self) -> None:
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            title="Test No Fields Widget",
+            order=1,
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            order=0,
+            conditions="",
+            aggregates=["count()"],
+            columns=[],
+            fields=[],
         )
 
         comparison_result = compare_tables_for_dashboard_widget_queries(widget_query)

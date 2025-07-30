@@ -16,6 +16,7 @@ const mockTestResultsResponse = {
     hasPreviousPage: false,
     startCursor: 'cursor000',
   },
+  defaultBranch: 'main',
   results: [
     {
       name: 'test_example_function',
@@ -48,6 +49,7 @@ const mockTestResultsResponse = {
 };
 
 const emptyTestResultsResponse = {
+  defaultBranch: 'another',
   pageInfo: {
     endCursor: null,
     hasNextPage: false,
@@ -113,13 +115,14 @@ describe('useInfiniteTestResults', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data).toHaveLength(2);
+    expect(result.current.data.testResults).toHaveLength(2);
     expect(result.current.totalCount).toBe(150);
     expect(result.current.startCursor).toBe('cursor000');
     expect(result.current.endCursor).toBe('cursor123');
 
     // Verifies that the data is transformed correctly
-    expect(result.current.data[0]).toEqual({
+    expect(result.current.data.defaultBranch).toBe('main');
+    expect(result.current.data.testResults[0]).toEqual({
       testName: 'test_example_function',
       averageDurationMs: 45, // avgDuration * 1000
       commitsFailed: 5,
@@ -173,7 +176,7 @@ describe('useInfiniteTestResults', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data).toHaveLength(2);
+    expect(result.current.data.testResults).toHaveLength(2);
     expect(result.current.totalCount).toBe(150);
     expect(result.current.hasNextPage).toBe(true);
   });
@@ -211,7 +214,7 @@ describe('useInfiniteTestResults', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data).toHaveLength(0);
+    expect(result.current.data.testResults).toHaveLength(0);
     expect(result.current.totalCount).toBe(0);
     expect(result.current.startCursor).toBeNull();
     expect(result.current.endCursor).toBeNull();
@@ -247,7 +250,7 @@ describe('useInfiniteTestResults', () => {
     });
 
     expect(result.current.error).toBeDefined();
-    expect(result.current.data).toHaveLength(0);
+    expect(result.current.data.testResults).toHaveLength(0);
     expect(result.current.totalCount).toBe(0);
   });
 
@@ -300,7 +303,7 @@ describe('useInfiniteTestResults', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data).toHaveLength(2);
+    expect(result.current.data.testResults).toHaveLength(2);
     expect(result.current.totalCount).toBe(150);
   });
 });

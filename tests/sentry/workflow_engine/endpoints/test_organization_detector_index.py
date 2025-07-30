@@ -17,7 +17,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
@@ -32,7 +32,7 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class OrganizationDetectorIndexBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.environment = Environment.objects.create(
@@ -465,11 +465,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:incidents")
+@with_feature("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.connected_workflow = self.create_workflow(
             organization_id=self.organization.id,
@@ -581,7 +581,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_valid_creation(self, mock_audit):
+    def test_valid_creation(self, mock_audit: mock.MagicMock) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -804,7 +804,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 class ConvertAssigneeValuesTest(APITestCase):
     """Test the convert_assignee_values function"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.team = self.create_team(organization=self.organization)

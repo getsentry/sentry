@@ -55,7 +55,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
     @patch.dict(NotificationAction._registry, {})
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)
@@ -96,7 +96,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         "get_trigger_types",
         return_value=[(0, "teacher"), (1, "watcher"), (2, "beast")],
     )
-    def test_get_with_queries(self, mock_trigger_types):
+    def test_get_with_queries(self, mock_trigger_types: MagicMock) -> None:
         project = self.create_project(name="deepnest", organization=self.organization)
         no_team_project = self.create_project(
             name="waterways", organization=self.organization, teams=[]
