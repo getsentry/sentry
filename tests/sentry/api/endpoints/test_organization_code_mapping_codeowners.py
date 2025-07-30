@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -49,7 +49,7 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=None,
     )
-    def test_no_codeowner_file_found(self, mock_get_codeowner_file):
+    def test_no_codeowner_file_found(self, mock_get_codeowner_file: MagicMock) -> None:
         resp = self.client.get(self.url)
         assert resp.status_code == 404
 
@@ -57,7 +57,7 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=GITHUB_CODEOWNER,
     )
-    def test_codeowner_contents(self, mock_get_codeowner_file):
+    def test_codeowner_contents(self, mock_get_codeowner_file: MagicMock) -> None:
         resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert resp.data == GITHUB_CODEOWNER

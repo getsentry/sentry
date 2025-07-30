@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from rest_framework.exceptions import ErrorDetail
@@ -469,7 +469,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert users[str(author.id)]["email"] == author.email
 
     @patch("sentry.api.serializers.models.release.serialize")
-    def test_get_user_for_authors_caching(self, patched_serialize_base):
+    def test_get_user_for_authors_caching(self, patched_serialize_base: MagicMock) -> None:
         # Ensure the fetched/miss caching logic works.
         user = self.create_user(email="chrib@sentry.io")
         user2 = self.create_user(email="alsochrib@sentry.io")

@@ -49,7 +49,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record):
+    def test_applies_correctly(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={
                 "message": "Hello world",

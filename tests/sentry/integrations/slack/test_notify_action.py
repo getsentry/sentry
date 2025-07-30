@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -81,7 +81,9 @@ class SlackNotifyActionTest(RuleTestCase):
             "status": 200,
         },
     )
-    def test_no_upgrade_notice_bot_app(self, mock_api_call, mock_post):
+    def test_no_upgrade_notice_bot_app(
+        self, mock_api_call: MagicMock, mock_post: MagicMock
+    ) -> None:
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -204,7 +206,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     @patch("slack_sdk.web.client.WebClient.users_list")
-    def test_rate_limited_response(self, mock_api_call):
+    def test_rate_limited_response(self, mock_api_call: MagicMock) -> None:
         """Should surface a 429 from Slack to the frontend form"""
 
         mock_api_call.side_effect = SlackApiError(
@@ -341,7 +343,9 @@ class SlackNotifyActionTest(RuleTestCase):
             "status": 200,
         },
     )
-    def test_additional_attachment(self, mock_api_call, mock_post, mock_record):
+    def test_additional_attachment(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         with mock.patch.dict(
             manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},

@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import responses
@@ -75,7 +75,7 @@ class PagerDutyClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_send_trigger(self, mock_record):
+    def test_send_trigger(self, mock_record: MagicMock) -> None:
         expected_data = {
             "client": "sentry",
             "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),

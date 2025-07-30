@@ -8,7 +8,7 @@ from string import ascii_letters
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -776,7 +776,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
 
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
-    def test_import_integrity_error_exit_code(self, get_importer_for_model):
+    def test_import_integrity_error_exit_code(self, get_importer_for_model: MagicMock) -> None:
         get_importer_for_model.return_value.return_value = RpcImportError(
             kind=RpcImportErrorKind.IntegrityError,
             on=InstanceID(model=str(get_model_name(Email)), ordinal=1),

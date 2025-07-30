@@ -219,7 +219,7 @@ class AuthSAML2Test(AuthProviderTestCase):
             assert response["Location"] == "/auth/login/saml2-org/"
 
     @mock.patch("sentry.auth.helper.logger")
-    def test_auth_setup(self, auth_log):
+    def test_auth_setup(self, auth_log: mock.MagicMock) -> None:
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
         with assume_test_silo_mode(SiloMode.REGION):

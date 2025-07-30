@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -118,7 +118,7 @@ class OpsgenieActionHandlerTest(FireTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request):
+    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
         from sentry.integrations.opsgenie.utils import build_incident_attachment
 
         seer_return_value: StoreDataResponse = {"success": True}
@@ -267,7 +267,7 @@ class OpsgenieActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.opsgenie.utils.logger")
-    def test_missing_integration(self, mock_logger):
+    def test_missing_integration(self, mock_logger: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
 
@@ -292,7 +292,7 @@ class OpsgenieActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.opsgenie.utils.logger")
-    def test_missing_team(self, mock_logger):
+    def test_missing_team(self, mock_logger: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
 
@@ -317,7 +317,7 @@ class OpsgenieActionHandlerTest(FireTest):
         )
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
         assert_last_analytics_event(
             mock_record,

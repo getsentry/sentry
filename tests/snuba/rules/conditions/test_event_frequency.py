@@ -1,7 +1,7 @@
 import time
 from copy import deepcopy
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -540,7 +540,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         self.assertDoesNotPass(rule, event, is_new=False)
 
     @patch("sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.get_rate")
-    def test_is_new_issue_skips_snuba(self, mock_get_rate):
+    def test_is_new_issue_skips_snuba(self, mock_get_rate: MagicMock) -> None:
         # Looking for more than 1 event
         data = {"interval": "1m", "value": 6}
         minutes = 1

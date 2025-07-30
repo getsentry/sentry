@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.urls import reverse
@@ -254,7 +254,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_metric_alert_with_anomaly_detection(self, mock_seer_request):
+    def test_metric_alert_with_anomaly_detection(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(

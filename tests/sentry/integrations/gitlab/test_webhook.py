@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 
@@ -125,7 +125,7 @@ class WebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.gitlab.webhooks.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_push_event_failure_metric(self, mock_record, mock_event):
+    def test_push_event_failure_metric(self, mock_record: MagicMock, mock_event: MagicMock) -> None:
         error = Exception("oops")
         mock_event.side_effect = error
 
@@ -298,7 +298,9 @@ class WebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.gitlab.webhooks.MergeEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_merge_event_failure_metric(self, mock_record, mock_event):
+    def test_merge_event_failure_metric(
+        self, mock_record: MagicMock, mock_event: MagicMock
+    ) -> None:
         payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
         error = Exception("oops")
@@ -316,7 +318,7 @@ class WebhookTest(GitLabTestCase):
         assert_failure_metric(mock_record, error)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_merge_event_no_last_commit(self, mock_record):
+    def test_merge_event_no_last_commit(self, mock_record: MagicMock) -> None:
         payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
         # Remove required keys. There have been events in prod that are missing
@@ -336,7 +338,7 @@ class WebhookTest(GitLabTestCase):
         assert_success_metric(mock_record)
 
     @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
-    def test_merge_event_create_pull_request(self, mock_delay):
+    def test_merge_event_create_pull_request(self, mock_delay: MagicMock) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
         response = self.client.post(
@@ -357,7 +359,7 @@ class WebhookTest(GitLabTestCase):
         mock_delay.assert_called_once_with(pr_id=pull.id)
 
     @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
-    def test_merge_event_update_pull_request(self, mock_delay):
+    def test_merge_event_update_pull_request(self, mock_delay: MagicMock) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
         PullRequest.objects.create(

@@ -1,6 +1,6 @@
 import time
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -156,7 +156,7 @@ class MsTeamsActionHandlerTest(FireTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request):
+    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
         from sentry.integrations.msteams.card_builder.incident_attachment import (
             build_incident_attachment,
         )
@@ -210,7 +210,7 @@ class MsTeamsActionHandlerTest(FireTest):
         self.run_fire_test("resolve")
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
         assert_last_analytics_event(
             mock_record,
@@ -251,7 +251,7 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert_failure(self, mock_record):
+    def test_fire_metric_alert_failure(self, mock_record: MagicMock) -> None:
         self.alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
@@ -278,7 +278,7 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert_halt(self, mock_record):
+    def test_fire_metric_alert_halt(self, mock_record: MagicMock) -> None:
         self.alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value

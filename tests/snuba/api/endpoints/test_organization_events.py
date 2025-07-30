@@ -4127,7 +4127,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[0]["failure_count()"] == 6
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         self.create_project()
         mock_quantize.return_value = before_now(days=1)
 
@@ -5131,7 +5131,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 400, query_text
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_removes_unnecessary_default_project_and_transaction_thresholds(self, mock_snql_query):
+    def test_removes_unnecessary_default_project_and_transaction_thresholds(
+        self, mock_snql_query: mock.MagicMock
+    ) -> None:
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         ProjectTransactionThreshold.objects.create(
@@ -6040,7 +6042,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_profiles_dataset_simple(self, mock_snql_query):
+    def test_profiles_dataset_simple(self, mock_snql_query: mock.MagicMock) -> None:
         mock_snql_query.side_effect = [
             {
                 "data": [

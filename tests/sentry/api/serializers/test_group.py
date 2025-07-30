@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -132,7 +132,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age):
+    def test_auto_resolved(self, mock_is_over_resolve_age: MagicMock) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -143,7 +143,9 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["statusDetails"] == {"autoResolved": True}
 
     @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved_respects_enable_auto_resolve_flag(self, mock_is_over_resolve_age):
+    def test_auto_resolved_respects_enable_auto_resolve_flag(
+        self, mock_is_over_resolve_age: MagicMock
+    ) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()

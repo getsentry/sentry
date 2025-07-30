@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -59,7 +59,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record):
+    def test_applies_correctly(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -353,7 +353,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_invalid_service_selected(self, mock_record):
+    def test_invalid_service_selected(self, mock_record: MagicMock) -> None:
         # make a service associated with a different pagerduty account
         service_info = {
             "type": "service",

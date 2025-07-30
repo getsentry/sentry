@@ -1,6 +1,6 @@
 import uuid
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 from django.core import mail
@@ -93,7 +93,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
     @patch("sentry.analytics.record")
     @patch("sentry.notifications.notifications.digest.logger")
-    def test_sends_digest_to_every_member(self, mock_logger, mock_record):
+    def test_sends_digest_to_every_member(
+        self, mock_logger: MagicMock, mock_record: MagicMock
+    ) -> None:
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -160,7 +162,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification_block(self, digests):
+    def test_slack_digest_notification_block(self, digests: MagicMock) -> None:
         """
         Test that with digests and block kkit enabled, but Slack notification settings
         (and not email settings), we send a properly formatted Slack notification

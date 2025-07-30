@@ -581,7 +581,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_valid_creation(self, mock_audit):
+    def test_valid_creation(self, mock_audit: mock.MagicMock) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,

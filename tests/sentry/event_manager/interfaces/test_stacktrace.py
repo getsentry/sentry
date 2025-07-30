@@ -91,22 +91,24 @@ def test_serialize_returns_frames(make_stacktrace_snapshot):
 
 
 @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_stacktrace", mock.Mock(return_value="foo"))
-def test_to_string_returns_stacktrace(make_stacktrace_snapshot):
+def test_to_string_returns_stacktrace(make_stacktrace_snapshot: mock.MagicMock) -> None:
     make_stacktrace_snapshot(dict(frames=[]))
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_only_filename(make_stacktrace_snapshot):
+def test_get_stacktrace_with_only_filename(make_stacktrace_snapshot: mock.MagicMock) -> None:
     make_stacktrace_snapshot(dict(frames=[{"filename": "foo"}, {"filename": "bar"}]))
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_module(make_stacktrace_snapshot):
+def test_get_stacktrace_with_module(make_stacktrace_snapshot: mock.MagicMock) -> None:
     make_stacktrace_snapshot(dict(frames=[{"module": "foo"}, {"module": "bar"}]))
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_filename_and_function(make_stacktrace_snapshot):
+def test_get_stacktrace_with_filename_and_function(
+    make_stacktrace_snapshot: mock.MagicMock,
+) -> None:
     make_stacktrace_snapshot(
         dict(
             frames=[{"filename": "foo", "function": "biz"}, {"filename": "bar", "function": "baz"}]
@@ -115,7 +117,9 @@ def test_get_stacktrace_with_filename_and_function(make_stacktrace_snapshot):
 
 
 @mock.patch("sentry.interfaces.stacktrace.is_newest_frame_first", mock.Mock(return_value=False))
-def test_get_stacktrace_with_filename_function_lineno_and_context(make_stacktrace_snapshot):
+def test_get_stacktrace_with_filename_function_lineno_and_context(
+    make_stacktrace_snapshot: mock.MagicMock,
+) -> None:
     make_stacktrace_snapshot(
         dict(
             frames=[

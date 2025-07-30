@@ -134,7 +134,9 @@ class JiraServerInstallationTest(IntegrationTestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.jira_server.integration.logger")
-    def test_authentication_request_token_fails_with_no_oauth_token(self, logger) -> None:
+    def test_authentication_request_token_fails_with_no_oauth_token(
+        self, logger: mock.MagicMock
+    ) -> None:
         responses.add(
             responses.POST,
             "https://jira.example.com/plugins/servlet/oauth/request-token",

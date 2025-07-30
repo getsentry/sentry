@@ -124,7 +124,7 @@ class TestEventManagerPriority(TestCase):
         assert mock_get_severity_score.call_count == 1
 
     @patch("sentry.event_manager._get_severity_metadata_for_group", return_value={})
-    def test_severity_error(self, mock_get_severity_metadata_for_group):
+    def test_severity_error(self, mock_get_severity_metadata_for_group: MagicMock) -> None:
         event = EventManager(
             make_event(level=logging.WARNING, fingerprint=["def"], platform="python")
         ).save(self.project.id)

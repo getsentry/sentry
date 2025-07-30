@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from sentry_relay.processing import normalize_project_config
@@ -213,7 +213,7 @@ def test_project_config_uses_filter_features(
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
-def test_project_config_exposed_features(default_project):
+def test_project_config_exposed_features(default_project: MagicMock) -> None:
     with Feature({"organizations:profiling": True}):
         project_cfg = get_project_config(default_project)
 
@@ -226,7 +226,7 @@ def test_project_config_exposed_features(default_project):
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
-def test_project_config_exposed_features_raise_exc(default_project):
+def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -> None:
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
             get_project_config(default_project)

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -226,7 +226,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
 class TestIsActionPermitted(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.action._get_integration_features")
-    def test_basic(self, mock_get_features):
+    def test_basic(self, mock_get_features: MagicMock) -> None:
         org = self.create_organization()
 
         # Test non-integration actions (should always be permitted)

@@ -37,7 +37,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         self.projectB = self.create_project(organization=self.organization, slug="projB")
 
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
-    def test_project_select(self, mock_react_view):
+    def test_project_select(self, mock_react_view: MagicMock) -> None:
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
         serialized_projects = project_service.serialize_many(
@@ -49,7 +49,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         )
 
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
-    def test_one_project(self, mock_react_view):
+    def test_one_project(self, mock_react_view: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.MONOLITH):
             self.projectB.delete()
         resp = self.client.get(self.setup_path)
@@ -57,7 +57,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         mock_react_view.assert_called_with(ANY, "awsLambdaCloudformation", ANY)
 
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
-    def test_render_cloudformation_view(self, mock_react_view):
+    def test_render_cloudformation_view(self, mock_react_view: MagicMock) -> None:
         self.pipeline.state.step_index = 1
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
@@ -82,7 +82,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
-    def test_set_valid_arn(self, mock_react_view, mock_gen_aws_client):
+    def test_set_valid_arn(
+        self, mock_react_view: MagicMock, mock_gen_aws_client: MagicMock
+    ) -> None:
         self.pipeline.state.step_index = 1
         data = {"region": region, "accountNumber": account_number, "awsExternalId": "my-id"}
         resp = self.client.get(self.setup_path + "?" + urlencode(data))
@@ -91,7 +93,9 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
-    def test_set_arn_with_error(self, mock_react_view, mock_gen_aws_client):
+    def test_set_arn_with_error(
+        self, mock_react_view: MagicMock, mock_gen_aws_client: MagicMock
+    ) -> None:
         self.pipeline.state.step_index = 1
         mock_gen_aws_client.side_effect = ClientError({"Error": {}}, "assume_role")
         data = {"region": region, "accountNumber": account_number, "awsExternalId": "my-id"}
@@ -120,7 +124,12 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     @patch.object(aws_lambda_integration, "render_react_view", return_value=HttpResponse())
-    def test_lambda_list(self, mock_react_view, mock_gen_aws_client, mock_get_supported_functions):
+    def test_lambda_list(
+        self,
+        mock_react_view: MagicMock,
+        mock_gen_aws_client: MagicMock,
+        mock_get_supported_functions: MagicMock,
+    ) -> None:
         mock_get_supported_functions.return_value = [
             {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
             {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},

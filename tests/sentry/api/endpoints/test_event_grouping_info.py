@@ -129,7 +129,9 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
 
     @mock.patch("sentry.grouping.grouping_info.logger")
     @mock.patch("sentry.grouping.grouping_info.metrics")
-    def test_get_grouping_info_hash_mismatch(self, mock_metrics, mock_logger):
+    def test_get_grouping_info_hash_mismatch(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
         # Make a Python event
         data = load_data(platform="python")
         python_event = self.store_event(data=data, project_id=self.project.id)

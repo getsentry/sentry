@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -111,7 +111,7 @@ class PagerDutyActionHandlerTest(FireTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request):
+    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
         from sentry.integrations.pagerduty.utils import build_incident_attachment
 
         seer_return_value: StoreDataResponse = {"success": True}
@@ -262,7 +262,7 @@ class PagerDutyActionHandlerTest(FireTest):
         assert len(responses.calls) == 0
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
         assert_last_analytics_event(
             mock_record,

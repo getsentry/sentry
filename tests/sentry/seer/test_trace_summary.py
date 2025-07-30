@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.seer.models import SpanInsight, SummarizeTraceResponse
@@ -91,7 +91,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
         cache.delete(f"ai-trace-summary:{self.trace_id}")
 
     @patch("sentry.features.has")
-    def test_get_trace_summary_feature_flag_disabled(self, mock_has_feature):
+    def test_get_trace_summary_feature_flag_disabled(self, mock_has_feature: MagicMock) -> None:
         mock_has_feature.return_value = False
 
         summary_data, status_code = get_trace_summary(
@@ -135,7 +135,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
         mock_cache_set.assert_called_once()
 
     @patch("sentry.seer.trace_summary._call_seer")
-    def test_get_trace_summary_cache_hit(self, mock_call_seer):
+    def test_get_trace_summary_cache_hit(self, mock_call_seer: MagicMock) -> None:
         cached_summary = self.mock_summary_response.dict()
 
         cache.set(f"ai-trace-summary:{self.trace_id}", cached_summary, timeout=60 * 60 * 24 * 7)

@@ -391,7 +391,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert status == IncidentStatus.WARNING
 
     @mock.patch.object(TestHandler, "send_alert")
-    def test_invoke_legacy_registry(self, mock_send_alert):
+    def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
         self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -76,7 +76,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         ).exists()
 
     @patch.object(IntegrationInstallation, "update_organization_config")
-    def test_update_config_error(self, mock_update_config):
+    def test_update_config_error(self, mock_update_config: MagicMock) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
 
         mock_update_config.side_effect = IntegrationError("hello")

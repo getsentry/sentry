@@ -4,7 +4,7 @@ import pickle
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from django.utils import timezone
@@ -290,7 +290,7 @@ class TestRedisBuffer:
         assert mock.call_count == 1
 
     @mock.patch("sentry.rules.processing.buffer_processing.metrics.timer")
-    def test_callback(self, mock_metrics_timer):
+    def test_callback(self, mock_metrics_timer: MagicMock) -> None:
         redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
         self.buf.process_batch()
         assert mock_metrics_timer.call_count == 1

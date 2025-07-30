@@ -1,7 +1,7 @@
 import re
 import time
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -47,7 +47,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record, mock_record_event):
+    def test_applies_correctly(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
         event = self.get_event()
 
         rule = self.get_rule(
@@ -105,7 +105,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
-    def test_client_error(self, mock_record, mock_record_event):
+    def test_client_error(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
         event = self.get_event()
 
         rule = self.get_rule(
@@ -163,7 +163,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.analytics.record")
-    def test_halt(self, mock_record, mock_record_event):
+    def test_halt(self, mock_record: MagicMock, mock_record_event: MagicMock) -> None:
         event = self.get_event()
 
         rule = self.get_rule(
@@ -230,7 +230,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_applies_correctly_generic_issue(self, occurrence, mock_record_event):
+    def test_applies_correctly_generic_issue(
+        self, occurrence: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -274,7 +276,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_applies_correctly_performance_issue(self, occurrence, mock_record_event):
+    def test_applies_correctly_performance_issue(
+        self, occurrence: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         event = self.create_performance_issue()
 
         rule = self.get_rule(

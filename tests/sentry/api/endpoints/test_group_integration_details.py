@@ -241,7 +241,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         }
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple_put(self, mock_record_event):
+    def test_simple_put(self, mock_record_event: mock.MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -295,7 +295,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             assert call_arg.args == ("The whole operation was invalid",)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
-    def test_put_group_link_already_exists(self, mock_record_halt):
+    def test_put_group_link_already_exists(self, mock_record_halt: mock.MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -372,7 +372,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple_post(self, mock_record_event):
+    def test_simple_post(self, mock_record_event: mock.MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()

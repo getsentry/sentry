@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from pytest import mark
 
@@ -110,7 +110,7 @@ class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     @patch("sentry.api.base.create_audit_entry")
-    def test_post__audit_log(self, mock_audit):
+    def test_post__audit_log(self, mock_audit: MagicMock) -> None:
         self.get_success_response(
             self.organization.id,
             name="Test Project Template",

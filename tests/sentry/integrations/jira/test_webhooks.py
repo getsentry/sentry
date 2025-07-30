@@ -42,7 +42,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         self.integration = serialize_integration(integration=integration)
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_simple_assign(self, mock_sync_group_assignee_inbound):
+    def test_simple_assign(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -56,7 +56,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     @responses.activate
-    def test_assign_use_email_api(self, mock_sync_group_assignee_inbound):
+    def test_assign_use_email_api(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/3/user/email",
@@ -94,7 +94,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             assert "error_message" in response.data
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
+    def test_assign_missing_email(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -105,7 +105,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             assert not mock_sync_group_assignee_inbound.called
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_simple_deassign(self, mock_sync_group_assignee_inbound):
+    def test_simple_deassign(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -117,7 +117,9 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             )
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_simple_deassign_assignee_missing(self, mock_sync_group_assignee_inbound):
+    def test_simple_deassign_assignee_missing(
+        self, mock_sync_group_assignee_inbound: MagicMock
+    ) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -129,7 +131,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             )
 
     @patch.object(IssueSyncIntegration, "sync_status_inbound")
-    def test_simple_status_sync_inbound(self, mock_sync_status_inbound):
+    def test_simple_status_sync_inbound(self, mock_sync_status_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,

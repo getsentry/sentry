@@ -1,6 +1,6 @@
 import tempfile
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.urls import reverse
@@ -134,7 +134,7 @@ class ExportedDataTest(TestCase):
         )
 
     @patch("sentry.utils.email.MessageBuilder")
-    def test_email_success_content(self, builder):
+    def test_email_success_content(self, builder: MagicMock) -> None:
         self.data_export.finalize_upload(file=self.file1)
         with self.tasks():
             self.data_export.email_success()
@@ -162,7 +162,7 @@ class ExportedDataTest(TestCase):
         assert not ExportedData.objects.filter(id=self.data_export.id).exists()
 
     @patch("sentry.utils.email.MessageBuilder")
-    def test_email_failure_content(self, builder):
+    def test_email_failure_content(self, builder: MagicMock) -> None:
         with self.tasks():
             self.data_export.email_failure("failed to export data!")
         expected_email_args = {

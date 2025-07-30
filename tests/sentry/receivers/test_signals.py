@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -26,7 +26,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         self.project = self.create_project(teams=[self.team])
 
     @patch("sentry.analytics.record")
-    def test_unignored_manually(self, mock_record):
+    def test_unignored_manually(self, mock_record: MagicMock) -> None:
         issue_unignored.send(
             project=self.project,
             group=self.group,
@@ -37,7 +37,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         assert mock_record.called
 
     @patch("sentry.analytics.record")
-    def test_unignored_automatically(self, mock_record):
+    def test_unignored_automatically(self, mock_record: MagicMock) -> None:
         issue_unignored.send(
             project=self.project,
             group=self.group,
@@ -48,14 +48,14 @@ class SignalsTest(TestCase, SnubaTestCase):
         assert mock_record.called
 
     @patch("sentry.analytics.record")
-    def test_mark_reviewed(self, mock_record):
+    def test_mark_reviewed(self, mock_record: MagicMock) -> None:
         issue_mark_reviewed.send(
             project=self.project, group=self.group, user=None, sender="test_mark_reviewed"
         )
         assert mock_record.called
 
     @patch("sentry.analytics.record")
-    def test_update_priority(self, mock_record):
+    def test_update_priority(self, mock_record: MagicMock) -> None:
         issue_update_priority.send(
             project=self.project,
             group=self.group,
@@ -79,7 +79,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_resolved_with_default_owner(self, mock_record):
+    def test_issue_resolved_with_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with default owner ID when no user is provided"""
 
         issue_resolved.send(
@@ -105,7 +105,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_resolved_without_default_owner(self, mock_record):
+    def test_issue_resolved_without_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with 'unknown' when no user or default owner exists"""
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -134,7 +134,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_unresolved_with_default_owner(self, mock_record):
+    def test_issue_unresolved_with_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with default owner ID when no user is provided"""
         issue_unresolved.send(
             project=self.project,
@@ -153,7 +153,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_unresolved_without_default_owner(self, mock_record):
+    def test_issue_unresolved_without_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with 'unknown' when no user or default owner exists"""
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -176,7 +176,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_assigned_with_default_owner(self, mock_record):
+    def test_issue_assigned_with_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with default owner ID when no user is provided"""
         GroupAssignee.objects.create(
             group_id=self.group.id, user_id=self.owner.id, project_id=self.project.id
@@ -197,7 +197,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_issue_assigned_without_default_owner(self, mock_record):
+    def test_issue_assigned_without_default_owner(self, mock_record: MagicMock) -> None:
         """Test analytics is called with 'unknown' when no user or default owner exists"""
         organization = self.create_organization()
         project = self.create_project(organization=organization)

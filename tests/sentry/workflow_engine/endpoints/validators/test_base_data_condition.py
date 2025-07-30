@@ -31,26 +31,26 @@ class TestBaseDataConditionValidator(TestCase):
             "conditionGroupId": self.condition_group.id,
         }
 
-    def test_conditions__valid_condition(self, mock_handler_get):
+    def test_conditions__valid_condition(self, mock_handler_get: mock.MagicMock) -> None:
         validator = BaseDataConditionValidator(data=self.valid_data)
         assert validator.is_valid() is True
 
-    def test_conditions__no_type(self, mock_handler_get):
+    def test_conditions__no_type(self, mock_handler_get: mock.MagicMock) -> None:
         invalid_data = {"comparison": 0}
         validator = BaseDataConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
-    def test_conditions__invalid_condition_type(self, mock_handler_get):
+    def test_conditions__invalid_condition_type(self, mock_handler_get: mock.MagicMock) -> None:
         invalid_data = {**self.valid_data, "type": "invalid-type"}
         validator = BaseDataConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
-    def test_comparison__no_comparison(self, mock_handler_get):
+    def test_comparison__no_comparison(self, mock_handler_get: mock.MagicMock) -> None:
         invalid_data = {"type": Condition.EQUAL}
         validator = BaseDataConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
-    def test_comparison__primitive_value(self, mock_handler_get):
+    def test_comparison__primitive_value(self, mock_handler_get: mock.MagicMock) -> None:
         valid_data = {**self.valid_data, "comparison": 1}
         validator = BaseDataConditionValidator(data=valid_data)
         assert validator.is_valid() is True
@@ -95,7 +95,7 @@ class TestComplexBaseDataConditionValidator(TestCase):
             "conditionGroupId": self.condition_group.id,
         }
 
-    def test_comparison__complex_value(self, mock_handler_get):
+    def test_comparison__complex_value(self, mock_handler_get: mock.MagicMock) -> None:
         valid_data = {
             **self.valid_data,
             "comparison": {"foo": "bar"},
@@ -103,7 +103,7 @@ class TestComplexBaseDataConditionValidator(TestCase):
         validator = BaseDataConditionValidator(data=valid_data)
         assert validator.is_valid() is True
 
-    def test_comparison__complex_value__invalid(self, mock_handler_get):
+    def test_comparison__complex_value__invalid(self, mock_handler_get: mock.MagicMock) -> None:
         valid_data = {
             **self.valid_data,
             "comparison": {"invalid": "value"},
@@ -111,11 +111,11 @@ class TestComplexBaseDataConditionValidator(TestCase):
         validator = BaseDataConditionValidator(data=valid_data)
         assert validator.is_valid() is False
 
-    def test_condition_result__complex_value__dict(self, mock_handler_get):
+    def test_condition_result__complex_value__dict(self, mock_handler_get: mock.MagicMock) -> None:
         validator = BaseDataConditionValidator(data=self.valid_data)
         assert validator.is_valid() is False
 
-    def test_condition_result__complex_value__array(self, mock_handler_get):
+    def test_condition_result__complex_value__array(self, mock_handler_get: mock.MagicMock) -> None:
         invalid_data = {**self.valid_data, "conditionResult": ["foo"]}
         validator = BaseDataConditionValidator(data=invalid_data)
         assert validator.is_valid() is False

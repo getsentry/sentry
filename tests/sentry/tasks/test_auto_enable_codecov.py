@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -40,7 +40,7 @@ class AutoEnableCodecovTest(TestCase):
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
-    def test_has_codecov_integration(self, mock_get_repositories):
+    def test_has_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.all().delete()
         assert not self.organization.flags.codecov_access.is_set
@@ -64,7 +64,7 @@ class AutoEnableCodecovTest(TestCase):
         return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     @with_feature("organizations:codecov-integration")
-    def test_no_codecov_integration(self, mock_get_repositories):
+    def test_no_codecov_integration(self, mock_get_repositories: MagicMock) -> None:
         assert not self.organization.flags.codecov_access.is_set
         with outbox_runner():
             enable_for_org(self.organization.id)
