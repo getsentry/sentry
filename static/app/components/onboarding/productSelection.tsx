@@ -197,7 +197,11 @@ export const platformProductAvailability = {
   ],
   'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-nestjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
