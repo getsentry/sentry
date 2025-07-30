@@ -54,6 +54,14 @@ describe('fastify onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
+  it('enables logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
   it('enables performance setting the tracesSampleRate to 1', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
