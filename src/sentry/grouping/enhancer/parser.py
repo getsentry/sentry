@@ -163,7 +163,7 @@ class EnhancementsVisitor(NodeVisitor):
     def visit_unquoted(self, node: Node, children: Sequence[Any]) -> str:
         return node.text
 
-    def generic_visit(self, node: Node, children: T) -> T:
+    def generic_visit[T](self, node: Node, children: T) -> T:
         return children
 
     def visit_ident(self, node: Node, children: Sequence[Any]) -> str:
