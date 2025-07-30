@@ -79,7 +79,7 @@ function AutomationListTable({
         <HeaderCell sort={sort} sortKey="name">
           {t('Name')}
         </HeaderCell>
-        <HeaderCell data-column-name="last-triggered" sort={sort}>
+        <HeaderCell data-column-name="last-triggered" sort={sort} sortKey="lastTriggered">
           {t('Last Triggered')}
         </HeaderCell>
         <HeaderCell data-column-name="action" sort={sort} sortKey="actions">

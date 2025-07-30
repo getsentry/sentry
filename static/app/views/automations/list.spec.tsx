@@ -113,7 +113,7 @@ describe('AutomationsList', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          sortBy: '-connectedDetectors',
+          sortBy: '-lastTriggered',
         }),
       })
     );
