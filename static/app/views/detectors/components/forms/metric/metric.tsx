@@ -364,6 +364,7 @@ function DetectSection() {
               <MutedText>{t('An issue will be created when query value is:')}</MutedText>
               <Flex align="center" gap="md">
                 <DirectionField
+                  aria-label={t('Threshold direction')}
                   name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
                   hideLabel
                   inline
@@ -378,6 +379,7 @@ function DetectSection() {
                   preserveOnUnmount
                 />
                 <ThresholdField
+                  aria-label={t('Threshold')}
                   flexibleControlStateSize
                   inline={false}
                   hideLabel
