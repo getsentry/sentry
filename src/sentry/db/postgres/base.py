@@ -100,10 +100,6 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         self.ops = DatabaseOperations(self)
 
     @auto_reconnect_connection
-    def _set_isolation_level(self, level):
-        return super()._set_isolation_level(level)
-
-    @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
         return super()._cursor()
 
