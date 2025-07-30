@@ -175,16 +175,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     return SeerExampleItems;
   }, [isError, rawResult]);
 
-  const handleExampleSelect = (query: string) => {
-    setSearchQuery(query);
-    trackAnalytics('trace.explorer.ai_query_example_clicked', {
-      organization,
-      example_query: query,
-    });
-    inputRef.current?.focus();
-    submitQuery(query);
-  };
-
   const state = useComboBoxState({
     ...props,
     items,
@@ -196,23 +186,55 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     inputValue: searchQuery,
     onInputChange: setSearchQuery,
     defaultFilter: () => true,
+    onSelectionChange(key) {
+      if (typeof key !== 'string') return;
+
+      if (key === 'none-of-these') {
+        trackAnalytics('trace.explorer.ai_query_rejected', {
+          organization,
+          natural_language_query: searchQuery,
+          num_queries_returned: rawResult?.length ?? 0,
+        });
+        handleNoneOfTheseClick();
+        return;
+      }
+
+      if (key.startsWith('example-query-')) {
+        const item = items.find(i => i.key === key);
+        if (!item || !isExampleItem(item)) {
+          addErrorMessage(t('Failed to find AI query to apply'));
+          return;
+        }
+        trackAnalytics('trace.explorer.ai_query_example_clicked', {
+          organization,
+          example_query: item.query,
+        });
+        setSearchQuery(item.query);
+        submitQuery(item.query);
+        inputRef.current?.focus();
+        state.close();
+        return;
+      }
+
+      const item = items.find(i => i.key === key);
+      if (!item || isNoneOfTheseItem(item) || isExampleItem(item)) {
+        addErrorMessage(t('Failed to find AI query to apply'));
+        return;
+      }
+
+      trackAnalytics('trace.explorer.ai_query_submitted', {
+        organization,
+        natural_language_query: searchQuery.trim(),
+      });
+      askSeerNLQueryRef.current = searchQuery;
+      applySeerSearchQuery(item);
+      state.close();
+    },
     children: item => {
       if (isNoneOfTheseItem(item)) {
         return (
           <Item key={item.key} textValue={item.label} data-is-none-of-these>
-            <Text
-              variant="muted"
-              onClick={() => {
-                trackAnalytics('trace.explorer.ai_query_rejected', {
-                  organization,
-                  natural_language_query: searchQuery,
-                  num_queries_returned: rawResult?.length ?? 0,
-                });
-                handleNoneOfTheseClick();
-              }}
-            >
-              {item.label}
-            </Text>
+            <Text variant="muted">{item.label}</Text>
           </Item>
         );
       }
@@ -220,35 +242,20 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
       if (isExampleItem(item)) {
         return (
           <Item key={item.key} textValue={item.query} data-is-example>
-            <Text
-              onClick={() => {
-                handleExampleSelect(item.query);
-                state.close();
-              }}
-            >
-              {item.query}
-            </Text>
+            <Text>{item.query}</Text>
           </Item>
         );
       }
 
       return (
-        <Item key={item.key}>
-          <div
-            onClick={() => {
-              state.close();
-              askSeerNLQueryRef.current = searchQuery;
-              applySeerSearchQuery(item);
-            }}
-          >
-            <QueryTokens
-              groupBys={item.groupBys}
-              query={item.query}
-              sort={item.sort}
-              statsPeriod={item.statsPeriod}
-              visualizations={item.visualizations}
-            />
-          </div>
+        <Item key={item.key} textValue={item.query}>
+          <QueryTokens
+            groupBys={item.groupBys}
+            query={item.query}
+            sort={item.sort}
+            statsPeriod={item.statsPeriod}
+            visualizations={item.visualizations}
+          />
         </Item>
       );
     },
@@ -282,6 +289,11 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             return;
           case 'Enter':
             if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
+              trackAnalytics('trace.explorer.ai_query_rejected', {
+                organization,
+                natural_language_query: searchQuery,
+                num_queries_returned: rawResult?.length ?? 0,
+              });
               handleNoneOfTheseClick();
               state.open();
               return;
