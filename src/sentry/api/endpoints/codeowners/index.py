@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.analytics.events.codeowners_created import CodeownersCreated
+from sentry.analytics.events.codeowners_created import CodeOwnersCreated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -111,7 +111,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
             user_id = getattr(request.user, "id", None) or None
             try:
                 analytics.record(
-                    CodeownersCreated(
+                    CodeOwnersCreated(
                         user_id=user_id,
                         organization_id=project.organization_id,
                         project_id=project.id,
