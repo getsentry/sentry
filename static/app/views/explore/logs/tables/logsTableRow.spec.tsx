@@ -1,66 +1,50 @@
-import {LogFixture} from 'sentry-fixture/log';
+import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  LOGS_FIELDS_KEY,
+  LogsPageParamsProvider,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
-
-jest.mock('sentry/views/explore/logs/useLogsQuery', () => ({
-  useExploreLogsTableRow: jest.fn(),
-  usePrefetchLogTableRowOnHover: jest.fn().mockReturnValue({}),
-  useLogsQueryKeyWithInfinite: jest.fn().mockReturnValue({}),
-}));
-
-jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
-
-const mockedUseStacktraceLink = jest.mocked(useStacktraceLink);
-
-jest.mock('sentry/utils/useRelease', () => ({
-  useRelease: jest.fn().mockReturnValue({
-    data: {
-      id: 10,
-      lastCommit: {
-        id: '1e5a9462e6ac23908299b218e18377837297bda1',
-      },
-    },
-  }),
-}));
-const mockedUseExploreLogsTableRow = jest.mocked(useExploreLogsTableRow);
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
     <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-      {children}
+      <table>
+        <tbody>{children}</tbody>
+      </table>
     </LogsPageParamsProvider>
   );
 }
 
 describe('logsTableRow', () => {
+  let stacktraceLinkMock: jest.Mock;
+  let releaseMock: jest.Mock;
+  let rowDetailsMock: jest.Mock;
   const organization = OrganizationFixture({
     features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
   });
-
-  const projects = [ProjectFixture()];
+  const project = ProjectFixture();
+  const projects = [project];
+  const release = ReleaseFixture({authors: [UserFixture()]});
   ProjectsStore.loadInitialData(projects);
 
   // These are the values in the actual row - e.g., the ones loaded before you click the row
   const rowData = LogFixture({
-    [OurLogKnownFieldKey.ID]: '1',
-    [OurLogKnownFieldKey.PROJECT_ID]: String(projects[0]!.id),
+    [OurLogKnownFieldKey.PROJECT_ID]: project.id,
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
-    [OurLogKnownFieldKey.MESSAGE]: 'test log body',
-    [OurLogKnownFieldKey.SEVERITY]: 'error',
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
   });
 
@@ -72,6 +56,7 @@ describe('logsTableRow', () => {
       [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: 'derp',
       [OurLogKnownFieldKey.CODE_LINE_NUMBER]: '10',
       [OurLogKnownFieldKey.CODE_FILE_PATH]: 'herp/merp/derp.py',
+      [OurLogKnownFieldKey.RELEASE]: release.version, // Needed otherwise stacktrace link will also not load
       [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
       [OurLogKnownFieldKey.SDK_VERSION]: '2.27.0',
     }),
@@ -84,44 +69,141 @@ describe('logsTableRow', () => {
       }) as TraceItemResponseAttribute
   );
 
-  it('renders row details', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+  const rowDataWithCodeFilePath = LogFixture({
+    [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+    [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    // Code file path fields
+    [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: 'derp',
+    [OurLogKnownFieldKey.CODE_LINE_NUMBER]: '10',
+    [OurLogKnownFieldKey.CODE_FILE_PATH]: 'herp/merp/derp.py',
+    [OurLogKnownFieldKey.RELEASE]: release.version, // Needed otherwise stacktrace link will also not load
+  });
 
-    mockedUseExploreLogsTableRow.mockReturnValue({
-      data: {
-        attributes: rowDetails,
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      query: {
+        [LOGS_FIELDS_KEY]: ['timestamp', 'message'],
+        [LOGS_SORT_BYS_KEY]: '-timestamp',
       },
-      isPending: false,
-    } as unknown as ReturnType<typeof useExploreLogsTableRow>);
+    },
+    route: `/organizations/:orgId/explore/logs/`,
+  };
 
-    mockedUseStacktraceLink.mockReturnValue({
-      data: {
-        sourceUrl: 'https://some-stacktrace-link',
+  const initialRouterConfigWithCodeFilePath = {
+    ...initialRouterConfig,
+    location: {
+      ...initialRouterConfig.location,
+      query: {
+        [LOGS_FIELDS_KEY]: ['timestamp', 'message', OurLogKnownFieldKey.CODE_FILE_PATH],
+        [LOGS_SORT_BYS_KEY]: '-timestamp',
+      },
+    },
+  };
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    MockApiClient.clearMockResponses();
+
+    ProjectsStore.loadInitialData([project]);
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(project.id, 10)],
+        environments: [],
+        datetime: {
+          period: '14d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
+
+    stacktraceLinkMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${projects[0]!.slug}/stacktrace-link/`,
+      method: 'GET',
+      body: {
+        sourceUrl: 'https://github.com/example/repo/blob/main/file.py',
         integrations: [],
       },
-      error: null,
-      isPending: false,
-    } as unknown as ReturnType<typeof useStacktraceLink>);
+    });
 
+    releaseMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(release.version)}/`,
+      body: [release],
+    });
+
+    rowDetailsMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowData[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      body: {
+        itemId: rowData[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: {},
+        timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: rowDetails,
+      },
+    });
+  });
+
+  it('hovering the row causes prefetching of the row details', async () => {
+    jest.useFakeTimers();
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
       <ProviderWrapper>
         <LogRowContent
           dataRow={rowData}
           highlightTerms={[]}
-          meta={undefined}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={
+            {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+          canDeferRenderElements
+        />
+      </ProviderWrapper>,
+      {organization, initialRouterConfig}
+    );
+
+    expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
+    const row = screen.getByTestId('log-table-row');
+    await userEvent.hover(row, {delay: null});
+
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+    expect(screen.getByLabelText('Toggle trace details')).toBeInTheDocument(); // Real button immediately rendered
+
+    jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+
+    await waitFor(() => {
+      // Prefetching is triggered after the hover timeout
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    jest.useRealTimers();
+  });
+
+  it('renders row details', async () => {
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
           sharedHoverTimeoutRef={
             {
               current: null,
             } as React.MutableRefObject<NodeJS.Timeout | null>
           }
+          canDeferRenderElements={false}
         />
       </ProviderWrapper>,
-      {organization}
+      {organization, initialRouterConfig}
     );
 
     // Check that the log body and timestamp are rendered
     expect(screen.getByText('test log body')).toBeInTheDocument();
-    expect(screen.getByText('2025-04-03T15:50:10+00:00')).toBeInTheDocument();
+    expect(screen.getByText('Apr 10, 2025 7:21:10.049 PM')).toBeInTheDocument(); // This is using precise timestamp on log fixture, which overrides passed regular timestamp.
 
     // Check that the span ID is not rendered
     expect(screen.queryByText('span_id')).not.toBeInTheDocument();
@@ -129,6 +211,21 @@ describe('logsTableRow', () => {
     // Expand the row to show the attributes
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
+
+    // At this point, useStacktraceLink should not have been called with enabled: true
+    expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+    expect(releaseMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+    expect(stacktraceLinkMock).toHaveBeenCalledTimes(0);
+    expect(releaseMock).toHaveBeenCalledTimes(0);
+
     await userEvent.click(logTableRow);
 
     // Check that there is nothing overflowing in the table row
@@ -146,6 +243,22 @@ describe('logsTableRow', () => {
     }
     expect(hasNoWrapRecursive(logTableRow)).toBe(false);
 
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Even after clicking, useStacktraceLink should be called with enabled: true since the details have disableLazyLoad: true
+    expect(stacktraceLinkMock).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          lineNo: 10,
+          file: 'herp/merp/derp.py',
+          sdkName: 'sentry.python',
+        }),
+      })
+    );
+
     // Check that the attribute values are rendered
     expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();
     expect(screen.getByText('error')).toBeInTheDocument();
@@ -160,26 +273,89 @@ describe('logsTableRow', () => {
     const traceLink = screen.getByRole('link', {name: '7b91699f'});
     expect(traceLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/trace/7b91699f/?source=logs&timestamp=1743695410'
+      '/organizations/org-slug/explore/logs/trace/7b91699f/?logsSortBys=-timestamp&source=logs&timestamp=1743695410'
     );
 
-    // Check that stack trace links work
-    expect(mockedUseStacktraceLink).toHaveBeenCalledWith(
-      expect.objectContaining({
-        event: {
-          release: {id: 10, lastCommit: {id: '1e5a9462e6ac23908299b218e18377837297bda1'}},
-          sdk: {name: 'sentry.python', version: '2.27.0'},
-        },
-        frame: {
-          filename: 'herp/merp/derp.py',
-          function: 'derp',
-          lineNo: 10,
-        },
-        orgSlug: 'org-slug',
-        projectSlug: projects[0]!.slug,
-      })
+    // The code file path should be rendered but not as a link until hover
+    expect(screen.getByText('herp/merp/derp.py')).toBeInTheDocument();
+
+    // Verify that useStacktraceLink was not called with enabled: true
+    expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
     );
-    const codeLink = screen.getByText('herp/merp/derp.py').closest('a');
-    expect(codeLink).toHaveAttribute('href', 'https://some-stacktrace-link');
+  });
+
+  it('shows a link when hovering over code file path in the table', async () => {
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowDataWithCodeFilePath}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithCodeFilePath)}
+          sharedHoverTimeoutRef={
+            {
+              current: null,
+            } as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+          canDeferRenderElements={false}
+        />
+      </ProviderWrapper>,
+      {organization, initialRouterConfig: initialRouterConfigWithCodeFilePath}
+    );
+
+    // Expand the row to show the attributes
+    const logTableRow = await screen.findByTestId('log-table-row');
+    expect(logTableRow).toBeInTheDocument();
+
+    // At this point, useStacktraceLink should not have been called with enabled: true
+    expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+    expect(releaseMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+    expect(stacktraceLinkMock).toHaveBeenCalledTimes(0);
+    expect(releaseMock).toHaveBeenCalledTimes(0);
+
+    // Find the hoverable code path element
+    const codePathElement = await screen.findByTestId('hoverable-code-path');
+    expect(codePathElement).toBeInTheDocument();
+
+    // Verify the file path is displayed
+    const filePath = 'herp/merp/derp.py';
+    expect(screen.getByText(filePath)).toBeInTheDocument();
+
+    // Initially, useStacktraceLink should not have been called with enabled: true
+    expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({enabled: true})
+    );
+
+    // Hover over the code path
+    await userEvent.hover(codePathElement);
+
+    await waitFor(() => {
+      expect(stacktraceLinkMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            lineNo: 10,
+            file: 'herp/merp/derp.py',
+          }),
+        })
+      );
+    });
+
+    const link = await screen.findByTestId('hoverable-code-path-link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo/blob/main/file.py'
+    );
   });
 });

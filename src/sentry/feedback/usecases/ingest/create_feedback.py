@@ -8,9 +8,14 @@ from uuid import UUID, uuid4
 
 import jsonschema
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
+from sentry.feedback.usecases.label_generation import (
+    AI_LABEL_TAG_PREFIX,
+    MAX_AI_LABELS,
+    generate_labels,
+)
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -345,6 +350,30 @@ def create_feedback_issue(
             "tags": event.get("tags", {}),
         }
     )
+
+    # Generating labels using Seer, which will later be used to categorize feedbacks
+    if (
+        not is_message_spam
+        and features.has("organizations:user-feedback-ai-categorization", project.organization)
+        and features.has("organizations:gen-ai-features", project.organization)
+    ):
+        try:
+            labels = generate_labels(feedback_message, project.organization_id)
+            if len(labels) > MAX_AI_LABELS:
+                logger.info(
+                    "Feedback message has more than the maximum allowed labels.",
+                    extra={
+                        "project_id": project.id,
+                        "entrypoint": "create_feedback_issue",
+                        "feedback_message": feedback_message[:100],
+                    },
+                )
+                labels = labels[:MAX_AI_LABELS]
+
+            for idx, label in enumerate(labels):
+                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.{idx}"] = label
+        except Exception:
+            logger.exception("Error generating labels", extra={"project_id": project.id})
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it

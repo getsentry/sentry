@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -13,11 +13,7 @@ const MAX_RESULTS = 10;
 function SettingsSearch() {
   const searchInput = useRef<HTMLInputElement>(null);
 
-  const settingsSearchHotkeys = useMemo(() => {
-    return [{match: '/', callback: () => searchInput.current?.focus()}];
-  }, []);
-
-  useHotkeys(settingsSearchHotkeys);
+  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}]);
 
   return (
     <Search

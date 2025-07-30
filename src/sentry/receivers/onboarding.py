@@ -15,6 +15,7 @@ from sentry.analytics.events.first_event_sent import (
 from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
+from sentry.analytics.events.first_log_sent import FirstLogSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
@@ -43,6 +44,7 @@ from sentry.signals import (
     first_feedback_received,
     first_flag_received,
     first_insight_span_received,
+    first_log_received,
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
@@ -315,6 +317,18 @@ def record_first_insight_span(project, module: InsightModules, **kwargs):
             project_id=project.id,
             platform=project.platform,
             module=module.value,
+        )
+    )
+
+
+@first_log_received.connect(weak=False, dispatch_uid="onboarding.record_first_log")
+def record_first_log(project, **kwargs):
+    analytics.record(
+        FirstLogSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
         )
     )
 

@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {captureFeedback} from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,18 +9,21 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUser} from 'sentry/utils/useUser';
 
 const PRIVATE_GAMING_SDK_OPTIONS = [
   {value: 'playstation', label: 'PlayStation'},
   {value: 'xbox', label: 'Xbox'},
   {value: 'nintendo-switch', label: 'Nintendo Switch'},
+  {value: 'nintendo-switch-2', label: 'Nintendo Switch 2'},
 ] as const;
 
 type GamingPlatform = (typeof PRIVATE_GAMING_SDK_OPTIONS)[number]['value'];
 
 export interface PrivateGamingSdkAccessModalProps {
   organization: Organization;
+  projectId: string;
   projectSlug: string;
   sdkName: string;
   gamingPlatform?: GamingPlatform;
@@ -36,6 +39,7 @@ export function PrivateGamingSdkAccessModal({
   projectSlug,
   sdkName,
   gamingPlatform,
+  projectId,
   onSubmit,
 }: PrivateGamingSdkAccessModalProps & ModalRenderProps) {
   const user = useUser();
@@ -47,12 +51,27 @@ export function PrivateGamingSdkAccessModal({
 
   const isFormValid = !!githubProfile.trim() && gamingPlatforms.length > 0;
 
+  useEffect(() => {
+    trackAnalytics('gaming.private_sdk_access_modal_opened', {
+      platform: gamingPlatform,
+      project_id: projectId,
+      organization,
+    });
+  }, [gamingPlatform, organization, projectId]);
+
   function handleSubmit() {
     if (!isFormValid) {
       return;
     }
 
     setIsSubmitting(true);
+
+    trackAnalytics('gaming.private_sdk_access_modal_submitted', {
+      platforms: gamingPlatforms,
+      project_id: projectId,
+      platform: gamingPlatform,
+      organization,
+    });
 
     onSubmit?.();
 

@@ -4,15 +4,25 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useLogsAggregate} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  useLogsAggregate,
+  useLogsGroupBy,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  prettifyAggregation,
+} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -22,6 +32,7 @@ interface LogsGraphProps {
 
 export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   const aggregate = useLogsAggregate();
+  const groupBy = useLogsGroupBy();
 
   const [chartType, setChartType] = useState<ChartType>(ChartType.BAR);
   const [interval, setInterval, intervalOptions] = useChartInterval({
@@ -30,13 +41,21 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
 
   const chartInfo = useMemo(() => {
     const series = timeseriesResult.data[aggregate] ?? [];
+    const isTopEvents = defined(groupBy);
+    const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     return {
       chartType,
       series,
       timeseriesResult,
       yAxis: aggregate,
+      confidence: combineConfidenceForSeries(series),
+      dataScanned: samplingMeta.dataScanned,
+      isSampled: samplingMeta.isSampled,
+      sampleCount: samplingMeta.sampleCount,
+      samplingMode: undefined,
+      topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
     };
-  }, [chartType, timeseriesResult, aggregate]);
+  }, [chartType, timeseriesResult, aggregate, groupBy]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />
@@ -83,6 +102,9 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
       Title={Title}
       Actions={Actions}
       Visualization={<ChartVisualization chartInfo={chartInfo} />}
+      Footer={
+        <ConfidenceFooter chartInfo={chartInfo} isLoading={timeseriesResult.isLoading} />
+      }
       revealActions="always"
     />
   );

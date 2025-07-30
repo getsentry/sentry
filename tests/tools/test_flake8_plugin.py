@@ -232,3 +232,11 @@ from sentry.db.models.fields.array import ArrayField
 """
     expected = ["t.py:1:0: S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"]
     assert _run(src) == expected
+
+
+def test_S014():
+    src = """\
+def test(monkeypatch): pass
+"""
+    expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
+    assert _run(src) == expected
