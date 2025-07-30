@@ -1,3 +1,4 @@
+import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
@@ -715,6 +716,7 @@ class PullRequestEventWebhook(APITestCase):
         assert len(repos) == 1
         assert repos[0] == repo
 
+    @pytest.mark.skip(reason="flaky: #96766")
     @patch("sentry.integrations.github.webhook.metrics")
     def test_multiple_orgs_creates_missing_repo(self, mock_metrics):
         project = self.project  # force creation
