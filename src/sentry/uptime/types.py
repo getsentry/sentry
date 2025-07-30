@@ -125,6 +125,18 @@ class EapCheckEntry:
     region: str
 
 
+@dataclass(frozen=True)
+class UptimeSummary:
+    """
+    Represents data used for uptime summary
+    """
+
+    total_checks: int
+    failed_checks: int
+    downtime_checks: int
+    missed_window_checks: int
+
+
 class UptimeMonitorMode(enum.IntEnum):
     # Manually created by a user
     MANUAL = 1

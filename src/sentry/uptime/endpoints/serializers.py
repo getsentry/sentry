@@ -12,7 +12,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.types.actor import Actor
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
-from sentry.uptime.types import EapCheckEntry, IncidentStatus
+from sentry.uptime.types import EapCheckEntry, IncidentStatus, UptimeSummary
 
 
 class UptimeSubscriptionSerializerResponse(TypedDict):
@@ -150,4 +150,25 @@ class EapCheckEntrySerializer(Serializer):
             "environment": obj.environment,
             "region": obj.region,
             "regionName": region_name,
+        }
+
+
+class UptimeSummarySerializerResponse(TypedDict):
+    total_checks: int
+    failed_checks: int
+    downtime_checks: int
+    missed_window_checks: int
+
+
+@register(UptimeSummary)
+class UptimeSummarySerializer(Serializer):
+    @override
+    def serialize(
+        self, obj: UptimeSummary, attrs: Any, user: Any, **kwargs: Any
+    ) -> UptimeSummarySerializerResponse:
+        return {
+            "total_checks": obj.total_checks,
+            "failed_checks": obj.failed_checks,
+            "downtime_checks": obj.downtime_checks,
+            "missed_window_checks": obj.missed_window_checks,
         }

@@ -419,6 +419,7 @@ from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
     OrganizationUptimeAlertIndexCountEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
+from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
     ProjectUptimeAlertCheckIndexEndpoint,
 )
@@ -2433,6 +2434,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-stats/$",
         OrganizationUptimeStatsEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-summary/$",
+        OrganizationUptimeSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-summary",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/insights/tree/$",
