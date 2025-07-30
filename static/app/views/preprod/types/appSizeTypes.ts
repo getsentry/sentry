@@ -64,7 +64,8 @@ export enum TreemapType {
 }
 
 // Insights Types
-export interface BaseInsightResult {
+
+interface BaseInsightResult {
   total_savings: number;
 }
 
@@ -87,31 +88,29 @@ export interface GroupsInsightResult extends BaseInsightResult {
   groups: FileSavingsResultGroup[];
 }
 
-export interface DuplicateFilesInsightResult extends GroupsInsightResult {}
+interface DuplicateFilesInsightResult extends GroupsInsightResult {}
 
-export interface LargeImageFileInsightResult extends FilesInsightResult {}
+interface LargeImageFileInsightResult extends FilesInsightResult {}
 
-export interface LargeVideoFileInsightResult extends FilesInsightResult {}
+interface LargeVideoFileInsightResult extends FilesInsightResult {}
 
-export interface LargeAudioFileInsightResult extends FilesInsightResult {}
+interface LargeAudioFileInsightResult extends FilesInsightResult {}
 
-export interface HermesDebugInfoInsightResult extends FilesInsightResult {}
+interface HermesDebugInfoInsightResult extends FilesInsightResult {}
 
-export interface UnnecessaryFilesInsightResult extends FilesInsightResult {}
+interface UnnecessaryFilesInsightResult extends FilesInsightResult {}
 
-export interface WebPOptimizationInsightResult extends FilesInsightResult {}
+interface LocalizedStringInsightResult extends FilesInsightResult {}
 
-export interface LocalizedStringInsightResult extends FilesInsightResult {}
+interface LocalizedStringCommentsInsightResult extends FilesInsightResult {}
 
-export interface LocalizedStringCommentsInsightResult extends FilesInsightResult {}
+interface SmallFilesInsightResult extends FilesInsightResult {}
 
-export interface SmallFilesInsightResult extends FilesInsightResult {}
+interface LooseImagesInsightResult extends GroupsInsightResult {}
 
-export interface LooseImagesInsightResult extends GroupsInsightResult {}
+interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
-export interface MainBinaryExportMetadataResult extends FilesInsightResult {}
-
-export interface OptimizableImageFile {
+interface OptimizableImageFile {
   best_optimization_type: 'convert_to_heic' | 'minify' | 'none';
   conversion_savings: number;
   current_size: number;
@@ -122,28 +121,28 @@ export interface OptimizableImageFile {
   potential_savings: number;
 }
 
-export interface ImageOptimizationInsightResult extends BaseInsightResult {
+interface ImageOptimizationInsightResult extends BaseInsightResult {
   optimizable_files: OptimizableImageFile[];
 }
 
-export interface StripBinaryFileInfo {
+interface StripBinaryFileInfo {
   debug_sections_savings: number;
   file_path: string;
   symbol_table_savings: number;
   total_savings: number;
 }
 
-export interface StripBinaryInsightResult extends BaseInsightResult {
+interface StripBinaryInsightResult extends BaseInsightResult {
   files: StripBinaryFileInfo[];
   total_debug_sections_savings: number;
   total_symbol_table_savings: number;
 }
 
-export interface AudioCompressionInsightResult extends FilesInsightResult {}
+interface AudioCompressionInsightResult extends FilesInsightResult {}
 
-export interface VideoCompressionInsightResult extends FilesInsightResult {}
+interface VideoCompressionInsightResult extends FilesInsightResult {}
 
-export interface AppleInsightResults {
+interface AppleInsightResults {
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
   hermes_debug_info?: HermesDebugInfoInsightResult;
