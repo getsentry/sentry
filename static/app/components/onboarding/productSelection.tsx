@@ -178,7 +178,11 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
   ],
-  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  node: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
