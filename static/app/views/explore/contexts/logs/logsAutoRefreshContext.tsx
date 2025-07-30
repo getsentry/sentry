@@ -11,7 +11,7 @@ import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuer
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
-export const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 60 seconds
+const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 60 seconds
 
 export const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 10 * 60 * 1000; // 10 minutes
 export const CONSECUTIVE_PAGES_WITH_MORE_DATA = 5;
