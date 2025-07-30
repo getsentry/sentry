@@ -69,22 +69,22 @@ interface BaseInsightResult {
   total_savings: number;
 }
 
-export interface FileSavingsResult {
+interface FileSavingsResult {
   file_path: string;
   total_savings: number;
 }
 
-export interface FileSavingsResultGroup {
+interface FileSavingsResultGroup {
   files: FileSavingsResult[];
   name: string;
   total_savings: number;
 }
 
-export interface FilesInsightResult extends BaseInsightResult {
+interface FilesInsightResult extends BaseInsightResult {
   files: FileSavingsResult[];
 }
 
-export interface GroupsInsightResult extends BaseInsightResult {
+interface GroupsInsightResult extends BaseInsightResult {
   groups: FileSavingsResultGroup[];
 }
 
@@ -142,7 +142,7 @@ interface AudioCompressionInsightResult extends FilesInsightResult {}
 
 interface VideoCompressionInsightResult extends FilesInsightResult {}
 
-interface AppleInsightResults {
+export interface AppleInsightResults {
   audio_compression?: AudioCompressionInsightResult;
   duplicate_files?: DuplicateFilesInsightResult;
   hermes_debug_info?: HermesDebugInfoInsightResult;
