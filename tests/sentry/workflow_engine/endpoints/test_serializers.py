@@ -462,6 +462,7 @@ class TestWorkflowSerializer(TestCase):
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
+            is_single_written=True,
         )
         history.date_added = workflow.date_added + timedelta(seconds=1)
         history.save()
