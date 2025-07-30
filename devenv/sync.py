@@ -73,6 +73,16 @@ failed command (code {p.returncode}):
     return all_good
 
 
+# Temporary, see https://github.com/getsentry/sentry/pull/78881
+def check_minimum_version(minimum_version: str) -> bool:
+    version = importlib.metadata.version("sentry-devenv")
+
+    parsed_version = tuple(map(int, version.split(".")))
+    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
+
+    return parsed_version >= parsed_minimum_version
+
+
 def installed_pnpm(version: str, binroot: str) -> bool:
     if shutil.which("pnpm", path=binroot) != f"{binroot}/pnpm" or not os.path.exists(
         f"{binroot}/node-env/bin/pnpm"
@@ -106,16 +116,6 @@ exec {binroot}/node-env/bin/pnpm "$@"
 """,
         shell_escape={"binroot": binroot},
     )
-
-
-# Temporary, see https://github.com/getsentry/sentry/pull/78881
-def check_minimum_version(minimum_version: str) -> bool:
-    version = importlib.metadata.version("sentry-devenv")
-
-    parsed_version = tuple(map(int, version.split(".")))
-    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
-
-    return parsed_version >= parsed_minimum_version
 
 
 def main(context: dict[str, str]) -> int:
