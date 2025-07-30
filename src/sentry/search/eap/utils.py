@@ -9,7 +9,7 @@ from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
     DownsampledStorageMeta,
 )
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import Expression, TimeSeriesRequest
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
@@ -200,19 +200,17 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
 
 
-def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
-    rpc_meta_json = json.loads(MessageToJson(rpc_meta))
-    query_info = rpc_meta_json.get("query_info", [])
+def set_debug_meta(
+    events_meta: EventsMeta,
+    rpc_meta: ResponseMeta,
+    rpc_request: TraceItemTableRequest | TimeSeriesRequest,
+) -> None:
+    rpc_query = json.loads(MessageToJson(rpc_request))
 
-    events_meta["query_info"] = {
-        "downsampled_storage_meta": rpc_meta_json.get("downsampled_storage_meta", {}),
+    events_meta["debug_info"] = {
+        "query.storage_meta.tier": rpc_meta.downsampled_storage_meta.tier,
+        "rpc_query": rpc_query,
     }
-
-    if query_info and len(query_info) > 0:
-        if query_info[0]["stats"]:
-            events_meta["query_info"]["stats"] = query_info[0]["stats"]
-        if query_info[0]["trace_logs"]:
-            events_meta["query_info"]["trace_logs"] = query_info[0]["trace_logs"]
 
 
 def is_sentry_convention_replacement_attribute(

@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
-from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
     TimeSeries,
@@ -50,7 +49,7 @@ from sentry.search.eap.utils import (
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
-from sentry.utils import json, snuba_rpc
+from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -323,8 +322,7 @@ class RPCBase:
                     )
 
         if debug:
-            final_meta["query"] = json.loads(MessageToJson(table_request.rpc_request))
-            set_debug_meta(final_meta, rpc_response.meta)
+            set_debug_meta(final_meta, rpc_response.meta, table_request.rpc_request)
 
         return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
@@ -658,8 +656,7 @@ class RPCBase:
         )
 
         if params.debug:
-            final_meta["query"] = json.loads(MessageToJson(rpc_request))
-            set_debug_meta(final_meta, rpc_response.meta)
+            set_debug_meta(final_meta, rpc_response.meta, rpc_request)
 
         for resolved_field in aggregates + groupbys:
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type

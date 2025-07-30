@@ -350,8 +350,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 full_scan = meta.pop("full_scan", None)
-                query = meta.pop("query", None)
-                query_info = meta.pop("query_info", None)
+                debug_info = meta.pop("debug_info", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -374,10 +373,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     meta["dataScanned"] = "full"
 
                 # Only appears in meta when debug is passed to the endpoint
-                if query:
-                    meta["query"] = query
-                if query_info:
-                    meta["query_info"] = query_info
+                if debug_info:
+                    meta["debug_info"] = debug_info
             else:
                 meta = fields_meta
 
