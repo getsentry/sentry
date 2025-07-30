@@ -262,8 +262,8 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
 
         vital_columns = [f"count_scores({v})" for v in WEB_VITALS_MEASUREMENTS]
 
-        response = spans_rpc.run_table_query(
-            snuba_params,
+        response = spans_rpc.Spans.run_table_query(
+            params=snuba_params,
             query_string=query_string if query_string is not None else "",
             referrer=cache_key,
             selected_columns=vital_columns,
@@ -655,8 +655,8 @@ def time_spent_percentage(
     if snuba_params.organization_id is None:
         raise Exception("An organization is required to resolve queries")
 
-    rpc_res = spans_rpc.run_table_query(
-        snuba_params,
+    rpc_res = spans_rpc.Spans.run_table_query(
+        params=snuba_params,
         query_string="",
         referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
         selected_columns=[f"sum({column})"],

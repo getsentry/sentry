@@ -16,10 +16,11 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import SnubaData, SnubaParams
-from sentry.snuba import ourlogs, spans_rpc
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import TableQuery, run_bulk_table_queries
+from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
+from sentry.snuba.spans_rpc import Spans
 
 
 class SerializedResponse(TypedDict):
@@ -65,9 +66,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
         snuba_params: SnubaParams,
     ) -> dict[str, EAPResponse]:
         config = SearchResolverConfig(disable_aggregate_extrapolation=True)
-        spans_resolver = spans_rpc.get_resolver(snuba_params, config)
-        logs_resolver = ourlogs.get_resolver(snuba_params, config)
-        return run_bulk_table_queries(
+        spans_resolver = Spans.get_resolver(snuba_params, config)
+        logs_resolver = OurLogs.get_resolver(snuba_params, config)
+        return RPCBase.run_bulk_table_queries(
             [
                 TableQuery(
                     query_string=f"trace:{trace_id}",
