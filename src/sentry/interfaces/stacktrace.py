@@ -262,6 +262,12 @@ class Frame(Interface):
 
             if "min_grouping_level" in self.data:
                 data["minGroupingLevel"] = self.data["min_grouping_level"]
+        
+        # Mark <asynchronous suspension> frames as symbolicated since they cannot be symbolicated
+        # and should not show false warnings in the UI
+        if (self.filename == "<asynchronous suspension>" or 
+            self.abs_path == "<asynchronous suspension>"):
+            data["symbolicatorStatus"] = "symbolicated"
 
         return data
 

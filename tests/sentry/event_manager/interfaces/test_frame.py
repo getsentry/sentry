@@ -52,3 +52,45 @@ def test_address_normalization(make_frames_snapshot):
             "image_addr": "0x0",
         }
     )
+
+
+@django_db_all  
+def test_asynchronous_suspension_frame_symbolicated():
+    """Test that asynchronous suspension frames are automatically marked as symbolicated."""
+    # Test with filename = <asynchronous suspension>
+    mgr = EventManager(data={
+        "stacktrace": {
+            "frames": [{
+                "filename": "<asynchronous suspension>",
+                "abs_path": "<asynchronous suspension>",
+                "in_app": False,
+                "data": {"orig_in_app": -1}
+            }]
+        }
+    })
+    mgr.normalize()
+    evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
+    frame = evt.interfaces["stacktrace"].frames[0]
+    
+    # Check that the frame has symbolicatorStatus set to "symbolicated"
+    api_context = frame.get_api_context()
+    assert api_context["symbolicatorStatus"] == "symbolicated"
+    
+    # Test with abs_path = <asynchronous suspension> and different filename
+    mgr2 = EventManager(data={
+        "stacktrace": {
+            "frames": [{
+                "filename": "some_file.dart",
+                "abs_path": "<asynchronous suspension>",
+                "in_app": False,
+                "data": {"orig_in_app": -1}
+            }]
+        }
+    })
+    mgr2.normalize()
+    evt2 = eventstore.backend.create_event(project_id=1, data=mgr2.get_data())
+    frame2 = evt2.interfaces["stacktrace"].frames[0]
+    
+    # Check that the frame has symbolicatorStatus set to "symbolicated"
+    api_context2 = frame2.get_api_context()
+    assert api_context2["symbolicatorStatus"] == "symbolicated"
