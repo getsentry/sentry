@@ -24,6 +24,8 @@ IGNORABLE_SLACK_ERROR_CODES = [
     status.HTTP_429_TOO_MANY_REQUESTS,
 ]
 
+SLACK_PLUGIN_TITLE_LENGTH_LIMIT = 256
+
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
     title = "Slack"
@@ -233,7 +235,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             "attachments": [
                 {
                     "fallback": b"[%s] %s" % (project_name, title),
-                    "title": title,
+                    "title": title[:SLACK_PLUGIN_TITLE_LENGTH_LIMIT],
                     "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                     "color": self.color_for_event(event),
                     "fields": fields,
