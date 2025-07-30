@@ -32,6 +32,7 @@ class AppleCrashReport:
 
     @sentry_sdk.trace
     def __str__(self):
+        self.time_spent_parsing_addrs = 0
         rv = []
         rv.append(self._get_meta_header())
         rv.append(self._get_exception_info())
