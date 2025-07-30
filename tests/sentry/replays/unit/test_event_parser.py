@@ -1663,3 +1663,33 @@ def test_as_trace_item_context_memory_minimal() -> None:
     assert result is not None
     assert result["attributes"]["category"] == "memory"
     assert len(result["attributes"]) == 1
+
+
+def test_as_trace_item_context_click_missing_timestamp() -> None:
+    click_event = {"data": {"payload": {"data": {"node": {}}}}}
+    result = as_trace_item_context(EventType.CLICK, click_event)
+    assert result is None
+
+
+def test_as_trace_item_context_navigation_missing_timestamp() -> None:
+    navigation_event = {"data": {"payload": {"data": {}}}}
+    result = as_trace_item_context(EventType.NAVIGATION, navigation_event)
+    assert result is None
+
+
+def test_as_trace_item_context_resource_fetch_missing_timestamp() -> None:
+    resource_fetch_event = {"data": {"payload": {"data": {}}}}
+    result = as_trace_item_context(EventType.RESOURCE_FETCH, resource_fetch_event)
+    assert result is None
+
+
+def test_as_trace_item_context_lcp_missing_timestamp() -> None:
+    lcp_event = {"data": {"payload": {"data": {}}}}
+    result = as_trace_item_context(EventType.LCP, lcp_event)
+    assert result is None
+
+
+def test_as_trace_item_context_memory_missing_timestamp() -> None:
+    memory_event = {"data": {"payload": {"data": {}}}}
+    result = as_trace_item_context(EventType.MEMORY, memory_event)
+    assert result is None
