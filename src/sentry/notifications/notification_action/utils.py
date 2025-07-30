@@ -9,9 +9,9 @@ from sentry.notifications.notification_action.registry import (
     issue_alert_handler_registry,
     metric_alert_handler_registry,
 )
+from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.tasks.workflows import SUPPORTED_ACTIVITIES
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ def execute_via_group_type_registry(
         # If it is a metric issue resolution, we need to execute the metric alert handler
         # Else we can use the activity.send_notification() method to send the notification.
         if (
-            event_data.event.type in SUPPORTED_ACTIVITIES
+            event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
             and event_data.group.type == MetricIssue.type_id
         ):
             return execute_via_metric_alert_handler(event_data, action, detector)
@@ -129,7 +129,7 @@ def execute_via_metric_alert_handler(
         raise
     except Exception:
         logger.exception(
-            "Error executing via issue alert handler",
+            "Error executing via metric alert handler in legacy registry",
             extra={"action_id": action.id, "detector_id": detector.id},
         )
         raise
