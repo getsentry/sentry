@@ -30,6 +30,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
@@ -85,7 +86,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ISSUES
 
-    def filter_workflows(self, request: Request, organization):
+    def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
         """
         Helper function to filter workflows based on request parameters.
         """
@@ -257,8 +258,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         if not (
             request.GET.getlist("id")
             or request.GET.get("query")
-            or request.GET.get("project")
-            or request.GET.get("projectSlug")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
         ):
             return Response(
                 {
