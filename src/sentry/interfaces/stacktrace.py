@@ -100,9 +100,9 @@ def is_newest_frame_first(event):
             filter=dict(user_ids=[env.request.user.id], keys=["stacktrace_order"])
         )
         display = get_option_from_list(options, default=None)
-        if display == "1":
+        if display == StacktraceOrder.MOST_RECENT_LAST:
             newest_first = False
-        elif display == "2":
+        elif display == StacktraceOrder.MOST_RECENT_FIRST:
             newest_first = True
 
     return newest_first

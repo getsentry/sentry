@@ -16,6 +16,7 @@ from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -67,7 +68,7 @@ class _SerializedStacktraceOrder(int, Enum):
 class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
-    stacktraceOrder: int  # TODO: enum/literal
+    stacktraceOrder: _SerializedStacktraceOrder
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
@@ -198,7 +199,13 @@ class UserSerializer(Serializer):
                 for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
                 if o.value is not None
             }
-            stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
+
+            stacktrace_order = _SerializedStacktraceOrder(
+                int(
+                    options.get("stacktrace_order", StacktraceOrder.DEFAULT)
+                    or StacktraceOrder.DEFAULT
+                )
+            )
 
             d["options"] = {
                 "theme": options.get("theme") or "light",
