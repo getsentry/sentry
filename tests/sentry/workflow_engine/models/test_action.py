@@ -100,6 +100,7 @@ class TestAction(TestCase):
             mock_incr.assert_called_once_with(
                 "workflow_engine.action.trigger",
                 tags={"action_type": self.action.type, "detector_type": self.mock_detector.type},
+                sample_rate=1.0,
             )
 
     def test_config_schema(self) -> None:

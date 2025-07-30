@@ -186,6 +186,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                sample_rate=1.0,
             )
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
@@ -214,4 +215,5 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                sample_rate=1.0,
             )

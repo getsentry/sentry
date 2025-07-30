@@ -92,6 +92,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         metrics.incr(
             "workflow_engine.action.trigger",
             tags={"action_type": self.type, "detector_type": detector.type},
+            sample_rate=1.0,
         )
 
         logger.info(

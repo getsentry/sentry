@@ -69,6 +69,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type},
+        sample_rate=1.0,
     )
 
 
