@@ -158,6 +158,17 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # Download segment data.
         # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
         segment_md = fetch_segments_metadata(project.id, replay_id, 0, MAX_SEGMENTS_TO_SUMMARIZE)
+        if len(segment_md) >= MAX_SEGMENTS_TO_SUMMARIZE:
+            logger.warning(
+                "Replay hit max segment limit.",
+                extra={
+                    "replay_id": replay_id,
+                    "project_id": project.id,
+                    "organization_id": project.organization.id,
+                    "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
+                },
+            )
+
         segment_data = iter_segment_data(segment_md)
 
         # Combine replay and error data and parse into logs.
