@@ -192,7 +192,7 @@ export function PageOverviewSidebar({
                       <div>
                         <SpanOp>{insight.spanOp}</SpanOp>
                         <Summary>
-                          {' - '}
+                          {' \u2014 '}
                           {insight.explanation}
                         </Summary>
                       </div>
