@@ -9,10 +9,7 @@ from sentry.api import DevToolbarApiRequestEvent
 from sentry.middleware.devtoolbar import DevToolbarAnalyticsMiddleware
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.analytics import (
-    assert_last_analytics_event,
-    get_last_analytics_event,
-)
+from sentry.testutils.helpers.analytics import assert_last_analytics_event, get_last_analytics_event
 from sentry.types.group import GroupSubStatus
 
 

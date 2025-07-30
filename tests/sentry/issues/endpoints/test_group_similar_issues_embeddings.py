@@ -15,10 +15,7 @@ from sentry.issues.endpoints.group_similar_issues_embeddings import (
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.seer.similarity.types import (
-    SeerSimilarIssueData,
-    SimilarIssuesEmbeddingsResponse,
-)
+from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
