@@ -67,6 +67,7 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -171,7 +172,7 @@ export function LogsTabContent({
       yAxis: [aggregate],
       interval,
       fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: groupBy?.length ? 5 : undefined,
+      topEvents: groupBy ? TOP_EVENTS_LIMIT : undefined,
       orderby,
     },
     'explore.ourlogs.main-chart',
