@@ -72,7 +72,7 @@ class EnhancementsVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
     def visit_enhancements(
-        self, node: Node, children: list[EnhancementRule | Any]
+        self, node: Node, children: list[EnhancementRule | None]
     ) -> list[EnhancementRule]:
         rules = []
         for child in children:
@@ -82,7 +82,7 @@ class EnhancementsVisitor(NodeVisitor):
         return rules
 
     def visit_line(
-        self, node: Node, children: tuple[Any, list[EnhancementRule | Any], Any]
+        self, node: Node, children: tuple[Any, list[EnhancementRule | None], Any]
     ) -> EnhancementRule | None:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
@@ -132,7 +132,7 @@ class EnhancementsVisitor(NodeVisitor):
         return children[0]
 
     def visit_flag_action(
-        self, node: Node, children: tuple[Any, list[str] | Any, bool, str]
+        self, node: Node, children: tuple[Any, list[str] | None, bool, str]
     ) -> FlagAction:
         _, rng, flag, action_name = children
         return FlagAction(action_name, flag, rng[0] if rng else None)
