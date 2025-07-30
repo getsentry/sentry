@@ -1,8 +1,8 @@
-import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
 import responses
 
 from fixtures.github import (
