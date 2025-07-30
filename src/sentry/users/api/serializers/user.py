@@ -5,6 +5,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
+from enum import Enum
 from typing import Any, DefaultDict, TypedDict, cast
 
 from django.conf import settings
@@ -55,6 +56,12 @@ class _Identity(TypedDict):
     provider: _Provider
     dateVerified: datetime
     dateSynced: datetime
+
+
+class _SerializedStacktraceOrder(int, Enum):
+    DEFAULT = int(StacktraceOrder.DEFAULT)  # Equivalent to `MOST_RECENT_FIRST`
+    MOST_RECENT_LAST = int(StacktraceOrder.MOST_RECENT_LAST)
+    MOST_RECENT_FIRST = int(StacktraceOrder.MOST_RECENT_FIRST)
 
 
 class _UserOptions(TypedDict):
