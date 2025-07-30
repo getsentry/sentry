@@ -443,6 +443,7 @@ export function ContinuousFlamegraph(): ReactElement {
             name: 'CPU energy usage',
             unit: 'watt',
             measurement: profileGroup.measurements[key]!,
+            startingOffset: -1 * (profileGroup.profiles[0]?.startedAt ?? 0),
             valueFormatter: value => fromNanoJoulesToWatts(value, 0.1),
           })
         );
@@ -457,6 +458,7 @@ export function ContinuousFlamegraph(): ReactElement {
     );
   }, [
     profileGroup.measurements,
+    profileGroup.profiles,
     flamegraph.configSpace,
     flamegraphTheme,
     hasBatteryChart,
@@ -1598,15 +1600,17 @@ function formatProfileSeriesMeasurement({
   measurement,
   name,
   unit,
+  startingOffset,
   valueFormatter,
 }: {
   measurement: Profiling.Measurement;
   name: string;
+  startingOffset?: number;
   unit?: string;
   valueFormatter?: (value: number) => number;
 }): ProfileSeriesMeasurement {
   const values: ProfileSeriesMeasurement['values'] = [];
-  let offset = 0;
+  let offset = startingOffset ?? 0;
   for (let i = 0; i < measurement.values.length; i++) {
     const value = measurement.values[i]!;
     const next = measurement.values[i + 1] ?? value;
