@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
 import {Fragment} from 'react';
-import {renderToStaticMarkup} from 'react-dom/server';
+import {flushSync} from 'react-dom';
+import {createRoot} from 'react-dom/client';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -66,10 +67,10 @@ const HeadingContainer = styled(Flex)`
 `;
 
 function stringifyChildren(children: React.ReactNode) {
-  const markup = renderToStaticMarkup(children);
-  const p = new DOMParser();
-  const {
-    body: {textContent},
-  } = p.parseFromString(markup, 'text/html');
-  return textContent ?? '';
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(<Fragment>{children}</Fragment>);
+  });
+  return container.textContent ?? '';
 }
