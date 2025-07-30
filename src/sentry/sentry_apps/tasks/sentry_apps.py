@@ -802,33 +802,32 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.regenerate_service_hook_for_installation",
     taskworker_config=TaskworkerConfig(
-        namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
+        namespace=sentryapp_tasks, retry=Retry(times=3), processing_deadline_duration=60
     ),
     **TASK_OPTIONS,
 )
-def regenerate_service_hook_for_installation(
-    installation_id: int, servicehook_events: list[str] | None
-) -> None:
+def regenerate_service_hook_for_installation(installation_id: int) -> None:
     installation = app_service.installation_by_id(id=installation_id)
-    assert installation is not None, "Installation must exist to regenerate service hooks"
-    app_events = installation.sentry_app.events
-
-    if servicehook_events is None or set(servicehook_events) != set(app_events):
-        create_or_update_service_hooks_for_installation(
-            installation=installation,
-            events=app_events,
-            webhook_url=installation.sentry_app.webhook_url,
-        )
-
+    if installation is None:
         logger.info(
-            "regenerate_service_hook_for_installation",
-            extra={
-                "installation_id": installation_id,
-                "servicehook_events": servicehook_events,
-                "app_events": app_events,
-                "sentry_app": installation.sentry_app.id,
-            },
+            "regenerate_service_hook_for_installation.could_not_find_installation",
+            extra={"installation_id": installation_id},
         )
+        return
+
+    create_or_update_service_hooks_for_installation(
+        installation=installation,
+        events=installation.sentry_app.events,
+        webhook_url=installation.sentry_app.webhook_url,
+    )
+
+    logger.info(
+        "regenerate_service_hook_for_installation",
+        extra={
+            "installation_id": installation_id,
+            "sentry_app": installation.sentry_app.id,
+        },
+    )
 
 
 @instrumented_task(
