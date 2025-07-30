@@ -401,6 +401,13 @@ class Quota(Service):
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
+    def get_downsampled_event_retention(self, organization):
+        """
+        Returns the retention for downsampled events in the given organization in days.
+        Returns ``None`` if downsampled events are to be stored indefinitely.
+        """
+        return 0
+
     def validate(self):
         """
         Validates that the quota service is operational.
