@@ -21,6 +21,11 @@ class ExploreSpansPage(BasePage):
         )
         return row
 
+    def click_on_span_id(self, span_id):
+        row = self.get_spans_row_with_id(span_id)
+        column_objects = self.get_spans_row_columns(row)
+        column_objects[0].click()
+
     def get_spans_row_columns(self, row):
         # The expanded row actually makes a new sibling row that contains the fields-tree.
         columns = row.find_elements(By.XPATH, "child::td")
