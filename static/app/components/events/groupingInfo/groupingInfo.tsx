@@ -18,9 +18,15 @@ interface GroupingSummaryProps {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
+  showGroupingConfig: boolean;
 }
 
-export default function GroupingInfo({event, projectSlug, group}: GroupingSummaryProps) {
+export default function GroupingInfo({
+  event,
+  projectSlug,
+  showGroupingConfig,
+  group,
+}: GroupingSummaryProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -66,7 +72,11 @@ export default function GroupingInfo({event, projectSlug, group}: GroupingSummar
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant event={event} variant={variant} />
+              <GroupingVariant
+                event={event}
+                showGroupingConfig={showGroupingConfig}
+                variant={variant}
+              />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))

@@ -14,6 +14,7 @@ interface EventGroupingInfoSectionProps {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
+  showGroupingConfig: boolean;
 }
 
 const LazyGroupingInfo = lazy(() => import('./groupingInfo'));
@@ -21,6 +22,7 @@ const LazyGroupingInfo = lazy(() => import('./groupingInfo'));
 export function EventGroupingInfoSection({
   event,
   projectSlug,
+  showGroupingConfig,
   group,
 }: EventGroupingInfoSectionProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -45,6 +47,7 @@ export function EventGroupingInfoSection({
           LazyComponent={LazyGroupingInfo}
           event={event}
           projectSlug={projectSlug}
+          showGroupingConfig={showGroupingConfig}
           group={group}
         />
       ) : null}
