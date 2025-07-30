@@ -57,14 +57,12 @@ export function useMetricDetectorAnomalySeries({
   const theme = useTheme();
 
   // Fetch historical data with extended time period for anomaly detection baseline comparison
-  const historicalPeriod =
-    timePeriod === 5
-      ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
-          statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
-        ]
-      : HISTORICAL_TIME_PERIOD_MAP[
-          statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP
-        ];
+  const isFiveMinuteTimePeriod = timePeriod === 300;
+  const historicalPeriod = isFiveMinuteTimePeriod
+    ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
+        statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+      ]
+    : HISTORICAL_TIME_PERIOD_MAP[statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP];
 
   const {series: historicalSeries} = useMetricDetectorSeries({
     dataset,
