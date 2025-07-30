@@ -659,7 +659,7 @@ class RPCBase:
 
         if params.debug:
             final_meta["query"] = json.loads(MessageToJson(rpc_request))
-            set_debug_meta(final_meta, rpc_request.meta)
+            set_debug_meta(final_meta, rpc_response.meta)
 
         for resolved_field in aggregates + groupbys:
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
