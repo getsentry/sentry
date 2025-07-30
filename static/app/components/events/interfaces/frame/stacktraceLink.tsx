@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
+import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
@@ -21,6 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -103,6 +104,55 @@ function CodecovLink({
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       </Tooltip>
     </OpenInLink>
+  );
+}
+
+interface CopyFrameLinkProps {
+  event: Event;
+  frame: Frame;
+  shouldFadeIn?: boolean;
+}
+
+function CopyFrameLink({event, frame, shouldFadeIn = false}: CopyFrameLinkProps) {
+  const filePath =
+    frame.filename && frame.lineNo !== null
+      ? `${frame.filename}:${frame.lineNo}`
+      : frame.filename || '';
+
+  const {onClick: handleCopyPath} = useCopyToClipboard({
+    text: filePath,
+    successMessage: t('File path copied to clipboard'),
+    errorMessage: t('Failed to copy file path'),
+  });
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleCopyPath();
+  };
+
+  const ButtonComponent = shouldFadeIn ? FadeInButton : Button;
+
+  // Don't render if there's no valid file path to copy
+  if (!filePath) {
+    return null;
+  }
+
+  return (
+    <Tooltip title={t('Copy file path')} skipWrapper>
+      <ButtonComponent
+        size="zero"
+        priority="transparent"
+        aria-label={t('Copy file path')}
+        icon={<IconCopy size="xs" />}
+        onClick={handleClick}
+        analyticsEventKey="stacktrace_link_copy_file_path"
+        analyticsEventName="Stacktrace Link Copy File Path"
+        analyticsParams={{
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
+        }}
+      />
+    </Tooltip>
   );
 }
 
@@ -239,6 +289,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} />
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <OpenInLink
             onClick={e => onOpenLink(e, frame.sourceLink)}
@@ -267,6 +318,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     const label = t('Open this line in %s', match.config.provider.name);
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} shouldFadeIn />
         <OpenInLink
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
@@ -315,6 +367,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   ) {
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} shouldFadeIn />
         <Tooltip title={t('GitHub')} skipWrapper>
           <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
             <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
@@ -347,6 +400,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
     );
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} shouldFadeIn />
         <FixMappingButton
           type="button"
           priority="link"
@@ -442,4 +496,9 @@ const CodecovWarning = styled('div')`
   color: ${p => p.theme.errorText};
   gap: ${space(0.75)};
   align-items: center;
+`;
+
+const FadeInButton = styled(Button)`
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+  color: ${p => p.theme.subText};
 `;
