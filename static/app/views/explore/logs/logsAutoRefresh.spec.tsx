@@ -21,6 +21,8 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+const REFRESH_INTERVAL_MS = 100;
+
 describe('LogsAutoRefresh Integration Tests', () => {
   const organization = OrganizationFixture({
     features: ['ourlogs-enabled', 'ourlogs-live-refresh', 'ourlogs-infinite-scroll'],
@@ -34,7 +36,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       query: {
         // Toggle is disabled if sort is not a timestamp
         [LOGS_SORT_BYS_KEY]: '-timestamp',
-        [LOGS_REFRESH_INTERVAL_KEY]: '200', // Fast refresh for testing
+        [LOGS_REFRESH_INTERVAL_KEY]: REFRESH_INTERVAL_MS, // Fast refresh for testing
       },
     },
     route: '/organizations/:orgId/explore/logs/',
@@ -141,7 +143,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(mockApi).toHaveBeenCalled();
   });
 
-  it('disables auto-refresh when toggled off and removes from URL', async () => {
+  it('disables auto-refresh when toggled off and sets paused state', async () => {
     mockApiCall();
 
     const {router} = renderWithProviders(<AutorefreshToggle />, {
@@ -156,7 +158,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
     await userEvent.click(toggleSwitch);
 
     await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
     });
 
     // The toggle should be unchecked after navigation completes
@@ -273,6 +275,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
   });
 
   it('disables auto-refresh after 5 consecutive requests with more data', async () => {
+    jest.useFakeTimers();
     const mockApi = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -294,9 +297,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       expect(mockApi).toHaveBeenCalledTimes(5);
     });
 
-    await waitFor(() => {
-      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
-    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
   });
 
   it('continues auto-refresh when there is no more data', async () => {
