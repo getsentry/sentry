@@ -1,3 +1,4 @@
+import pytest
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -138,7 +139,9 @@ class GithubRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.forward-webhooks.rollout": 1.0})
+    @override_options(
+        {"codecov.forward-webhooks.rollout": 1.0, "codecov.forward-webhooks.regions": ["us"]}
+    )
     @override_regions(region_config)
     def test_webhook_for_codecov(self):
         integration = self.get_integration()
@@ -165,6 +168,38 @@ class GithubRequestParserTest(TestCase):
             region_names=[],
             destination_types={DestinationType.CODECOV: 1},
         )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {"codecov.forward-webhooks.rollout": 1.0, "codecov.forward-webhooks.regions": []}
+    )
+    @override_regions(region_config)
+    def test_webhook_for_codecov_no_regions(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.content == b""
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+            destination_types={DestinationType.SENTRY_REGION: 1},
+        )
+        with pytest.raises(Exception, match="WebhookPayload not found for some destination_types"):
+            assert_webhook_payloads_for_mailbox(
+                request=request,
+                mailbox_name="github:codecov:1",
+                region_names=[],
+                destination_types={DestinationType.CODECOV: 1},
+            )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)

@@ -41,7 +41,7 @@ class WebhookPayloadTest(TestCase):
         )
         assert hook.request_body == '{"installation": {"id": "github:1"}}'
 
-    def test_create_from_request_for_codeocv(self) -> None:
+    def test_create_from_request_for_codecov(self) -> None:
         factory = RequestFactory()
         request = factory.post(
             "/extensions/github/webhook/",
