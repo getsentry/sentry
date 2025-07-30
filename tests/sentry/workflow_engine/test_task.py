@@ -9,11 +9,9 @@ from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.handlers.workflow import workflow_status_update_handler
 from sentry.workflow_engine.tasks.utils import fetch_event
-from sentry.workflow_engine.tasks.workflows import (
-    process_workflow_activity,
-    workflow_status_update_handler,
-)
+from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import WorkflowEventData
 
 
@@ -228,6 +226,7 @@ class TestProcessWorkflowActivity(TestCase):
                 "workflow_engine.issue_platform.status_change_handler",
                 amount=1,
                 tags={"activity_type": self.activity.type},
+                sample_rate=1.0,
             )
 
             # Workflow engine is correctly registered for the activity update
