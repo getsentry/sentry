@@ -72,10 +72,10 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             stats = data[self.project_uptime_subscription.id]
 
             # Verify expected counts based on test scenarios
-            assert stats["total_checks"] == 8
-            assert stats["failed_checks"] == 2  # failures without incident
-            assert stats["downtime_checks"] == 1  # failures with incident
-            assert stats["missed_window_checks"] == 2
+            assert stats["totalChecks"] == 8
+            assert stats["failedChecks"] == 2  # failures without incident
+            assert stats["downtimeChecks"] == 1  # failures with incident
+            assert stats["missedWindowChecks"] == 2
 
     def test_multiple_subscriptions(self) -> None:
         """
@@ -118,17 +118,17 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
 
             # Verify first subscription stats
             stats1 = data[self.project_uptime_subscription.id]
-            assert stats1["total_checks"] == 8
-            assert stats1["failed_checks"] == 2
-            assert stats1["downtime_checks"] == 1
-            assert stats1["missed_window_checks"] == 2
+            assert stats1["totalChecks"] == 8
+            assert stats1["failedChecks"] == 2
+            assert stats1["downtimeChecks"] == 1
+            assert stats1["missedWindowChecks"] == 2
 
             # Verify second subscription stats
             stats2 = data[project_uptime_subscription2.id]
-            assert stats2["total_checks"] == 2
-            assert stats2["failed_checks"] == 0
-            assert stats2["downtime_checks"] == 1
-            assert stats2["missed_window_checks"] == 0
+            assert stats2["totalChecks"] == 2
+            assert stats2["failedChecks"] == 0
+            assert stats2["downtimeChecks"] == 1
+            assert stats2["missedWindowChecks"] == 0
 
     def test_empty_results(self) -> None:
         """
@@ -258,10 +258,10 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             data = response.data
 
             stats = data[success_project_uptime_subscription.id]
-            assert stats["total_checks"] == 5
-            assert stats["failed_checks"] == 0
-            assert stats["downtime_checks"] == 0
-            assert stats["missed_window_checks"] == 0
+            assert stats["totalChecks"] == 5
+            assert stats["failedChecks"] == 0
+            assert stats["downtimeChecks"] == 0
+            assert stats["missedWindowChecks"] == 0
 
     def test_time_range_filtering(self) -> None:
         """
@@ -301,10 +301,10 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
 
             assert filter_project_uptime_subscription.id in data
             stats = data[filter_project_uptime_subscription.id]
-            assert stats["total_checks"] == 4
-            assert stats["failed_checks"] == 0
-            assert stats["downtime_checks"] == 0
-            assert stats["missed_window_checks"] == 0
+            assert stats["totalChecks"] == 4
+            assert stats["failedChecks"] == 0
+            assert stats["downtimeChecks"] == 0
+            assert stats["missedWindowChecks"] == 0
 
 
 @freeze_time(MOCK_DATETIME)
