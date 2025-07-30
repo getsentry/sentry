@@ -4,7 +4,11 @@ import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  type TreemapElement,
+  type TreemapResults,
+  TreemapType,
+} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeTreemapProps {
   treemapData: TreemapResults;
@@ -63,15 +67,14 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     [TreemapType.UNMAPPED]: COLORS.purple,
   };
 
-  function convertToEChartsData(element: any, sizeMode: 'install' | 'download'): any {
-    const size = sizeMode === 'install' ? element.install_size : element.download_size;
+  function convertToEChartsData(element: TreemapElement): any {
     const color = element.element_type
       ? TYPE_COLORS[element.element_type]
       : TYPE_COLORS[TreemapType.OTHER];
 
     const data: any = {
       name: element.name,
-      value: size,
+      value: element.size,
       path: element.path,
       category: element.element_type,
       itemStyle: {
@@ -107,17 +110,16 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     };
 
     if (element.children && element.children.length > 0) {
-      data.children = element.children.map((child: any) =>
-        convertToEChartsData(child, sizeMode)
+      data.children = element.children.map((child: TreemapElement) =>
+        convertToEChartsData(child)
       );
     }
 
     return data;
   }
 
-  // TODO: Add download size toggling
-  const chartData = convertToEChartsData(treemapData.root, 'install');
-  const totalSize = treemapData.total_install_size;
+  const chartData = convertToEChartsData(treemapData.root);
+  const totalSize = treemapData.root.size;
 
   const series: TreemapSeriesOption[] = [
     {
