@@ -1,56 +1,50 @@
-# Composition via `asChild`
+# Composition
 
-The layout components (`Container`, `Flex`, and `Grid`) support a `asChild` prop that allows you to merge the styling and behavior of these components with your own custom elements without creating extra DOM nodes.
+The layout components (`Container`, `Flex`, and `Grid`) support composition via render props - this allows you to apply layout styling to custom elements without creating extra DOM nodes.
 
-This is useful for cases where you want to apply layout styles to an existing element without having to create a new styled component.
+```tsx
+// ✅ Apply layout props to a single element
+<Container border="primary" padding="lg">
+  {props => <MyCustomComponent {...props}>Content</MyCustomComponent>}
+</Container>
 
-**⚠️ Rules of using `asChild`:**
+// ✅ Apply the same layout props to multiple elements
+<Container border="primary" padding="lg">
+  {props => (
+    <>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+      <MyCustomComponent {...props}>Content</MyCustomComponent>
+    </>
+  )}
+</Container>
+```
 
-- Only a single child is allowed - if multiple are provided, the component will return `null` in production and an error will be thrown during development.
+## When Not to Use Render Props
 
-  <br />
-  **Example:**
+Do not use render props if all you need is to apply the styled to an intrinsic element. Use the `as` prop instead.
 
-  ```tsx
-  <Flex asChild padding="md">
-    <Component>Click me</Component>
-    {/* ✅ Only one child of asChild is supported */}
-  </Flex>
+```tsx
+// ❌ Unnecessary render prop, use the `as` prop instead
+<Container border="primary" padding="lg">
+  {props => <section {...props}>Content</section>}
+</Container>
 
-  <Flex asChild padding="md">
-    <Component>Click me</Component>
-    <Component>Click me</Component>
-    {/* ❌ This will throw an error in development and return null in production */}
-  </Flex>
-  ```
+// ✅ Use the `as` prop instead
+<Container border="primary" padding="lg" as="section">
+  Content
+</Container>
+```
 
-- The child component must consume all props and forward them to the underlying element
-
-  <br />
-  **Example:**
-
-  ```tsx
-  function Consumer(props) {
-    // ✅ props are forwarded to the underlying element
-    return <div {...props}>{props.children}</div>;
-  }
-
-  function Consumer({first, second, third}) {
-    // ❌ props are being swallowed
-    return (
-      <div first={first} second={second} third={third}>
-        {children}
-      </div>
-    );
-  }
-  ```
+## Use Cases
 
 ### Omitting the DOM Node
 
-When `asChild` is set to `true`, the layout component doesn't render its own DOM element. Instead, it spreads all its props (including styles) onto its single child element using the internal `Slot` component.
+When using render props, the layout component doesn't render its own DOM element. Instead, it passes all its styling props to the render function, which can then apply them to any element.
 
 ```tsx
-// Without asChild - creates extra DOM wrapper
+// Without render prop - creates extra DOM wrapper
 <Flex padding="md" gap="md">
   <MyComponent>Click me</MyComponent>
 </Flex>
@@ -59,52 +53,64 @@ When `asChild` is set to `true`, the layout component doesn't render its own DOM
 //   <MyComponent>Click me</MyComponent>
 // </div>
 
-// With asChild - no extra wrapper
-<Flex asChild padding="md" gap="md">
-  <MyComponent>Click me</MyComponent>
+// With render prop - no extra wrapper
+<Flex padding="md" gap="md">
+  {props => <MyComponent {...props}>Click me</MyComponent>}
 </Flex>
 // Renders:
 // <MyComponent class="flex-styles">Click me</MyComponent>
 ```
 
-### Prop Merging Behavior
+### Applying Layout Props to Custom Elements
 
-The `Slot` component merges props from the layout component with the child element's existing props.
-
-- Function type props are merged and result in invocation of the child's function first, followed by the layout component's function.
-- Style props are merged via object spreadand result in the child's style rules taking precedence and overriding the parent.
-- Class names are concatenated and merged.
-- Other props are merged and result in the child's props taking precedence and overriding the parent provided props - this can be a convenient mechanism to selectively opt-out of the parent's props.
-
-#### Style Merging
-
-Styles are merged with child styles taking precedence:
+You can apply layout props to custom elements by passing a render function to the layout component.
 
 ```tsx
-<Container asChild style={{color: 'blue', opacity: 0.5}}>
-  <MyComponent style={{color: 'red'}}>Click me</MyComponent>
+<Container border="primary" padding="lg">
+  {props => <MyCustomComponent {...props}>Content</MyCustomComponent>}
 </Container>
-// Result: style={{color: 'red', opacity: 0.5}}
 ```
 
-#### ClassName Merging
+### Render Props vs `cloneElement` / `asChild`
 
-Class names are concatenated and merged with the child's class names being applied last.
+There are multiple ways to apply layout styling to a custom element, each has their tradeoffs. We have picked the render prop pattern becaseu we believe that it is
+the most type-safe and flexible way of applying component props to the child element.
+
+#### Type Safety
+
+The render prop system prevents invalid attributes from being passed to HTML elements:
 
 ```tsx
-<Flex asChild className="layout-styles">
-  <div className="custom-styles">Content</div>
-</Flex>
-// Result: className="layout-styles custom-styles"
+// ✅ Props are passed to the child element in a type-safe way
+<Container border="primary" aria-activedescendant="invalid">
+  {props => <p {...props}>Hello</p>}
+</Container>
+
+// ❌ Props are spread onto the child element without type safety or guarantees that they will be accepted
+<Container border="primary" asChild>
+  <ComponentWithIncompatibleProps/>}
+</Container>
+// The aria-activedescendant prop is filtered out since it's invalid for <p>
 ```
 
-#### Event Handler Merging
+#### Prop Merging and Prop Selection
 
-Event handlers from both components are called in child to parent order. In this case, `handleButtonClick` will be called first, followed by `handleContainerClick`.
+The render prop system allows you to select which props to pass to the child element at runtime, and pick only a subset of the props that you need.
 
 ```tsx
-<Container asChild onClick={handleContainerClick}>
-  <MyComponent onClick={handleButtonClick}>Click me</MyComponent>
+import {mergeProps} from 'react-aria';
+
+// ✅ You decide how and which props get merged
+<Container onClick={handleContainerClick}>
+  {layoutProps => {
+    const buttonProps = {onClick: handleButtonClick, disabled: false};
+    const mergedProps = mergeProps(layoutProps, buttonProps);
+    return <button {...mergedProps}>Click me</button>;
+  }}
 </Container>
-// handleButtonClick will be called first, followed by handleContainerClick
+
+// ❌ You don't have control over which props are passed to the child element.
+<Container asChild>
+  <ComponentWithIncompatibleProps/>
+</Container>
 ```
