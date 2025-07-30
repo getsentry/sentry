@@ -260,3 +260,113 @@ def query_recent_feedbacks_with_ai_labels(
         referrer="api.organization-issue-replay-count",  # TODO: Change this
         use_cache=True,
     )
+
+
+def query_given_labels_by_feedback_count(
+    organization_id: int,
+    project_ids: list[int],
+    start: datetime,
+    end: datetime,
+    labels: list[str],
+):
+    """
+    Query how many feedbacks have each of the given `labels`.
+
+    Very similar to the query that finds the top labels, but we do a check to ensure that the label is in the list of labels that we want.
+    If the label is not in the list of labels that we want, it is not included in the result (so no entries are returned with count 0)
+    """
+
+    dataset = Dataset.IssuePlatform
+
+    snuba_request = Request(
+        dataset=dataset.value,
+        app_id="replay-backend-web",
+        tenant_ids={"organization_id": organization_id},
+        query=Query(
+            match=Entity(dataset.value),
+            select=[
+                Function("count", [], "count"),
+                Function(
+                    "arrayJoin",
+                    parameters=[
+                        Function(
+                            "arrayMap",
+                            parameters=[
+                                Lambda(
+                                    ["tup"],
+                                    Function(
+                                        "tupleElement",
+                                        parameters=[
+                                            Identifier("tup"),
+                                            2,
+                                        ],
+                                    ),
+                                ),
+                                Function(
+                                    "arrayFilter",
+                                    parameters=[
+                                        Lambda(
+                                            ["tup"],
+                                            Function(
+                                                "and",
+                                                parameters=[
+                                                    Function(
+                                                        "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
+                                                        parameters=[
+                                                            Function(
+                                                                "tupleElement",
+                                                                parameters=[
+                                                                    Identifier("tup"),
+                                                                    1,
+                                                                ],  # Returns the first tuple element (tag's key)
+                                                            ),
+                                                            AI_LABEL_TAG_PREFIX,
+                                                        ],
+                                                    ),
+                                                    Function(  # Checks that the value (label) is in the list of labels that we want
+                                                        "in",
+                                                        parameters=[
+                                                            Function(
+                                                                "tupleElement",
+                                                                parameters=[
+                                                                    Identifier("tup"),
+                                                                    2,  # Gets the value
+                                                                ],
+                                                            ),
+                                                            labels,
+                                                        ],
+                                                    ),
+                                                ],
+                                            ),
+                                        ),
+                                        Function(
+                                            "arrayZip",
+                                            parameters=[
+                                                Column("tags.key"),
+                                                Column("tags.value"),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        )
+                    ],
+                    alias="tags_value",
+                ),
+            ],
+            where=[
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("project_id"), Op.IN, project_ids),
+            ],
+            groupby=[  # XXX: Grouped by an alias defined in select, is this ok?
+                Column("tags_value"),
+            ],
+        ),
+    )
+
+    return raw_snql_query(
+        snuba_request,
+        referrer="api.organization-issue-replay-count",  # TODO: Change this
+        use_cache=True,
+    )

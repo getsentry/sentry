@@ -18,6 +18,7 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
 from sentry.feedback.query import (
+    query_given_labels_by_feedback_count,
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
@@ -119,6 +120,21 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         - A list of projects
         - The date range that they were first seen in (defaults to the last 7 days)
 
+        If the request is successful, the return format is:
+        {
+            "categories": [
+                {
+                    "primary_label": str,
+                    "associated_labels": list[str],
+                    "feedback_count": int,
+                }
+                ...
+            ],
+            "success": True,
+            "numFeedbacksContext": int,
+        }
+        It is returned as a list to preserve the order of the categories. It is returned in the order of feedback count.
+
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
         :qparam string statsPeriod: filter feedbacks by date range (e.g. "14d")
@@ -154,14 +170,14 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         categories_cache = cache.get(categorization_cache_key)
         if categories_cache:
-            # categories is of the form {primary_label: {"number_of_feedbacks": int, "associated_labels": list[str]}}
-            return Response(
-                {
-                    "categories": categories_cache["categories"],
-                    "success": True,
-                    "numFeedbacksContext": categories_cache["numFeedbacksContext"],
-                }
-            )
+            # return Response(
+            #     {
+            #         "categories": categories_cache["categories"],
+            #         "success": True,
+            #         "numFeedbacksContext": categories_cache["numFeedbacksContext"],
+            #     }
+            # )
+            pass
 
         recent_feedbacks = query_recent_feedbacks_with_ai_labels(
             organization_id=organization.id,
@@ -171,15 +187,15 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             count=MAX_FEEDBACKS_CONTEXT,
         )["data"]
 
-        if len(recent_feedbacks) < MIN_FEEDBACKS_CONTEXT:
-            logger.error("Too few feedbacks to generate categories")
-            return Response(
-                {
-                    "categories": None,
-                    "success": False,
-                    "numFeedbacksContext": 0,
-                }
-            )
+        # if len(recent_feedbacks) < MIN_FEEDBACKS_CONTEXT:
+        #     logger.error("Too few feedbacks to generate categories")
+        #     return Response(
+        #         {
+        #             "categories": None,
+        #             "success": False,
+        #             "numFeedbacksContext": 0,
+        #         }
+        #     )
 
         context_feedbacks = []
         total_chars = 0
@@ -206,11 +222,47 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         )
 
         try:
-            categories = json.loads(make_seer_request(seer_request).decode("utf-8"))
-            categories = categories["data"]
+            label_groups = json.loads(make_seer_request(seer_request).decode("utf-8"))
+            # categories is dict[str, list[str]] where the key is the primary label and the value is the list of associated labels
+            label_groups = label_groups["data"]
         except Exception:
             logger.exception("Error generating categories of user feedbacks")
             return Response({"detail": "Error generating categories"}, status=500)
+
+        # Gets all labels (primary and associated) that are in categories
+        all_labels = []
+        for key, group in label_groups.items():
+            all_labels.extend([key] + group)
+
+        # Based on the 10 groups, we need to find the top 3-4 groups that have the most feedbacks
+        feedback_counts_by_label_list = query_given_labels_by_feedback_count(
+            organization_id=organization.id,
+            project_ids=[project.id for project in projects],
+            start=start,
+            end=end,
+            labels=all_labels,
+        )["data"]
+
+        # Convert feedback_counts_by_label_list to a dict[str, int] where the key is the label and the value is the number of feedbacks
+        feedback_counts_by_label = {
+            val["tags_value"]: val["count"] for val in feedback_counts_by_label_list
+        }
+
+        categories = []
+        for key, group in label_groups.items():
+            primary_feedback_count = feedback_counts_by_label.get(key, 0)
+            associated_feedback_count = sum(
+                feedback_counts_by_label.get(label, 0) for label in group
+            )
+            categories.append(
+                {
+                    "primary_label": key,
+                    "associated_labels": group,
+                    "feedback_count": primary_feedback_count + associated_feedback_count,
+                }
+            )
+        categories.sort(key=lambda x: x["feedback_count"], reverse=True)
+        categories = categories[:4]  # Get at most 4 categories
 
         cache.set(
             categorization_cache_key,
@@ -228,6 +280,8 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
 
 def make_seer_request(request: LabelGroupsRequest) -> bytes:
+    return b'{"data": {"User Interface": ["User Interface", "UI"], "Performance": ["Performance", "Performance Issue"]}}'
+
     serialized_request = json.dumps(request)
 
     response = requests.post(
