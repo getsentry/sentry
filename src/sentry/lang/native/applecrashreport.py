@@ -23,16 +23,45 @@ class AppleCrashReport:
     def __init__(
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
     ):
+        self.time_spent_parsing_addrs = 0.0
         self.threads = threads
         self.context = context
         self.debug_images = debug_images
         self.symbolicated = symbolicated
         self.exceptions = exceptions
-        self.time_spent_parsing_addrs = 0.0
+        self.image_addrs_to_vmaddrs = {}
+
+        # Replace sundry addresses in frames and debug images by their
+        # parsed versions.
+        ts = (self.exceptions or []) + (self.threads or [])
+        for t in ts:
+            frames = get_path(t, "stacktrace", "frames", filter=True) or []
+            for f in frames:
+                if addr := f.pop("instruction_addr", None):
+                    f["instruction_addr"] = self._parse_addr(addr)
+                if addr := f.pop("symbol_addr", None):
+                    f["symbol_addr"] = self._parse_addr(addr)
+                if addr := f.pop("image_addr", None):
+                    f["image_addr"] = self._parse_addr(addr)
+
+        for i in self.debug_images or []:
+            image_addr = None
+            image_vmaddr = None
+            if addr := i.pop("image_addr", None):
+                image_addr = self._parse_addr(addr)
+                i["image_addr"] = image_addr
+            if addr := i.pop("image_vmaddr", None):
+                image_vmaddr = self._parse_addr(addr)
+                i["image_vmaddr"] = image_vmaddr
+
+            # If the image has both an `image_addr` and an `image_vmaddr`
+            # save the mapping between the two. This will be used in
+            # `_get_slide_value`.
+            if image_addr is not None and image_vmaddr is not None:
+                self.image_addrs_to_vmaddrs[image_addr] = image_vmaddr
 
     @sentry_sdk.trace
     def __str__(self):
-        self.time_spent_parsing_addrs = 0.0
         rv = []
         rv.append(self._get_meta_header())
         rv.append(self._get_exception_info())
@@ -221,19 +250,19 @@ class AppleCrashReport:
         return thread_string + "\n".join(rv)
 
     def _convert_frame_to_apple_string(self, frame, next=None, number=0):
-        if frame.get("instruction_addr") is None:
+        if "instruction_addr" not in frame:
             return None
-        slide_value = self._get_slide_value(frame.get("image_addr"))
-        instruction_addr = slide_value + self._parse_addr(frame.get("instruction_addr"))
-        image_addr = slide_value + self._parse_addr(frame.get("image_addr"))
+        frame_instruction_addr = frame["instruction_addr"]
+        frame_image_addr = frame.get("image_addr", 0)
+        slide_value = self._get_slide_value(frame_image_addr)
+        instruction_addr = slide_value + frame_instruction_addr
+        image_addr = slide_value + frame_image_addr
         offset = ""
         if frame.get("image_addr") is not None and (
             not self.symbolicated
             or (frame.get("function") or NATIVE_UNKNOWN_STRING) == NATIVE_UNKNOWN_STRING
         ):
-            offset = " + %s" % (
-                instruction_addr - slide_value - self._parse_addr(frame.get("symbol_addr"))
-            )
+            offset = " + %s" % (instruction_addr - slide_value - frame.get("symbol_addr", 0))
         symbol = hex(image_addr)
         if self.symbolicated:
             file = ""
@@ -243,9 +272,7 @@ class AppleCrashReport:
                     frame["lineno"],
                 )
             symbol = "{}{}".format(frame.get("function") or NATIVE_UNKNOWN_STRING, file)
-            if next and self._parse_addr(frame.get("instruction_addr")) == self._parse_addr(
-                next.get("instruction_addr")
-            ):
+            if next and frame_instruction_addr == next.get("instruction_addr", 0):
                 symbol = "[inlined] " + symbol
         return "{}{}{}{}{}".format(
             str(number).ljust(4, " "),
@@ -256,11 +283,7 @@ class AppleCrashReport:
         )
 
     def _get_slide_value(self, image_addr):
-        if self.debug_images:
-            for debug_image in self.debug_images:
-                if self._parse_addr(debug_image.get("image_addr")) == self._parse_addr(image_addr):
-                    return self._parse_addr(debug_image.get("image_vmaddr", 0))
-        return 0
+        return self.image_addrs_to_vmaddrs.get(image_addr, 0)
 
     @sentry_sdk.trace
     def get_binary_images_apple_string(self):
@@ -271,14 +294,14 @@ class AppleCrashReport:
             lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
             sorted(
                 filter(lambda i: "image_addr" in i, self.debug_images),
-                key=lambda i: self._parse_addr(i["image_addr"]),
+                key=lambda i: i["image_addr"],
             ),
         )
         return "Binary Images:\n" + "\n".join(binary_images)
 
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
-        slide_value = self._parse_addr(debug_image.get("image_vmaddr", 0))
-        image_addr = self._parse_addr(debug_image["image_addr"]) + slide_value
+        slide_value = debug_image.get("image_vmaddr", 0)
+        image_addr = debug_image["image_addr"] + slide_value
         return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
             hex(image_addr + debug_image["image_size"] - 1),
