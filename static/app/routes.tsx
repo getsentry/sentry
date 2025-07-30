@@ -1728,7 +1728,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
-      deprecatedRouteProps: true,
     },
   ];
   const replayRoutes: SentryRouteObject = {
