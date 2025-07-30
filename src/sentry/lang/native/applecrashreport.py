@@ -28,11 +28,11 @@ class AppleCrashReport:
         self.debug_images = debug_images
         self.symbolicated = symbolicated
         self.exceptions = exceptions
-        self.time_spent_parsing_addrs = 0
+        self.time_spent_parsing_addrs = 0.0
 
     @sentry_sdk.trace
     def __str__(self):
-        self.time_spent_parsing_addrs = 0
+        self.time_spent_parsing_addrs = 0.0
         rv = []
         rv.append(self._get_meta_header())
         rv.append(self._get_exception_info())
