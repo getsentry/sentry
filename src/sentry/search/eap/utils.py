@@ -35,7 +35,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.search.events.types import SAMPLING_MODES
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta
 from sentry.utils import json
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
@@ -200,7 +200,7 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
 
 
-def set_debug_meta(events_meta: Any, rpc_meta: ResponseMeta) -> None:
+def set_debug_meta(events_meta: EventsMeta, rpc_meta: ResponseMeta) -> None:
     rpc_meta_json = json.loads(MessageToJson(rpc_meta))
     query_info = rpc_meta_json.get("query_info", [])
 
@@ -211,9 +211,9 @@ def set_debug_meta(events_meta: Any, rpc_meta: ResponseMeta) -> None:
     # Check if query_info list is not empty before accessing elements
     if query_info and len(query_info) > 0:
         if query_info[0]["stats"]:
-            events_meta["query_info"]["stats"] = query_info[0].stats
-        if query_info[0].trace_logs:
-            events_meta["query_info"]["trace_logs"] = query_info[0].trace_logs
+            events_meta["query_info"]["stats"] = query_info[0]["stats"]
+        if query_info[0]["trace_logs"]:
+            events_meta["query_info"]["trace_logs"] = query_info[0]["trace_logs"]
 
 
 def is_sentry_convention_replacement_attribute(
