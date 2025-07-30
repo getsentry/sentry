@@ -203,6 +203,7 @@ class UserSerializer(Serializer):
             stacktrace_order = _SerializedStacktraceOrder(
                 int(
                     options.get("stacktrace_order", StacktraceOrder.DEFAULT)
+                    # TODO: This second `or` won't be necessary once we remove empty strings from the DB
                     or StacktraceOrder.DEFAULT
                 )
             )
