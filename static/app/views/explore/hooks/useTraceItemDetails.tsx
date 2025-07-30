@@ -15,8 +15,6 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
-export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT = 200;
-
 interface UseTraceItemDetailsProps {
   /**
    * Every trace item belongs to a project.
@@ -147,12 +145,17 @@ export function usePrefetchTraceItemDetailsOnHover({
   referrer,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
+  timeout,
 }: UseTraceItemDetailsProps & {
   /**
    * A ref to a shared timeout so multiple hover events can be handled
    * without creating multiple timeouts and firing multiple prefetches.
    */
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  /**
+   * Custom timeout for the prefetched item.
+   */
+  timeout: number;
   /**
    * Whether the hover prefetch should be disabled.
    */
@@ -184,7 +187,7 @@ export function usePrefetchTraceItemDetailsOnHover({
           queryFn: fetchDataQuery,
           staleTime: Infinity, // Prefetched items are never stale as the row is either entirely stored or not stored at all.
         });
-      }, DEFAULT_TRACE_ITEM_HOVER_TIMEOUT);
+      }, timeout);
     },
     onHoverEnd: () => {
       if (sharedHoverTimeoutRef.current) {
