@@ -39,16 +39,16 @@ class AppleCrashReport:
             frames = get_path(t, "stacktrace", "frames", filter=True) or []
             for f in frames:
                 for key in ["instruction_addr", "image_addr", "symbol_addr"]:
-                    if key in f:
+                    if f.get(key, None) is not None:
                         f[key] = self._parse_addr(f[key])
 
         for i in self.debug_images or []:
             image_addr = None
             image_vmaddr = None
-            if "image_addr" in i:
+            if i.get("image_addr", None) is not None:
                 image_addr = self._parse_addr(i["image_addr"])
                 i["image_addr"] = image_addr
-            if "image_vmaddr" in i:
+            if i.get("image_vmaddr", None) is not None:
                 image_vmaddr = self._parse_addr(i["image_vmaddr"])
                 i["image_vmaddr"] = image_vmaddr
 
@@ -248,7 +248,7 @@ class AppleCrashReport:
         return thread_string + "\n".join(rv)
 
     def _convert_frame_to_apple_string(self, frame, next=None, number=0):
-        if "instruction_addr" not in frame:
+        if frame.get("instruction_addr", None) is None:
             return None
         frame_instruction_addr = frame["instruction_addr"]
         frame_image_addr = frame.get("image_addr", 0)
