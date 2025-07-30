@@ -1,8 +1,13 @@
+import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
 
@@ -15,6 +20,7 @@ describe('LogsPage', function () {
     },
   });
 
+  ProjectsStore.loadInitialData([project]);
   PageFiltersStore.init();
   PageFiltersStore.onInitializeUrlState(
     {
@@ -30,6 +36,7 @@ describe('LogsPage', function () {
   beforeEach(function () {
     organization.features = BASE_FEATURES;
     MockApiClient.clearMockResponses();
+
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -291,29 +298,53 @@ describe('LogsPage', function () {
   });
 
   it('pauses auto-refresh when row is clicked', async function () {
-    const {organization: newOrganization} = initializeOrg({
+    const {organization: newOrganization, project: newProject} = initializeOrg({
       organization: {
         features: [...BASE_FEATURES, 'ourlogs-infinite-scroll', 'ourlogs-live-refresh'],
       },
     });
 
+    ProjectsStore.loadInitialData([newProject]);
+
+    const rowData = LogFixture({
+      [OurLogKnownFieldKey.ID]: '1',
+      [OurLogKnownFieldKey.PROJECT_ID]: newProject.id,
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(newOrganization.id),
+      [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
+      [OurLogKnownFieldKey.MESSAGE]: 'some log message',
+      [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 100,
+      [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+      [OurLogKnownFieldKey.SEVERITY]: 'info',
+    });
+
+    const rowDetails = Object.entries(rowData).map(
+      ([k, v]) =>
+        ({
+          name: k,
+          value: v,
+          type: typeof v === 'string' ? 'str' : 'float',
+        }) as TraceItemResponseAttribute
+    );
+
     MockApiClient.addMockResponse({
       url: `/organizations/${newOrganization.slug}/events/`,
       method: 'GET',
       body: {
-        data: [
-          {
-            'sentry.item_id': '1',
-            'project.id': 1,
-            trace: 'trace1',
-            severity_number: 9,
-            severity_text: 'info',
-            timestamp: '2025-04-10T19:21:12+00:00',
-            message: 'some log message',
-            'tags[sentry.timestamp_precise,number]': 100,
-          },
-        ],
+        data: [rowData],
         meta: {fields: {}, units: {}},
+      },
+    });
+
+    const rowDetailsMock = MockApiClient.addMockResponse({
+      url: `/projects/${newOrganization.slug}/${newProject.slug}/trace-items/${rowData[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      body: {
+        itemId: rowData[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: LogFixtureMeta(rowData),
+        timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: rowDetails,
       },
     });
 
@@ -328,14 +359,21 @@ describe('LogsPage', function () {
         },
       },
     });
+
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
     });
 
+    expect(rowDetailsMock).not.toHaveBeenCalled();
+
     const row = screen.getByText('some log message');
     await userEvent.click(row);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalled();
+    });
 
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
