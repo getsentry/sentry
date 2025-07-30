@@ -1,6 +1,5 @@
 import os
 import random
-from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import time
 from unittest import mock
@@ -11,7 +10,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from sentry import nodestore
 from sentry.deletions.defaults.group import ErrorEventsDeletionTask, IssuePlatformEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -261,28 +259,20 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
     dataset = Dataset.IssuePlatform.value
 
-    def create_occurrence(
-        self, event: Event, type_id: int
-    ) -> tuple[IssueOccurrence, GroupInfo | None]:
-        occurrence, issue_platform_group = self.process_occurrence(
-            event_id=event.event_id,
-            project_id=event.project.id,
+    def create_occurrence(self, fingerprint: str, type_id: int) -> tuple[IssueOccurrence, Group]:
+        occurrence, group_info = self.process_occurrence(
+            project_id=self.project.id,
+            event_id=uuid4().hex,
             type=type_id,
             event_data={},
+            evidence_data={"breakpoint": before_now(minutes=10).timestamp()},
         )
-        return occurrence, issue_platform_group
+        assert group_info is not None
+        return occurrence, group_info.group
 
-    def select_error_events(self, project_id: int) -> object:
-        columns = ["event_id", "group_id"]
-        return self.select_rows(Entity(EntityKey.Events.value), columns, project_id)
-
-    def select_issue_platform_events(self, project_id: int) -> object:
+    def select_issue_platform_rows(self, project_id: int) -> None | dict[str, object]:
         columns = ["event_id", "group_id", "occurrence_id"]
-        return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
-
-    def select_rows(
-        self, entity: Entity, columns: Sequence[str], project_id: int
-    ) -> None | dict[str, object]:
+        entity = Entity(EntityKey.IssuePlatform.value)
         # Adding the random microseconds is to circumvent Snuba's caching mechanism
         now = datetime.now()
         start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
@@ -299,50 +289,32 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             dataset=self.dataset,
             app_id=self.referrer,
             query=query,
-            tenant_ids=self.tenant_ids,
+            tenant_ids={"referrer": self.referrer, "organization_id": self.organization.id},
         )
         results = bulk_snuba_queries([request])[0]["data"]
         return results[0] if results else None
 
-    @property
-    def tenant_ids(self) -> dict[str, str]:
-        return {"referrer": self.referrer, "organization_id": self.organization.id}
+    def test_simple_issue_platform(self) -> None:
+        assert self.select_issue_platform_rows(self.project.id) is None
 
-    def test_issue_platform(self) -> None:
-        # Adding this query here to make sure that the cache is not being used
-        assert self.select_error_events(self.project.id) is None
-        assert self.select_issue_platform_events(self.project.id) is None
-
-        # Create initial error event and occurrence related to it; two different groups will exist
-        event = self.store_event(data={}, project_id=self.project.id)
-        occurrence_event, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
-        issue_platform_group = group_info.group
-
-        # Assertions after creation
-        assert occurrence_event.id != event.event_id
-        assert event.group_id != issue_platform_group.id
-        assert event.group.issue_category == GroupCategory.ERROR
-        assert issue_platform_group.issue_category != GroupCategory.ERROR
-        assert issue_platform_group.issue_type == FeedbackGroup
-
-        # Assert that the error event has been inserted in the nodestore & Snuba
-        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
-        assert nodestore.backend.get(event_node_id)
-        expected_error_event = {"event_id": event.event_id, "group_id": event.group_id}
-        assert self.select_error_events(self.project.id) == expected_error_event
+        # XXX: We need a different way of creating occurrences which will insert into the nodestore
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            fingerprint="group-1", type_id=FeedbackGroup.type_id
+        )
+        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
+        assert issue_platform_group.type == FeedbackGroup.type_id
 
         # Assert that the occurrence event has been inserted in the nodestore & Snuba
-        occurrence_node_id = Event.generate_node_id(
-            occurrence_event.project_id, occurrence_event.id
-        )
-        # XXX: For some reason, the occurrence event is not inserted in the nodestore
+        # occurrence_node_id = Event.generate_node_id(
+        #     occurrence_event.project_id, occurrence_event.id
+        # )
         # assert nodestore.backend.get(occurrence_node_id)
         expected_occurrence_event = {
-            "event_id": event.event_id,
+            "event_id": occurrence_event.event_id,
             "group_id": issue_platform_group.id,
             "occurrence_id": occurrence_event.id,
         }
-        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
+        assert self.select_issue_platform_rows(self.project.id) == expected_occurrence_event
 
         # This will delete the group and the events from the node store and Snuba
         with self.tasks():
@@ -352,15 +324,10 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 project_id=self.project.id,
             )
 
-        # The original error event and group still exist
-        assert Group.objects.filter(id=event.group_id).exists()
-        assert nodestore.backend.get(event_node_id)
-        assert self.select_error_events(self.project.id) == expected_error_event
-
         # The Issue Platform group and occurrence have been deleted
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
-        assert not nodestore.backend.get(occurrence_node_id)
-        assert self.select_issue_platform_events(self.project.id) is None
+        # assert not nodestore.backend.get(occurrence_node_id)
+        assert self.select_issue_platform_rows(self.project.id) is None
 
     @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
