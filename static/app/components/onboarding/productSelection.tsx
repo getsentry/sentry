@@ -228,6 +228,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
+  'node-cloudflare-workers': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-pages': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
