@@ -13,13 +13,13 @@ class VstsExtensionConfigurationTest(TestCase):
     def path(self):
         return reverse("vsts-extension-configuration")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 
         self.create_member(user_id=self.user.id, organization=self.org, role="admin")
 
-    def test_logged_in_one_org(self):
+    def test_logged_in_one_org(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path, {"targetId": "1", "targetName": "foo"})
@@ -30,7 +30,7 @@ class VstsExtensionConfigurationTest(TestCase):
             "https://app.vssps.visualstudio.com/oauth2/authorize"
         )
 
-    def test_logged_in_many_orgs(self):
+    def test_logged_in_many_orgs(self) -> None:
         self.login_as(self.user)
 
         org = self.create_organization()
@@ -41,7 +41,7 @@ class VstsExtensionConfigurationTest(TestCase):
         assert resp.status_code == 302
         assert "/extensions/vsts/link/" in resp.headers["Location"]
 
-    def test_choose_org(self):
+    def test_choose_org(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(
@@ -53,7 +53,7 @@ class VstsExtensionConfigurationTest(TestCase):
             "https://app.vssps.visualstudio.com/oauth2/authorize"
         )
 
-    def test_logged_out(self):
+    def test_logged_out(self) -> None:
         query = {"targetId": "1", "targetName": "foo"}
         resp = self.client.get(self.path, query)
 
@@ -67,7 +67,7 @@ class VstsExtensionConfigurationTest(TestCase):
         assert dict(parse_qsl(next_parts.query)) == query
 
     @override_settings(SENTRY_FEATURES={})
-    def test_goes_to_setup_unregisted_feature(self):
+    def test_goes_to_setup_unregisted_feature(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path, {"targetId": "1", "targetName": "foo"})
@@ -77,7 +77,7 @@ class VstsExtensionConfigurationTest(TestCase):
             "https://app.vssps.visualstudio.com/oauth2/authorize"
         )
 
-    def test_missing_parameters(self):
+    def test_missing_parameters(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path, {"targetId": "1"})
@@ -88,7 +88,7 @@ class VstsExtensionConfigurationTest(TestCase):
         assert resp.status_code == 200
         assert b"Missing required targetId parameter" in resp.content
 
-    def test_invalid_account_name(self):
+    def test_invalid_account_name(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path, {"targetId": "1", "targetName": "example.com/"})

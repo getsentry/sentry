@@ -39,7 +39,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class RuleMigrationHelpersTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},
@@ -114,7 +114,7 @@ class RuleMigrationHelpersTestBase(TestCase):
 
 
 class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
-    def test_rule_snooze_updates_workflow(self):
+    def test_rule_snooze_updates_workflow(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         rule_snooze = RuleSnooze.objects.create(rule=self.issue_alert)
 
@@ -128,7 +128,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         workflow.refresh_from_db()
         assert workflow.enabled is True
 
-    def test_ignores_per_user_rule_snooze(self):
+    def test_ignores_per_user_rule_snooze(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
@@ -138,7 +138,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         workflow.refresh_from_db()
         assert workflow.enabled is True
 
-    def test_update_issue_alert(self):
+    def test_update_issue_alert(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         conditions_payload = [
             {
@@ -206,7 +206,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         action = dcg_actions.action
         assert action.type == Action.Type.PLUGIN  # tested fully in test_migrate_rule_action.py
 
-    def test_update_issue_alert__none_match(self):
+    def test_update_issue_alert__none_match(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         conditions_payload = [
             {
@@ -248,7 +248,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
         assert if_dcg.logic_type == DataConditionGroup.Type.ALL
 
-    def test_update_issue_alert__with_conditions(self):
+    def test_update_issue_alert__with_conditions(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         rule_data = self.issue_alert.data
@@ -283,7 +283,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
             "filters": self.expected_filters,
         }
 
-    def test_required_fields_only(self):
+    def test_required_fields_only(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         # None fields are not updated
 
@@ -328,7 +328,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         filters = DataCondition.objects.filter(condition_group=if_dcg)
         assert filters.count() == 0
 
-    def test_invalid_frequency(self):
+    def test_invalid_frequency(self) -> None:
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         self.issue_alert.data["frequency"] = -1
         self.issue_alert.save()
@@ -337,7 +337,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
 
 
 class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
@@ -360,13 +360,13 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
         assert not Action.objects.all().exists()
 
-    def test_delete_issue_alert(self):
+    def test_delete_issue_alert(self) -> None:
         delete_migrated_issue_alert(self.issue_alert)
 
         self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_delete_issue_alert__rule_deletion_task(self):
+    def test_delete_issue_alert__rule_deletion_task(self) -> None:
         self.issue_alert.update(status=ObjectStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(self.issue_alert, days=0)
 
@@ -376,7 +376,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_delete_issue_alert__project_deletion_task(self):
+    def test_delete_issue_alert__project_deletion_task(self) -> None:
         self.project.update(status=ObjectStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(self.project, days=0)
 
@@ -386,7 +386,7 @@ class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
         self.assert_issue_alert_deleted(self.workflow, self.when_dcg, self.if_dcg)
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_delete_issue_alert__org_deletion_task(self):
+    def test_delete_issue_alert__org_deletion_task(self) -> None:
         self.organization.update(status=ObjectStatus.PENDING_DELETION)
         RegionScheduledDeletion.schedule(self.organization, days=0)
 

@@ -389,6 +389,7 @@ class OrganizationExamples:
                         "hasInsightsLlmMonitoring": False,
                         "hasInsightsAgentMonitoring": False,
                         "hasInsightsMCP": False,
+                        "hasLogs": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
@@ -453,6 +454,7 @@ class OrganizationExamples:
                     "hasInsightsLlmMonitoring": False,
                     "hasInsightsAgentMonitoring": False,
                     "hasInsightsMCP": False,
+                    "hasLogs": False,
                     "latestRelease": None,
                 }
             ],

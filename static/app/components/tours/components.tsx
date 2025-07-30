@@ -107,37 +107,27 @@ export function TourContextProvider<T extends TourEnumType>({
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 
-  const tourHotkeys = useMemo(() => {
-    if (!isTourActive) {
-      return [];
-    }
-
-    return [
-      {
-        match: 'Escape',
-        callback: () => {
-          if (tourKey) {
-            mutate({guide: tourKey, status: 'dismissed'});
-          }
-          trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
-          endTour();
-        },
-      },
-      {match: ['left', 'h'], callback: () => previousStep()},
-      {match: ['right', 'l'], callback: () => nextStep()},
-    ];
-  }, [
-    isTourActive,
-    tourKey,
-    organization,
-    currentStepId,
-    endTour,
-    mutate,
-    previousStep,
-    nextStep,
-  ]);
-
-  useHotkeys(tourHotkeys);
+  useHotkeys(
+    isTourActive
+      ? [
+          {
+            match: 'Escape',
+            callback: () => {
+              if (tourKey) {
+                mutate({guide: tourKey, status: 'dismissed'});
+              }
+              trackAnalytics('tour-guide.dismiss', {
+                organization,
+                id: `${currentStepId}`,
+              });
+              endTour();
+            },
+          },
+          {match: ['left', 'h'], callback: () => previousStep()},
+          {match: ['right', 'l'], callback: () => nextStep()},
+        ]
+      : []
+  );
 
   useEffect(() => {
     if (isTourActive && tourKey) {

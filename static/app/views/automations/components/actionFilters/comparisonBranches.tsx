@@ -67,13 +67,13 @@ function ComparisonIntervalField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${condition_id}.comparison.comparison_interval`}
+      name={`${condition_id}.comparison.comparisonInterval`}
       aria-label={t('Comparison interval')}
-      value={condition.comparison.comparison_interval}
+      value={condition.comparison.comparisonInterval}
       options={COMPARISON_INTERVAL_CHOICES}
       onChange={(option: SelectValue<string>) => {
         onUpdate({
-          comparison: {...condition.comparison, comparison_interval: option.value},
+          comparison: {...condition.comparison, comparisonInterval: option.value},
         });
         removeError(condition.id);
       }}

@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class TestInternalEAFeaturesEndpoint(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(is_superuser=True)
         path = reverse("sentry-api-0-internal-ea-features")
 

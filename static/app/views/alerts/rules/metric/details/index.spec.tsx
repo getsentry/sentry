@@ -10,7 +10,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics');
 
@@ -242,5 +242,52 @@ describe('MetricAlertDetails', () => {
     expect(button).toBeInTheDocument();
     expect(button).toBeEnabled();
     expect(button).toHaveAttribute('href', expect.stringContaining('dataset=errors'));
+  });
+
+  it('disables duplicate button if deprecation flag is on', async () => {
+    const {organization, routerProps} = initializeOrg({
+      organization: {
+        features: ['discover-basic', 'performance-transaction-deprecation-alerts'],
+      },
+    });
+    const rule = MetricRuleFixture({
+      projects: [project.slug],
+      dataset: Dataset.TRANSACTIONS,
+      eventTypes: [EventTypes.TRANSACTION],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [],
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        {...routerProps}
+        params={{ruleId: rule.id}}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByText(rule.name)).toBeInTheDocument();
+
+    expect(await screen.findByRole('button', {name: 'Duplicate'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

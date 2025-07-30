@@ -100,11 +100,12 @@ def add_org_key(default_organization, relay):
 
 
 @pytest.fixture
-def no_internal_networks(monkeypatch):
+def no_internal_networks():
     """
     Disable is_internal_ip functionality (make all requests appear to be from external networks)
     """
-    monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
+    with patch("sentry.auth.system.INTERNAL_NETWORKS", ()):
+        yield
 
 
 @django_db_all
@@ -205,10 +206,10 @@ def test_untrusted_external_relays_should_not_receive_configs(call_endpoint, no_
 
 
 @pytest.fixture
-def projectconfig_cache_set(monkeypatch):
+def projectconfig_cache_set():
     calls: list[dict[str, Any]] = []
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
-    return calls
+    with patch("sentry.relay.projectconfig_cache.backend.set_many", calls.append):
+        yield calls
 
 
 @django_db_all

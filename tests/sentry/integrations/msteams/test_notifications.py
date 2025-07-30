@@ -83,7 +83,7 @@ class MSTeamsNotificationTest(TestCase):
             user=self.user_1, identity_provider=self.idp, external_id=self.user_id_1
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_simple(
@@ -205,12 +205,12 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
             content_type="application/json",
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._setup_msteams_api()
 
     @responses.activate
-    def test_send_note_activity_notification(self):
+    def test_send_note_activity_notification(self) -> None:
         notification = NoteActivityNotification(
             Activity(
                 project=self.project,

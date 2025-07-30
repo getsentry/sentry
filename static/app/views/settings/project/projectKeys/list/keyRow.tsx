@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 
@@ -44,6 +45,8 @@ function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
+  const showOtlp =
+    useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
 
   return (
     <Panel>
@@ -96,6 +99,7 @@ function KeyRow({
           <ProjectKeyCredentials
             projectId={`${data.projectId}`}
             data={data}
+            showOtlp={showOtlp}
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}

@@ -54,14 +54,9 @@ export default function ReplayBulkDeleteAuditLogTable({
                 </dd>
                 <dt>{t('Date Range')}</dt>
                 <dd>
-                  <code>
-                    <DateTime date={row.rangeStart} />
-                  </code>
+                  <code>{row.rangeStart}</code>
                   <br />
-
-                  <code>
-                    <DateTime date={row.rangeEnd} />
-                  </code>
+                  <code>{row.rangeEnd}</code>
                 </dd>
                 <dt>{t('Environments')}</dt>
                 <dd>

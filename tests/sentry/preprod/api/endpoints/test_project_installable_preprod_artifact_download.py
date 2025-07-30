@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.file = self.create_file(
@@ -41,7 +41,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         path = url_path or self.installable.url_path
         return f"/api/0/projects/{org}/{proj}/files/installablepreprodartifact/{path}/"
 
-    def test_download_ipa_success(self):
+    def test_download_ipa_success(self) -> None:
         url = self._get_url()
         response = self.client.get(url)
 
@@ -55,7 +55,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         self.installable.refresh_from_db()
         assert self.installable.download_count == 1
 
-    def test_download_plist_success(self):
+    def test_download_plist_success(self) -> None:
         url = self._get_url() + "?response_format=plist"
         response = self.client.get(url)
 
@@ -77,14 +77,14 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         self.installable.refresh_from_db()
         assert self.installable.download_count == initial_count
 
-    def test_installable_not_found(self):
+    def test_installable_not_found(self) -> None:
         url = self._get_url(url_path="nonexistent-path")
         response = self.client.get(url)
 
         assert response.status_code == 404
         assert response.json()["error"] == "Installable preprod artifact not found"
 
-    def test_installable_expired(self):
+    def test_installable_expired(self) -> None:
         self.installable.expiration_date = timezone.now() - timedelta(hours=1)
         self.installable.save()
 
@@ -94,7 +94,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         assert response.status_code == 410
         assert response.json()["error"] == "Install link expired"
 
-    def test_no_installable_file(self):
+    def test_no_installable_file(self) -> None:
         self.preprod_artifact.installable_app_file_id = None
         self.preprod_artifact.save()
 

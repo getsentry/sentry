@@ -4,7 +4,7 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
@@ -12,6 +12,8 @@ import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDete
 import {UptimeDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/uptime/detect';
 import {
   UPTIME_DETECTOR_FORM_FIELDS,
+  uptimeFormDataToEndpointPayload,
+  uptimeSavedDetectorToFormData,
   useUptimeDetectorFormField,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 
@@ -38,15 +40,23 @@ function UptimeDetectorForm() {
 
 export function NewUptimeDetectorForm() {
   return (
-    <NewDetectorLayout detectorType="uptime_domain_failure">
+    <NewDetectorLayout
+      detectorType="uptime_domain_failure"
+      formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
+      initialFormData={{}}
+    >
       <UptimeDetectorForm />
     </NewDetectorLayout>
   );
 }
 
-export function EditExistingUptimeDetectorForm({detector}: {detector: Detector}) {
+export function EditExistingUptimeDetectorForm({detector}: {detector: UptimeDetector}) {
   return (
-    <EditDetectorLayout detector={detector} detectorType="uptime_domain_failure">
+    <EditDetectorLayout
+      detector={detector}
+      formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
+      savedDetectorToFormData={uptimeSavedDetectorToFormData}
+    >
       <UptimeDetectorForm />
     </EditDetectorLayout>
   );

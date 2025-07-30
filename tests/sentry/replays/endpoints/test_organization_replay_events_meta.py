@@ -13,7 +13,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.login_as(user=self.user)
@@ -25,7 +25,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         )
         self.features = {"organizations:session-replay": True}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
 
@@ -87,7 +87,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         assert response.status_code == 200, response.content
         assert sorted(response.data["data"], key=lambda v: v["id"]) == expected
 
-    def test_rage_clicks(self):
+    def test_rage_clicks(self) -> None:
         event_id_a = "a" * 32
 
         _, group_info = self.process_occurrence(
@@ -128,7 +128,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         assert response.status_code == 200, response.content
         assert sorted(response.data["data"], key=lambda v: v["id"]) == expected
 
-    def test_timestamp_ms_none(self):
+    def test_timestamp_ms_none(self) -> None:
         """
         Test handling of null timestamp_ms values in events.
 

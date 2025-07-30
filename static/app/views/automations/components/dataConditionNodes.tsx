@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   type DataCondition,
   DataConditionType,
@@ -62,6 +61,7 @@ import {
   IssuePriorityNode,
   validateIssuePriorityCondition,
 } from 'sentry/views/automations/components/actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
@@ -202,6 +202,15 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       details: IssuePriorityDetails,
       defaultComparison: Priority.HIGH,
       validate: validateIssuePriorityCondition,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_PRIORITY_DEESCALATING,
+    {
+      label: t('De-escalation'),
+      dataCondition: IssuePriorityDeescalating,
+      details: IssuePriorityDeescalating,
+      validate: undefined,
     },
   ],
   [
@@ -374,7 +383,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
 
 function OccurenceBasedMonitorsWarning() {
   return (
-    <Flex direction="column" gap={space(1)}>
+    <Flex direction="column" gap="md">
       <WarningLine>
         {t('These filters will only apply to some of your monitors and triggers.')}
       </WarningLine>

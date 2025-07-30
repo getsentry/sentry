@@ -1,7 +1,7 @@
 from django.conf import settings
 
 
-def test_import_paths():
+def test_import_paths() -> None:
     for path in settings.CELERY_IMPORTS:
         try:
             __import__(path)

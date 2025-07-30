@@ -50,6 +50,8 @@ import contextlib
 import json  # NOQA
 import os
 import uuid
+from collections.abc import Callable, Generator
+from typing import Any
 
 import pytest
 from django.utils.functional import cached_property
@@ -57,6 +59,7 @@ from django.utils.functional import cached_property
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.utils.safe import get_path
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
@@ -68,11 +71,11 @@ _DELETE_KEYWORDS = [
 
 
 class CategorizationInput:
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @cached_property
-    def data(self):
+    def data(self) -> dict[str, Any]:
         with open(os.path.join(_fixture_path, self.filename)) as f:
             return _pre_scrub_event(json.load(f))
 
@@ -88,7 +91,7 @@ def get_config() -> StrategyConfiguration:
     return _CONFIG
 
 
-def get_stacktrace_render(data):
+def get_stacktrace_render(data: dict[str, Any]) -> str:
     """
     Platform agnostic stacktrace renderer with annotations
     """
@@ -127,7 +130,11 @@ INPUTS = [
 
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
-def test_categorization(input: CategorizationInput, insta_snapshot, track_enhancers_coverage):
+def test_categorization(
+    input: CategorizationInput,
+    insta_snapshot: InstaSnapshotter,
+    track_enhancers_coverage: Callable[[CategorizationInput], Any],
+) -> None:
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
     data = input.data
@@ -138,11 +145,15 @@ def test_categorization(input: CategorizationInput, insta_snapshot, track_enhanc
 
 
 @pytest.fixture(scope="session", autouse=True)
-def track_enhancers_coverage():
+def track_enhancers_coverage() -> (
+    Generator[
+        Callable[[CategorizationInput], contextlib._GeneratorContextManager[None, None, None]]
+    ]
+):
     ran_tests = {}
 
     @contextlib.contextmanager
-    def inner(input):
+    def inner(input: CategorizationInput) -> Generator[None]:
         ran_tests[input.filename] = True
         yield
 
@@ -208,7 +219,7 @@ def track_enhancers_coverage():
             )
 
 
-def _strip_sensitive_keys(data, keep_keys):
+def _strip_sensitive_keys(data: dict[str, Any], keep_keys: list[str]) -> bool:
     if not data:
         return False
 
@@ -234,7 +245,7 @@ def _strip_sensitive_keys(data, keep_keys):
     return keys_stripped
 
 
-def _pre_scrub_event(data):
+def _pre_scrub_event(data: dict[str, Any]) -> dict[str, Any]:
     # Make sure rules are only applied in exception interface. Otherwise one can:
     #
     # 1. Check in an event with a thread interface in event A1-4 and use it to exercise rules

@@ -20,6 +20,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
@@ -95,7 +96,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         },
         examples=TeamExamples.LIST_ORG_TEAMS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a list of teams bound to a organization.
         """

@@ -1,4 +1,5 @@
 import {ErrorDetectorFixture} from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -17,6 +18,16 @@ describe('ErrorDetectorDetails', function () {
       method: 'GET',
       body: ProjectFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A2&statsPeriod=14d',
+      method: 'GET',
+      body: [GroupFixture()],
+    });
   });
 
   describe('Resolve section', function () {
@@ -32,7 +43,7 @@ describe('ErrorDetectorDetails', function () {
       render(<ErrorDetectorDetails {...defaultProps} />);
 
       expect(
-        await screen.findByText('Auto-resolve after 30 days of inactivity')
+        await screen.findByText('Auto-resolve after 30 days of inactivity.')
       ).toBeInTheDocument();
     });
 
@@ -41,7 +52,7 @@ describe('ErrorDetectorDetails', function () {
 
       render(<ErrorDetectorDetails {...defaultProps} project={project} />);
 
-      expect(await screen.findByText('Auto-resolution disabled')).toBeInTheDocument();
+      expect(await screen.findByText('Auto-resolution disabled.')).toBeInTheDocument();
     });
   });
 });

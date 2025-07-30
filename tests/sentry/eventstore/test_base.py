@@ -9,14 +9,14 @@ pytestmark = [requires_snuba]
 
 
 class EventStorageTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.eventstorage = EventStorage()
 
-    def test_minimal_columns(self):
+    def test_minimal_columns(self) -> None:
         assert len(self.eventstorage.minimal_columns[Dataset.Events]) == 4
         assert len(self.eventstorage.minimal_columns[Dataset.Transactions]) == 4
 
-    def test_bind_nodes(self):
+    def test_bind_nodes(self) -> None:
         """
         Test that bind_nodes populates _node_data
         """

@@ -14,7 +14,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-all-unresolved-issues"
 
-    def test_status_format(self):
+    def test_status_format(self) -> None:
         project1 = self.create_project(teams=[self.team])
         group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))
         group1_2 = self.create_group(project=project1, first_seen=before_now(days=5))
@@ -193,7 +193,7 @@ class TeamIssueBreakdownTest(APITestCase):
         compare_response(response, project3, [0, 1, 0, 0, 0, 0, 0])
         compare_response(response, project4, [1, 2, 2, 2, 2, 1, 1])
 
-    def test_status_format_with_environment(self):
+    def test_status_format_with_environment(self) -> None:
         project1 = self.create_project(teams=[self.team])
         env1 = self.create_environment(name="development", project=project1)
         env2 = self.create_environment(name="production", project=project1)
@@ -241,11 +241,11 @@ class TeamIssueBreakdownTest(APITestCase):
 
         compare_response(response, project1, [3, 3, 3, 3, 3, 3, 3])
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         self.login_as(user=self.user)
         self.get_success_response(self.team.organization.slug, self.team.slug, statsPeriod="7d")
 
-    def test_no_group_history(self):
+    def test_no_group_history(self) -> None:
         project1 = self.create_project(teams=[self.team])
         group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))
         GroupAssignee.objects.assign(group1_1, self.user)

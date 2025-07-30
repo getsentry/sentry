@@ -2,9 +2,11 @@ import logging
 from datetime import timedelta
 from typing import cast
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -107,16 +109,20 @@ def _process_suspect_commits(
                                             "project": project_id,
                                         },
                                     )
-                            analytics.record(
-                                "groupowner.assignment",
-                                organization_id=project.organization_id,
-                                project_id=project.id,
-                                group_id=group_id,
-                                new_assignment=created,
-                                user_id=go.user_id,
-                                group_owner_type=go.type,
-                                method="release_commit",
-                            )
+                            try:
+                                analytics.record(
+                                    GroupOwnerAssignment(
+                                        organization_id=project.organization_id,
+                                        project_id=project.id,
+                                        group_id=group_id,
+                                        new_assignment=created,
+                                        user_id=go.user_id,
+                                        group_owner_type=go.type,
+                                        method="release_commit",
+                                    )
+                                )
+                            except Exception as e:
+                                sentry_sdk.capture_exception(e)
 
                     except GroupOwner.MultipleObjectsReturned:
                         GroupOwner.objects.filter(

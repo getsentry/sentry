@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -21,7 +21,7 @@ def get_sentry_app_avatars(sentry_app: SentryApp):
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -37,7 +37,7 @@ class SentryAppComponentsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_retrieves_all_components(self):
+    def test_retrieves_all_components(self) -> None:
         response = self.get_success_response(self.sentry_app.slug)
 
         assert response.data[0] == {
@@ -58,7 +58,7 @@ class SentryAppComponentsTest(APITestCase):
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -96,7 +96,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         self.login_as(user=self.user)
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_retrieves_all_components_for_installed_apps(self, run):
+    def test_retrieves_all_components_for_installed_apps(self, run: MagicMock) -> None:
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
         )
@@ -131,7 +131,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         }
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_filter_by_type(self, run):
+    def test_filter_by_type(self, run: MagicMock) -> None:
         sentry_app = self.create_sentry_app(schema={"elements": [{"type": "alert-rule"}]})
 
         self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.org)
@@ -158,13 +158,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         ]
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_prepares_each_component(self, run):
+    def test_prepares_each_component(self, run: MagicMock) -> None:
         self.get_success_response(self.org.slug, qs_params={"projectId": self.project.id})
 
         assert run.call_count == 2
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_component_prep_errors_are_isolated(self, run):
+    def test_component_prep_errors_are_isolated(self, run: MagicMock) -> None:
         run.side_effect = [
             SentryAppIntegratorError(message="zoinks!", public_context={"foo": "bar"}),
             self.component2,
@@ -206,7 +206,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert response.data == expected
 
     @responses.activate
-    def test_component_prep_api_error(self):
+    def test_component_prep_api_error(self) -> None:
         responses.add(
             method=responses.GET,
             url="https://example.com/",
@@ -260,7 +260,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert response.data == expected
 
     @responses.activate
-    def test_component_prep_validation_error(self):
+    def test_component_prep_validation_error(self) -> None:
         component1_uris = self._get_component_uris(
             component_field="link", component=self.component1
         )
@@ -324,7 +324,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_component_prep_general_error(self, run, capture_exception):
+    def test_component_prep_general_error(
+        self, run: MagicMock, capture_exception: MagicMock
+    ) -> None:
         run.side_effect = [Exception(":dead:"), SentryAppSentryError("government secrets here")]
         capture_exception.return_value = 1
         response = self.get_success_response(
@@ -365,7 +367,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
     @patch("sentry_sdk.capture_exception")
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_component_prep_errors_dont_bring_down_everything(self, run, capture_exception):
+    def test_component_prep_errors_dont_bring_down_everything(
+        self, run: MagicMock, capture_exception: MagicMock
+    ) -> None:
         run.side_effect = [APIError(), SentryAppSentryError(message="kewl")]
         capture_exception.return_value = 1
 

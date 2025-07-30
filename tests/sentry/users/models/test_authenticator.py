@@ -14,7 +14,7 @@ from sentry.users.models.authenticator import Authenticator, AuthenticatorConfig
 
 @control_silo_test
 class AuthenticatorTest(TestCase):
-    def test_user_has_2fa(self):
+    def test_user_has_2fa(self) -> None:
         user = self.create_user("foo@example.com")
         assert user.has_2fa() is False
         assert Authenticator.objects.filter(user=user).count() == 0
@@ -29,7 +29,7 @@ class AuthenticatorTest(TestCase):
         assert user.has_2fa() is True
         assert Authenticator.objects.filter(user=user).count() == 2
 
-    def test_bulk_users_have_2fa(self):
+    def test_bulk_users_have_2fa(self) -> None:
         user1 = self.create_user("foo1@example.com")
         user2 = self.create_user("foo2@example.com")
 
@@ -43,7 +43,7 @@ class AuthenticatorTest(TestCase):
 
 
 @django_db_all
-def test_authenticator_config_compatibility():
+def test_authenticator_config_compatibility() -> None:
     field_json = AuthenticatorConfig()
 
     value = {

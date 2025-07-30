@@ -1,19 +1,17 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {
-  IconCheckmark,
-  IconClock,
-  IconFile,
-  IconJson,
-  IconLink,
-  IconWarning,
-} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {Flex} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
+import {IconClock, IconFile, IconJson, IconLink} from 'sentry/icons';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {type BuildDetailsAppInfo, BuildDetailsState} from 'sentry/views/preprod/types';
+import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
-  formatBytes,
+  type BuildDetailsAppInfo,
+  type BuildDetailsSizeInfo,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadablePlatformLabel,
@@ -21,126 +19,83 @@ import {
 
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
-  downloadSizeBytes: number;
-  installSizeBytes: number;
-  state: BuildDetailsState;
+  artifactId: string;
+  projectId: string;
+  sizeInfo?: BuildDetailsSizeInfo;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const {appInfo, state, installSizeBytes, downloadSizeBytes} = props;
+  const handleInstallClick = () => {
+    openInstallModal(props.projectId, props.artifactId);
+  };
 
   return (
-    <AppInfoContainer>
-      <AppHeader>
-        <AppNameContainer>
-          <AppIcon>
-            <AppIconPlaceholder>{appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
-          </AppIcon>
-          <AppName>{appInfo.name}</AppName>
-        </AppNameContainer>
-        <StateTag state={state} />
-      </AppHeader>
+    <Flex direction="column" gap="xl">
+      <Flex align="center" gap="sm">
+        <AppIcon>
+          <AppIconPlaceholder>{props.appInfo.name?.charAt(0) || ''}</AppIconPlaceholder>
+        </AppIcon>
+        <Heading as="h3">{props.appInfo.name}</Heading>
+      </Flex>
 
-      <InfoSection>
-        <InfoRow>
+      {props.sizeInfo && (
+        <Flex gap="sm">
+          <Flex direction="column" gap="xs" style={{flex: 1}}>
+            <Heading as="h4">Install Size</Heading>
+            <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
+          </Flex>
+          <Flex direction="column" gap="xs" style={{flex: 1}}>
+            <Heading as="h4">Download Size</Heading>
+            <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
+          </Flex>
+        </Flex>
+      )}
+
+      <Flex wrap="wrap" gap="md">
+        <Flex gap="2xs" align="center">
           <InfoIcon>
-            <PlatformIcon platform={getPlatformIconFromPlatform(appInfo.platform)} />
+            <PlatformIcon
+              platform={getPlatformIconFromPlatform(props.appInfo.platform)}
+            />
           </InfoIcon>
-          <InfoValue>{getReadablePlatformLabel(appInfo.platform)}</InfoValue>
-        </InfoRow>
-        <InfoRow>
+          <Text>{getReadablePlatformLabel(props.appInfo.platform)}</Text>
+        </Flex>
+        <Flex gap="2xs" align="center">
           <InfoIcon>
             <IconJson />
           </InfoIcon>
-          <InfoValue>{appInfo.app_id}</InfoValue>
-        </InfoRow>
-        <InfoRow>
+          <Text>{props.appInfo.app_id}</Text>
+        </Flex>
+        <Flex gap="2xs" align="center">
           <InfoIcon>
             <IconClock />
           </InfoIcon>
-          <InfoValue>
-            {getFormattedDate(appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
-          </InfoValue>
-        </InfoRow>
-        <InfoRow>
+          <Text>
+            {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+          </Text>
+        </Flex>
+        <Flex gap="2xs" align="center">
           <InfoIcon>
             <IconFile />
           </InfoIcon>
-          <InfoValue>{getReadableArtifactTypeLabel(appInfo.artifact_type)}</InfoValue>
-        </InfoRow>
-        <InfoRow>
+          <Text>{getReadableArtifactTypeLabel(props.appInfo.artifact_type)}</Text>
+        </Flex>
+        <Flex gap="2xs" align="center">
           <InfoIcon>
             <IconLink />
           </InfoIcon>
-          <InfoValue>
-            {appInfo.is_installable ? 'Installable' : 'Not Installable'}
-          </InfoValue>
-        </InfoRow>
-      </InfoSection>
-
-      <SizeSection>
-        <SizeRow>
-          <SizeItem>
-            <SizeLabel>Install Size</SizeLabel>
-            <SizeValue>{formatBytes(installSizeBytes)}</SizeValue>
-          </SizeItem>
-          <SizeItem>
-            <SizeLabel>Download Size</SizeLabel>
-            <SizeValue>{formatBytes(downloadSizeBytes)}</SizeValue>
-          </SizeItem>
-        </SizeRow>
-      </SizeSection>
-    </AppInfoContainer>
+          <Text>
+            {props.appInfo.is_installable ? (
+              <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
+            ) : (
+              'Not Installable'
+            )}
+          </Text>
+        </Flex>
+      </Flex>
+    </Flex>
   );
 }
-
-function StateTag({state}: {state: BuildDetailsState}) {
-  switch (state) {
-    case BuildDetailsState.PROCESSED:
-      return (
-        <SuccessTag>
-          <IconCheckmark color="successText" />
-          Processed
-        </SuccessTag>
-      );
-    case BuildDetailsState.FAILED:
-      return (
-        <ErrorTag>
-          <IconWarning color="errorText" />
-          Failed
-        </ErrorTag>
-      );
-    case BuildDetailsState.UPLOADING:
-    case BuildDetailsState.UPLOADED:
-      return (
-        <ProcessingTag>
-          <IconClock color="warningText" />
-          Processing
-        </ProcessingTag>
-      );
-    default:
-      return null;
-  }
-}
-
-const AppInfoContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const AppHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;
-
-const AppNameContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 const AppIcon = styled('div')`
   width: 24px;
@@ -159,25 +114,6 @@ const AppIconPlaceholder = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const AppName = styled('h3')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
-`;
-
-const InfoSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const InfoRow = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const InfoIcon = styled('div')`
   width: 24px;
   height: 24px;
@@ -186,72 +122,18 @@ const InfoIcon = styled('div')`
   justify-content: center;
 `;
 
-const InfoValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  align-items: center;
-  color: ${p => p.theme.textColor};
-`;
+const InstallableLink = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  color: ${p => p.theme.linkColor};
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
 
-const SizeSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const SizeRow = styled('div')`
-  display: flex;
-`;
-
-const SizeItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  flex: 1;
-`;
-
-const SizeLabel = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const SizeValue = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => p.theme.textColor};
-`;
-
-const SuccessTag = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.successText};
-  background-color: ${p => p.theme.green100};
-  padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const ErrorTag = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.errorText};
-  background-color: ${p => p.theme.red100};
-  padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const ProcessingTag = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  color: ${p => p.theme.warningText};
-  background-color: ${p => p.theme.yellow100};
-  padding: ${space(0.5)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;

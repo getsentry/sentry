@@ -65,7 +65,7 @@ def test_unknown_sentry_to_other(tag, expected):
     assert normalize_sdk_tag(tag) == expected
 
 
-def test_responses_cached():
+def test_responses_cached() -> None:
     normalize_sdk_tag.cache_clear()
     assert normalize_sdk_tag("sentry.javascript.react") == "sentry.javascript.react"
     assert normalize_sdk_tag("sentry.javascript.react") == "sentry.javascript.react"
@@ -88,6 +88,6 @@ def test_normalized_sdk_tag_from_event(tag: str, expected: str) -> None:
     assert normalized_sdk_tag_from_event({"sdk": {"name": tag}}) == expected
 
 
-def test_normalized_sdk_tag_from_event_exception():
+def test_normalized_sdk_tag_from_event_exception() -> None:
     mock_event = mock.Mock()
     assert normalized_sdk_tag_from_event(mock_event) == "other"

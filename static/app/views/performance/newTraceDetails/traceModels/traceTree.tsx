@@ -1498,6 +1498,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
+        // We still have transaction id links (ex: in discover tables) that link to the
+        // spans only eap trace waterfall.
+        if ('transaction_id' in n.value && n.value.transaction_id === eventId) {
+          return true;
+        }
+
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
 
         if (spanId === eventId) {

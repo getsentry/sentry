@@ -134,7 +134,7 @@ def test_emit_with_trace_id(record, out, handler, logger):
 
 
 @mock.patch("sentry.logging.handlers.metrics")
-def test_log_to_metric(metrics):
+def test_log_to_metric(metrics: mock.MagicMock) -> None:
     logger = logging.getLogger("django.request")
     logger.warning("CSRF problem")
     metrics.incr.assert_called_once_with("django.request.csrf_problem", skip_internal=False)
@@ -146,7 +146,7 @@ def test_log_to_metric(metrics):
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_emit_invalid_keys_nonprod(handler):
+def test_emit_invalid_keys_nonprod(handler: mock.MagicMock) -> None:
     logger = mock.MagicMock()
     logger.log.side_effect = TypeError("invalid keys")
     with pytest.raises(TypeError):
@@ -154,21 +154,21 @@ def test_emit_invalid_keys_nonprod(handler):
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_emit_invalid_keys_prod(handler):
+def test_emit_invalid_keys_prod(handler: mock.MagicMock) -> None:
     logger = mock.MagicMock()
     logger.log.side_effect = TypeError("invalid keys")
     handler.emit(make_logrecord(), logger=logger)
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_JSONRenderer_nonprod():
+def test_JSONRenderer_nonprod() -> None:
     renderer = JSONRenderer()
     with pytest.raises(TypeError):
         renderer(None, None, {"foo": {mock.Mock(): "foo"}})
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_JSONRenderer_prod():
+def test_JSONRenderer_prod() -> None:
     renderer = JSONRenderer()
     renderer(None, None, {"foo": {mock.Mock(): "foo"}})
 

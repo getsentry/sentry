@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ExternalIssueSerializerTestCase(TestCase):
-    def test_external_issue_serializer(self):
+    def test_external_issue_serializer(self) -> None:
         # integrations and external issues for group 1
         group_1 = self.create_group()
         integration_jira = self.create_integration(

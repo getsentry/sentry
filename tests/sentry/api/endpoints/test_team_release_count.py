@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now
 class TeamReleaseCountTest(APITestCase):
     endpoint = "sentry-api-0-team-release-count"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()
@@ -71,7 +71,7 @@ class TeamReleaseCountTest(APITestCase):
         assert response.data["last_week_totals"][project1.id] == 1
         assert response.data["last_week_totals"][project3.id] == 2
 
-    def test_projects_only_for_current_team(self):
+    def test_projects_only_for_current_team(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -96,7 +96,7 @@ class TeamReleaseCountTest(APITestCase):
 
         assert project2.id not in response.data["project_avgs"]
 
-    def test_multi_project_release(self):
+    def test_multi_project_release(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()

@@ -27,8 +27,8 @@ export function AgeComparisonDetails({condition}: AgeComparisonDetailsProps) {
   return tct('The issue is [comparisonType] [value] [time]', {
     comparisonType:
       AGE_COMPARISON_CHOICES.find(
-        choice => choice.value === condition.comparison.comparison_type
-      )?.label || condition.comparison.comparison_type,
+        choice => choice.value === condition.comparison.comparisonType
+      )?.label || condition.comparison.comparisonType,
     value: condition.comparison.value,
     time:
       TIME_CHOICES.find(choice => choice.value[0] === condition.comparison.time)?.label ||
@@ -50,12 +50,12 @@ function ComparisonField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${condition_id}.comparison.comparison_type`}
+      name={`${condition_id}.comparison.comparisonType`}
       aria-label={t('Comparison')}
-      value={condition.comparison.comparison_type}
+      value={condition.comparison.comparisonType}
       options={AGE_COMPARISON_CHOICES}
       onChange={(option: SelectValue<AgeComparison>) => {
-        onUpdate({comparison: {...condition.comparison, comparison_type: option.value}});
+        onUpdate({comparison: {...condition.comparison, comparisonType: option.value}});
         removeError(condition.id);
       }}
     />
@@ -103,7 +103,7 @@ export function validateAgeComparisonCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
   if (
-    !condition.comparison.comparison_type ||
+    !condition.comparison.comparisonType ||
     condition.comparison.value === undefined ||
     !condition.comparison.time
   ) {

@@ -10,14 +10,14 @@ from sentry.web.frontend.openidtoken import OpenIDToken
 
 @control_silo_test
 class OpenIDTokenTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )
         self.id_token = OpenIDToken("ex_client_id", self.user.id, "shared_secret", nonce="abcd")
 
-    def test_get_user_details_no_scope(self):
+    def test_get_user_details_no_scope(self) -> None:
         grant_no_scopes = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -28,7 +28,7 @@ class OpenIDTokenTest(TestCase):
         user_details = self.id_token._get_user_details(grant_no_scopes)
         assert user_details == {}
 
-    def test_get_user_details_profile_scope(self):
+    def test_get_user_details_profile_scope(self) -> None:
         grant_profile_scope = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -43,7 +43,7 @@ class OpenIDTokenTest(TestCase):
             "date_joined": str(grant_profile_scope.user.date_joined),
         }
 
-    def test_get_user_details_email_scope(self):
+    def test_get_user_details_email_scope(self) -> None:
         grant_email_scope = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -53,7 +53,7 @@ class OpenIDTokenTest(TestCase):
         user_details = self.id_token._get_user_details(grant_email_scope)
         assert user_details == {"email": "admin@localhost", "email_verified": True}
 
-    def test_get_user_details_multiple_scopes(self):
+    def test_get_user_details_multiple_scopes(self) -> None:
         grant_multiple_scopes = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -71,7 +71,7 @@ class OpenIDTokenTest(TestCase):
             "date_joined": str(grant_multiple_scopes.user.date_joined),
         }
 
-    def test_get_signed_id_token_no_scopes(self):
+    def test_get_signed_id_token_no_scopes(self) -> None:
         grant = ApiGrant.objects.create(
             user=self.user,
             application=self.application,
@@ -96,7 +96,7 @@ class OpenIDTokenTest(TestCase):
         assert decrypted_id_token["exp"] > current_timestamp
         assert decrypted_id_token["iat"] < current_timestamp
 
-    def test_get_signed_id_token_with_scopes(self):
+    def test_get_signed_id_token_with_scopes(self) -> None:
         grant = ApiGrant.objects.create(
             user=self.user,
             application=self.application,

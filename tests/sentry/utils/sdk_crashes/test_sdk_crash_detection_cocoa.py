@@ -1,5 +1,5 @@
 from collections.abc import Collection
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import (
     IN_APP_FRAME,
@@ -14,21 +14,25 @@ from tests.sentry.utils.sdk_crashes.test_sdk_crash_detection import BaseSDKCrash
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
-    def test_filename_includes_sentrycrash_reported(self, mock_sdk_crash_reporter):
+    def test_filename_includes_sentrycrash_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         self.execute_test(
             self._get_crash_event("SentryCrashMonitor_CPPException.cpp"),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_filename_includes_sentrymonitor_reported(self, mock_sdk_crash_reporter):
+    def test_filename_includes_sentrymonitor_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         self.execute_test(
             self._get_crash_event("SentryMonitor_CPPException.cpp"),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_filename_includes_senry_not_reported(self, mock_sdk_crash_reporter):
+    def test_filename_includes_senry_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             self._get_crash_event("SentrMonitor_CPPException.cpp"),
             False,
@@ -74,37 +78,39 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
-    def test_unhandled_is_detected(self, mock_sdk_crash_reporter):
+    def test_unhandled_is_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(get_crash_event(), True, mock_sdk_crash_reporter)
 
-    def test_handled_is_not_detected(self, mock_sdk_crash_reporter):
+    def test_handled_is_not_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(get_crash_event(handled=True), False, mock_sdk_crash_reporter)
 
-    def test_wrong_function_not_detected(self, mock_sdk_crash_reporter):
+    def test_wrong_function_not_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(get_crash_event(function="Senry"), False, mock_sdk_crash_reporter)
 
-    def test_beta_sdk_version_detected(self, mock_sdk_crash_reporter):
+    def test_beta_sdk_version_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         event = get_crash_event()
         set_path(event, "sdk", "version", value="8.2.1-beta.1")
 
         self.execute_test(event, True, mock_sdk_crash_reporter)
 
-    def test_too_low_min_sdk_version_not_detected(self, mock_sdk_crash_reporter):
+    def test_too_low_min_sdk_version_not_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         event = get_crash_event()
         set_path(event, "sdk", "version", value="8.1.1")
 
         self.execute_test(event, False, mock_sdk_crash_reporter)
 
-    def test_invalid_sdk_version_not_detected(self, mock_sdk_crash_reporter):
+    def test_invalid_sdk_version_not_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         event = get_crash_event()
         set_path(event, "sdk", "version", value="foo")
 
         self.execute_test(event, False, mock_sdk_crash_reporter)
 
-    def test_no_exception_not_detected(self, mock_sdk_crash_reporter):
+    def test_no_exception_not_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(get_crash_event(exception=[]), False, mock_sdk_crash_reporter)
 
-    def test_sdk_crash_detected_event_is_not_reported(self, mock_sdk_crash_reporter):
+    def test_sdk_crash_detected_event_is_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         event = get_crash_event()
 
         set_path(
@@ -119,13 +125,15 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
         self.execute_test(event, False, mock_sdk_crash_reporter)
 
-    def test_cocoa_sdk_crash_detection_without_context(self, mock_sdk_crash_reporter):
+    def test_cocoa_sdk_crash_detection_without_context(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         event = get_crash_event(function="-[SentryHub getScope]")
         event["contexts"] = {}
 
         self.execute_test(event, True, mock_sdk_crash_reporter)
 
-    def test_metric_kit_crash_is_detected(self, mock_sdk_crash_reporter):
+    def test_metric_kit_crash_is_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         """
         The frames stem from a real world crash caused by our MetricKit integration.
         All data was anonymized.
@@ -348,7 +356,7 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
             },
         ]
 
-    def test_thread_inspector_crash_is_detected(self, mock_sdk_crash_reporter):
+    def test_thread_inspector_crash_is_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         """
         The frames stem from a real world crash caused by our MetricKit integration.
         All data was anonymized.
@@ -446,28 +454,30 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
-    def test_frames_empty_frame_not_reported(self, mock_sdk_crash_reporter):
+    def test_frames_empty_frame_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event_with_frames([{"empty": "frame"}]),
             False,
             mock_sdk_crash_reporter,
         )
 
-    def test_frames_single_frame_reported(self, mock_sdk_crash_reporter):
+    def test_frames_single_frame_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event_with_frames([get_sentry_frame("-[Sentry]")]),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_frames_in_app_frame_frame_reported(self, mock_sdk_crash_reporter):
+    def test_frames_in_app_frame_frame_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event_with_frames([get_sentry_frame("-[Sentry]", in_app=True)]),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_frames_only_non_in_app_after_sentry_frame_is_reported(self, mock_sdk_crash_reporter):
+    def test_frames_only_non_in_app_after_sentry_frame_is_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         self.execute_test(
             get_crash_event_with_frames(
                 [
@@ -499,7 +509,9 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def test_frames_only_in_app_after_sentry_frame_not_reported(self, mock_sdk_crash_reporter):
+    def test_frames_only_in_app_after_sentry_frame_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         self.execute_test(
             get_crash_event_with_frames(
                 [
@@ -532,22 +544,22 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
-    def test_hub_reported(self, mock_sdk_crash_reporter):
+    def test_hub_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-[SentryHub getScope]"), True, mock_sdk_crash_reporter
         )
 
-    def test_sentrycrash_reported(self, mock_sdk_crash_reporter):
+    def test_sentrycrash_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="sentrycrashdl_getBinaryImage"), True, mock_sdk_crash_reporter
         )
 
-    def test_sentryisgreat_reported(self, mock_sdk_crash_reporter):
+    def test_sentryisgreat_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-[sentryisgreat]"), True, mock_sdk_crash_reporter
         )
 
-    def test_sentryswizzle_reported(self, mock_sdk_crash_reporter):
+    def test_sentryswizzle_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(
                 function="__47-[SentryBreadcrumbTracker swizzleViewDidAppear]_block_invoke_2"
@@ -556,56 +568,58 @@ class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def test_sentry_date_category_reported(self, mock_sdk_crash_reporter):
+    def test_sentry_date_category_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="+[NSDate(SentryExtras) sentry_fromIso8601String:]"),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_sentry_ns_data_category_reported(self, mock_sdk_crash_reporter):
+    def test_sentry_ns_data_category_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-[NSData(Sentry) sentry_nullTerminated:]"),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_sentry_swift_metric_kit_reported(self, mock_sdk_crash_reporter):
+    def test_sentry_swift_metric_kit_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="SentryMXManager.didReceive"),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_sentry_swift_wrong_metric_kit_not_reported(self, mock_sdk_crash_reporter):
+    def test_sentry_swift_wrong_metric_kit_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         self.execute_test(
             get_crash_event(function="SentryManager.didReceive"),
             False,
             mock_sdk_crash_reporter,
         )
 
-    def test_sentrycrash_crash_reported(self, mock_sdk_crash_reporter):
+    def test_sentrycrash_crash_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-[SentryCrash crash]"),
             True,
             mock_sdk_crash_reporter,
         )
 
-    def test_senryhub_not_reported(self, mock_sdk_crash_reporter):
+    def test_senryhub_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-[SenryHub getScope]"),
             False,
             mock_sdk_crash_reporter,
         )
 
-    def test_senryhub_no_brackets_not_reported(self, mock_sdk_crash_reporter):
+    def test_senryhub_no_brackets_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-SentryHub getScope]"),
             False,
             mock_sdk_crash_reporter,
         )
 
-    def test_somesentryhub_not_reported(self, mock_sdk_crash_reporter):
+    def test_somesentryhub_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="-[SomeSentryHub getScope]"),
             False,
@@ -613,9 +627,19 @@ class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
         )
 
     # "+[SentrySDK crash]" is used for testing, so we must ignore it.
-    def test_sentrycrash_not_reported(self, mock_sdk_crash_reporter):
+    def test_sentrycrash_not_reported(self, mock_sdk_crash_reporter: MagicMock) -> None:
         self.execute_test(
             get_crash_event(function="+[SentrySDK crash]"),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    # "SentryCrashExceptionApplicationHelper _crashOnException" calls abort() intentionally, so we must ignore it.
+    def test_sentrycrash_exception_application_helper_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        self.execute_test(
+            get_crash_event(function="+[SentryCrashExceptionApplicationHelper _crashOnException:]"),
             False,
             mock_sdk_crash_reporter,
         )

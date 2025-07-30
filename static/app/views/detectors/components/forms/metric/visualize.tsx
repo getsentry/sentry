@@ -296,7 +296,7 @@ export function Visualize() {
 
   return (
     <AggregateContainer hasParameters={hasVisibleParameters}>
-      <Flex gap="md" align="flex-end">
+      <Flex gap="md" align="end">
         <FieldContainer>
           <div>
             <Tooltip

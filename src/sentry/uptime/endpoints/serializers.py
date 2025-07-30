@@ -12,7 +12,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.types.actor import Actor
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
-from sentry.uptime.types import EapCheckEntry, IncidentStatus
+from sentry.uptime.types import EapCheckEntry, IncidentStatus, UptimeSummary
 
 
 class UptimeSubscriptionSerializerResponse(TypedDict):
@@ -104,7 +104,6 @@ failed as part of an uptime incident.
 
 class EapCheckEntrySerializerResponse(TypedDict):
     uptimeCheckId: str
-    uptimeSubscriptionId: int
     projectUptimeSubscriptionId: int
     timestamp: str
     scheduledCheckTime: str
@@ -137,8 +136,7 @@ class EapCheckEntrySerializer(Serializer):
 
         return {
             "uptimeCheckId": obj.uptime_check_id,
-            "uptimeSubscriptionId": obj.uptime_subscription_id,
-            "projectUptimeSubscriptionId": obj.uptime_subscription_id,
+            "projectUptimeSubscriptionId": obj.uptime_monitor_id,
             "timestamp": obj.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "scheduledCheckTime": obj.scheduled_check_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "checkStatus": check_status,
@@ -150,4 +148,25 @@ class EapCheckEntrySerializer(Serializer):
             "environment": obj.environment,
             "region": obj.region,
             "regionName": region_name,
+        }
+
+
+class UptimeSummarySerializerResponse(TypedDict):
+    totalChecks: int
+    failedChecks: int
+    downtimeChecks: int
+    missedWindowChecks: int
+
+
+@register(UptimeSummary)
+class UptimeSummarySerializer(Serializer):
+    @override
+    def serialize(
+        self, obj: UptimeSummary, attrs: Any, user: Any, **kwargs: Any
+    ) -> UptimeSummarySerializerResponse:
+        return {
+            "totalChecks": obj.total_checks,
+            "failedChecks": obj.failed_checks,
+            "downtimeChecks": obj.downtime_checks,
+            "missedWindowChecks": obj.missed_window_checks,
         }

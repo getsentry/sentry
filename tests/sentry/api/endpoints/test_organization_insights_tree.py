@@ -15,7 +15,7 @@ class OrganizationInsightsTreeEndpointTest(
     url_name = "sentry-api-0-organization-insights-tree"
     FEATURES = ["organizations:trace-spans-format"]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
         self.features = {}
@@ -84,7 +84,7 @@ class OrganizationInsightsTreeEndpointTest(
             self.store_span(span, is_eap=True)
             spans.append(span)
 
-    def test_get_nextjs_function_data(self):
+    def test_get_nextjs_function_data(self) -> None:
         self.login_as(user=self.user)
         with self.feature(self.FEATURES):
             response = self.client.get(

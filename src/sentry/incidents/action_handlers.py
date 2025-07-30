@@ -7,11 +7,13 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -103,16 +105,20 @@ class ActionHandler(metaclass=abc.ABCMeta):
         external_id: int | str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
-        analytics.record(
-            "alert.sent",
-            organization_id=organization_id,
-            project_id=project_id,
-            provider=self.provider,
-            alert_id=alert_id,
-            alert_type="metric_alert",
-            external_id=str(external_id) if external_id is not None else "",
-            notification_uuid=notification_uuid or "",
-        )
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=organization_id,
+                    project_id=project_id,
+                    provider=self.provider,
+                    alert_id=alert_id,
+                    alert_type="metric_alert",
+                    external_id=str(external_id) if external_id is not None else "",
+                    notification_uuid=notification_uuid or "",
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class DefaultActionHandler(ActionHandler):

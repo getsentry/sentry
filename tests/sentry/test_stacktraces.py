@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class FindStacktracesTest(TestCase):
-    def test_stacktraces_basics(self):
+    def test_stacktraces_basics(self) -> None:
         data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
@@ -37,7 +37,7 @@ class FindStacktracesTest(TestCase):
         assert len(infos[0].stacktrace["frames"]) == 2
         assert infos[0].platforms == {"javascript", "native"}
 
-    def test_stacktraces_exception(self):
+    def test_stacktraces_exception(self) -> None:
         data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
@@ -70,7 +70,7 @@ class FindStacktracesTest(TestCase):
         assert len(infos) == 1
         assert len(infos[0].stacktrace["frames"]) == 2
 
-    def test_stacktraces_threads(self):
+    def test_stacktraces_threads(self) -> None:
         data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
@@ -103,7 +103,7 @@ class FindStacktracesTest(TestCase):
         assert len(infos) == 1
         assert len(infos[0].stacktrace["frames"]) == 2
 
-    def test_find_stacktraces_skip_none(self):
+    def test_find_stacktraces_skip_none(self) -> None:
         # This tests:
         #  1. exception is None
         #  2. stacktrace is None

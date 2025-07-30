@@ -364,7 +364,7 @@ def test_to_intervals(
     assert expected_num_intervals == actual_num_intervals, test_message
 
 
-def test_get_intervals_checks_valid_interval():
+def test_get_intervals_checks_valid_interval() -> None:
     """
     Checks that get_intervals verifies that granularity > 0
     """

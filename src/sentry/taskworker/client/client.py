@@ -264,7 +264,10 @@ class TaskworkerClient:
 
         try:
             if processing_result.host in self._temporary_unavailable_hosts:
-                metrics.incr("taskworker.client.skipping_update_due_to_unavailable_host")
+                metrics.incr(
+                    "taskworker.client.skipping_set_task_due_to_unavailable_host",
+                    tags={"broker_host": processing_result.host},
+                )
                 raise HostTemporarilyUnavailable(
                     f"Host: {processing_result.host} is temporarily unavailable"
                 )

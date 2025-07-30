@@ -69,7 +69,7 @@ POST_DELETE_RESPONSE = """{
 
 @control_silo_test
 class VercelUninstallTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/vercel/delete/"
         metadata = {
             "access_token": "my_access_token",
@@ -86,7 +86,7 @@ class VercelUninstallTest(APITestCase):
             metadata=metadata,
         )
 
-    def test_uninstall(self):
+    def test_uninstall(self) -> None:
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(
                 path=self.url,
@@ -104,7 +104,7 @@ class VercelUninstallTest(APITestCase):
 
 @control_silo_test
 class VercelUninstallWithConfigurationsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/vercel/delete/"
         self.second_org = self.create_organization(name="Blah", owner=self.user)
         metadata = {
@@ -134,7 +134,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         self.integration.add_organization(self.organization)
         self.integration.add_organization(self.second_org)
 
-    def test_uninstall_primary_configuration(self):
+    def test_uninstall_primary_configuration(self) -> None:
         """
         Test uninstalling the configuration whose credentials
             * access_token
@@ -168,7 +168,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             },
         }
 
-    def test_uninstall_non_primary_configuration(self):
+    def test_uninstall_non_primary_configuration(self) -> None:
         """
         Test uninstalling a configuration that is only stored
         in the "configurations" metadata.
@@ -200,7 +200,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
             },
         }
 
-    def test_uninstall_single_configuration(self):
+    def test_uninstall_single_configuration(self) -> None:
         """
         Test uninstalling an integration with only one organization
         associated with it.
@@ -240,7 +240,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         ).exists()
 
     @responses.activate
-    def test_uninstall_from_sentry(self):
+    def test_uninstall_from_sentry(self) -> None:
         """
         Test flows of uninstalling from sentry first to make sure
         that uninstall webhook is valid even if the OrganizationIntegration
@@ -328,7 +328,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         assert not Integration.objects.filter(id=self.integration.id).exists()
 
     @responses.activate
-    def test_uninstall_from_sentry_error(self):
+    def test_uninstall_from_sentry_error(self) -> None:
         """
         Test that if we uninstall from Sentry and fail to remove the integration using Vercel's
         delete integration endpoint, we continue and delete the integration in Sentry.

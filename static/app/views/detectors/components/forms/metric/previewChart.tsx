@@ -39,6 +39,9 @@ export function MetricDetectorPreviewChart() {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
+  const conditionComparisonAgo = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
+  );
 
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
@@ -73,6 +76,7 @@ export function MetricDetectorPreviewChart() {
         conditions={conditions}
         detectionType={detectionType}
         statsPeriod={selectedTimePeriod}
+        comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
       />
       <ChartFooter>
         <CompactSelect

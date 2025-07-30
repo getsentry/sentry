@@ -14,6 +14,7 @@ import {
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {index: number; query: ReadableExploreQueryParts};
 
@@ -25,6 +26,7 @@ export function GroupBySection({query, index}: Props) {
   const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
     groupBys: [],
     tags,
+    traceItemType: TraceItemDataset.SPANS,
     hideEmptyOption: true,
   });
 

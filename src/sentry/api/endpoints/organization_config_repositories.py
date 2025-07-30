@@ -5,6 +5,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models.organization import Organization
 from sentry.plugins.base import bindings
 
 
@@ -15,7 +16,7 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         provider_bindings = bindings.get("repository.provider")
         providers = []
         for provider_id in provider_bindings:

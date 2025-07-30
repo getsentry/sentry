@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class EmailMissingLinksControlTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
@@ -33,7 +33,7 @@ class EmailMissingLinksControlTest(TestCase):
         om2 = self.create_member(user_id=self.user2.id, organization=self.organization, flags=0)
         assert not om2.flags["sso:linked"]
 
-    def test_email_missing_links(self):
+    def test_email_missing_links(self) -> None:
         with self.tasks():
             email_missing_links_control(self.organization.id, self.user.id, self.provider.provider)
 
@@ -43,7 +43,7 @@ class EmailMissingLinksControlTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
-    def test_email_missing_links_organization_deleted(self):
+    def test_email_missing_links_organization_deleted(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             self.organization.delete()
 
@@ -54,7 +54,7 @@ class EmailMissingLinksControlTest(TestCase):
 
 
 class EmailMissingLinksTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
@@ -74,7 +74,7 @@ class EmailMissingLinksTest(TestCase):
         om2 = self.create_member(user_id=self.user2.id, organization=self.organization, flags=0)
         assert not om2.flags["sso:linked"]
 
-    def test_email_missing_links(self):
+    def test_email_missing_links(self) -> None:
         with self.tasks():
             email_missing_links(self.organization.id, self.user.id, self.provider.provider)
 
@@ -84,7 +84,7 @@ class EmailMissingLinksTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
-    def test_email_missing_links_organization_deleted(self):
+    def test_email_missing_links_organization_deleted(self) -> None:
         self.organization.delete()
 
         with self.tasks():
@@ -94,7 +94,7 @@ class EmailMissingLinksTest(TestCase):
 
 
 class EmailUnlinkNotificationsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
@@ -117,7 +117,7 @@ class EmailUnlinkNotificationsTest(TestCase):
         # Invited members don't get emails
         self.create_member(organization=self.organization, email="invited@example.com")
 
-    def test_email_unlink_notifications_with_password(self):
+    def test_email_unlink_notifications_with_password(self) -> None:
         with self.tasks():
             email_unlink_notifications(
                 self.organization.id, self.user.email, self.provider.provider
@@ -130,7 +130,7 @@ class EmailUnlinkNotificationsTest(TestCase):
         self.om.refresh_from_db()
         assert not self.om.flags["sso:linked"]
 
-    def test_email_unlink_notifications_without_password(self):
+    def test_email_unlink_notifications_without_password(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.password = ""
             self.user.save()

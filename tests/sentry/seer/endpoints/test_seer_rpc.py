@@ -18,7 +18,6 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
@@ -41,12 +40,12 @@ class TestSeerRpc(APITestCase):
 
         return f"rpcsignature {signature}"
 
-    def test_invalid_endpoint(self):
+    def test_invalid_endpoint(self) -> None:
         path = self._get_path("not_a_method")
         response = self.client.post(path)
         assert response.status_code == 403
 
-    def test_404(self):
+    def test_404(self) -> None:
         path = self._get_path("get_organization_slug")
         data: dict[str, Any] = {"args": {"org_id": 1}, "meta": {}}
         response = self.client.post(
@@ -58,7 +57,7 @@ class TestSeerRpc(APITestCase):
 class TestSeerRpcMethods(APITestCase):
     """Test individual RPC methods"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
 
@@ -66,15 +65,13 @@ class TestSeerRpcMethods(APITestCase):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    def test_get_organization_seer_consent_by_org_name_no_integrations(self):
+    def test_get_organization_seer_consent_by_org_name_no_integrations(self) -> None:
         """Test when no organization integrations are found"""
         # Test with a non-existent organization name
         result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
         assert result == {"consent": False}
 
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_no_consent(self, mock_get_acknowledgement):
+    def test_get_organization_seer_consent_by_org_name_no_consent(self):
         """Test when organization exists but has no consent"""
         self.create_integration(
             organization=self.organization,
@@ -83,18 +80,16 @@ class TestSeerRpcMethods(APITestCase):
             external_id="github:test-org",
         )
 
-        mock_get_acknowledgement.return_value = False
+        # Disable PR review test generation
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": False}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement(
-        self, mock_get_acknowledgement
-    ):
+    def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self):
         """Test when organization has seer acknowledgement"""
         self.create_integration(
             organization=self.organization,
@@ -103,58 +98,12 @@ class TestSeerRpcMethods(APITestCase):
             external_id="github:test-org",
         )
 
-        mock_get_acknowledgement.return_value = True
-
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
+        # Should return True since PR review is enabled by default
         assert result == {"consent": True}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_with_github_extension(
-        self, mock_get_acknowledgement
-    ):
-        """Test when organization has github extension enabled"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
-
-        mock_get_acknowledgement.return_value = False
-
-        with override_options({"github-extension.enabled-orgs": [self.organization.id]}):
-            result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": True}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_with_both_consents(
-        self, mock_get_acknowledgement
-    ):
-        """Test when organization has both seer acknowledgement and github extension enabled"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
-
-        mock_get_acknowledgement.return_value = True
-
-        with override_options({"github-extension.enabled-orgs": [self.organization.id]}):
-            result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": True}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(
-        self, mock_get_acknowledgement
-    ):
+    def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self):
         """Test when multiple organizations exist, one with consent"""
         org_without_consent = self.create_organization(owner=self.user)
         org_with_consent = self.create_organization(owner=self.user)
@@ -173,53 +122,19 @@ class TestSeerRpcMethods(APITestCase):
             external_id="github:test-org-2",
         )
 
-        # First org has no consent, second org has seer acknowledgement
-        mock_get_acknowledgement.side_effect = [False, True]
+        # Disable PR review for first org, enable for second (or leave default)
+        OrganizationOption.objects.set_value(
+            org_without_consent, "sentry:enable_pr_review_test_generation", False
+        )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
         assert result == {"consent": True}
-        # Should stop after finding first org with consent
-        assert mock_get_acknowledgement.call_count == 2
 
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_mixed_scenarios(
-        self, mock_get_acknowledgement
+    def test_get_organization_seer_consent_by_org_name_with_hide_ai_features_enabled(
+        self,
     ):
-        """Test mixed scenario with org without consent and org with consent"""
-        org_without_consent = self.create_organization(owner=self.user)
-        org_with_consent = self.create_organization(owner=self.user)
-
-        # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org_without_consent,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-
-        self.create_integration(
-            organization=org_with_consent,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
-
-        # First org has no consent, second org has github extension enabled
-        mock_get_acknowledgement.side_effect = [False, False]
-
-        with override_options({"github-extension.enabled-orgs": [org_with_consent.id]}):
-            result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": True}
-        # Should be called twice (checks both existing orgs)
-        assert mock_get_acknowledgement.call_count == 2
-
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_with_explicit_pr_review_enabled(
-        self, mock_get_acknowledgement
-    ):
+        """Test that when hide_ai_features is True, that org doesn't contribute consent"""
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -227,149 +142,122 @@ class TestSeerRpcMethods(APITestCase):
             external_id="github:test-org",
         )
 
-        mock_get_acknowledgement.return_value = True
+        # Enable hide_ai_features
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
 
-        # Explicitly enable PR review test generation for this organization
+        # Set up PR review to be enabled (but won't matter since hide_ai_features=True)
         OrganizationOption.objects.set_value(
             self.organization, "sentry:enable_pr_review_test_generation", True
         )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
+        # Should return False because hide_ai_features=True makes this org not contribute consent
+        assert result == {"consent": False}
+
+    def test_get_organization_seer_consent_by_org_name_with_hide_ai_features_disabled(
+        self,
+    ):
+        """Test that when hide_ai_features is False, PR review setting determines consent"""
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        # Explicitly disable hide_ai_features
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+
+        # PR review is enabled by default, so (NOT hide_ai_features AND pr_review_enabled) = True
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        # Should return True because hide_ai_features=False and PR review is enabled by default
         assert result == {"consent": True}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
 
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_default_pr_review_behavior(
-        self, mock_get_acknowledgement
+    def test_get_organization_seer_consent_by_org_name_multiple_orgs_with_hide_ai_features(
+        self,
     ):
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
-
-        mock_get_acknowledgement.return_value = True
-
-        # Don't set any organization option - should use default (True)
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": True}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_with_seer_acknowledgement_but_pr_review_disabled(
-        self, mock_get_acknowledgement
-    ):
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
-
-        mock_get_acknowledgement.return_value = True
-
-        # Disable PR review test generation for this organization
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
-
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": False}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_with_github_extension_but_pr_review_disabled(
-        self, mock_get_acknowledgement
-    ):
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
-
-        mock_get_acknowledgement.return_value = False
-
-        # Disable PR review test generation for this organization
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
-
-        with override_options({"github-extension.enabled-orgs": [self.organization.id]}):
-            result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": False}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_no_seer_acknowledgement_with_pr_review_enabled(
-        self, mock_get_acknowledgement
-    ):
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
-
-        mock_get_acknowledgement.return_value = False
-
-        # Explicitly enable PR review test generation for this organization (though it's default)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
-
-        result = get_organization_seer_consent_by_org_name(org_name="test-org")
-
-        assert result == {"consent": False}
-        mock_get_acknowledgement.assert_called_with(org_id=self.organization.id)
-
-    @override_options({"github-extension.enabled-orgs": []})
-    @patch("sentry.seer.endpoints.seer_rpc.get_seer_org_acknowledgement")
-    def test_get_organization_seer_consent_by_org_name_multiple_orgs_pr_review_mixed(
-        self, mock_get_acknowledgement
-    ):
-        org_with_seer_no_pr_review = self.create_organization(owner=self.user)
-        org_with_github_and_pr_review = self.create_organization(owner=self.user)
+        """Test multiple orgs where first has hide_ai_features=True but second has hide_ai_features=False"""
+        org_with_hidden_ai = self.create_organization(owner=self.user)
+        org_with_visible_ai = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
         self.create_integration(
-            organization=org_with_seer_no_pr_review,
+            organization=org_with_hidden_ai,
             provider="github",
             name="test-org",
             external_id="github:test-org-1",
         )
         self.create_integration(
-            organization=org_with_github_and_pr_review,
+            organization=org_with_visible_ai,
             provider="github",
             name="test-org",
             external_id="github:test-org-2",
         )
 
-        # First org has seer acknowledgement but PR review disabled
-        # Second org has github extension enabled and PR review enabled (default)
-        mock_get_acknowledgement.side_effect = [True, False]
+        # First org has hide_ai_features enabled (so it won't contribute consent)
+        OrganizationOption.objects.set_value(org_with_hidden_ai, "sentry:hide_ai_features", True)
 
-        # Disable PR review test generation for the first organization
-        OrganizationOption.objects.set_value(
-            org_with_seer_no_pr_review, "sentry:enable_pr_review_test_generation", False
+        # Second org has hide_ai_features disabled and PR review enabled by default
+        OrganizationOption.objects.set_value(org_with_visible_ai, "sentry:hide_ai_features", False)
+
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        # Should return True because second org has (NOT hide_ai_features AND pr_review_enabled) = True
+        assert result == {"consent": True}
+
+    def test_get_organization_seer_consent_by_org_name_multiple_orgs_all_hide_ai_features(
+        self,
+    ):
+        """Test multiple orgs where all have hide_ai_features=True"""
+        org1 = self.create_organization(owner=self.user)
+        org2 = self.create_organization(owner=self.user)
+
+        # Create integrations for both organizations with the same name
+        self.create_integration(
+            organization=org1,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-1",
+        )
+        self.create_integration(
+            organization=org2,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org-2",
         )
 
-        with override_options(
-            {"github-extension.enabled-orgs": [org_with_github_and_pr_review.id]}
-        ):
-            result = get_organization_seer_consent_by_org_name(org_name="test-org")
+        # Both orgs have hide_ai_features enabled
+        OrganizationOption.objects.set_value(org1, "sentry:hide_ai_features", True)
+        OrganizationOption.objects.set_value(org2, "sentry:hide_ai_features", True)
 
-        assert result == {"consent": True}
-        # Should be called twice (checks both existing orgs)
-        assert mock_get_acknowledgement.call_count == 2
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        # Should return False because no org can contribute consent (all have hide_ai_features=True)
+        assert result == {"consent": False}
+
+    def test_get_organization_seer_consent_by_org_name_hide_ai_false_pr_review_false(
+        self,
+    ):
+        """Test that both conditions must be met: hide_ai_features=False AND pr_review_enabled=True"""
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="test-org",
+            external_id="github:test-org",
+        )
+
+        # Disable hide_ai_features but also disable PR review
+        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", False
+        )
+
+        result = get_organization_seer_consent_by_org_name(org_name="test-org")
+
+        # Should return False because even though hide_ai_features=False, pr_review_enabled=False
+        assert result == {"consent": False}
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -384,7 +272,17 @@ class TestSeerRpcMethods(APITestCase):
         responses.add(
             responses.POST,
             f"https://github.example.org/api/v3/app/installations/{installation_id}/access_tokens",
-            json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
+            json={
+                "token": access_token,
+                "expires_at": "3000-01-01T00:00:00Z",
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+            },
         )
 
         # Create a GitHub Enterprise integration
@@ -412,6 +310,13 @@ class TestSeerRpcMethods(APITestCase):
         assert result["base_url"] == "https://github.example.org/api/v3"
         assert result["verify_ssl"]
         assert result["encrypted_access_token"]
+        assert result["permissions"] == {
+            "administration": "read",
+            "contents": "read",
+            "issues": "write",
+            "metadata": "read",
+            "pull_requests": "read",
+        }
 
         # Test that the access token is encrypted correctly
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
@@ -425,7 +330,7 @@ class TestSeerRpcMethods(APITestCase):
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_get_github_enterprise_integration_config_invalid_integration_id(self):
+    def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
         # Test with invalid integration_id
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -438,7 +343,7 @@ class TestSeerRpcMethods(APITestCase):
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_get_github_enterprise_integration_config_invalid_organization_id(self):
+    def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 
@@ -470,7 +375,7 @@ class TestSeerRpcMethods(APITestCase):
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_get_github_enterprise_integration_config_disabled_integration(self):
+    def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 

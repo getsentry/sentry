@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 from unittest import mock
 
@@ -25,11 +26,11 @@ GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
 @pytest.fixture
-def default_bases():
+def default_bases() -> list[str]:
     return ["javascript@2024-02-02"]
 
 
-def test_default_bases(default_bases):
+def test_default_bases(default_bases: list[str]) -> None:
     assert FINGERPRINTING_BASES
     assert set(default_bases) == set(FINGERPRINTING_BASES.keys())
     assert {
@@ -122,7 +123,7 @@ def test_default_bases(default_bases):
     }
 
 
-def test_built_in_nextjs_rules_base(default_bases):
+def test_built_in_nextjs_rules_base(default_bases: list[str]) -> None:
     rules = FingerprintingRules(rules=[], bases=default_bases)
 
     assert rules._to_config_structure() == {"rules": [], "version": 1}
@@ -214,7 +215,9 @@ def test_built_in_nextjs_rules_base(default_bases):
     }
 
 
-def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
+def test_built_in_nextjs_rules_from_empty_config_string(
+    default_bases: list[str],
+) -> None:
     rules = FingerprintingRules.from_config_string("", bases=default_bases)
 
     assert rules._to_config_structure() == {"rules": [], "version": 1}
@@ -306,7 +309,9 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
     }
 
 
-def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
+def test_built_in_nextjs_rules_from_config_string_with_custom(
+    default_bases: list[str],
+) -> None:
     rules = FingerprintingRules.from_config_string(
         "error.type:DatabaseUnavailable -> DatabaseUnavailable",
         bases=default_bases,
@@ -416,18 +421,18 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
     }
 
 
-def test_load_configs_empty_doesnt_blow_up(tmp_path):
+def test_load_configs_empty_doesnt_blow_up(tmp_path: Path) -> None:
     with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         assert _load_configs() == {}
 
 
-def test_load_configs_non_existent_path_doesnt_blow_up(tmp_path):
+def test_load_configs_non_existent_path_doesnt_blow_up(tmp_path: Path) -> None:
     tmp_path.rmdir()
     with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         assert _load_configs() == {}
 
 
-def test_load_configs_borked_file_doesnt_blow_up(tmp_path):
+def test_load_configs_borked_file_doesnt_blow_up(tmp_path: Path) -> None:
     base = "foo@2077-01-02"
     rule_dir = tmp_path / base
     rule_dir.mkdir()
@@ -454,7 +459,9 @@ def test_load_configs_borked_file_doesnt_blow_up(tmp_path):
 
 
 @pytest.mark.parametrize("is_builtin", [True, False, None])
-def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(is_builtin):
+def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
+    is_builtin: bool | None,
+) -> None:
     rules = BuiltInFingerprintingRules._from_config_structure(
         {
             "rules": [
@@ -473,7 +480,9 @@ def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
 
 
 @pytest.mark.parametrize("is_builtin", [True, False, None])
-def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_builtin):
+def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(
+    is_builtin: bool | None,
+) -> None:
     rules = FingerprintingRules._from_config_structure(
         {
             "rules": [
@@ -492,7 +501,7 @@ def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_buil
 
 
 class BuiltInFingerprintingTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.chunkload_error_trace: dict[str, Any] = {
@@ -541,7 +550,7 @@ class BuiltInFingerprintingTest(TestCase):
 
         return eventstore.backend.create_event(project_id=1, data=data)
 
-    def test_built_in_chunkload_rules(self):
+    def test_built_in_chunkload_rules(self) -> None:
         """
         With flag enabled, the built-in rules for ChunkLoadError should be applied.
         """
@@ -557,7 +566,7 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
-    def test_built_in_chunkload_rules_variants(self):
+    def test_built_in_chunkload_rules_variants(self) -> None:
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         variants = event.get_grouping_variants(GROUPING_CONFIG)
         assert "built_in_fingerprint" in variants
@@ -571,7 +580,7 @@ class BuiltInFingerprintingTest(TestCase):
             "matched_rule": 'family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"',
         }
 
-    def test_built_in_chunkload_rules_value_only(self):
+    def test_built_in_chunkload_rules_value_only(self) -> None:
         """
         ChunkLoadError rule based on value should apply even if error is not ChunkLoadError type.
         """
@@ -587,7 +596,7 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
-    def test_built_in_chunkload_rules_wrong_sdk(self):
+    def test_built_in_chunkload_rules_wrong_sdk(self) -> None:
         """
         Built-in ChunkLoadError rule should also apply regardless of the SDK value.
         """
@@ -604,7 +613,7 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
-    def test_built_in_hydration_rules_same_transactions(self):
+    def test_built_in_hydration_rules_same_transactions(self) -> None:
         """
         Hydration errors with the same transaction should be grouped and the built-in rules for
         hydration errors should be applied.
@@ -644,7 +653,7 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert event_message1.group == event_message2.group
 
-    def test_built_in_hydration_rules_different_transactions(self):
+    def test_built_in_hydration_rules_different_transactions(self) -> None:
         """
         Hydration errors with different transactions should not be grouped and the built-in rules
         for hydration errors should be applied.
@@ -692,7 +701,7 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert event_transaction_slash.group != event_transaction_text.group
 
-    def test_built_in_hydration_rules_no_transactions(self):
+    def test_built_in_hydration_rules_no_transactions(self) -> None:
         """
         For hydration errors with no transactions the built-in HydrationError rules should NOT be
         applied.
@@ -713,7 +722,7 @@ class BuiltInFingerprintingTest(TestCase):
         assert "built_in_fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
 
-    def test_hydration_rule_w_family_matcher(self):
+    def test_hydration_rule_w_family_matcher(self) -> None:
         """
         Testing if rules are applied correctly with a family matcher
         """

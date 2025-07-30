@@ -40,7 +40,7 @@ MOCKED_DERIVED_METRICS.update(
 class OrganizationMetricsPermissionTest(APITestCase):
     (method, endpoint) = ("get", "sentry-api-0-organization-metrics-data")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)
 
     def send_request(self, organization, token, method, endpoint, *args):
@@ -49,14 +49,14 @@ class OrganizationMetricsPermissionTest(APITestCase):
             url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
         )
 
-    def test_access_with_wrong_permission_scopes(self):
+    def test_access_with_wrong_permission_scopes(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["alerts:read"])
 
         response = self.send_request(self.organization, token, self.method, self.endpoint)
         assert response.status_code == 403
 
-    def test_access_of_another_organization(self):
+    def test_access_of_another_organization(self) -> None:
         other_user = self.create_user("admin_2@localhost", is_superuser=True, is_staff=True)
         self.create_organization(name="foo", slug="foo", owner=other_user)
 
@@ -66,7 +66,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
         response = self.send_request(self.organization, token, self.method, self.endpoint)
         assert response.status_code == 403
 
-    def test_access_with_permissions(self):
+    def test_access_with_permissions(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 

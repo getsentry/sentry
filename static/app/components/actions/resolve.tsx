@@ -293,7 +293,7 @@ function ResolveActions({
 
   return (
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-      <ButtonBar merged gap="none">
+      <ButtonBar merged gap="0">
         <ResolveButton
           priority={priority}
           size={size}

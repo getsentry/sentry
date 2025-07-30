@@ -16,19 +16,19 @@ from sentry.utils import json
 class SetRemoteAddrFromForwardedForTestCase(TestCase):
     middleware = cached_property(SetRemoteAddrFromForwardedFor)
 
-    def test_ipv4(self):
+    def test_ipv4(self) -> None:
         request = HttpRequest()
         request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8,8.8.4.4:80"
         self.middleware.process_request(request)
         assert request.META["REMOTE_ADDR"] == "8.8.4.4"
 
-    def test_ipv4_whitespace(self):
+    def test_ipv4_whitespace(self) -> None:
         request = HttpRequest()
         request.META["HTTP_X_FORWARDED_FOR"] = "8.8.8.8:80 "
         self.middleware.process_request(request)
         assert request.META["REMOTE_ADDR"] == "8.8.8.8"
 
-    def test_ipv6(self):
+    def test_ipv6(self) -> None:
         request = HttpRequest()
         request.META["HTTP_X_FORWARDED_FOR"] = "2001:4860:4860::8888,2001:4860:4860::8844"
         self.middleware.process_request(request)
@@ -48,7 +48,7 @@ class FakedAPIProxyTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
 
-    def test_through_api_gateway(self):
+    def test_through_api_gateway(self) -> None:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return
 

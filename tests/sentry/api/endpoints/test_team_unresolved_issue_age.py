@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-unresolved-issue-age"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         other_user = self.create_user()
         other_team = self.create_team()
         project1 = self.create_project(teams=[self.team], slug="foo")
@@ -57,7 +57,7 @@ class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
             "> 1 year": 2,
         }
 
-    def test_environment_filter(self):
+    def test_environment_filter(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         env1 = self.create_environment(project=project1, name="prod")
         self.create_environment(project=project1, name="dev")
@@ -96,7 +96,7 @@ class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
             "> 1 year": 0,
         }
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(self.team.organization.slug, self.team.slug)
         assert response.data == {

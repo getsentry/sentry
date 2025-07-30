@@ -22,13 +22,13 @@ class UpdateMetricDetectorConfigFieldsTest(TestMigrations):
         )
         return super().setup_initial_state()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.detector.refresh_from_db()
         assert self.detector.config == {
             "detection_type": "percent",
             "comparison_delta": 3600,
         }
 
-    def test_unaffected(self):
+    def test_unaffected(self) -> None:
         self.other_detector.refresh_from_db()
         assert self.other_detector.config == {"mode": 1, "environment": "development"}

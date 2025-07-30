@@ -26,7 +26,7 @@ pytestmark = [requires_snuba]
 
 
 class ProjectReleaseListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         team = self.create_team()
@@ -78,7 +78,7 @@ class ProjectReleaseListTest(APITestCase):
         assert response.data[2]["version"] == release1.version
         assert response.data[2]["newGroups"] == 5
 
-    def test_query_filter(self):
+    def test_query_filter(self) -> None:
         self.login_as(user=self.user)
 
         team = self.create_team()
@@ -123,7 +123,7 @@ class ProjectReleaseListTest(APITestCase):
 
 
 class ProjectReleaseListEnvironmentsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=UTC)
@@ -207,7 +207,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         assert release["firstEvent"] == first_seen
         assert release["lastEvent"] == last_seen
 
-    def test_environments_filter(self):
+    def test_environments_filter(self) -> None:
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
@@ -233,7 +233,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + "?environment=" + self.env2.name, format="json")
         self.assert_releases(response, [self.release2])
 
-    def test_all_environments(self):
+    def test_all_environments(self) -> None:
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
@@ -244,7 +244,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url, format="json")
         self.assert_releases(response, [self.release1, self.release3])
 
-    def test_invalid_environment(self):
+    def test_invalid_environment(self) -> None:
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
@@ -255,7 +255,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
         self.assert_releases(response, [])
 
-    def test_new_issues_last_seen_first_seen(self):
+    def test_new_issues_last_seen_first_seen(self) -> None:
         def sort_releases_by_version(releases):
             return sorted(releases, key=lambda release: release["version"])
 
@@ -322,7 +322,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
 
 
 class ProjectReleaseCreateTest(APITestCase):
-    def test_minimal(self):
+    def test_minimal(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -351,7 +351,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert release.organization == project.organization
         assert release.projects.first() == project
 
-    def test_ios_release(self):
+    def test_ios_release(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -373,7 +373,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert release.organization == project.organization
         assert release.projects.first() == project
 
-    def test_duplicate(self):
+    def test_duplicate(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -393,7 +393,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
         assert response.status_code == 208, response.content
 
-    def test_duplicate_across_org(self):
+    def test_duplicate_across_org(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -422,7 +422,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.get(release=release, project=project)
         assert ReleaseProject.objects.get(release=release, project=project2)
 
-    def test_version_whitespace(self):
+    def test_version_whitespace(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -459,7 +459,7 @@ class ProjectReleaseCreateTest(APITestCase):
         )
         assert not release.owner_id
 
-    def test_features(self):
+    def test_features(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -481,7 +481,7 @@ class ProjectReleaseCreateTest(APITestCase):
         )
         assert release.owner_id == self.user.id
 
-    def test_commits(self):
+    def test_commits(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -513,7 +513,7 @@ class ProjectReleaseCreateTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id
 
-    def test_org_auth_token(self):
+    def test_org_auth_token(self) -> None:
         org = self.create_organization()
         org2 = self.create_organization()
 
@@ -605,7 +605,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
             },
         )
 
-    def test_commits_with_patch_set(self):
+    def test_commits_with_patch_set(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -688,7 +688,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         self.assert_file_change(file_changes[2], "M", "templates/hello.html", commits[1].id)
         self.assert_file_change(file_changes[3], "D", "templates/hola.html", commits[0].id)
 
-    def test_invalid_patch_type(self):
+    def test_invalid_patch_type(self) -> None:
         response = self.client.post(
             self.url,
             data={
@@ -724,7 +724,7 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 
 class ReleaseSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"
@@ -734,7 +734,7 @@ class ReleaseSerializerTest(TestCase):
         self.url = "https://example.com"
         self.dateReleased = "1000-10-10T06:06"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={
                 "version": self.version,
@@ -762,21 +762,21 @@ class ReleaseSerializerTest(TestCase):
         assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
-    def test_fields_not_required(self):
+    def test_fields_not_required(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": self.version},
             context={"organization": self.organization},
         )
         assert serializer.is_valid()
 
-    def test_do_not_allow_null_commits(self):
+    def test_do_not_allow_null_commits(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": self.version, "commits": None},
             context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
-    def test_ref_limited_by_max_version_length(self):
+    def test_ref_limited_by_max_version_length(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": self.version, "ref": "a" * MAX_VERSION_LENGTH},
             context={"organization": self.organization},
@@ -788,7 +788,7 @@ class ReleaseSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_limited_by_max_version_length(self):
+    def test_version_limited_by_max_version_length(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": "a" * MAX_VERSION_LENGTH},
             context={"organization": self.organization},
@@ -800,7 +800,7 @@ class ReleaseSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_does_not_allow_whitespace(self):
+    def test_version_does_not_allow_whitespace(self) -> None:
         for char in BAD_RELEASE_CHARS:
             serializer = ReleaseWithVersionSerializer(
                 data={"version": char},
@@ -808,7 +808,7 @@ class ReleaseSerializerTest(TestCase):
             )
             assert not serializer.is_valid()
 
-    def test_version_does_not_allow_current_dir_path(self):
+    def test_version_does_not_allow_current_dir_path(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": "."},
             context={"organization": self.organization},
@@ -820,7 +820,7 @@ class ReleaseSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_does_not_allow_null_or_empty_value(self):
+    def test_version_does_not_allow_null_or_empty_value(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": None},
             context={"organization": self.organization},
@@ -832,14 +832,14 @@ class ReleaseSerializerTest(TestCase):
         )
         assert not serializer.is_valid()
 
-    def test_version_cannot_be_latest(self):
+    def test_version_cannot_be_latest(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={"version": "Latest"},
             context={"organization": self.organization},
         )
         assert not serializer.is_valid()
 
-    def test_owner_must_have_org_access(self):
+    def test_owner_must_have_org_access(self) -> None:
         serializer = ReleaseWithVersionSerializer(
             data={
                 "version": self.version,

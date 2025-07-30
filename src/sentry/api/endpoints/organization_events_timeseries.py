@@ -23,15 +23,13 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     spans_metrics,
-    spans_rpc,
     transactions,
-    uptime_checks,
 )
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
-from sentry.snuba.utils import DATASET_LABELS
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -40,7 +38,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_rpc,
+    Spans,
     errors,
     transactions,
 }
@@ -160,7 +158,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_rpc, ourlogs, uptime_checks}
+            use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
@@ -237,7 +235,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             if "timestamp" in raw_groupby:
                 raise ParseError("Cannot group by timestamp")
-            if dataset in {spans_rpc, ourlogs}:
+            if dataset in RPC_DATASETS:
                 return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
@@ -274,7 +272,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 fallback_to_transactions=True,
             )
 
-        if dataset in {spans_rpc, ourlogs}:
+        if dataset in RPC_DATASETS:
             return dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,

@@ -13,7 +13,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-users"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(
             organization=self.organization, date_added=(timezone.now() - timedelta(hours=2))
@@ -67,7 +67,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: mock.MagicMock) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -77,7 +77,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         self._assert_simple_response(response, mock_record)
 
     @mock.patch("sentry.analytics.record")
-    def test_superuser_simple(self, mock_record):
+    def test_superuser_simple(self, mock_record: mock.MagicMock) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
@@ -87,7 +87,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         self._assert_simple_response(response, mock_record)
 
     @mock.patch("sentry.analytics.record")
-    def test_staff_simple(self, mock_record):
+    def test_staff_simple(self, mock_record: mock.MagicMock) -> None:
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
@@ -97,7 +97,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         self._assert_simple_response(response, mock_record)
 
-    def test_empty_search_query(self):
+    def test_empty_search_query(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -106,7 +106,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_username_search(self):
+    def test_username_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -125,7 +125,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_email_search(self):
+    def test_email_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -147,7 +147,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_id_search(self):
+    def test_id_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(
@@ -166,7 +166,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
 
         assert len(response.data) == 0
 
-    def test_ip_search(self):
+    def test_ip_search(self) -> None:
         self.login_as(user=self.user)
 
         response = self.get_success_response(

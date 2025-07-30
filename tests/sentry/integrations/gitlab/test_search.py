@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs
 
 import orjson
@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class GitlabSearchTest(GitLabTestCase):
     provider = IntegrationProviderSlug.GITLAB.value
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(
             "sentry-extensions-gitlab-search",
@@ -29,7 +29,7 @@ class GitlabSearchTest(GitLabTestCase):
     # Happy Paths
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_external_issue_results(self, mock_record):
+    def test_finds_external_issue_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=AEIOU",
@@ -59,7 +59,7 @@ class GitlabSearchTest(GitLabTestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_finds_external_issue_results_with_iid(self):
+    def test_finds_external_issue_results_with_iid(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&iids=25",
@@ -74,7 +74,7 @@ class GitlabSearchTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_finds_project_results(self, mock_record):
+    def test_finds_project_results(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
@@ -112,7 +112,7 @@ class GitlabSearchTest(GitLabTestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    def test_finds_project_results_with_pagination(self):
+    def test_finds_project_results_with_pagination(self) -> None:
         project_a = {
             "id": "1",
             "name_with_namespace": "GetSentry / Sentry",
@@ -147,7 +147,7 @@ class GitlabSearchTest(GitLabTestCase):
         assert len(resp.data) == 220
 
     @responses.activate
-    def test_finds_no_external_issues_results(self):
+    def test_finds_no_external_issues_results(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=XYZ",
@@ -161,7 +161,7 @@ class GitlabSearchTest(GitLabTestCase):
         assert resp.data == []
 
     @responses.activate
-    def test_finds_no_external_issues_results_iid(self):
+    def test_finds_no_external_issues_results_iid(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&iids=11",
@@ -175,7 +175,7 @@ class GitlabSearchTest(GitLabTestCase):
         assert resp.data == []
 
     @responses.activate
-    def test_finds_no_project_results(self):
+    def test_finds_no_project_results(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/groups/1/projects?search=GetSentry&simple=True&include_subgroups=False&page=1&per_page=100&order_by=last_activity_at",
@@ -187,22 +187,22 @@ class GitlabSearchTest(GitLabTestCase):
         assert resp.data == []
 
     # Request Validations
-    def test_missing_field(self):
+    def test_missing_field(self) -> None:
         resp = self.client.get(self.url, data={"query": "XYZ"})
         assert resp.status_code == 400
 
-    def test_missing_query(self):
+    def test_missing_query(self) -> None:
         resp = self.client.get(self.url, data={"query": "GetSentry"})
 
         assert resp.status_code == 400
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         resp = self.client.get(self.url, data={"field": "bad-field", "query": "GetSentry"})
 
         assert resp.status_code == 400
 
     @responses.activate
-    def test_missing_project_with_external_issue_field(self):
+    def test_missing_project_with_external_issue_field(self) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=AEIOU",
@@ -216,7 +216,7 @@ class GitlabSearchTest(GitLabTestCase):
         assert resp.status_code == 400
 
     # Missing Resources
-    def test_missing_integration(self):
+    def test_missing_integration(self) -> None:
         url = reverse(
             "sentry-extensions-gitlab-search",
             kwargs={
@@ -228,7 +228,7 @@ class GitlabSearchTest(GitLabTestCase):
 
         assert resp.status_code == 404
 
-    def test_missing_installation(self):
+    def test_missing_installation(self) -> None:
         # remove organization integration aka "uninstalling" installation
         assert self.installation.org_integration is not None
         org_integration = OrganizationIntegration.objects.get(
@@ -242,7 +242,7 @@ class GitlabSearchTest(GitLabTestCase):
     # Distributed System Issues
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_issues_request_fails(self, mock_record):
+    def test_search_issues_request_fails(self, mock_record: MagicMock) -> None:
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/issues", status=503)
         resp = self.client.get(
             self.url, data={"field": "externalIssue", "query": "GetSentry", "project": "5"}
@@ -262,7 +262,7 @@ class GitlabSearchTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_projects_request_fails(self, mock_record):
+    def test_projects_request_fails(self, mock_record: MagicMock) -> None:
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
         assert resp.status_code == 400

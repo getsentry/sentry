@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationMemberListTest(APITestCase):
     endpoint = "sentry-api-0-organization-users"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
         self.user_3 = self.create_user("unrelated@localhost", username="unrelated")
@@ -22,7 +22,7 @@ class OrganizationMemberListTest(APITestCase):
         self.project_3 = self.create_project(teams=[self.team_3])
         self.login_as(user=self.user_2)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         projects = [self.project_1, self.project_2]
         projects_ids = [p.id for p in projects]
         response = self.get_success_response(self.org.slug, project=projects_ids)

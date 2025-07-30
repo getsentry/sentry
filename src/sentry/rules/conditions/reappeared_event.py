@@ -11,22 +11,21 @@ from sentry.types.condition_activity import ConditionActivity, ConditionActivity
 
 class ReappearedEventCondition(EventCondition):
     id = "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"
-    label = "The issue changes state from ignored to unresolved"
+    label = "The issue changes state from archived to escalating"
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        return state.has_reappeared
+        return state.has_escalated
 
     def get_activity(
         self, start: datetime, end: datetime, limit: int
     ) -> Sequence[ConditionActivity]:
-        # reappearances are recorded as SET_UNRESOLVED with no user
+        # escalations are recorded as SET_ESCALATING
         activities = (
             Activity.objects.filter(
                 project=self.project,
                 datetime__gte=start,
                 datetime__lt=end,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user_id=None,
+                type=ActivityType.SET_ESCALATING.value,
             )
             .order_by("-datetime")[:limit]
             .values_list("group", "datetime", "data")

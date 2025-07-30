@@ -1,19 +1,6 @@
+import {getApiUrl} from 'sentry/api/getApiUrl';
 import type {Release} from 'sentry/types/release';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-
-function getReleaseQueryKey({
-  orgSlug,
-  projectSlug,
-  releaseVersion,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-  releaseVersion: string;
-}): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(releaseVersion)}/`,
-  ];
-}
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 export function useRelease({
   orgSlug,
@@ -27,7 +14,15 @@ export function useRelease({
   enabled?: boolean;
 }) {
   return useApiQuery<Release>(
-    getReleaseQueryKey({orgSlug, projectSlug, releaseVersion}),
+    [
+      getApiUrl('/projects/$orgSlug/$projectSlug/releases/$releaseVersion/', {
+        path: {
+          orgSlug,
+          projectSlug,
+          releaseVersion,
+        },
+      }),
+    ],
     {
       enabled,
       staleTime: Infinity,

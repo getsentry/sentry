@@ -19,7 +19,7 @@ class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
             organization=self.create_organization(),
@@ -54,7 +54,7 @@ class TestSentryAppAuthorizations(APITestCase):
             },
         )
 
-    def test_exchanges_for_token_successfully(self):
+    def test_exchanges_for_token_successfully(self) -> None:
         expected_expires_at = (timezone.now() + timedelta(hours=8)).replace(second=0, microsecond=0)
 
         response = self.get_success_response()
@@ -69,7 +69,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert expires_at == expected_expires_at
 
-    def test_exchange_for_token_missing_data(self):
+    def test_exchange_for_token_missing_data(self) -> None:
         response = self.get_error_response(code=None)
 
         assert response.status_code == 400
@@ -79,10 +79,10 @@ class TestSentryAppAuthorizations(APITestCase):
         response = self.get_error_response(client_id=None)
         assert response.status_code == 401
 
-    def test_incorrect_grant_type(self):
+    def test_incorrect_grant_type(self) -> None:
         self.get_error_response(grant_type="notit", status_code=403)
 
-    def test_invalid_installation(self):
+    def test_invalid_installation(self) -> None:
         self.install = self.create_sentry_app_installation(
             organization=self.organization,
             slug="slowdb",
@@ -93,21 +93,21 @@ class TestSentryAppAuthorizations(APITestCase):
         # URL with this new Install's uuid in it
         self.get_error_response(self.install.uuid, status_code=403)
 
-    def test_non_sentry_app_user(self):
+    def test_non_sentry_app_user(self) -> None:
         app = ApiApplication.objects.create(owner=self.create_user())
         self.get_error_response(
             client_id=app.client_id, client_secret=app.client_secret, status_code=401
         )
 
-    def test_invalid_grant(self):
+    def test_invalid_grant(self) -> None:
         self.get_error_response(code="123", status_code=401)
 
-    def test_expired_grant(self):
+    def test_expired_grant(self) -> None:
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self.get_error_response(status_code=401)
         assert response.data["detail"] == "Grant has already expired"
 
-    def test_request_with_exchanged_access_token(self):
+    def test_request_with_exchanged_access_token(self) -> None:
         response = self.get_response()
         token = response.data["token"]
 
@@ -119,11 +119,11 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == str(self.organization.id)
 
-    def test_state(self):
+    def test_state(self) -> None:
         response = self.get_success_response(state="abc123")
         assert response.data["state"] == "abc123"
 
-    def test_refresh_token_exchange(self):
+    def test_refresh_token_exchange(self) -> None:
         response = self.get_success_response()
 
         token_id = response.data["id"]
@@ -147,7 +147,7 @@ class TestSentryAppAuthorizations(APITestCase):
         new_token = ApiToken.objects.filter(refresh_token=response.data["refreshToken"])
         assert new_token.exists()
 
-    def test_refresh_token_exchange_with_missing_data(self):
+    def test_refresh_token_exchange_with_missing_data(self) -> None:
         response = self.get_success_response()
 
         refresh_token = response.data["refreshToken"]

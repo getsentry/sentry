@@ -1,6 +1,6 @@
 import copy
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import pytest
@@ -186,7 +186,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_all_events_query(self, mock_now):
+    def test_all_events_query(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         five_mins_ago = (now - timedelta(minutes=5)).isoformat()
@@ -241,7 +241,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
 
     @patch("django.utils.timezone.now")
-    def test_errors_query(self, mock_now):
+    def test_errors_query(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
@@ -294,7 +294,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_transactions_query(self, mock_now):
+    def test_transactions_query(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         event_data = generate_transaction()
@@ -309,7 +309,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             )
 
     @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_all_events(self, mock_now):
+    def test_event_detail_view_from_all_events(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
@@ -345,7 +345,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # assert event_data["message"] in header.text
 
     @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_errors_view(self, mock_now):
+    def test_event_detail_view_from_errors_view(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
 
@@ -506,7 +506,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")
-    def test_drilldown_result(self, mock_now):
+    def test_drilldown_result(self, mock_now: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         ten_mins_ago = (now - timedelta(minutes=10)).isoformat()
@@ -545,7 +545,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")
-    def test_usage(self, mock_now):
+    def test_usage(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         # TODO: load events

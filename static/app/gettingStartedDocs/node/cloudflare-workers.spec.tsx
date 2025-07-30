@@ -52,4 +52,46 @@ describe('express onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
+
+  it('displays logs configuration when logs are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not display logs configuration when logs are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+  });
 });

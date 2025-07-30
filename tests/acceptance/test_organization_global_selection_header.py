@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone as django_timezone
@@ -271,7 +271,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
     @patch("django.utils.timezone.now")
-    def test_issues_list_to_details_and_back_with_all_projects(self, mock_now):
+    def test_issues_list_to_details_and_back_with_all_projects(self, mock_now: MagicMock) -> None:
         """
         If user has access to the `global-views` feature, which allows selecting multiple projects,
         they should be able to visit issues list with no project in URL and list issues
@@ -309,7 +309,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
     @patch("django.utils.timezone.now")
-    def test_issues_list_to_details_and_back_with_initial_project(self, mock_now):
+    def test_issues_list_to_details_and_back_with_initial_project(
+        self, mock_now: MagicMock
+    ) -> None:
         """
         If user has a project defined in URL, if they visit an issue and then
         return back to issues list, that project id should still exist in URL
@@ -342,7 +344,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
     @patch("django.utils.timezone.now")
-    def test_issue_details_to_stream_with_initial_env_no_project(self, mock_now):
+    def test_issue_details_to_stream_with_initial_env_no_project(self, mock_now: MagicMock) -> None:
         """
         Visiting issue details directly with no project but with an environment defined in URL.
         When navigating back to issues stream, should keep environment and project in context.

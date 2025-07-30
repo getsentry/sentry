@@ -7,7 +7,7 @@ from sentry.seer.workflows.compare import (
 )
 
 
-def test_keyed_kl_score():
+def test_keyed_kl_score() -> None:
     baseline = [
         ("key", "true", 10),
         ("key", "false", 200),
@@ -42,7 +42,7 @@ def test_keyed_kl_score():
     assert math.isclose(scores[0][1], 8.58, rel_tol=1e-3)
 
 
-def test_keyed_rrf_score():
+def test_keyed_rrf_score() -> None:
     baseline = [
         ("key", "true", 10),
         ("key", "false", 200),
@@ -63,7 +63,7 @@ def test_keyed_rrf_score():
     assert math.isclose(scores[1][1], 0.01612, abs_tol=1e-3)
 
 
-def test_synthetic_baseline_kl():
+def test_synthetic_baseline_kl() -> None:
     """
     This test checks the KL divergence for the synthetic generated baseline, describe in the tech spec.
     There are 4 attributes: country, device, error_code, browser.
@@ -119,7 +119,7 @@ def test_synthetic_baseline_kl():
     assert math.isclose(kl_scores[1], 0.17, abs_tol=1e-3)
 
 
-def test_zero_kl():
+def test_zero_kl() -> None:
     """
     This test checks the if the distirbution of the outliers is more or less the same as the baseline, the KL divergence should be close to 0.
     """
@@ -145,7 +145,7 @@ def test_zero_kl():
     assert math.isclose(scores[0][1], 0.0, abs_tol=1e-4)
 
 
-def test_entropy_only():
+def test_entropy_only() -> None:
     """
     This test ranks the attributes by entropy only.
     'country' has zero entropy, so it will be ranked the highest. 'browser' has the highest entropy, so it will be ranked the lowest.
@@ -181,7 +181,7 @@ def test_entropy_only():
     assert attributes == ["country", "device", "browser"]
 
 
-def test_small_support():
+def test_small_support() -> None:
     """
     This test checkes the that logic for adding unseen values to the distribution works.
     This logic is used to prevent small support attributes from being ranked higher than large support attributes.
@@ -217,7 +217,7 @@ def test_small_support():
     assert attributes == ["country", "browser", "device"]
 
 
-def test_keyed_rrf_score_with_filter_basic():
+def test_keyed_rrf_score_with_filter_basic() -> None:
     """
     Test basic functionality of keyed_rrf_score_with_filter
     """
@@ -246,7 +246,7 @@ def test_keyed_rrf_score_with_filter_basic():
         assert score >= 0
 
 
-def test_keyed_rrf_score_with_filter_threshold_behavior():
+def test_keyed_rrf_score_with_filter_threshold_behavior() -> None:
     """
     Test filtering behavior with different z_threshold values
     """
@@ -271,7 +271,7 @@ def test_keyed_rrf_score_with_filter_threshold_behavior():
         assert not filtered, f"Key {key} should not be filtered with high threshold"
 
 
-def test_keyed_rrf_score_with_filter_empty_inputs():
+def test_keyed_rrf_score_with_filter_empty_inputs() -> None:
     """
     Test with empty inputs
     """
@@ -281,7 +281,7 @@ def test_keyed_rrf_score_with_filter_empty_inputs():
     assert scores == []
 
 
-def test_keyed_rrf_score_with_filter_consistency_with_regular_rrf():
+def test_keyed_rrf_score_with_filter_consistency_with_regular_rrf() -> None:
     """
     Test that the scores are consistent with keyed_rrf_score
     """

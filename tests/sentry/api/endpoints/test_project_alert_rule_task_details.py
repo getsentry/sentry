@@ -13,7 +13,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 
 
 class ProjectAlertRuleTaskDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo", fire_project_created=True)
@@ -35,7 +35,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         client = RedisRuleStatus(self.uuid)
         client.set_value(status, rule_id)
 
-    def test_status_pending(self):
+    def test_status_pending(self) -> None:
         self.login_as(user=self.user)
         self.set_value("pending")
         response = self.client.get(self.url, format="json")
@@ -44,7 +44,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert response.data["status"] == "pending"
         assert response.data["alertRule"] is None
 
-    def test_status_failed(self):
+    def test_status_failed(self) -> None:
         self.login_as(user=self.user)
         self.set_value("failed", self.rule.id)
         response = self.client.get(self.url, format="json")
@@ -53,7 +53,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert response.data["status"] == "failed"
         assert response.data["alertRule"] is None
 
-    def test_status_success(self):
+    def test_status_success(self) -> None:
         self.set_value("success", self.rule.id)
         self.login_as(user=self.user)
         response = self.client.get(self.url, format="json")
@@ -65,7 +65,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert rule_data["id"] == str(self.rule.id)
         assert rule_data["name"] == self.rule.name
 
-    def test_workflow_engine_serializer(self):
+    def test_workflow_engine_serializer(self) -> None:
         self.set_value("success", self.rule.id)
         self.login_as(user=self.user)
 
@@ -91,7 +91,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert rule_data["id"] == str(self.rule.id)
         assert rule_data["name"] == self.rule.name
 
-    def test_wrong_no_alert_rule(self):
+    def test_wrong_no_alert_rule(self) -> None:
         rule_id = self.rule.id
         self.set_value("success", rule_id)
         self.rule.delete()

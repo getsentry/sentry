@@ -14,10 +14,10 @@ backend = OrganizationOnboardingTaskBackend()
 
 @no_silo_test
 class OrganizationOnboardingTaskBackendTest(TestCase):
-    def test_fetch_onboarding_tasks_empty_on_org(self):
+    def test_fetch_onboarding_tasks_empty_on_org(self) -> None:
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 0
 
-    def test_fetch_onboarding_tasks_with_invalid_task(self):
+    def test_fetch_onboarding_tasks_with_invalid_task(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization=self.organization,
             task=max(OnboardingTask.values()) + 1,
@@ -25,7 +25,7 @@ class OrganizationOnboardingTaskBackendTest(TestCase):
         )
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 0
 
-    def test_fetch_onboarding_tasks_with_invalid_status(self):
+    def test_fetch_onboarding_tasks_with_invalid_status(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization=self.organization,
             task=OnboardingTask.FIRST_PROJECT,
@@ -33,7 +33,7 @@ class OrganizationOnboardingTaskBackendTest(TestCase):
         )
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 0
 
-    def test_fetch_onboarding_tasks_with_complete(self):
+    def test_fetch_onboarding_tasks_with_complete(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization=self.organization,
             task=OnboardingTask.FIRST_PROJECT,
@@ -41,7 +41,7 @@ class OrganizationOnboardingTaskBackendTest(TestCase):
         )
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 1
 
-    def test_fetch_onboarding_tasks_with_skipped(self):
+    def test_fetch_onboarding_tasks_with_skipped(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization=self.organization,
             task=OnboardingTask.FIRST_PROJECT,
@@ -49,7 +49,7 @@ class OrganizationOnboardingTaskBackendTest(TestCase):
         )
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 1
 
-    def test_fetch_onboarding_tasks_multiple(self):
+    def test_fetch_onboarding_tasks_multiple(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization=self.organization,
             task=OnboardingTask.FIRST_PROJECT,
@@ -62,7 +62,7 @@ class OrganizationOnboardingTaskBackendTest(TestCase):
         )
         assert len(backend.fetch_onboarding_tasks(self.organization, self.user)) == 2
 
-    def test_fetch_onboarding_tasks_multiple_filtered(self):
+    def test_fetch_onboarding_tasks_multiple_filtered(self) -> None:
         OrganizationOnboardingTask.objects.create(
             organization=self.organization,
             task=OnboardingTask.FIRST_PROJECT,

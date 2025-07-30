@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
@@ -20,12 +20,12 @@ from sentry.utils import json
 
 
 class TestGetRepoFromCodeMappings(TestCase):
-    def test_code_mappings_empty(self):
+    def test_code_mappings_empty(self) -> None:
         project = self.create_project()
         repos = get_autofix_repos_from_project_code_mappings(project)
         assert repos == []
 
-    def test_get_repos_from_project_code_mappings_with_data(self):
+    def test_get_repos_from_project_code_mappings_with_data(self) -> None:
         project = self.create_project()
         repo = self.create_repo(name="getsentry/sentry", provider="github", external_id="123")
         self.create_code_mapping(project=project, repo=repo)
@@ -43,7 +43,7 @@ class TestGetRepoFromCodeMappings(TestCase):
 
 class TestGetAutofixStateFromPrId(TestCase):
     @patch("requests.post")
-    def test_get_autofix_state_from_pr_id_success(self, mock_post):
+    def test_get_autofix_state_from_pr_id_success(self, mock_post: MagicMock) -> None:
         # Setup mock response
         mock_response = mock_post.return_value
         mock_response.raise_for_status = lambda: None
@@ -73,7 +73,7 @@ class TestGetAutofixStateFromPrId(TestCase):
         )
 
     @patch("requests.post")
-    def test_get_autofix_state_from_pr_id_no_state(self, mock_post):
+    def test_get_autofix_state_from_pr_id_no_state(self, mock_post: MagicMock) -> None:
         # Setup mock response
         mock_response = mock_post.return_value
         mock_response.raise_for_status = lambda: None
@@ -86,7 +86,7 @@ class TestGetAutofixStateFromPrId(TestCase):
         assert result is None
 
     @patch("requests.post")
-    def test_get_autofix_state_from_pr_id_http_error(self, mock_post):
+    def test_get_autofix_state_from_pr_id_http_error(self, mock_post: MagicMock) -> None:
         # Setup mock response to raise HTTP error
         mock_response = mock_post.return_value
         mock_response.raise_for_status.side_effect = Exception("HTTP Error")
@@ -101,7 +101,7 @@ class TestGetAutofixStateFromPrId(TestCase):
 
 class TestGetAutofixState(TestCase):
     @patch("requests.post")
-    def test_get_autofix_state_success_with_group_id(self, mock_post):
+    def test_get_autofix_state_success_with_group_id(self, mock_post: MagicMock) -> None:
         # Setup mock response
         mock_response = mock_post.return_value
         mock_response.raise_for_status = lambda: None
@@ -132,7 +132,7 @@ class TestGetAutofixState(TestCase):
         )
 
     @patch("requests.post")
-    def test_get_autofix_state_success_with_run_id(self, mock_post):
+    def test_get_autofix_state_success_with_run_id(self, mock_post: MagicMock) -> None:
         # Setup mock response
         mock_response = mock_post.return_value
         mock_response.raise_for_status = lambda: None
@@ -163,7 +163,7 @@ class TestGetAutofixState(TestCase):
         )
 
     @patch("requests.post")
-    def test_get_autofix_state_no_result(self, mock_post):
+    def test_get_autofix_state_no_result(self, mock_post: MagicMock) -> None:
         # Setup mock response
         mock_response = mock_post.return_value
         mock_response.raise_for_status = lambda: None
@@ -176,7 +176,7 @@ class TestGetAutofixState(TestCase):
         assert result is None
 
     @patch("requests.post")
-    def test_get_autofix_state_http_error(self, mock_post):
+    def test_get_autofix_state_http_error(self, mock_post: MagicMock) -> None:
         # Setup mock response to raise HTTP error
         mock_response = mock_post.return_value
         mock_response.raise_for_status.side_effect = Exception("HTTP Error")
@@ -192,7 +192,7 @@ class TestGetAutofixState(TestCase):
 class TestAutomationRateLimiting(TestCase):
     @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
     @patch("sentry.seer.autofix.utils.track_outcome")
-    def test_scanner_rate_limited_with_unlimited_flag(self, mock_track_outcome):
+    def test_scanner_rate_limited_with_unlimited_flag(self, mock_track_outcome: MagicMock) -> None:
         """Test scanner rate limiting bypassed with unlimited feature flag"""
         project = self.create_project()
         organization = project.organization
@@ -204,7 +204,9 @@ class TestAutomationRateLimiting(TestCase):
 
     @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
     @patch("sentry.seer.autofix.utils.track_outcome")
-    def test_scanner_rate_limited_logic(self, mock_track_outcome, mock_is_limited):
+    def test_scanner_rate_limited_logic(
+        self, mock_track_outcome: MagicMock, mock_is_limited: MagicMock
+    ) -> None:
         """Test scanner rate limiting logic"""
         project = self.create_project()
         organization = project.organization
@@ -219,7 +221,7 @@ class TestAutomationRateLimiting(TestCase):
 
     @with_feature("organizations:unlimited-auto-triggered-autofix-runs")
     @patch("sentry.seer.autofix.utils.track_outcome")
-    def test_autofix_rate_limited_with_unlimited_flag(self, mock_track_outcome):
+    def test_autofix_rate_limited_with_unlimited_flag(self, mock_track_outcome: MagicMock) -> None:
         """Test autofix rate limiting bypassed with unlimited feature flag"""
         project = self.create_project()
         organization = project.organization
@@ -231,7 +233,9 @@ class TestAutomationRateLimiting(TestCase):
 
     @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
     @patch("sentry.seer.autofix.utils.track_outcome")
-    def test_autofix_rate_limited_logic(self, mock_track_outcome, mock_is_limited):
+    def test_autofix_rate_limited_logic(
+        self, mock_track_outcome: MagicMock, mock_is_limited: MagicMock
+    ) -> None:
         """Test autofix rate limiting logic"""
         project = self.create_project()
         organization = project.organization
@@ -247,7 +251,7 @@ class TestAutomationRateLimiting(TestCase):
         mock_track_outcome.assert_called_once()
 
     @patch("sentry.seer.autofix.utils.ratelimits.backend.is_limited_with_value")
-    def test_autofix_rate_limit_multiplication_logic(self, mock_is_limited):
+    def test_autofix_rate_limit_multiplication_logic(self, mock_is_limited: MagicMock) -> None:
         """Test that the limit is multiplied correctly based on project option"""
         project = self.create_project()
         organization = project.organization

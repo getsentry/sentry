@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
@@ -78,11 +79,28 @@ export function TraceView() {
   );
 }
 
+// At this level, we only need the initial logs data once, to populate the header for
+// logs only trace views, using the first log event. We read off the same context used
+// by the trace logs table, which changes the data based on search filters. We want to decouple
+// the trace view state from the logs table state, after initial load.
+function useInitialLogsData(): OurLogsResponseItem[] | undefined {
+  const logsData = useLogsPageDataQueryResult().data;
+  const initialDataRef = useRef<OurLogsResponseItem[] | undefined>(undefined);
+
+  useEffect(() => {
+    if (logsData?.length && initialDataRef.current === undefined) {
+      initialDataRef.current = logsData;
+    }
+  }, [logsData]);
+
+  return initialDataRef.current;
+}
+
 function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const logsData = useLogsPageDataQueryResult().data;
+  const logsData = useInitialLogsData();
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);

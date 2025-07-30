@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from typing import Any
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
@@ -33,7 +33,7 @@ class MNPlusOneDBDetectorTest(TestCase):
     fingerprint_type_id = PerformanceMNPlusOneDBQueriesExperimentalGroupType.type_id
     group_type = PerformanceNPlusOneExperimentalGroupType
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -45,7 +45,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def test_detects_parallel_m_n_plus_one(self):
+    def test_detects_parallel_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
 
         problems = self.find_problems(event)
@@ -119,7 +119,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         ]
         assert problems[0].title == "N+1 Query (Experimental)"
 
-    def test_detects_prisma_client_m_n_plus_one(self):
+    def test_detects_prisma_client_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
         repeated_db_span_ids = [
             span["span_id"]
@@ -192,15 +192,15 @@ class MNPlusOneDBDetectorTest(TestCase):
             important=True,
         )
 
-    def test_does_not_detect_truncated_m_n_plus_one(self):
+    def test_does_not_detect_truncated_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_n_plus_one(self):
+    def test_does_not_detect_n_plus_one(self) -> None:
         event = get_event("n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_when_parent_is_transaction(self):
+    def test_does_not_detect_when_parent_is_transaction(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-transaction-parent")
         assert self.find_problems(event) == []
 
@@ -209,7 +209,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             "performance.issues.experimental_m_n_plus_one_db_queries.problem-creation": 1.0,
         }
     )
-    def test_m_n_plus_one_detector_enabled(self):
+    def test_m_n_plus_one_detector_enabled(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         sdk_span_mock = Mock()
         _detect_performance_problems(event, sdk_span_mock, self.create_project())
@@ -232,19 +232,19 @@ class MNPlusOneDBDetectorTest(TestCase):
             ]
         )
 
-    def test_m_n_plus_one_does_not_include_extra_span(self):
+    def test_m_n_plus_one_does_not_include_extra_span(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-off-by-one")
         assert self.find_problems(event) == []
 
-    def test_m_n_plus_one_ignores_redis(self):
+    def test_m_n_plus_one_ignores_redis(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
         assert self.find_problems(event) == []
 
-    def test_m_n_plus_one_ignores_mostly_not_db(self):
+    def test_m_n_plus_one_ignores_mostly_not_db(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-mostly-http")
         assert self.find_problems(event) == []
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
         event["project_id"] = project.id
@@ -265,7 +265,7 @@ class MNPlusOneDBDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_respects_n_plus_one_db_duration_threshold(self):
+    def test_respects_n_plus_one_db_duration_threshold(self) -> None:
         project = self.create_project()
 
         # Total duration subceeds the threshold
@@ -292,7 +292,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert len(self.find_problems(event, settings)) == 1
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_event_below_duration_threshold(self, metrics_mock):
+    def test_ignores_event_below_duration_threshold(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         assert self.find_problems(event) == []
         metrics_mock.incr.assert_called_with(
@@ -300,7 +300,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         )
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_event_with_low_db_span_percentage(self, metrics_mock):
+    def test_ignores_event_with_low_db_span_percentage(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         for index, span in enumerate(event["spans"]):
             # Modify spans so each takes 1s, but DB spans take 1ms
@@ -313,7 +313,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         )
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_event_with_no_common_parent_span(self, metrics_mock):
+    def test_ignores_event_with_no_common_parent_span(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
         previous_parent_span_id = None
         for span in event["spans"]:
@@ -327,7 +327,9 @@ class MNPlusOneDBDetectorTest(TestCase):
         metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_prisma_client_if_depth_config_is_too_small(self, metrics_mock):
+    def test_ignores_prisma_client_if_depth_config_is_too_small(
+        self, metrics_mock: MagicMock
+    ) -> None:
         settings = deepcopy(self._settings)
         settings[self.detector.settings_key]["max_allowable_depth"] = 1
 

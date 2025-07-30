@@ -12,6 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
@@ -34,7 +35,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (InviteRequestPermissions,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = OrganizationMember.objects.filter(
             Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)

@@ -20,7 +20,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
+from sentry.taskworker.constants import (
+    DEFAULT_PROCESSING_DEADLINE,
+    MAX_PARAMETER_BYTES_BEFORE_COMPRESSION,
+    CompressionType,
+)
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
@@ -176,7 +180,10 @@ class Task(Generic[P, R]):
                 )
 
         parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
-        if self.compression_type == CompressionType.ZSTD:
+        if (
+            len(parameters_json) > MAX_PARAMETER_BYTES_BEFORE_COMPRESSION
+            or self.compression_type == CompressionType.ZSTD
+        ):
             # Worker uses this header to determine if the parameters are decompressed
             headers["compression-type"] = CompressionType.ZSTD.value
             start_time = time.perf_counter()

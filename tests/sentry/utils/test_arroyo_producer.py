@@ -3,7 +3,7 @@ from unittest.mock import Mock
 from sentry.utils.arroyo_producer import SingletonProducer
 
 
-def test_track_futures():
+def test_track_futures() -> None:
     def dummy_producer():
         raise AssertionError("no producer")
 

@@ -98,7 +98,7 @@ class DailySummaryTest(
             group.save()
         return group
 
-    def setUp(self):
+    def setUp(self) -> None:
         responses.add_passthru(settings.SENTRY_SNUBA)
         super().setUp()
         self.now = datetime.now(UTC)
@@ -205,7 +205,7 @@ class DailySummaryTest(
 
     @with_feature("organizations:daily-summary")
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
-    def test_schedule_organizations(self, mock_prepare_summary_data):
+    def test_schedule_organizations(self, mock_prepare_summary_data: mock.MagicMock) -> None:
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
 
@@ -224,7 +224,7 @@ class DailySummaryTest(
 
     @with_feature("organizations:daily-summary")
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
-    def test_schedule_organizations_timing(self, mock_prepare_summary_data):
+    def test_schedule_organizations_timing(self, mock_prepare_summary_data: mock.MagicMock) -> None:
         with self.tasks(), freeze_time("2024-03-06 23:15:00"):  # 3:15PM PST
             schedule_organizations()
         assert mock_prepare_summary_data.delay.call_count == 0
@@ -240,7 +240,7 @@ class DailySummaryTest(
         )  # note this didn't fire again, it just didn't increase from before
 
     @pytest.mark.skip(reason="test is failing, but relevant feature is disabled")
-    def test_build_summary_data(self):
+    def test_build_summary_data(self) -> None:
         self.populate_event_data()
 
         # add another release to make sure new issues in multiple releases show up
@@ -293,7 +293,7 @@ class DailySummaryTest(
         assert project_context_map2.new_in_release == {}
 
     @pytest.mark.skip(reason="flaky and part of a dead project")
-    def test_build_summary_data_filter_to_unresolved(self):
+    def test_build_summary_data_filter_to_unresolved(self) -> None:
         for _ in range(3):
             group1 = self.store_event_and_outcomes(
                 self.project.id,
@@ -338,7 +338,7 @@ class DailySummaryTest(
         assert (group2, 3) in project_context_map.key_errors_by_group
 
     @pytest.mark.skip(reason="flaky and part of a dead project")
-    def test_build_summary_data_filter_to_error_level(self):
+    def test_build_summary_data_filter_to_error_level(self) -> None:
         """Test that non-error level issues are filtered out of the results"""
         for _ in range(3):
             group1 = self.store_event_and_outcomes(
@@ -381,7 +381,7 @@ class DailySummaryTest(
         assert (group2, 3) in project_context_map.key_errors_by_group
         assert (group3, 3) in project_context_map.key_errors_by_group
 
-    def test_build_summary_data_dedupes_groups(self):
+    def test_build_summary_data_dedupes_groups(self) -> None:
         """
         Test that if a group has multiple escalated and/or regressed activity rows, we only use the group once
         """
@@ -418,7 +418,7 @@ class DailySummaryTest(
         assert project_context_map.escalated_today == [self.group3]
         assert project_context_map.regressed_today == [self.group2]
 
-    def test_build_summary_data_group_regressed_and_escalated(self):
+    def test_build_summary_data_group_regressed_and_escalated(self) -> None:
         """
         Test that if a group has regressed and then escalated in the same day, we only list it once as escalating
         """
@@ -446,7 +446,7 @@ class DailySummaryTest(
         assert project_context_map.escalated_today == [self.group3, self.group2]
         assert project_context_map.regressed_today == []
 
-    def test_build_summary_data_group_regressed_twice_and_escalated(self):
+    def test_build_summary_data_group_regressed_twice_and_escalated(self) -> None:
         """
         Test that if a group has regressed, been resolved, regresssed again and then escalated in the same day, we only list it once as escalating
         """
@@ -489,7 +489,7 @@ class DailySummaryTest(
         assert project_context_map.escalated_today == [self.group3, self.group2]
         assert project_context_map.regressed_today == []
 
-    def test_build_summary_data_group_regressed_escalated_in_the_past(self):
+    def test_build_summary_data_group_regressed_escalated_in_the_past(self) -> None:
         """
         Test that if a group has regressed or escalated some time in the past over 24 hours ago, it does not show up.
         """
@@ -538,7 +538,7 @@ class DailySummaryTest(
         assert escalated_past_group not in project_context_map.escalated_today
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
-    def test_prepare_summary_data(self, mock_deliver_summary):
+    def test_prepare_summary_data(self, mock_deliver_summary: mock.MagicMock) -> None:
         """Test that if the summary has data in it, we pass it along to be sent"""
         self.populate_event_data()
         with self.tasks():
@@ -549,7 +549,7 @@ class DailySummaryTest(
         assert mock_deliver_summary.call_count == 1
 
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
-    def test_no_data_summary_doesnt_send(self, mock_deliver_summary):
+    def test_no_data_summary_doesnt_send(self, mock_deliver_summary: mock.MagicMock) -> None:
         """Test that if the summary has no data in it, we don't even try to send it"""
         with self.tasks():
             prepare_summary_data(
@@ -559,7 +559,7 @@ class DailySummaryTest(
         assert mock_deliver_summary.call_count == 0
 
     @mock.patch("sentry.notifications.notifications.base.BaseNotification.send")
-    def test_deliver_summary(self, mock_send):
+    def test_deliver_summary(self, mock_send: mock.MagicMock) -> None:
         self.populate_event_data()
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -572,7 +572,7 @@ class DailySummaryTest(
 
         assert mock_send.call_count == 1
 
-    def test_build_top_projects_map(self):
+    def test_build_top_projects_map(self) -> None:
         self.populate_event_data()
         project3 = self.create_project(
             name="barf", organization=self.organization, teams=[self.team]
@@ -594,7 +594,7 @@ class DailySummaryTest(
         top_projects_context_map = build_top_projects_map(context, self.user.id)
         assert list(top_projects_context_map.keys()) == [self.project.id, project3.id]
 
-    def test_user_scoped_projects(self):
+    def test_user_scoped_projects(self) -> None:
         """Test that if an org has several projects but a user is only in project teams for 2, we only show data for those 2"""
         self.populate_event_data()
         team2 = self.create_team(organization=self.organization)
@@ -629,7 +629,7 @@ class DailySummaryTest(
         top_projects_context_map = build_top_projects_map(context, user2.id)
         assert list(top_projects_context_map.keys()) == [self.project.id, self.project2.id]
 
-    def test_slack_notification_contents(self):
+    def test_slack_notification_contents(self) -> None:
         self.populate_event_data()
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -692,7 +692,7 @@ class DailySummaryTest(
         )
 
     @with_feature("organizations:discover")
-    def test_slack_notification_contents_discover_link(self):
+    def test_slack_notification_contents_discover_link(self) -> None:
         self.populate_event_data()
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -735,7 +735,7 @@ class DailySummaryTest(
         )
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
 
-    def test_slack_notification_contents_newline(self):
+    def test_slack_notification_contents_newline(self) -> None:
         type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
         data = {
             "timestamp": self.now.isoformat(),
@@ -784,7 +784,7 @@ class DailySummaryTest(
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         assert '""" Traceback (most recent call las...' in blocks[4]["fields"][0]["text"]
 
-    def test_slack_notification_contents_newline_no_attachment_text(self):
+    def test_slack_notification_contents_newline_no_attachment_text(self) -> None:
         data = {
             "timestamp": self.now.isoformat(),
             "fingerprint": ["group-5"],
@@ -832,7 +832,7 @@ class DailySummaryTest(
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         assert "" in blocks[4]["fields"][0]["text"]
 
-    def test_slack_notification_contents_truncate_text(self):
+    def test_slack_notification_contents_truncate_text(self) -> None:
         data = {
             "timestamp": self.now.isoformat(),
             "fingerprint": ["group-5"],
@@ -881,7 +881,7 @@ class DailySummaryTest(
         assert "OperationalErrorThatIsVeryLongForSo..." in blocks[4]["fields"][0]["text"]
         assert "QueryCanceled('canceling statement ..." in blocks[4]["fields"][0]["text"]
 
-    def test_limit_to_two_projects(self):
+    def test_limit_to_two_projects(self) -> None:
         """Test that if we have data for more than 2 projects that we only show data for the top 2"""
         self.populate_event_data()
         project3 = self.create_project(
@@ -914,7 +914,7 @@ class DailySummaryTest(
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         assert len(blocks) == 13
 
-    def test_no_release_data(self):
+    def test_no_release_data(self) -> None:
         """
         Test that the notification formats as expected when we don't have release data
         """
@@ -940,7 +940,7 @@ class DailySummaryTest(
         assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
 
-    def test_no_performance_issues(self):
+    def test_no_performance_issues(self) -> None:
         """
         Test that the notification formats as expected when we don't have performance issues
         """
@@ -987,7 +987,7 @@ class DailySummaryTest(
         # check footer
         assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
 
-    def test_no_escalated_regressed_issues(self):
+    def test_no_escalated_regressed_issues(self) -> None:
         """
         Test that the notification formats as expected when we don't have escalated and/or regressed issues
         """

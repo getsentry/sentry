@@ -431,7 +431,11 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (option.type === 'raw-search-filter-value' && option.textValue) {
+          if (
+            (option.type === 'raw-search-filter-is-value' ||
+              option.type === 'raw-search-filter-has-value') &&
+            option.textValue
+          ) {
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],

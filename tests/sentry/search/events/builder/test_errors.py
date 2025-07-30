@@ -16,11 +16,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class ErrorsQueryBuilderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.projects = [self.project.id]
 
     @pytest.mark.querybuilder
-    def test_simple_query(self):
+    def test_simple_query(self) -> None:
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,
             query="status:unresolved",
@@ -60,7 +60,7 @@ class ErrorsQueryBuilderTest(TestCase):
             ),
         ]
 
-    def test_is_status_simple_query(self):
+    def test_is_status_simple_query(self) -> None:
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,
             query="is:unresolved",

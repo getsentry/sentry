@@ -19,14 +19,14 @@ def test_anonymous(client):
 class ApiIndexTest(APITestCase):
     endpoint = "sentry-api-index"
 
-    def test_session_auth(self):
+    def test_session_auth(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response()
         assert response.data["version"] == "0"
         assert response.data["user"]["id"] == str(self.user.id)
         assert not response.data["auth"]
 
-    def test_key_auth(self):
+    def test_key_auth(self) -> None:
         org = self.create_organization()
         key = ApiKey.objects.create(organization_id=org.id)
         url = reverse("sentry-api-index")
@@ -39,7 +39,7 @@ class ApiIndexTest(APITestCase):
         assert response.data["auth"]["scopes"] == key.get_scopes()
         assert not response.data["user"]
 
-    def test_token_auth(self):
+    def test_token_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user)
         url = reverse("sentry-api-index")
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")

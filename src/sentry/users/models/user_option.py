@@ -10,7 +10,6 @@ from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
-from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.option import OptionManager
 
@@ -207,7 +206,7 @@ class UserOption(Model):
     project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")
     organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
     key = models.CharField(max_length=64)
-    value = PickledObjectField(null=True)
+    value = models.JSONField(null=True)
 
     objects: ClassVar[UserOptionManager] = UserOptionManager()
 

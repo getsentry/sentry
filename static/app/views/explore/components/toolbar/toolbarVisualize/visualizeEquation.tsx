@@ -13,14 +13,13 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 
 interface VisualizeEquationProps {
   onDelete: () => void;
-  onReplace: (visualize: BaseVisualize) => void;
+  onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
 }
 
@@ -66,7 +65,7 @@ export function VisualizeEquation({
       const newVisualize = visualize.replace({
         yAxis: `${EQUATION_PREFIX}${newExpression.text}`,
       });
-      onReplace(newVisualize.toJSON());
+      onReplace(newVisualize);
     },
     [onReplace, visualize]
   );

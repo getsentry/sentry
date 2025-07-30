@@ -21,7 +21,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
     def get_response(self, *args, **params):
         return super().get_response(*((self.organization.slug,) + args), **params)
 
-    def test(self):
+    def test(self) -> None:
         self.login_as(self.member)
         query = "test"
         search_type = SearchType.ISSUE.value
@@ -100,7 +100,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             visibility=Visibility.OWNER_PINNED,
         ).exists()
 
-    def test_pin_sort_mismatch(self):
+    def test_pin_sort_mismatch(self) -> None:
         saved_search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -116,13 +116,13 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert resp.data["isPinned"]
         assert resp.data["id"] != str(saved_search.id)
 
-    def test_invalid_type(self):
+    def test_invalid_type(self) -> None:
         self.login_as(self.member)
         resp = self.get_response(type=55, query="test", status_code=201)
         assert resp.status_code == 400
         assert "not a valid SearchType" in resp.data["type"][0]
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         self.login_as(self.member)
         query = ""
         search_type = SearchType.ISSUE.value
@@ -152,7 +152,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
     def get_response(self, *args, **params):
         return super().get_response(*((self.organization.slug,) + args), **params)
 
-    def test(self):
+    def test(self) -> None:
         saved_search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -178,7 +178,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         self.get_success_response(type=saved_search.type, status_code=204)
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()
 
-    def test_views_deleted(self):
+    def test_views_deleted(self) -> None:
         self.login_as(self.member)
 
         saved_search = SavedSearch.objects.create(
@@ -195,7 +195,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
             organization=self.organization, user_id=self.member.id
         ).exists()
 
-    def test_invalid_type(self):
+    def test_invalid_type(self) -> None:
         self.login_as(self.member)
         resp = self.get_response(type=55)
         assert resp.status_code == 400

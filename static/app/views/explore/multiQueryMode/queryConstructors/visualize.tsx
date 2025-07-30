@@ -21,6 +21,7 @@ import {
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type Props = {
   index: number;
@@ -37,6 +38,7 @@ export function VisualizeSection({query, index}: Props) {
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const updateYAxis = useUpdateQueryAtIndex(index);

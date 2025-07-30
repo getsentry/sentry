@@ -665,7 +665,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
       {!(isSpansBasedDatatype ? standaloneSpansPageLinks : pageLinks) && (
         <Wrapper>
-          <ButtonBar merged gap="none">
+          <ButtonBar merged gap="0">
             <Button
               icon={<IconChevron direction="left" />}
               disabled

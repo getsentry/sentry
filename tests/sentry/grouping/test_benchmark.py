@@ -1,3 +1,6 @@
+from types import ModuleType
+from typing import Any
+
 import pytest
 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -27,10 +30,10 @@ def benchmark_available() -> bool:
     sorted(set(CONFIGURATIONS.keys()) - {NO_MSG_PARAM_CONFIG}),
     ids=lambda config_name: config_name.replace("-", "_"),
 )
-def test_benchmark_grouping(config_name, benchmark):
+def test_benchmark_grouping(config_name: str, benchmark: ModuleType) -> None:
     input_iter = iter(GROUPING_INPUTS)
 
-    def setup():
+    def setup() -> tuple[tuple[GroupingInput, str], dict[str, Any]]:
         return (next(input_iter), config_name), {}
 
     benchmark.pedantic(run_configuration, setup=setup, rounds=len(GROUPING_INPUTS))

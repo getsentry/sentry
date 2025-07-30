@@ -23,6 +23,7 @@ import {
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -38,18 +39,6 @@ jest.mock('sentry/utils/useRelease', () => ({
         id: '1e5a9462e6ac23908299b218e18377837297bda1',
       },
     },
-  }),
-}));
-
-jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
-  __esModule: true,
-  default: jest.fn().mockReturnValue({
-    data: {
-      sourceUrl: 'https://some-stacktrace-link',
-      integrations: [],
-    },
-    error: null,
-    isPending: false,
   }),
 }));
 
@@ -101,6 +90,9 @@ describe('LogsInfiniteTable', function () {
       [OurLogKnownFieldKey.RELEASE]: '1.0.0',
       [OurLogKnownFieldKey.CODE_FILE_PATH]:
         '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: 123,
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '1.0.0',
     }),
     LogFixture({
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
@@ -110,6 +102,9 @@ describe('LogsInfiniteTable', function () {
       [OurLogKnownFieldKey.RELEASE]: '1.0.0',
       [OurLogKnownFieldKey.CODE_FILE_PATH]:
         '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: 123,
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '1.0.0',
     }),
     LogFixture({
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
@@ -119,6 +114,9 @@ describe('LogsInfiniteTable', function () {
       [OurLogKnownFieldKey.RELEASE]: '1.0.0',
       [OurLogKnownFieldKey.CODE_FILE_PATH]:
         '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: 123,
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '1.0.0',
     }),
   ];
 
@@ -136,6 +134,7 @@ describe('LogsInfiniteTable', function () {
 
   beforeEach(function () {
     jest.restoreAllMocks();
+    MockApiClient.clearMockResponses();
 
     ProjectsStore.loadInitialData([project]);
 
@@ -154,7 +153,6 @@ describe('LogsInfiniteTable', function () {
       new Set()
     );
 
-    MockApiClient.clearMockResponses();
     mockUseLocation.mockReturnValue(
       LocationFixture({
         pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
@@ -226,6 +224,23 @@ describe('LogsInfiniteTable', function () {
   });
 
   it('should be interactable', async () => {
+    jest.useFakeTimers();
+    const traceItemMocks = [];
+    for (const log of mockLogsData) {
+      traceItemMocks.push(
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${project.slug}/trace-items/${log[OurLogKnownFieldKey.ID]}/`,
+          method: 'GET',
+          body: {
+            itemId: log[OurLogKnownFieldKey.ID],
+            links: null,
+            meta: {},
+            timestamp: log[OurLogKnownFieldKey.TIMESTAMP],
+            attributes: [],
+          },
+        })
+      );
+    }
     renderWithProviders(<LogsInfiniteTable showHeader />);
 
     await waitFor(() => {
@@ -236,7 +251,8 @@ describe('LogsInfiniteTable', function () {
     expect(allTreeRows).toHaveLength(3);
     for (const row of allTreeRows) {
       for (const field of visibleColumnFields) {
-        await userEvent.hover(row);
+        await userEvent.hover(row, {delay: null});
+        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
@@ -248,6 +264,10 @@ describe('LogsInfiniteTable', function () {
         }
       }
     }
+    for (const mock of traceItemMocks) {
+      expect(mock).toHaveBeenCalled();
+    }
+    jest.useRealTimers();
   });
 
   it('should not be interactable on embedded views', async () => {

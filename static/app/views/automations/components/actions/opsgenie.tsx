@@ -19,7 +19,7 @@ export function OpsgenieDetails({
 }) {
   const integration = handler.integrations?.find(i => i.id === action.integrationId);
   const service = integration?.services?.find(
-    s => s.id === action.config.target_identifier
+    s => s.id === action.config.targetIdentifier
   );
 
   return tct(
@@ -27,7 +27,7 @@ export function OpsgenieDetails({
     {
       logo: ActionMetadata[ActionType.OPSGENIE]?.icon,
       account: integration?.name || action.integrationId,
-      team: service?.name || action.config.target_identifier,
+      team: service?.name || action.config.targetIdentifier,
       priority: String(action.data.priority),
     }
   );
@@ -69,7 +69,7 @@ export function validateOpsgenieAction(action: Action): string | undefined {
   if (!action.integrationId) {
     return t('You must specify an Opsgenie configuration.');
   }
-  if (!action.config.target_identifier) {
+  if (!action.config.targetIdentifier) {
     return t('You must specify a team.');
   }
   if (!action.data.priority) {

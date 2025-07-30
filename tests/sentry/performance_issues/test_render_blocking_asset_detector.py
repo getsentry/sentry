@@ -62,14 +62,14 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
 
 @pytest.mark.django_db
 class RenderBlockingAssetDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
     def find_problems(self, event):
         return find_problems(self._settings, event)
 
-    def test_detects_render_blocking_asset(self):
+    def test_detects_render_blocking_asset(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -90,7 +90,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
             )
         ]
 
-    def test_respects_project_option(self):
+    def test_respects_project_option(self) -> None:
         project = self.create_project()
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         event["project_id"] = project.id
@@ -111,7 +111,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed_for_project(project)
 
-    def test_does_not_detect_if_resource_overlaps_fcp(self):
+    def test_does_not_detect_if_resource_overlaps_fcp(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
 
         for span in event["spans"]:
@@ -120,38 +120,38 @@ class RenderBlockingAssetDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_with_no_fcp(self):
+    def test_does_not_detect_with_no_fcp(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         event["measurements"]["fcp"]["value"] = None
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_with_no_measurements(self):
+    def test_does_not_detect_with_no_measurements(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         event["measurements"] = None
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_with_short_render_blocking_asset(self):
+    def test_does_not_detect_with_short_render_blocking_asset(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
                 span["timestamp"] = 0.1
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_if_too_small(self):
+    def test_does_not_detect_if_too_small(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
                 span["data"]["http.response_content_length"] = 400000
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_if_missing_size(self):
+    def test_does_not_detect_if_missing_size(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
                 del span["data"]
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_if_too_large(self):
+    def test_does_not_detect_if_too_large(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
@@ -159,7 +159,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
                 span["data"]["http.response_content_length"] = 18446744073709552000
         assert self.find_problems(event) == []
 
-    def test_detects_if_render_blocking_status_is_missing(self):
+    def test_detects_if_render_blocking_status_is_missing(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             del span["data"]["resource.render_blocking_status"]
@@ -183,7 +183,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_if_render_blocking_status_is_non_blocking(self):
+    def test_does_not_detect_if_render_blocking_status_is_non_blocking(self) -> None:
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             span["data"]["resource.render_blocking_status"] = "non-blocking"

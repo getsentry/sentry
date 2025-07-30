@@ -22,7 +22,7 @@ GITHUB_META_PUBLIC_KEYS_RESPONSE = {
 
 
 class TestGitHub(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # https://docs.github.com/en/code-security/secret-scanning/secret-scanning-partner-program#implement-signature-verification-in-your-secret-alert-service
         self.payload = b"""[{"source":"commit","token":"some_token","type":"some_type","url":"https://example.com/base-repo-url/"}]"""
         self.signature = "MEQCIQDaMKqrGnE27S0kgMrEK0eYBmyG0LeZismAEz/BgZyt7AIfXt9fErtRS4XaeSt/AO1RtBY66YcAdjxji410VQV4xg=="
@@ -40,28 +40,28 @@ class TestGitHub(TestCase):
 
         verify_signature(self.payload, self.signature, self.key_id, self.subpath)
 
-    def test_verify_signature_success(self):
+    def test_verify_signature_success(self) -> None:
         self._verify()
 
-    def test_verify_signature_missing_key(self):
+    def test_verify_signature_missing_key(self) -> None:
         self.key_id = ""
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Invalid payload, signature, or key_id" in str(excinfo.value)
 
-    def test_verify_signature_invalid_key(self):
+    def test_verify_signature_invalid_key(self) -> None:
         self.key_id = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "No public key found matching key identifier" in str(excinfo.value)
 
-    def test_verify_signature_invalid_signature(self):
+    def test_verify_signature_invalid_signature(self) -> None:
         self.payload = b"[]"
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Signature does not match payload" in str(excinfo.value)
 
-    def test_verify_signature_invalid_encoding(self):
+    def test_verify_signature_invalid_encoding(self) -> None:
         self.signature = "fakesignature"
         with pytest.raises(ValueError) as excinfo:
             self._verify()

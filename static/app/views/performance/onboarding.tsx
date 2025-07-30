@@ -585,6 +585,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     platformKey: project.platform || 'other',
     projectId: project.id,
     projectSlug: project.slug,
+    isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,

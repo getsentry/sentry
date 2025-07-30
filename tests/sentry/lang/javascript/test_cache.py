@@ -4,7 +4,7 @@ from sentry.lang.javascript.cache import SourceCache
 
 
 class BasicCacheTest(TestCase):
-    def test_basic_features(self):
+    def test_basic_features(self) -> None:
         cache = SourceCache()
         url = "http://example.com/foo.js"
 
@@ -19,7 +19,7 @@ class BasicCacheTest(TestCase):
         assert url + "x" in cache
         assert cache.get(url + "x")[0] == "foo"
 
-    def test_encoding_fallback(self):
+    def test_encoding_fallback(self) -> None:
         cache = SourceCache()
         url = "http://example.com/foo.js"
 
@@ -27,7 +27,7 @@ class BasicCacheTest(TestCase):
         cache.add(url, b"foobar", encoding="utf-32")
         assert cache.get(url)[0] == "foobar"
 
-    def test_encoding_support(self):
+    def test_encoding_support(self) -> None:
         cache = SourceCache()
         url = "http://example.com/foo.js"
 

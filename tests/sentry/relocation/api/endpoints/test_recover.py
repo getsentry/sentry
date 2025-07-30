@@ -23,7 +23,7 @@ class RecoverRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-recover"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
@@ -106,7 +106,7 @@ class RecoverRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
-    def test_bad_not_found(self):
+    def test_bad_not_found(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(does_not_exist_uuid, status_code=404)

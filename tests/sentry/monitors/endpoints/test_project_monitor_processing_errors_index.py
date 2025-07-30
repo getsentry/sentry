@@ -9,17 +9,17 @@ from sentry.utils import json
 class ProjectMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCase):
     endpoint = "sentry-api-0-project-monitor-processing-errors-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         monitor = self.create_monitor()
 
         resp = self.get_success_response(self.organization.slug, self.project.slug, monitor.slug)
         assert resp.data == []
 
-    def test(self):
+    def test(self) -> None:
         monitor = self.create_monitor()
 
         monitor_errors = [
@@ -46,7 +46,7 @@ class ProjectMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCa
         resp = self.get_success_response(self.organization.slug, self.project.slug, monitor.slug)
         assert resp.data == json.loads(json.dumps(serialize(list(reversed(monitor_errors)))))
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         monitor = self.create_monitor()
 
         monitor_errors = [
@@ -92,7 +92,7 @@ class ProjectMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCa
         assert resp.status_code == 204
         assert get_errors_for_monitor(monitor) == [monitor_errors[4]]
 
-    def test_delete_no_errortype(self):
+    def test_delete_no_errortype(self) -> None:
         monitor = self.create_monitor()
 
         resp = self.get_error_response(
@@ -104,7 +104,7 @@ class ProjectMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCa
         assert resp.status_code == 400
         assert resp.content == b'["Invalid error type"]'
 
-    def test_delete_invalid_errortype(self):
+    def test_delete_invalid_errortype(self) -> None:
         monitor = self.create_monitor()
 
         resp = self.get_error_response(

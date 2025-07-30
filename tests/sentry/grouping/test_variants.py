@@ -35,8 +35,9 @@ def test_variants_with_manual_save(
     Run the variant snapshot tests using a minimal (and much more performant) save process.
 
     Because manually cherry-picking only certain parts of the save process to run makes us much more
-    likely to fall out of sync with reality, for safety we only do this when testing older grouping
-    configs.
+    likely to fall out of sync with reality, when we're in CI, for safety we only do this when
+    testing older grouping configs. Locally, if `SENTRY_FAST_GROUPING_SNAPSHOTS` is set in the
+    environment, this is used for the default confing, too.
     """
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
@@ -58,14 +59,15 @@ def test_variants_with_full_pipeline(
     grouping_input: GroupingInput,
     insta_snapshot: InstaSnapshotter,
     default_project: Project,
-):
+) -> None:
     """
     Run the variant snapshot tests using the full `EventManager.save` process.
 
     This is the most realistic way to test, but it's also slow, because it requires the overhead of
     set-up/tear-down/general interaction with our full postgres database. We therefore only do it
-    when testing the current grouping config, and rely on a much faster manual test (below) for
-    previous grouping configs.
+    when testing the current grouping config in CI, and rely on a much faster manual test (above)
+    when testing previous grouping configs. (When testing locally, the faster test can be used for
+    the default config as well if `SENTRY_FAST_GROUPING_SNAPSHOTS` is set in the environment.)
     """
 
     event = grouping_input.create_event(
@@ -113,7 +115,7 @@ def _assert_and_snapshot_results(
 
 @django_db_all
 # TODO: This can be deleted after Jan 2025, when affected events have aged out
-def test_old_event_with_no_fingerprint_rule_text():
+def test_old_event_with_no_fingerprint_rule_text() -> None:
     variant = CustomFingerprintVariant(
         ["dogs are great"],
         {
@@ -131,7 +133,7 @@ def test_old_event_with_no_fingerprint_rule_text():
             )
         },
     )
-    assert expose_fingerprint_dict(variant.values, variant.info) == {
+    assert expose_fingerprint_dict(variant.values, variant.fingerprint_info) == {
         "values": ["dogs are great"],
         "matched_rule": 'message:"*dogs*" -> "dogs are great"',
     }

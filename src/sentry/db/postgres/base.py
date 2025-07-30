@@ -7,12 +7,7 @@ from django.db.backends.postgresql.operations import DatabaseOperations
 
 from sentry.utils.strings import strip_lone_surrogates
 
-from .decorators import (
-    auto_reconnect_connection,
-    auto_reconnect_cursor,
-    capture_transaction_exceptions,
-    more_better_error_messages,
-)
+from .decorators import auto_reconnect_connection, auto_reconnect_cursor, more_better_error_messages
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
@@ -76,7 +71,6 @@ class CursorWrapper:
     def __iter__(self):
         return iter(self.cursor)
 
-    @capture_transaction_exceptions
     @auto_reconnect_cursor
     @more_better_error_messages
     def execute(self, sql, params=None):
@@ -84,7 +78,6 @@ class CursorWrapper:
             return self.cursor.execute(sql, clean_bad_params(params))
         return self.cursor.execute(sql)
 
-    @capture_transaction_exceptions
     @auto_reconnect_cursor
     @more_better_error_messages
     def executemany(self, sql, paramlist=()):
@@ -98,10 +91,6 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
-
-    @auto_reconnect_connection
-    def _set_isolation_level(self, level):
-        return super()._set_isolation_level(level)
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):

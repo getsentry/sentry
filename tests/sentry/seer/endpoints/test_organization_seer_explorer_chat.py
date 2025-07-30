@@ -1,19 +1,19 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 
 
-@apply_feature_flag_on_cls("organizations:seer-explorer")
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
         self.login_as(user=self.user)
 
-    def test_get_without_run_id_returns_null_session(self):
+    def test_get_without_run_id_returns_null_session(self) -> None:
         with patch(
             "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
@@ -24,7 +24,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"session": None}
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
-    def test_get_with_run_id_calls_seer(self, mock_call_seer_state):
+    def test_get_with_run_id_calls_seer(self, mock_call_seer_state: MagicMock) -> None:
         mock_response = {
             "session": {
                 "run_id": 123,
@@ -45,7 +45,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == mock_response
         mock_call_seer_state.assert_called_once_with(self.organization, "123")
 
-    def test_post_without_query_returns_400(self):
+    def test_post_without_query_returns_400(self) -> None:
         with patch(
             "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
@@ -55,7 +55,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             assert response.status_code == 400
             assert response.data == {"query": ["This field is required."]}
 
-    def test_post_with_empty_query_returns_400(self):
+    def test_post_with_empty_query_returns_400(self) -> None:
         with patch(
             "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
@@ -65,7 +65,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             assert response.status_code == 400
             assert response.data == {"query": ["This field may not be blank."]}
 
-    def test_post_with_invalid_json_returns_400(self):
+    def test_post_with_invalid_json_returns_400(self) -> None:
         with patch(
             "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
             return_value=True,
@@ -110,7 +110,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         return_value=True,
     )
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
-    def test_post_with_all_parameters(self, mock_call_seer_chat, mock_get_seer_org_acknowledgement):
+    def test_post_with_all_parameters(
+        self, mock_call_seer_chat: MagicMock, mock_get_seer_org_acknowledgement: MagicMock
+    ) -> None:
         mock_response = {"run_id": 789, "message": {}}
         mock_call_seer_chat.return_value = mock_response
 
@@ -131,7 +133,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             1704067200.0,
         )
 
-    def test_post_with_ai_features_disabled_returns_403(self):
+    def test_post_with_ai_features_disabled_returns_403(self) -> None:
         # Set the organization option to hide AI features
         self.organization.update_option("sentry:hide_ai_features", True)
 
@@ -149,7 +151,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
         return_value=False,
     )
-    def test_post_without_acknowledgement_returns_403(self, mock_get_seer_org_acknowledgement):
+    def test_post_without_acknowledgement_returns_403(
+        self, mock_get_seer_org_acknowledgement: MagicMock
+    ) -> None:
         data = {"query": "Test query"}
         response = self.client.post(self.url, data, format="json")
 
@@ -161,13 +165,13 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
     """Test feature flag requirements separately without the decorator"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
         self.login_as(user=self.user)
 
-    def test_post_without_gen_ai_features_flag_returns_400(self):
+    def test_post_without_gen_ai_features_flag_returns_400(self) -> None:
         # Only enable seer-explorer but not gen-ai-features
         with self.feature({"organizations:seer-explorer": True}):
             with patch(
@@ -180,7 +184,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
                 assert response.status_code == 400
                 assert response.data == {"detail": "Feature flag not enabled"}
 
-    def test_post_without_seer_explorer_flag_returns_400(self):
+    def test_post_without_seer_explorer_flag_returns_400(self) -> None:
         # Only enable gen-ai-features but not seer-explorer
         with self.feature({"organizations:gen-ai-features": True}):
             with patch(
@@ -193,7 +197,7 @@ class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
                 assert response.status_code == 400
                 assert response.data == {"detail": "Feature flag not enabled"}
 
-    def test_post_without_any_feature_flags_returns_400(self):
+    def test_post_without_any_feature_flags_returns_400(self) -> None:
         # No feature flags enabled
         with patch(
             "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",

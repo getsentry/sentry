@@ -28,7 +28,7 @@ from sentry.workflow_engine.types import (
 class OrganizationDetectorTypesAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-type-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -116,7 +116,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         super().tearDown()
         self.registry_patcher.stop()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == [
             MetricIssue.slug,

@@ -15,7 +15,7 @@ class ReleaseThresholdStatusTest(APITestCase):
     endpoint = "sentry-api-0-organization-release-threshold-statuses"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True, is_superuser=True)
         # 3 projects
@@ -129,7 +129,7 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def test_get_success(self):
+    def test_get_success(self) -> None:
         """
         Tests fetching all thresholds (env+project agnostic) within the past 24hrs.
 
@@ -195,7 +195,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert temp_key in r3_keys
         assert len(data[temp_key]) == 1
 
-    def test_get_success_environment_filter(self):
+    def test_get_success_environment_filter(self) -> None:
         """
         Tests fetching thresholds within the past 24hrs filtered on environment
 
@@ -240,7 +240,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(data[temp_key]) == 1
         assert data[temp_key][0].get("environment", {}).get("name") == "canary"
 
-    def test_get_success_environment_with_deploy(self):
+    def test_get_success_environment_with_deploy(self) -> None:
         """
         Tests fetching thresholds within the past 24hrs for a release+env with a related deploys
         API should utilize deploy finished_at, rather than release created_at timestamp
@@ -307,7 +307,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(data[temp_key]) == 1
         assert data[temp_key][0].get("environment", {}).get("name") == "canary"
 
-    def test_get_success_release_filter(self):
+    def test_get_success_release_filter(self) -> None:
         """
         Tests fetching thresholds within the past 24hrs filtered on release versions
 
@@ -353,7 +353,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
 
-    def test_get_success_project_slug_filter(self):
+    def test_get_success_project_slug_filter(self) -> None:
         """
         Tests fetching thresholds within the past 24hrs filtered on project_slug's
         NOTE: Because releases may have multiple projects, filtering by project is _not_ adequate to

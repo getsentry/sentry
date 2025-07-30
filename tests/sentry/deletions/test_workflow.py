@@ -14,7 +14,7 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
         return TaskRunner()
 
     @pytest.fixture(autouse=True)
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = Factories.create_organization()
         self.project = Factories.create_project(organization=self.organization)
 

@@ -14,7 +14,7 @@ def trigger_sentry_app_action_creators_for_issues(
     created = None
     for action in actions:
         # Only call creator for Sentry Apps with UI Components for alert rules.
-        if not action.get("id") in SENTRY_APP_ACTIONS:
+        if action.get("id") not in SENTRY_APP_ACTIONS:
             continue
 
         result = app_service.trigger_sentry_app_action_creators(

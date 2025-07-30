@@ -13,16 +13,16 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import (
     PagerDutyMetricAlertHandler,
 )
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import Action
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
+@with_feature("organizations:issue-open-periods")
 class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_models()
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
@@ -34,7 +34,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch("sentry.integrations.pagerduty.utils.send_incident_alert_notification")
-    def test_send_alert(self, mock_send_incident_alert_notification):
+    def test_send_alert(self, mock_send_incident_alert_notification: mock.MagicMock) -> None:
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
@@ -71,7 +71,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.PagerDutyMetricAlertHandler.send_alert"
     )
-    def test_invoke_legacy_registry(self, mock_send_alert):
+    def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
         self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
