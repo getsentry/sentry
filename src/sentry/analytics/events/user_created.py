@@ -1,11 +1,14 @@
 from sentry import analytics
 
 
-@analytics.eventclass("user.created")
 class UserCreatedEvent(analytics.Event):
-    id: str
-    username: str
-    email: str
+    type = "user.created"
+
+    attributes = (
+        analytics.Attribute("id"),
+        analytics.Attribute("username"),
+        analytics.Attribute("email"),
+    )
 
 
 analytics.register(UserCreatedEvent)
