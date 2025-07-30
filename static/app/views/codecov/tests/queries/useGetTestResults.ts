@@ -129,7 +129,7 @@ export function useInfiniteTestResults({
                 ],
               sortBy: signedSortBy,
               term,
-              ...(filterBranch ? {branch: filterBranch} : {}),
+              branch: filterBranch,
               ...(mappedFilterBy ? {filterBy: mappedFilterBy} : {}),
               ...(testSuites ? {testSuites} : {}),
               ...(cursor ? {cursor} : {}),
