@@ -15,6 +15,7 @@ from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.analytics.events.issue_unignored import IssueUnignoredEvent
 from sentry.analytics.events.plugin_enabled import PluginEnabledEvent
 from sentry.analytics.events.repo_linked import RepoLinkedEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
     IntegrationIssueCreatedEvent,
@@ -66,6 +67,7 @@ from sentry.signals import (
     user_feedback_received,
 )
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
 
@@ -553,7 +555,13 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_escalating.connect(weak=False)
-def record_issue_escalating(project, group, event, was_until_escalating, **kwargs):
+def record_issue_escalating(
+    project: Project,
+    group: Group,
+    event: GroupEvent | None,
+    was_until_escalating: bool,
+    **kwargs,
+):
     analytics.record(
         IssueEscalatingEvent(
             organization_id=project.organization_id,
@@ -608,7 +616,7 @@ def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
 
 
 @issue_mark_reviewed.connect(weak=False)
-def record_issue_reviewed(project, user, group, **kwargs):
+def record_issue_reviewed(project: Project, user: RpcUser | User | None, group: Group, **kwargs):
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:

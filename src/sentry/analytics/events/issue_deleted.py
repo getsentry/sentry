@@ -3,12 +3,12 @@ from sentry import analytics
 
 @analytics.eventclass("issue.deleted")
 class IssueDeletedEvent(analytics.Event):
-    group_id: str
+    group_id: int
     delete_type: str
-    organization_id: str
-    project_id: str
-    user_id: str | None = None
-    default_user_id: str
+    organization_id: int
+    project_id: int | None = None
+    user_id: int | None = None
+    default_user_id: int | None = None
 
 
 analytics.register(IssueDeletedEvent)
