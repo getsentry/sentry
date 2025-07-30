@@ -254,17 +254,22 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Deletes workflows for a given org
         """
-        projects = self.get_projects(request, organization)
-        if not (request.GET.getlist("id") or request.GET.get("query") or projects):
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.get("project")
+            or request.GET.get("projectSlug")
+        ):
             return Response(
-                {"detail": "At least one of 'id', 'query', or 'project' must be provided."},
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         queryset = self.filter_workflows(request, organization)
 
         with transaction.atomic(router.db_for_write(Workflow)):
-            queryset.update(status=ObjectStatus.PENDING_DELETION)
             for workflow in queryset:
                 RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(
@@ -274,5 +279,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("WORKFLOW_REMOVE"),
                     data=workflow.get_audit_log_data(),
                 )
+            queryset.update(status=ObjectStatus.PENDING_DELETION)
 
         return Response(status=204)

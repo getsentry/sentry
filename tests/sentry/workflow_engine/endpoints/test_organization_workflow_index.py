@@ -7,12 +7,11 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action, Workflow, WorkflowDataConditionGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -721,7 +720,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             status_code=400,
         )
 
-        assert "At least one of 'id', 'query', or 'project' must be provided" in str(
+        assert "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided" in str(
             response.data["detail"]
         )
 
@@ -800,9 +799,9 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
                 status_code=204,
             )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.filter(
-                target_object=self.workflow.id,
-                event=audit_log.get_event_id("WORKFLOW_REMOVE"),
-                actor=self.user,
-            ).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+            target_object=self.workflow.id,
+            actor=self.user,
+        )
