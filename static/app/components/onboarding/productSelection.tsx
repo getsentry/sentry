@@ -188,7 +188,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
   ],
   'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-connect': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-express': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
