@@ -393,9 +393,6 @@ describe('Subscription > PendingChanges', function () {
           transactions: 0,
           attachments: 0,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
       pendingChanges: PendingChangesFixture({
