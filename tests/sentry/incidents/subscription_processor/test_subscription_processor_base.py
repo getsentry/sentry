@@ -18,6 +18,8 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.fixtures import DetectorPriorityLevel
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import Detector
 
@@ -25,6 +27,7 @@ EMPTY = object()
 
 
 @freeze_time()
+@apply_feature_flag_on_cls("organizations:workflow-engine-single-process-metric-issues")
 class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metrics_patch(self):
@@ -52,6 +55,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             type=MetricIssue.slug,
             created_by_id=self.user.id,
         )
+        self.create_detector_state(detector=detector)
         with self.tasks():
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.ERROR,
@@ -138,6 +142,39 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         )
         return critical_detector_trigger.comparison
 
+    @cached_property
+    def warning_threshold(self):
+        warning_detector_trigger = DataCondition.objects.get(
+            condition_group=self.metric_detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.MEDIUM,
+        )
+        return warning_detector_trigger.comparison
+
+    @cached_property
+    def resolve_threshold(self):
+        resolve_detector_trigger = DataCondition.objects.get(
+            condition_group=self.metric_detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        )
+        return resolve_detector_trigger.comparison
+
+    def get_snuba_query(self, detector: Detector):
+        data_source_detector = DataSourceDetector.objects.get(detector=detector)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+        return snuba_query
+
+    def update_threshold(
+        self, detector: Detector, priority_level: DetectorPriorityLevel, new_threshold: float
+    ) -> None:
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=priority_level,
+        )
+        detector_trigger.comparison = new_threshold
+        detector_trigger.save()
+
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
@@ -172,3 +209,13 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         ):
             processor.process_update(message)
         return processor
+
+    # assert active incident: assert that open period exists
+    # which means occurrence created, open period for its group, date_ended is null
+    # query for occurrence evidence_data["detector_id"] == self.detector.id?
+    # wait but we can't even filter. sigh.
+    # I guess I can check the detector status. ugh.
+    # I can also check that there's no open periods for the *project*, but idk how helpful that is
+    def get_detector_state(self, detector: Detector) -> DetectorPriorityLevel:
+        detector_state = DetectorState.objects.get(detector=detector)
+        return int(detector_state.state)
