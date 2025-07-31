@@ -53,10 +53,10 @@ export default function GroupingInfo({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && (
-        <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
-      )}
-      <ConfigHeader>
+      <SummaryFeedbackComponent>
+        {hasStreamlinedUI && (
+          <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
+        )}
         <FeatureFeedback
           featureName="grouping"
           feedbackTypes={[
@@ -66,7 +66,7 @@ export default function GroupingInfo({
           ]}
           buttonProps={{size: 'sm'}}
         />
-      </ConfigHeader>
+      </SummaryFeedbackComponent>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
@@ -85,10 +85,10 @@ export default function GroupingInfo({
   );
 }
 
-const ConfigHeader = styled('div')`
+const SummaryFeedbackComponent = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
