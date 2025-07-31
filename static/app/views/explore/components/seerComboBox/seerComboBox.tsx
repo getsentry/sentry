@@ -322,7 +322,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     }
   }, [state]);
 
-  // Auto-submit search when autoSubmitSeer flag is true
   useLayoutEffect(() => {
     if (autoSubmitSeer && searchQuery.trim()) {
       trackAnalytics('trace.explorer.ai_query_submitted', {
@@ -330,7 +329,6 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         natural_language_query: searchQuery.trim(),
       });
       submitQuery(searchQuery.trim());
-      // Reset the flag after submitting
       setAutoSubmitSeer(false);
     }
   }, [autoSubmitSeer, searchQuery, organization, submitQuery, setAutoSubmitSeer]);
