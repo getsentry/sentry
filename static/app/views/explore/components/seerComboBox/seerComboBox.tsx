@@ -106,7 +106,8 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
   );
 
   const openForm = useFeedbackForm();
-  const {setDisplaySeerResults} = useSearchQueryBuilder();
+  const {setDisplaySeerResults, autoSubmitSeer, setAutoSubmitSeer} =
+    useSearchQueryBuilder();
   const {rawResult, submitQuery, isPending} = useSeerSearch();
   const applySeerSearchQuery = useApplySeerSearchQuery();
   const organization = useOrganization();
@@ -320,6 +321,17 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
       state.open();
     }
   }, [state]);
+
+  useLayoutEffect(() => {
+    if (autoSubmitSeer && searchQuery.trim()) {
+      trackAnalytics('trace.explorer.ai_query_submitted', {
+        organization,
+        natural_language_query: searchQuery.trim(),
+      });
+      submitQuery(searchQuery.trim());
+      setAutoSubmitSeer(false);
+    }
+  }, [autoSubmitSeer, searchQuery, organization, submitQuery, setAutoSubmitSeer]);
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
