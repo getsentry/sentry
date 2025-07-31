@@ -567,7 +567,7 @@ register(
 # NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
 register(
     "relay.ourlogs-ingestion.sample-rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
