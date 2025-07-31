@@ -7,7 +7,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import type {Anomaly} from 'sentry/views/alerts/types';
 
-export const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
+const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
   [AlertRuleThresholdType.ABOVE]: 'up',
   [AlertRuleThresholdType.BELOW]: 'down',
   [AlertRuleThresholdType.ABOVE_AND_BELOW]: 'both',
@@ -16,6 +16,9 @@ export const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
 interface EventAnomalyPayload extends Record<string, unknown> {
   config: {
     direction: 'up' | 'down' | 'both';
+    /**
+     * So far expected_seasonality is not used
+     */
     expected_seasonality: 'auto';
     sensitivity: 'low' | 'medium' | 'high';
     /**
