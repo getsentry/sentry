@@ -558,6 +558,13 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['message:["value with \\" escaped quote",other]']),
         string: 'message:["value with \\" escaped quote",other]',
       },
+      {
+        name: 'should handle complex escape sequences in array syntax correctly',
+        object: new MutableSearch([
+          'message:["value with \\\\\\" complex escape",other]',
+        ]),
+        string: 'message:["value with \\\\\\" complex escape",other]',
+      },
     ];
 
     for (const {name, string, object} of cases) {

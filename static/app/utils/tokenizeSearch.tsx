@@ -735,15 +735,14 @@ function parseArraySyntax(inner: string): boolean {
       // Quoted string - validate that quotes are properly balanced
       const quoteType = value[0];
       let quoteCount = 0;
-      let escaped = false;
 
-      for (const c of value) {
+      for (let k = 0; k < value.length; k++) {
+        const c = value[k];
         if (c === '\\') {
-          escaped = !escaped;
-        } else if (c === quoteType && !escaped) {
+          // Skip the escaped character
+          k++;
+        } else if (c === quoteType) {
           quoteCount++;
-        } else {
-          escaped = false;
         }
       }
 
