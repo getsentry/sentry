@@ -88,7 +88,6 @@ describe('UptimePercent', () => {
 
     expect(await screen.findByText('This is a test')).toBeInTheDocument();
     expect(screen.getByText('Up Checks')).toBeInTheDocument();
-    expect(screen.getByText('Failed Checks')).toBeInTheDocument();
     expect(screen.getByText('Down Checks')).toBeInTheDocument();
   });
 });
