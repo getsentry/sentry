@@ -40,7 +40,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -229,6 +229,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
+              allowedCellActions={[]}
             />
           ) : (
             <StyledSimpleTableChart

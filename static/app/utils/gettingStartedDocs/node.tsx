@@ -197,6 +197,13 @@ Sentry.init({
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Send structured logs to Sentry
+  enableLogs: true,`
+      : ''
   }
 
   // Setting this option to true will send default PII data to Sentry.

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
+from sentry.replays.usecases.delete import fetch_rows_matching_pattern
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 
@@ -33,7 +34,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_first_run(self, mock_delete_matched_rows, mock_fetch_rows):
+    def test_run_bulk_replay_delete_job_first_run(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
         """Test the first run of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return some rows
         mock_fetch_rows.return_value = {
@@ -78,7 +81,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_completion(self, mock_delete_matched_rows, mock_fetch_rows):
+    def test_run_bulk_replay_delete_job_completion(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
         """Test the completion of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return no more rows
         mock_fetch_rows.return_value = {
@@ -122,7 +127,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_no_rows(self, mock_delete_matched_rows, mock_fetch_rows):
+    def test_run_bulk_replay_delete_job_no_rows(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
         """Test the bulk deletion job when no rows are found"""
         # Mock the fetch_rows_matching_pattern to return no rows
         mock_fetch_rows.return_value = {
@@ -205,3 +212,25 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "completed"
         assert self.job.offset == 0
+
+    def test_fetch_rows_matching_pattern(self):
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        t2 = datetime.datetime.now() + datetime.timedelta(seconds=10)
+        t3 = datetime.datetime.now()
+
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(t3, self.project.id, replay_id, segment_id=0, environment="prod")
+        )
+
+        result = fetch_rows_matching_pattern(
+            self.project.id,
+            t1,
+            t2,
+            query="count_errors:<100",
+            environment=["prod"],
+            limit=50,
+            offset=0,
+        )
+        assert len(result["rows"]) == 1
+        assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))

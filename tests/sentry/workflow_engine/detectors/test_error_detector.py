@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework.exceptions import ErrorDetail
 
@@ -32,7 +32,7 @@ class TestErrorDetectorValidator(TestCase):
         )
 
     @patch("sentry.workflow_engine.endpoints.validators.error_detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit):
+    def test_create_with_valid_data(self, mock_audit: MagicMock) -> None:
         validator = ErrorDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -80,6 +80,28 @@ class TestErrorDetectorValidator(TestCase):
         assert not validator.is_valid()
         assert validator.errors.get("resolveAge") == [
             ErrorDetail(string="Resolve age must be a non-negative number", code="invalid")
+        ]
+
+    def test_invalid_condition_group(self) -> None:
+        data = {
+            **self.valid_data,
+            "condition_group": {
+                "logic_type": "any",
+                "conditions": [
+                    {
+                        "type": "eq",
+                        "comparison": 100,
+                        "condition_result": "high",
+                    }
+                ],
+            },
+        }
+        validator = ErrorDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup") == [
+            ErrorDetail(
+                string="Condition group is not supported for error detectors", code="invalid"
+            )
         ]
 
     def test_update_existing_with_valid_data(self) -> None:

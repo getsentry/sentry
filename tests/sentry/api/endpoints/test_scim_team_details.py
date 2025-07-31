@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -115,7 +115,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert "invalid" in response.data["detail"]
 
     @patch("sentry.scim.endpoints.teams.metrics")
-    def test_scim_team_details_patch_rename_team(self, mock_metrics):
+    def test_scim_team_details_patch_rename_team(self, mock_metrics: MagicMock) -> None:
         self.base_data["Operations"] = [
             {
                 "op": "replace",
@@ -313,7 +313,7 @@ class SCIMDetailDeleteTest(SCIMTestCase):
     method = "delete"
 
     @patch("sentry.scim.endpoints.teams.metrics")
-    def test_delete_team(self, mock_metrics):
+    def test_delete_team(self, mock_metrics: MagicMock) -> None:
         team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.get_success_response(self.organization.slug, team.id, status_code=204)
 

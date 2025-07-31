@@ -187,7 +187,7 @@ class ProjectSerializerTest(TestCase):
             assert result["isMember"] is False
 
     @mock.patch("sentry.features.batch_has")
-    def test_project_batch_has(self, mock_batch):
+    def test_project_batch_has(self, mock_batch: mock.MagicMock) -> None:
         mock_batch.return_value = {
             f"project:{self.project.id}": {
                 "projects:test-feature": True,
@@ -199,7 +199,7 @@ class ProjectSerializerTest(TestCase):
         assert "disabled-feature" not in result["features"]
 
     @mock.patch("sentry.api.serializers.project.features")
-    def test_project_features(self, mock_features):
+    def test_project_features(self, mock_features: mock.MagicMock) -> None:
         test_features = features.FeatureManager()
         mock_features.all = test_features.all
         mock_features.has = test_features.has
@@ -493,6 +493,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasFlags"] is True
+
+    def test_has_logs_flag(self) -> None:
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasLogs"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_logs))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasLogs"] is True
 
     def test_no_environments(self) -> None:
         # remove environments and related models

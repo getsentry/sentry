@@ -46,4 +46,17 @@ describe('getting started with ruby', function () {
       )
     ).toBeInTheDocument();
   });
+
+  it('enables logs by setting enable_logs to true', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))
+    ).toBeInTheDocument();
+  });
 });

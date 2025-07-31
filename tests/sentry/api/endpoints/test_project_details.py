@@ -1098,7 +1098,7 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets(self, create_audit_entry: mock.MagicMock) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1151,7 +1151,9 @@ class ProjectUpdateTest(APITestCase):
             )
 
     @mock.patch("sentry.api.base.create_audit_entry")
-    def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
+    def test_redacted_symbol_source_secrets_unknown_secret(
+        self, create_audit_entry: mock.MagicMock
+    ) -> None:
         with Feature(
             {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
         ):
@@ -1482,7 +1484,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_not_copied(project, teams=[team])
 
     @mock.patch("sentry.models.project.Project.copy_settings_from")
-    def test_copy_project_settings_fails(self, mock_copy_settings_from):
+    def test_copy_project_settings_fails(self, mock_copy_settings_from: mock.MagicMock) -> None:
         mock_copy_settings_from.return_value = False
         project = self.create_project(fire_project_created=True)
         resp = self.get_error_response(

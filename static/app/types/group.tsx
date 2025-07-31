@@ -209,6 +209,9 @@ export enum IssueTitle {
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 
+  // Metric Issues
+  METRIC_ISSUE = 'Issue Detected by Metric Monitor',
+
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
 
@@ -240,6 +243,8 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+
+  metric_issue: IssueTitle.METRIC_ISSUE,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {

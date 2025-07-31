@@ -13,6 +13,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import clamp_date_range, handle_query_errors
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_span_attribute
@@ -25,7 +26,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.PERFORMANCE
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:

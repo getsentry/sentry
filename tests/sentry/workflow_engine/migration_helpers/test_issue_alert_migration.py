@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema.exceptions import ValidationError
@@ -416,7 +416,7 @@ class IssueAlertMigratorTest(TestCase):
     @patch(
         "sentry.workflow_engine.migration_helpers.issue_alert_migration.enforce_data_condition_json_schema"
     )
-    def test_dry_run__data_condition_validation_fails(self, mock_enforce):
+    def test_dry_run__data_condition_validation_fails(self, mock_enforce: MagicMock) -> None:
         mock_enforce.side_effect = ValidationError("oopsie")
 
         with pytest.raises(ValidationError):

@@ -39,6 +39,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
     enabled = serializers.BooleanField(required=False)
+    condition_group = BaseDataConditionGroupValidator(required=False)
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = grouptype.registry.get_by_slug(value)
