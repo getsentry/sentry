@@ -1385,7 +1385,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen1["children"]) == 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trace.query_trace_data")
-    def test_timestamp_optimization(self, mock_query):
+    def test_timestamp_optimization(self, mock_query: mock.MagicMock) -> None:
         """When timestamp is passed we'll ignore the statsPeriod and make a query with a smaller start & end"""
         self.load_trace()
         with self.feature(self.FEATURES):

@@ -23,11 +23,13 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  useAutorefreshEnabledOrWithinPauseWindow,
+  useLogsAutoRefreshEnabled,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
-  useLogsIsTableFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsSortBys,
@@ -53,9 +55,9 @@ import {EmptyStateText} from 'sentry/views/traces/styles';
 
 type LogsTableProps = {
   allowPagination?: boolean;
+  embedded?: boolean;
   numberAttributes?: TagCollection;
   scrollContainer?: React.RefObject<HTMLElement | null>;
-  showHeader?: boolean;
   stringAttributes?: TagCollection;
 };
 
@@ -63,7 +65,7 @@ const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; 
 const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
 export function LogsInfiniteTable({
-  showHeader = true,
+  embedded = false,
   numberAttributes,
   stringAttributes,
   scrollContainer,
@@ -71,7 +73,6 @@ export function LogsInfiniteTable({
   const theme = useTheme();
   const fields = useLogsFields();
   const search = useLogsSearch();
-  const isTableFrozen = useLogsIsTableFrozen();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
   const {
@@ -94,6 +95,10 @@ export function LogsInfiniteTable({
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
+  const isAutorefreshEnabledOrWithinPauseWindow =
+    useAutorefreshEnabledOrWithinPauseWindow();
+  const scrollFetchDisabled =
+    isFunctionScrolling || !isAutorefreshEnabledOrWithinPauseWindow;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -161,7 +166,7 @@ export function LogsInfiniteTable({
   }, [isFunctionScrolling, isScrolling, scrollOffset]);
 
   useEffect(() => {
-    if (isScrolling && !isFunctionScrolling) {
+    if (isScrolling && !scrollFetchDisabled) {
       if (
         scrollDirection === 'backward' &&
         scrollOffset &&
@@ -187,6 +192,7 @@ export function LogsInfiniteTable({
     lastPageLength,
     scrollOffset,
     isFunctionScrolling,
+    scrollFetchDisabled,
   ]);
 
   const handleExpand = useCallback((logItemId: string) => {
@@ -226,17 +232,18 @@ export function LogsInfiniteTable({
         ref={tableRef}
         style={initialTableStyles}
         css={tableStaticCSS}
-        hideBorder={isTableFrozen}
+        hideBorder={embedded}
         data-test-id="logs-table"
       >
-        {showHeader ? (
+        {embedded ? null : (
           <LogsTableHeader
+            isFrozen={embedded}
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             onResizeMouseDown={onResizeMouseDown}
           />
-        ) : null}
-        <LogTableBody showHeader={showHeader} ref={tableBodyRef}>
+        )}
+        <LogTableBody showHeader={!embedded} ref={tableBodyRef}>
           {paddingTop > 0 && (
             <TableRow>
               {fields.map(field => (
@@ -262,6 +269,7 @@ export function LogsInfiniteTable({
                   dataRow={dataRow}
                   meta={meta}
                   highlightTerms={highlightTerms}
+                  embedded={embedded}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
                   canDeferRenderElements
@@ -300,13 +308,14 @@ export function LogsInfiniteTable({
 }
 
 function LogsTableHeader({
+  isFrozen,
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
 }: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes'> & {
+  isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
-  const isTableFrozen = useLogsIsTableFrozen();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
@@ -341,8 +350,8 @@ function LogsTableHeader({
               isFirst={index === 0}
             >
               <TableHeadCellContent
-                onClick={isTableFrozen ? undefined : () => setSortBys([{field}])}
-                isFrozen={isTableFrozen}
+                onClick={isFrozen ? undefined : () => setSortBys([{field}])}
+                isFrozen={isFrozen}
               >
                 <Tooltip showOnlyOnOverflow title={headerLabel}>
                   {headerLabel}

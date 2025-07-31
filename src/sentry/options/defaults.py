@@ -929,6 +929,13 @@ register(
 )
 
 register(
+    "issues.severity.gpu-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.priority.projects-allowlist",
     type=Sequence,
     default=[],
@@ -3653,17 +3660,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout for inferring project platform from events received
-register(
-    "sentry:infer_project_platform",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "sentry.hybridcloud.cacheversion.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable enhancing access logs with snuba responses
+register("issues.use-snuba-error-data", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

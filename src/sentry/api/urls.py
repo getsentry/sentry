@@ -30,6 +30,9 @@ from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsE
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_sampling_admin_metrics import (
+    OrganizationDynamicSamplingAdminMetricsEndpoint,
+)
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
@@ -67,6 +70,9 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
 from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
+from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
+    RepositoryTokenRegenerateEndpoint,
+)
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -331,6 +337,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 from sentry.replays.endpoints.project_replay_summarize_breadcrumbs import (
     ProjectReplaySummarizeBreadcrumbsEndpoint,
 )
+from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
@@ -416,6 +423,7 @@ from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
     OrganizationUptimeAlertIndexCountEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
+from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_checks_index import (
     ProjectUptimeAlertCheckIndexEndpoint,
 )
@@ -1083,6 +1091,11 @@ PREVENT_URLS = [
         RepositoriesEndpoint.as_view(),
         name="sentry-api-0-repositories",
     ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/token/regenerate/$",
+        RepositoryTokenRegenerateEndpoint.as_view(),
+        name="sentry-api-0-repository-token-regenerate",
+    ),
 ]
 
 
@@ -1530,6 +1543,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-root-counts/$",
         OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-root-counts",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/sampling/admin-metrics/$",
+        OrganizationDynamicSamplingAdminMetricsEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-admin-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sdk-updates/$",
@@ -2427,6 +2445,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-uptime-stats",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/uptime-summary/$",
+        OrganizationUptimeSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-summary",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/insights/tree/$",
         OrganizationInsightsTreeEndpoint.as_view(),
         name="sentry-api-0-organization-insights-tree",
@@ -2758,6 +2781,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/summarize/breadcrumbs/$",
         ProjectReplaySummarizeBreadcrumbsEndpoint.as_view(),
         name="sentry-api-0-project-replay-summarize-breadcrumbs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/summarize/$",
+        ProjectReplaySummaryEndpoint.as_view(),
+        name="sentry-api-0-project-replay-summary",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/recording-segments/(?P<segment_id>\d+)/$",

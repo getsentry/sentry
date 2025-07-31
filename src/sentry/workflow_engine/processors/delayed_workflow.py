@@ -402,12 +402,23 @@ def get_condition_query_groups(
     Map unique condition queries to the group IDs that need to checked for that query.
     """
     condition_groups: dict[UniqueConditionQuery, GroupQueryParams] = defaultdict(GroupQueryParams)
-
+    now = timezone.now()
     for dcg in data_condition_groups:
         slow_conditions = dcg_to_slow_conditions[dcg.id]
         workflow_id = event_data.dcg_to_workflow.get(dcg.id)
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
         timestamp = event_data.dcg_to_timestamp[dcg.id]
+        if timestamp is not None:
+            delay = now - timestamp
+            # If it's been more than 1.5 minutes, we're taking too long to process the event and
+            # want to know how bad it is. It's a biased sample, but let's us see if we've somewhat
+            # over or very over.
+            if delay.total_seconds() > 90:
+                metrics.timing(
+                    "workflow_engine.overdue_event_lag",
+                    delay.total_seconds(),
+                    sample_rate=1.0,
+                )
         for condition in slow_conditions:
             for condition_query in generate_unique_queries(condition, workflow_env):
                 condition_groups[condition_query].update(

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 
 type SectionProps = {
-  title: string;
+  title: React.ReactNode;
   children?: React.ReactNode;
   description?: string;
 };

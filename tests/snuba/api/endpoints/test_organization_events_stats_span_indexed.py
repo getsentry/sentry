@@ -2456,7 +2456,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
         assert response.status_code == 200, response.content
         # Debug should be ignored without superuser
-        assert "query" not in response.data["meta"]
+        assert "debug_info" not in response.data["meta"]
 
         self.user = self.create_user("superuser@example.com", is_superuser=True)
         self.create_team(organization=self.organization, members=[self.user])
@@ -2476,8 +2476,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
 
         assert response.status_code == 200, response.content
-        assert "query" in response.data["meta"]
+        assert "debug_info" in response.data["meta"]
+
         assert (
             "FUNCTION_COUNT"
-            == response.data["meta"]["query"]["expressions"][0]["aggregation"]["aggregate"]
+            == response.data["meta"]["debug_info"]["query"]["expressions"][0]["aggregation"][
+                "aggregate"
+            ]
         )

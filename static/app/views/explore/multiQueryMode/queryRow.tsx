@@ -49,7 +49,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {result: timeseriesResult} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
@@ -84,7 +84,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             mode={mode}
             query={queryParts}
             timeseriesResult={timeseriesResult}
-            canUsePreviousResults={canUsePreviousResults}
           />
           <MultiQueryTable
             confidences={[]}

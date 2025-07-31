@@ -29,6 +29,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 
 
@@ -67,7 +68,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERIES_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve a list of saved queries that are associated with the given organization.
         """
