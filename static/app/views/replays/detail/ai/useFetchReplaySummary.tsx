@@ -59,7 +59,7 @@ export function useFetchReplaySummary(
   const api = useApi();
   const queryClient = useQueryClient();
   // Use this to track when the start summary request was made to compare to when the last time
-  // the summary data query was made. this hook will be considered in a pending state if the summary
+  // the summary data query was made. This hook will be considered in a pending state if the summary
   // data query was made before the start summary request.
 
   // Otherwise, when start request query is finished, in the same render loop, we 1) invalidate the
