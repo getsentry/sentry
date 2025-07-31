@@ -109,6 +109,20 @@ class MockGrpcError(grpc.RpcError):
         raise self
 
 
+def test_make_broker_hosts() -> None:
+    hosts = make_broker_hosts(host_prefix="broker:50051", num_brokers=3)
+    assert len(hosts) == 3
+    assert hosts == ["broker-0:50051", "broker-1:50051", "broker-2:50051"]
+
+    hosts = make_broker_hosts(
+        host_prefix="",
+        num_brokers=None,
+        host_list="broker:50051, broker-a:50051 ,  , broker-b:50051",
+    )
+    assert len(hosts) == 3
+    assert hosts == ["broker:50051", "broker-a:50051", "broker-b:50051"]
+
+
 @django_db_all
 def test_init_no_hosts() -> None:
     with pytest.raises(AssertionError) as err:

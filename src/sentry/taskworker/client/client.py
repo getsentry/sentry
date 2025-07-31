@@ -41,7 +41,8 @@ def make_broker_hosts(
     Handle RPC host CLI options and create a list of broker host:ports
     """
     if host_list:
-        return list(host_list.split(","))
+        stripped = map(lambda x: x.strip(), host_list.split(","))
+        return list(filter(lambda x: len(x), stripped))
     if not num_brokers:
         return [host_prefix]
     domain, port = host_prefix.split(":")
