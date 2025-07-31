@@ -616,7 +616,14 @@ class StatefulDetectorHandler(
         condition_evaluation, remaining_slow_conditions = process_data_condition_group(
             self.condition_group, value
         )
-        assert not remaining_slow_conditions, "Slow conditions should not be present"
+        if remaining_slow_conditions:
+            logger.warning(
+                "Slow conditions present for detector",
+                extra={
+                    "detector_id": self.detector.id,
+                    "condition_group_id": self.condition_group.id,
+                },
+            )
 
         if condition_evaluation.logic_result:
             validated_condition_results: list[DetectorPriorityLevel] = [
