@@ -30,6 +30,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppInteractionEvent,
@@ -49,8 +50,15 @@ from sentry.sentry_apps.services.app.service import (
 )
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
-from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
+from sentry.sentry_apps.utils.webhooks import (
+    IssueAlertActionType,
+    SentryAppResourceType,
+)
+from sentry.shared_integrations.exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    ClientError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -116,7 +124,10 @@ TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 def _webhook_event_data(
     event: Event | GroupEvent, group_id: int, project_id: int
 ) -> dict[str, Any]:
-    from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+    from sentry.api.serializers.rest_framework import (
+        convert_dict_key_case,
+        snake_to_camel_case,
+    )
 
     project = Project.objects.get_from_cache(id=project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -709,7 +720,9 @@ def send_resource_change_webhook(
 
 
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
-    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.notifications.notification_action.utils import (
+        should_fire_workflow_actions,
+    )
 
     for f in futures:
         if not f.kwargs.get("sentry_app"):
@@ -892,3 +905,83 @@ def regenerate_service_hooks_for_installation(
                 events=events,
                 url=webhook_url,
             )
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization",
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+        compression_type=CompressionType.ZSTD,
+        processing_deadline_duration=30,
+    ),
+    **TASK_OPTIONS,
+)
+@retry_decorator
+def broadcast_webhooks_for_organization(
+    *,
+    resource_name: str,
+    event_name: str,
+    organization_id: int,
+    payload: dict[str, Any],
+) -> None:
+    """
+    Send a webhook event to all relevant installations for an organization.
+
+    Args:
+        resource_name: The resource name (e.g., "seer", "issue", "error")
+        event_name: The event name (e.g., "root_cause_started", "created")
+        organization_id: The ID of the organization to send webhooks for
+        payload: The webhook payload data
+
+    Returns:
+        dict: Status of the webhook sending operation including success status,
+              message, and error details if applicable
+    """
+    # Construct full event type for validation
+    event_type = f"{resource_name}.{event_name}"
+
+    # Validate event type by checking if it's a valid SentryAppEventType
+    try:
+        SentryAppEventType(event_type)
+    except ValueError:
+        logger.exception("Webhook received invalid event type: %s", event_type)
+        raise SentryAppSentryError(
+            message=f"Invalid event type: {event_type}",
+        )
+
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event_type,
+    ).capture():
+        # Get installations for this organization
+        installations = app_service.installations_for_organization(organization_id=organization_id)
+
+        # Filter for installations that subscribe to the event category
+        relevant_installations = [
+            installation
+            for installation in installations
+            if resource_name in consolidate_events(installation.sentry_app.events)
+        ]
+
+        if not relevant_installations:
+            logger.error(
+                "No installations subscribed to '%s' events for organization %s",
+                resource_name,
+                organization_id,
+            )
+            return
+
+        # Send the webhook to each relevant installation
+        for installation in relevant_installations:
+            if not installation:
+                raise SentryAppSentryError(
+                    message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
+                )
+
+            send_resource_change_webhook.delay(installation.id, event_type, payload)
+
+            logger.info("Queued webhook for %s to installation %s", event_type, installation.id)
