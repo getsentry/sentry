@@ -26,8 +26,8 @@ interface EventAnomalyPayload extends Record<string, unknown> {
      */
     time_period: number;
   };
-  current_data: Array<[number, {count: number}]>;
-  historical_data: Array<[number, {count: number}]>;
+  current_data: Array<[timestamp: number, {count: number}]>;
+  historical_data: Array<[timestamp: number, {count: number}]>;
   organization_id: string;
   project_id: string;
 }
