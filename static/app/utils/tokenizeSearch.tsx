@@ -562,7 +562,6 @@ function flattenNestedBrackets(value: string): string {
 
   while (i < inner.length) {
     const char = inner[i];
-    const nextChar = inner[i + 1];
 
     // Handle quote detection
     if (!inQuotes && (char === '"' || char === "'")) {
