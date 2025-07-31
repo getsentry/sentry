@@ -2479,6 +2479,21 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'ai/',
+      children: [
+        // Render AI page with layout wrapper
+        {
+          component: make(() => import('sentry/views/codecov/ai/aiWrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/ai/ai')),
+            },
+          ],
+        },
+      ],
+    },
+    {
       path: 'tokens/',
       children: [
         {
