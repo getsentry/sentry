@@ -329,6 +329,70 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
+        operation_id="Mutate an Organization's Detectors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            DetectorParams.QUERY,
+            DetectorParams.SORT,
+            DetectorParams.ID,
+        ],
+        responses={
+            201: DetectorSerializer,
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request: Request, organization: Organization) -> Response:
+        """
+        Mutate an Organization's Detectors
+        """
+        if not request.user.is_authenticated:
+            return self.respond(status=status.HTTP_401_UNAUTHORIZED)
+
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        enabled = request.data.get("enabled")
+        if enabled is None:
+            return Response(
+                {"enabled": "This field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = self.filter_detectors(request, organization)
+
+        detectors_to_update = []
+
+        # Check permissions for all detectors first
+        for detector in queryset:
+            if not can_edit_detector(detector, request):
+                raise PermissionDenied
+            detectors_to_update.append(detector)
+
+        Detector.objects.update(ids__in=detectors_to_update, enabled=enabled)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+        )
+
+    @extend_schema(
         operation_id="Delete an Organization's Detectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
@@ -338,7 +402,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.ID,
         ],
         responses={
-            201: RESPONSE_NO_CONTENT,
+            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -367,15 +431,16 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
-        detectors_to_delete = list(queryset)
-
-        # Check permissions for all detectors first
-        for detector in detectors_to_delete:
-            if not can_edit_detector(detector, request):
-                raise PermissionDenied
+        list_of_ids_to_delete = []
 
         with transaction.atomic(router.db_for_write(Detector)):
-            for detector in detectors_to_delete:
+            for detector in queryset:
+
+                if not can_edit_detector(detector, request):
+                    raise PermissionDenied
+
+                list_of_ids_to_delete.append(detector.id)
+
                 RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
@@ -384,6 +449,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("DETECTOR_REMOVE"),
                     data=detector.get_audit_log_data(),
                 )
-                detector.update(status=ObjectStatus.PENDING_DELETION)
+
+            Detector.objects.filter(id__in=list_of_ids_to_delete).update(
+                status=ObjectStatus.PENDING_DELETION
+            )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
