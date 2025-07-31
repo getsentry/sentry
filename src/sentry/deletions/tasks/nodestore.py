@@ -19,12 +19,6 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
-from sentry.utils.snuba import (
-    QueryExecutionError,
-    SchemaValidationError,
-    SnubaError,
-    UnexpectedResponseError,
-)
 
 EVENT_CHUNK_SIZE = 10000
 
@@ -125,25 +119,12 @@ def delete_events_for_groups_from_nodestore(
         else:
             logger.info(f"{prefix}.completed", extra=extra)
 
-    except (
-        AssertionError,
-        NameError,
-        SchemaValidationError,
-        QueryExecutionError,
-        SnubaError,
-        UnexpectedResponseError,
-    ):
+    # XXX: Once we find errors that should be retried add a new section and raise a RetryTask
+    except Exception:
         metrics.incr(f"{prefix}.error", tags={"type": "non-retryable"}, sample_rate=1)
         # Report to Sentry without blocking deployments
         logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
-        # We raise it but we don't want to retry the task
-        raise
-
-    except Exception:
-        metrics.incr(f"{prefix}.error", tags={"type": "retryable"}, sample_rate=1)
-        # Report to Sentry without blocking deployments
-        logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
-        raise RetryTask("Failed to delete events from nodestore. Retrying task.")
+        raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
 
 
 def fetch_events(
