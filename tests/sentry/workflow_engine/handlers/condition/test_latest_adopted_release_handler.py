@@ -258,13 +258,14 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
-        "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
+        "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_latest_adopted_release_for_env",
         return_value=None,
     )
     def test_latest_release_for_env_does_not_exist(
-        self, mock_get_latest_release_for_env: MagicMock
+        self, mock_get_latest_adopted_release_for_env: MagicMock
     ) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)
+        mock_get_latest_adopted_release_for_env.assert_called()
 
     @patch(
         "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_event",
