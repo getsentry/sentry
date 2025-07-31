@@ -313,7 +313,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        operation_id="Bulk Delete an Organization's Detectors",
+        operation_id="Delete an Organization's Detectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
