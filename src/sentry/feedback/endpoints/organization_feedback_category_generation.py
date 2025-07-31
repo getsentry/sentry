@@ -1,6 +1,5 @@
-import datetime
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TypedDict
 
 import requests
@@ -58,6 +57,13 @@ class LabelGroupsRequest(TypedDict):
     labels: list[str]
     # Providing the LLM context so it knows what labels are used in the same context and are direct children
     feedbacks_context: list[LabelGroupFeedbacksContext]
+
+
+class FeedbackLabelGroup(TypedDict):
+    """Corresponds to FeedbackLabelGroup in Seer."""
+
+    primary_label: str
+    associated_labels: list[str]
 
 
 @region_silo_endpoint
@@ -206,7 +212,9 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             total_chars += sum(len(label) for label in feedback["labels"])
             if total_chars > MAX_FEEDBACKS_CONTEXT_CHARS:
                 break
-            context_feedbacks.append(LabelGroupFeedbacksContext(**feedback))
+            context_feedbacks.append(
+                LabelGroupFeedbacksContext(feedback=feedback["feedback"], labels=feedback["labels"])
+            )
 
         snuba_params = self.get_snuba_params(
             request,
@@ -224,8 +232,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         )
 
         try:
-            # Structure: [{"primary_label": str, "associated_labels": list[str]}]
-            label_groups: list[dict[str, str | list[str]]] = json.loads(
+            label_groups: list[FeedbackLabelGroup] = json.loads(
                 make_seer_request(seer_request).decode("utf-8")
             )["data"]
         except Exception:
