@@ -99,7 +99,7 @@ function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const isDartAsyncSuspension =
+  const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||
     frame.absPath === '<asynchronous suspension>';
   const {displayOptions, stackView} = useStacktraceContext();
@@ -206,8 +206,8 @@ function NativeFrame({
 
   // this is the status of image that belongs to this frame
   function getStatus() {
-    // Treat Dart asynchronous suspension frames as symbolicated - these are markers set by Dart
-    if (isDartAsyncSuspension) {
+    // Treat Dart asynchronous suspension frames as symbolicated - these are synthetic markers set by Dart
+    if (isDartAsyncSuspensionFrame) {
       return 'success';
     }
 
@@ -325,7 +325,7 @@ function NativeFrame({
             <Tooltip
               title={
                 frame.package ??
-                (isDartAsyncSuspension
+                (isDartAsyncSuspensionFrame
                   ? t('Dart async operation')
                   : t('Go to images loaded'))
               }
@@ -337,7 +337,7 @@ function NativeFrame({
               <Package>
                 {frame.package
                   ? trimPackage(frame.package)
-                  : isDartAsyncSuspension
+                  : isDartAsyncSuspensionFrame
                     ? t('Dart async')
                     : `<${t('unknown')}>`}
               </Package>
@@ -360,7 +360,7 @@ function NativeFrame({
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
-            ) : isDartAsyncSuspension ? (
+            ) : isDartAsyncSuspensionFrame ? (
               `${t('Dart')}`
             ) : (
               `<${t('unknown')}>`
