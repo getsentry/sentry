@@ -4,7 +4,7 @@ from datetime import timedelta
 from functools import cached_property
 from typing import TypedDict
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -580,7 +580,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config: MagicMock) -> None:
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -646,7 +646,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_create_alert_rule_anomaly_detection(self, mock_seer_request):
+    def test_create_alert_rule_anomaly_detection(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -694,7 +694,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_create_alert_rule_anomaly_detection_not_enough_data(self, mock_seer_request):
+    def test_create_alert_rule_anomaly_detection_not_enough_data(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -716,7 +718,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_create_alert_rule_anomaly_detection_no_data(self, mock_seer_request):
+    def test_create_alert_rule_anomaly_detection_no_data(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -782,7 +786,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_create_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
+    def test_create_alert_rule_anomaly_detection_no_feature(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         with pytest.raises(ResourceDoesNotExist):
             create_alert_rule(
                 self.organization,
@@ -1089,7 +1095,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config: MagicMock) -> None:
         alert_rule = create_alert_rule(
             self.organization,
             [self.project],
@@ -1237,7 +1243,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_detection_type(self, mock_seer_delete_request, mock_seer_request):
+    def test_update_detection_type(
+        self, mock_seer_delete_request: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         mock_seer_delete_request.return_value = HTTPResponse(
@@ -1350,7 +1358,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_infer_detection_type(self, mock_seer_request):
+    def test_update_infer_detection_type(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         # static to static
@@ -1409,7 +1417,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_dynamic_alerts(self, mock_seer_request):
+    def test_update_dynamic_alerts(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -1463,7 +1471,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_dynamic_alert_static_to_dynamic(self, mock_seer_request):
+    def test_update_dynamic_alert_static_to_dynamic(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -1481,7 +1489,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_dynamic_alert_percent_to_dynamic(self, mock_seer_request):
+    def test_update_dynamic_alert_percent_to_dynamic(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         percent_rule = self.create_alert_rule(
@@ -1500,7 +1508,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_alert_rule_static_to_dynamic_enough_data(self, mock_seer_request):
+    def test_update_alert_rule_static_to_dynamic_enough_data(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         """
         Assert that the status is PENDING if enough data exists.
         """
@@ -1528,7 +1538,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_dynamic_alert_not_enough_to_pending(self, mock_seer_request):
+    def test_update_dynamic_alert_not_enough_to_pending(self, mock_seer_request: MagicMock) -> None:
         """
         Update a dynamic rule's aggregate so the rule's status changes from not enough data to enough/pending
         """
@@ -1565,7 +1575,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_dynamic_alert_pending_to_not_enough(self, mock_seer_request):
+    def test_update_dynamic_alert_pending_to_not_enough(self, mock_seer_request: MagicMock) -> None:
         """
         Update a dynamic rule's aggregate so the rule's status changes from enough/pending to not enough data
         """
@@ -1605,7 +1615,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_alert_rule_static_to_dynamic_not_enough_data(self, mock_seer_request):
+    def test_update_alert_rule_static_to_dynamic_not_enough_data(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         """
         Assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data.
         """
@@ -1633,7 +1645,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_alert_rule_dynamic_to_static_status(self, mock_seer_request):
+    def test_update_alert_rule_dynamic_to_static_status(self, mock_seer_request: MagicMock) -> None:
         """
         Assert that the alert rule status changes to PENDING if we switch from a dynamic alert to another type of alert.
         """
@@ -1771,7 +1783,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
+    def test_update_alert_rule_anomaly_detection_no_feature(
+        self, mock_seer_request: MagicMock
+    ) -> None:
         static_rule = self.create_alert_rule(time_window=30)
 
         with pytest.raises(ResourceDoesNotExist):
@@ -1790,7 +1804,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_update_invalid_time_window(self, mock_seer_request):
+    def test_update_invalid_time_window(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -1948,7 +1962,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_with_incident_anomaly_detection_rule(self, mock_seer_request):
+    def test_with_incident_anomaly_detection_rule(self, mock_seer_request: MagicMock) -> None:
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
         incident = self.create_incident()
@@ -2007,7 +2021,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
-    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
+    def test_on_demand_metric_alert(self, mocked_schedule_update_project_config: MagicMock) -> None:
         alert_rule = self.create_alert_rule(query="transaction.duration:>=100")
 
         with self.tasks():
@@ -2019,7 +2033,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_delete_anomaly_detection_rule(self, mock_seer_request):
+    def test_delete_anomaly_detection_rule(self, mock_seer_request: MagicMock) -> None:
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
 
@@ -2320,7 +2334,7 @@ class CreateAlertRuleTriggerTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
+    def test_invalid_threshold_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -2360,7 +2374,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
+    def test_invalid_threshold_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
@@ -2518,7 +2532,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_slack_rate_limiting(self, mock_api_call):
+    def test_slack_rate_limiting(self, mock_api_call: MagicMock) -> None:
         """Should handle 429 from Slack on new Metric Alert creation"""
         integration, _ = self.create_provider_integration_for(
             self.organization,
@@ -2551,7 +2565,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
                 )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
-    def test_msteams(self, mock_get_channel_id):
+    def test_msteams(self, mock_get_channel_id: MagicMock) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, self.user, external_id="1", provider="msteams"
         )
@@ -2579,7 +2593,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
-    def test_msteams_not_existing(self, mock_get_channel_id):
+    def test_msteams_not_existing(self, mock_get_channel_id: MagicMock) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, self.user, external_id="1", provider="msteams"
         )
@@ -2727,7 +2741,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest):
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
         return_value=AlertTarget("123", "test"),
     )
-    def test_supported_priority(self, mock_get):
+    def test_supported_priority(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"
@@ -2831,7 +2845,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
                 )
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_slack_rate_limiting(self, mock_api_call):
+    def test_slack_rate_limiting(self, mock_api_call: MagicMock) -> None:
         """Should handle 429 from Slack on existing Metric Alert update"""
         integration, _ = self.create_provider_integration_for(
             self.organization,
@@ -2864,7 +2878,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
                 )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
-    def test_msteams(self, mock_get_channel_id):
+    def test_msteams(self, mock_get_channel_id: MagicMock) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, self.user, external_id="1", provider="msteams"
         )
@@ -2892,7 +2906,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         )
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
-    def test_msteams_not_existing(self, mock_get_channel_id):
+    def test_msteams_not_existing(self, mock_get_channel_id: MagicMock) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, self.user, external_id="1", provider="msteams"
         )
@@ -3179,7 +3193,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.utils.channel.validate_channel_id")
-    def test_discord_timeout(self, mock_validate_channel_id):
+    def test_discord_timeout(self, mock_validate_channel_id: MagicMock) -> None:
         mock_validate_channel_id.side_effect = ApiTimeoutError("Discord channel lookup timed out")
 
         channel_id = "channel-id"
@@ -3353,7 +3367,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert app_config["priority"] == priority  # priority stored in config
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
-    def test_unsupported_priority(self, mock_get_channel_id):
+    def test_unsupported_priority(self, mock_get_channel_id: MagicMock) -> None:
         integration, _ = self.create_provider_integration_for(
             self.organization, self.user, external_id="1", provider="msteams"
         )
@@ -3696,7 +3710,7 @@ class TestDeduplicateTriggerActions(TestCase):
 
 class TestCustomMetricAlertRule(TestCase):
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config):
+    def test_create_alert_rule(self, mocked_schedule_invalidate_project_config: MagicMock) -> None:
         self.create_alert_rule()
 
         mocked_schedule_invalidate_project_config.assert_not_called()
@@ -3732,7 +3746,9 @@ class TestCustomMetricAlertRule(TestCase):
             )
 
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_turned_off(self, mocked_schedule_invalidate_project_config):
+    def test_create_custom_metric_turned_off(
+        self, mocked_schedule_invalidate_project_config: MagicMock
+    ) -> None:
         self.create_alert_rule(
             projects=[self.project],
             dataset=Dataset.PerformanceMetrics,

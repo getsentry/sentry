@@ -1,5 +1,6 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
+  CronDetectorFixture,
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
   UptimeDetectorFixture,
@@ -250,6 +251,43 @@ describe('DetectorDetails', function () {
         'href',
         '/organizations/org-slug/issues/monitors/1/edit/'
       );
+    });
+  });
+
+  describe('cron detectors', function () {
+    const cronDetector = CronDetectorFixture({
+      id: '1',
+      projectId: project.id,
+      owner: `team:${ownerTeam.id}`,
+      workflowIds: ['1', '2'],
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${cronDetector.id}/`,
+        body: cronDetector,
+      });
+    });
+
+    it('displays correct detector details', async function () {
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: cronDetector.name})
+      ).toBeInTheDocument();
+
+      // Failure threshold: 1
+      expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
+      // Recovery threshold: 2
+      expect(screen.getByText('2 consecutive successful check-ins.')).toBeInTheDocument();
+      // Environment: production
+      expect(screen.getByText('production')).toBeInTheDocument();
+
+      // Connected automation
+      expect(await screen.findByText('Automation 1')).toBeInTheDocument();
     });
   });
 });

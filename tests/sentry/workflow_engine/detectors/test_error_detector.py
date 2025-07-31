@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework.exceptions import ErrorDetail
 
@@ -32,7 +32,7 @@ class TestErrorDetectorValidator(TestCase):
         )
 
     @patch("sentry.workflow_engine.endpoints.validators.error_detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit):
+    def test_create_with_valid_data(self, mock_audit: MagicMock) -> None:
         validator = ErrorDetectorValidator(
             data=self.valid_data,
             context=self.context,

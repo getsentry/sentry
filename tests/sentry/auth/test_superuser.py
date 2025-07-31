@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
@@ -174,7 +174,7 @@ class SuperuserTestCase(TestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     @mock.patch("sentry.auth.superuser.logger")
-    def test_su_access_logs(self, logger):
+    def test_su_access_logs(self, logger: MagicMock) -> None:
         request = self.make_request(user=self.superuser, method="PUT")
         request._body = json.dumps(
             {
@@ -229,7 +229,7 @@ class SuperuserTestCase(TestCase):
 
     @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
     @mock.patch("sentry.auth.superuser.logger")
-    def test_max_time_org_change_time_expired(self, logger):
+    def test_max_time_org_change_time_expired(self, logger: MagicMock) -> None:
         request = self.build_request()
         request.session[SESSION_KEY]["idl"] = (
             self.current_datetime + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME + timedelta(minutes=15)
@@ -245,7 +245,7 @@ class SuperuserTestCase(TestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     @mock.patch("sentry.auth.superuser.logger")
-    def test_su_access_no_request_user_missing_info(self, logger):
+    def test_su_access_no_request_user_missing_info(self, logger: MagicMock) -> None:
         request = self.make_request(user=self.superuser, method="PUT")
         request._body = json.dumps(
             {
@@ -386,13 +386,15 @@ class SuperuserTestCase(TestCase):
         assert not is_active_superuser(request)
 
     @patch.object(Superuser, "is_active", return_value=True)
-    def test_is_active_superuser_from_request(self, _mock_is_active):
+    def test_is_active_superuser_from_request(self, _mock_is_active: MagicMock) -> None:
         request = self.build_request()
         request.superuser = None
         assert is_active_superuser(request)
 
     @mock.patch("sentry.auth.superuser.logger")
-    def test_superuser_session_doesnt_need_validation_superuser_prompts(self, logger):
+    def test_superuser_session_doesnt_need_validation_superuser_prompts(
+        self, logger: MagicMock
+    ) -> None:
         request = self.make_request(user=self.superuser, method="PUT")
         superuser = Superuser(request, org_id=None)
         superuser.set_logged_in(request.user)

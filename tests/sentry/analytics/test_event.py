@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -32,7 +32,7 @@ class ExampleEventOldStyle(Event):
 
 class EventTest(TestCase):
     @patch("sentry.analytics.event.uuid1")
-    def test_simple(self, mock_uuid1):
+    def test_simple(self, mock_uuid1: MagicMock) -> None:
         mock_uuid1.return_value = self.get_mock_uuid()
 
         result = ExampleEvent(
@@ -54,7 +54,7 @@ class EventTest(TestCase):
         }
 
     @patch("sentry.analytics.event.uuid1")
-    def test_simple_from_instance(self, mock_uuid1):
+    def test_simple_from_instance(self, mock_uuid1: MagicMock) -> None:
         mock_uuid1.return_value = self.get_mock_uuid()
 
         result = ExampleEvent.from_instance(
@@ -77,7 +77,7 @@ class EventTest(TestCase):
         }
 
     @patch("sentry.analytics.event.uuid1")
-    def test_simple_old_style(self, mock_uuid1):
+    def test_simple_old_style(self, mock_uuid1: MagicMock) -> None:
         mock_uuid1.return_value = self.get_mock_uuid()
 
         result = ExampleEventOldStyle.from_instance(

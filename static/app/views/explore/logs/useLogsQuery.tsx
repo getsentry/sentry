@@ -26,7 +26,6 @@ import {
   useLogsCursor,
   useLogsFields,
   useLogsGroupBy,
-  useLogsIsFrozen,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -195,7 +194,6 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const cursor = useLogsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
-  const isFrozen = useLogsIsFrozen();
   const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
@@ -227,7 +225,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${limitToTraceId && isFrozen ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${limitToTraceId ? 'trace-logs' : 'events'}/`,
     params,
   ];
 

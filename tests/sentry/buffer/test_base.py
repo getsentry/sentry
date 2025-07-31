@@ -21,7 +21,7 @@ class BufferTest(TestCase):
         self.buf = Buffer()
 
     @mock.patch("sentry.buffer.base.process_incr")
-    def test_incr_delays_task(self, process_incr):
+    def test_incr_delays_task(self, process_incr: mock.MagicMock) -> None:
         model = Group
         columns = {"times_seen": 1}
         filters: dict[str, BufferField] = {"id": 1}
@@ -74,7 +74,7 @@ class BufferTest(TestCase):
         assert release_project_.new_groups == 1
 
     @mock.patch("sentry.models.Group.objects.create_or_update")
-    def test_signal_only(self, create_or_update):
+    def test_signal_only(self, create_or_update: mock.MagicMock) -> None:
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}

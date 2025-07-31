@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -44,7 +44,7 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_link_another_team_to_channel(self, mock_record):
+    def test_link_another_team_to_channel(self, mock_record: MagicMock) -> None:
         """
         Test that we block a user who tries to link a second team to a
         channel that already has a team linked to it.
@@ -67,7 +67,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_team_from_dm(self, mock_record):
+    def test_link_team_from_dm(self, mock_record: MagicMock) -> None:
         """
         Test that if a user types `/sentry link team` from a DM instead of a
         channel, we reply with an error message.
@@ -87,7 +87,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_team_identity_does_not_exist(self, mock_record):
+    def test_link_team_identity_does_not_exist(self, mock_record: MagicMock) -> None:
         """Test that get_identity fails if the user has no Identity and we reply with the LINK_USER_MESSAGE"""
         user2 = self.create_user()
         self.create_member(
@@ -101,7 +101,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_team_insufficient_role(self, mock_record):
+    def test_link_team_insufficient_role(self, mock_record: MagicMock) -> None:
         """
         Test that when a user whose role is insufficient attempts to link a
         team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE.
@@ -120,7 +120,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_link_team_as_team_admin(self, mock_record):
+    def test_link_team_as_team_admin(self, mock_record: MagicMock) -> None:
         """
         Test that when a user who is a team admin attempts to link a team we allow it.
         """
@@ -140,7 +140,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unlink_team(self, mock_record):
+    def test_unlink_team(self, mock_record: MagicMock) -> None:
         data = self.send_slack_message(
             "unlink team",
             channel_name=self.channel_name,
@@ -152,7 +152,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unlink_team_as_team_admin(self, mock_record):
+    def test_unlink_team_as_team_admin(self, mock_record: MagicMock) -> None:
         """
         Test that when a user who is a team admin attempts to unlink a team we allow it.
         """
@@ -170,7 +170,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unlink_no_team(self, mock_record):
+    def test_unlink_no_team(self, mock_record: MagicMock) -> None:
         """
         Test for when a user attempts to remove a link between a Slack channel
         and a Sentry team that does not exist.
@@ -186,7 +186,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_unlink_multiple_orgs(self, mock_record):
+    def test_unlink_multiple_orgs(self, mock_record: MagicMock) -> None:
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])

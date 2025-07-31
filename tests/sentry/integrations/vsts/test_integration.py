@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -39,7 +39,9 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         "sentry.identity.pipeline.IdentityPipeline._get_provider",
         return_value=VSTSNewIdentityProvider(),
     )
-    def test_original_installation_still_works(self, mock_get_scopes, mock_get_provider):
+    def test_original_installation_still_works(
+        self, mock_get_scopes: MagicMock, mock_get_provider: MagicMock
+    ) -> None:
         self.pipeline = Mock()
         self.pipeline.organization = self.organization
         self.assert_installation(new=True)
@@ -59,7 +61,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
     )
-    def test_migration(self, mock_get_scopes):
+    def test_migration(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -121,7 +123,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
     )
-    def test_migration_after_reinstall(self, mock_get_scopes):
+    def test_migration_after_reinstall(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -243,7 +245,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_accounts_list_failure(self, mock_record):
+    def test_accounts_list_failure(self, mock_record: MagicMock) -> None:
         responses.replace(
             responses.GET,
             "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
@@ -265,7 +267,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert_halt_metric(mock_record, "no_accounts")
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_webhook_subscription_created_once(self, mock_get_scopes):
+    def test_webhook_subscription_created_once(self, mock_get_scopes: MagicMock) -> None:
         self.assert_installation()
 
         state = {
@@ -295,7 +297,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         )
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_fix_subscription(self, mock_get_scopes):
+    def test_fix_subscription(self, mock_get_scopes: MagicMock) -> None:
         external_id = self.vsts_account_id
         self.create_provider_integration(metadata={}, provider="vsts", external_id=external_id)
         provider = VstsIntegrationProvider()
@@ -404,7 +406,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 @control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_success(self, mock_get_scopes):
+    def test_success(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -433,7 +435,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert integration_dict["user_identity"]["scopes"] == FULL_SCOPES
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_create_subscription_forbidden(self, mock_get_scopes):
+    def test_create_subscription_forbidden(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
             f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
@@ -468,7 +470,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert "Azure DevOps organization" in str(err) and "Please ensu" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_create_subscription_unauthorized(self, mock_get_scopes):
+    def test_create_subscription_unauthorized(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
             f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
@@ -949,7 +951,7 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
             self.user.save()
 
     @patch("sentry.integrations.vsts.client.VstsApiClient.update_work_item")
-    def test_create_comment(self, mock_update_work_item):
+    def test_create_comment(self, mock_update_work_item: MagicMock) -> None:
         comment_text = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
         comment = Mock()
         comment.data = {"text": comment_text}

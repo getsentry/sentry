@@ -16,7 +16,7 @@ from sentry.types.group import GroupSubStatus
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_simple(self, mock_backend):
+    def test_simple(self, mock_backend: mock.MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         organization = self.organization
         project = self.create_project(organization=organization)
@@ -46,7 +46,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_reprocessed(self, mock_backend):
+    def test_reprocessed(self, mock_backend: mock.MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
 
         project = self.create_project()
@@ -70,7 +70,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_multiple_old_new(self, mock_backend):
+    def test_multiple_old_new(self, mock_backend: mock.MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         new_groups = []
@@ -207,7 +207,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     @mock.patch("sentry.tasks.auto_ongoing_issues.logger")
-    def test_unordered_ids(self, mock_logger, mock_backend):
+    def test_unordered_ids(self, mock_logger: mock.MagicMock, mock_backend: mock.MagicMock) -> None:
         """
         Group ids can be non-chronological with first_seen time (ex. as a result of merging).
         Test that in this case, only groups that are >= TRANSITION_AFTER_DAYS days old are
@@ -267,7 +267,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_simple(self, mock_backend):
+    def test_simple(self, mock_backend: mock.MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(
@@ -370,7 +370,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
 class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_simple(self, mock_backend):
+    def test_simple(self, mock_backend: mock.MagicMock) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         group = self.create_group(

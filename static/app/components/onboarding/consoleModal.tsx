@@ -100,10 +100,7 @@ export function ConsoleModal({
   closeModal,
   organization,
 }: ConsoleModalProps & ModalRenderProps) {
-  const platformKey =
-    selectedPlatform.key === 'nintendo-switch-2'
-      ? 'nintendo-switch'
-      : selectedPlatform.key;
+  const platformKey = selectedPlatform.key;
   const config = consoleConfig[platformKey as keyof typeof consoleConfig];
 
   useEffect(() => {
