@@ -543,6 +543,11 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['message:[test,[test2]]']),
         string: 'message:[test,test2]',
       },
+      {
+        name: 'should preserve brackets within quoted strings when flattening',
+        object: new MutableSearch(['message:["[test]",test,[test2]]']),
+        string: 'message:["[test]",test,test2]',
+      },
     ];
 
     for (const {name, string, object} of cases) {

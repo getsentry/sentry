@@ -544,6 +544,7 @@ function formatQuery(query: string) {
 
 /**
  * Flattens nested brackets in array expressions like [test,[test2]] -> [test,test2]
+ * but preserves brackets within quoted strings like ["[test]",test,[test2]] -> ["[test]",test,test2]
  */
 function flattenNestedBrackets(value: string): string {
   if (!/^\[.*\]$/.test(value)) {
@@ -553,14 +554,71 @@ function flattenNestedBrackets(value: string): string {
   // Remove outer brackets to work with the inner content
   const inner = value.slice(1, -1);
 
-  // Find and flatten nested brackets
-  let flattened = inner;
+  // Parse the string to respect quoted sections
+  let result = '';
+  let inQuotes = false;
+  let quoteChar = '';
+  let i = 0;
 
-  // Simple approach: replace [content] with just content within the array
-  // This handles cases like [test,[test2]] -> [test,test2]
-  flattened = flattened.replace(/\[([^\[\]]*)\]/g, '$1');
+  while (i < inner.length) {
+    const char = inner[i];
+    const nextChar = inner[i + 1];
 
-  return `[${flattened}]`;
+    // Handle quote detection
+    if (!inQuotes && (char === '"' || char === "'")) {
+      inQuotes = true;
+      quoteChar = char;
+      result += char;
+    } else if (inQuotes && char === quoteChar) {
+      // Check if this quote is escaped
+      let isEscaped = false;
+      let backslashCount = 0;
+      for (let j = i - 1; j >= 0 && inner[j] === '\\'; j--) {
+        backslashCount++;
+      }
+      isEscaped = backslashCount % 2 === 1;
+
+      if (!isEscaped) {
+        inQuotes = false;
+        quoteChar = '';
+      }
+      result += char;
+    } else if (!inQuotes && char === '[') {
+      // We found an opening bracket outside of quotes
+      // Find the matching closing bracket
+      let bracketDepth = 1;
+      let j = i + 1;
+      let bracketContent = '';
+
+      while (j < inner.length && bracketDepth > 0) {
+        if (inner[j] === '[') {
+          bracketDepth++;
+        } else if (inner[j] === ']') {
+          bracketDepth--;
+        }
+
+        if (bracketDepth > 0) {
+          bracketContent += inner[j];
+        }
+        j++;
+      }
+
+      // If we found a complete bracket pair, add just the content
+      if (bracketDepth === 0) {
+        result += bracketContent;
+        i = j - 1; // Skip to after the closing bracket
+      } else {
+        // Unmatched bracket, keep as is
+        result += char;
+      }
+    } else {
+      result += char;
+    }
+
+    i++;
+  }
+
+  return `[${result}]`;
 }
 
 /**
