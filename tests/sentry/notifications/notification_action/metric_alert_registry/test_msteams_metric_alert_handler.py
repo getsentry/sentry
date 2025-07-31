@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import asdict
 from unittest import mock
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
@@ -9,6 +10,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import MSTeamsMetricAlertHandler
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
@@ -16,7 +18,9 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_detailed_incident_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -127,6 +131,83 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             open_period_context,
             id=self.open_period.id,
             date_started=self.group_event.group.first_seen,
+            date_closed=None,
+        )
+
+        assert organization == self.detector.project.organization
+        assert isinstance(notification_uuid, str)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.metric_alert_registry.MSTeamsMetricAlertHandler.send_alert"
+    )
+    @freeze_time("2021-01-01 00:00:00")
+    def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
+        # Create an Activity instance with evidence data and priority
+        activity_data = asdict(self.evidence_data)
+        activity_data["priority"] = PriorityLevel.HIGH.value  # Add priority to data
+
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=1,  # ActivityType value
+            data=activity_data,
+        )
+        activity.save()
+
+        # Create event data with Activity instead of GroupEvent
+        event_data_with_activity = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+
+        assert mock_send_alert.call_count == 1
+        (
+            notification_context,
+            alert_context,
+            metric_issue_context,
+            open_period_context,
+            organization,
+            notification_uuid,
+        ) = self.unpack_kwargs(mock_send_alert)
+
+        # Verify that the same data is extracted from Activity.data as from GroupEvent.occurrence.evidence_data
+        self.assert_notification_context(
+            notification_context,
+            integration_id=1234567890,
+            target_identifier="channel123",
+            target_display="Channel 123",
+            sentry_app_config=None,
+            sentry_app_id=None,
+        )
+
+        self.assert_alert_context(
+            alert_context,
+            name=self.detector.name,
+            action_identifier_id=self.detector.id,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.STATIC,
+            comparison_delta=None,
+            alert_threshold=self.evidence_data.conditions[0]["comparison"],
+        )
+
+        self.assert_metric_issue_context(
+            metric_issue_context,
+            open_period_identifier=self.open_period.id,
+            snuba_query=self.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=123.45,
+            group=self.group,
+            title=self.group.title,
+            subscription=self.subscription,
+        )
+
+        self.assert_open_period_context(
+            open_period_context,
+            id=self.open_period.id,
+            date_started=self.group.first_seen,
             date_closed=None,
         )
 

@@ -25,6 +25,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -447,4 +448,114 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 organization=mock.MagicMock(),
                 project=mock.MagicMock(),
                 notification_uuid="test-uuid",
+            )
+
+    @mock.patch.object(TestHandler, "send_alert")
+    def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
+        # Create an Activity instance with evidence data and priority
+        activity_data = asdict(self.evidence_data)
+        activity_data.pop("alert_id")
+        activity_data["priority"] = PriorityLevel.HIGH.value  # Add priority to data
+
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=1,  # ActivityType value
+            data=activity_data,
+        )
+        activity.save()
+
+        # Create event data with Activity instead of GroupEvent
+        event_data_with_activity = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+
+        assert mock_send_alert.call_count == 1
+
+        _, kwargs = mock_send_alert.call_args
+
+        notification_context = kwargs["notification_context"]
+        alert_context = kwargs["alert_context"]
+        metric_issue_context = kwargs["metric_issue_context"]
+        organization = kwargs["organization"]
+        notification_uuid = kwargs["notification_uuid"]
+
+        # Verify that the same data is extracted from Activity.data as from GroupEvent.occurrence.evidence_data
+        self.assert_notification_context(
+            notification_context,
+            integration_id=self.action.integration_id,
+            target_identifier=self.action.config["target_identifier"],
+            target_display=None,
+            sentry_app_config=None,
+            sentry_app_id=None,
+        )
+        self.assert_alert_context(
+            alert_context,
+            name=self.detector.name,
+            action_identifier_id=self.detector.id,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.STATIC,
+            comparison_delta=None,
+            sensitivity=None,
+            resolve_threshold=None,
+            alert_threshold=self.evidence_data.conditions[0]["comparison"],
+        )
+        self.assert_metric_issue_context(
+            metric_issue_context,
+            open_period_identifier=self.open_period.id,
+            snuba_query=self.snuba_query,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=self.evidence_data.value,
+            title=self.group.title,
+            group=self.group,
+            subscription=self.subscription,
+        )
+        assert organization == self.detector.project.organization
+        assert isinstance(notification_uuid, str)
+
+    def test_invoke_legacy_registry_activity_missing_data(self) -> None:
+        # Test with Activity that has no data field
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=1,
+            data=None,  # Missing data
+        )
+
+        event_data_with_activity = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        with pytest.raises(ValueError, match="Activity data is required for alert context"):
+            self.handler.invoke_legacy_registry(
+                event_data_with_activity, self.action, self.detector
+            )
+
+    def test_invoke_legacy_registry_activity_empty_data(self) -> None:
+        # Test with Activity that has non-empty but insufficient data for MetricIssueEvidenceData
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=1,
+            data={"priority": PriorityLevel.HIGH.value},  # Only priority, missing required fields
+        )
+        activity.save()
+
+        event_data_with_activity = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        with pytest.raises(
+            TypeError
+        ):  # MetricIssueEvidenceData will raise TypeError for missing args
+            self.handler.invoke_legacy_registry(
+                event_data_with_activity, self.action, self.detector
             )
