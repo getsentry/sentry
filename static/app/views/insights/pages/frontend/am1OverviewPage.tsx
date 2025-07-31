@@ -32,21 +32,16 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
-  BACKEND_LANDING_TITLE,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/backend/settings';
-import {
+  FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+  OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
-  MOBILE_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
-} from 'sentry/views/insights/pages/mobile/settings';
-import {
-  generateBackendPerformanceEventView,
+  generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
 import {
@@ -62,32 +57,32 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const APDEX_TOOLTIP = tct(
-  'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
+const DURATION_TOOLTIP = tct(
+  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
   {
     link: (
-      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#apdex" />
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
     ),
   }
 );
 
-const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
+const FRONTEND_COLUMN_TITLES = [
   {title: 'transaction'},
   {title: 'operation'},
   {title: 'project'},
   {title: 'tpm'},
-  {title: 'p50()'},
-  {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
+  {title: 'p50()', tooltip: DURATION_TOOLTIP},
+  {title: 'p75()', tooltip: DURATION_TOOLTIP},
+  {title: 'p95()', tooltip: DURATION_TOOLTIP},
   {title: 'users'},
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-// TODO: remove Am2/am3 stuff and rename to `AM1BackendOverviewPage` when we remove `useInsightsEap`
-export function OldBackendOverviewPage() {
+// Am1 customers do not have EAP, so we need to use the old frontend overview page for now
+export function Am1FrontendOverviewPage() {
+  useOverviewPageTrackPageload();
   const theme = useTheme();
+
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -99,32 +94,32 @@ export function OldBackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+  const eventView = generateFrontendOtherPerformanceEventView(
+    location,
+    withStaticFilters
+  );
   const searchBarEventView = eventView.clone();
+
+  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const segmentOp = 'transaction.op';
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
-    {field: 'http.method'},
     {field: 'transaction'},
     {field: segmentOp},
     {field: 'project'},
     {field: 'tpm()'},
-    {field: 'p50()'},
-    {field: 'p95()'},
-    {field: 'failure_rate()'},
-    {field: 'apdex()'},
+    {field: 'p50(transaction.duration)'},
+    {field: 'p75(transaction.duration)'},
+    {field: 'p95(transaction.duration)'},
     {field: 'count_unique(user)'},
     {field: 'count_miserable(user)'},
     {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
-  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried with the same tags/filters
-  const disallowedOps = [
-    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
-  ];
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
   const selectedFrontendProjects: Project[] = getSelectedProjectList(
     selection.projects,
@@ -133,40 +128,27 @@ export function OldBackendOverviewPage() {
     Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
   );
 
-  const selectedMobileProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
-  );
-
   const existingQuery = new MutableSearch(eventView.query);
+  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addOp('(');
-  existingQuery.addFilterValues(`!${segmentOp}`, disallowedOps);
-
-  if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
+  // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
+  if (selectedFrontendProjects.length > 0) {
+    existingQuery.addOp('OR');
     existingQuery.addFilterValue(
-      '!project.id',
-      `[${[
-        ...selectedFrontendProjects.map(project => project.id),
-        ...selectedMobileProjects.map(project => project.id),
-      ]}]`
+      'project.id',
+      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
     );
   }
   existingQuery.addOp(')');
-  existingQuery.addOp('OR');
-  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
-  existingQuery.addOp(')');
-
+  existingQuery.addFilterValues(`!${segmentOp}`, BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_DB_OPS,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -178,20 +160,15 @@ export function OldBackendOverviewPage() {
       PerformanceWidgetSetting.P95_DURATION_AREA,
       PerformanceWidgetSetting.P99_DURATION_AREA,
       PerformanceWidgetSetting.FAILURE_RATE_AREA,
-      PerformanceWidgetSetting.APDEX_AREA,
     ],
     mepSetting
   );
 
   if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(
-      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
-    );
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
-
-  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -208,7 +185,7 @@ export function OldBackendOverviewPage() {
   };
 
   function handleSearch(searchQuery: string) {
-    trackAnalytics('performance.domains.backend.search', {organization});
+    trackAnalytics('performance.domains.frontend.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -229,7 +206,7 @@ export function OldBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -261,27 +238,24 @@ export function OldBackendOverviewPage() {
                 />
               ) : (
                 <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.BACKEND}}
+                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
                 >
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
+                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
                     teams={teams}
                     selectedTeams={['myteams']}
                     selectedProjects={eventView.project.map(String)}
                   >
-                    <DoubleChartRow
-                      allowedCharts={doubleChartRowCharts}
-                      {...sharedProps}
-                      eventView={doubleChartRowEventView}
-                    />
-                    <TripleChartRow
-                      allowedCharts={tripleChartRowCharts}
-                      {...sharedProps}
-                    />
                     <Table
                       theme={theme}
                       projects={projects}
-                      columnTitles={BACKEND_COLUMN_TITLES}
+                      columnTitles={FRONTEND_COLUMN_TITLES}
                       setError={setPageError}
                       {...sharedProps}
                     />

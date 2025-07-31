@@ -42,7 +42,7 @@ import {
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
+import {Am1FrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
@@ -333,7 +333,7 @@ function FrontendOverviewPageWithProviders() {
       ) : useEap ? (
         <EAPOverviewPage />
       ) : (
-        <OldFrontendOverviewPage />
+        <Am1FrontendOverviewPage />
       )}
     </DomainOverviewPageProviders>
   );

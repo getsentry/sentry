@@ -78,7 +78,8 @@ const REACT_NATIVE_COLUMN_TITLES = [
   {title: 'user misery'},
 ];
 
-export function OldMobileOverviewPage() {
+// Am1 customers do not have EAP, so we need to use the old frontend overview page for now
+export function am1MobileOverviewPage() {
   useOverviewPageTrackPageload();
 
   const theme = useTheme();

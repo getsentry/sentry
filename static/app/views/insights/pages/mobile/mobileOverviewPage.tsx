@@ -37,7 +37,7 @@ import {
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {OldMobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobileOverviewPage';
+import {am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobileOverviewPage';
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
@@ -276,7 +276,7 @@ function MobileOverviewPageWithProviders() {
   const useEap = useInsightsEap();
   return (
     <DomainOverviewPageProviders>
-      {useEap ? <EAPMobileOverviewPage /> : <OldMobileOverviewPage />}
+      {useEap ? <EAPMobileOverviewPage /> : <am1MobileOverviewPage />}
     </DomainOverviewPageProviders>
   );
 }

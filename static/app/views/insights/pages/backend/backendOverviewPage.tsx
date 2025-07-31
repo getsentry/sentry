@@ -38,7 +38,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
-import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
+import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
@@ -72,7 +72,7 @@ function BackendOverviewPage() {
   if (isNewBackendExperienceEnabled) {
     return <EAPBackendOverviewPage />;
   }
-  return <OldBackendOverviewPage />;
+  return <Am1BackendOverviewPage />;
 }
 
 function EAPBackendOverviewPage() {
