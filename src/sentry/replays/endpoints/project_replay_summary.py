@@ -154,7 +154,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
         # While the replay is live, the FE and BE may have different counts.
-        num_segments = request.data.get("num_segments", 0)
+        num_segments = int(request.data.get("num_segments", 0))
 
         if num_segments >= MAX_SEGMENTS_TO_SUMMARIZE:
             logger.warning(
