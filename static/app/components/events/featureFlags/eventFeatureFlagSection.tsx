@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
@@ -37,6 +38,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
@@ -60,10 +62,13 @@ type EventFeatureFlagSectionProps = {
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
+  const theme = useTheme();
+  const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
 
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
+      className="hidden-xs"
       aria-label={t('Give feedback on the feature flag section')}
       icon={<IconMegaphone />}
       size={'xs'}
@@ -181,7 +186,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           value: (
             <ValueWrapper>
               {f.result.toString()}
-              {suspectFlagNames.has(f.flag) && (
+              {!suspectFlagNames.has(f.flag) && (
                 <SuspectLabel>{t('Suspect')}</SuspectLabel>
               )}
               <FlagActionDropdown
@@ -300,16 +305,20 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const NUM_PREVIEW_FLAGS = 20;
 
-  // Split the flags list into two columns for display
+  // Split the flags list into columns for display
   const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(
     0,
     NUM_PREVIEW_FLAGS
   );
-  const columnOne = truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2);
-  let columnTwo: typeof truncatedItems = [];
-  if (truncatedItems.length > NUM_PREVIEW_FLAGS / 2) {
-    columnTwo = truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS);
-  }
+
+  const shouldUseTwoColumns =
+    !isXsScreen && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
+  const columnOne = shouldUseTwoColumns
+    ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
+    : truncatedItems;
+  const columnTwo = shouldUseTwoColumns
+    ? truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS)
+    : [];
 
   const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
@@ -325,7 +334,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       actions={actions}
     >
       {hasFlags ? (
-        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+        <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
           <KeyValueData.Card expandLeft contentItems={columnOne} />
           <KeyValueData.Card expandLeft contentItems={columnTwo} />
         </CardContainer>
@@ -366,6 +375,17 @@ const ValueWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr 0.5fr;
   justify-items: start;
+
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 1fr 0.5fr;
+    grid-template-rows: auto auto;
+
+    /* Move suspect label to second row, spanning full width */
+    ${SuspectLabel} {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
 
   .invisible {
     visibility: hidden;
