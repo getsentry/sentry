@@ -115,7 +115,6 @@ def fetch_trace_connected_errors(
                     "timestamp",
                     "title",
                     "message",
-                    "category",
                 ],
                 orderby=["id"],
                 limit=100,
@@ -158,21 +157,30 @@ def fetch_trace_connected_errors(
 
         # Process results and convert to EventDict objects
         error_events = []
+        seen_event_ids = set()  # Track seen event IDs to avoid duplicates
+
         for result, query in zip(results, queries):
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
+                event_id = event["id"]
+
+                # Skip if we've already seen this event ID
+                if event_id in seen_event_ids:
+                    continue
+
+                seen_event_ids.add(event_id)
+
                 timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
                 timestamp_s = parse_timestamp(event.get("timestamp"), "s")
                 timestamp = timestamp_ms or timestamp_s * 1000
                 category = event.get("category", "")
 
-                # filter out feedback events as we already process them separately
                 if timestamp and category != "feedback":
                     error_events.append(
                         EventDict(
                             category="error",
-                            id=event["id"],
+                            id=event_id,
                             title=event.get("title", ""),
                             timestamp=timestamp,
                             message=event.get("message", ""),

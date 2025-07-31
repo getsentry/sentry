@@ -383,6 +383,11 @@ class ProjectReplaySummaryTestCase(
                         "message": "This should be filtered out",
                         "replay_id": self.replay_id,
                     },
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": feedback_trace_id,
+                        "span_id": "3" + uuid.uuid4().hex[:15],
+                    },
                 },
             },
             project_id=project_3.id,
