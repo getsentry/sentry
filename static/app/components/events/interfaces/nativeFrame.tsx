@@ -99,6 +99,9 @@ function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
+  const isDartAsyncSuspension =
+    frame.filename === '<asynchronous suspension>' ||
+    frame.absPath === '<asynchronous suspension>';
   const {displayOptions, stackView} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
@@ -203,6 +206,11 @@ function NativeFrame({
 
   // this is the status of image that belongs to this frame
   function getStatus() {
+    // Treat Dart asynchronous suspension frames as symbolicated - these are markers set by Dart
+    if (isDartAsyncSuspension) {
+      return 'success';
+    }
+
     // If a matching debug image doesn't exist, fall back to symbolicator_status
     if (!image) {
       switch (frame.symbolicatorStatus) {
@@ -315,14 +323,23 @@ function NativeFrame({
               </Fragment>
             )}
             <Tooltip
-              title={frame.package ?? t('Go to images loaded')}
+              title={
+                frame.package ??
+                (isDartAsyncSuspension
+                  ? t('Dart async operation')
+                  : t('Go to images loaded'))
+              }
               containerDisplayMode="inline-flex"
               delay={tooltipDelay}
               maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               position="auto-start"
             >
               <Package>
-                {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
+                {frame.package
+                  ? trimPackage(frame.package)
+                  : isDartAsyncSuspension
+                    ? t('Dart async')
+                    : `<${t('unknown')}>`}
               </Package>
             </Tooltip>
           </div>
@@ -343,6 +360,8 @@ function NativeFrame({
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
+            ) : isDartAsyncSuspension ? (
+              `${t('Dart')}`
             ) : (
               `<${t('unknown')}>`
             )}{' '}
