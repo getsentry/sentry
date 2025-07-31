@@ -78,12 +78,12 @@ export function TraceSpanRow(
           <PlatformIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
-          {shouldUseOTelFriendlyUI && isEAPSpanNode(props.node) ? (
+          {shouldUseOTelFriendlyUI &&
+          isEAPSpanNode(props.node) &&
+          props.node.value.name ? (
             <React.Fragment>
               <span className="TraceName" title={props.node.value.name}>
-                {props.node.value.name
-                  ? ellipsize(props.node.value.name, 100)
-                  : (spanId ?? 'unknown')}
+                {ellipsize(props.node.value.name, 100)}
               </span>
             </React.Fragment>
           ) : (

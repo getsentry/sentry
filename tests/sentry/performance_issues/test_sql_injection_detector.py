@@ -86,3 +86,7 @@ class SQLInjectionDetectorTest(TestCase):
     def test_sql_injection_on_query_with_bindings(self) -> None:
         injection_event = get_event("sql-injection/sql-injection-query-with-bindings")
         assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_event_with_gorm(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-gorm")
+        assert len(self.find_problems(injection_event)) == 0
