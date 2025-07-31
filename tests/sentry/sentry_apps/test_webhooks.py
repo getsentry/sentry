@@ -119,8 +119,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         # Verify no webhook tasks were queued
         mock_send_webhook.delay.assert_not_called()
 
-        # Verify info log was written
-        mock_logger.info.assert_called_once_with(
+        # Verify error log was written
+        mock_logger.error.assert_called_once_with(
             "No installations subscribed to '%s' events for organization %s",
             "issue",
             self.organization.id,
