@@ -66,25 +66,25 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
 
   const openForm = useFeedbackForm();
-  const feedbackButton = openForm ? (
-    <Button
-      className="hidden-xs"
-      aria-label={t('Give feedback on the feature flag section')}
-      icon={<IconMegaphone />}
-      size={'xs'}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make feature flags work better for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_feature_flags',
-            ['feedback.owner']: 'replay',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
+  const feedbackButton =
+    openForm && !isXsScreen ? (
+      <Button
+        aria-label={t('Give feedback on the feature flag section')}
+        icon={<IconMegaphone />}
+        size={'xs'}
+        onClick={() =>
+          openForm({
+            messagePlaceholder: t('How can we make feature flags work better for you?'),
+            tags: {
+              ['feedback.source']: 'issue_details_feature_flags',
+              ['feedback.owner']: 'replay',
+            },
+          })
+        }
+      >
+        {t('Give Feedback')}
+      </Button>
+    ) : null;
 
   // If we're showing the suspect section at all
   const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
