@@ -19,6 +19,8 @@ export const enum SectionKey {
   USER_FEEDBACK = 'user-feedback',
   SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
+  PEOPLE = 'people',
+  ACTIVITY = 'activity',
 
   UPTIME = 'uptime', // Only Uptime issues
   DOWNTIME = 'downtime',

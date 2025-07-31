@@ -7,7 +7,7 @@ from sentry.users.models.useremail import UserEmail
 class UserNotificationEmailTestBase(APITestCase):
     endpoint = "sentry-api-0-user-notifications-email"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization2 = self.create_organization(name="Another Org", owner=self.user)
         self.project2 = self.create_project(
             organization=self.organization, teams=[self.team], name="Another Name"
@@ -18,7 +18,7 @@ class UserNotificationEmailTestBase(APITestCase):
 
 @control_silo_test
 class UserNotificationEmailGetTest(UserNotificationEmailTestBase):
-    def test_populates_useroptions_for_email(self):
+    def test_populates_useroptions_for_email(self) -> None:
         UserEmail.objects.create(user=self.user, email="alias@example.com", is_verified=True).save()
         UserEmail.objects.create(
             user=self.user, email="alias2@example.com", is_verified=True
@@ -43,7 +43,7 @@ class UserNotificationEmailGetTest(UserNotificationEmailTestBase):
 class UserNotificationEmailTest(UserNotificationEmailTestBase):
     method = "put"
 
-    def test_saves_and_returns_email_routing(self):
+    def test_saves_and_returns_email_routing(self) -> None:
         UserEmail.objects.create(user=self.user, email="alias@example.com", is_verified=True).save()
         email = self.user.email
 
@@ -60,7 +60,7 @@ class UserNotificationEmailTest(UserNotificationEmailTestBase):
         assert value1 == email
         assert value2 == "alias@example.com"
 
-    def test_email_routing_emails_must_be_verified(self):
+    def test_email_routing_emails_must_be_verified(self) -> None:
         UserEmail.objects.create(
             user=self.user, email="alias@example.com", is_verified=False
         ).save()
@@ -68,7 +68,7 @@ class UserNotificationEmailTest(UserNotificationEmailTestBase):
         data = {str(self.project.id): "alias@example.com"}
         self.get_error_response("me", status_code=400, **data)
 
-    def test_email_routing_emails_must_be_valid(self):
+    def test_email_routing_emails_must_be_valid(self) -> None:
         new_user = self.create_user(email="b@example.com")
         UserEmail.objects.create(user=new_user, email="alias2@example.com", is_verified=True).save()
 

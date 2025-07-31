@@ -332,7 +332,7 @@ const PlatformCard = styled(
         platform={platform.id}
         size={56}
         radius={5}
-        withLanguageIcon
+        withLanguageIcon={platform.iconConfig?.withLanguageIcon ?? true}
         format="lg"
       />
       <h3>{platform.name}</h3>

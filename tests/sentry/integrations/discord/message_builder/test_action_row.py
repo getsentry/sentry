@@ -13,7 +13,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestDiscordActionRow(TestCase):
-    def test_empty(self):
+    def test_empty(self) -> None:
         action_row = DiscordActionRow([])
         result = action_row.build()
         assert result == {
@@ -21,7 +21,7 @@ class TestDiscordActionRow(TestCase):
             "components": [],
         }
 
-    def test_non_empty(self):
+    def test_non_empty(self) -> None:
         button = DiscordButton(
             style=DiscordButtonStyle.PRIMARY,
             custom_id="test_button",
@@ -56,7 +56,7 @@ class TestDiscordActionRow(TestCase):
             ],
         }
 
-    def test_action_row_error(self):
+    def test_action_row_error(self) -> None:
         nested_row = DiscordActionRow([])
         with pytest.raises(DiscordActionRowError):
             DiscordActionRow([nested_row])

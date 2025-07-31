@@ -22,7 +22,7 @@ export function IntegrationField() {
         onUpdate({
           integrationId: option.value,
           ...(defaultService && {
-            config: {...action.config, target_identifier: defaultService},
+            config: {...action.config, targetIdentifier: defaultService},
           }),
         });
       }}

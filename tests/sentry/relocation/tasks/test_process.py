@@ -103,7 +103,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 
 class RelocationTaskTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         # Create a collision with the org slug we'll be requesting.
@@ -221,7 +221,7 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
         )
@@ -458,7 +458,7 @@ class UploadingStartTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.UPLOADING.value
         self.relocation.latest_task = OrderedTask.UPLOADING_START.name
@@ -526,7 +526,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.UPLOADING.value
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
@@ -882,7 +882,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_baseline_config.apply_async")
 class PreprocessingTransferTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
@@ -943,7 +943,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_TRANSFER.name
@@ -1046,7 +1046,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
@@ -1145,7 +1145,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.validating_start.apply_async")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_COLLIDING_USERS.name
@@ -1290,7 +1290,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.validating_poll.apply_async")
 class ValidatingStartTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
         self.relocation.latest_task = OrderedTask.PREPROCESSING_COMPLETE.name
@@ -1437,7 +1437,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
 @patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 class ValidatingPollTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.latest_task = OrderedTask.VALIDATING_START.name
@@ -1664,7 +1664,7 @@ def mock_invalid_finding(storage: Storage, uuid: str):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.importing.apply_async")
 class ValidatingCompleteTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.latest_task = OrderedTask.VALIDATING_POLL.name
@@ -1805,7 +1805,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.tasks.process.postprocessing.apply_async")
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.VALIDATING.value
@@ -1968,7 +1968,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @patch("sentry.relocation.tasks.process.notifying_unhide.apply_async")
 @patch("sentry.analytics.record")
 class PostprocessingTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.IMPORTING.value
@@ -2165,7 +2165,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.notifying_users.apply_async")
 class NotifyingUnhideTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
@@ -2249,7 +2249,7 @@ class NotifyingUnhideTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.notifying_owner.apply_async")
 class NotifyingUsersTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
@@ -2392,7 +2392,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.completed.apply_async")
 class NotifyingOwnerTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
@@ -2504,14 +2504,14 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
 
 class CompletedTest(RelocationTaskTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
         self.relocation.latest_task = OrderedTask.NOTIFYING_OWNER.name
         self.relocation.save()
 
-    def test_success(self):
+    def test_success(self) -> None:
         completed(self.uuid)
 
         relocation = Relocation.objects.get(uuid=self.uuid)
@@ -2526,7 +2526,7 @@ class CompletedTest(RelocationTaskTestCase):
 @patch("sentry.signals.relocation_redeem_promo_code.send_robust")
 @patch("sentry.analytics.record")
 class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
 

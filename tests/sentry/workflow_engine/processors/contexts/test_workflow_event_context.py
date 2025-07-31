@@ -1,3 +1,5 @@
+from contextvars import Token
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -6,9 +8,9 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 
 
 class WorkflowEventContextTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.ctx_token = None
+        self.ctx_token: Token[WorkflowEventContextData] | None = None
 
     def tearDown(self):
         if self.ctx_token:
@@ -22,7 +24,7 @@ class MockContextualClass:
 
 
 class TestWorkflowEventContextUsage(WorkflowEventContextTestCase):
-    def test_usage_in_contextual_class(self):
+    def test_usage_in_contextual_class(self) -> None:
         detector = self.create_detector()
         ctx_data = WorkflowEventContextData(
             detector=detector,
@@ -35,7 +37,7 @@ class TestWorkflowEventContextUsage(WorkflowEventContextTestCase):
 
 
 class TestWorkflowEventContext(WorkflowEventContextTestCase):
-    def test_set_and_get(self):
+    def test_set_and_get(self) -> None:
         detector = self.create_detector()
         organization = self.organization
         environment = self.create_environment()
@@ -53,7 +55,7 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         assert ctx.organization == organization
         assert ctx.environment == environment
 
-    def test_partial_set(self):
+    def test_partial_set(self) -> None:
         ctx_data = WorkflowEventContextData(
             organization=self.organization,
         )
@@ -64,7 +66,7 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         assert ctx.environment is None
         assert ctx.organization == self.organization
 
-    def test_resetting_context(self):
+    def test_resetting_context(self) -> None:
         detector = self.create_detector()
         organization = self.organization
         environment = self.create_environment()

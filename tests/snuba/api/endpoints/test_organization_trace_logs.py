@@ -235,3 +235,34 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["project.id"] == self.project.id
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
+
+    def test_pagelimit(self):
+        trace_id = "1" * 32
+        log = self.create_ourlog(
+            {"body": "test", "trace_id": trace_id},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_ourlogs([log])
+
+        response = self.client.get(
+            self.url,
+            data={
+                "traceId": trace_id,
+                "per_page": "9999",
+            },
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == "test"
+
+        response = self.client.get(
+            self.url,
+            data={
+                "traceId": trace_id,
+                "per_page": "10000",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."

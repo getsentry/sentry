@@ -38,7 +38,7 @@ class TestPathParams(TestCase):
         "sentry.toolbar",
     )
 
-    def test_if_sentry_endpoints_have_id_or_slug_path_params(self):
+    def test_if_sentry_endpoints_have_id_or_slug_path_params(self) -> None:
         """
         Extract all path parameters, if the url is for an endpoint, check if all path params have _id_or_slug suffix
         """

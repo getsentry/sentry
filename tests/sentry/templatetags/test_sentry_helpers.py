@@ -7,7 +7,7 @@ from sentry.models.organization import Organization
 from sentry.testutils.helpers.features import Feature
 
 
-def test_system_origin():
+def test_system_origin() -> None:
     result = (
         engines["django"]
         .from_string(
@@ -121,7 +121,7 @@ def test_org_url_customer_domains(input, output):
         assert result == output
 
 
-def test_querystring():
+def test_querystring() -> None:
     input = """
     {% load sentry_helpers %}
     {% querystring transaction="testing" referrer="weekly_report" space="some thing"%}
@@ -130,7 +130,7 @@ def test_querystring():
     assert result == "transaction=testing&amp;referrer=weekly_report&amp;space=some+thing"
 
 
-def test_date_handle_date_and_datetime():
+def test_date_handle_date_and_datetime() -> None:
     result = (
         engines["django"]
         .from_string(
@@ -166,7 +166,7 @@ def test_get_item(a_dict, key, expected):
     assert result == expected
 
 
-def test_sanitize_periods():
+def test_sanitize_periods() -> None:
     input = '{% load sentry_helpers %} {{ "example.com"|sanitize_periods}}'
     result = engines["django"].from_string(input).render().strip()
     assert result == "example\u2060.com"

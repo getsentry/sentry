@@ -29,10 +29,10 @@ def assert_outbox_update_message_exists(org: Organization, expected_count: int):
 
 
 class OrganizationUpdateWithOutboxTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
-    def test_update_organization_with_outbox_message(self):
+    def test_update_organization_with_outbox_message(self) -> None:
         with outbox_context(flush=False):
             update_organization_with_outbox_message(
                 org_id=self.org.id, update_data={"name": "foobar"}
@@ -43,16 +43,16 @@ class OrganizationUpdateWithOutboxTest(TestCase):
         assert self.org.slug == "sluggy"
         assert_outbox_update_message_exists(org=self.org, expected_count=1)
 
-    def test_update_with_missing_org_id(self):
+    def test_update_with_missing_org_id(self) -> None:
         with pytest.raises(Organization.DoesNotExist):
             update_organization_with_outbox_message(org_id=1234, update_data={"name": "foobar"})
 
 
 class OrganizationUpsertWithOutboxTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
-    def test_upsert_queues_outbox_message_and_updates_org(self):
+    def test_upsert_queues_outbox_message_and_updates_org(self) -> None:
         # The test fixture creates at least 1 org so comparing count before
         # and after the upsert is the safest way to assert we haven't created
         # a new entry.
@@ -82,7 +82,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
 
         assert_outbox_update_message_exists(org=self.org, expected_count=1)
 
-    def test_upsert_creates_organization_with_desired_id(self):
+    def test_upsert_creates_organization_with_desired_id(self) -> None:
         previous_org_count = Organization.objects.count()
         org_before_modification = Organization.objects.get(id=self.org.id)
         desired_org_id = 1234
@@ -111,12 +111,12 @@ class OrganizationUpsertWithOutboxTest(TestCase):
 
 
 class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(
             slug="sluggy", name="barfoo", status=OrganizationStatus.ACTIVE
         )
 
-    def test_mark_for_deletion_and_outbox_generation(self):
+    def test_mark_for_deletion_and_outbox_generation(self) -> None:
         org_before_update = Organization.objects.get(id=self.org.id)
 
         with outbox_context(flush=False):
@@ -132,7 +132,7 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
         assert_outbox_update_message_exists(self.org, 1)
 
-    def test_mark_for_deletion_on_already_deleted_org(self):
+    def test_mark_for_deletion_on_already_deleted_org(self) -> None:
         self.org.status = OrganizationStatus.PENDING_DELETION
         self.org.save()
 
@@ -154,12 +154,12 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
 
 class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(
             slug="sluggy", name="barfoo", status=OrganizationStatus.PENDING_DELETION
         )
 
-    def test_unmark_for_pending_deletion_and_outbox_generation(self):
+    def test_unmark_for_pending_deletion_and_outbox_generation(self) -> None:
         with outbox_context(flush=False):
             updated_org = unmark_organization_as_pending_deletion_with_outbox_message(
                 org_id=self.org.id
@@ -174,7 +174,7 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
 
         assert_outbox_update_message_exists(self.org, 1)
 
-    def test_unmark_for_deletion_in_progress_and_outbox_generation(self):
+    def test_unmark_for_deletion_in_progress_and_outbox_generation(self) -> None:
         update_organization_with_outbox_message(
             org_id=self.org.id, update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS}
         )
@@ -193,7 +193,7 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
 
         assert_outbox_update_message_exists(self.org, 1)
 
-    def test_unmark_org_when_already_active(self):
+    def test_unmark_org_when_already_active(self) -> None:
         update_organization_with_outbox_message(
             org_id=self.org.id, update_data={"status": OrganizationStatus.ACTIVE}
         )
@@ -215,14 +215,14 @@ class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
 
 
 class TestGenerateDeterministicOrganizationSlug(TestCase):
-    def test_slug_under_size_limit(self):
+    def test_slug_under_size_limit(self) -> None:
         slug = generate_deterministic_organization_slug(
             desired_slug_base="santry", desired_org_name="santry", owning_user_id=42
         )
 
         assert slug == "santry-095a9012d"
 
-    def test_slug_above_size_limit(self):
+    def test_slug_above_size_limit(self) -> None:
         slug = generate_deterministic_organization_slug(
             desired_slug_base="areallylongsentryorgnamethatiswaytoolong",
             desired_org_name="santry",
@@ -231,7 +231,7 @@ class TestGenerateDeterministicOrganizationSlug(TestCase):
         assert len(slug) == 30
         assert slug == "areallylongsentryorg-945bda148"
 
-    def test_slug_with_mixed_casing(self):
+    def test_slug_with_mixed_casing(self) -> None:
         slug = generate_deterministic_organization_slug(
             desired_slug_base="A mixed CASING str",
             desired_org_name="santry",
@@ -239,7 +239,7 @@ class TestGenerateDeterministicOrganizationSlug(TestCase):
         )
         assert slug == "a-mixed-casing-str-9e9173167"
 
-    def test_slug_with_unicode_chars(self):
+    def test_slug_with_unicode_chars(self) -> None:
         unicoded_str = "Sí Señtry 😅"
         slug = generate_deterministic_organization_slug(
             desired_slug_base=unicoded_str, desired_org_name=unicoded_str, owning_user_id=42
@@ -247,7 +247,7 @@ class TestGenerateDeterministicOrganizationSlug(TestCase):
 
         assert slug == "si-sentry-3471b1b85"
 
-    def test_slug_with_0_length(self):
+    def test_slug_with_0_length(self) -> None:
         unicoded_str = "😅"
 
         slug = generate_deterministic_organization_slug(

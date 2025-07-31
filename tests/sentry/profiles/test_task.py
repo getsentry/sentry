@@ -335,7 +335,7 @@ def test_normalize_android_profile(organization, android_profile):
     assert android_profile["device_classification"] == "low"
 
 
-def test_process_symbolicator_results_for_sample():
+def test_process_symbolicator_results_for_sample() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "rust",
@@ -426,7 +426,7 @@ def test_process_symbolicator_results_for_sample():
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
-def test_process_symbolicator_results_for_sample_js():
+def test_process_symbolicator_results_for_sample_js() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "javascript",
@@ -587,7 +587,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving(self):
+    def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -643,7 +643,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_inline_resolving(self):
+    def test_inline_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -735,7 +735,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_on_resolving(self):
+    def test_error_on_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -771,7 +771,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_js_symbolication_set_symbolicated_field(self):
+    def test_js_symbolication_set_symbolicated_field(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"
         )
@@ -807,7 +807,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
 
 
-def test_set_frames_platform_sample():
+def test_set_frames_platform_sample() -> None:
     js_prof: Profile = {
         "version": "1",
         "platform": "javascript",
@@ -825,7 +825,7 @@ def test_set_frames_platform_sample():
     assert platforms == ["javascript", "cocoa", "javascript"]
 
 
-def test_set_frames_platform_android():
+def test_set_frames_platform_android() -> None:
     android_prof: Profile = {
         "platform": "android",
         "profile": {

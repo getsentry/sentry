@@ -7,7 +7,7 @@ class ExternalTeamTest(APITestCase):
     endpoint = "sentry-api-0-external-team"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.integration = self.create_integration(
@@ -17,7 +17,7 @@ class ExternalTeamTest(APITestCase):
             organization=self.organization, provider="slack", name="Slack", external_id="slack:2"
         )
 
-    def test_basic_post(self):
+    def test_basic_post(self) -> None:
         data = {
             "externalName": "@getsentry/ecosystem",
             "provider": "github",
@@ -34,7 +34,7 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
-    def test_ignore_camelcase_teamid(self):
+    def test_ignore_camelcase_teamid(self) -> None:
         other_team = self.create_team(organization=self.organization)
         data = {
             "externalName": "@getsentry/ecosystem",
@@ -53,7 +53,7 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
-    def test_without_feature_flag(self):
+    def test_without_feature_flag(self) -> None:
         data = {
             "externalName": "@getsentry/ecosystem",
             "provider": "github",
@@ -65,7 +65,7 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_missing_provider(self):
+    def test_missing_provider(self) -> None:
         data = {
             "externalName": "@getsentry/ecosystem",
             "integrationId": self.integration.id,
@@ -76,7 +76,7 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {"provider": ["This field is required."]}
 
-    def test_missing_externalName(self):
+    def test_missing_externalName(self) -> None:
         data = {
             "provider": "github",
             "integrationId": self.integration.id,
@@ -87,7 +87,7 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {"externalName": ["This field is required."]}
 
-    def test_missing_integrationId(self):
+    def test_missing_integrationId(self) -> None:
         data = {
             "externalName": "@getsentry/ecosystem",
             "provider": "github",
@@ -98,7 +98,7 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {"integrationId": ["This field is required."]}
 
-    def test_invalid_provider(self):
+    def test_invalid_provider(self) -> None:
         data = {
             "externalName": "@getsentry/ecosystem",
             "provider": "git",
@@ -110,7 +110,7 @@ class ExternalTeamTest(APITestCase):
             )
         assert response.data == {"provider": ['"git" is not a valid choice.']}
 
-    def test_create_existing_association(self):
+    def test_create_existing_association(self) -> None:
         self.external_team = self.create_external_team(
             self.team, external_name="@getsentry/ecosystem", integration=self.integration
         )
@@ -131,7 +131,7 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
-    def test_create_with_invalid_integration_id(self):
+    def test_create_with_invalid_integration_id(self) -> None:
         self.org2 = self.create_organization(owner=self.user, name="org2")
         self.integration = self.create_integration(
             organization=self.org2, provider="gitlab", name="Gitlab", external_id="gitlab:1"
@@ -150,7 +150,7 @@ class ExternalTeamTest(APITestCase):
             "integrationId": ["Integration does not exist for this organization"]
         }
 
-    def test_create_with_external_id(self):
+    def test_create_with_external_id(self) -> None:
         data = {
             "externalId": "YU287RFO30",
             "externalName": "@getsentry/ecosystem",
@@ -167,7 +167,7 @@ class ExternalTeamTest(APITestCase):
         }
         assert ExternalActor.objects.get(id=response.data["id"]).external_id == "YU287RFO30"
 
-    def test_create_with_invalid_external_id(self):
+    def test_create_with_invalid_external_id(self) -> None:
         data = {
             "externalId": "",
             "externalName": "@getsentry/ecosystem",

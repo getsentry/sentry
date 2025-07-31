@@ -1,4 +1,12 @@
+from typing import TypedDict
+
 from pydantic import BaseModel
+
+
+class BranchOverride(TypedDict):
+    tag_name: str
+    tag_value: str
+    branch_name: str
 
 
 class SummarizeIssueScores(BaseModel):
@@ -25,6 +33,7 @@ class SeerRepoDefinition(BaseModel):
     name: str
     external_id: str
     branch_name: str | None = None
+    branch_overrides: list[BranchOverride] | None = None
     instructions: str | None = None
     base_commit_sha: str | None = None
     provider_raw: str | None = None
@@ -42,3 +51,14 @@ class SummarizeTraceResponse(BaseModel):
     key_observations: str
     performance_characteristics: str
     suggested_investigations: list[SpanInsight]
+
+
+class PageWebVitalsInsight(SpanInsight):
+    trace_id: str
+    suggestions: list[str]
+    reference_url: str | None = None
+
+
+class SummarizePageWebVitalsResponse(BaseModel):
+    trace_ids: list[str]
+    suggested_investigations: list[PageWebVitalsInsight]

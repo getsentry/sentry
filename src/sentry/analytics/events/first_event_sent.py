@@ -2,30 +2,29 @@ from sentry import analytics
 
 
 # first error for an organization
+@analytics.eventclass("first_event.sent")
 class FirstEventSentEvent(analytics.Event):
-    type = "first_event.sent"
-
-    attributes = (
-        analytics.Attribute("user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("platform", required=False),
-        analytics.Attribute("url", required=False),
-        analytics.Attribute("has_minified_stack_trace", required=False),
-        analytics.Attribute("project_platform", required=False),
-    )
+    user_id: int
+    organization_id: int
+    project_id: int
+    platform: str | None = None
+    url: str | None = None
+    has_minified_stack_trace: bool | None = None
+    project_platform: str | None = None
 
 
 # first error for a project
-class FirstEventSentEventForProject(FirstEventSentEvent):
-    type = "first_event_for_project.sent"
+@analytics.eventclass("first_event_for_project.sent")
+class FirstEventSentForProjectEvent(FirstEventSentEvent):
+    sdk_name: str | None = None
 
 
 # first error with minified stack trace for a project
+@analytics.eventclass("first_event_with_minified_stack_trace_for_project.sent")
 class FirstEventSentEventWithMinifiedStackTraceForProject(FirstEventSentEvent):
-    type = "first_event_with_minified_stack_trace_for_project.sent"
+    pass
 
 
 analytics.register(FirstEventSentEvent)
-analytics.register(FirstEventSentEventForProject)
+analytics.register(FirstEventSentForProjectEvent)
 analytics.register(FirstEventSentEventWithMinifiedStackTraceForProject)

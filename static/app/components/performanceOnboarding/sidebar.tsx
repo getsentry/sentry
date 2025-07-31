@@ -335,6 +335,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectId: currentProject.id,
     projectSlug: currentProject.slug,
     isFeedbackSelected: false,
+    isLogsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,

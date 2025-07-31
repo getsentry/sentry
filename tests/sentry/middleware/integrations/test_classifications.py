@@ -17,7 +17,7 @@ from sentry.silo.base import SiloMode
 class BaseClassificationTestCase(TestCase):
     get_response = MagicMock()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.factory = RequestFactory()
 

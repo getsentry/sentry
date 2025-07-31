@@ -1,6 +1,7 @@
 from datetime import datetime
 from functools import partial
 
+from django.db import router, transaction
 from django.db.models import Count, Max, Q, QuerySet
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
@@ -30,6 +31,9 @@ from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    BulkWorkflowDetectorsValidator,
+)
 from sentry.workflow_engine.models import Workflow
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -156,7 +160,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 # the annotated value isn't returned in the results.
                 long_ago = ensure_aware(datetime(1970, 1, 1))
                 queryset = queryset.annotate(
-                    last_triggered=Max(Coalesce("workflowfirehistory__date_added", long_ago)),
+                    last_triggered=Coalesce(
+                        Max(
+                            "workflowfirehistory__date_added",
+                            filter=Q(workflowfirehistory__is_single_written=True),
+                        ),
+                        long_ago,
+                    ),
                 )
 
         queryset = queryset.order_by(*sort_by.db_order_by)
@@ -198,5 +208,20 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
 
         validator.is_valid(raise_exception=True)
-        workflow = validator.create(validator.validated_data)
+
+        with transaction.atomic(router.db_for_write(Workflow)):
+            workflow = validator.create(validator.validated_data)
+
+            detector_ids = request.data.get("detectorIds", [])
+            if detector_ids:
+                bulk_validator = BulkWorkflowDetectorsValidator(
+                    data={
+                        "workflow_id": workflow.id,
+                        "detector_ids": detector_ids,
+                    },
+                    context={"organization": organization, "request": request},
+                )
+                bulk_validator.is_valid(raise_exception=True)
+                bulk_validator.save()
+
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)

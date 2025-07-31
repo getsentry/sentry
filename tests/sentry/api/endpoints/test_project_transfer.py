@@ -13,7 +13,7 @@ from sentry.utils.signing import unsign
 
 
 class ProjectTransferTest(APITestCase):
-    def test_internal_project(self):
+    def test_internal_project(self) -> None:
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -31,7 +31,7 @@ class ProjectTransferTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_transfer_project(self):
+    def test_transfer_project(self) -> None:
         project = self.create_project()
         organization = project.organization
 
@@ -59,7 +59,7 @@ class ProjectTransferTest(APITestCase):
                 is not None
             )
 
-    def test_transfer_project_to_invalid_user(self):
+    def test_transfer_project_to_invalid_user(self) -> None:
         project = self.create_project()
         # new user is not an owner of anything
         new_user = self.create_user("b@example.com")
@@ -85,7 +85,7 @@ class ProjectTransferTest(APITestCase):
                 assert not mail.outbox
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_rate_limit(self):
+    def test_rate_limit(self) -> None:
         project = self.create_project()
         # new user is not an owner of anything
         new_user = self.create_user("b@example.com")
@@ -108,7 +108,7 @@ class ProjectTransferTest(APITestCase):
             == b'"You are attempting to use this endpoint too frequently. Limit is 3 requests in 3600 seconds"'
         )
 
-    def test_transfer_project_to_current_organization(self):
+    def test_transfer_project_to_current_organization(self) -> None:
         owner_a = self.create_user("a@example.com")
         org_a = self.create_organization(name="Org A", slug="org-a", owner=owner_a)
 
@@ -127,7 +127,7 @@ class ProjectTransferTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"detail": "Cannot transfer project to the same organization."}
 
-    def test_transfer_project_to_multiple_accounts(self):
+    def test_transfer_project_to_multiple_accounts(self) -> None:
         owner_a = self.create_user("a@example.com")
         org_a = self.create_organization(name="Org A", slug="org-a", owner=owner_a)
 
@@ -166,7 +166,7 @@ class ProjectTransferTest(APITestCase):
         assert len(mail.outbox) == 1
         assert response.status_code == 204
 
-    def test_transfer_project_to_multiple_accounts_ignores_project_org(self):
+    def test_transfer_project_to_multiple_accounts_ignores_project_org(self) -> None:
         owner_a = self.create_user("a@example.com")
         self.create_useremail(owner_a, "shared@example.com")
         org_a = self.create_organization(name="Org A", slug="org-a", owner=owner_a)

@@ -121,6 +121,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/koa/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const feedbackOnboardingNode: OnboardingConfig = {

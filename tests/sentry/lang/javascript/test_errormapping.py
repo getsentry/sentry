@@ -11,7 +11,7 @@ from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_excep
 
 class ErrorMappingTest(unittest.TestCase):
     @responses.activate
-    def test_react_error_mapping_resolving(self):
+    def test_react_error_mapping_resolving(self) -> None:
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
@@ -69,7 +69,7 @@ class ErrorMappingTest(unittest.TestCase):
             )
 
     @responses.activate
-    def test_react_error_mapping_resolving_no_query(self):
+    def test_react_error_mapping_resolving_no_query(self) -> None:
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
@@ -105,7 +105,7 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
     @responses.activate
-    def test_react_error_mapping_empty_args(self):
+    def test_react_error_mapping_empty_args(self) -> None:
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
@@ -152,7 +152,7 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
     @responses.activate
-    def test_react_error_mapping_truncated(self):
+    def test_react_error_mapping_truncated(self) -> None:
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
@@ -196,7 +196,7 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
     @responses.activate
-    def test_react_error_adds_meta(self):
+    def test_react_error_adds_meta(self) -> None:
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
@@ -313,7 +313,7 @@ class ErrorMappingTest(unittest.TestCase):
         }
 
     @responses.activate
-    def test_skip_none_values(self):
+    def test_skip_none_values(self) -> None:
         expected: dict[str, Any] = {"exception": {"values": [None, {}]}}
 
         actual = deepcopy(expected)

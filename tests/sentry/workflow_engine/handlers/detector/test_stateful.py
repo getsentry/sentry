@@ -11,18 +11,18 @@ Level = DetectorPriorityLevel
 
 
 class TestStatefulDetectorHandler(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Stateful Detector",
             project=self.project,
         )
 
-    def test__init_creates_default_thresholds(self):
+    def test__init_creates_default_thresholds(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
         # Only the OK threshold is set by default
         assert handler._thresholds == {Level.OK: 1}
 
-    def test_init__override_thresholds(self):
+    def test_init__override_thresholds(self) -> None:
         handler = MockDetectorStateHandler(
             detector=self.detector,
             thresholds={Level.LOW: 2},
@@ -31,13 +31,13 @@ class TestStatefulDetectorHandler(TestCase):
         # Setting the thresholds on the detector allow to override the defaults
         assert handler._thresholds == {Level.OK: 1, Level.LOW: 2}
 
-    def test_init__creates_correct_state_counters(self):
+    def test_init__creates_correct_state_counters(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
         assert handler.state_manager.counter_names == [Level.OK]
 
 
 class TestStatefulDetectorIncrementThresholds(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_key: DetectorGroupKey = None
         self.detector = self.create_detector(
             name="Stateful Detector",
@@ -51,7 +51,7 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
             },
         )
 
-    def test_increment_detector_thresholds(self):
+    def test_increment_detector_thresholds(self) -> None:
         state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
         self.handler._increment_detector_thresholds(state, Level.HIGH, self.group_key)
         self.handler.state_manager.commit_state_updates()
@@ -63,7 +63,7 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
             Level.OK: None,
         }
 
-    def test_increment_detector_thresholds__medium(self):
+    def test_increment_detector_thresholds__medium(self) -> None:
         state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
         self.handler._increment_detector_thresholds(state, Level.MEDIUM, self.group_key)
         self.handler.state_manager.commit_state_updates()
@@ -75,7 +75,7 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
             Level.OK: None,
         }
 
-    def test_increment_detector_thresholds_low(self):
+    def test_increment_detector_thresholds_low(self) -> None:
         state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
         self.handler._increment_detector_thresholds(state, Level.LOW, self.group_key)
         self.handler.state_manager.commit_state_updates()
@@ -89,7 +89,7 @@ class TestStatefulDetectorIncrementThresholds(TestCase):
 
 
 class TestStatefulDetectorHandlerEvaluate(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group_key: DetectorGroupKey = None
 
         self.detector = self.create_detector(
@@ -136,12 +136,12 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         }
         return DataPacket(source_id=str(key), packet=packet)
 
-    def test_evaualte__under_threshold(self):
+    def test_evaualte__under_threshold(self) -> None:
         # First evaluation does not trigger the threshold
         result = self.handler.evaluate(self.packet(1, Level.HIGH))
         assert result == {}
 
-    def test_evaluate__override_threshold__triggered(self):
+    def test_evaluate__override_threshold__triggered(self) -> None:
         # First evaluation does not trigger the threshold
         self.handler.evaluate(self.packet(1, Level.HIGH))
 
@@ -157,7 +157,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         evidence_data = evaluation_result.result.evidence_data
         assert evidence_data["detector_id"] == self.detector.id
 
-    def test_evaluate__detector_state(self):
+    def test_evaluate__detector_state(self) -> None:
         # Two evaluations triggers threshold
         self.handler.evaluate(self.packet(1, Level.HIGH))
         self.handler.evaluate(self.packet(2, Level.HIGH))
@@ -175,7 +175,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             Level.OK: None,
         }
 
-    def test_evaluate__detector_state__all_levels(self):
+    def test_evaluate__detector_state__all_levels(self) -> None:
         # A single HIGH evaluation should increment all levels
         self.handler.evaluate(self.packet(1, Level.HIGH))
         state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
@@ -186,7 +186,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             Level.OK: None,
         }
 
-    def test_evaluate__resolves(self):
+    def test_evaluate__resolves(self) -> None:
         # Two HIGH evaluations will trigger
         result = self.handler.evaluate(self.packet(1, Level.HIGH))
         result = self.handler.evaluate(self.packet(2, Level.HIGH))
@@ -202,7 +202,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert evaluation_result.priority == Level.OK
         assert evaluation_result.result.detector_id == self.detector.id
 
-    def test_evaluate__high_to_low(self):
+    def test_evaluate__high_to_low(self) -> None:
         # One HIGH then one LOW will result in a low evaluation
         result = self.handler.evaluate(self.packet(1, Level.HIGH))
         assert result == {}
@@ -212,7 +212,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert isinstance(evaluation_result.result, IssueOccurrence)
         assert evaluation_result.priority == Level.LOW
 
-    def test_evaluate__low_to_high(self):
+    def test_evaluate__low_to_high(self) -> None:
         # Two LOW evaluations result in a LOW
         result = self.handler.evaluate(self.packet(1, Level.LOW))
         result = self.handler.evaluate(self.packet(2, Level.LOW))
@@ -230,7 +230,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert isinstance(evaluation_result.result, IssueOccurrence)
         assert evaluation_result.priority == Level.HIGH
 
-    def test_evaluate__resolve__detector_state(self):
+    def test_evaluate__resolve__detector_state(self) -> None:
         # Two HIGH evaluations will trigger
         self.handler.evaluate(self.packet(1, Level.HIGH))
         self.handler.evaluate(self.packet(2, Level.HIGH))
@@ -247,7 +247,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             **{level: None for level in self.handler._thresholds},
         }
 
-    def test_evaluate__trigger_after_resolve(self):
+    def test_evaluate__trigger_after_resolve(self) -> None:
         # Two HIGH evaluations will trigger
         self.handler.evaluate(self.packet(1, Level.HIGH))
         self.handler.evaluate(self.packet(2, Level.HIGH))
@@ -267,7 +267,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert evaluation_result.priority == Level.HIGH
         assert isinstance(evaluation_result.result, IssueOccurrence)
 
-    def test_evaluate__trigger_after_resolve__detector_state(self):
+    def test_evaluate__trigger_after_resolve__detector_state(self) -> None:
         # Two HIGH evaluations will trigger
         self.handler.evaluate(self.packet(1, Level.HIGH))
         self.handler.evaluate(self.packet(2, Level.HIGH))
@@ -288,7 +288,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         assert state_data.is_triggered is True
         assert state_data.status == Level.HIGH
 
-    def test_evaluate__ok_resets_counters(self):
+    def test_evaluate__ok_resets_counters(self) -> None:
         # This should NOT trigger for HIGH since there's an OK in-between
         result = self.handler.evaluate(self.packet(1, Level.HIGH))
         result = self.handler.evaluate(self.packet(2, Level.OK))
@@ -296,7 +296,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
         assert result == {}
 
-    def test_evaluate__low_threshold_larger_than_high(self):
+    def test_evaluate__low_threshold_larger_than_high(self) -> None:
         """
         Test that a LOW threshold that is larger than the HIGH threshold does
         not trigger once the HIGH threshold has already triggered.
@@ -333,7 +333,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
 
 
 class TestDetectorStateManagerRedisOptimization(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Redis Optimization Detector",
             project=self.project,
@@ -347,7 +347,7 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
         )
         self.group_keys = [None, "group1", "group2"]
 
-    def test_get_state_data_uses_single_redis_pipeline(self):
+    def test_get_state_data_uses_single_redis_pipeline(self) -> None:
         """
         Test that get_state_data uses only 1 Redis pipeline operation.
         """
@@ -373,7 +373,7 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
             expected_get_calls = 3 * (1 + len(self.handler.state_manager.counter_names))
             assert mock_pipeline.get.call_count == expected_get_calls
 
-    def test_redis_key_mapping_generates_correct_keys(self):
+    def test_redis_key_mapping_generates_correct_keys(self) -> None:
         """
         Test that redis key mapping generates the expected keys.
         """
@@ -389,7 +389,7 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
         expected_counter_keys = len(self.group_keys) * len(state_manager.counter_names)
         assert len(counter_keys) == expected_counter_keys
 
-    def test_bulk_get_redis_values_handles_empty_keys(self):
+    def test_bulk_get_redis_values_handles_empty_keys(self) -> None:
         """
         Test that bulk_get_redis_values handles empty key list correctly.
         """

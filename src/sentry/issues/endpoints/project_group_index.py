@@ -1,19 +1,21 @@
 import functools
 import logging
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
+from sentry.analytics.events.project_issue_searched import ProjectIssueSearchEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import (
-    delete_groups,
     get_by_short_id,
     prep_search,
+    schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
 )
@@ -58,6 +60,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         """
         List a Project's Issues
         ```````````````````````
+        **Deprecated**: This endpoint has been replaced with the [Organization
+        Issues endpoint](/api/events/list-an-organizations-issues/) which
+        supports filtering on project and additional functionality.
 
         Return a list of issues (groups) bound to a project.  All parameters are
         supplied as query string parameters.
@@ -192,13 +197,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         if results and query:
             advanced_search.send(project=project, sender=request.user)
-            analytics.record(
-                "project_issue.searched",
-                user_id=request.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                query=query,
-            )
+            try:
+                analytics.record(
+                    ProjectIssueSearchEvent(
+                        user_id=request.user.id,
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        query=query,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         return response
 
@@ -302,7 +311,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         """
         search_fn = functools.partial(prep_search, request, project)
         try:
-            return delete_groups(request, [project], project.organization_id, search_fn)
+            return schedule_tasks_to_delete_groups(
+                request, [project], project.organization_id, search_fn
+            )
         except Exception:
             logger.exception("Error deleting groups")
             return Response({"detail": "Error deleting groups"}, status=500)

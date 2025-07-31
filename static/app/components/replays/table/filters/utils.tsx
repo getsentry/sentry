@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {useNavigate} from 'sentry/utils/useNavigate';
@@ -43,10 +42,8 @@ export function generateAction({
 
 export const ActionMenuTrigger = styled(Button)`
   position: absolute;
-  right: 0;
   top: 50%;
   transform: translateY(-50%);
-  padding: ${space(0.75)};
   display: flex;
   align-items: center;
   opacity: 0;
