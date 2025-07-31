@@ -227,4 +227,5 @@ const TimelineContainer = styled('div')`
   padding: ${space(3)} 0;
   grid-column: 2/-1;
   opacity: var(--disabled-opacity);
+  z-index: 1;
 `;

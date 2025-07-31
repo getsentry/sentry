@@ -397,6 +397,7 @@ const TimelineContainer = styled('div')`
   gap: ${space(4)};
   contain: content;
   grid-column: 3/-1;
+  z-index: 1;
 `;
 
 const TimelineEnvOuterContainer = styled('div')`
