@@ -127,6 +127,8 @@ class TaskworkerClient:
         max_consecutive_unavailable_errors: int = DEFAULT_CONSECUTIVE_UNAVAILABLE_ERRORS,
         temporary_unavailable_host_timeout: int = DEFAULT_TEMPORARY_UNAVAILABLE_HOST_TIMEOUT,
     ) -> None:
+        assert len(hosts) > 0, "You must provide at least one RPC host to connect to"
+
         self._hosts = hosts
         grpc_config = options.get("taskworker.grpc_service_config")
         self._grpc_options: list[tuple[str, Any]] = [

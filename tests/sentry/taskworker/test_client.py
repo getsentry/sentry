@@ -110,6 +110,13 @@ class MockGrpcError(grpc.RpcError):
 
 
 @django_db_all
+def test_init_no_hosts() -> None:
+    with pytest.raises(AssertionError) as err:
+        TaskworkerClient(hosts=[])
+    assert "You must provide at least one RPC host" in str(err)
+
+
+@django_db_all
 def test_get_task_ok() -> None:
     channel = MockChannel()
     channel.add_response(
