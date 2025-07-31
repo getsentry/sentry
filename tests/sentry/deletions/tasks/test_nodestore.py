@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.deletions.tasks.nodestore import _fetch_events, delete_events_for_groups_from_nodestore
+from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore, fetch_events
 from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
@@ -19,7 +19,7 @@ class NodestoreDeletionTaskTest(TestCase):
         return events
 
     def fetch_events(self, group_ids: list[int], dataset: Dataset) -> list[Event]:
-        return _fetch_events(
+        return fetch_events(
             group_ids=group_ids,
             project_id=self.project.id,
             referrer="deletions.groups",
