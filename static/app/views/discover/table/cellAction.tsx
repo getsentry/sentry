@@ -17,7 +17,7 @@ import {
 import getDuration from 'sentry/utils/duration/getDuration';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {TableColumn} from './types';
@@ -233,7 +233,7 @@ function makeCellActions({
         label: itemLabel,
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
-        to,
+        to: action === Actions.OPEN_INTERNAL_LINK ? to : undefined,
       });
     }
   }
@@ -328,8 +328,8 @@ function getCellActionText(field: string, to?: string): string {
     case CustomMenuFields.REPLAY:
       return t('Open replay');
     case CustomMenuFields.SPAN_DESCRIPTION: {
-      // Some span description renderers add a project icon
-      if (to?.includes('project')) {
+      // Some span description renderers have a project icon link instead
+      if (to?.includes('/projects/')) {
         return t('Open project');
       }
       return t('Open summary');
@@ -375,12 +375,15 @@ function CellAction({
 
   // Extract any internal links to add them to the dropdown menu
   useEffect(() => {
-    const linkElements = childRef.current?.getElementsByTagName('a');
-    if (linkElements?.[0]) {
-      const href = normalizeUrl(linkElements[0].href);
-      setTarget(href);
-    }
-  }, [column.key, props.dataRow]);
+    requestAnimationFrame(() => {
+      const linkElements = childRef.current?.getElementsByTagName('a');
+
+      if (linkElements?.[0]) {
+        const href = stripURLOrigin(linkElements[0].href);
+        setTarget(href);
+      }
+    });
+  }, [column.key, children]);
 
   const cellActions = makeCellActions({
     ...props,
