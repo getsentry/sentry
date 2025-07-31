@@ -1,4 +1,5 @@
 import {vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeCanvasMock,
@@ -7,18 +8,15 @@ import {
 } from 'sentry-test/profiling/utils';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {
-  LightFlamegraphTheme,
-  LightFlamegraphTheme as theme,
-} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
-import type {Flamegraph} from '../flamegraph';
-import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
-
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 const originalDpr = window.devicePixelRatio;
 
 describe('flamegraphRendererWebGL', () => {
@@ -155,7 +153,7 @@ describe('flamegraphRendererWebGL', () => {
         start: 0,
         end: 0,
       })
-    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
+    ).toEqual(theme.COLORS.FRAME_FALLBACK_COLOR);
   });
 
   it('getHoveredNode', () => {

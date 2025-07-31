@@ -6,10 +6,9 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {ValidateWidgetResponse} from 'sentry/views/dashboards/types';
-
-import type {DataSet} from '../../utils';
-import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
-import {BuildStep} from '../buildStep';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 
 import {GroupBySelector} from './groupBySelector';
 

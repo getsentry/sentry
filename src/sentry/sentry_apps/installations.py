@@ -10,7 +10,6 @@ from django.http.request import HttpRequest
 from sentry import analytics, audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
-from sentry.coreapi import APIUnauthorized
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -18,11 +17,17 @@ from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEve
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,
 )
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -110,20 +115,25 @@ class SentryAppInstallationCreator:
     notify: bool = True
 
     def run(self, *, user: User | RpcUser, request: HttpRequest | None) -> SentryAppInstallation:
-        metrics.incr("sentry_apps.installation.attempt")
-        with transaction.atomic(router.db_for_write(ApiGrant)):
-            api_grant = self._create_api_grant()
-            install = self._create_install(api_grant=api_grant)
-            self.audit(request=request)
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.MANAGEMENT,
+            event_type=SentryAppEventType.INSTALLATION_CREATE,
+        ).capture() as lifecycle:
+            with transaction.atomic(router.db_for_write(ApiGrant)):
+                api_grant = self._create_api_grant()
+                install = self._create_install(api_grant=api_grant)
+                lifecycle.add_extra("installation_id", install.id)
 
-        self._create_service_hooks(install=install)
-        install.is_new = True
+                self.audit(request=request)
 
-        if self.notify:
-            installation_webhook.delay(install.id, user.id)
+            self._create_service_hooks(install=install)
+            install.is_new = True
 
-        self.record_analytics(user=user)
-        return install
+            if self.notify:
+                installation_webhook.delay(install.id, user.id)
+
+            self.record_analytics(user=user)
+            return install
 
     def _create_install(self, api_grant: ApiGrant) -> SentryAppInstallation:
         status = SentryAppInstallationStatus.PENDING
@@ -188,7 +198,7 @@ class SentryAppInstallationNotifier:
 
     def run(self) -> None:
         if self.action not in VALID_ACTIONS:
-            raise APIUnauthorized(
+            raise SentryAppSentryError(
                 f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
             )
 

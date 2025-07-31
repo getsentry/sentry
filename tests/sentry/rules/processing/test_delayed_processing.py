@@ -1,10 +1,9 @@
 from collections import defaultdict
 from collections.abc import Sequence
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import DefaultDict
 from unittest.mock import MagicMock, Mock, patch
-from uuid import uuid4
 
 import pytest
 
@@ -19,13 +18,10 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
-from sentry.rules.processing.buffer_processing import (
-    bucket_num_groups,
-    process_buffer,
-    process_in_batches,
-)
+from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
+    LogConfig,
     UniqueConditionQuery,
     apply_delayed,
     bulk_fetch_events,
@@ -40,15 +36,16 @@ from sentry.rules.processing.delayed_processing import (
     parse_rulegroup_to_event_data,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
-from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.cases import RuleTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
-from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
+from tests.sentry.rules.processing.test_buffer_processing import (
+    CreateEventTestCase,
+    ProcessDelayedAlertConditionsTestBase,
+)
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -66,12 +63,6 @@ TEST_RULE_FAST_CONDITION: EventFrequencyConditionData = {
 }
 
 
-def test_bucket_num_groups():
-    assert bucket_num_groups(1) == "1"
-    assert bucket_num_groups(50) == ">10"
-    assert bucket_num_groups(101) == ">100"
-
-
 def mock_get_condition_group(descending=False):
     """
     Mocks get_condition_groups to run with the passed in alert_rules in
@@ -87,81 +78,8 @@ def mock_get_condition_group(descending=False):
     return _callthrough_with_order
 
 
-@freeze_time(FROZEN_TIME)
-class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
-    def setUp(self):
-        super().setUp()
-        self.mock_redis_buffer = mock_redis_buffer()
-        self.mock_redis_buffer.__enter__()
-
-    def tearDown(self):
-        self.mock_redis_buffer.__exit__(None, None, None)
-
-    def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
-        value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        buffer.backend.push_to_hash(
-            model=Project,
-            filters={"project_id": project_id},
-            field=f"{rule_id}:{group_id}",
-            value=value,
-        )
-
-    def create_event(
-        self,
-        project_id: int,
-        timestamp: datetime,
-        fingerprint: str,
-        environment=None,
-        tags: list[list[str]] | None = None,
-    ) -> Event:
-        data = {
-            "timestamp": timestamp.isoformat(),
-            "environment": environment,
-            "fingerprint": [fingerprint],
-            "level": "error",
-            "user": {"id": uuid4().hex},
-            "exception": {
-                "values": [
-                    {
-                        "type": "IntegrationError",
-                        "value": "Identity not found.",
-                    }
-                ]
-            },
-        }
-        if tags:
-            data["tags"] = tags
-
-        return self.store_event(
-            data=data,
-            project_id=project_id,
-            assert_no_errors=False,
-            default_event_type=EventType.ERROR,
-        )
-
-    def create_event_frequency_condition(
-        self,
-        interval="1d",
-        id="EventFrequencyCondition",
-        value=1,
-        comparison_type=ComparisonType.COUNT,
-        comparison_interval=None,
-    ) -> EventFrequencyConditionData:
-        condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        condition_blob = EventFrequencyConditionData(
-            interval=interval,
-            id=condition_id,
-            value=value,
-            comparisonType=comparison_type,
-        )
-        if comparison_interval:
-            condition_blob["comparisonInterval"] = comparison_interval
-
-        return condition_blob
-
-
 class BulkFetchEventsTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)
@@ -178,7 +96,7 @@ class BulkFetchEventsTest(CreateEventTestCase):
             self.event_two.event_id: self.event_two,
         }
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         event_ids: list[str] = [self.event.event_id, self.event_two.event_id]
         result = bulk_fetch_events(event_ids, self.project.id)
 
@@ -186,22 +104,22 @@ class BulkFetchEventsTest(CreateEventTestCase):
         for expected, fetched in zip(self.expected, result):
             assert expected == fetched
 
-    def test_empty_list(self):
+    def test_empty_list(self) -> None:
         event_ids: list[str] = []
         result = bulk_fetch_events(event_ids, self.project.id)
         assert len(result) == 0
 
-    def test_invalid_project(self):
+    def test_invalid_project(self) -> None:
         event_ids: list[str] = [self.event.event_id, self.event_two.event_id]
         result = bulk_fetch_events(event_ids, 0)
         assert len(result) == 0
 
-    def test_with_invalid_event_ids(self):
+    def test_with_invalid_event_ids(self) -> None:
         event_ids: list[str] = ["-1", "0"]
         result = bulk_fetch_events(event_ids, self.project.id)
         assert len(result) == 0
 
-    def test_event_ids_with_mixed_validity(self):
+    def test_event_ids_with_mixed_validity(self) -> None:
         event_ids: list[str] = ["-1", self.event.event_id, "0", self.event_two.event_id]
         result = bulk_fetch_events(event_ids, self.project.id)
 
@@ -268,11 +186,11 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             all_unique_queries.extend(unique_queries)
         return condition_groups, group.id, all_unique_queries
 
-    def test_empty_condition_groups(self):
+    def test_empty_condition_groups(self) -> None:
         assert get_condition_group_results({}, self.project) == {}
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_nonexistent_condition(self, mock_logger):
+    def test_nonexistent_condition(self, mock_logger: MagicMock) -> None:
         nonexistent_cond_query = UniqueConditionQuery(
             cls_id="fake_id", interval="", environment_id=1
         )
@@ -288,7 +206,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         mock_logger.warning.assert_called_once()
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_fast_condition(self, mock_logger):
+    def test_fast_condition(self, mock_logger: MagicMock) -> None:
         fast_cond_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
             interval="",
@@ -303,7 +221,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         assert results == {}
         mock_logger.warning.assert_called_once()
 
-    def test_group_does_not_belong_to_project(self):
+    def test_group_does_not_belong_to_project(self) -> None:
         """
         Test that when the passed in project does not contain the group
         referenced in condition_data, the function ignores this mismatch
@@ -317,7 +235,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             unique_queries[0]: {group_id: 2},
         }
 
-    def test_count_comparison_condition(self):
+    def test_count_comparison_condition(self) -> None:
         condition_data = self.create_event_frequency_condition(interval=self.interval)
         condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
 
@@ -326,7 +244,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             unique_queries[0]: {group_id: 2},
         }
 
-    def test_percent_comparison_condition(self):
+    def test_percent_comparison_condition(self) -> None:
         condition_data = self.create_event_frequency_condition(
             interval=self.interval,
             comparison_type=ComparisonType.PERCENT,
@@ -342,7 +260,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             offset_percent_query: {group_id: 1},
         }
 
-    def test_count_percent_nonexistent_fast_conditions_together(self):
+    def test_count_percent_nonexistent_fast_conditions_together(self) -> None:
         """
         Test that a percent and count condition are processed as expected, and
         that nonexistent and fast conditions are ignored.
@@ -386,9 +304,12 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
 
 
 class GetGroupToGroupEventTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
+        self.log_config = LogConfig(
+            workflow_engine_process_workflows=True, num_events_issue_debugging=True
+        )
         self.rule = self.create_alert_rule(self.organization, [self.project])
 
         # Create some groups
@@ -418,21 +339,25 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         }
         self.group_ids = {self.group1.id, self.group2.id}
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         self.parsed_data.pop((self.rule.id, self.group2.id))
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, {self.group1.id})
+        result = get_group_to_groupevent(
+            self.log_config, self.parsed_data, self.project.id, {self.group1.id}
+        )
 
         assert len(result) == 1
         assert result[self.group1] == self.event1
 
-    def test_many(self):
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, self.group_ids)
+    def test_many(self) -> None:
+        result = get_group_to_groupevent(
+            self.log_config, self.parsed_data, self.project.id, self.group_ids
+        )
 
         assert len(result) == 2
         assert result[self.group1] == self.event1
         assert result[self.group2] == self.event2
 
-    def test_missing_event(self):
+    def test_missing_event(self) -> None:
         parsed_data = {
             (self.rule.id, self.group2.id): {
                 "event_id": "0",
@@ -444,26 +369,54 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
             },
         }
 
-        result = get_group_to_groupevent(parsed_data, self.project.id, self.group_ids)
+        result = get_group_to_groupevent(
+            self.log_config, parsed_data, self.project.id, self.group_ids
+        )
 
         assert len(result) == 1
         assert result[self.group1] == self.event1
 
-    def test_invalid_project_id(self):
-        result = get_group_to_groupevent(self.parsed_data, 0, self.group_ids)
+    def test_invalid_project_id(self) -> None:
+        result = get_group_to_groupevent(self.log_config, self.parsed_data, 0, self.group_ids)
         assert len(result) == 0
 
-    def test_empty_group_ids(self):
-        result = get_group_to_groupevent({}, self.project.id, set())
+    def test_empty_group_ids(self) -> None:
+        result = get_group_to_groupevent(self.log_config, self.parsed_data, self.project.id, set())
         assert len(result) == 0
 
-    def test_invalid_group_ids(self):
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, {0})
+    def test_invalid_group_ids(self) -> None:
+        result = get_group_to_groupevent(self.log_config, self.parsed_data, self.project.id, {0})
         assert len(result) == 0
+
+    def test_filtered_group_ids(self) -> None:
+        """Test that get_group_to_groupevent only requests events for specified group IDs."""
+        # Track which event IDs are requested
+        requested_event_ids = set()
+
+        original_bulk_fetch_events = bulk_fetch_events
+
+        def mock_bulk_fetch_events(event_ids, project_id):
+            requested_event_ids.update(event_ids)
+            return original_bulk_fetch_events(event_ids, project_id)
+
+        with patch(
+            "sentry.rules.processing.delayed_processing.bulk_fetch_events",
+            side_effect=mock_bulk_fetch_events,
+        ):
+            # Call get_group_to_groupevent with only group1
+            result = get_group_to_groupevent(
+                self.log_config, self.parsed_data, self.project.id, {self.group1.id}
+            )
+
+            # Verify only event1 was requested
+            assert requested_event_ids == {self.event1.event_id}
+            assert len(result) == 1
+            assert result[self.group1] == self.event1
+            assert self.group2 not in result
 
 
 class GetRulesToFireTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project()
         self.environment = self.create_environment()
@@ -476,7 +429,7 @@ class GetRulesToFireTest(TestCase):
         self.group1: Group = self.create_group(self.project)
         self.group2: Group = self.create_group(self.project)
 
-        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int]] = {
+        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]] = {
             UniqueConditionQuery(
                 cls_id=TEST_RULE_SLOW_CONDITION["id"],
                 interval=TEST_RULE_SLOW_CONDITION["interval"],
@@ -500,7 +453,7 @@ class GetRulesToFireTest(TestCase):
     def tearDown(self):
         self.patcher.stop()
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         self.mock_passes_comparison.return_value = True
 
         result = get_rules_to_fire(
@@ -512,7 +465,7 @@ class GetRulesToFireTest(TestCase):
 
         assert result[self.rule1] == {self.group1.id, self.group2.id}
 
-    def test_comparison_fail_all(self):
+    def test_comparison_fail_all(self) -> None:
         self.mock_passes_comparison.return_value = False
 
         result = get_rules_to_fire(
@@ -524,7 +477,7 @@ class GetRulesToFireTest(TestCase):
 
         assert self.rule1 not in result
 
-    def test_comparison_any(self):
+    def test_comparison_any(self) -> None:
         self.rule1.data["action_match"] = "any"
         self.mock_passes_comparison.return_value = True
 
@@ -537,7 +490,7 @@ class GetRulesToFireTest(TestCase):
 
         assert result[self.rule1] == {self.group1.id, self.group2.id}
 
-    def test_comparison_any_fail(self):
+    def test_comparison_any_fail(self) -> None:
         self.rule1.data["action_match"] = "any"
         self.mock_passes_comparison.return_value = False
 
@@ -550,12 +503,12 @@ class GetRulesToFireTest(TestCase):
 
         assert self.rule1 not in result
 
-    def test_empty_input(self):
+    def test_empty_input(self) -> None:
         result = get_rules_to_fire({}, defaultdict(list), defaultdict(set), self.project.id)
         assert len(result) == 0
 
     @patch("sentry.rules.processing.delayed_processing.passes_comparison", return_value=True)
-    def test_multiple_rules_and_groups(self, mock_passes):
+    def test_multiple_rules_and_groups(self, mock_passes: MagicMock) -> None:
         rule2 = self.create_project_rule(
             project=self.project,
             condition_data=[TEST_RULE_SLOW_CONDITION],
@@ -577,17 +530,17 @@ class GetRulesToFireTest(TestCase):
 
 
 class GetRulesToGroupsTest(TestCase):
-    def test_empty_input(self):
+    def test_empty_input(self) -> None:
         result = get_rules_to_groups({})
         assert result == defaultdict(set)
 
-    def test_single_rule_group(self):
+    def test_single_rule_group(self) -> None:
         input_data = {"1:100": "event_data"}
         expected = defaultdict(set, {1: {100}})
         result = get_rules_to_groups(input_data)
         assert result == expected
 
-    def test_multiple_rule_groups(self):
+    def test_multiple_rule_groups(self) -> None:
         input_data = {
             "1:100": "event_data1",
             "1:101": "event_data2",
@@ -599,7 +552,7 @@ class GetRulesToGroupsTest(TestCase):
         result = get_rules_to_groups(input_data)
         assert result == expected
 
-    def test_invalid_input_format(self):
+    def test_invalid_input_format(self) -> None:
         input_data = {"invalid_key": "event_data"}
         with pytest.raises(ValueError):
             get_rules_to_groups(input_data)
@@ -608,14 +561,14 @@ class GetRulesToGroupsTest(TestCase):
 class GetSlowConditionsTest(RuleTestCase):
     rule_cls = EventFrequencyCondition
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
 
-    def test_get_slow_conditions(self):
+    def test_get_slow_conditions(self) -> None:
         results = get_slow_conditions(self.rule)
         assert results == [TEST_RULE_SLOW_CONDITION]
 
-    def test_get_slow_conditions__only_fast(self):
+    def test_get_slow_conditions__only_fast(self) -> None:
         self.rule = self.get_rule(data={"conditions": [TEST_RULE_FAST_CONDITION]})
 
         results = get_slow_conditions(self.rule)
@@ -623,7 +576,7 @@ class GetSlowConditionsTest(RuleTestCase):
 
 
 class ParseRuleGroupToEventDataTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.group_two = self.create_group(self.project)
@@ -635,7 +588,7 @@ class ParseRuleGroupToEventDataTest(TestCase):
             "occurrence_id": "1",
         }
 
-    def test_parse_rulegroup(self):
+    def test_parse_rulegroup(self) -> None:
         input_data = {
             f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data),
             f"{self.rule_two.id}:{self.group_two.id}": json.dumps(self.event_data),
@@ -647,141 +600,23 @@ class ParseRuleGroupToEventDataTest(TestCase):
             (self.rule_two.id, self.group_two.id): self.event_data,
         }
 
-    def test_parse_rulegroup_empty(self):
+    def test_parse_rulegroup_empty(self) -> None:
         result = parse_rulegroup_to_event_data({})
         assert result == {}
 
-    def test_parse_rulegroup_basic(self):
+    def test_parse_rulegroup_basic(self) -> None:
         input_data = {f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data)}
         result = parse_rulegroup_to_event_data(input_data)
         assert result == {(self.rule.id, self.group.id): self.event_data}
 
-    def test_parse_rulegroup_invalid_json(self):
+    def test_parse_rulegroup_invalid_json(self) -> None:
         input_data = {f"{self.rule.id}:{self.group.id}": "}"}
         with pytest.raises(json.JSONDecodeError):
             parse_rulegroup_to_event_data(input_data)
 
 
-class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTestCase):
-    buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
-
-    def assert_buffer_cleared(self, project_id):
-        rule_group_data = buffer.backend.get_hash(Project, {"project_id": project_id})
-        assert rule_group_data == {}
-
-    def setUp(self):
-        super().setUp()
-
-        self.tag_filter = {
-            "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-            "key": "foo",
-            "match": "eq",
-            "value": "bar",
-        }
-
-        self.event_frequency_condition = self.create_event_frequency_condition()
-        self.event_frequency_condition2 = self.create_event_frequency_condition(value=2)
-        self.event_frequency_condition3 = self.create_event_frequency_condition(
-            interval="1h", value=1
-        )
-        self.user_frequency_condition = self.create_event_frequency_condition(
-            interval="1m",
-            id="EventUniqueUserFrequencyCondition",
-        )
-        event_frequency_percent_condition = self.create_event_frequency_condition(
-            interval="5m", id="EventFrequencyPercentCondition", value=1.0
-        )
-
-        self.rule1 = self.create_project_rule(
-            project=self.project,
-            condition_data=[self.event_frequency_condition],
-            environment_id=self.environment.id,
-        )
-        self.event1 = self.create_event(
-            self.project.id, FROZEN_TIME, "group-1", self.environment.name
-        )
-        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
-        assert self.event1.group
-        self.group1 = self.event1.group
-
-        self.rule2 = self.create_project_rule(
-            project=self.project, condition_data=[self.user_frequency_condition]
-        )
-        self.event2 = self.create_event(
-            self.project.id, FROZEN_TIME, "group-2", self.environment.name
-        )
-        assert self.event2.group
-
-        self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
-        self.group2 = self.event2.group
-
-        self.rulegroup_event_mapping_one = {
-            f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
-            f"{self.rule2.id}:{self.group2.id}": {self.event2.event_id},
-        }
-
-        self.project_two = self.create_project(organization=self.organization)
-        self.environment2 = self.create_environment(project=self.project_two)
-
-        self.rule3 = self.create_project_rule(
-            project=self.project_two,
-            condition_data=[self.event_frequency_condition2],
-            environment_id=self.environment2.id,
-        )
-        self.event3 = self.create_event(
-            self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name
-        )
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
-        assert self.event3.group
-        self.group3 = self.event3.group
-
-        self.rule4 = self.create_project_rule(
-            project=self.project_two, condition_data=[event_frequency_percent_condition]
-        )
-        self.event4 = self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
-        assert self.event4.group
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
-        self._make_sessions(60, project=self.project_two)
-        self.group4 = self.event4.group
-
-        self.rulegroup_event_mapping_two = {
-            f"{self.rule3.id}:{self.group3.id}": {self.event3.event_id},
-            f"{self.rule4.id}:{self.group4.id}": {self.event4.event_id},
-        }
-        self.buffer_mapping = {
-            self.project.id: self.rulegroup_event_mapping_one,
-            self.project_two.id: self.rulegroup_event_mapping_two,
-        }
-        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
-        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
-
-    def _push_base_events(self) -> None:
-        self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
-        self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
-        self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
-        self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
-
-    @patch("sentry.rules.processing.buffer_processing.process_in_batches")
-    def test_fetches_from_buffer_and_executes(self, mock_process_in_batches):
-        self._push_base_events()
-        # To get the correct mapping, we need to return the correct
-        # rulegroup_event mapping based on the project_id input
-        process_buffer()
-
-        for project, rule_group_event_mapping in (
-            (self.project, self.rulegroup_event_mapping_one),
-            (self.project_two, self.rulegroup_event_mapping_two),
-        ):
-            assert mock_process_in_batches.call_count == 2
-
-        project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
-        )
-        assert project_ids == []
-
-    def test_get_condition_groups(self):
+class ApplyDelayedTest(ProcessDelayedAlertConditionsTestBase):
+    def test_get_condition_groups(self) -> None:
         self._push_base_events()
         project_three = self.create_project(organization=self.organization)
         env3 = self.create_environment(project=project_three)
@@ -802,7 +637,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert orig_rules_to_groups == rules_to_groups
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_apply_delayed_nonexistent_project(self, mock_logger):
+    def test_apply_delayed_nonexistent_project(self, mock_logger: MagicMock) -> None:
         self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
         project_id = self.project.id
         self.project.delete()
@@ -819,7 +654,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_apply_delayed_rules_to_fire(self):
+    def test_apply_delayed_rules_to_fire(self) -> None:
         """
         Test that rules of various event frequency conditions, projects,
         environments, etc. are properly fired.
@@ -854,7 +689,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project_two.id})
         assert rule_group_data == {}
 
-    def test_apply_delayed_issue_platform_event(self):
+    def test_apply_delayed_issue_platform_event(self) -> None:
         """
         Test that we fire rules triggered from issue platform events
         """
@@ -895,7 +730,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (rule5.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_snoozed_rule(self):
+    def test_apply_delayed_snoozed_rule(self) -> None:
         """
         Test that we do not fire a rule that's been snoozed (aka muted)
         """
@@ -926,7 +761,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert len(rule_fire_histories) == 0
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_same_condition_diff_value(self):
+    def test_apply_delayed_same_condition_diff_value(self) -> None:
         """
         Test that two rules with the same condition and interval but a
         different value are both fired.
@@ -959,7 +794,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (rule5.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_same_condition_diff_interval(self):
+    def test_apply_delayed_same_condition_diff_interval(self) -> None:
         """
         Test that two rules with the same condition and value but a
         different interval are both fired.
@@ -991,7 +826,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (diff_interval_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_same_condition_diff_env(self):
+    def test_apply_delayed_same_condition_diff_env(self) -> None:
         """
         Test that two rules with the same condition, value, and interval
         but different environment are both fired.
@@ -1024,7 +859,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (diff_env_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_two_rules_one_fires(self):
+    def test_apply_delayed_two_rules_one_fires(self) -> None:
         """
         Test that with two rules in one project where one rule hasn't met
         the trigger threshold, only one is fired
@@ -1061,7 +896,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (self.rule1.id, self.group1.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_action_match_all(self):
+    def test_apply_delayed_action_match_all(self) -> None:
         """
         Test that a rule with multiple conditions and an action match of
         'all' is fired.
@@ -1115,7 +950,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self.assert_buffer_cleared(project_id=self.project.id)
 
     @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
-    def test_special_event_frequency_condition(self):
+    def test_special_event_frequency_condition(self) -> None:
         Rule.objects.all().delete()
         event_frequency_special_condition = Rule.objects.create(
             label="Event Frequency Special Condition",
@@ -1184,7 +1019,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self.assert_buffer_cleared(project_id=self.project.id)
 
     @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
-    def test_special_event_frequency_condition_passes(self):
+    def test_special_event_frequency_condition_passes(self) -> None:
         Rule.objects.all().delete()
         event_frequency_special_condition = Rule.objects.create(
             label="Event Frequency Special Condition",
@@ -1253,7 +1088,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (event_frequency_special_condition.id, group1.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_shared_condition_diff_filter(self):
+    def test_apply_delayed_shared_condition_diff_filter(self) -> None:
         self._push_base_events()
         project_three = self.create_project(organization=self.organization)
         env3 = self.create_environment(project=project_three)
@@ -1302,7 +1137,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (rule_2.id, group2.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=project_three.id)
 
-    def test_apply_delayed_percent_comparison_condition_interval(self):
+    def test_apply_delayed_percent_comparison_condition_interval(self) -> None:
         """
         Test that a rule with a percent condition is querying backwards against
         the correct comparison interval, e.g. # events is ... compared to 1 hr ago
@@ -1347,7 +1182,38 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_event_frequency_percent_comparison_interval(self):
+    def test_apply_delayed_event_frequency_percent_condition_fires_on_small_value(self) -> None:
+        event_frequency_percent_condition_2 = self.create_event_frequency_condition(
+            interval="1h", id="EventFrequencyPercentCondition", value=0.1
+        )
+
+        self.project_three = self.create_project(organization=self.organization)
+        # 1 event / 600 sessions ~= 0.17%
+        self._make_sessions(600, project=self.project_three)
+
+        percent_comparison_rule = self.create_project_rule(
+            project=self.project_three,
+            condition_data=[event_frequency_percent_condition_2],
+        )
+
+        event5 = self.create_event(self.project_three.id, FROZEN_TIME, "group-6")
+        assert event5.group
+
+        buffer.backend.push_to_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_three.id
+        )
+        self.push_to_hash(
+            self.project_three.id, percent_comparison_rule.id, event5.group.id, event5.event_id
+        )
+        apply_delayed(self.project_three.id)
+
+        assert RuleFireHistory.objects.filter(
+            rule__in=[percent_comparison_rule],
+            project=self.project_three,
+        ).exists()
+        self.assert_buffer_cleared(project_id=self.project_three.id)
+
+    def test_apply_delayed_event_frequency_percent_comparison_interval(self) -> None:
         """
         Test that the event frequency percent condition with a percent
         comparison is using the COMPARISON_INTERVALS for it's
@@ -1455,7 +1321,9 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert safe_execute_callthrough.call_count == 2
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_process_percent_then_count(self, safe_execute_callthrough):
+    def test_apply_delayed_process_percent_then_count(
+        self, safe_execute_callthrough: MagicMock
+    ) -> None:
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and that processing the percent condition first
@@ -1474,7 +1342,9 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._assert_count_percent_results(safe_execute_callthrough)
 
     @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_process_count_then_percent(self, safe_execute_callthrough):
+    def test_apply_delayed_process_count_then_percent(
+        self, safe_execute_callthrough: MagicMock
+    ) -> None:
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and that processing the count condition first
@@ -1492,63 +1362,12 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._assert_count_percent_results(safe_execute_callthrough)
 
 
-class ProcessRuleGroupsInBatchesTest(CreateEventTestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.project = self.create_project()
-        self.group = self.create_group(self.project)
-        self.group_two = self.create_group(self.project)
-        self.group_three = self.create_group(self.project)
-        self.rule = self.create_alert_rule()
-
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
-    def test_no_redis_data(self, mock_apply_delayed):
-        process_in_batches(self.project.id, "delayed_processing")
-        mock_apply_delayed.assert_called_once_with(self.project.id)
-
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
-    def test_basic(self, mock_apply_delayed):
-        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
-        self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
-        self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
-
-        process_in_batches(self.project.id, "delayed_processing")
-        mock_apply_delayed.assert_called_once_with(self.project.id)
-
-    @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
-    def test_batch(self, mock_apply_delayed):
-        self.push_to_hash(self.project.id, self.rule.id, self.group.id)
-        self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
-        self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
-
-        process_in_batches(self.project.id, "delayed_processing")
-        assert mock_apply_delayed.call_count == 2
-
-        # Validate the batches are created correctly
-        batch_one_key = mock_apply_delayed.call_args_list[0][0][1]
-        batch_one = buffer.backend.get_hash(
-            model=Project, field={"project_id": self.project.id, "batch_key": batch_one_key}
-        )
-        batch_two_key = mock_apply_delayed.call_args_list[1][0][1]
-        batch_two = buffer.backend.get_hash(
-            model=Project, field={"project_id": self.project.id, "batch_key": batch_two_key}
-        )
-
-        assert len(batch_one) == 2
-        assert len(batch_two) == 1
-
-        # Validate that we've cleared the original data to reduce storage usage
-        assert not buffer.backend.get_hash(model=Project, field={"project_id": self.project.id})
-
-
 class UniqueConditionQueryTest(TestCase):
     """
     Tests for the UniqueConditionQuery class. Currently, this is just to pass codecov.
     """
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         condition = UniqueConditionQuery(
             cls_id="1", interval="1d", environment_id=1, comparison_interval="1d"
         )
@@ -1563,7 +1382,7 @@ class DataAndGroupsTest(TestCase):
     Tests for the DataAndGroups class. Currently, this is just to pass codecov.
     """
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         condition = DataAndGroups(data=TEST_RULE_SLOW_CONDITION, group_ids={1, 2}, rule_id=1)
         assert (
             repr(condition)
@@ -1572,25 +1391,28 @@ class DataAndGroupsTest(TestCase):
 
 
 class CleanupRedisBufferTest(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()
         self.group = self.create_group(self.project)
         self.rule = self.create_alert_rule()
+        self.log_config = LogConfig(
+            workflow_engine_process_workflows=True, num_events_issue_debugging=True
+        )
 
-    def test_cleanup_redis(self):
+    def test_cleanup_redis(self) -> None:
         self.push_to_hash(self.project.id, self.rule.id, self.group.id)
         rules_to_groups: defaultdict[int, set[int]] = defaultdict(set)
         rules_to_groups[self.rule.id].add(self.group.id)
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, None)
+        cleanup_redis_buffer(self.log_config, self.project, rules_to_groups, None)
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
     @override_options({"delayed_processing.batch_size": 2})
-    @patch("sentry.rules.processing.delayed_processing.apply_delayed.delay")
-    def test_batched_cleanup(self, mock_apply_delayed):
+    @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
+    def test_batched_cleanup(self, mock_apply_delayed: MagicMock) -> None:
         group_two = self.create_group(self.project)
         group_three = self.create_group(self.project)
 
@@ -1604,14 +1426,14 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_three.id)
 
         process_in_batches(self.project.id, "delayed_processing")
-        batch_one_key = mock_apply_delayed.call_args_list[0][0][1]
-        batch_two_key = mock_apply_delayed.call_args_list[1][0][1]
+        batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
+        batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
         # Verify process_rulegroups_in_batches removed the data from the buffer
         rule_group_data = buffer.backend.get_hash(Project, {"project_id": self.project.id})
         assert rule_group_data == {}
 
-        cleanup_redis_buffer(self.project.id, rules_to_groups, batch_one_key)
+        cleanup_redis_buffer(self.log_config, self.project, rules_to_groups, batch_one_key)
 
         # Verify the batch we "executed" is removed
         rule_group_data = buffer.backend.get_hash(

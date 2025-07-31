@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DeployBadge from 'sentry/components/badge/deployBadge';
+import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -44,7 +44,7 @@ const Row = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 

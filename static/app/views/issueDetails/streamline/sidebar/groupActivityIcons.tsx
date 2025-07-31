@@ -1,3 +1,8 @@
+import styled from '@emotion/styled';
+
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {
   IconAdd,
   IconAsana,
@@ -23,13 +28,22 @@ import {
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
-import {IconCellSignal} from 'sentry/icons/iconCellSignal';
+import {space} from 'sentry/styles/space';
+import type {
+  GroupActivity,
+  GroupActivityCreateIssue,
+  GroupActivitySetPriority,
+} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
-  componentFunction?: (props: any) => React.ComponentType<any>;
+  componentFunction?: (props: {
+    data: GroupActivity['data'];
+    sentry_app: GroupActivity['sentry_app'];
+    user: GroupActivity['user'];
+  }) => React.ComponentType<any>;
   propsFunction?: (props: any) => any;
 }
 
@@ -37,7 +51,18 @@ export const groupActivityTypeIconMapping: Record<
   GroupActivityType,
   IconWithDefaultProps
 > = {
-  [GroupActivityType.NOTE]: {Component: IconChat, defaultProps: {}},
+  [GroupActivityType.NOTE]: {
+    Component: IconChat,
+    defaultProps: {},
+    componentFunction: ({user, sentry_app}) => {
+      if (sentry_app) {
+        return function () {
+          return <SentryAppAvatar sentryApp={sentry_app} />;
+        };
+      }
+      return user ? () => <StyledUserAvatar user={user} /> : IconChat;
+    },
+  },
   [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED_BY_AGE]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED_IN_RELEASE]: {
@@ -59,8 +84,8 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
   [GroupActivityType.CREATE_ISSUE]: {
     Component: IconAdd,
-    componentFunction: data => {
-      const provider = data.provider;
+    componentFunction: ({data}) => {
+      const provider = (data as GroupActivityCreateIssue['data']).provider;
       switch (provider) {
         case 'GitHub':
           return IconGithub;
@@ -95,7 +120,7 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconCellSignal,
     defaultProps: {},
     propsFunction: data => {
-      const {priority} = data;
+      const {priority} = data as GroupActivitySetPriority['data'];
       switch (priority) {
         case 'high':
           return {bars: 3};
@@ -110,3 +135,9 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
 };
+
+const StyledUserAvatar = styled(UserAvatar)`
+  svg {
+    margin: ${space(0.25)};
+  }
+`;

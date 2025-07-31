@@ -2,16 +2,18 @@ import {PlatformIcon} from 'platformicons';
 
 import {getLaravelContextData} from 'sentry/components/events/contexts/platformContext/laravel';
 import {getReactContextData} from 'sentry/components/events/contexts/platformContext/react';
+import {getSpringContextData} from 'sentry/components/events/contexts/platformContext/spring';
 import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {IconSize} from 'sentry/utils/theme';
 
-export enum PlatformContextKeys {
+enum PlatformContextKeys {
   LARAVEL = 'laravel',
   REACT = 'react',
   UNITY = 'unity',
+  SPRING = 'spring',
 }
 
 export const PLATFORM_CONTEXT_KEYS = new Set<string>(Object.values(PlatformContextKeys));
@@ -24,6 +26,8 @@ export function getPlatformContextTitle({platform}: {platform: string}): string 
       return 'React';
     case PlatformContextKeys.UNITY:
       return 'Unity';
+    case PlatformContextKeys.SPRING:
+      return 'Spring';
     default:
       return platform;
   }
@@ -46,6 +50,9 @@ export function getPlatformContextIcon({
       break;
     case PlatformContextKeys.UNITY:
       platformIconName = 'unity';
+      break;
+    case PlatformContextKeys.SPRING:
+      platformIconName = 'java-spring';
       break;
     default:
       break;
@@ -78,6 +85,8 @@ export function getPlatformContextData({
       return getReactContextData({data});
     case PlatformContextKeys.UNITY:
       return getUnityContextData({data});
+    case PlatformContextKeys.SPRING:
+      return getSpringContextData({data});
     default:
       return getContextKeys({data}).map(ctxKey => ({
         key: ctxKey,

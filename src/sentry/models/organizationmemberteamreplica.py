@@ -25,7 +25,7 @@ class OrganizationMemberTeamReplica(BaseModel):
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     organizationmember_id = BoundedBigIntegerField(db_index=True)
     organizationmemberteam_id = BoundedBigIntegerField(db_index=True)
-    is_active = models.BooleanField()
+    is_active = models.BooleanField(db_default=True)
     role = models.CharField(max_length=32, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
 

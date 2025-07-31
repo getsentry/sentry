@@ -1,4 +1,5 @@
 import InputField from 'sentry/components/deprecatedforms/inputField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
 type Props = InputField['props'] & {
   spellCheck?: string;
@@ -9,7 +10,7 @@ type Props = InputField['props'] & {
 /**
  * @deprecated Do not use this
  */
-export default class TextField extends InputField<Props> {
+class TextField extends InputField<Props> {
   getAttributes() {
     return {
       spellCheck: this.props.spellCheck,
@@ -20,3 +21,8 @@ export default class TextField extends InputField<Props> {
     return 'text';
   }
 }
+
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(TextField);

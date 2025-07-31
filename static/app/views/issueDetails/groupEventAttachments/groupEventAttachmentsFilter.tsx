@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

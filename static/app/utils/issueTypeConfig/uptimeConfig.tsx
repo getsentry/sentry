@@ -16,9 +16,9 @@ const uptimeConfig: IssueCategoryConfigMapping = {
     },
     header: {
       filterBar: {enabled: true, fixedEnvironment: true},
-      graph: {enabled: true, type: 'checkin-timeline'},
+      graph: {enabled: true, type: 'uptime-checks'},
       tagDistribution: {enabled: false},
-      occurrenceSummary: {enabled: true, duration: true},
+      occurrenceSummary: {enabled: true, downtime: true},
     },
     detector: {
       enabled: true,
@@ -26,14 +26,15 @@ const uptimeConfig: IssueCategoryConfigMapping = {
       ctaText: t('View alert details'),
     },
     customCopy: {
-      eventUnits: t('Check-ins'),
+      eventUnits: t('Events'),
       resolution: t('Resolved'),
     },
     pages: {
-      landingPage: Tab.CHECK_INS,
-      events: {enabled: false},
+      landingPage: Tab.EVENTS,
+      events: {enabled: true},
       openPeriods: {enabled: false},
-      checkIns: {enabled: true},
+      checkIns: {enabled: false},
+      uptimeChecks: {enabled: true},
       attachments: {enabled: false},
       userFeedback: {enabled: false},
       replays: {enabled: false},

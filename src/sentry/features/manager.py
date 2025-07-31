@@ -16,7 +16,7 @@ from sentry import options
 from sentry.options.rollout import in_random_rollout
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
-from sentry.utils.flag import flag_pole_hook
+from sentry.utils.flag import record_feature_flag
 from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
@@ -147,7 +147,6 @@ class FeatureManager(RegisteredFeatureManager):
         # Deprecated: Remove entity_features once flagr has been removed.
         self.entity_features: set[str] = set()
         self.exposed_features: set[str] = set()
-        self.option_features: set[str] = set()
         self.flagpole_features: set[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
@@ -192,12 +191,6 @@ class FeatureManager(RegisteredFeatureManager):
             if name.startswith("users:"):
                 raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
-        if entity_feature_strategy == FeatureHandlerStrategy.OPTIONS:
-            if name.startswith("users:"):
-                raise NotImplementedError(
-                    "OPTIONS feature handler strategy only supports organizations (for now)"
-                )
-            self.option_features.add(name)
 
         # Register all flagpole features with options automator,
         # so long as they haven't already been registered.
@@ -285,7 +278,7 @@ class FeatureManager(RegisteredFeatureManager):
                         tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
-                    flag_pole_hook(name, rv)
+                    record_feature_flag(name, rv)
                     return rv
 
                 if self._entity_handler and not skip_entity:
@@ -296,7 +289,7 @@ class FeatureManager(RegisteredFeatureManager):
                             tags={"feature": name, "result": rv},
                             sample_rate=sample_rate,
                         )
-                        flag_pole_hook(name, rv)
+                        record_feature_flag(name, rv)
                         return rv
 
                 rv = settings.SENTRY_FEATURES.get(feature.name, False)
@@ -306,7 +299,7 @@ class FeatureManager(RegisteredFeatureManager):
                         tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
-                    flag_pole_hook(name, rv)
+                    record_feature_flag(name, rv)
                     return rv
 
                 # Features are by default disabled if no plugin or default enables them
@@ -315,11 +308,12 @@ class FeatureManager(RegisteredFeatureManager):
                     tags={"feature": name, "result": False},
                     sample_rate=sample_rate,
                 )
-                flag_pole_hook(name, False)
+                record_feature_flag(name, False)
                 return False
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
+            record_feature_flag(name, False)
             return False
 
     def batch_has(

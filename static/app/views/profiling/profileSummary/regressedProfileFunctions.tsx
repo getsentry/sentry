@@ -2,9 +2,9 @@ import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import Link from 'sentry/components/links/link';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -191,15 +191,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         <RegressedFunctionsQueryState>
           {t('Failed to fetch regressed functions')}
         </RegressedFunctionsQueryState>
-      ) : !trends.length ? (
-        <RegressedFunctionsQueryState>
-          {trendType === 'regression' ? (
-            <p>{t('No regressed functions detected')}</p>
-          ) : (
-            <p>{t('No improved functions detected')}</p>
-          )}
-        </RegressedFunctionsQueryState>
-      ) : (
+      ) : trends.length ? (
         trends.map((fn, i) => {
           const {before, after} = findWorstProfileIDBeforeAndAfter(fn);
           return (
@@ -252,6 +244,14 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
             </RegressedFunctionRow>
           );
         })
+      ) : (
+        <RegressedFunctionsQueryState>
+          {trendType === 'regression' ? (
+            <p>{t('No regressed functions detected')}</p>
+          ) : (
+            <p>{t('No improved functions detected')}</p>
+          )}
+        </RegressedFunctionsQueryState>
       )}
     </RegressedFunctionsContainer>
   );
@@ -275,7 +275,7 @@ function RegressedFunctionDifferentialFlamegraph(
   }, [props.organization]);
 
   const differentialFlamegraphLink = generateProfileDifferentialFlamegraphRouteWithQuery({
-    orgSlug: props.organization.slug,
+    organization: props.organization,
     projectSlug: props.project?.slug ?? '',
     transaction: props.transaction,
     fingerprint: props.fn.fingerprint,
@@ -320,7 +320,7 @@ function RegressedFunctionBeforeAfterFlamechart(
   const onRegressedFunctionClick = useCallback(() => {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization: props.organization,
-      source: `profiling_transaction.regressed_functions_table`,
+      source: 'unknown',
     });
   }, [props.organization]);
 
@@ -332,7 +332,7 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: example,
           // specify the frame to focus, the flamegraph will switch
@@ -354,7 +354,7 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: props.before,
           // specify the frame to focus, the flamegraph will switch
@@ -376,7 +376,7 @@ function RegressedFunctionBeforeAfterFlamechart(
       <Link
         onClick={onRegressedFunctionClick}
         to={generateProfileRouteFromProfileReference({
-          orgSlug: props.organization.slug,
+          organization: props.organization,
           projectSlug: props.project?.slug ?? '',
           reference: props.after,
           // specify the frame to focus, the flamegraph will switch
@@ -436,7 +436,7 @@ const RegressedFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;

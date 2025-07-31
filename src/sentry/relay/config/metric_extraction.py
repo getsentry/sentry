@@ -40,6 +40,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecError,
     OnDemandMetricSpecVersioning,
     SpecVersion,
     TagMapping,
@@ -155,8 +156,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     return enabled_features
 
 
-@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
-def _get_alert_metric_specs(
+def get_all_alert_metric_specs(
     project: Project, enabled_features: set[str], prefilling: bool
 ) -> list[HashedMetricSpec]:
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
@@ -197,6 +197,23 @@ def _get_alert_metric_specs(
                         tags={"prefilling": prefilling},
                     )
                     specs.append(spec)
+    return specs
+
+
+def get_default_version_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs_per_version = get_specs_per_version(specs)
+    default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    return specs_per_version.get(default_extraction_version, [])
+
+
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
+def _get_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
 
     max_alert_specs = options.get("on_demand.max_alert_specs")
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
@@ -700,10 +717,6 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
             processed_results = query_builder.process_results(results)
         except SoftTimeLimitExceeded as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.error",
-                tags={"reason": "timelimit-exceeded"},
-            )
             scope.set_tag("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
             # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
@@ -711,9 +724,6 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             return True
 
         except Exception as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.error", tags={"reason": "other"}
-            )
             sentry_sdk.capture_exception(error)
             cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
             return False
@@ -729,15 +739,9 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                     scope.set_extra("widget_query.id", widget_query.id)
                     raise HighCardinalityWidgetException()
         except HighCardinalityWidgetException as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": False}
-            )
-            sentry_sdk.capture_exception(error)
+            sentry_sdk.capture_message(str(error))
             return False
 
-    metrics.incr(
-        "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": True}
-    )
     cache.set(cache_key, True)
     return True
 
@@ -807,6 +811,13 @@ def _convert_aggregate_and_query_to_metrics(
                     "on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling}
                 )
                 logger.exception("Invalid on-demand metric spec", extra=extra)
+
+            except OnDemandMetricSpecError:
+                metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+                logger.warning(
+                    "Failed on-demand metric spec creation due to specification error.", extra=extra
+                )
+
             except Exception:
                 # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
                 metrics.incr("on_demand_metrics.invalid_metric_spec.other")

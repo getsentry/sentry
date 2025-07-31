@@ -80,13 +80,16 @@ def visit_attribute(query: QueryType, attribute: Attrib) -> None:
         query.alt = attribute.value
     elif attrib == "aria-label":
         query.aria_label = attribute.value
-    elif attrib == "data-sentry-component":
+    elif attrib == "data-sentry-component" or attrib == "component_name":  # Matches search bar
         query.component_name = attribute.value
     elif attrib == "role":
         query.role = attribute.value
-    elif attrib == "data-testid":
-        query.testid = attribute.value
-    elif attrib == "data-test-id":
+    elif (
+        attrib == "data-testid"
+        or attrib == "data-test-id"
+        # Matches search bar
+        or attrib == "testid"
+    ):
         query.testid = attribute.value
     elif attrib == "title":
         query.title = attribute.value

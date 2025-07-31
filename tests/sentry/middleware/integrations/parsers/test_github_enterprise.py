@@ -4,8 +4,7 @@ from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
@@ -40,7 +39,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_invalid_webhook(self):
+    def test_invalid_webhook(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path, data=b"invalid-data", content_type="application/x-www-form-urlencoded"
@@ -52,7 +51,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_no_organization_integrations_found(self):
+    def test_routing_no_organization_integrations_found(self) -> None:
         integration = self.get_integration()
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))):
             # Remove all organizations from integration
@@ -75,7 +74,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_no_integrations_found(self):
+    def test_routing_no_integrations_found(self) -> None:
         self.get_integration()
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
@@ -88,7 +87,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request_no_host(self):
+    def test_get_integration_from_request_no_host(self) -> None:
         # No host header
         request = self.factory.post(
             self.path,
@@ -102,7 +101,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request_with_host(self):
+    def test_get_integration_from_request_with_host(self) -> None:
         # With host header
         request = self.factory.post(
             self.path,
@@ -118,7 +117,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_installation_hook_handled_in_control(self):
+    def test_installation_hook_handled_in_control(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -137,7 +136,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_webhook_outbox_creation(self):
+    def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -145,8 +144,6 @@ class GithubEnterpriseRequestParserTest(TestCase):
             content_type="application/json",
             HTTP_X_GITHUB_ENTERPRISE_HOST=self.external_host,
         )
-
-        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
 
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()

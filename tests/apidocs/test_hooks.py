@@ -1,5 +1,6 @@
+from unittest import TestCase
+
 from sentry.apidocs.hooks import custom_postprocessing_hook
-from sentry.testutils.cases import TestCase
 
 
 class FixIssueRoutesTest(TestCase):
@@ -62,14 +63,6 @@ class FixIssueRoutesTest(TestCase):
         # "var" and "organization_id_or_slug" path parameters should be removed
         AFTER = {
             "paths": {
-                "/api/0/issues/{issue_id}/": {
-                    "get": {
-                        "tags": ["Events"],
-                        "description": "Get issues",
-                        "operationId": "get issue",
-                        "parameters": [],
-                    }
-                },
                 "/api/0/some/path/": {
                     "get": {
                         "tags": ["Events"],
@@ -78,8 +71,15 @@ class FixIssueRoutesTest(TestCase):
                         "parameters": [],
                     }
                 },
+                "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/": {
+                    "get": {
+                        "tags": ["Events"],
+                        "description": "Get issues",
+                        "operationId": "get issue",
+                        "parameters": [],
+                    }
+                },
             },
             "components": {"schemas": {}},
         }
-
         assert custom_postprocessing_hook(BEFORE, None) == AFTER

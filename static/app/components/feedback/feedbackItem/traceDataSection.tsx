@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -56,18 +56,28 @@ export default function TraceDataSection({
     traceEvents.length,
   ]);
 
-  return organization.features.includes('user-feedback-trace-section') &&
-    !isError &&
-    traceEvents.length > 1 &&
-    !eventIsCrashReportDup(oneOtherIssueEvent, crashReportId) ? (
-    <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
+  if (
+    isError ||
+    traceEvents.length <= 1 ||
+    eventIsCrashReportDup(oneOtherIssueEvent, crashReportId)
+  ) {
+    return null;
+  }
+
+  return (
+    <FeedbackItemSection
+      collapsible
+      icon={<IconSpan size="xs" />}
+      sectionKey="trace"
+      title={t('Data From The Same Trace')}
+    >
       {isLoading ? (
         <Placeholder height="114px" />
       ) : (
         <IssuesTraceDataSection event={eventData} />
       )}
-    </Section>
-  ) : null;
+    </FeedbackItemSection>
+  );
 }
 
 function eventIsCrashReportDup(

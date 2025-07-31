@@ -25,7 +25,6 @@ export interface EventWaiterProps {
   project: Project;
   disabled?: boolean;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
-  onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
 }
 
@@ -121,6 +120,8 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
     } else if (eventType === 'transaction') {
       firstIssue = Boolean(firstEvent);
     } else if (eventType === 'replay') {
+      firstIssue = Boolean(firstEvent);
+    } else if (eventType === 'profile') {
       firstIssue = Boolean(firstEvent);
     }
 

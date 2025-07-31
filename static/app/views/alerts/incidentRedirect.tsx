@@ -15,7 +15,7 @@ import {alertDetailsLink} from './utils';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{alertId: string}, {}>;
+} & RouteComponentProps<{alertId: string}>;
 
 /**
  * Reirects from an incident to the incident's metric alert details page

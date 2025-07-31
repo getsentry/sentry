@@ -1,14 +1,18 @@
+import {useTheme} from '@emotion/react';
+
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-
-import Table from '../../table';
-import {ProjectPerformanceType} from '../../utils';
-import {FRONTEND_PAGELOAD_COLUMN_TITLES} from '../data';
-import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from '../widgets/utils';
-import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
+import {FRONTEND_PAGELOAD_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
+import {
+  DoubleChartRow,
+  TripleChartRow,
+} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import Table from 'sentry/views/performance/table';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import type {BasePerformanceViewProps} from './types';
 
@@ -30,7 +34,7 @@ function getAllowedChartsSmall(
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
   const {setPageError} = usePageAlert();
-
+  const theme = useTheme();
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.WORST_LCP_VITALS,
     PerformanceWidgetSetting.WORST_FCP_VITALS,
@@ -51,6 +55,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
         />
         <Table
           {...props}
+          theme={theme}
           columnTitles={FRONTEND_PAGELOAD_COLUMN_TITLES}
           setError={setPageError}
         />

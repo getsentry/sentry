@@ -1,21 +1,22 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -113,6 +114,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/connect/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const getVerifySnippet = () => `
@@ -138,8 +155,9 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
 };
 
 export default docs;

@@ -61,12 +61,13 @@ DASHBOARD_OBJECT = {
                 }
             ],
             "limit": None,
-            "widgetType": "discover",
+            "widgetType": "transaction-like",
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
         }
     ],
     "projects": [1],
     "filters": {},
+    "environment": ["alpha"],
     "period": "7d",
     "permissions": {
         "isEditableByEveryone": True,
@@ -80,6 +81,15 @@ DASHBOARDS_OBJECT = [
         "id": "1",
         "title": "Dashboard",
         "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "lastVisited": "2024-06-20T14:38:03.498574Z",
+        "projects": [1],
+        "environment": ["alpha"],
+        "filters": {
+            "release": [
+                "frontend@a02311a400636ff9640b3e4ca2991ee153dbbdcc",
+                "frontend@36934c05140c16df93aa8ebf671f9386e916b501",
+            ]
+        },
         "createdBy": {
             "id": "1",
             "name": "Admin",
@@ -112,6 +122,15 @@ DASHBOARDS_OBJECT = [
         "id": "2",
         "title": "Dashboard",
         "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "lastVisited": "2024-06-20T14:38:03.498574Z",
+        "projects": [],
+        "environment": ["alpha"],
+        "filters": {
+            "release": [
+                "frontend@a02311a400636ff9640b3e4ca2991ee153dbbdcc",
+                "frontend@36934c05140c16df93aa8ebf671f9386e916b501",
+            ]
+        },
         "createdBy": {
             "id": "1",
             "name": "Admin",

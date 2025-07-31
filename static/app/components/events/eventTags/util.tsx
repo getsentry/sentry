@@ -1,6 +1,8 @@
 import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
+import type {EventTag, EventTagWithMeta} from 'sentry/types/event';
+
 export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
 export enum TagFilter {
@@ -165,7 +167,9 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * rendered in the page contents, modals, and asides, we can't rely on window breakpoint to
  * accurately describe the available space.
  */
-export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): number {
+export function useIssueDetailsColumnCount(
+  elementRef: RefObject<HTMLElement | null>
+): number {
   const calculateColumnCount = useCallback(() => {
     const width = elementRef.current?.clientWidth || 0;
     const breakpoint = ISSUE_DETAILS_COLUMN_BREAKPOINTS.find(
@@ -191,4 +195,22 @@ export function useIssueDetailsColumnCount(elementRef: RefObject<HTMLElement>): 
   useResizeObserver({ref: elementRef, onResize});
 
   return columnCount;
+}
+
+/**
+ * Associates a list of tags with the matching meta record (or undefined)
+ * Assumes the meta record a dictionary where the keys are the index of the tag in the list.
+ * Note: Filtering the list of tags prior to calling this will result in incorrect associations.
+ */
+export function associateTagsWithMeta({
+  tags,
+  meta,
+}: {
+  tags: EventTag[];
+  meta?: Record<string, any>;
+}): EventTagWithMeta[] {
+  return tags.map((tag, index) => ({
+    ...tag,
+    meta: meta?.[index],
+  }));
 }

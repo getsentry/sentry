@@ -1,5 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,36 +8,42 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/appStarts/components/tables/spanOperationTable';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 describe('SpanOpSelector', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   let mockEventsRequest: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
+
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: `/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}`})
+    );
 
     mockEventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -94,7 +101,7 @@ describe('SpanOpSelector', function () {
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/mobile/app-startup/spans/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
+      '/organizations/org-slug/insights/mobile/mobile-vitals/details/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
     );
   });
 

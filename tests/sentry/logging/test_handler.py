@@ -5,6 +5,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+import sentry_sdk
 
 from sentry.logging.handlers import (
     GKEStructLogHandler,
@@ -12,6 +13,7 @@ from sentry.logging.handlers import (
     SamplingFilter,
     StructLogHandler,
 )
+from sentry.utils.sdk import get_trace_id
 
 
 @pytest.fixture
@@ -98,13 +100,41 @@ def make_logrecord(
 def test_emit(record, out, handler, logger):
     record = make_logrecord(**record)
     handler.emit(record, logger=logger)
-    expected = dict(level=logging.INFO, event="msg", name="name")
+    expected = {
+        "level": logging.INFO,
+        "event": "msg",
+        "name": "name",
+        "sentry.trace.trace_id": None,
+    }
     expected.update(out)
     logger.log.assert_called_once_with(**expected)
 
 
+@pytest.mark.parametrize(
+    "record,out",
+    (
+        ({}, {}),
+        ({"msg": "%s", "args": (1,)}, {"event": "%s", "positional_args": (1,)}),
+        ({"args": ({"a": 1},)}, {"positional_args": ({"a": 1},)}),
+        ({"exc_info": True}, {"exc_info": True}),
+    ),
+)
+def test_emit_with_trace_id(record, out, handler, logger):
+    with sentry_sdk.start_span(name="test_emit_with_trace_id"):
+        record = make_logrecord(**record)
+        handler.emit(record, logger=logger)
+        expected = {
+            "level": logging.INFO,
+            "event": "msg",
+            "name": "name",
+            "sentry.trace.trace_id": get_trace_id(),
+        }
+        expected.update(out)
+        logger.log.assert_called_once_with(**expected)
+
+
 @mock.patch("sentry.logging.handlers.metrics")
-def test_log_to_metric(metrics):
+def test_log_to_metric(metrics: mock.MagicMock) -> None:
     logger = logging.getLogger("django.request")
     logger.warning("CSRF problem")
     metrics.incr.assert_called_once_with("django.request.csrf_problem", skip_internal=False)
@@ -116,7 +146,7 @@ def test_log_to_metric(metrics):
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_emit_invalid_keys_nonprod(handler):
+def test_emit_invalid_keys_nonprod(handler: mock.MagicMock) -> None:
     logger = mock.MagicMock()
     logger.log.side_effect = TypeError("invalid keys")
     with pytest.raises(TypeError):
@@ -124,21 +154,21 @@ def test_emit_invalid_keys_nonprod(handler):
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_emit_invalid_keys_prod(handler):
+def test_emit_invalid_keys_prod(handler: mock.MagicMock) -> None:
     logger = mock.MagicMock()
     logger.log.side_effect = TypeError("invalid keys")
     handler.emit(make_logrecord(), logger=logger)
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_JSONRenderer_nonprod():
+def test_JSONRenderer_nonprod() -> None:
     renderer = JSONRenderer()
     with pytest.raises(TypeError):
         renderer(None, None, {"foo": {mock.Mock(): "foo"}})
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_JSONRenderer_prod():
+def test_JSONRenderer_prod() -> None:
     renderer = JSONRenderer()
     renderer(None, None, {"foo": {mock.Mock(): "foo"}})
 
@@ -166,7 +196,7 @@ def test_gke_emit() -> None:
         level=logging.INFO,
         severity="INFO",
         event="msg",
-        **{"logging.googleapis.com/labels": {"name": "name"}},
+        **{"logging.googleapis.com/labels": {"name": "name"}, "sentry.trace.trace_id": None},
     )
 
 

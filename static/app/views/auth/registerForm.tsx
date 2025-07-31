@@ -1,12 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import RadioBooleanField from 'sentry/components/forms/fields/radioField';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
@@ -40,7 +40,13 @@ function RegisterForm({authConfig}: Props) {
         </PrivacyPolicyLink>
       }
     >
-      {error && <Alert type="error">{error}</Alert>}
+      {error && (
+        <Alert.Container>
+          <Alert type="error" showIcon={false}>
+            {error}
+          </Alert>
+        </Alert.Container>
+      )}
       <TextField
         name="name"
         placeholder={t('Jane Bloggs')}
@@ -90,7 +96,7 @@ function RegisterForm({authConfig}: Props) {
 }
 
 const PrivacyPolicyLink = styled(ExternalLink)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:hover {
     color: ${p => p.theme.textColor};

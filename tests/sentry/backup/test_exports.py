@@ -26,6 +26,7 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTransactionTestCase,
@@ -34,6 +35,7 @@ from sentry.testutils.helpers.backups import (
     generate_rsa_key_pair,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.email import Email
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -182,7 +184,7 @@ class ScopingTests(ExportTestCase):
             )
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_user_export_scoping(self):
+    def test_user_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         with TemporaryDirectory() as tmp_dir:
             unencrypted_checkpointer = FakeExportCheckpointer(
@@ -246,7 +248,7 @@ class ScopingTests(ExportTestCase):
             assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_organization_export_scoping(self):
+    def test_organization_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         with TemporaryDirectory() as tmp_dir:
             unencrypted_checkpointer = FakeExportCheckpointer(
@@ -312,7 +314,7 @@ class ScopingTests(ExportTestCase):
             assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_config_export_scoping(self):
+    def test_config_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         admin = self.create_exhaustive_user("admin", is_admin=True)
         staff = self.create_exhaustive_user("staff", is_staff=True)
@@ -382,7 +384,7 @@ class ScopingTests(ExportTestCase):
             assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_global_export_scoping(self):
+    def test_global_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         with TemporaryDirectory() as tmp_dir:
             unencrypted_checkpointer = FakeExportCheckpointer(
@@ -453,7 +455,7 @@ class FilteringTests(ExportTestCase):
     Ensures that filtering operations include the correct models.
     """
 
-    def test_export_filter_users(self):
+    def test_export_filter_users(self) -> None:
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
@@ -471,7 +473,7 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, User, "username", "user_1")
             assert self.exists(data, User, "username", "user_2")
 
-    def test_export_filter_users_shared_email(self):
+    def test_export_filter_users_shared_email(self) -> None:
         self.create_exhaustive_user("user_1", email="a@example.com")
         self.create_exhaustive_user("user_2", email="b@example.com")
         self.create_exhaustive_user("user_3", email="a@example.com")
@@ -493,7 +495,7 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, User, "username", "user_3")
             assert not self.exists(data, User, "username", "user_4")
 
-    def test_export_filter_users_empty(self):
+    def test_export_filter_users_empty(self) -> None:
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
@@ -502,7 +504,31 @@ class FilteringTests(ExportTestCase):
 
             assert len(data) == 0
 
-    def test_export_filter_orgs_single(self):
+    def test_export_user_mismatched_email(self) -> None:
+        self.create_user(
+            email="Testing.Upper@example.com",
+            username="user_1",
+            is_staff=False,
+            is_superuser=False,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Modify the generated email record to have different casing.
+            # This can happen if a useremail record is updated as we don't sync
+            # data to sentry_email on update.
+            email = Email.objects.get(email="Testing.Upper@example.com")
+            email.email = "testing.upper@example.com"
+            email.save()
+
+        with TemporaryDirectory() as tmp_dir:
+            data = self.export(tmp_dir, scope=ExportScope.User)
+
+            # Ensure email record is exported despite email casing being different.
+            assert self.count(data, User) == 1
+            assert self.count(data, UserEmail) == 1
+            assert self.count(data, Email) == 1
+            assert self.exists(data, User, "username", "user_1")
+
+    def test_export_filter_orgs_single(self) -> None:
         # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
         # invited by users outside of their org are still properly exported.
         superadmin = self.create_exhaustive_user(
@@ -589,7 +615,7 @@ class FilteringTests(ExportTestCase):
             # ...but not members of different orgs.
             assert not self.exists(data, OrganizationMember, "user_email", "user_a_and_c")
 
-    def test_export_filter_orgs_multiple(self):
+    def test_export_filter_orgs_multiple(self) -> None:
         # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
         # invited by users outside of their org are still properly exported.
         superadmin = self.create_exhaustive_user(
@@ -686,7 +712,7 @@ class FilteringTests(ExportTestCase):
     - Reach out to #discuss-open-source on slack for customizations / more detailed support
     """
 
-    def test_export_filter_orgs_empty(self):
+    def test_export_filter_orgs_empty(self) -> None:
         a = self.create_exhaustive_user("user_a_only")
         b = self.create_exhaustive_user("user_b_only")
         c = self.create_exhaustive_user("user_c_only")
@@ -717,7 +743,7 @@ class FilteringTests(ExportTestCase):
 
             assert len(data) == 0
 
-    def test_export_keep_only_admin_users_in_config_scope(self):
+    def test_export_keep_only_admin_users_in_config_scope(self) -> None:
         self.create_exhaustive_user("regular")
         self.create_exhaustive_user("admin", is_admin=True)
         self.create_exhaustive_user("staff", is_staff=True)
@@ -744,7 +770,7 @@ class QueryTests(ExportTestCase):
     Some models have custom export logic that requires bespoke testing.
     """
 
-    def test_export_query_for_option_model(self):
+    def test_export_query_for_option_model(self) -> None:
         # There are a number of options we specifically exclude by name, for various reasons
         # enumerated in that model's definition file.
         Option.objects.create(key="sentry:install-id", value='"excluded"')

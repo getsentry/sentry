@@ -1,10 +1,11 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+
 import {logout} from './account';
 
 describe('logout', () => {
   it('has can logout', async function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     const mockApi = new MockApiClient();
     const mockApiDelete = MockApiClient.addMockResponse({
       url: '/auth/',
@@ -14,6 +15,6 @@ describe('logout', () => {
     logout(mockApi);
 
     await waitFor(() => expect(mockApiDelete).toHaveBeenCalled());
-    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith('/auth/login/');
   });
 });

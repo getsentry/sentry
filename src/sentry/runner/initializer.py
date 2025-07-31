@@ -11,6 +11,7 @@ from django.conf import settings
 
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import warnings
+from sentry.utils.arroyo import initialize_arroyo_main
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -355,9 +356,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
 
-    if getattr(settings, "SENTRY_DEBUGGER", None) is None:
-        settings.SENTRY_DEBUGGER = settings.DEBUG
-
     monkeypatch_drf_listfield_serializer_errors()
 
     import django
@@ -390,10 +388,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     import_grouptype()
 
-    from django.utils import timezone
-
-    from sentry.app import env
-    from sentry.runner.settings import get_sentry_conf
+    initialize_arroyo_main()
 
     # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
     if settings.SENTRY_SELF_HOSTED and not settings.CSRF_TRUSTED_ORIGINS:
@@ -405,9 +400,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
-
-    env.data["config"] = get_sentry_conf()
-    env.data["start_date"] = timezone.now()
 
 
 def setup_services(validate: bool = True) -> None:
@@ -464,11 +456,10 @@ def validate_options(settings: Any) -> None:
 def validate_regions(settings: Any) -> None:
     from sentry.types.region import load_from_config
 
-    region_config = getattr(settings, "SENTRY_REGION_CONFIG", None)
-    if not region_config:
+    if not settings.SENTRY_REGION_CONFIG:
         return
 
-    load_from_config(region_config).validate_all()
+    load_from_config(settings.SENTRY_REGION_CONFIG).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:
@@ -552,6 +543,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
         ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
         ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
+        ("SENTRY_PROFILES_BACKEND", "filestore.profiles-backend"),
+        ("SENTRY_PROFILES_OPTIONS", "filestore.profiles-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):

@@ -3,23 +3,24 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 
 
 @region_silo_endpoint
-class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationUsersEndpoint(OrganizationEndpoint):
     publish_status = {
         # Removing public documentation in favor of OrganizationMemberIndexEndpoint
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Projects Users
         ````````````````````````````

@@ -53,10 +53,10 @@ export function useReleases(
       const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
-        query: `transaction.op:ui.load ${escapeFilterValue(
+        query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
           `release:[${releases.map(r => `"${r.version}"`).join()}]`
         )}`,
-        dataset: DiscoverDatasets.METRICS,
+        dataset: DiscoverDatasets.SPANS,
         version: 2,
         projects: selection.projects,
       };
@@ -86,7 +86,7 @@ export function useReleases(
 
   const metricsFetched = releaseMetrics.every(result => result.isFetched);
 
-  const metricsStats: {[version: string]: {count: number}} = {};
+  const metricsStats: Record<string, {count: number}> = {};
   if (metricsFetched) {
     releaseMetrics.forEach(c =>
       c.data?.data?.forEach(release => {

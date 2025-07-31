@@ -14,6 +14,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: false},
       share: {enabled: true},
     },
+    defaultTimePeriod: {sinceFirstSeen: false},
     customCopy: {
       resolution: t('Back to baseline'),
       eventUnits: t('Open Periods'),
@@ -24,7 +25,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       ctaText: t('View detector details'),
     },
     header: {
-      filterBar: {enabled: true, fixedEnvironment: false},
+      filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'detector-history'},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
@@ -34,6 +35,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       events: {enabled: false},
       openPeriods: {enabled: true},
       checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: false},
       replays: {enabled: false},
@@ -46,7 +48,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
-    stats: {enabled: false},
+    stats: {enabled: true},
     tags: {enabled: false},
     issueSummary: {enabled: false},
   },

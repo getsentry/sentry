@@ -1,24 +1,37 @@
 from __future__ import annotations
 
+import io
+import logging
+import zlib
+from base64 import b64decode, b64encode
 from copy import deepcopy
 from datetime import datetime, timezone
+from operator import itemgetter
 from time import time
 from typing import Any, TypedDict
 from uuid import UUID
 
 import msgpack
 import sentry_sdk
+import vroomrs
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from packaging.version import InvalidVersion
+from packaging.version import parse as parse_version
 
-from sentry import options, quotas
+from sentry import features, options, quotas
+from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventError
+from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -34,11 +47,67 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
+from sentry.taskworker.namespaces import ingest_profiling_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.sdk import set_measurement
+from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.sdk import set_span_attribute
+from sentry.utils.storage import measure_storage_put
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
+
+# chunks are 1 min max with additional 10% buffer
+MAX_DURATION_SAMPLE_V2 = 66000
+
+UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
+
+UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
+
+
+def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
+    cluster_name = get_topic_definition(topic)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+processed_profiles_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
+    max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
+)
+
+profile_functions_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
+    max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
+)
+
+profile_chunks_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
+    max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
+)
+
+profile_occurrences_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES),
+    max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def encode_payload(message: dict[str, Any]) -> str:
+    return b64encode(
+        zlib.compress(
+            msgpack.packb(message),
+            level=1,
+        )
+    ).decode("utf-8")
 
 
 @instrumented_task(
@@ -52,10 +121,19 @@ REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_profiling_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=2,
+            delay=5,
+        ),
+        compression_type=CompressionType.ZSTD,
+    ),
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: Any = None,
+    payload: str | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -63,7 +141,8 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(payload, use_list=False)
+        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
+
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None
@@ -95,6 +174,9 @@ def process_profile_task(
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
 
+    if sampled and _is_deprecated(profile, project, organization):
+        return
+
     profile_context = {
         "organization_id": profile["organization_id"],
         "project_id": profile["project_id"],
@@ -118,10 +200,9 @@ def process_profile_task(
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
-
-        set_measurement("profile.samples", len(profile["profile"]["samples"]))
-        set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
-        set_measurement("profile.frames", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
     else:
@@ -147,9 +228,9 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if "version" in profile:
-        set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
+        set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if options.get("profiling.stack_trace_rules.enabled"):
         try:
@@ -160,13 +241,22 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    if not _push_profile_to_vroom(profile, project):
-        return
+    if (
+        features.has("projects:continuous-profiling-vroomrs-processing", project)
+        and "profiler_id" in profile
+    ) or (
+        features.has("projects:transaction-profiling-vroomrs-processing", project)
+        and ("event_id" in profile or "profile_id" in profile)
+    ):
+        if not _process_vroomrs_profile(profile, project):
+            return
+    else:
+        if not _push_profile_to_vroom(profile, project):
+            return
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
-            if not project.flags.has_profiles:
-                first_profile_received.send_robust(project=project, sender=Project)
+            set_project_flag_and_signal(project, "has_profiles", first_profile_received)
             try:
                 if quotas.backend.should_emit_profile_duration_outcome(
                     organization=organization, profile=profile
@@ -197,6 +287,62 @@ def process_profile_task(
                 categories=[DataCategory.PROFILE_INDEXED],
                 reason="sampled",
             )
+
+
+def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
+    if not features.has("organizations:profiling-sdks", organization):
+        return False
+
+    try:
+        event_type = determine_profile_type(profile)
+    except UnknownProfileTypeException:
+        # unsure what the profile type is but this should never happen
+        # if it does happen, we should let it through because we're probably
+        # not handling something correctly
+        return False
+
+    category = (
+        DataCategory.PROFILE_CHUNK
+        if event_type == EventType.PROFILE_CHUNK
+        else DataCategory.PROFILE
+    )
+
+    try:
+        sdk_name, sdk_version = determine_client_sdk(profile, event_type)
+    except UnknownClientSDKException:
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="deprecated sdk",
+        )
+        return True
+
+    try:
+        ProjectSDK.update_with_newest_version_or_create(
+            project=project,
+            event_type=event_type,
+            sdk_name=sdk_name,
+            sdk_version=sdk_version,
+        )
+    except UnableToAcquireLock:
+        # unable to acquire the lock means another event is trying to
+        # update the version so we can skip the update from this event
+        return False
+
+    if not is_sdk_deprecated(event_type, sdk_name, sdk_version):
+        return False
+
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.FILTERED,
+        categories=[category],
+        reason="deprecated sdk",
+    )
+
+    return features.has("organizations:profiling-deprecate-sdks", organization)
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -260,8 +406,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-
-                set_measurement(
+                set_span_attribute(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )
@@ -858,7 +1003,11 @@ def get_event_id(profile: Profile) -> str:
 
 def get_data_category(profile: Profile) -> DataCategory:
     if profile.get("version") == "2":
-        return DataCategory.PROFILE_CHUNK
+        return (
+            DataCategory.PROFILE_CHUNK_UI
+            if profile["platform"] in UI_PROFILE_PLATFORMS
+            else DataCategory.PROFILE_CHUNK
+        )
     return DataCategory.PROFILE_INDEXED
 
 
@@ -907,7 +1056,18 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
         try:
             path = "/chunk" if "profiler_id" in profile else "/profile"
-            response = get_from_profiling_service(method="POST", path=path, json_data=profile)
+            response = get_from_profiling_service(
+                method="POST",
+                path=path,
+                json_data=profile,
+                metric=(
+                    "profiling.profile.payload.size",
+                    {
+                        "type": "chunk" if "profiler_id" in profile else "profile",
+                        "platform": profile["platform"],
+                    },
+                ),
+            )
 
             sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
 
@@ -989,7 +1149,7 @@ def _track_duration_outcome(
         timestamp=datetime.now(timezone.utc),
         category=(
             DataCategory.PROFILE_DURATION_UI
-            if profile["platform"] in {"cocoa", "android", "javascript"}
+            if profile["platform"] in UI_PROFILE_PLATFORMS
             else DataCategory.PROFILE_DURATION
         ),
         quantity=duration_ms,
@@ -1016,7 +1176,10 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
     duration_ns = end_ns - start_ns
     # try another method to determine the duration in case it's negative or 0.
     if duration_ns <= 0:
-        samples = sorted(profile["profile"]["samples"], key=lambda s: s["elapsed_since_start_ns"])
+        samples = sorted(
+            profile["profile"]["samples"],
+            key=itemgetter("elapsed_since_start_ns"),
+        )
         if len(samples) < 2:
             return 0
         first, last = samples[0], samples[-1]
@@ -1028,11 +1191,24 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
 
 
 def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
-    samples = sorted(profile["profile"]["samples"], key=lambda s: s["timestamp"])
-    if len(samples) < 2:
-        return 0
-    first, last = samples[0], samples[-1]
-    return int((last["timestamp"] - first["timestamp"]) * 1e3)
+    timestamp_getter = itemgetter("timestamp")
+    samples = profile["profile"]["samples"]
+    min_timestamp = min(samples, key=timestamp_getter)
+    max_timestamp = max(samples, key=timestamp_getter)
+    duration_secs = max_timestamp["timestamp"] - min_timestamp["timestamp"]
+    duration_ms = int(duration_secs * 1e3)
+    if duration_ms > MAX_DURATION_SAMPLE_V2:
+        sentry_sdk.set_context(
+            "profile duration calculation",
+            {
+                "min_timestamp": min_timestamp,
+                "max_timestamp": max_timestamp,
+                "duration_ms": duration_ms,
+            },
+        )
+        sentry_sdk.capture_message("Calculated duration is above the limit")
+        return MAX_DURATION_SAMPLE_V2
+    return duration_ms
 
 
 def _calculate_duration_for_android_format(profile: Profile) -> int:
@@ -1047,3 +1223,333 @@ def _set_frames_platform(profile: Profile) -> None:
     for f in frames:
         if "platform" not in f:
             f["platform"] = platform
+
+
+class UnknownProfileTypeException(Exception):
+    pass
+
+
+class UnknownClientSDKException(Exception):
+    pass
+
+
+def determine_profile_type(profile: Profile) -> EventType:
+    if "version" in profile:
+        version = profile["version"]
+        if version == "1":
+            return EventType.PROFILE
+        elif version == "2":
+            return EventType.PROFILE_CHUNK
+    elif profile["platform"] == "android":
+        if "profiler_id" in profile:
+            return EventType.PROFILE_CHUNK
+        else:
+            # This is the legacy android format
+            return EventType.PROFILE
+    raise UnknownProfileTypeException
+
+
+def determine_client_sdk(profile: Profile, event_type: EventType) -> tuple[str, str]:
+    client_sdk = profile.get("client_sdk")
+
+    if client_sdk:
+        sdk_name = client_sdk.get("name")
+        sdk_version = client_sdk.get("version")
+
+        if sdk_name and sdk_version:
+            return sdk_name, sdk_version
+
+    # some older sdks were sending the profile chunk without the
+    # sdk info, here we hard code a few and assign them a guaranteed
+    # outdated version
+    if event_type == EventType.PROFILE_CHUNK:
+        if profile["platform"] == "python":
+            return "sentry.python", "0.0.0"
+        elif profile["platform"] == "cocoa":
+            return "sentry.cocoa", "0.0.0"
+        elif profile["platform"] == "node":
+            # there are other node platforms but it's not straight forward
+            # to figure out which it is here so collapse them all into just node
+            return "sentry.javascript.node", "0.0.0"
+
+        # Other platforms do not have a version released where it sends
+        # a profile chunk without the client sdk info
+
+    raise UnknownClientSDKException
+
+
+def is_sdk_deprecated(event_type: EventType, sdk_name: str, sdk_version: str) -> bool:
+    minimum_version = get_minimum_sdk_version(event_type.value, sdk_name, hard_limit=True)
+
+    # no minimum sdk version was specified
+    if minimum_version is None:
+        return False
+
+    try:
+        version = parse_version(sdk_version)
+    except InvalidVersion:
+        return False
+
+    # satisfies the minimum sdk version
+    if version >= minimum_version:
+        return False
+
+    parts = sdk_name.split(".", 2)
+    if len(parts) >= 2:
+        normalized_sdk_name = ".".join(parts[:2])
+        metrics.incr(
+            "process_profile.sdk.deprecated",
+            tags={"sdk_name": normalized_sdk_name},
+            sample_rate=1.0,
+        )
+
+    return True
+
+
+@metrics.wraps("process_profile.process_vroomrs_profile")
+def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
+    if "profiler_id" in profile:
+        if _process_vroomrs_chunk_profile(profile):
+            return True
+    elif "event_id" in profile or "profile_id" in profile:
+        if _process_vroomrs_transaction_profile(profile):
+            return True
+    _track_failed_outcome(profile, project, "profiling_failed_vroomrs_processing")
+    return False
+
+
+def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
+    with sentry_sdk.start_span(op="task.profiling.process_vroomrs_transaction_profile"):
+        try:
+            # todo (improvement): check the feasibility of passing the profile
+            # dict directly to the PyO3 module to avoid json serialization/deserialization
+            with sentry_sdk.start_span(op="json.dumps"):
+                json_profile = json.dumps(profile)
+                metrics.distribution(
+                    "profiling.profile.payload.size",
+                    len(json_profile),
+                    tags={"type": "profile", "platform": profile["platform"]},
+                )
+            with sentry_sdk.start_span(op="json.unmarshal"):
+                prof = vroomrs.profile_from_json_str(json_profile, profile["platform"])
+            prof.normalize()
+            if not prof.is_sampled():
+                # if we're dealing with an unsampled profile
+                # we'll assign the special "000....00" profile ID
+                # so that we can handle it accordingly either in
+                # either of snuba/sentry/front-end
+                prof.set_profile_id(UNSAMPLED_PROFILE_ID)
+            if prof.is_sampled():
+                with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
+                    storage = get_profiles_storage()
+                    compressed_profile = prof.compress()
+                    storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
+                # we only run find_occurrences for sampled profiles, unsampled profiles
+                # are skipped
+                with sentry_sdk.start_span(op="processing", name="find occurrences"):
+                    occurrences = prof.find_occurrences()
+                    occurrences.filter_none_type_issues()
+                    for occurrence in occurrences.occurrences:
+                        payload = KafkaPayload(None, occurrence.to_json_str().encode("utf-8"), [])
+                        topic = ArroyoTopic(
+                            get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
+                        )
+                        profile_occurrences_producer.produce(topic, payload)
+            # function metrics are extracted for both sampled and unsampled profiles
+            with sentry_sdk.start_span(op="processing", name="extract functions metrics"):
+                functions = prof.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, max_unique_functions=100
+                )
+                if functions is not None and len(functions) > 0:
+                    payload = build_profile_functions_kafka_message(prof, functions)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
+                    )
+                    profile_functions_producer.produce(topic, payload)
+            if prof.is_sampled():
+                # Send profile metadata to Kafka
+                with sentry_sdk.start_span(op="processing", name="send profile kafka message"):
+                    payload = build_profile_kafka_message(prof)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
+                    )
+                    processed_profiles_producer.produce(topic, payload)
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr(
+                "process_profile.process_vroomrs_profile.error",
+                tags={"platform": profile["platform"], "reason": "encountered error"},
+                sample_rate=1.0,
+            )
+            return False
+
+
+def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
+    with sentry_sdk.start_span(op="task.profiling.process_vroomrs_chunk_profile"):
+        try:
+            # todo (improvement): check the feasibility of passing the profile
+            # dict directly to the PyO3 module to avoid json serialization/deserialization
+            with sentry_sdk.start_span(op="json.dumps"):
+                json_profile = json.dumps(profile)
+                metrics.distribution(
+                    "profiling.profile.payload.size",
+                    len(json_profile),
+                    tags={"type": "chunk", "platform": profile["platform"]},
+                )
+                metrics.distribution(
+                    "storage.put.size",
+                    len(json_profile),
+                    tags={"usecase": "profiling", "compression": "none"},
+                    unit="byte",
+                )
+            with sentry_sdk.start_span(op="json.unmarshal"):
+                chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
+            chunk.normalize()
+            with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
+                storage = get_profiles_storage()
+                compressed_chunk = chunk.compress()
+                with measure_storage_put(len(compressed_chunk), "profiling", "lz4"):
+                    storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
+            with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
+                payload = build_chunk_kafka_message(chunk)
+                topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])
+                profile_chunks_producer.produce(topic, payload)
+            with sentry_sdk.start_span(op="processing", name="extract functions metrics"):
+                functions = chunk.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, max_unique_functions=100
+                )
+                if functions is not None and len(functions) > 0:
+                    payload = build_chunk_functions_kafka_message(chunk, functions)
+                    topic = ArroyoTopic(
+                        get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
+                    )
+                    profile_functions_producer.produce(topic, payload)
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr(
+                "process_profile.process_vroomrs_profile.error",
+                tags={"platform": profile["platform"], "reason": "encountered error"},
+                sample_rate=1.0,
+            )
+            return False
+
+
+def build_chunk_kafka_message(chunk: vroomrs.ProfileChunk) -> KafkaPayload:
+    data = {
+        "chunk_id": chunk.get_chunk_id(),
+        "duration_ms": chunk.duration_ms(),
+        "end_timestamp": chunk.end_timestamp(),
+        "environment": chunk.get_environment(),
+        "platform": chunk.get_platform(),
+        "profiler_id": chunk.get_profiler_id(),
+        "project_id": chunk.get_project_id(),
+        "received": int(chunk.get_received()),
+        "release": chunk.get_release(),
+        "retention_days": chunk.get_retention_days(),
+        "sdk_name": chunk.sdk_name(),
+        "sdk_version": chunk.sdk_version(),
+        "start_timestamp": chunk.start_timestamp(),
+    }
+    return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
+
+
+def build_chunk_functions_kafka_message(
+    chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
+) -> KafkaPayload:
+    data = {
+        "environment": chunk.get_environment() or "",
+        "functions": [
+            {
+                "fingerprint": f.get_fingerprint(),
+                "function": f.get_function(),
+                "package": f.get_package(),
+                "in_app": f.get_in_app(),
+                "self_times_ns": f.get_self_times_ns(),
+                "thread_id": f.get_thread_id(),
+            }
+            for f in functions
+        ],
+        "profile_id": chunk.get_profiler_id(),
+        "platform": chunk.get_platform(),
+        "project_id": chunk.get_project_id(),
+        "received": int(chunk.get_received()),
+        "release": chunk.get_release() or "",
+        "retention_days": chunk.get_retention_days(),
+        "timestamp": int(chunk.start_timestamp()),
+        "start_timestamp": chunk.start_timestamp(),
+        "end_timestamp": chunk.end_timestamp(),
+        "transaction_name": "",
+        "profiling_type": "continuous",
+        "materialization_version": 1,
+    }
+    return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
+
+
+def build_profile_functions_kafka_message(
+    profile: vroomrs.Profile, functions: list[vroomrs.CallTreeFunction]
+) -> KafkaPayload:
+    data = {
+        "environment": profile.get_environment() or "",
+        "functions": [
+            {
+                "fingerprint": f.get_fingerprint(),
+                "function": f.get_function(),
+                "package": f.get_package(),
+                "in_app": f.get_in_app(),
+                "self_times_ns": f.get_self_times_ns(),
+                "thread_id": f.get_thread_id(),
+            }
+            for f in functions
+        ],
+        "profile_id": profile.get_profile_id(),
+        "platform": profile.get_platform(),
+        "project_id": profile.get_project_id(),
+        "received": int(profile.get_received()),
+        "release": profile.get_release() or "",
+        "retention_days": profile.get_retention_days(),
+        "timestamp": int(profile.get_timestamp()),
+        "transaction_name": profile.get_transaction().name,
+        "materialization_version": 1,
+    }
+    return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
+
+
+def build_profile_kafka_message(profile: vroomrs.Profile) -> KafkaPayload:
+    t = profile.get_transaction()
+    m = profile.get_metadata()
+    data = {
+        "device_locale": m.device_locale or "",
+        "device_manufacturer": m.device_manufacturer or "",
+        "device_model": m.device_model,
+        "device_os_name": m.device_os_name,
+        "device_os_version": m.device_os_version,
+        "duration_ns": profile.duration_ns(),
+        "profile_id": profile.get_profile_id(),
+        "organization_id": profile.get_organization_id(),
+        "platform": profile.get_platform(),
+        "project_id": profile.get_project_id(),
+        "received": int(profile.get_received()),
+        "retention_days": profile.get_retention_days(),
+        "trace_id": t.trace_id,
+        "transaction_id": t.id,
+        "transaction_name": t.name,
+        "version_code": m.version_code or "",
+        "version_name": m.version_name or "",
+    }
+    if (android_api_level := m.android_api_level) is not None:
+        data["android_api_level"] = android_api_level
+    if (architecture := m.architecture) is not None:
+        data["architecture"] = architecture
+    if (device_classification := m.device_classification) is not None:
+        data["device_classification"] = device_classification
+    if (environment := profile.get_environment()) is not None:
+        data["environment"] = environment
+    if (device_os_build_number := m.device_os_build_number) is not None:
+        data["device_os_build_number"] = device_os_build_number
+    if (sdk_name := m.sdk_name) is not None:
+        data["sdk_name"] = sdk_name
+    if (sdk_version := m.sdk_version) is not None:
+        data["sdk_version"] = sdk_version
+    return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])

@@ -127,6 +127,7 @@ IOS_MODELS: dict[str, str] = {
     "iPhone17,2": "iPhone 16 Pro Max",
     "iPhone17,3": "iPhone 16",
     "iPhone17,4": "iPhone 16 Plus",
+    "iPhone17,5": "iPhone 16e",
     # iPod Touch
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",
@@ -287,4 +288,6 @@ IOS_MODELS: dict[str, str] = {
     "AppleTV11,1": "Apple TV 4K (2nd gen)",
     "i386": "iOS Simulator (i386)",
     "x86_64": "iOS Simulator (x86_64)",
+    # Vision Pro
+    "RealityDevice14,1": "Apple Vision Pro",
 }

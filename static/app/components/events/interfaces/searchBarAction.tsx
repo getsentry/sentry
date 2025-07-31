@@ -1,7 +1,11 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -72,11 +76,11 @@ const Wrapper = styled('div')`
   width: 100%;
   justify-content: flex-end;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 350px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     width: 500px;
   }
 `;
@@ -86,14 +90,14 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 
   ${p =>
     p.blendWithFilter &&
-    `
+    css`
       input {
-        border-radius: ${p.theme.borderRadiusRight};
+        border-radius: 0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0;
         border-left-width: 0;
       }
     `}
 `;
 
 const StyledTrigger = styled(DropdownButton)`
-  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;

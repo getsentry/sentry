@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
+from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,7 +20,6 @@ from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
-    TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
     has_too_many_contributing_frames,
@@ -93,11 +93,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             ):
                 grouping_info = get_grouping_info_from_variants(variants)
                 try:
-                    stacktrace_string = get_stacktrace_string(
-                        grouping_info, platform=latest_event.platform
-                    )
-                except TooManyOnlySystemFramesException:
-                    pass
+                    stacktrace_string = get_stacktrace_string(grouping_info)
                 except Exception:
                     logger.exception("Unexpected exception in stacktrace string formatting")
 
@@ -124,25 +120,25 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("useReranking"):
             similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
 
-        extra: dict[str, Any] = dict(similar_issues_params.copy())
-        logger.info("Similar issues embeddings parameters", extra=extra)
+        logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
         results = get_similarity_data_from_seer(similar_issues_params)
 
         analytics.record(
-            "group_similar_issues_embeddings.count",
-            organization_id=group.organization.id,
-            project_id=group.project.id,
-            group_id=group.id,
-            hash=latest_event.get_primary_hash(),
-            count_over_threshold=len(
-                [
-                    result.stacktrace_distance
-                    for result in results
-                    if result.stacktrace_distance <= 0.01
-                ]
-            ),
-            user_id=request.user.id,
+            GroupSimilarIssuesEmbeddingsCountEvent(
+                organization_id=group.organization.id,
+                project_id=group.project.id,
+                group_id=group.id,
+                hash=latest_event.get_primary_hash(),
+                count_over_threshold=len(
+                    [
+                        result.stacktrace_distance
+                        for result in results
+                        if result.stacktrace_distance <= 0.01
+                    ]
+                ),
+                user_id=request.user.id,
+            )
         )
 
         if not results:

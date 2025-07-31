@@ -1,4 +1,5 @@
 import {memo, useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -30,6 +31,7 @@ function TraceView(props: Props) {
   const traceViewHeaderRef = useRef<HTMLDivElement>(null);
   const virtualScrollBarContainerRef = useRef<HTMLDivElement>(null);
   const minimapInteractiveRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -50,6 +52,7 @@ function TraceView(props: Props) {
 
         return (
           <TraceViewHeader
+            theme={theme}
             traceViewHeaderRef={traceViewHeaderRef}
             organization={props.organization}
             minimapInteractiveRef={minimapInteractiveRef}
@@ -83,10 +86,7 @@ function TraceView(props: Props) {
       </EmptyStateWarning>
     );
   }
-  if (
-    (!waterfallModel.affectedSpanIds || !waterfallModel.affectedSpanIds.length) &&
-    performanceIssues
-  ) {
+  if (!waterfallModel.affectedSpanIds?.length && performanceIssues) {
     const suspectSpans = performanceIssues.flatMap(issue => issue.suspect_spans);
     if (suspectSpans.length) {
       waterfallModel.affectedSpanIds = performanceIssues.flatMap(issue => [
@@ -127,6 +127,7 @@ function TraceView(props: Props) {
                                 <Observer>
                                   {() => (
                                     <SpanTree
+                                      theme={theme}
                                       traceViewRef={traceViewRef}
                                       traceViewHeaderRef={traceViewHeaderRef}
                                       dragProps={dragProps}

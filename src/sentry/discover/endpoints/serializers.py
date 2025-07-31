@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
+import sentry
 from sentry import features
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
@@ -20,6 +21,7 @@ from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
 
@@ -34,16 +36,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     projects = ListField(
         child=serializers.IntegerField(),
         required=False,
-        default=[],
+        default=list,
         help_text="The saved projects filter for this query.",
     )
     queryDataset = serializers.ChoiceField(
         choices=DiscoverSavedQueryTypes.as_text_choices(),
         default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS),
-        help_text="""The dataset you would like to query. Allowed values are:
-- error-events
-- transaction-like
-""",
+        help_text="The dataset you would like to query. Note: `discover` is a **deprecated** value. The allowed values are: `error-events`, `transaction-like`",
     )
     start = serializers.DateTimeField(
         required=False, allow_null=True, help_text="The saved start time for this saved query."
@@ -178,14 +177,22 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 },
             )
             sentry_sdk.capture_message("Created or updated saved query with discover dataset.")
-            if features.has(
-                "organizations:deprecate-discover-widget-type",
+            raise serializers.ValidationError(
+                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            )
+
+        if (
+            sentry.features.has(
+                "organizations:discover-saved-queries-deprecation",
                 self.context["organization"],
                 actor=self.context["user"],
-            ):
-                raise serializers.ValidationError(
-                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-                )
+            )
+            and dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        ):
+            raise serializers.ValidationError(
+                f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.context['organization'].slug}/explore/saved/` endpoint with the filter to save new transaction queries."
+            )
+
         return dataset
 
     def validate(self, data):
@@ -248,6 +255,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 )
 
                 equations, columns = categorize_columns(query["fields"])
+
+                config = QueryBuilderConfig()
+                if data.get("queryDataset") == DiscoverSavedQueryTypes.ERROR_EVENTS:
+                    config.parser_config_overrides = ERROR_PARSER_CONFIG_OVERRIDES
+                elif data.get("queryDataset") == DiscoverSavedQueryTypes.TRANSACTION_LIKE:
+                    config.has_metrics = use_metrics
+
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
                     params=self.context["params"],
@@ -255,7 +269,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     selected_columns=columns,
                     equations=equations,
                     orderby=query.get("orderby"),
-                    config=QueryBuilderConfig(has_metrics=use_metrics),
+                    config=config,
                 )
                 builder.get_snql_query().validate()
             except (InvalidSearchQuery, ArithmeticError) as err:

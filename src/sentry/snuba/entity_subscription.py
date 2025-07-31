@@ -27,8 +27,10 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import get_timeseries_query
+from sentry.snuba.rpc_dataset_common import RPCBase
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -48,7 +50,8 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
-    EntityKey.EAPSpans: "timestamp",
+    EntityKey.EAPItemsSpan: "timestamp",
+    EntityKey.EAPItems: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -120,7 +123,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     """
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         pass
 
@@ -162,7 +168,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -236,7 +245,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
     dataset = Dataset.EventsAnalyticsPlatform
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -264,6 +276,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         if environment:
             params["environment"] = environment.name
 
+        dataset_module: type[RPCBase]
+        if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
+            dataset_module = OurLogs
+        else:
+            dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
         snuba_params = SnubaParams(
             environments=[environment],
@@ -271,16 +288,20 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             organization=Organization.objects.get_from_cache(id=self.org_id),
             start=now - timedelta(days=1),
             end=now,
+            granularity_secs=self.time_window,
+        )
+        search_resolver = dataset_module.get_resolver(
+            snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
         )
 
-        rpc_request, _, _ = get_timeseries_query(
+        rpc_request, _, _ = dataset_module.get_timeseries_query(
+            search_resolver=search_resolver,
             params=snuba_params,
             query_string=query,
             y_axes=[self.aggregate],
             groupby=[],
             referrer=referrer,
-            config=SearchResolverConfig(),
-            granularity_secs=self.time_window,
+            sampling_mode="NORMAL",
         )
 
         return rpc_request
@@ -296,7 +317,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -307,17 +331,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        self.use_metrics_layer = (
-            features.has(
-                "organizations:custom-metrics",
-                Organization.objects.get_from_cache(id=self.org_id),
-            )
-            # required in order to correctly clean up the custom metric alert subscriptions
-            or features.has(
-                "organizations:custom-metrics-alerts-widgets-removal-info",
-                Organization.objects.get_from_cache(id=self.org_id),
-            )
-        )
+        self.use_metrics_layer = False
 
         self.on_demand_metrics_enabled = features.has(
             "organizations:on-demand-metrics-extraction",
@@ -368,7 +382,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-
         if params is None:
             params = {}
 
@@ -629,7 +642,7 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
-        return EntityKey.EAPSpans
+        return EntityKey.EAPItems
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,

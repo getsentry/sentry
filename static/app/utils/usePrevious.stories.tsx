@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import usePrevious from 'sentry/utils/usePrevious';
 
-export default storyBook('usePrevious', story => {
+export default Storybook.story('usePrevious', story => {
   story('Default', () => {
     const [count, setCount] = useState(0);
     const prevCount = usePrevious(count);

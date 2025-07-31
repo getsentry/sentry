@@ -1,13 +1,16 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import type {
+  GridColumnOrder,
+  GridColumnSortBy,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -129,9 +132,7 @@ interface ProfileEventsCellProps<F extends FieldType> {
   baggage: RenderBagger;
   column: GridColumnOrder<F>;
   columnIndex: number;
-  dataRow: {
-    [key: string]: any;
-  };
+  dataRow: Record<string, any>;
   meta: EventsResults<F>['meta'];
   rowIndex: number;
 }
@@ -151,7 +152,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     }
 
     const flamegraphTarget = generateProfileFlamechartRoute({
-      orgSlug: props.baggage.organization.slug,
+      organization: props.baggage.organization,
       projectSlug: project.slug,
       profileId: value,
     });
@@ -202,12 +203,10 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       <Container>
         <Link
           to={generateLinkToEventInTraceView({
-            projectSlug: project.slug,
             eventId: props.dataRow[key],
             traceSlug: props.dataRow.trace,
             timestamp: props.dataRow.timestamp,
             location: props.baggage.location,
-            transactionName: props.dataRow.transaction,
             organization: props.baggage.organization,
           })}
         >
@@ -248,9 +247,8 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
           <Link
             to={linkToSummary}
             onClick={() =>
-              trackAnalytics('profiling_views.go_to_transaction', {
+              trackAnalytics('profiling_views.landing.tab.transaction_click', {
                 organization: props.baggage.organization,
-                source: 'profiling.landing.transaction_table',
               })
             }
           >
@@ -300,7 +298,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       );
     case 'duration': {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const multiplier = columnUnit ? DURATION_UNITS[columnUnit as string] ?? 1 : 1;
+      const multiplier = columnUnit ? (DURATION_UNITS[columnUnit as string] ?? 1) : 1;
       return (
         <NumberContainer>
           <PerformanceDuration milliseconds={value * multiplier} abbreviation />

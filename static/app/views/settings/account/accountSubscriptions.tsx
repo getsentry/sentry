@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {Switch} from 'sentry/components/core/switch';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -12,8 +13,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Switch from 'sentry/components/switchButton';
-import {IconToggle} from 'sentry/icons';
+import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -64,7 +64,7 @@ function AccountSubscriptions() {
 
       // Update the subscription in the list
       setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], subs => {
-        return subs.map(sub => {
+        return subs?.map(sub => {
           if (sub.listId === subscription.listId) {
             return subscription;
           }
@@ -144,7 +144,7 @@ function AccountSubscriptions() {
                 <Fragment key={email}>
                   {subGroups.length > 1 && (
                     <Heading>
-                      <IconToggle /> {t('Subscriptions for %s', email)}
+                      <IconSliders /> {t('Subscriptions for %s', email)}
                     </Heading>
                   )}
 
@@ -182,9 +182,9 @@ function AccountSubscriptions() {
                         <div>
                           <Switch
                             id={`${subscription.email}-${subscription.listId}`}
-                            isActive={subscription.subscribed}
+                            checked={subscription.subscribed}
                             size="lg"
-                            toggle={() => handleToggle(subscription)}
+                            onChange={() => handleToggle(subscription)}
                           />
                         </div>
                       </PanelItem>
@@ -219,7 +219,7 @@ const Heading = styled(PanelItem)`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
@@ -230,19 +230,19 @@ const SubscriptionDetails = styled('label')`
   padding-right: ${space(2)};
   width: 85%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 75%;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
 `;
 
 const SubscriptionName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;

@@ -6,8 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
-import {eventTypeHasLogLevel, getTitle} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -17,32 +16,12 @@ type Props = {
   type: EventOrGroupType;
   className?: string;
   level?: Level;
-  /**
-   * Size of the level indicator.
-   */
-  levelIndicatorSize?: '9px' | '10px' | '11px';
   showUnhandled?: boolean;
 };
 
-function EventMessage({
-  data,
-  className,
-  level,
-  levelIndicatorSize,
-  message,
-  type,
-  showUnhandled = false,
-}: Props) {
-  const organization = useOrganization({allowNull: true});
+function EventMessage({className, level, message, type, showUnhandled = false}: Props) {
   const hasStreamlinedUI = useHasStreamlinedUI();
-
-  // TODO(malwilley): When the new layout is GA'd, this component should be renamed
-  const hasNewIssueStreamTableLayout = organization?.features.includes(
-    'issue-stream-table-layout'
-  );
-
   const showEventLevel = level && eventTypeHasLogLevel(type);
-  const {subtitle} = getTitle(data);
   const renderedMessage = message ? (
     <Message>{message}</Message>
   ) : (
@@ -51,20 +30,18 @@ function EventMessage({
 
   return (
     <LevelMessageContainer className={className}>
-      {showEventLevel && <ErrorLevel level={level} size={levelIndicatorSize} />}
-      {hasStreamlinedUI && showEventLevel ? <Divider /> : null}
+      {showEventLevel && <ErrorLevelWithMargin level={level} />}
       {showUnhandled ? <UnhandledTag /> : null}
       {hasStreamlinedUI && showUnhandled ? <Divider /> : null}
-      {hasNewIssueStreamTableLayout ? subtitle : renderedMessage}
+      {renderedMessage}
     </LevelMessageContainer>
   );
 }
 
 const LevelMessageContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   align-items: center;
-  position: relative;
   line-height: 1.2;
   overflow: hidden;
 `;
@@ -77,6 +54,10 @@ const Message = styled('div')`
 
 const NoMessage = styled(Message)`
   color: ${p => p.theme.subText};
+`;
+
+const ErrorLevelWithMargin = styled(ErrorLevel)`
+  margin-right: ${space(0.25)};
 `;
 
 export default EventMessage;

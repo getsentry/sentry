@@ -8,17 +8,14 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.redmine.plugin import RedminePlugin
 
 
+def test_conf_key() -> None:
+    assert RedminePlugin().conf_key == "redmine"
+
+
 class RedminePluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return RedminePlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "redmine"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("redmine", self.plugin)
-        self.assertAppInstalled("redmine", "sentry_plugins.redmine")
 
     @responses.activate
     def test_config_validation(self):

@@ -9,10 +9,10 @@ from rest_framework.exceptions import ValidationError
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
-from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
+from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
 from sentry.rules import rules
-from sentry.rules.actions.sentry_apps.notify_event import NotifyEventSentryAppAction
+from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
@@ -50,19 +50,15 @@ class RuleNodeField(serializers.Field):
         node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
-        if node.id in SENTRY_APP_ACTIONS:
+        if isinstance(node, SentryAppEventAction):
             if not data.get("hasSchemaFormConfig"):
                 raise ValidationError("Please configure your integration settings.")
-            assert isinstance(
-                node, NotifyEventSentryAppAction
-            ), "node must be an instance of NotifyEventSentryAppAction to use self_validate"
             node.self_validate()
             return data
 
-        if not node.form_cls:
-            return data
-
         form = node.get_form_instance()
+        if not form:
+            return data
 
         if not form.is_valid():
             # XXX(epurkhiser): Very hacky, but we really just want validation
@@ -141,8 +137,16 @@ class RulePreviewSerializer(RuleSetSerializer):
     endpoint = serializers.DateTimeField(required=False, allow_null=True)
 
 
-class RuleActionSerializer(serializers.Serializer):
+class DummyRuleSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=256, required=False, allow_null=True, allow_blank=True, default="Test Alert"
+    )
     actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
+
+    def validate_name(self, name):
+        if name == "" or name is None:
+            return "Test Alert"
+        return name
 
     def validate(self, attrs):
         return validate_actions(attrs)

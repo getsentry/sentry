@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
@@ -16,6 +17,8 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
+  createAskSeerConsentItem,
+  createAskSeerItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
   createRecentQueryItem,
@@ -25,8 +28,12 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {RecentSearch, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 const MAX_OPTIONS_WITHOUT_SEARCH = 100;
@@ -35,7 +42,7 @@ const MAX_OPTIONS_WITH_SEARCH = 8;
 function makeRecentFilterItems({
   recentFilters,
 }: {
-  recentFilters: string[];
+  recentFilters: Array<TokenResult<Token.FILTER>>;
 }): FilterKeyItem[] {
   if (!recentFilters.length) {
     return [];
@@ -157,7 +164,13 @@ function useFilterKeySections({
   return {sections, selectedSection, setSelectedSection};
 }
 export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
-  const {filterKeys, getFieldDefinition} = useSearchQueryBuilder();
+  const {
+    filterKeys,
+    getFieldDefinition,
+    setDisplaySeerResults,
+    enableAISearch,
+    gaveSeerConsent,
+  } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
@@ -165,11 +178,21 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     recentSearches,
   });
 
+  const organization = useOrganization();
+
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
 
+    const askSeerItem = [];
+    if (enableAISearch) {
+      askSeerItem.push(
+        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+      );
+    }
+
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [
+        ...askSeerItem,
         ...recentFilterItems,
         ...makeRecentSearchQueryItems({
           recentSearches,
@@ -190,9 +213,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       return true;
     });
 
-    return [...recentFilterItems, ...filteredByCategory];
+    return [...askSeerItem, ...recentFilterItems, ...filteredByCategory];
   }, [
+    enableAISearch,
     filterKeys,
+    gaveSeerConsent,
     getFieldDefinition,
     recentFilters,
     recentSearches,
@@ -223,7 +248,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       {state}: {state: ComboBoxState<FilterKeyItem>}
     ) => {
       const focusedKey = state.selectionManager.focusedKey;
-      const focusedItem = state.collection.getItem(focusedKey);
+      const focusedItem = focusedKey ? state.collection.getItem(focusedKey) : null;
 
       const direction = e.key === 'ArrowDown' ? 'after' : 'before';
       const nextItem = findNextMatchingItem(
@@ -261,9 +286,12 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       }
 
       // If we are at a non-recent filter key and going up, skip to the first recent filter key
-      e.preventDefault();
-      e.stopPropagation();
-      state.selectionManager.setFocusedKey(createRecentFilterOptionKey(recentFilters[0]));
+      if (recentFilters[0]) {
+        e.preventDefault();
+        e.stopPropagation();
+        const key = createRecentFilterOptionKey(getKeyName(recentFilters[0].key));
+        state.selectionManager.setFocusedKey(key);
+      }
 
       return;
     },
@@ -353,11 +381,37 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     [handleArrowUpDown, handleCycleRecentFilterKeys, handleCycleSections]
   );
 
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
+
+  const handleOptionSelected = useCallback(
+    (option: FilterKeyItem) => {
+      if (option.type === 'ask-seer') {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'opened',
+        });
+        setDisplaySeerResults(true);
+        return;
+      }
+
+      if (option.type === 'ask-seer-consent') {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
+        return;
+      }
+    },
+    [organization, seerAcknowledgeMutate, setDisplaySeerResults]
+  );
+
   return {
     sectionItems: filterKeyMenuItems,
     customMenu: shouldShowExplorationMenu ? customMenu : undefined,
     maxOptions:
       filterValue.length === 0 ? MAX_OPTIONS_WITHOUT_SEARCH : MAX_OPTIONS_WITH_SEARCH,
     onKeyDownCapture: shouldShowExplorationMenu ? onKeyDownCapture : undefined,
+    handleOptionSelected,
   };
 }

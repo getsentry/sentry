@@ -11,6 +11,10 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.asana.plugin import AsanaPlugin
 
 
+def test_conf_key() -> None:
+    assert AsanaPlugin().conf_key == "asana"
+
+
 class AsanaPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
@@ -19,12 +23,6 @@ class AsanaPluginTest(PluginTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "asana"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("asana", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

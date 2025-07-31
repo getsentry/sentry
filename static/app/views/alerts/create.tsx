@@ -9,15 +9,18 @@ import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
@@ -29,15 +32,15 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import MonitorForm from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
+import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 type RouteParams = {
   alertType?: AlertRuleType;
   projectId?: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;
@@ -50,13 +53,16 @@ function Create(props: Props) {
   const {
     aggregate,
     dataset,
-    eventTypes,
     createFromDuplicate,
     duplicateRuleId,
     createFromDiscover,
     query,
     createFromWizard,
   } = location?.query ?? {};
+  const eventTypes = location?.query?.eventTypes
+    ? (decodeScalar(location.query.eventTypes) as EventTypes)
+    : undefined;
+
   const alertType = params.alertType || AlertRuleType.METRIC;
 
   const sessionId = useRef(uniqueId());
@@ -74,7 +80,10 @@ function Create(props: Props) {
       router.replace(
         normalizeUrl({
           ...location,
-          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
+          pathname: makeAlertsPathname({
+            path: `/new/${alertType}/`,
+            organization,
+          }),
           query: {
             ...location.query,
             ...DEFAULT_WIZARD_TEMPLATE,
@@ -93,6 +102,7 @@ function Create(props: Props) {
     location,
     organization.slug,
     project.slug,
+    organization,
   ]);
 
   const {teams, isLoading} = useUserTeams();
@@ -117,7 +127,11 @@ function Create(props: Props) {
   let wizardAlertType: undefined | WizardAlertType;
   if (createFromWizard && alertType === AlertRuleType.METRIC) {
     wizardAlertType = wizardTemplate
-      ? getAlertTypeFromAggregateDataset(wizardTemplate)
+      ? getAlertTypeFromAggregateDataset({
+          ...wizardTemplate,
+          eventTypes: [wizardTemplate.eventTypes],
+          organization,
+        })
       : 'issues';
   }
 
@@ -154,9 +168,10 @@ function Create(props: Props) {
                 apiEndpoint={`/organizations/${organization.slug}/monitors/`}
                 onSubmitSuccess={(data: Monitor) =>
                   navigate(
-                    normalizeUrl(
-                      `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`
-                    )
+                    makeAlertsPathname({
+                      path: `/rules/crons/${data.project.slug}/${data.slug}/details/`,
+                      organization,
+                    })
                   )
                 }
                 submitLabel={t('Create')}

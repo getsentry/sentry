@@ -1,5 +1,5 @@
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -13,7 +13,7 @@ type Props = {
 
 function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       <CreateAlertButton
         organization={organization}
         iconProps={{size: 'xs'}}

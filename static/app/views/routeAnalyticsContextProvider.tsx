@@ -34,7 +34,7 @@ export const RouteAnalyticsContext = createContext<{
 }>(DEFAULT_CONTEXT);
 
 interface Props {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function RouteAnalyticsContextProvider({children}: Props) {
@@ -72,9 +72,5 @@ export default function RouteAnalyticsContextProvider({children}: Props) {
     ]
   );
 
-  return (
-    <RouteAnalyticsContext.Provider value={memoizedValue}>
-      {children}
-    </RouteAnalyticsContext.Provider>
-  );
+  return <RouteAnalyticsContext value={memoizedValue}>{children}</RouteAnalyticsContext>;
 }

@@ -2,20 +2,19 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {t} from 'sentry/locale';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
-import {SpanFunction, SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-export const STARFISH_AGGREGATION_FIELDS: Record<
-  SpanFunction,
-  FieldDefinition & {defaultOutputType: AggregationOutputType}
+export const STARFISH_AGGREGATION_FIELDS: Partial<
+  Record<SpanFunction, FieldDefinition & {defaultOutputType: AggregationOutputType}>
 > = {
-  [SpanFunction.SPS]: {
-    desc: t('Spans per second'),
+  [SpanFunction.EPM]: {
+    desc: t('Events per second'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.SPM]: {
-    desc: t('Spans per minute'),
+  [SpanFunction.TPM]: {
+    desc: t('Transactions per minute'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
@@ -26,8 +25,8 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.HTTP_ERROR_COUNT]: {
-    desc: t('Count of 5XX http errors'),
+  [SpanFunction.HTTP_RESPONSE_COUNT]: {
+    desc: t('Count of HTTP responses by code'),
     defaultOutputType: 'integer',
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
@@ -62,22 +61,34 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
   },
+  [SpanFunction.FAILURE_RATE_IF]: {
+    desc: t('Failed event percentage based on span.status'),
+    defaultOutputType: 'percentage',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
+  [SpanFunction.COUNT]: {
+    desc: t('Count of spans'),
+    defaultOutputType: 'integer',
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+  },
 };
 
 const RELEASE_FILTERS: FilterKeySection = {
   value: 'release_filters',
   label: 'Release',
-  children: [SpanIndexedField.RELEASE],
+  children: [SpanFields.RELEASE],
 };
 
 const TRANSACTION_FILTERS: FilterKeySection = {
   value: 'transaction_filters',
   label: 'Transaction',
   children: [
-    SpanIndexedField.TRANSACTION_METHOD,
-    SpanIndexedField.TRANSACTION_OP,
-    SpanIndexedField.TRANSACTION,
-    SpanIndexedField.TRANSACTION_ID,
+    SpanFields.TRANSACTION_METHOD,
+    SpanFields.TRANSACTION_OP,
+    SpanFields.TRANSACTION,
+    SpanFields.TRANSACTION_SPAN_ID,
   ],
 };
 
@@ -85,12 +96,12 @@ const USER_CONTEXT_FILTERS: FilterKeySection = {
   value: 'user_context_filters',
   label: 'User',
   children: [
-    SpanIndexedField.USER,
-    SpanIndexedField.USER_ID,
-    SpanIndexedField.USER_IP,
-    SpanIndexedField.USER_EMAIL,
-    SpanIndexedField.USER_USERNAME,
-    SpanIndexedField.USER_GEO_SUBREGION,
+    SpanFields.USER,
+    SpanFields.USER_ID,
+    SpanFields.USER_IP,
+    SpanFields.USER_EMAIL,
+    SpanFields.USER_USERNAME,
+    SpanFields.USER_GEO_SUBREGION,
   ],
 };
 
@@ -98,14 +109,14 @@ const SPAN_FILTERS: FilterKeySection = {
   value: 'span_filters',
   label: 'Span',
   children: [
-    SpanIndexedField.SPAN_OP,
-    SpanIndexedField.SPAN_DURATION,
-    SpanIndexedField.SPAN_SELF_TIME,
-    SpanIndexedField.SPAN_DESCRIPTION,
-    SpanIndexedField.SPAN_STATUS,
-    SpanIndexedField.SPAN_ACTION,
-    SpanIndexedField.SPAN_DOMAIN,
-    SpanIndexedField.SPAN_MODULE,
+    SpanFields.SPAN_OP,
+    SpanFields.SPAN_DURATION,
+    SpanFields.SPAN_SELF_TIME,
+    SpanFields.SPAN_DESCRIPTION,
+    SpanFields.SPAN_STATUS,
+    SpanFields.SPAN_ACTION,
+    SpanFields.SPAN_DOMAIN,
+    SpanFields.SPAN_CATEGORY,
   ],
 };
 

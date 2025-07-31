@@ -8,11 +8,12 @@ import styled from '@emotion/styled';
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
+  className?: string;
 };
 
-function ShortId({shortId, avatar}: Props) {
+function ShortId({shortId, avatar, className}: Props) {
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <AvatarWrapper>{avatar}</AvatarWrapper>
       <IdWrapper>{shortId}</IdWrapper>
     </Wrapper>
@@ -26,7 +27,7 @@ export const Wrapper = styled('div')`
   align-items: center;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 const AvatarWrapper = styled('div')`
   margin-right: 3px;

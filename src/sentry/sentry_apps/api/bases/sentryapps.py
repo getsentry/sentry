@@ -32,7 +32,6 @@ from sentry.sentry_apps.utils.errors import (
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils.sdk import Scope
 from sentry.utils.strings import to_single_line_str
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
@@ -113,22 +112,16 @@ class IntegrationPlatformEndpoint(Endpoint):
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def _handle_sentry_app_exception(self, exception: Exception):
-        if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response_body: dict[str, Any] = {"detail": exception.message}
-
-            if public_context := exception.public_context:
-                response_body.update({"context": public_context})
+        if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
+            response_body = exception.to_public_dict()
 
             response = Response(response_body, status=exception.status_code)
             response.exception = True
             return response
 
         elif isinstance(exception, SentryAppSentryError):
-            error_id = sentry_sdk.capture_exception(exception)
             return Response(
-                {
-                    "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
-                },
+                exception.to_public_dict(),
                 status=500,
             )
         # If not an audited sentry app error then default to using default error handler
@@ -216,16 +209,12 @@ class SentryAppPermission(SentryPermission):
         "DELETE": ("org:admin",),
     }
 
-    published_scope_map = {
+    published_scope_map = scope_map = {
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
         "POST": ("org:admin",),
         "DELETE": ("org:admin",),
     }
-
-    @property
-    def scope_map(self):
-        return self.published_scope_map
 
     def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
@@ -252,7 +241,6 @@ class SentryAppPermission(SentryPermission):
                     message="User must be in the app owner's organization for unpublished apps",
                     status_code=403,
                     public_context={
-                        "integration": sentry_app.slug,
                         "user_organizations": [org.slug for org in organizations],
                     },
                 )
@@ -294,7 +282,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
         self.check_object_permissions(request, sentry_app)
 
-        Scope.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -313,7 +301,7 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
         self.check_object_permissions(request, sentry_app)
 
-        Scope.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -389,14 +377,9 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request: Request, *args, **kwargs):
+    def has_permission(self, request: Request, *args, **kwargs) -> bool:
         # To let the app mark the installation as installed, we don't care about permissions
-        if (
-            hasattr(request, "user")
-            and hasattr(request.user, "is_sentry_app")
-            and request.user.is_sentry_app
-            and request.method == "PUT"
-        ):
+        if request.user.is_authenticated and request.user.is_sentry_app and request.method == "PUT":
             return True
         return super().has_permission(request, *args, **kwargs)
 
@@ -444,7 +427,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
         self.check_object_permissions(request, installation)
 
-        Scope.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
 
         kwargs["installation"] = installation
         return (args, kwargs)

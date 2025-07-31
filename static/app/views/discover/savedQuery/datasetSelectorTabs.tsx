@@ -1,5 +1,5 @@
+import {TabList} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -19,7 +19,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
+  getTransactionDeprecationMessage,
 } from 'sentry/views/discover/savedQuery/utils';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
@@ -37,7 +39,7 @@ type Props = {
 };
 
 function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDatasets) {
-  let modifiedQuery: boolean = false;
+  let modifiedQuery = false;
   let to = eventView.clone();
   const allowedAggregations = Object.keys(getAggregations(toDataset));
   let newColumns: QueryFieldValue[] = [];
@@ -87,8 +89,7 @@ function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDa
 
   const remainingSearchFilter = search.formatString();
 
-  for (let index = 0; index < denylistedFields.length; index++) {
-    const element = denylistedFields[index]!;
+  for (const element of denylistedFields) {
     if (remainingSearchFilter.includes(element)) {
       search.removeFilter(element);
       modifiedQuery = true;
@@ -108,6 +109,15 @@ export function DatasetSelectorTabs(props: Props) {
 
   const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
 
+  const deprecatingTransactionsDataset = organization.features.includes(
+    'discover-saved-queries-deprecation'
+  );
+
+  const tracesUrl = getExploreUrl({
+    organization,
+    query: 'is_transaction:true',
+  });
+
   const options = [
     {
       value: SavedQueryDatasets.ERRORS,
@@ -116,6 +126,13 @@ export function DatasetSelectorTabs(props: Props) {
     {
       value: SavedQueryDatasets.TRANSACTIONS,
       label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
+      disabled: deprecatingTransactionsDataset,
+      tooltip: deprecatingTransactionsDataset
+        ? {
+            title: getTransactionDeprecationMessage(tracesUrl),
+            isHoverable: true,
+          }
+        : undefined,
     },
   ];
 
@@ -139,7 +156,7 @@ export function DatasetSelectorTabs(props: Props) {
             : DiscoverDatasets.TRANSACTIONS
         );
         const nextLocation = nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage
         );
         navigate({
@@ -152,9 +169,15 @@ export function DatasetSelectorTabs(props: Props) {
         });
       }}
     >
-      <TabList variant="filled" hideBorder>
+      <TabList hideBorder>
         {options.map(option => (
-          <TabList.Item key={option.value}>{option.label}</TabList.Item>
+          <TabList.Item
+            key={option.value}
+            disabled={option.disabled}
+            tooltip={option.tooltip}
+          >
+            {option.label}
+          </TabList.Item>
         ))}
       </TabList>
     </Layout.HeaderTabs>

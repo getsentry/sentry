@@ -266,7 +266,6 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: list[str]
     hasAccess: bool
-    hasCustomMetrics: bool
     hasFeedbacks: bool
     hasFlags: bool
     hasMinifiedStackTrace: bool
@@ -284,6 +283,9 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsCaches: bool
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
+    hasInsightsAgentMonitoring: bool
+    hasInsightsMCP: bool
+    hasLogs: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -533,7 +535,6 @@ class ProjectSerializer(Serializer):
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "access": attrs["access"],
             "hasAccess": attrs["has_access"],
-            "hasCustomMetrics": bool(obj.flags.has_custom_metrics),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
@@ -552,6 +553,9 @@ class ProjectSerializer(Serializer):
             "hasInsightsCaches": bool(obj.flags.has_insights_caches),
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
+            "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
+            "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
+            "hasLogs": bool(obj.flags.has_logs),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -642,10 +646,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return {**base, **extra, "teams": attrs["teams"]}
 
 
-class EventProcessingDict(TypedDict):
-    symbolicationDegraded: bool
-
-
 class LatestReleaseDict(TypedDict):
     version: str
 
@@ -660,7 +660,6 @@ class OrganizationProjectResponse(
 ):
     team: TeamResponseDict | None
     teams: list[TeamResponseDict]
-    eventProcessing: EventProcessingDict
     platforms: list[str]
     hasUserReports: bool
     environments: list[str]
@@ -749,11 +748,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            # TODO: remove this attribute and evenrything connected with it
-            # check if the project is in LPQ for any platform
-            # XXX(joshferge): determine if the frontend needs this flag at all
-            # removing redis call as was causing problematic latency issues
-            attrs[item]["symbolication_degraded"] = False
 
         return attrs
 
@@ -776,9 +770,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasAccess=attrs["has_access"],
             dateCreated=obj.date_added,
             environments=attrs["environments"],
-            eventProcessing={
-                "symbolicationDegraded": attrs["symbolication_degraded"],
-            },
             features=attrs["features"],
             firstEvent=obj.first_event,
             firstTransactionEvent=bool(obj.flags.has_transactions),
@@ -787,7 +778,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasReplays=bool(obj.flags.has_replays),
             hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasNewFeedbacks=bool(obj.flags.has_new_feedbacks),
-            hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             # whether first span has been sent for each insight module
@@ -800,6 +790,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsCaches=bool(obj.flags.has_insights_caches),
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
+            hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
+            hasInsightsMCP=bool(obj.flags.has_insights_mcp),
+            hasLogs=bool(obj.flags.has_logs),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -935,8 +928,8 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
     groupingConfig: str
+    derivedGroupingEnhancements: str
     groupingEnhancements: str
-    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
@@ -946,14 +939,14 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     processingIssues: int
     defaultEnvironment: str | None
     relayPiiConfig: str | None
-    relayCustomMetricCardinalityLimit: int | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
-    eventProcessing: dict[str, bool]
     symbolSources: str
-    uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
+    tempestFetchDumps: NotRequired[bool]
+    autofixAutomationTuning: NotRequired[str]
+    seerScannerAutomation: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1008,6 +1001,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
+
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
                 sample_rate = obj.get_option("sentry:target_sample_rate")
@@ -1019,7 +1013,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-
         data: DetailedProjectResponse = {
             **base,
             "latestRelease": attrs["latest_release"],
@@ -1062,8 +1055,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "groupingEnhancements": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements"
             ),
-            "groupingEnhancementsBase": self.get_value_with_default(
-                attrs, "sentry:grouping_enhancements_base"
+            "derivedGroupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:derived_grouping_enhancements"
             ),
             "secondaryGroupingExpiry": self.get_value_with_default(
                 attrs, "sentry:secondary_grouping_expiry"
@@ -1088,39 +1081,29 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "processingIssues": attrs["processing_issues"],
             "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-            "relayCustomMetricCardinalityLimit": self.get_custom_metric_cardinality_limit(attrs),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
-            "eventProcessing": {
-                "symbolicationDegraded": False,
-            },
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
+            "autofixAutomationTuning": self.get_value_with_default(
+                attrs, "sentry:autofix_automation_tuning"
+            ),
+            "seerScannerAutomation": self.get_value_with_default(
+                attrs, "sentry:seer_scanner_automation"
+            ),
         }
-
-        if features.has("organizations:uptime-settings", obj.organization):
-            data["uptimeAutodetection"] = bool(
-                attrs["options"].get("sentry:uptime_autodetection", True)
-            )
 
         if has_tempest_access(obj.organization, user):
             data["tempestFetchScreenshots"] = attrs["options"].get(
                 "sentry:tempest_fetch_screenshots", False
             )
+            data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
 
         return data
-
-    def get_custom_metric_cardinality_limit(self, attrs):
-        cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
-        for limit in cardinalityLimits or ():
-            if limit.get("limit", {}).get("id") == "project-override-custom":
-                return limit.get("limit", {}).get("limit", None)
-
-        return None
 
     def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:
         options = attrs["options"]

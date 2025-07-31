@@ -12,7 +12,6 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
-from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
@@ -62,9 +61,6 @@ class BaseVariant(ABC):
         return self.as_dict() == other.as_dict()
 
 
-KeyedVariants = KeyedList[BaseVariant]
-
-
 class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
 
@@ -95,7 +91,6 @@ class HashedChecksumVariant(ChecksumVariant):
 
 class FallbackVariant(BaseVariant):
     type = "fallback"
-    contributes = True
 
     def get_hash(self) -> str | None:
         return hash_from_values([])
@@ -114,7 +109,6 @@ class PerformanceProblemVariant(BaseVariant):
 
     type = "performance_problem"
     description = "performance problem"
-    contributes = True
 
     def __init__(self, event_performance_problem: Any):
         self.event_performance_problem = event_performance_problem
@@ -199,7 +193,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
         self.values = fingerprint
-        self.info = fingerprint_info
+        self.fingerprint_info = fingerprint_info
 
     @property
     def description(self) -> str:
@@ -209,7 +203,7 @@ class CustomFingerprintVariant(BaseVariant):
         return hash_from_values(self.values)
 
     def _get_metadata_as_dict(self) -> FingerprintVariantMetadata:
-        return expose_fingerprint_dict(self.values, self.info)
+        return expose_fingerprint_dict(self.values, self.fingerprint_info)
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
@@ -256,7 +250,7 @@ class SaltedComponentVariant(ComponentVariant):
     ):
         ComponentVariant.__init__(self, component, contributing_component, strategy_config)
         self.values = fingerprint
-        self.info = fingerprint_info
+        self.fingerprint_info = fingerprint_info
 
     @property
     def description(self) -> str:
@@ -278,7 +272,7 @@ class SaltedComponentVariant(ComponentVariant):
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {
             **ComponentVariant._get_metadata_as_dict(self),
-            **expose_fingerprint_dict(self.values, self.info),
+            **expose_fingerprint_dict(self.values, self.fingerprint_info),
         }
 
 

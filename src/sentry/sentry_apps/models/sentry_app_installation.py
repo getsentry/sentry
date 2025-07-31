@@ -5,7 +5,6 @@ from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 from django.db import models
-from django.db.models import QuerySet
 from django.utils import timezone
 from jsonschema import ValidationError
 
@@ -14,7 +13,9 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.projects.services.project import RpcProject
@@ -27,14 +28,11 @@ from sentry.sentry_apps.utils.errors import (
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.models.apitoken import ApiToken
-    from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
+    from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 
-from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 
-
-def default_uuid():
+def default_uuid() -> str:
     return str(uuid.uuid4())
 
 
@@ -46,17 +44,19 @@ class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstalla
             "date_deleted": None,
         }
 
-    def get_installed_for_organization(self, organization_id: int) -> QuerySet:
+    def get_installed_for_organization(
+        self, organization_id: int
+    ) -> BaseQuerySet[SentryAppInstallation]:
         return self.filter(**self.get_organization_filter_kwargs([organization_id]))
 
-    def get_by_api_token(self, token_id: int) -> QuerySet:
+    def get_by_api_token(self, token_id: int) -> BaseQuerySet[SentryAppInstallation]:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken | AuthenticatedToken) -> QuerySet[Project]:
+    def get_projects(self, token: AuthenticatedToken | None) -> BaseQuerySet[Project]:
         from sentry.models.apitoken import is_api_token_auth
         from sentry.models.project import Project
 
-        if not is_api_token_auth(token) or token.organization_id is None:
+        if token is None or not is_api_token_auth(token) or token.organization_id is None:
             return Project.objects.none()
 
         return Project.objects.filter(organization_id=token.organization_id)

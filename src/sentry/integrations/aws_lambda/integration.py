@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from botocore.exceptions import ClientError
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics, options
+from sentry.analytics.events.integration_serverless_setup import IntegrationServerlessSetup
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -21,8 +23,10 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
-from sentry.pipeline import PipelineView
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView, render_react_view
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.models.user import User
@@ -44,6 +48,9 @@ from .utils import (
     get_version_of_arn,
     wrap_lambda_updater,
 )
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
@@ -198,7 +205,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [
             AwsLambdaProjectSelectPipelineView(),
             AwsLambdaCloudFormationPipelineView(),
@@ -207,7 +214,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         ]
 
     @control_silo_function
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         region = state["region"]
         account_number = state["account_number"]
         aws_external_id = state["aws_external_id"]
@@ -231,7 +238,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
         external_id = f"{account_number}-{region}"
 
-        integration = {
+        return {
             "name": integration_name,
             "external_id": external_id,
             "metadata": {
@@ -241,13 +248,13 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             },
             "post_install_data": {"default_project_id": state["project_id"]},
         }
-        return integration
 
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         default_project_id = extra["default_project_id"]
         for oi in OrganizationIntegration.objects.filter(
@@ -256,13 +263,14 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             oi.update(config={"default_project_id": default_project_id})
 
 
-class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+class AwsLambdaProjectSelectPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
             return pipeline.next_step()
 
+        assert pipeline.organization is not None
         organization = pipeline.organization
         projects = organization.projects
 
@@ -277,16 +285,17 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             organization_id=organization.id,
             filter=dict(project_ids=[p.id for p in projects]),
         )
-        return self.render_react_view(
+        return render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
 
 
-class AwsLambdaCloudFormationPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+class AwsLambdaCloudFormationPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
+            assert pipeline.organization is not None
             serialized_organization = organization_service.serialize_organization(
                 id=pipeline.organization.id,
                 as_user=(
@@ -306,7 +315,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 "organization": serialized_organization,
                 "awsExternalId": pipeline.fetch_state("aws_external_id"),
             }
-            return self.render_react_view(request, "awsLambdaCloudformation", context)
+            return render_react_view(request, "awsLambdaCloudformation", context)
 
         # form submit adds accountNumber to GET parameters
         if "accountNumber" in request.GET:
@@ -344,8 +353,8 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         return render_response()
 
 
-class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+class AwsLambdaListFunctionsPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -365,18 +374,19 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
         curr_step = 2 if pipeline.fetch_state("skipped_project_select") else 3
 
-        return self.render_react_view(
+        return render_react_view(
             request,
             "awsLambdaFunctionSelect",
             {"lambdaFunctions": lambda_functions, "initialStepNumber": curr_step},
         )
 
 
-class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
+class AwsLambdaSetupLayerPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 
+        assert pipeline.organization is not None
         organization = pipeline.organization
 
         account_number = pipeline.fetch_state("account_number")
@@ -385,6 +395,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
         enabled_lambdas = pipeline.fetch_state("enabled_lambdas")
+        assert enabled_lambdas is not None
 
         sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
 
@@ -424,7 +435,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     success_count += 1
                 else:
                     # need to make sure we catch any error to continue to the next function
-                    err_message = str(e)
+                    err_message: str | _StrPromise = str(e)
                     is_custom_err, err_message = get_sentry_err_message(err_message)
                     if not is_custom_err:
                         capture_exception(e)
@@ -442,19 +453,20 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     )
 
         analytics.record(
-            "integrations.serverless_setup",
-            user_id=request.user.id,
-            organization_id=organization.id,
-            integration="aws_lambda",
-            success_count=success_count,
-            failure_count=len(failures),
+            IntegrationServerlessSetup(
+                user_id=request.user.id,
+                organization_id=organization.id,
+                integration="aws_lambda",
+                success_count=success_count,
+                failure_count=len(failures),
+            )
         )
 
         # if we have failures, show them to the user
         # otherwise, finish
 
         if failures:
-            return self.render_react_view(
+            return render_react_view(
                 request,
                 "awsLambdaFailureDetails",
                 {"lambdaFunctionFailures": failures, "successCount": success_count},

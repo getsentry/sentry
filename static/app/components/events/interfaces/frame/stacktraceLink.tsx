@@ -3,13 +3,13 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {IconCopy, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
@@ -21,22 +21,27 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
-// Keep this list in sync with SUPPORTED_LANGUAGES in code_mapping.py
+// Keep this list in sync with PLATFORMS_CONFIG in auto_source_code_config/constants.py
 const supportedStacktracePlatforms: PlatformKey[] = [
+  'clojure',
   'csharp',
-  'elixir',
+  'elixir', // Elixir is not listed on the main list
   'go',
+  'groovy',
+  'java',
   'javascript',
   'node',
   'php',
   'python',
   'ruby',
+  'scala',
 ];
 const scmProviders = ['github', 'gitlab'];
 
@@ -102,16 +107,69 @@ function CodecovLink({
   );
 }
 
+interface CopyFrameLinkProps {
+  event: Event;
+  frame: Frame;
+  shouldFadeIn?: boolean;
+}
+
+function CopyFrameLink({event, frame, shouldFadeIn = false}: CopyFrameLinkProps) {
+  const filePath =
+    frame.filename && frame.lineNo !== null
+      ? `${frame.filename}:${frame.lineNo}`
+      : frame.filename || '';
+
+  const {onClick: handleCopyPath} = useCopyToClipboard({
+    text: filePath,
+    successMessage: t('File path copied to clipboard'),
+    errorMessage: t('Failed to copy file path'),
+  });
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleCopyPath();
+  };
+
+  const ButtonComponent = shouldFadeIn ? FadeInButton : Button;
+
+  // Don't render if there's no valid file path to copy
+  if (!filePath) {
+    return null;
+  }
+
+  return (
+    <Tooltip title={t('Copy file path')} skipWrapper>
+      <ButtonComponent
+        size="zero"
+        priority="transparent"
+        aria-label={t('Copy file path')}
+        icon={<IconCopy size="xs" />}
+        onClick={handleClick}
+        analyticsEventKey="stacktrace_link_copy_file_path"
+        analyticsEventName="Stacktrace Link Copy File Path"
+        analyticsParams={{
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
+        }}
+      />
+    </Tooltip>
+  );
+}
+
 interface StacktraceLinkProps {
+  /**
+   * If true, the setup button will not be shown
+   */
+  disableSetup: boolean;
   event: Event;
   frame: Frame;
   /**
    * The line of code being linked
    */
-  line: string;
+  line: string | null;
 }
 
-export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
+export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLinkProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
@@ -231,6 +289,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   if (!match && hasGithubSourceLink && !frame.inApp && frame.sourceLink) {
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} />
         <Tooltip title={t('Open this line in GitHub')} skipWrapper>
           <OpenInLink
             onClick={e => onOpenLink(e, frame.sourceLink)}
@@ -259,6 +318,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     const label = t('Open this line in %s', match.config.provider.name);
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} shouldFadeIn />
         <OpenInLink
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
@@ -293,12 +353,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
-    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );
 
-  const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
+  const hideErrors = isMinifiedJsError || isUnsupportedPlatform || disableSetup;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
     frame.sourceLink &&
@@ -307,6 +367,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   ) {
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} shouldFadeIn />
         <Tooltip title={t('GitHub')} skipWrapper>
           <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
             <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
@@ -339,14 +400,18 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     );
     return (
       <StacktraceLinkWrapper>
+        <CopyFrameLink event={event} frame={frame} shouldFadeIn />
         <FixMappingButton
+          type="button"
           priority="link"
           icon={
             sourceCodeProviders.length === 1
               ? getIntegrationIcon(sourceCodeProviders[0]!.provider.key, 'sm')
               : undefined
           }
-          onClick={() => {
+          onClick={e => {
+            // Prevent from opening/closing the stack frame
+            e.stopPropagation();
             trackAnalytics(
               'integrations.stacktrace_start_setup',
               {
@@ -363,6 +428,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               <StacktraceLinkModal
                 onSubmit={handleSubmit}
                 filename={filename}
+                module={frame.module ?? undefined}
+                absPath={frame.absPath ?? undefined}
+                platform={event.platform}
                 project={project}
                 organization={organization}
                 integrations={match.integrations}
@@ -396,6 +464,8 @@ const StacktraceLinkWrapper = styled('div')`
 
 const FixMappingButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-weight: 400;
+  font-size: ${p => p.theme.fontSize.sm};
   &:hover {
     color: ${p => p.theme.subText};
   }
@@ -426,4 +496,9 @@ const CodecovWarning = styled('div')`
   color: ${p => p.theme.errorText};
   gap: ${space(0.75)};
   align-items: center;
+`;
+
+const FadeInButton = styled(Button)`
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+  color: ${p => p.theme.subText};
 `;

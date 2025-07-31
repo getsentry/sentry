@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 class NotificationDefaultTest(APITestCase):
     endpoint = "sentry-api-0-notification-defaults"
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         response = self.get_success_response()
         assert response.data == {
             "providerDefaults": ["email", "slack"],
@@ -27,6 +27,9 @@ class NotificationDefaultTest(APITestCase):
                 "quotaMonitorSeats": "always",
                 "quotaSpans": "always",
                 "quotaProfileDuration": "always",
+                "quotaProfileDurationUI": "always",
+                "quotaSeerBudget": "always",
+                "quotaLogBytes": "always",
                 "reports": "always",
                 "spikeProtection": "always",
                 "workflow": "subscribe_only",

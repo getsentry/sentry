@@ -1,40 +1,60 @@
 import styled from '@emotion/styled';
 
+import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
 import type {GroupListColumn} from './groupList';
 
 type Props = {
   withChart: boolean;
-  narrowGroups?: boolean;
   withColumns?: GroupListColumn[];
 };
 
 function GroupListHeader({
   withChart = true,
-  narrowGroups = false,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
   return (
     <PanelHeader disablePadding>
-      <IssueWrapper>{t('Issue')}</IssueWrapper>
-      {withChart && withColumns.includes('graph') && (
-        <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
+      <IssueWrapper hideDivider>{t('Issue')}</IssueWrapper>
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+          {t('Last Seen')}
+        </LastSeenWrapper>
       )}
-      {withColumns.includes('event') && (
-        <EventUserWrapper>{t('events')}</EventUserWrapper>
-      )}
-      {withColumns.includes('users') && <EventUserWrapper>{t('users')}</EventUserWrapper>}
-      {withColumns.includes('priority') && (
-        <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
-      )}
-      {withColumns.includes('assignee') && (
-        <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
+      {withColumns.includes('firstSeen') && (
+        <AgeWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+          {t('Age')}
+        </AgeWrapper>
       )}
       {withColumns.includes('lastTriggered') && (
-        <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>
+        <LastTriggeredLabel align="right">{t('Last Triggered')}</LastTriggeredLabel>
+      )}
+      {withChart && (
+        <GraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>{t('Graph')}</GraphLabel>
+      )}
+      {withColumns.includes('event') && (
+        <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
+          {t('Events')}
+        </EventsOrUsersLabel>
+      )}
+      {withColumns.includes('users') && (
+        <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+          {t('Users')}
+        </EventsOrUsersLabel>
+      )}
+      {withColumns.includes('priority') && (
+        <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="right">
+          {t('Priority')}
+        </PriorityLabel>
+      )}
+      {withColumns.includes('assignee') && (
+        <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
+          {t('Assignee')}
+        </AssigneeLabel>
       )}
     </PanelHeader>
   );
@@ -42,58 +62,39 @@ function GroupListHeader({
 
 export default GroupListHeader;
 
-const Heading = styled('div')`
-  display: flex;
-  align-self: center;
-  margin: 0 ${space(2)};
-  color: ${p => p.theme.subText};
+const GroupListHeaderLabel = styled(IssueStreamHeaderLabel)`
+  text-transform: capitalize;
 `;
 
-const IssueWrapper = styled(Heading)`
+const IssueWrapper = styled(GroupListHeaderLabel)`
   flex: 1;
-  width: 66.66%;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: 50%;
-  }
+  padding-left: ${space(2)};
 `;
 
-const EventUserWrapper = styled(Heading)`
-  justify-content: flex-end;
+const LastSeenWrapper = styled(GroupListHeaderLabel)`
+  width: 80px;
+`;
+
+const AgeWrapper = styled(GroupListHeaderLabel)`
+  width: 50px;
+`;
+
+const GraphLabel = styled(GroupListHeaderLabel)`
+  width: 175px;
+`;
+
+const EventsOrUsersLabel = styled(GroupListHeaderLabel)`
   width: 60px;
-  white-space: nowrap;
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    width: 80px;
-  }
 `;
 
-const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
-  justify-content: space-between;
-  width: 160px;
-
-  @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xxlarge : p.theme.breakpoints.xlarge}) {
-    display: none;
-  }
-`;
-
-const PriorityWrapper = styled(Heading)<{narrowGroups: boolean}>`
-  justify-content: flex-end;
+const PriorityLabel = styled(GroupListHeaderLabel)`
   width: 70px;
-
-  @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
-    display: none;
-  }
 `;
 
-const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
-  justify-content: flex-end;
-  width: 60px;
+const AssigneeLabel = styled(GroupListHeaderLabel)`
+  width: 66px;
+`;
 
-  @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
-    display: none;
-  }
+const LastTriggeredLabel = styled(GroupListHeaderLabel)`
+  width: 100px;
 `;

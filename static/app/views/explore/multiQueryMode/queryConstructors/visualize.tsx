@@ -1,43 +1,47 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {
+  type ReadableExploreQueryParts,
+  useUpdateQueryAtIndex,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,
   SectionHeader,
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export function VisualizeSection() {
-  const numberTags = useSpanTags('number');
+type Props = {
+  index: number;
+  query: ReadableExploreQueryParts;
+};
 
-  const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
-    const options = Object.values(numberTags).map(tag => {
-      return {
-        label: tag.name,
-        value: tag.key,
-        textValue: tag.name,
-      };
-    });
+export function VisualizeSection({query, index}: Props) {
+  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags} = useTraceItemTags('number');
 
-    options.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
+  const parsedFunction = findFirstFunction(query.yAxes);
 
-      if (a.label > b.label) {
-        return 1;
-      }
+  const options: Array<SelectOption<string>> = useVisualizeFields({
+    numberTags,
+    stringTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
 
-      return 0;
-    });
-
-    return options;
-  }, [numberTags]);
+  const updateYAxis = useUpdateQueryAtIndex(index);
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -50,10 +54,9 @@ export function VisualizeSection() {
   }, []);
 
   return (
-    <Section data-test-id="section-visualize">
+    <Section data-test-id={`section-visualize-${index}`}>
       <SectionHeader>
         <Tooltip
-          position="right"
           title={t(
             'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
           )}
@@ -62,20 +65,63 @@ export function VisualizeSection() {
         </Tooltip>
       </SectionHeader>
       <Fragment>
-        <PageFilterBar>
-          <CompactSelect
-            searchable
-            options={fieldOptions}
-            value={''}
-            onChange={_newField => {}}
-          />
+        <StyledPageFilterBar>
           <CompactSelect
             options={aggregateOptions}
-            value={''}
-            onChange={_newAggregate => {}}
+            value={parsedFunction?.name ?? ''}
+            onChange={newAggregate => {
+              const newYAxis = updateVisualizeAggregate({
+                newAggregate: newAggregate.value,
+                oldAggregate: parsedFunction!.name,
+                oldArgument: parsedFunction!.arguments[0]!,
+              });
+              updateYAxis({yAxes: [newYAxis]});
+            }}
           />
-        </PageFilterBar>
+          <CompactSelect
+            searchable
+            options={options}
+            value={parsedFunction?.arguments?.[0] ?? ''}
+            onChange={newField => {
+              const newYAxis = `${parsedFunction!.name}(${newField.value})`;
+              updateYAxis({yAxes: [newYAxis]});
+            }}
+            disabled={options.length === 1}
+          />
+        </StyledPageFilterBar>
       </Fragment>
     </Section>
   );
 }
+
+function findFirstFunction(
+  yAxes: ReadableExploreQueryParts['yAxes']
+): ParsedFunction | undefined {
+  for (const yAxis of yAxes) {
+    const parsed = parseFunction(yAxis);
+    if (defined(parsed)) {
+      return parsed;
+    }
+  }
+
+  return undefined;
+}
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  & > * {
+    min-width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: max-content;
+
+    /* Prevent agg function selector from shrinking */
+    &:first-child {
+      flex-shrink: 0;
+    }
+
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:last-child {
+      min-width: 4rem;
+    }
+  }
+`;

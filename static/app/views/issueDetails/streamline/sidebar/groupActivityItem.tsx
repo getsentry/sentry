@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import CommitLink from 'sentry/components/commitLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -34,8 +33,8 @@ export default function getGroupActivityItem(
   const issuesLink = `/organizations/${organization.slug}/issues/`;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     if (data.ignoreDuration) {
       return {
@@ -168,8 +167,8 @@ export default function getGroupActivityItem(
   }
 
   function getEscalatingMessage(data: GroupActivitySetEscalating['data']): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     if (data.forecast) {
       return {
@@ -247,8 +246,8 @@ export default function getGroupActivityItem(
   }
 
   function renderContent(): {
-    message: JSX.Element | string | null;
-    title: JSX.Element | string;
+    message: React.JSX.Element | string | null;
+    title: React.JSX.Element | string;
   } {
     switch (activity.type) {
       case GroupActivityType.NOTE:
@@ -257,7 +256,7 @@ export default function getGroupActivityItem(
           message: activity.data.text,
         };
       case GroupActivityType.SET_RESOLVED: {
-        let resolvedMessage: JSX.Element;
+        let resolvedMessage: React.JSX.Element;
         if ('integration_id' in activity.data && activity.data.integration_id) {
           resolvedMessage = tct('by [author] via [integration]', {
             integration: (
@@ -591,7 +590,7 @@ export default function getGroupActivityItem(
         const {oldGroupId, eventCount} = data;
 
         return {
-          title: t('Resprocessed Events'),
+          title: t('Reprocessed Events'),
           message: tct('by [author]. [new-events]', {
             author,
             ['new-events']: (
@@ -683,12 +682,12 @@ function ActivityRelease({project, version}: {project: Project; version: string}
 }
 
 const Subtext = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledRuleSpan = styled('span')`
@@ -696,6 +695,6 @@ const StyledRuleSpan = styled('span')`
 `;
 
 const ReleaseVersion = styled(Version)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
 `;

@@ -1,18 +1,19 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {traceReducerExhaustiveActionCheck} from '../traceState';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -22,7 +23,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
     );
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return node.value.op + (node.value.description ? ' - ' + node.value.description : '');
   }
 
@@ -36,6 +37,10 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 
   if (isTraceErrorNode(node)) {
     return node.value.message ?? node.value.title ?? 'Error';
+  }
+
+  if (isEAPErrorNode(node)) {
+    return node.value.description ?? 'Error';
   }
 
   if (isTraceNode(node)) {
@@ -57,7 +62,7 @@ export type TraceTabsReducerState = {
   tabs: Tab[];
 };
 
-export type TraceTabsReducerAction =
+type TraceTabsReducerAction =
   | {payload: TraceTabsReducerState; type: 'initialize tabs reducer'}
   | {
       payload: Tab['node'] | number;
@@ -148,7 +153,7 @@ export function traceTabsReducer(
         }
 
         const nextTab = nextTabIsPersistent
-          ? state.last_clicked_tab ?? state.current_tab
+          ? (state.last_clicked_tab ?? state.current_tab)
           : newTabs[newTabs.length - 1]!;
 
         return {

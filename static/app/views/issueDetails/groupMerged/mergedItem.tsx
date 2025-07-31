@@ -1,11 +1,12 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
-import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
@@ -143,7 +144,7 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
       {!collapsed && (
         <MergedEventList>
           {issueLink ? (
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               <LinkButton
                 to={issueLink}
                 icon={<IconLink color={'linkColor'} />}
@@ -156,7 +157,6 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
               <EventDetails>
                 <EventOrGroupHeader
                   data={latestEvent}
-                  organization={organization}
                   hideIcons
                   hideLevel
                   source="merged-item"
@@ -199,7 +199,7 @@ const FingerprintLabel = styled('label')`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   line-height: 1;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 

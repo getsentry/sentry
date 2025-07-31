@@ -37,7 +37,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     return Math.floor(Math.random() * (max - min + 1) + min);
   }
 
-  let start = new Date().getTime();
+  let start = Date.now();
 
   const root = partialTransaction({
     ...metadata,

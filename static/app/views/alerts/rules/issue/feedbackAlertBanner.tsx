@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
@@ -17,12 +16,12 @@ export default function FeedbackAlertBanner({
 }) {
   const organization = useOrganization();
   const filterSet = filters?.filter(r => r.id === IssueAlertFilterType.ISSUE_CATEGORY);
-  if (!filterSet || !filterSet.length) {
+  if (!filterSet?.length) {
     return null;
   }
   const filterFeedback = filterSet.find(f => f.value === '6'); // category: feedback
   return filterFeedback ? (
-    <StyledFeedbackAlert showIcon type="info">
+    <StyledFeedbackAlert type="info">
       {tct(
         'This issue category condition is ONLY for feedbacks from the [linkWidget:built-in widget]. [linkModal: Crash-report modal] alerts can be enabled in [link:Project Settings].',
         {

@@ -9,14 +9,16 @@ from sentry.snuba import (
     issue_platform,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     profiles,
-    spans_eap,
     spans_indexed,
     spans_metrics,
     transactions,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.uptime_checks import UptimeChecks
+from sentry.snuba.uptime_results import UptimeResults
 
 # Doesn't map 1:1 with real datasets, but rather what we present to users
 # ie. metricsEnhanced is not a real dataset
@@ -25,14 +27,22 @@ DATASET_OPTIONS = {
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
-    "ourlogs": ourlogs,
+    "ourlogs": OurLogs,
+    "uptimeChecks": UptimeChecks,
+    "uptime_results": UptimeResults,
     "profiles": profiles,
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
-    "spans": spans_eap,
+    "spans": Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     "transactions": transactions,
+}
+RPC_DATASETS = {
+    Spans,
+    OurLogs,
+    UptimeResults,
+    UptimeChecks,
 }
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
@@ -87,6 +97,7 @@ ERROR_ONLY_FIELDS = [
     "stack.package",
     "stack.resource",
     "stack.stack_level",
+    "symbolicated_in_app",
 ]
 
 

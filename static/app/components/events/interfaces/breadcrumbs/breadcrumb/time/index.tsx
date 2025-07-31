@@ -1,8 +1,8 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Highlight from 'sentry/components/highlight';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getFormattedTimestamp} from 'sentry/utils/date/getFormattedTimestamp';
@@ -55,7 +55,7 @@ const Time = memo(function Time({
 export default Time;
 
 const Wrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
 `;
 

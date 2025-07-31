@@ -60,7 +60,7 @@ describe('ProfileEventEvidence', function () {
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/project-slug:transaction-id/?referrer=issue'
+      '/organizations/org-slug/traces/trace/trace-id/?referrer=issue&statsPeriod=14d'
     );
   });
 });

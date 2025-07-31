@@ -1,11 +1,14 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import type {IReactionDisposer} from 'mobx';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
@@ -16,7 +19,6 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -26,10 +28,10 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {HTTPSnippet} from './httpSnippet';
@@ -44,6 +46,8 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
+const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
+
 const MINUTE = 60;
 
 const VALID_INTERVALS_SEC = [
@@ -54,6 +58,10 @@ const VALID_INTERVALS_SEC = [
   MINUTE * 30,
   MINUTE * 60,
 ];
+
+function methodHasBody(model: FormModel) {
+  return !HTTP_METHODS_NO_BODY.includes(model.getValue('method'));
+}
 
 function getFormDataFromRule(rule: UptimeRule) {
   return {
@@ -94,7 +102,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   useEffect(
     () =>
       autorun(() => {
-        const projectSlug = formModel.getValue('projectSlug');
+        const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
@@ -102,9 +110,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
         function onSubmitSuccess(response: any) {
           navigate(
-            normalizeUrl(
-              `/organizations/${organization.slug}/alerts/rules/uptime/${projectSlug}/${response.id}/details/`
-            )
+            makeAlertsPathname({
+              path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
+              organization,
+            })
           );
         }
         formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
@@ -113,8 +122,40 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           setEnvironments(selectedProject.environments);
         }
       }),
-    [formModel, navigate, organization.slug, projects, rule]
+    [formModel, navigate, organization, projects, rule]
   );
+
+  // When mutating the name field manually, we'll disable automatic name
+  // generation from the URL
+  const [hasCustomName, setHasCustomName] = useState(false);
+  const disposeNameSetter = useRef<IReactionDisposer>(null);
+  const hasRule = !!rule;
+
+  // Suggest rule name from URL
+  useEffect(() => {
+    if (hasRule || hasCustomName) {
+      return () => {};
+    }
+    disposeNameSetter.current = autorun(() => {
+      const url = formModel.getValue('url');
+
+      if (typeof url !== 'string') {
+        return;
+      }
+
+      try {
+        const parsedUrl = new URL(url);
+        const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname;
+        const urlName = `${parsedUrl.hostname}${path}`.replace(/\/$/, '');
+
+        formModel.setValue('name', t('Uptime check for %s', urlName));
+      } catch {
+        // Nothing to do if we failed to parse the URL
+      }
+    });
+
+    return disposeNameSetter.current;
+  }, [formModel, hasRule, hasCustomName]);
 
   return (
     <Form
@@ -123,6 +164,11 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
+      onPreSubmit={() => {
+        if (!methodHasBody(formModel)) {
+          formModel.setValue('body', null);
+        }
+      }}
       extraButton={
         rule && handleDelete ? (
           <Confirm
@@ -154,7 +200,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="projectSlug"
             label={t('Project')}
             placeholder={t('Choose Project')}
-            hideLabel
             projects={projects}
             valueIsSlug
             inline={false}
@@ -166,7 +211,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="environment"
             label={t('Environment')}
             placeholder={t('Select an environment')}
-            hideLabel
+            noOptionsMessage={() => t('Start typing to create an environment')}
             onCreateOption={(env: any) => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
@@ -185,30 +230,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         </ListItemSubText>
         <Configuration>
           <ConfigurationPanel>
-            <SelectField
-              options={VALID_INTERVALS_SEC.map(value => ({
-                value,
-                label: t('Every %s', getDuration(value)),
-              }))}
-              name="intervalSeconds"
-              label={t('Interval')}
-              defaultValue={60}
-              flexibleControlStateSize
-              required
-            />
-            <RangeField
-              name="timeoutMs"
-              label={t('Timeout')}
-              min={1000}
-              max={30_000}
-              step={250}
-              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
-              defaultValue={5_000}
-              showTickLabels
-              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
-              flexibleControlStateSize
-              required
-            />
             <TextField
               name="url"
               label={t('URL')}
@@ -228,6 +249,49 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
               required
             />
+            <SelectField
+              options={VALID_INTERVALS_SEC.map(value => ({
+                value,
+                label: t('Every %s', getDuration(value)),
+              }))}
+              name="intervalSeconds"
+              label={t('Interval')}
+              defaultValue={60}
+              flexibleControlStateSize
+              showHelpInTooltip={{isHoverable: true}}
+              help={({model}) =>
+                tct(
+                  'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
+                    ),
+                    interval: (
+                      <strong>{getDuration(model.getValue('intervalSeconds'))}</strong>
+                    ),
+                    expectedFailureInterval: (
+                      <strong>
+                        {getDuration(Number(model.getValue('intervalSeconds')) * 3)}
+                      </strong>
+                    ),
+                  }
+                )
+              }
+              required
+            />
+            <RangeField
+              name="timeoutMs"
+              label={t('Timeout')}
+              min={1000}
+              max={60_000}
+              step={250}
+              tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
+              defaultValue={5_000}
+              showTickLabels
+              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+              flexibleControlStateSize
+              required
+            />
             <UptimeHeadersField
               name="headers"
               label={t('Headers')}
@@ -236,9 +300,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <TextareaField
               name="body"
               label={t('Body')}
-              visible={({model}: any) =>
-                !['GET', 'HEAD'].includes(model.getValue('method'))
-              }
+              visible={({model}: any) => methodHasBody(model)}
               rows={4}
               maxRows={15}
               autosize
@@ -261,13 +323,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
             />
           </ConfigurationPanel>
+          <Alert.Container>
+            <Alert type="muted">
+              {tct(
+                'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
           <Observer>
             {() => (
               <HTTPSnippet
                 url={formModel.getValue('url')}
                 method={formModel.getValue('method')}
                 headers={formModel.getValue('headers')}
-                body={formModel.getValue('body')}
+                body={methodHasBody(formModel) ? formModel.getValue('body') : null}
                 traceSampling={formModel.getValue('traceSampling')}
               />
             )}
@@ -283,8 +357,15 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <TextField
             name="name"
             label={t('Uptime rule name')}
-            hideLabel
             placeholder={t('Uptime rule name')}
+            onChange={() => {
+              // Immediately dispose of the autorun name setter, since it won't
+              // receive the hasCustomName state before the autorun is ran
+              // again after this change (overriding whatever change the user
+              // just made)
+              disposeNameSetter.current?.();
+              setHasCustomName(true);
+            }}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -293,7 +374,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            hideLabel
             menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
@@ -311,8 +391,8 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.3;
 `;
 

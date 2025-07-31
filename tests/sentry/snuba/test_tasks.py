@@ -17,11 +17,10 @@ from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Qu
 
 from sentry.incidents.logic import query_datasets_to_type
 from sentry.models.group import GroupStatus
-from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
@@ -32,6 +31,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
+    SubscriptionError,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -39,7 +39,6 @@ from sentry.snuba.tasks import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
@@ -122,7 +121,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             query_extra=query_extra,
         )
 
-    def test_no_subscription(self):
+    def test_no_subscription(self) -> None:
         self.task(12345)
         self.metrics.incr.assert_called_once_with(
             "snuba.subscriptions.{}.subscription_does_not_exist".format(
@@ -130,7 +129,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             )
         )
 
-    def test_invalid_status(self):
+    def test_invalid_status(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.ACTIVE)
         self.task(sub.id)
         self.metrics.incr.assert_called_once_with(
@@ -144,28 +143,28 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.CREATING
     task = create_subscription_in_snuba
 
-    def test_already_created(self):
+    def test_already_created(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, subscription_id=uuid4().hex
         )
         create_subscription_in_snuba(sub.id)
         self.metrics.incr.assert_any_call("snuba.subscriptions.create.already_created_in_snuba")
 
-    def test(self):
+    def test(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_status_join(self):
+    def test_status_join(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_group_id(self):
+    def test_group_id(self) -> None:
         group_id = 1234
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, query=f"issue.id:{group_id}"
@@ -178,7 +177,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_transaction(self):
+    def test_transaction(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING, dataset=Dataset.Transactions
         )
@@ -187,14 +186,14 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_subscription_with_query_extra(self):
+    def test_subscription_with_query_extra(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
         create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_subscription_with_query_extra_but_no_query(self):
+    def test_subscription_with_query_extra_but_no_query(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
         snuba_query = sub.snuba_query
         snuba_query.update(query="")
@@ -204,7 +203,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
 
     @responses.activate
-    def test_adds_type(self):
+    def test_adds_type(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
         with patch("sentry.snuba.tasks._snuba_pool") as pool:
             resp = Mock()
@@ -217,8 +216,12 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert "type = 'error'" in request_body["query"]
 
     @responses.activate
-    def test_granularity_on_metrics_crash_rate_alerts(self):
-        for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.RAW_USER.value, "session.status"]:
+    def test_granularity_on_metrics_crash_rate_alerts(self) -> None:
+        for tag in [
+            SessionMRI.RAW_SESSION.value,
+            SessionMRI.RAW_USER.value,
+            "session.status",
+        ]:
             rh_indexer_record(self.organization.id, tag)
         for time_window, expected_granularity in [
             (30, 10),
@@ -245,7 +248,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     request_body = json.loads(pool.urlopen.call_args[1]["body"])
                     assert request_body["granularity"] == expected_granularity
 
-    def test_insights_query_spm(self):
+    def test_insights_query_spm(self) -> None:
         time_window = 3600
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
@@ -274,7 +277,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert sub.status == QuerySubscription.Status.ACTIVE.value
             assert sub.subscription_id is not None
 
-    def test_eap_rpc_query_count(self):
+    def test_eap_rpc_query_count(self) -> None:
         time_window = 3600
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
@@ -283,15 +286,10 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             dataset=Dataset.EventsAnalyticsPlatform,
             time_window=time_window,
         )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-            pool.urlopen.return_value = resp
-
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             create_subscription_in_snuba(sub.id)
 
-            rpc_request_body = pool.urlopen.call_args[1]["body"]
+            rpc_request_body = urlopen.call_args[1]["body"]
             createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
 
             assert createSubscriptionRequest.time_window_secs == time_window
@@ -308,11 +306,11 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                 == "http.client"
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.aggregate
                 == FUNCTION_COUNT
             )
             assert (
-                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                createSubscriptionRequest.time_series_request.expressions[0].aggregation.key.name
                 == "sentry.duration_ms"
             )
             # Validate that the spm function uses the correct time window
@@ -325,7 +323,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
     task = update_subscription_in_snuba
 
-    def test(self):
+    def test(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.UPDATING, subscription_id=subscription_id
@@ -336,7 +334,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
         assert sub.subscription_id != subscription_id
 
-    def test_no_subscription_id(self):
+    def test_no_subscription_id(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.UPDATING)
         assert sub.subscription_id is None
         update_subscription_in_snuba(sub.id)
@@ -344,7 +342,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_insights_query_spm(self):
+    def test_insights_query_spm(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
             query="span.module:db",
@@ -358,49 +356,56 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
 
         sub.status = QuerySubscription.Status.UPDATING.value
         sub.update(
-            status=QuerySubscription.Status.UPDATING.value, subscription_id=sub.subscription_id
+            status=QuerySubscription.Status.UPDATING.value,
+            subscription_id=sub.subscription_id,
         )
         update_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_eap_rpc_query_count(self):
-        sub = self.create_subscription(
-            QuerySubscription.Status.CREATING,
-            query="span.op:http.client",
-            aggregate="count(span.duration)",
-            dataset=Dataset.EventsAnalyticsPlatform,
-        )
-        with patch("sentry.utils.snuba_rpc._snuba_pool") as rpc_pool:
-            with patch("sentry.snuba.tasks._snuba_pool") as pool:
-                resp = Mock()
-                resp.status = 202
-                resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-                rpc_pool.urlopen.return_value = resp
-                pool.urlopen.return_value = resp
+    def test_eap_rpc_query_count(self) -> None:
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
+            sub = self.create_subscription(
+                QuerySubscription.Status.CREATING,
+                query="span.op:http.client",
+                aggregate="count(span.duration)",
+                dataset=Dataset.EventsAnalyticsPlatform,
+            )
+            create_subscription_in_snuba(sub.id)
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
 
-                create_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+            subscription_id = sub.subscription_id
 
-                sub.status = QuerySubscription.Status.UPDATING.value
-                sub.update(
-                    status=QuerySubscription.Status.UPDATING.value,
-                    subscription_id=sub.subscription_id,
-                )
-                update_subscription_in_snuba(sub.id)
-                sub = QuerySubscription.objects.get(id=sub.id)
-                assert sub.status == QuerySubscription.Status.ACTIVE.value
-                assert sub.subscription_id is not None
+            sub.update(
+                status=QuerySubscription.Status.UPDATING.value,
+            )
+            update_subscription_in_snuba(sub.id)
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
+            (method, url) = urlopen.call_args_list[1][0]
+            assert method == "DELETE"
+            assert (
+                url
+                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPItems.value}/subscriptions/{subscription_id}"
+            )
+
+            sub.update(
+                status=QuerySubscription.Status.DELETING.value,
+            )
+            delete_subscription_from_snuba(sub.id)
+            assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
     task = delete_subscription_from_snuba
 
-    def test(self):
+    def test(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
@@ -408,7 +413,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_insights_query_spm(self):
+    def test_insights_query_spm(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -420,7 +425,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_eap_rpc_query_count(self):
+    def test_eap_rpc_query_count(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -429,28 +434,24 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
             aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform,
         )
-        with patch("sentry.snuba.tasks._snuba_pool") as pool:
-            resp = Mock()
-            resp.status = 202
-            pool.urlopen.return_value = resp
-
+        with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-            (method, url) = pool.urlopen.call_args[0]
+            (method, url) = urlopen.call_args[0]
             assert method == "DELETE"
             assert (
                 url
-                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPSpans.value}/subscriptions/{subscription_id}"
+                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPItems.value}/subscriptions/{subscription_id}"
             )
 
-    def test_no_subscription_id(self):
+    def test_no_subscription_id(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.DELETING)
         assert sub.subscription_id is None
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_invalid_subscription_query(self):
+    def test_invalid_subscription_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -460,7 +461,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_invalid_metrics_subscription_query(self):
+    def test_invalid_metrics_subscription_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,
@@ -471,6 +472,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_query_that_raises_invalid_search_query(self):
+        subscription_id = f"1/{uuid4().hex}"
+        with pytest.raises(SubscriptionError):
+            sub = self.create_subscription(
+                QuerySubscription.Status.DELETING,
+                dataset=Dataset.Metrics,
+                subscription_id=subscription_id,
+                query="project:foo",
+                aggregate="percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            )
+            delete_subscription_from_snuba(sub.id)
 
 
 class BuildSnqlQueryTest(TestCase):
@@ -508,7 +521,11 @@ class BuildSnqlQueryTest(TestCase):
                     )
                 ],
                 "p95()": lambda org_id, **kwargs: [
-                    Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95")
+                    Function(
+                        "quantile(0.95)",
+                        parameters=[Column(name="duration")],
+                        alias="p95",
+                    )
                 ],
             },
             Dataset.Metrics: {
@@ -553,7 +570,11 @@ class BuildSnqlQueryTest(TestCase):
                                 parameters=[
                                     Column(name="value"),
                                     Function(
-                                        "equals", parameters=[Column(name="metric_id"), metric_id]
+                                        "equals",
+                                        parameters=[
+                                            Column(name="metric_id"),
+                                            metric_id,
+                                        ],
                                     ),
                                 ],
                             ),
@@ -570,7 +591,10 @@ class BuildSnqlQueryTest(TestCase):
                     Function(
                         function="if",
                         parameters=[
-                            Function(function="greater", parameters=[Column(name="sessions"), 0]),
+                            Function(
+                                function="greater",
+                                parameters=[Column(name="sessions"), 0],
+                            ),
                             Function(
                                 function="divide",
                                 parameters=[
@@ -590,7 +614,10 @@ class BuildSnqlQueryTest(TestCase):
                             Function(function="greater", parameters=[Column(name="users"), 0]),
                             Function(
                                 function="divide",
-                                parameters=[Column(name="users_crashed"), Column(name="users")],
+                                parameters=[
+                                    Column(name="users_crashed"),
+                                    Column(name="users"),
+                                ],
                             ),
                             None,
                         ],
@@ -612,7 +639,9 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(name="metric_id"),
                                             resolve_tag_value(
-                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                                UseCaseKey.RELEASE_HEALTH,
+                                                org_id,
+                                                metric_mri,
                                             ),
                                         ],
                                         alias=None,
@@ -628,7 +657,9 @@ class BuildSnqlQueryTest(TestCase):
                                                 )
                                             ),
                                             resolve_tag_value(
-                                                UseCaseKey.RELEASE_HEALTH, org_id, "init"
+                                                UseCaseKey.RELEASE_HEALTH,
+                                                org_id,
+                                                "init",
                                             ),
                                         ],
                                     ),
@@ -649,7 +680,9 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(name="metric_id"),
                                             resolve_tag_value(
-                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                                UseCaseKey.RELEASE_HEALTH,
+                                                org_id,
+                                                metric_mri,
                                             ),
                                         ],
                                         alias=None,
@@ -665,7 +698,9 @@ class BuildSnqlQueryTest(TestCase):
                                                 )
                                             ),
                                             resolve_tag_value(
-                                                UseCaseKey.RELEASE_HEALTH, org_id, "crashed"
+                                                UseCaseKey.RELEASE_HEALTH,
+                                                org_id,
+                                                "crashed",
                                             ),
                                         ],
                                     ),
@@ -705,7 +740,9 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(name="metric_id"),
                                             resolve_tag_value(
-                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                                UseCaseKey.RELEASE_HEALTH,
+                                                org_id,
+                                                metric_mri,
                                             ),
                                         ],
                                         alias=None,
@@ -721,7 +758,9 @@ class BuildSnqlQueryTest(TestCase):
                                                 )
                                             ),
                                             resolve_tag_value(
-                                                UseCaseKey.RELEASE_HEALTH, org_id, "crashed"
+                                                UseCaseKey.RELEASE_HEALTH,
+                                                org_id,
+                                                "crashed",
                                             ),
                                         ],
                                     ),
@@ -779,7 +818,9 @@ class BuildSnqlQueryTest(TestCase):
             select.insert(
                 0,
                 Function(
-                    function="identity", parameters=[Column(name=col_name)], alias="_total_count"
+                    function="identity",
+                    parameters=[Column(name=col_name)],
+                    alias="_total_count",
                 ),
             )
         # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
@@ -804,14 +845,15 @@ class BuildSnqlQueryTest(TestCase):
 
     def string_aggregate_to_snql(self, query_type, dataset, aggregate, aggregate_kwargs):
         aggregate_builder_func = self.aggregate_mappings[query_type][dataset].get(
-            aggregate, self.aggregate_mappings_fallback.get(aggregate, lambda org_id, **kwargs: [])
+            aggregate,
+            self.aggregate_mappings_fallback.get(aggregate, lambda org_id, **kwargs: []),
         )
         return sorted(
             aggregate_builder_func(self.organization.id, **aggregate_kwargs),
             key=lambda val: (val.function, val.alias),
         )
 
-    def test_simple_events(self):
+    def test_simple_events(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -824,7 +866,7 @@ class BuildSnqlQueryTest(TestCase):
             ],
         )
 
-    def test_join_status(self):
+    def test_join_status(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         g_entity = Entity("group_attributes", alias="ga")
         self.run_test(
@@ -837,7 +879,9 @@ class BuildSnqlQueryTest(TestCase):
                     [
                         Condition(Column("type", entity=entity), Op.EQ, "error"),
                         Condition(
-                            Column("group_status", entity=g_entity), Op.IN, [GroupStatus.UNRESOLVED]
+                            Column("group_status", entity=g_entity),
+                            Op.IN,
+                            [GroupStatus.UNRESOLVED],
                         ),
                     ]
                 ),
@@ -851,7 +895,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_match=Join([Relationship(entity, "attributes", g_entity)]),
         )
 
-    def test_simple_performance_transactions(self):
+    def test_simple_performance_transactions(self) -> None:
         self.run_test(
             SnubaQuery.Type.PERFORMANCE,
             Dataset.Transactions,
@@ -862,26 +906,7 @@ class BuildSnqlQueryTest(TestCase):
             ],
         )
 
-    def test_simple_performance_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
-            self.run_test(
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "count_unique(user)",
-                "",
-                [
-                    Condition(Column("org_id"), Op.EQ, self.organization.id),
-                    Condition(Column("project_id"), Op.IN, [self.project.id]),
-                    Condition(Column("metric_id"), Op.IN, [metric_id]),
-                ],
-                entity_extra_fields={"org_id": self.organization.id},
-                aggregate_kwargs={"metric_id": metric_id},
-                granularity=60,
-                use_none_clauses=True,
-            )
-
-    def test_aliased_query_events(self):
+    def test_aliased_query_events(self) -> None:
         self.create_release(self.project, version="something")
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
@@ -891,7 +916,10 @@ class BuildSnqlQueryTest(TestCase):
                     Condition(
                         Function(
                             function="ifNull",
-                            parameters=[Column(name="tags[sentry:release]", entity=entity), ""],
+                            parameters=[
+                                Column(name="tags[sentry:release]", entity=entity),
+                                "",
+                            ],
                         ),
                         Op.IN,
                         ["something"],
@@ -908,7 +936,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_aliased_query_performance_transactions(self):
+    def test_aliased_query_performance_transactions(self) -> None:
         self.create_release(self.project, version="something")
         expected_conditions = [
             Condition(Column("release"), Op.IN, ["something"]),
@@ -922,41 +950,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_aliased_query_performance_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            version = "something"
-            self.create_release(self.project, version=version)
-            metric_id = resolve(
-                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
-            )
-            perf_indexer_record(self.organization.id, "release")
-            perf_indexer_record(self.organization.id, version)
-            expected_conditions = [
-                Condition(Column("org_id"), Op.EQ, self.organization.id),
-                Condition(Column("project_id"), Op.IN, [self.project.id]),
-                Condition(
-                    Column(
-                        resolve_tag_key(UseCaseID.TRANSACTIONS, self.organization.id, "release")
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseID.TRANSACTIONS, self.organization.id, version),
-                ),
-                Condition(Column("metric_id"), Op.IN, [metric_id]),
-            ]
-
-            self.run_test(
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "percentile(transaction.duration,.95)",
-                f"release:{version}",
-                expected_conditions,
-                entity_extra_fields={"org_id": self.organization.id},
-                aggregate_kwargs={"metric_id": metric_id},
-                granularity=60,
-                use_none_clauses=True,
-            )
-
-    def test_user_query(self):
+    def test_user_query(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
@@ -965,7 +959,10 @@ class BuildSnqlQueryTest(TestCase):
                     Condition(
                         Function(
                             function="ifNull",
-                            parameters=[Column(name="tags[sentry:user]", entity=entity), ""],
+                            parameters=[
+                                Column(name="tags[sentry:user]", entity=entity),
+                                "",
+                            ],
                         ),
                         Op.EQ,
                         "anengineer@work.io",
@@ -982,7 +979,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_user_query_performance_transactions(self):
+    def test_user_query_performance_transactions(self) -> None:
         expected_conditions = [
             Condition(Column("user"), Op.EQ, "anengineer@work.io"),
             Condition(Column("project_id"), Op.IN, [self.project.id]),
@@ -995,42 +992,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_tag_query_performance_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            # Note: We don't support user queries on the performance metrics dataset, so using a
-            # different tag here.
-            metric_id = resolve(
-                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
-            )
-            tag_key = "some_tag"
-            tag_value = "some_value"
-            perf_indexer_record(self.organization.id, tag_key)
-            perf_indexer_record(self.organization.id, tag_value)
-
-            expected_conditions = [
-                Condition(Column("org_id"), Op.EQ, self.organization.id),
-                Condition(Column("project_id"), Op.IN, [self.project.id]),
-                Condition(
-                    Column(resolve_tag_key(UseCaseID.TRANSACTIONS, self.organization.id, tag_key)),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseID.TRANSACTIONS, self.organization.id, tag_value),
-                ),
-                Condition(Column("metric_id"), Op.IN, [metric_id]),
-            ]
-
-            self.run_test(
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "p95()",
-                f"{tag_key}:{tag_value}",
-                expected_conditions,
-                entity_extra_fields={"org_id": self.organization.id},
-                aggregate_kwargs={"metric_id": metric_id},
-                granularity=60,
-                use_none_clauses=True,
-            )
-
-    def test_boolean_query(self):
+    def test_boolean_query(self) -> None:
         self.create_release(self.project, version="something")
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
@@ -1075,7 +1037,7 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_event_types(self):
+    def test_event_types(self) -> None:
         self.create_release(self.project, version="something")
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
@@ -1131,7 +1093,7 @@ class BuildSnqlQueryTest(TestCase):
             },
         )
 
-    def test_issue_id_snql(self):
+    def test_issue_id_snql(self) -> None:
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
@@ -1154,236 +1116,9 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_simple_sessions_for_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            org_id = self.organization.id
-            for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
-                rh_indexer_record(org_id, tag)
-            expected_conditions = [
-                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-                Condition(
-                    Column(
-                        name=resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                        )
-                    ),
-                    Op.IN,
-                    [
-                        resolve_tag_value(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
-                        ),
-                        resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
-                    ],
-                ),
-                Condition(
-                    Column(name="metric_id"),
-                    Op.IN,
-                    [
-                        resolve(
-                            UseCaseKey.RELEASE_HEALTH,
-                            self.organization.id,
-                            SessionMRI.RAW_SESSION.value,
-                        )
-                    ],
-                ),
-            ]
-            self.run_test(
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-                "",
-                expected_conditions,
-                entity_extra_fields={"org_id": self.organization.id},
-                granularity=10,
-                use_none_clauses=True,
-                aggregate_kwargs={"metric_mri": SessionMRI.RAW_SESSION.value},
-            )
-
-    def test_simple_users_for_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            org_id = self.organization.id
-            for tag in [SessionMRI.RAW_USER.value, "session.status", "crashed"]:
-                rh_indexer_record(org_id, tag)
-
-            expected_conditions = [
-                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-                Condition(
-                    Column(name="metric_id"),
-                    Op.IN,
-                    [
-                        resolve(
-                            UseCaseKey.RELEASE_HEALTH,
-                            self.organization.id,
-                            SessionMRI.RAW_USER.value,
-                        )
-                    ],
-                ),
-            ]
-            self.run_test(
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-                "",
-                expected_conditions,
-                entity_extra_fields={"org_id": self.organization.id},
-                granularity=10,
-                use_none_clauses=True,
-                aggregate_kwargs={"metric_mri": SessionMRI.RAW_USER.value},
-            )
-
-    def test_query_and_environment_sessions_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            env = self.create_environment(self.project, name="development")
-            org_id = self.organization.id
-            for tag in [
-                SessionMRI.RAW_SESSION.value,
-                "session.status",
-                "environment",
-                "development",
-                "init",
-                "crashed",
-                "release",
-                "ahmed@12.2",
-            ]:
-                rh_indexer_record(org_id, tag)
-
-            expected_conditions = [
-                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-                Condition(
-                    Column(
-                        name=resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "release"
-                        )
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"
-                    ),
-                ),
-                Condition(
-                    Column(
-                        resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
-                        )
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
-                ),
-                Condition(
-                    Column(
-                        name=resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                        )
-                    ),
-                    Op.IN,
-                    [
-                        resolve_tag_value(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
-                        ),
-                        resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
-                    ],
-                ),
-                Condition(
-                    Column(name="metric_id"),
-                    Op.IN,
-                    [
-                        resolve(
-                            UseCaseKey.RELEASE_HEALTH,
-                            self.organization.id,
-                            SessionMRI.RAW_SESSION.value,
-                        )
-                    ],
-                ),
-            ]
-            self.run_test(
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-                "release:ahmed@12.2",
-                expected_conditions,
-                environment=env,
-                entity_extra_fields={"org_id": self.organization.id},
-                granularity=10,
-                use_none_clauses=True,
-                aggregate_kwargs={
-                    "metric_mri": SessionMRI.RAW_SESSION.value,
-                },
-            )
-
-    def test_query_and_environment_users_metrics(self):
-        with Feature("organizations:custom-metrics"):
-            env = self.create_environment(self.project, name="development")
-            org_id = self.organization.id
-            for tag in [
-                SessionMRI.RAW_USER.value,
-                "session.status",
-                "environment",
-                "development",
-                "init",
-                "crashed",
-                "release",
-                "ahmed@12.2",
-            ]:
-                rh_indexer_record(org_id, tag)
-
-            expected_conditions = [
-                Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-                Condition(
-                    Column(
-                        name=resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "release"
-                        )
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"
-                    ),
-                ),
-                Condition(
-                    Column(
-                        resolve_tag_key(
-                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
-                        )
-                    ),
-                    Op.EQ,
-                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
-                ),
-                Condition(
-                    Column(name="metric_id"),
-                    Op.IN,
-                    [
-                        resolve(
-                            UseCaseKey.RELEASE_HEALTH,
-                            self.organization.id,
-                            SessionMRI.RAW_USER.value,
-                        )
-                    ],
-                ),
-            ]
-            self.run_test(
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-                "release:ahmed@12.2",
-                expected_conditions,
-                environment=env,
-                entity_extra_fields={
-                    "org_id": self.organization.id,
-                },
-                granularity=10,
-                use_none_clauses=True,
-                aggregate_kwargs={
-                    "metric_mri": SessionMRI.RAW_USER.value,
-                },
-            )
-
 
 class TestApplyDatasetQueryConditions(TestCase):
-    def test_no_event_types_no_discover(self):
+    def test_no_event_types_no_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, False)
             == "(event.type:error) AND (release:123)"
@@ -1405,7 +1140,7 @@ class TestApplyDatasetQueryConditions(TestCase):
             == "release:123 OR release:456"
         )
 
-    def test_no_event_types_discover(self):
+    def test_no_event_types_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(SnubaQuery.Type.ERROR, "release:123", None, True)
             == "(event.type:error) AND (release:123)"
@@ -1427,10 +1162,13 @@ class TestApplyDatasetQueryConditions(TestCase):
             == "(event.type:transaction) AND (release:123 OR release:456)"
         )
 
-    def test_event_types_no_discover(self):
+    def test_event_types_no_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(
-                SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], False
+                SnubaQuery.Type.ERROR,
+                "release:123",
+                [SnubaQueryEventType.EventType.ERROR],
+                False,
             )
             == "(event.type:error) AND (release:123)"
         )
@@ -1438,7 +1176,10 @@ class TestApplyDatasetQueryConditions(TestCase):
             apply_dataset_query_conditions(
                 SnubaQuery.Type.ERROR,
                 "release:123",
-                [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+                [
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
                 False,
             )
             == "(event.type:error OR event.type:default) AND (release:123)"
@@ -1462,10 +1203,13 @@ class TestApplyDatasetQueryConditions(TestCase):
             == "release:123"
         )
 
-    def test_event_types_discover(self):
+    def test_event_types_discover(self) -> None:
         assert (
             apply_dataset_query_conditions(
-                SnubaQuery.Type.ERROR, "release:123", [SnubaQueryEventType.EventType.ERROR], True
+                SnubaQuery.Type.ERROR,
+                "release:123",
+                [SnubaQueryEventType.EventType.ERROR],
+                True,
             )
             == "(event.type:error) AND (release:123)"
         )
@@ -1473,7 +1217,10 @@ class TestApplyDatasetQueryConditions(TestCase):
             apply_dataset_query_conditions(
                 SnubaQuery.Type.ERROR,
                 "release:123",
-                [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT],
+                [
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
                 True,
             )
             == "(event.type:error OR event.type:default) AND (release:123)"
@@ -1516,7 +1263,7 @@ class SubscriptionCheckerTest(TestCase):
             QuerySubscription.objects.filter(id=sub.id).update(date_updated=date_updated)
         return sub
 
-    def test_create_update(self):
+    def test_create_update(self) -> None:
         for status in (
             QuerySubscription.Status.CREATING,
             QuerySubscription.Status.UPDATING,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from rest_framework.request import Request
@@ -16,6 +18,31 @@ environment_visibility_filter_options = {
     "hidden": lambda queryset: queryset.filter(is_hidden=True),
     "visible": lambda queryset: queryset.exclude(is_hidden=True),
 }
+
+
+def get_environment(request: Request, organization_id: int) -> Environment | None:
+    environment_param = request.GET.get("environment")
+    if environment_param is None:
+        return None
+    else:
+        return Environment.get_for_organization_id(
+            name=environment_param, organization_id=organization_id
+        )
+
+
+def get_environment_id(request: Request, organization_id: int) -> int | None:
+    environment = get_environment(request, organization_id)
+    return environment.id if environment is not None else None
+
+
+def get_environment_func(
+    request: Request, organization_id: int
+) -> Callable[[], Environment | None]:
+    @functools.cache
+    def environment_func() -> Environment | None:
+        return get_environment(request, organization_id)
+
+    return environment_func
 
 
 def get_environments(

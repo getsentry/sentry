@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from typing import Any, ClassVar, Self
 
 from django.db import models
@@ -31,7 +31,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
     # but still allows them to re-join without request
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(db_default=True)
     role = models.CharField(max_length=32, null=True, blank=True)
 
     class Meta:
@@ -95,9 +95,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
                 return team_role
         return minimum_role
 
-    def get_scopes(
-        self, team_roles_cache: MutableMapping[int, bool] | None = None
-    ) -> frozenset[str]:
+    def get_scopes(self, team_roles_cache: dict[int, bool] | None = None) -> frozenset[str]:
         """Get the scopes belonging to this member's team-level role."""
         if team_roles_cache is None:
             team_roles_cache = {}

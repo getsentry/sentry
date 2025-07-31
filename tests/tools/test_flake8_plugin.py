@@ -57,10 +57,10 @@ def bad_code():
 
     errors = _run(S003_py)
     assert errors == [
-        "t.py:1:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:2:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:3:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:4:0: S003 Use ``from sentry.utils import json`` instead.",
+        "t.py:1:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:2:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:3:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:4:0: S003 Use `from sentry.utils import json` instead.",
     ]
 
 
@@ -133,6 +133,23 @@ import sentry.testutils.outbox as outbox_utils
     ]
 
 
+def test_s008():
+    src = """\
+from dateutil.parser import parse
+"""
+    # no errors in source
+    assert _run(src, filename="src/sentry/example.py") == []
+
+    # errors in tests
+    tests1 = _run(src, filename="tests/test_example.py")
+    tests2 = _run(src, filename="src/sentry/testutils/example.py")
+    assert (
+        tests1
+        == tests2
+        == ["t.py:1:0: S008 Use datetime.fromisoformat rather than guessing at date formats"]
+    )
+
+
 def test_S009():
     src = """\
 try:
@@ -196,3 +213,30 @@ class Test(ApiTestCase):
         "t.py:19:27: S011 Use override_options(...) instead to ensure proper cleanup",
     ]
     assert _run(src, filename="tests/test_example.py") == expected
+
+
+def test_S012():
+    src = """\
+from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_METHODS
+"""
+
+    expected = [
+        "t.py:1:0: S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+    ]
+    assert _run(src) == expected
+
+
+def test_S013():
+    src = """\
+from sentry.db.models.fields.array import ArrayField
+"""
+    expected = ["t.py:1:0: S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"]
+    assert _run(src) == expected
+
+
+def test_S014():
+    src = """\
+def test(monkeypatch): pass
+"""
+    expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
+    assert _run(src) == expected

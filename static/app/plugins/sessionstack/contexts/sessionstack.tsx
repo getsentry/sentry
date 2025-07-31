@@ -1,5 +1,6 @@
 import {Component} from 'react';
 
+import {Button} from 'sentry/components/core/button';
 import {uniqueId} from 'sentry/utils/guid';
 
 const ASPECT_RATIO = 16 / 9;
@@ -22,18 +23,18 @@ class SessionStackContextType extends Component<Props, State> {
   };
 
   componentDidMount() {
-    window.addEventListener('resize', () => this.setIframeSize(), false);
+    window.addEventListener('resize', this.setIframeSize, false);
     this.setIframeSize();
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', () => this.setIframeSize(), false);
+    window.removeEventListener('resize', this.setIframeSize, false);
   }
   iframeContainerId = uniqueId();
 
   getTitle = () => 'SessionStack';
 
-  setIframeSize() {
+  setIframeSize = () => {
     const parentNode = document.getElementById(this.iframeContainerId)?.parentElement;
     if (!this.state.showIframe || !parentNode) {
       return;
@@ -45,7 +46,7 @@ class SessionStackContextType extends Component<Props, State> {
       width: parentWidth,
       height: parentWidth / ASPECT_RATIO,
     });
-  }
+  };
 
   playSession() {
     this.setState({
@@ -72,13 +73,9 @@ class SessionStackContextType extends Component<Props, State> {
             height={this.state.height}
           />
         ) : (
-          <button
-            className="btn btn-default"
-            type="button"
-            onClick={() => this.playSession()}
-          >
+          <Button type="button" onClick={() => this.playSession()}>
             Play session
-          </button>
+          </Button>
         )}
       </div>
     );

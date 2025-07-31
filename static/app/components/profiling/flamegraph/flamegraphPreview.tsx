@@ -217,7 +217,7 @@ export function FlamegraphPreview({
     setConfigSpaceCursor(null);
   }, []);
 
-  const canvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -257,7 +257,6 @@ export function FlamegraphPreview({
           flamegraphCanvas={flamegraphCanvas}
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
-          canvasBounds={canvasBounds}
           platform={undefined}
         />
       ) : null}
@@ -331,8 +330,8 @@ export function computePreviewConfigView(
       }
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]!);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 

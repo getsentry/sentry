@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,38 +22,34 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {
-  MetricsFields,
-  type MetricsResponse,
   ModuleName,
+  SpanFields,
   SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsResponse,
+  type SpanResponse,
 } from 'sentry/views/insights/types';
 
-const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
-const {TRANSACTION_DURATION} = MetricsFields;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_MISS_RATE, EPM} = SpanFunction;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'project'
   | 'project.id'
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
   | 'avg(cache.item_size)'
 > &
-  Pick<MetricsResponse, 'avg(transaction.duration)'>;
+  Pick<SpanResponse, 'avg(span.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'cache_miss_rate()'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
   | 'project'
-  | 'avg(transaction.duration)'
+  | 'avg(span.duration)'
   | 'avg(cache.item_size)'
 >;
 
@@ -68,18 +65,18 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${CACHE_ITEM_SIZE})`,
-    name: DataTitles[`avg(${CACHE_ITEM_SIZE})`],
+    key: `avg(${SpanFields.CACHE_ITEM_SIZE})`,
+    name: DataTitles[`avg(${SpanFields.CACHE_ITEM_SIZE})`],
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `${SPM}()`,
+    key: `${EPM}()`,
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${TRANSACTION_DURATION})`,
-    name: DataTitles[`avg(${TRANSACTION_DURATION})`],
+    key: `avg(${SpanFields.SPAN_DURATION})`,
+    name: DataTitles['avg(transaction.duration)'],
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -88,16 +85,16 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `${TIME_SPENT_PERCENTAGE}()`,
+    key: `sum(span.self_time)`,
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
 const SORTABLE_FIELDS = [
-  `${SPM}()`,
+  `${EPM}()`,
   `${CACHE_MISS_RATE}()`,
-  `${TIME_SPENT_PERCENTAGE}()`,
+  `sum(span.self_time)`,
   `avg(${CACHE_ITEM_SIZE})`,
 ] as const;
 
@@ -129,7 +126,7 @@ export function TransactionsTable({
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const theme = useTheme();
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -160,7 +157,7 @@ export function TransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
 
@@ -184,7 +181,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     return (
@@ -207,5 +205,6 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }

@@ -3,7 +3,7 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import useProjects from 'sentry/utils/useProjects';
 import type {
   TrendChangeType,
@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/performance/trends/utils';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
-export type TrendsRequest = {
+type TrendsRequest = {
   eventView: Partial<TrendView>;
   projects: Project[];
   trendChangeType?: TrendChangeType;
@@ -49,7 +49,7 @@ type EventProps = RequestProps & {
   children: (props: EventChildrenProps) => React.ReactNode;
 };
 
-export function getTrendsRequestPayload(props: RequestProps) {
+function getTrendsRequestPayload(props: RequestProps) {
   const {eventView, projects} = props;
   const apiPayload: TrendsQuery = eventView?.getEventsAPIPayload(props.location);
   const trendFunction = getCurrentTrendFunction(props.location, props.trendFunctionField);

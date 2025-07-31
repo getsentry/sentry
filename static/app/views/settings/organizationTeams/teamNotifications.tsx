@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 const DOCS_LINK =
   'https://docs.sentry.io/product/integrations/notification-incidents/slack/#team-notifications';
@@ -77,7 +77,29 @@ function TeamNotificationSettingsPanel({
 
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
-  return externalTeams.map(externalTeam => (
+  const hasValidIntegration = externalTeams.some(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  if (!hasValidIntegration) {
+    return (
+      <EmptyMessage>
+        <div>{t('No teams have been linked yet.')}</div>
+        <NotDisabledSubText>
+          {tct('Head over to Slack and type [code] to get started. [link].', {
+            code: <code>/sentry link team</code>,
+            link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
+          })}
+        </NotDisabledSubText>
+      </EmptyMessage>
+    );
+  }
+
+  const filteredExternalTeams = externalTeams.filter(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  return filteredExternalTeams.map(externalTeam => (
     <FormFieldWrapper key={externalTeam.id}>
       <StyledFormField
         disabled
@@ -198,7 +220,7 @@ function TeamNotificationSettings() {
       <SentryDocumentTitle
         title={t('%s Team Notification Settings', `#${params.teamId}`)}
       />
-      <PermissionAlert access={['team:write']} team={team} />
+      <ProjectPermissionAlert access={['team:write']} team={team} />
       <Panel>
         <PanelHeader>{t('Notifications')}</PanelHeader>
         <PanelBody>

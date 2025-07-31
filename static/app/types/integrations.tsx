@@ -1,4 +1,4 @@
-import type {AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/core/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {
   DISABLED as DISABLED_STATUS,
@@ -138,7 +138,12 @@ export type PullRequest = {
 /**
  * Sentry Apps
  */
-export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
+export type SentryAppStatus =
+  | 'unpublished'
+  | 'published'
+  | 'internal'
+  | 'publish_request_inprogress'
+  | 'deletion_in_progress';
 
 export type SentryAppSchemaIssueLink = {
   create: {
@@ -159,6 +164,21 @@ export type SentryAppSchemaStacktraceLink = {
   uri: string;
   url: string;
   params?: string[];
+};
+
+type SentryAppSchemaAlertRuleAction = {
+  settings: SentryAppSchemaAlertRuleActionSettings;
+  title: string;
+  type: 'alert-rule-action';
+};
+
+type SentryAppSchemaAlertRuleActionSettings = {
+  description: string;
+  // a list of FormFields
+  required_fields: any[];
+  type: 'alert-rule-settings';
+  uri: string;
+  optional_fields?: any[];
 };
 
 export enum Coverage {
@@ -190,13 +210,14 @@ export interface StacktraceLinkResult {
   sourceUrl?: string;
 }
 
-export type StacktraceErrorMessage =
+type StacktraceErrorMessage =
   | 'file_not_found'
   | 'stack_root_mismatch'
   | 'integration_link_forbidden';
 
 export type SentryAppSchemaElement =
   | SentryAppSchemaIssueLink
+  | SentryAppSchemaAlertRuleAction
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
@@ -218,7 +239,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
-  avatars?: Avatar[];
+  avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
   // optional params below
@@ -267,6 +288,12 @@ export type SentryAppComponent<
   error?: string | boolean;
 };
 
+export type SentryAppAvatar = Avatar & {
+  photoType: SentryAppAvatarPhotoType;
+};
+
+export type SentryAppAvatarPhotoType = 'icon' | 'logo';
+
 export type SentryAppWebhookRequest = {
   date: string;
   eventType: string;
@@ -275,6 +302,7 @@ export type SentryAppWebhookRequest = {
   webhookUrl: string;
   errorUrl?: string;
   organization?: {
+    id: string;
     name: string;
     slug: string;
   };
@@ -352,7 +380,7 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
   setupDialog: {height: number; url: string; width: number};
 }
 
-export interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
+interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
   aspects: IntegrationAspects;
 }
 
@@ -560,12 +588,18 @@ export type CodeownersFile = {
   raw: string;
 };
 
-export type FilesByRepository = {
-  [repoName: string]: {
-    authors?: {[email: string]: CommitAuthor};
-    types?: Set<string>;
-  };
-};
+type RepoName = string;
+type FileName = string;
+export type FilesByRepository = Record<
+  RepoName,
+  Record<
+    FileName,
+    {
+      authors?: Record<string, CommitAuthor>;
+      types?: Set<string>;
+    }
+  >
+>;
 
 interface BaseRepositoryProjectPathConfig {
   id: string;
@@ -583,7 +617,7 @@ export interface RepositoryProjectPathConfig extends BaseRepositoryProjectPathCo
   provider: BaseIntegrationProvider | null;
 }
 
-export interface RepositoryProjectPathConfigWithIntegration
+interface RepositoryProjectPathConfigWithIntegration
   extends BaseRepositoryProjectPathConfig {
   integrationId: string;
   provider: BaseIntegrationProvider;

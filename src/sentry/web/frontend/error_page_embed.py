@@ -12,7 +12,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from sentry import eventstore
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -190,7 +191,7 @@ class ErrorPageEmbedView(View):
                 if report.group_id:
                     report.notify()
 
-            user_feedback_received.send(
+            user_feedback_received.send_robust(
                 project=Project.objects.get(id=report.project_id),
                 sender=self,
             )

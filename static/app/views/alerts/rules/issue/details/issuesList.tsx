@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -19,6 +19,7 @@ import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type GroupHistory = {
   count: number;
@@ -85,7 +86,10 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
           const path =
             (issue as unknown as FeedbackIssue).issueType === 'feedback'
               ? {
-                  pathname: `/organizations/${organization.slug}/feedback/`,
+                  pathname: makeFeedbackPathname({
+                    path: '/',
+                    organization,
+                  }),
                   query: {feedbackSlug: `${issue.project.slug}:${issue.id}`},
                 }
               : {
@@ -136,7 +140,7 @@ export default AlertRuleIssuesList;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1.5)};
 
   ${p =>

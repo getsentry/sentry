@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from sentry_relay.processing import normalize_project_config
@@ -20,8 +20,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
-from sentry.relay.config import ProjectConfig, get_project_config
-from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
+from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -214,7 +213,7 @@ def test_project_config_uses_filter_features(
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
-def test_project_config_exposed_features(default_project):
+def test_project_config_exposed_features(default_project: MagicMock) -> None:
     with Feature({"organizations:profiling": True}):
         project_cfg = get_project_config(default_project)
 
@@ -227,7 +226,7 @@ def test_project_config_exposed_features(default_project):
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
-def test_project_config_exposed_features_raise_exc(default_project):
+def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -> None:
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
             get_project_config(default_project)
@@ -644,22 +643,6 @@ def test_healthcheck_filter(default_project, health_check_set):
 
 
 @django_db_all
-@region_silo_test
-def test_with_blocked_metrics(default_project):
-    block_metric("g:custom/*@millisecond", [default_project])
-    block_tags_of_metric("c:custom/page_click@none", {"release", "transaction"}, [default_project])
-
-    project_config = get_project_config(default_project)
-    config = project_config.to_dict()["config"]
-    _validate_project_config(config)
-
-    config = config["metrics"]
-
-    assert len(config["deniedNames"]) == 1
-    assert len(config["deniedTags"]) == 1
-
-
-@django_db_all
 def test_alert_metric_extraction_rules_empty(default_project):
     features = {
         "organizations:transaction-metrics-extraction": True,
@@ -1023,6 +1006,7 @@ def test_mobile_performance_calculate_score(default_project):
 @pytest.mark.parametrize("passive", [False, True])
 def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
             {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
         ],
@@ -1050,7 +1034,6 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
                 "transactions",
                 "spans",
                 "profiles",
-                "custom",
             ]
         }
 
@@ -1117,6 +1100,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
 @region_silo_test
 def test_project_config_cardinality_limits_project_options_override_other_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1184,6 +1168,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
 @region_silo_test
 def test_project_config_cardinality_limits_organization_options_override_options(default_project):
     options: dict[Any, Any] = {
+        "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.sessions.per-org": None,
         "sentry-metrics.cardinality-limiter.limits.spans.per-org": None,
@@ -1235,9 +1220,64 @@ def test_project_config_cardinality_limits_organization_options_override_options
 
 @django_db_all
 @region_silo_test
-@override_options({"relay.emit-generic-inbound-filters": True})
 def test_project_config_with_generic_filters(default_project):
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
 
     assert config["config"]["filterSettings"]["generic"]["filters"]
+
+
+@django_db_all
+@region_silo_test
+@mock.patch("sentry.relay.config.get_transaction_names_config")
+def test_project_config_with_transaction_name_clustering_disabled(
+    mock_get_transaction_name_config, default_project
+):
+    mock_get_transaction_name_config.return_value = [
+        TransactionNameRule(
+            pattern="dummy_rule",
+            expiry="2999-05-26T00:00:00Z",
+            redaction={"method": "replace", "substitution": "*"},
+        )
+    ]
+
+    # clustering is enabled (by default)
+    config = get_project_config(default_project).to_dict()
+    mock_get_transaction_name_config.assert_called_once()
+    _validate_project_config(config["config"])
+    assert "txNameRules" in config["config"]
+
+    # clustering is disabled (via explicit option)
+    with Feature({"projects:transaction-name-clustering-disabled": True}):
+        config = get_project_config(default_project).to_dict()
+        _validate_project_config(config["config"])
+        assert "txNameRules" not in config["config"]
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("feature_enabled", [True, False])
+@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
+def test_project_config_trusted_relay_settings(
+    default_project, feature_enabled, project_option_value
+):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", project_option_value
+    )
+
+    features_dict = {}
+    if feature_enabled:
+        features_dict["organizations:ingest-through-trusted-relays-only"] = True
+
+    with Feature(features_dict):
+        config = get_project_config(default_project).to_dict()
+
+        trusted_relay_settings = config["config"].get("trustedRelaySettings")
+
+        if feature_enabled:
+            # trustedRelaySettings should be present
+            assert trusted_relay_settings is not None
+            assert trusted_relay_settings["verifySignature"] == project_option_value
+        else:
+            # trustedRelaySettings should not be present
+            assert trusted_relay_settings is None

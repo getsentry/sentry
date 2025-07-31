@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -12,6 +13,8 @@ import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+
+const theme = ThemeFixture();
 
 describe('ErrorsConfig', function () {
   describe('getCustomFieldRenderer', function () {
@@ -38,18 +41,22 @@ describe('ErrorsConfig', function () {
     it('links trace ids to performance', async function () {
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('trace', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {trace: 'abcd'},
           {
             organization,
             location: router.location,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'trace'}],
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
       await userEvent.click(await screen.findByText('abcd'));
       expect(router.push).toHaveBeenCalledWith({
@@ -66,11 +73,12 @@ describe('ErrorsConfig', function () {
       const project = ProjectFixture();
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('id', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {id: 'defg', 'project.name': project.slug},
           {
             organization,
             location: router.location,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'id'}],
@@ -78,7 +86,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('defg'));

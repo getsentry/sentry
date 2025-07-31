@@ -1,9 +1,10 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.exceptions import PluginError
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -18,7 +19,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization()
         repo = Repository.objects.create(
             organization_id=org.id,
@@ -74,7 +75,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert not PullRequestComment.objects.filter(id=comment.id).exists()
         assert Commit.objects.filter(id=commit2.id).exists()
 
-    def test_codeowners(self):
+    def test_codeowners(self) -> None:
         org = self.create_organization(owner=self.user)
         self.integration, org_integration = self.create_provider_integration_for(
             org, self.user, provider="github", name="Example", external_id="abcd"
@@ -110,7 +111,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert not RepositoryProjectPathConfig.objects.filter(id=path_config.id).exists()
         assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
 
-    def test_no_delete_visible(self):
+    def test_no_delete_visible(self) -> None:
         org = self.create_organization()
         repo = Repository.objects.create(
             organization_id=org.id, provider="dummy", name="example/example"
@@ -122,7 +123,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert Repository.objects.filter(id=repo.id).exists()
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
-    def test_delete_fail_email(self, mock_delete_repo):
+    def test_delete_fail_email(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = PluginError("foo")
 
         org = self.create_organization()
@@ -145,7 +146,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Repository.objects.filter(id=repo.id).exists()
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
-    def test_delete_fail_email_random(self, mock_delete_repo):
+    def test_delete_fail_email_random(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = Exception("secrets")
 
         org = self.create_organization()
@@ -167,7 +168,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert "secrets" not in msg.body
         assert not Repository.objects.filter(id=repo.id).exists()
 
-    def test_botched_deletion(self):
+    def test_botched_deletion(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             provider="dummy",
@@ -177,7 +178,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         # Left over from a botched deletion.
         OrganizationOption.objects.create(
             organization_id=self.organization.id,
-            key=repo.build_pending_deletion_key(),
+            key=build_pending_deletion_key(repo),
             value="",
         )
 

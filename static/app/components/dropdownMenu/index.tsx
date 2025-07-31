@@ -7,7 +7,6 @@ import {Item, Section} from '@react-stately/collections';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
-import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -19,13 +18,16 @@ export type {MenuItemProps};
 
 /**
  * Recursively removes hidden items, including those nested in submenus
+ * Apply href to items that have a to or externalHref prop
  */
-function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
+function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
   return source
     .filter(item => !item.hidden)
     .map(item => ({
       ...item,
-      ...(item.children ? {children: removeHiddenItems(item.children)} : {}),
+      // react-aria uses the href prop on item state to determine if the item is a link
+      href: item.to ?? item.externalHref,
+      ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
     }));
 }
 
@@ -65,6 +67,7 @@ export interface DropdownMenuProps
       | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
+      | 'shouldApplyMinWidth'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -83,11 +86,15 @@ export interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
+  /**
+   * Minimum menu width
+   */
+  minMenuWidth?: number;
   /**
    * Reference to the container element that the portal should be rendered into.
    */
-  portalContainerRef?: React.RefObject<HTMLElement>;
+  portalContainerRef?: React.RefObject<HTMLElement | null>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -95,7 +102,7 @@ export interface DropdownMenuProps
   /**
    * Affects the size of the trigger button and menu items.
    */
-  size?: FormSize;
+  size?: DropdownMenuListProps['size'];
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in
@@ -117,7 +124,6 @@ export interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
-
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -155,6 +161,8 @@ function DropdownMenu({
   preventOverflowOptions,
   flipOptions,
   portalContainerRef,
+  shouldApplyMinWidth,
+  minMenuWidth,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -179,6 +187,7 @@ function DropdownMenu({
     preventOverflowOptions,
     flipOptions,
     onOpenChange,
+    shouldApplyMinWidth,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -215,7 +224,7 @@ function DropdownMenu({
     );
   }
 
-  const activeItems = useMemo(() => removeHiddenItems(items), [items]);
+  const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
@@ -229,7 +238,13 @@ function DropdownMenu({
         {...menuProps}
         size={size}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
-        overlayPositionProps={overlayProps}
+        overlayPositionProps={{
+          ...overlayProps,
+          style: {
+            ...overlayProps.style,
+            minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
+          },
+        }}
         overlayState={overlayState}
         items={activeItems}
       >
@@ -238,7 +253,7 @@ function DropdownMenu({
             return (
               <Section key={item.key} title={item.label} items={item.children}>
                 {sectionItem => (
-                  <Item size={size} {...sectionItem}>
+                  <Item size={size} {...sectionItem} key={sectionItem.key}>
                     {sectionItem.label}
                   </Item>
                 )}

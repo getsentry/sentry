@@ -17,9 +17,6 @@ inputs:
     default: 'default'
 
 outputs:
-  yarn-cache-dir:
-    description: 'Path to yarn cache'
-    value: ${{ steps.config.outputs.yarn-cache-dir }}
   matrix-instance-number:
     description: 'The matrix instance number (starting at 1)'
     value: ${{ steps.config.outputs.matrix-instance-number }}
@@ -82,7 +79,7 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
-    - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+    - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
@@ -94,7 +91,6 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       run: |
-        echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
         echo "matrix-instance-total=$((${MATRIX_INSTANCE_TOTAL:-}))" >> "$GITHUB_OUTPUT"
 

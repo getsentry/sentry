@@ -1,14 +1,12 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 
-interface Row {
-  [index: string]: number | undefined;
-}
+type Row = Record<string, number | undefined>;
 
 interface BreakdownGroup {
   color: string;
@@ -16,7 +14,7 @@ interface BreakdownGroup {
   name: string;
 }
 
-export function TooltipContents({
+function TooltipContents({
   row,
   total,
   breakdownGroups,
@@ -120,7 +118,7 @@ const StartupType = styled('div')`
 `;
 
 const StartupCount = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StartupName = styled('div')`

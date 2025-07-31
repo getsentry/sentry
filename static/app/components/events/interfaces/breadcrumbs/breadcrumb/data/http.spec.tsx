@@ -63,7 +63,11 @@ describe('Breadcrumb Data Http', function () {
           },
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('POST')).toBeInTheDocument();
@@ -95,7 +99,11 @@ describe('Breadcrumb Data Http', function () {
           data: null,
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();

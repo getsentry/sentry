@@ -1,12 +1,14 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {lightTheme} from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
 
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
@@ -46,7 +48,7 @@ describe('ReleaseSeries', function () {
     routes: router.routes,
     router,
     location: router.location,
-    theme: lightTheme,
+    theme,
   };
 
   it('does not fetch releases if releases is truthy', function () {

@@ -1,9 +1,7 @@
 from typing import Any
 
 import orjson
-from django.http import HttpResponse, HttpResponseRedirect
-from rest_framework import serializers
-from rest_framework.exceptions import ParseError
+from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,15 +11,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.organizations.absolute_url import generate_organization_url
-from sentry.profiles.utils import (
-    get_from_profiling_service,
-    parse_profile_filters,
-    proxy_profiling_service,
-)
+from sentry.profiles.utils import get_from_profiling_service, proxy_profiling_service
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
@@ -29,16 +21,6 @@ class ProjectProfilingBaseEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-
-    def get_profiling_params(self, request: Request, project: Project) -> dict[str, Any]:
-        try:
-            params: dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
-        except InvalidSearchQuery as err:
-            raise ParseError(detail=str(err))
-
-        params.update(self.get_filter_params(request, project))
-
-        return params
 
 
 @region_silo_endpoint
@@ -100,48 +82,17 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
         return proxy_profiling_service(**kwargs)
 
 
-class ProjectProfileEventSerializer(serializers.Serializer):
-    name = serializers.CharField(required=False)
-    package = serializers.CharField(required=False)
-
-    def validate(self, data):
-        if "name" not in data and "package" in data:
-            raise serializers.ValidationError("The package was specified with no name")
-
-        if "name" in data:
-            data["package"] = data.get("package", "")
-
-        return data
-
-
 @region_silo_endpoint
-class ProjectProfilingEventEndpoint(ProjectProfilingBaseEndpoint):
-    def convert_args(self, request: Request, *args, **kwargs):
-        # disables the auto conversion of project slug inherited from the
-        # project endpoint since this takes the project id instead of the slug
-        return (args, kwargs)
-
-    def get(self, request: Request, project_id, profile_id: str) -> HttpResponse:
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-        except Project.DoesNotExist:
-            return HttpResponse(status=404)
-
-        if not features.has("organizations:profiling", project.organization, actor=request.user):
+class ProjectProfilingRawChunkEndpoint(ProjectProfilingBaseEndpoint):
+    def get(
+        self, request: Request, project: Project, profiler_id: str, chunk_id: str
+    ) -> HttpResponse:
+        if not features.has(
+            "organizations:continuous-profiling", project.organization, actor=request.user
+        ):
             return Response(status=404)
-
-        serializer = ProjectProfileEventSerializer(data=request.GET)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-        data = serializer.validated_data
-
-        org_url = generate_organization_url(project.organization.slug)
-
-        redirect_url = f"{org_url}/profiling/profile/{project.slug}/{profile_id}/flamechart/"
-
-        if data:
-            name = data["name"]
-            package = data["package"]
-            redirect_url = f"{redirect_url}?frameName={name}&framePackage={package}"
-
-        return HttpResponseRedirect(redirect_url)
+        kwargs: dict[str, Any] = {
+            "method": "GET",
+            "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_chunks/{profiler_id}/{chunk_id}",
+        }
+        return proxy_profiling_service(**kwargs)

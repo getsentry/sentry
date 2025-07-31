@@ -47,7 +47,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   height: 100%;
   width: 100%;
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   transition: color 300ms;
   ${p => p.textCss?.(p)}
 `;
@@ -149,7 +149,7 @@ function PerformanceScoreRing({
         x={foreignObjectOffset}
         y={foreignObjectOffset}
       >
-        {text !== undefined ? <Text {...{textCss}}>{text}</Text> : null}
+        {text === undefined ? null : <Text {...{textCss}}>{text}</Text>}
       </foreignObject>
     </RingSvg>
   );
@@ -192,6 +192,3 @@ const RingBar = styled('circle')<{
 `;
 
 export default PerformanceScoreRing;
-
-// We export components to allow for css selectors
-export {RingBackground, RingBar, Text as RingText};

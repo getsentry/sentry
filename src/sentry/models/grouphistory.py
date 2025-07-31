@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -159,9 +159,11 @@ class GroupHistoryManager(BaseManager["GroupHistory"]):
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
-        assigned_groups = GroupAssignee.objects.filter(
-            Q(team=team) | Q(user_id__in=user_ids)
-        ).values_list("group_id", flat=True)
+        assigned_groups = (
+            GroupAssignee.objects.filter(team=team)
+            .union(GroupAssignee.objects.filter(user_id__in=user_ids))
+            .values_list("group_id", flat=True)
+        )
         return self.filter(
             project__in=project_list,
             group_id__in=assigned_groups,

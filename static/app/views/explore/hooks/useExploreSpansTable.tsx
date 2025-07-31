@@ -1,20 +1,25 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useExploreDataset,
   useExploreFields,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  type SpansRPCQueryExtras,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreSpansTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface SpansTableResult {
@@ -26,6 +31,29 @@ export function useExploreSpansTable({
   enabled,
   limit,
   query,
+}: UseExploreSpansTableOptions) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
+  return useProgressiveQuery<typeof useExploreSpansTableImp>({
+    queryHookImplementation: useExploreSpansTableImp,
+    queryHookArgs: {enabled, limit, query},
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
+  });
+}
+
+function useExploreSpansTableImp({
+  enabled,
+  limit,
+  query,
+  queryExtras,
 }: UseExploreSpansTableOptions): SpansTableResult {
   const {selection} = usePageFilters();
 
@@ -48,19 +76,12 @@ export function useExploreSpansTable({
       'timestamp',
     ];
 
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
       fields: queryFields,
       orderby: sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query: search.formatString(),
+      query,
       version: 2,
       dataset,
     };
@@ -76,6 +97,7 @@ export function useExploreSpansTable({
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
     trackResponseAnalytics: false,
+    queryExtras,
   });
 
   return useMemo(() => {

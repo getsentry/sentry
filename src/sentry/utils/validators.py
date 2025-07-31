@@ -25,5 +25,16 @@ def is_event_id(value):
     return normalize_event_id(value) is not None
 
 
+def is_event_id_or_list(value):
+    if isinstance(value, list):
+        return all(is_event_id(item) for item in value)
+    else:
+        return is_event_id(value)
+
+
 def is_span_id(value):
     return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
+
+
+def is_empty_string(value):
+    return force_str(value) == ""

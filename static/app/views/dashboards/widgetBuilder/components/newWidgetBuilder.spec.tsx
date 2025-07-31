@@ -11,12 +11,7 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 
 const {organization, projects, router} = initializeOrg({
   organization: {
-    features: [
-      'global-views',
-      'open-membership',
-      'dashboards-eap',
-      'dashboards-widget-builder-redesign',
-    ],
+    features: ['global-views', 'open-membership', 'visibility-explore-view'],
   },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -32,7 +27,7 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('NewWidgetBuiler', function () {
+describe('NewWidgetBuilder', function () {
   const onCloseMock = jest.fn();
   const onSaveMock = jest.fn();
 
@@ -54,6 +49,11 @@ describe('NewWidgetBuiler', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
       body: [],
     });
 
@@ -83,7 +83,7 @@ describe('NewWidgetBuiler', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
 
@@ -113,10 +113,11 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
-    expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+    expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Close Widget Builder')).toBeInTheDocument();
 
@@ -126,7 +127,7 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
-    expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Description')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -179,6 +180,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -207,6 +209,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -240,6 +243,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -259,10 +263,14 @@ describe('NewWidgetBuiler', function () {
         openWidgetTemplates
         setOpenWidgetTemplates={jest.fn()}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
-    expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
+    expect(await screen.findByText('Widget Library')).toBeInTheDocument();
 
     expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });

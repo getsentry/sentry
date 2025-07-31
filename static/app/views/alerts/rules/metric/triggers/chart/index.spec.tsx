@@ -1,4 +1,5 @@
 import {EventsStatsFixture} from 'sentry-fixture/events';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +10,10 @@ import {
   AlertRuleThresholdType,
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+const theme = ThemeFixture();
 
 describe('Incident Rules Create', () => {
   let eventStatsMock: jest.Func;
@@ -44,6 +49,7 @@ describe('Incident Rules Create', () => {
         anomalies={[]}
         location={router.location}
         organization={organization}
+        theme={theme}
         projects={[project]}
         query="event.type:error"
         timeWindow={1}
@@ -74,6 +80,7 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          dataset: 'errors',
         },
       })
     );
@@ -86,6 +93,7 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '9998m',
           environment: [],
+          dataset: 'errors',
         },
       })
     );
@@ -96,6 +104,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -128,6 +137,7 @@ describe('Incident Rules Create', () => {
           statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
+          dataset: 'errors',
         },
       })
     );
@@ -140,18 +150,18 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '9998m',
           environment: [],
+          dataset: 'errors',
         },
       })
     );
   });
 
   it('queries the errors dataset if dataset is errors', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {features: ['performance-discover-dataset-selector']},
-    });
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -204,60 +214,12 @@ describe('Incident Rules Create', () => {
     );
   });
 
-  it('queries custom metrics using the metricsEnhanced dataset and metrics layer', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {features: ['custom-metrics']},
-    });
+  it('uses normal sampling for span alerts', async () => {
+    const {organization, project, router} = initializeOrg();
 
     render(
       <TriggersChart
-        api={api}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        query=""
-        timeWindow={1}
-        aggregate="count(d:custom/my_metric@seconds)"
-        dataset={Dataset.GENERIC_METRICS}
-        triggers={[]}
-        environment={null}
-        comparisonType={AlertRuleComparisonType.COUNT}
-        resolveThreshold={null}
-        thresholdType={AlertRuleThresholdType.BELOW}
-        newAlertOrQuery
-        onDataLoaded={() => {}}
-        isQueryValid
-        showTotalCount
-      />
-    );
-
-    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
-    expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
-
-    expect(eventStatsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: {
-          interval: '1m',
-          project: [2],
-          query: '',
-          statsPeriod: '9998m',
-          yAxis: 'count(d:custom/my_metric@seconds)',
-          referrer: 'api.organization-event-stats',
-          forceMetricsLayer: 'true',
-          dataset: 'metricsEnhanced',
-        },
-      })
-    );
-  });
-
-  it('does a 7 day query for confidence data on the EAP dataset', async () => {
-    const {organization, project, router} = initializeOrg({
-      organization: {features: ['alerts-eap']},
-    });
-
-    render(
-      <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -275,7 +237,7 @@ describe('Incident Rules Create', () => {
         onDataLoaded={() => {}}
         isQueryValid
         showTotalCount
-        includeConfidence
+        traceItemType={TraceItemDataset.SPANS}
       />
     );
 
@@ -283,13 +245,18 @@ describe('Incident Rules Create', () => {
     expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
 
     expect(eventStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+      expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'spans',
-          statsPeriod: '9998m',
+        query: {
+          interval: '1m',
+          project: [2],
+          query: '',
+          statsPeriod: '14d',
           yAxis: 'count(span.duration)',
-        }),
+          referrer: 'api.organization-event-stats',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
+        },
       })
     );
   });

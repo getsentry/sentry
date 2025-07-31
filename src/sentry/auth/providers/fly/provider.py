@@ -8,6 +8,7 @@ from sentry import options
 from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 
@@ -17,18 +18,19 @@ from .views import FetchUser, FlyOAuth2Login, fly_configure_view
 
 class FlyOAuth2Provider(OAuth2Provider):
     name = SPONSOR_OAUTH_NAME[ChannelName.FLY_IO]
+    key = ChannelName.FLY_IO.value
     is_partner = True
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
 
-    def __init__(self, org=None, **config):
+    def __init__(self, org=None, **config) -> None:
         self.org = org
         super().__init__(**config)
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         return options.get("auth-fly.client-id")
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         return options.get("auth-fly.client-secret")
 
     def get_configure_view(
@@ -38,7 +40,7 @@ class FlyOAuth2Provider(OAuth2Provider):
         # Injected into the configuration form
         return fly_configure_view
 
-    def get_auth_pipeline(self):
+    def get_auth_pipeline(self) -> list[AuthView]:
         return [
             FlyOAuth2Login(client_id=self.get_client_id()),
             OAuth2Callback(
@@ -49,7 +51,7 @@ class FlyOAuth2Provider(OAuth2Provider):
             FetchUser(org=self.org),
         ]
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     @classmethod
@@ -100,4 +102,5 @@ class NonPartnerFlyOAuth2Provider(FlyOAuth2Provider):
     """
 
     name = SPONSOR_OAUTH_NAME[ChannelName.FLY_NON_PARTNER]
+    key = ChannelName.FLY_NON_PARTNER.value
     is_partner = False

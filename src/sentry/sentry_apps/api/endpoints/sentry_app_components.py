@@ -19,11 +19,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppCom
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.utils.errors import (
-    SentryAppError,
-    SentryAppIntegratorError,
-    SentryAppSentryError,
-)
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 
 logger = logging.getLogger("sentry.sentry_apps.components")
 
@@ -44,7 +40,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, errors=[], serializer=SentryAppComponentSerializer()
+                x, request.user, errors={}, serializer=SentryAppComponentSerializer()
             ),
         )
 
@@ -63,7 +59,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         components = []
-        errors = []
+        errors = {}
 
         with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
             with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
@@ -84,9 +80,12 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                     with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
-                        except (SentryAppIntegratorError, SentryAppError):
-                            errors.append(str(component.uuid))
-                        except (SentryAppSentryError, Exception) as e:
+
+                        except (SentryAppIntegratorError, SentryAppError) as e:
+                            errors[str(component.uuid)] = e.to_public_dict()
+
+                        except Exception as e:
+                            error_id = sentry_sdk.capture_exception(e)
                             logger.info(
                                 "component-preparation-error",
                                 exc_info=e,
@@ -96,10 +95,11 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                                     "installation_uuid": install.uuid,
                                 },
                             )
-                            errors.append(str(component.uuid))
+                            errors[str(component.uuid)] = {
+                                "detail": f"Something went wrong while trying to link issue for component: {str(component.uuid)}. Sentry error ID: {error_id}"
+                            }
 
                         components.append(component)
-
         return self.paginate(
             request=request,
             queryset=components,

@@ -1,6 +1,10 @@
 import chunk from 'lodash/chunk';
 
-import type {CheckInBucket as CheckInStats, JobTickData, RollupConfig} from '../types';
+import type {
+  CheckInBucket as CheckInStats,
+  JobTickData,
+  RollupConfig,
+} from 'sentry/components/checkInTimeline/types';
 
 import {getAggregateStatus} from './getAggregateStatus';
 import {isStatsBucketEmpty} from './isStatsBucketEmpty';
@@ -44,7 +48,7 @@ export function mergeBuckets<Status extends string>(
 
     const lastTickBigEnough = lastTick && lastTick.width >= MINIMUM_TICK_WIDTH;
 
-    const left = index * width;
+    const left = index * width - rollupConfig.underscanStartOffset;
 
     const startTs = currentGroup?.at(0)![0];
     const endTs = currentGroup.at(-1)![0] + interval;

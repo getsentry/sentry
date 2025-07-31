@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -10,11 +10,12 @@ from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -36,14 +37,14 @@ from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context, set_measurement
+from sentry.utils.sdk import bind_organization_context, set_span_attribute
 
 
 class NoProjects(Exception):
     pass
 
 
-class OrganizationPermission(SentryPermission):
+class OrganizationPermission(DemoSafePermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:write", "org:admin"],
@@ -57,7 +58,13 @@ class OrganizationPermission(SentryPermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.has_2fa():  # type: ignore[union-attr]
+        if request.user.is_authenticated and request.user.has_2fa():
+            return False
+
+        if request.user.is_authenticated and request.user.is_sentry_app:
+            return False
+
+        if request.user.is_anonymous:
             return False
 
         if is_active_superuser(request):
@@ -79,7 +86,7 @@ class OrganizationPermission(SentryPermission):
     def has_object_permission(
         self,
         request: Request,
-        view: object,
+        view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
@@ -106,7 +113,7 @@ class OrganizationAuditPermission(OrganizationPermission):
     def has_object_permission(
         self,
         request: Request,
-        view: object,
+        view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         if super().has_object_permission(request, view, organization):
@@ -212,21 +219,23 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
+class OrganizationDetectorPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
+        # grant org:read permission, but raise permission denied if the members aren't allowed
+        # to create alerts and the user isn't a team admin
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
+    }
+
+
 class OrgAuthTokenPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
-    }
-
-
-class OrganizationMetricsPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:write", "org:admin"],
-        "DELETE": ["org:admin"],
     }
 
 
@@ -304,14 +313,24 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         return (args, kwargs)
 
 
-class FilterParams(TypedDict, total=False):
+class FilterParams(TypedDict):
     start: datetime | None
     end: datetime | None
     project_id: list[int]
     project_objects: list[Project]
     organization_id: int
-    environment: list[str] | None
-    environment_objects: list[Environment] | None
+    environment: NotRequired[list[str]]
+    environment_objects: NotRequired[list[Environment]]
+
+
+class FilterParamsDateNotNull(TypedDict):
+    start: datetime
+    end: datetime
+    project_id: list[int]
+    project_objects: list[Project]
+    organization_id: int
+    environment: NotRequired[list[str]]
+    environment_objects: NotRequired[list[Environment]]
 
 
 def _validate_fetched_projects(
@@ -443,7 +462,7 @@ class OrganizationEndpoint(Endpoint):
 
             return [p for p in projects if proj_filter(p)]
 
-    def get_requested_project_ids_unchecked(self, request: Request | HttpRequest) -> set[int]:
+    def get_requested_project_ids_unchecked(self, request: HttpRequest) -> set[int]:
         """
         Returns the project ids that were requested by the request.
 
@@ -460,14 +479,35 @@ class OrganizationEndpoint(Endpoint):
     ) -> list[Environment]:
         return get_environments(request, organization)
 
+    @overload
     def get_filter_params(
         self,
         request: Request,
         organization: Organization | RpcOrganization,
-        date_filter_optional: bool = False,
         project_ids: list[int] | set[int] | None = None,
         project_slugs: list[str] | set[str] | None = None,
-    ) -> FilterParams:
+    ) -> FilterParamsDateNotNull: ...
+
+    @overload
+    def get_filter_params(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: list[int] | set[int] | None = None,
+        project_slugs: list[str] | set[str] | None = None,
+        *,
+        date_filter_optional: Literal[True],
+    ) -> FilterParams: ...
+
+    def get_filter_params(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: list[int] | set[int] | None = None,
+        project_slugs: list[str] | set[str] | None = None,
+        *,
+        date_filter_optional: bool = False,
+    ) -> FilterParams | FilterParamsDateNotNull:
         """
         Extracts common filter parameters from the request and returns them
         in a standard format.
@@ -529,7 +569,7 @@ class OrganizationEndpoint(Endpoint):
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
-        set_measurement("query.num_projects", len_projects)
+        set_span_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
             "start": start,

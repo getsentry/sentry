@@ -19,10 +19,10 @@ class CursorPoller {
 
   api = new Client();
   options: Options;
-  pollingEndpoint: string = '';
+  pollingEndpoint = '';
   timeoutId: number | null = null;
   lastRequest: Request | null = null;
-  active: boolean = true;
+  active = true;
 
   reqsWithoutData = 0;
 
@@ -81,7 +81,7 @@ class CursorPoller {
         }
 
         // if theres no data, nothing changes
-        if (!data || !data.length) {
+        if (!data?.length) {
           this.reqsWithoutData += 1;
           return;
         }

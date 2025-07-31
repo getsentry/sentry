@@ -1,5 +1,10 @@
-import { ActorFixture } from "sentry-fixture/actor";
-import { UptimeMonitorMode, UptimeMonitorStatus, UptimeRule } from "sentry/views/alerts/rules/uptime/types";
+import {ActorFixture} from 'sentry-fixture/actor';
+
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeMonitorMode,
+  UptimeMonitorStatus,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule {
   return {
@@ -19,5 +24,5 @@ export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule 
     body: null,
     traceSampling: false,
     ...params,
-  }
+  };
 }

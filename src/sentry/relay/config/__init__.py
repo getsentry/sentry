@@ -10,7 +10,11 @@ import sentry_sdk
 from sentry_sdk import capture_exception
 
 from sentry import features, killswitches, options, quotas, utils
-from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
+from sentry.constants import (
+    HEALTH_CHECK_GLOBS,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+    ObjectStatus,
+)
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -39,7 +43,6 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
-from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -49,13 +52,9 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:continuous-profiling-beta",
-    "organizations:continuous-profiling-beta-ingest",
-    "organizations:custom-metrics",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
     "organizations:profiling",
-    "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
@@ -65,11 +64,12 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
     "organizations:ourlogs-ingestion",
+    "organizations:ourlogs-meta-attributes",
     "organizations:view-hierarchy-scrubbing",
-    "projects:ourlogs-breadcrumb-extraction",
+    "organizations:performance-issues-spans",
+    "organizations:relay-playstation-ingestion",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -160,18 +160,17 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
-    if options.get("relay.emit-generic-inbound-filters"):
-        try:
-            # At the end we compute the generic inbound filters, which are inbound filters expressible with a
-            # conditional DSL that Relay understands.
-            generic_filters = get_generic_filters(project)
-            if generic_filters is not None:
-                filter_settings["generic"] = generic_filters
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            logger.exception(
-                "Exception while building Relay project config: error building generic filters"
-            )
+    try:
+        # At the end we compute the generic inbound filters, which are inbound filters expressible with a
+        # conditional DSL that Relay understands.
+        generic_filters = get_generic_filters(project)
+        if generic_filters is not None:
+            filter_settings["generic"] = generic_filters
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            "Exception while building Relay project config: error building generic filters"
+        )
 
     return filter_settings
 
@@ -212,6 +211,16 @@ class CardinalityLimitOption(TypedDict):
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
+    if cardinality_limits := get_cardinality_limits(timeout, project):
+        metrics_config["cardinalityLimits"] = cardinality_limits
+
+    return metrics_config or None
+
+
+def get_cardinality_limits(timeout: TimeChecker, project: Project) -> list[CardinalityLimit] | None:
+    if options.get("relay.cardinality-limiter.mode") == "disabled":
+        return None
+
     passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
         str(project.organization.id), []
     )
@@ -250,7 +259,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         "relay.cardinality-limiter.limits", []
     )
     option_limit_options: list[CardinalityLimitOption] = options.get(
-        "relay.cardinality-limiter.limits", []
+        "relay.cardinality-limiter.limits"
     )
 
     for clo in project_limit_options + organization_limit_options + option_limit_options:
@@ -273,14 +282,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         except KeyError:
             pass
 
-    metrics_config["cardinalityLimits"] = cardinality_limits
-
-    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
-    timeout.check()
-    if metrics_blocking_state is not None:
-        metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
-
-    return metrics_config or None
+    return cardinality_limits
 
 
 def get_project_config(
@@ -1053,6 +1055,14 @@ def _get_project_config(
 
     config = cfg["config"]
 
+    if features.has("organizations:ingest-through-trusted-relays-only", project.organization):
+        config["trustedRelaySettings"] = {
+            "verifySignature": project.organization.get_option(
+                "sentry:ingest-through-trusted-relays-only",
+                INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+            )
+        }
+
     with sentry_sdk.start_span(op="get_exposed_features"):
         if exposed_features := get_exposed_features(project):
             config["features"] = exposed_features
@@ -1063,7 +1073,8 @@ def _get_project_config(
     add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
-    add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
+    if not features.has("projects:transaction-name-clustering-disabled", project):
+        add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.

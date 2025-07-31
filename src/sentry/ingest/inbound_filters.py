@@ -91,7 +91,7 @@ def set_filter_state(filter_id, project, state):
             if state["active"]:
                 option_val = "1"
         elif "subfilters" in state and len(state["subfilters"]) > 0:
-            option_val = set(state["subfilters"])
+            option_val = sorted(set(state["subfilters"]))
 
         ProjectOption.objects.set_value(
             project=project, key=f"filters:{filter_id}", value=option_val
@@ -347,6 +347,7 @@ def _chunk_load_error_filter() -> RuleCondition:
     values = [
         ("ChunkLoadError", "Loading chunk *"),
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+        ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
 
     return _error_message_condition(values)

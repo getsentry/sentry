@@ -8,7 +8,7 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
-import type {Query} from 'history';
+import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
@@ -29,7 +29,6 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -47,6 +46,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import EventsRequest from './eventsRequest';
 
@@ -242,11 +242,11 @@ class Chart extends Component<ChartProps, State> {
       (releases as any)?.markLine?.data &&
       (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
 
-    const selected = !Array.isArray(releaseSeries)
-      ? seriesSelection
-      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+    const selected = Array.isArray(releaseSeries)
+      ? Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
         ? {[releasesLegend]: false}
-        : seriesSelection;
+        : seriesSelection
+      : seriesSelection;
 
     const legend = showLegend
       ? {
@@ -254,7 +254,7 @@ class Chart extends Component<ChartProps, State> {
           top: 12,
           data,
           selected,
-          ...(legendOptions ?? {}),
+          ...legendOptions,
         }
       : undefined;
 
@@ -273,11 +273,10 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? colors?.slice(0, series.length) ?? [
-          ...(theme.charts.getColorPalette(
-            timeseriesData.length - 2 - (hasOther ? 1 : 0)
-          ) ?? []),
-        ]
+      ? (colors?.slice(0, series.length) ??
+        this.props.theme.chart
+          .getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0))
+          .slice())
       : undefined;
     if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);
@@ -332,7 +331,7 @@ class Chart extends Component<ChartProps, State> {
           },
         },
       },
-      ...(chartOptionsProp ?? {}),
+      ...chartOptionsProp,
       animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 
@@ -364,6 +363,7 @@ export type EventsChartProps = {
    * Environment condition.
    */
   environments: string[];
+  location: Location;
   organization: OrganizationSummary;
   /**
    * Project ids
@@ -373,7 +373,6 @@ export type EventsChartProps = {
    * The discover query string to find events with.
    */
   query: string;
-  router: InjectedRouter;
   /**
    * Absolute start date.
    */
@@ -509,7 +508,7 @@ class EventsChart extends Component<EventsChartProps> {
       period,
       utc,
       query,
-      router,
+      location,
       start,
       end,
       projects,
@@ -552,14 +551,11 @@ class EventsChart extends Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
-    const forceChartType = decodeScalar(router.location.query.forceChartType);
+    const forceChartType = decodeScalar(location.query.forceChartType);
     const yAxisArray = decodeList(yAxis);
     const yAxisSeriesNames = yAxisArray.map(name => {
-      let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
-      if (yAxisLabel && yAxisLabel.length > 60) {
-        yAxisLabel = yAxisLabel.substring(0, 60) + '...';
-      }
-      return yAxisLabel;
+      const yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
+      return ellipsize(yAxisLabel, 60);
     });
 
     const previousSeriesNames = previousName

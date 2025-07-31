@@ -1,11 +1,12 @@
-import {Fragment, lazy, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, LinkButton} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -26,9 +27,9 @@ import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalD
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
-import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
-import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
+import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -43,45 +44,41 @@ import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
+import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Entry, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {isJavascriptPlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import MetricIssuesSection from '../metricIssuesSection';
-
-const LLMMonitoringSection = lazy(
-  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
-);
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -95,13 +92,11 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams<{eventId: string; groupId: string}>();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries = []} = event;
-    return entries.reduce<{[key in EntryType]?: Entry}>((entryMap, entry) => {
+    return entries.reduce<Partial<Record<EntryType, Entry>>>((entryMap, entry) => {
       entryMap[entry.type] = entry;
       return entryMap;
     }, {});
@@ -131,6 +126,8 @@ export function EventDetailsContent({
     projectId: project.id,
   });
 
+  useCopyIssueDetails(group, event);
+
   // default to show on error or isPromptDismissed === undefined
   const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
 
@@ -138,9 +135,13 @@ export function EventDetailsContent({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
+      {hasStreamlinedUI && (
+        <ErrorBoundary mini>
+          <HighlightsIconSummary event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {hasActionableItems && !hasStreamlinedUI && (
-        <ActionableItems event={event} project={project} isShare={false} />
+        <ActionableItems event={event} project={project} />
       )}
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
@@ -193,48 +194,24 @@ export function EventDetailsContent({
           ) : null}
         </InterimSection>
       )}
-      {event.type === EventOrGroupType.ERROR &&
-      organization.features.includes('insights-addon-modules') &&
-      event?.entries
-        ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
-        .flatMap(x => x.data.values ?? [])
-        .some(({value}) => {
-          const lowerText = value?.toLowerCase();
-          return (
-            lowerText &&
-            (lowerText.includes('api key') || lowerText.includes('429')) &&
-            (lowerText.includes('openai') ||
-              lowerText.includes('anthropic') ||
-              lowerText.includes('cohere') ||
-              lowerText.includes('langchain'))
-          );
-        }) ? (
-        <LazyLoad
-          LazyComponent={LLMMonitoringSection}
-          event={event}
-          organization={organization}
-        />
-      ) : null}
-
-      {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
+      {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
-      {group.issueCategory === IssueCategory.CRON && (
+      {!hasStreamlinedUI && group.issueType === IssueType.MONITOR_CHECK_IN_FAILURE && (
         <CronTimelineSection
           event={event}
           organization={organization}
           project={project}
         />
       )}
-      {event.contexts?.metric_alert?.alert_rule_id && (
+      {(event.contexts?.metric_alert?.alert_rule_id ||
+        event?.occurrence?.evidenceData?.alertId) && (
         <MetricIssuesSection
           organization={organization}
           group={group}
-          event={event}
           project={project}
         />
       )}
-
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -251,7 +228,8 @@ export function EventDetailsContent({
               !(
                 defined(eventEntries[EntryType.EXCEPTION]) ||
                 defined(eventEntries[EntryType.STACKTRACE]) ||
-                defined(eventEntries[EntryType.THREADS])
+                defined(eventEntries[EntryType.THREADS]) ||
+                hasStreamlinedUI
               )
             }
             // Prevent the container span from shrinking the content
@@ -295,35 +273,16 @@ export function EventDetailsContent({
           </GuideAnchor>
         )}
       </ClassNames>
-      {defined(eventEntries[EntryType.DEBUGMETA]) && (
-        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-          <DebugMeta
-            event={event}
-            projectSlug={projectSlug}
-            groupId={group?.id}
-            data={eventEntries[EntryType.DEBUGMETA].data}
-          />
-        </EntryErrorBoundary>
-      )}
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
       {isANR && (
-        <QuickTraceQuery
-          event={event}
-          location={location}
-          orgSlug={organization.slug}
-          type={'spans'}
-          skipLight
+        <TraceStateProvider
+          initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}
+          preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
         >
-          {results => {
-            return (
-              <QuickTraceContext.Provider value={results}>
-                <AnrRootCause event={event} organization={organization} />
-              </QuickTraceContext.Provider>
-            );
-          }}
-        </QuickTraceQuery>
+          <AnrRootCause event={event} organization={organization} />
+        </TraceStateProvider>
       )}
       {issueTypeConfig.spanEvidence.enabled && (
         <SpanEvidenceSection
@@ -409,9 +368,14 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <BreadcrumbsDataSection event={event} group={group} project={project} />
-      {hasStreamlinedUI && event.contexts.trace?.trace_id && (
-        <EventTraceView group={group} event={event} organization={organization} />
-      )}
+      <Feature features="ourlogs-enabled" organization={organization}>
+        <OurlogsSection event={event} group={group} project={project} />
+      </Feature>
+      {hasStreamlinedUI &&
+        event.contexts.trace?.trace_id &&
+        organization.features.includes('performance-view') && (
+          <EventTraceView group={group} event={event} organization={organization} />
+        )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
@@ -424,19 +388,6 @@ export function EventDetailsContent({
               event={event}
               projectSlug={project.slug}
               ref={tagsRef}
-              additionalActions={
-                <LinkButton
-                  to={{
-                    pathname: params.eventId
-                      ? `/organizations/${organization.slug}/issues/${group.id}/events/${params.eventId}/tags/`
-                      : `/organizations/${organization.slug}/issues/${group.id}/tags/`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                >
-                  {t('View All Issue Tags')}
-                </LinkButton>
-              }
             />
           ) : (
             <div ref={tagsRef}>
@@ -447,17 +398,28 @@ export function EventDetailsContent({
       ) : null}
       <EventContexts group={group} event={event} />
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-        <EventFeatureFlagList group={group} project={project} event={event} />
+        <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
+      <EventViewHierarchy event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
-      <EventViewHierarchy event={event} project={project} />
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />
       )}
+      {defined(eventEntries[EntryType.DEBUGMETA]) &&
+        !isJavascriptPlatform(event.platform) && (
+          <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+            <DebugMeta
+              event={event}
+              projectSlug={projectSlug}
+              groupId={group?.id}
+              data={eventEntries[EntryType.DEBUGMETA].data}
+            />
+          </EntryErrorBoundary>
+        )}
       {event.groupID && (
         <EventGroupingInfoSection
           projectSlug={project.slug}
@@ -516,11 +478,11 @@ function EntryErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <EventDataSection type={type} title={type}>
           <p>{t('There was an error rendering this data.')}</p>
         </EventDataSection>
-      }
+      )}
     >
       {children}
     </ErrorBoundary>
@@ -534,7 +496,7 @@ const NotFoundMessage = styled('div')`
 const StyledDataSection = styled(DataSection)`
   padding: ${space(0.5)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(1)} ${space(4)};
   }
 

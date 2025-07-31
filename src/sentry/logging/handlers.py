@@ -10,6 +10,7 @@ from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
 from sentry.utils import json, metrics
+from sentry.utils.sdk import get_trace_id
 
 # These are values that come default from logging.LogRecord.
 # They are defined here:
@@ -78,6 +79,7 @@ class HumanRenderer:
             event_dict.pop("name", "root"),
             event_dict.pop("event", ""),
         )
+        event_dict.pop("sentry.trace.trace_id", None)
         join = " ".join(k + "=" + repr(v) for k, v in event_dict.items())
         return "{}{}".format(base, (" (%s)" % join if join else ""))
 
@@ -85,7 +87,13 @@ class HumanRenderer:
 class StructLogHandler(logging.StreamHandler):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
-        kwargs.update({"level": record.levelno, "event": record.msg})
+        kwargs.update(
+            {
+                "level": record.levelno,
+                "event": record.msg,
+                "sentry.trace.trace_id": get_trace_id(),
+            }
+        )
 
         if record.args:
             # record.args inside of LogRecord.__init__ gets unrolled
@@ -117,6 +125,7 @@ class StructLogHandler(logging.StreamHandler):
 class GKEStructLogHandler(StructLogHandler):
     def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = super().get_log_kwargs(record)
+
         kwargs.update(
             {
                 "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},

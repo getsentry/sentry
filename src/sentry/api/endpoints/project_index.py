@@ -46,14 +46,14 @@ class ProjectIndexEndpoint(Endpoint):
             queryset = queryset.none()
 
         if request.auth and not request.user.is_authenticated:
-            if hasattr(request.auth, "project"):
+            if request.auth.project_id:
                 queryset = queryset.filter(id=request.auth.project_id)
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(organization_id=request.auth.organization_id)
             else:
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
-            if request.user.is_sentry_app:
+            if request.user.is_authenticated and request.user.is_sentry_app:
                 queryset = SentryAppInstallation.objects.get_projects(request.auth)
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
@@ -69,8 +69,10 @@ class ProjectIndexEndpoint(Endpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                    value_s = " ".join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=value_s) | Q(slug__icontains=value_s)
+                    )
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "name":

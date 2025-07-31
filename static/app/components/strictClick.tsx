@@ -60,7 +60,7 @@ function StrictClick<T extends HTMLElement>({onClick, children}: Props<T>) {
   return cloneElement(children, {
     onMouseDown: handleMouseDown,
     onClick: handleMouseClick,
-  });
+  } as any);
 }
 
 export default StrictClick;

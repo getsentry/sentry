@@ -7,9 +7,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
-  ModuleName.MOBILE_VITALS,
-  ModuleName.CRONS,
-  ModuleName.UPTIME,
+  ModuleName.SESSIONS,
+  ModuleName.AGENTS,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
@@ -25,10 +24,12 @@ const modulePropertyMap: Record<
   [ModuleName.QUEUE]: 'hasInsightsQueues',
   [ModuleName.SCREEN_LOAD]: 'hasInsightsScreenLoad',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
+  [ModuleName.MCP]: 'hasInsightsMCP',
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.AI]: 'hasInsightsLlmMonitoring',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
+  [ModuleName.MOBILE_VITALS]: 'hasInsightsScreenLoad',
 };
 
 /**

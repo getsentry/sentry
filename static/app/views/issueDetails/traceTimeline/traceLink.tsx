@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
@@ -75,7 +75,7 @@ const StyledLink = styled(Link)`
   align-items: center;
   gap: ${space(0.25)};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   svg {
     margin-top: 1px;
@@ -88,7 +88,7 @@ const NoTraceAvailable = styled('span')`
   gap: ${space(0.25)};
   line-height: 1.2;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   svg {
     margin-top: 1px;

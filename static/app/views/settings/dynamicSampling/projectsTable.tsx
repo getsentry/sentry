@@ -4,11 +4,11 @@ import {AutoSizer, List, type ListRowRenderer} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -140,12 +140,14 @@ export function ProjectsTable({
           <p>{emptyMessage}</p>
         </EmptyStateWarning>
       )}
-      {!isLoading && items.length && (
+      {!isLoading && items.length > 0 && (
         <SizingWrapper style={{height: `${estimatedListSize}px`}}>
           <AutoSizer>
             {({width, height}) => (
               <List
-                ref={list => (listRef.current = list)}
+                ref={list => {
+                  listRef.current = list;
+                }}
                 width={width}
                 height={height}
                 rowCount={sortedItems.length}
@@ -334,7 +336,7 @@ const TableRow = memo(function TableRow({
               size="xs"
               priority="link"
               icon={<IconSettings />}
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
+              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance/`}
             />
           )}
         </FirstCellLine>
@@ -371,9 +373,9 @@ const TableRow = memo(function TableRow({
         </FirstCellLine>
         {error ? (
           <ErrorMessage>{error}</ErrorMessage>
-        ) : sampleRate !== initialSampleRate ? (
+        ) : sampleRate === initialSampleRate ? null : (
           <SmallPrint>{t('previous: %s%%', initialSampleRate)}</SmallPrint>
-        ) : null}
+        )}
       </Cell>
     </TableRowWrapper>
   );
@@ -384,7 +386,7 @@ const SizingWrapper = styled('div')`
 `;
 
 const SmallPrint = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   line-height: 1.5;
   text-align: right;
@@ -399,7 +401,7 @@ const Ellipsis = styled('span')`
 
 const ErrorMessage = styled('span')`
   color: ${p => p.theme.error};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   line-height: 1.5;
   text-align: right;
 `;
@@ -457,7 +459,7 @@ const FirstCellLine = styled('div')`
 
 const SubContent = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   text-align: right;
   white-space: nowrap;
 
@@ -531,8 +533,8 @@ const SettingsButton = styled(LinkButton)`
 
 const TableHeader = styled(TableRowWrapper)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.backgroundSecondary};

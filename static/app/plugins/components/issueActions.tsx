@@ -1,3 +1,8 @@
+import {Fragment} from 'react';
+
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingError from 'sentry/components/loadingError';
@@ -56,8 +61,8 @@ type State = {
 } & PluginComponentBase['state'];
 
 class IssueActions extends PluginComponentBase<Props, State> {
-  constructor(props: Props, context: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
     this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));
@@ -369,7 +374,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     // only works with one impacted field
     const impactedField = fieldList.find(({depends}) => {
-      if (!depends || !depends.length) {
+      if (!depends?.length) {
         return false;
       }
       // must be dependent on the field we just set
@@ -378,11 +383,11 @@ class IssueActions extends PluginComponentBase<Props, State> {
 
     if (impactedField) {
       // if every dependent field is set, then search
-      if (!impactedField.depends?.some(dependentField => !formData[dependentField])) {
-        callback = () => this.loadOptionsForDependentField(impactedField);
-      } else {
+      if (impactedField.depends?.some(dependentField => !formData[dependentField])) {
         // otherwise reset the options
         callback = () => this.resetOptionsOfDependentField(impactedField);
+      } else {
+        callback = () => this.loadOptionsForDependentField(impactedField);
       }
     }
     this.setState(prevState => ({...prevState, [formDataKey]: formData}), callback);
@@ -462,9 +467,9 @@ class IssueActions extends PluginComponentBase<Props, State> {
         return (
           <div>
             <p>{t('Are you sure you want to unlink this issue?')}</p>
-            <button onClick={this.unlinkIssue} className="btn btn-danger">
+            <Button onClick={this.unlinkIssue} priority="danger">
               {t('Unlink Issue')}
-            </button>
+            </Button>
           </div>
         );
       default:
@@ -493,22 +498,28 @@ class IssueActions extends PluginComponentBase<Props, State> {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
       }
       return (
-        <div>
-          <div className="alert alert-warning m-b-1">
-            {'You need to associate an identity with ' +
-              this.props.plugin.name +
-              ' before you can create issues with this service.'}
-          </div>
-          <a className="btn btn-primary" href={authUrl}>
-            Associate Identity
-          </a>
-        </div>
+        <Fragment>
+          <Alert.Container>
+            <Alert type="info" showIcon={false}>
+              {'You need to associate an identity with ' +
+                this.props.plugin.name +
+                ' before you can create issues with this service.'}
+            </Alert>
+          </Alert.Container>
+          <LinkButton href={authUrl ?? '#'}>{t('Associate Identity')}</LinkButton>
+        </Fragment>
       );
     }
     if (error.error_type === 'config') {
       return (
-        <div className="alert alert-block">
-          {!error.has_auth_configured ? (
+        <Alert type="info" showIcon={false}>
+          {error.has_auth_configured ? (
+            <Fragment>
+              You still need to{' '}
+              <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
+              can use it.
+            </Fragment>
+          ) : (
             <div>
               <p>
                 {'Your server administrator will need to configure authentication with '}
@@ -524,14 +535,8 @@ class IssueActions extends PluginComponentBase<Props, State> {
                 ))}
               </ul>
             </div>
-          ) : (
-            <p>
-              You still need to{' '}
-              <a href={this.getPluginConfigureUrl()}>configure this plugin</a> before you
-              can use it.
-            </p>
           )}
-        </div>
+        </Alert>
       );
     }
     if (error.error_type === 'validation') {
@@ -539,13 +544,17 @@ class IssueActions extends PluginComponentBase<Props, State> {
       for (const name in error.errors) {
         errors.push(<p key={name}>{error.errors[name]}</p>);
       }
-      return <div className="alert alert-error alert-block">{errors}</div>;
+      return (
+        <Alert type="error" showIcon={false}>
+          {errors}
+        </Alert>
+      );
     }
     if (error.message) {
       return (
-        <div className="alert alert-error alert-block">
-          <p>{error.message}</p>
-        </div>
+        <Alert type="error" showIcon={false}>
+          {error.message}
+        </Alert>
       );
     }
     return <LoadingError />;

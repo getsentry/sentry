@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {QueuesTable} from 'sentry/views/insights/queues/components/tables/queuesTable';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('queuesTable', () => {
   const organization = OrganizationFixture();
@@ -32,7 +32,6 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
             'trace_status_rate(ok)': 0.8,
-            'time_spent_percentage(app,span.duration)': 0.5,
           },
         ],
         meta: {
@@ -46,19 +45,15 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
             'trace_status_rate(ok)': 'percentage',
-            'time_spent_percentage(app,span.duration)': 'percentage',
           },
         },
       },
     });
   });
   it('renders', async () => {
-    render(
-      <QueuesTable
-        sort={{field: 'time_spent_percentage(app,span.duration)', kind: 'desc'}}
-      />,
-      {organization}
-    );
+    render(<QueuesTable sort={{field: 'sum(span.duration)', kind: 'desc'}} />, {
+      organization,
+    });
     expect(screen.getByRole('table', {name: 'Queues'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Destination'})).toBeInTheDocument();
     expect(
@@ -86,9 +81,8 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         }),
       })
     );
@@ -104,7 +98,7 @@ describe('queuesTable', () => {
     render(
       <QueuesTable
         destination="*events*"
-        sort={{field: SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
+        sort={{field: SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
       />,
       {organization}
     );
@@ -123,9 +117,8 @@ describe('queuesTable', () => {
             'avg_if(span.duration,span.op,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           sort: '-messaging.destination.name',
           query:
             'span.op:[queue.process,queue.publish] messaging.destination.name:*events*',

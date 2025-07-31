@@ -3,10 +3,10 @@ import {Fragment, useState} from 'react';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Alert} from 'sentry/components/alert';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -24,12 +24,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 function DataForwardingStats() {
   const {orgId, projectId} = useParams<{orgId: string; projectId: string}>();
 
-  const until = Math.floor(new Date().getTime() / 1000);
+  const until = Math.floor(Date.now() / 1000);
   const since = until - 3600 * 24 * 30;
   const options = {
     query: {
@@ -129,7 +129,6 @@ function ProjectDataForwarding({project}: Props) {
     setPluginState(newPlugins);
   };
 
-  const onEnablePlugin = (plugin: Plugin) => updatePlugin(plugin, true);
   const onDisablePlugin = (plugin: Plugin) => updatePlugin(plugin, false);
 
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
@@ -140,7 +139,6 @@ function ProjectDataForwarding({project}: Props) {
         organization={organization}
         project={project}
         pluginList={forwardingPlugins()}
-        onEnablePlugin={onEnablePlugin}
         onDisablePlugin={onDisablePlugin}
       />
     ) : (
@@ -173,17 +171,19 @@ function ProjectDataForwarding({project}: Props) {
                 }
               )}
             </TextBlock>
-            <PermissionAlert project={project} />
+            <ProjectPermissionAlert project={project} />
 
-            <Alert showIcon>
-              {tct(
-                `Sentry forwards [em:all applicable error events] to the provider, in
+            <Alert.Container>
+              <Alert type="info">
+                {tct(
+                  `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,
-                {
-                  em: <strong />,
-                }
-              )}
-            </Alert>
+                  {
+                    em: <strong />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
 
             {!hasFeature && (
               <FeatureDisabled

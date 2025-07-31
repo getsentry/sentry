@@ -32,6 +32,7 @@ class BufferHashKeys:
 
 class DelayedProcessingBase(ABC):
     buffer_key: ClassVar[str]
+    option: ClassVar[str | None]
 
     def __init__(self, project_id: int):
         self.project_id = project_id
@@ -103,9 +104,12 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
     metrics.incr(
         f"{processing_type}.num_groups", tags={"num_groups": bucket_num_groups(event_count)}
     )
+    metrics.distribution(f"{processing_type}.event_count", event_count)
 
     if event_count < batch_size:
-        return task.delay(project_id)
+        return task.apply_async(
+            kwargs={"project_id": project_id}, headers={"sentry-propagate-traces": False}
+        )
 
     if should_emit_logs:
         logger.info(
@@ -131,7 +135,10 @@ def process_in_batches(project_id: int, processing_type: str) -> None:
             # remove the batched items from the project alertgroup_to_event_data
             buffer.backend.delete_hash(**asdict(hash_args), fields=list(batch.keys()))
 
-            task.delay(project_id, batch_key)
+            task.apply_async(
+                kwargs={"project_id": project_id, "batch_key": batch_key},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 def process_buffer() -> None:
@@ -139,6 +146,11 @@ def process_buffer() -> None:
     should_emit_logs = options.get("delayed_processing.emit_logs")
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
+        if handler.option and not options.get(handler.option):
+            log_name = f"{processing_type}.disabled"
+            logger.info(log_name, extra={"option": handler.option})
+            continue
+
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):
             project_ids = buffer.backend.get_sorted_set(
                 handler.buffer_key, min=0, max=fetch_time.timestamp()

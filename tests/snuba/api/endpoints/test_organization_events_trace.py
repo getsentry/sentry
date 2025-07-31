@@ -15,9 +15,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
     url_name: str
     FEATURES = [
         "organizations:performance-view",
-        "organizations:performance-file-io-main-thread-detector",
         "organizations:trace-view-load-more",
-        "organizations:performance-slow-db-issue",
     ]
 
     def setUp(self):
@@ -47,7 +45,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    def load_trace(self):
+    def load_trace(self, is_eap=False):
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",
@@ -58,6 +56,10 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                     "description": f"GET gen1-{i}",
                     "span_id": root_span_id,
                     "trace_id": self.trace_id,
+                    "data": {
+                        "gen_ai.request.model": "gpt-4o",
+                        "gen_ai.usage.total_tokens": 100,
+                    },
                 }
                 for i, root_span_id in enumerate(self.root_span_ids)
             ],
@@ -71,14 +73,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             slow_db_performance_issue=True,
             project_id=self.project.id,
             milliseconds=3000,
+            is_eap=is_eap,
         )
 
         # First Generation
-        # TODO: temporary, this is until we deprecate using this endpoint without useSpans
-        if isinstance(self, OrganizationEventsTraceEndpointTestUsingSpans):
-            self.gen1_span_ids = ["0014" * 4, *(uuid4().hex[:16] for _ in range(2))]
-        else:
-            self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen1_project = self.create_project(organization=self.organization)
         self.gen1_events = [
             self.create_event(
@@ -96,6 +95,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                 parent_span_id=root_span_id,
                 project_id=self.gen1_project.id,
                 milliseconds=2000,
+                is_eap=is_eap,
             )
             for i, (root_span_id, gen1_span_id) in enumerate(
                 zip(self.root_span_ids, self.gen1_span_ids)
@@ -120,12 +120,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
                         "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
                         "span_id": gen2_span_id,
                         "trace_id": self.trace_id,
+                        "parent_span_id": self.gen2_span_id,
                     }
                 ],
                 parent_span_id=gen1_span_id,
                 span_id=self.gen2_span_id if i == 0 else None,
                 project_id=self.gen2_project.id,
                 milliseconds=1000,
+                is_eap=is_eap,
             )
             for i, (gen1_span_id, gen2_span_id) in enumerate(
                 zip(self.gen1_span_ids, self.gen2_span_ids)
@@ -141,6 +143,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             project_id=self.gen3_project.id,
             parent_span_id=self.gen2_span_id,
             milliseconds=500,
+            is_eap=is_eap,
         )
 
 
@@ -1382,7 +1385,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen1["children"]) == 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trace.query_trace_data")
-    def test_timestamp_optimization(self, mock_query):
+    def test_timestamp_optimization(self, mock_query: mock.MagicMock) -> None:
         """When timestamp is passed we'll ignore the statsPeriod and make a query with a smaller start & end"""
         self.load_trace()
         with self.feature(self.FEATURES):
@@ -1415,223 +1418,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "transaction.status" not in trace_transaction
         assert "tags" not in trace_transaction
         assert "measurements" not in trace_transaction
-
-
-class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
-    check_generation = False
-
-    def client_get(self, data, url=None):
-        data["useSpans"] = 1
-        return super().client_get(data, url)
-
-    def assert_performance_issues(self, root):
-        assert len(root["performance_issues"]) == 2
-        # The perf issues are the last 2 spans
-        perf_issue_spans = {span["span_id"]: span for span in self.root_event.data["spans"][-2:]}
-        for perf_issue in root["performance_issues"]:
-            assert len(perf_issue["suspect_spans"]) == 1
-            expected = perf_issue_spans[perf_issue["suspect_spans"][0]]
-            assert perf_issue["start"] == expected["start_timestamp"]
-            assert perf_issue["end"] == expected["timestamp"]
-
-    @pytest.mark.querybuilder
-    def test_simple(self):
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        # We shouldn't have detailed fields here
-        assert "transaction.status" not in trace_transaction
-        assert "tags" not in trace_transaction
-
-    def test_simple_with_limit(self):
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={"limit": 200},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        # We shouldn't have detailed fields here
-        assert "transaction.status" not in trace_transaction
-        assert "tags" not in trace_transaction
-
-    def test_with_error_event(self):
-        self.load_trace()
-        start, _ = self.get_start_end_from_day_ago(1000)
-        error_data = load_data(
-            "javascript",
-            timestamp=start,
-        )
-        error_data["contexts"]["trace"] = {
-            "type": "trace",
-            "trace_id": self.trace_id,
-            "span_id": self.gen1_span_ids[0],
-        }
-        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
-        error = self.store_event(error_data, project_id=self.gen1_project.id)
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        errors = trace_transaction["children"][0]["errors"]
-        assert len(errors) == 1
-        error_result = errors[0]
-        assert error_result["event_id"] == error.event_id
-        assert error_result["span"] == self.gen1_span_ids[0]
-        assert error_result["title"] == error.title
-        assert error_result["message"] == error.search_message
-
-    @pytest.mark.skip(
-        "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
-    )
-    def test_bad_span_loop(self):
-        super().test_bad_span_loop()
-
-    @pytest.mark.skip("Can't use the detailed response with useSpans on")
-    def test_detailed_trace_with_bad_tags(self):
-        super().test_detailed_trace_with_bad_tags()
-
-    @pytest.mark.skip("We shouldn't need to prune with events anymore since spans should be faster")
-    def test_pruning_event(self):
-        super().test_pruning_event()
-
-    def test_detailed_trace(self):
-        """Can't use detailed with useSpans, so this should actually just 400"""
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={"detailed": 1},
-            )
-
-        assert response.status_code == 400, response.content
-
-    @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
-    def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
-        mock_builder = mock.Mock()
-        mock_builder.resolve_column_name.return_value = "span_id"
-        mock_builder.run_query.return_value = {}
-        mock_query_builder.return_value = mock_builder
-        # Add a few more projects to the org
-        self.create_project(organization=self.organization)
-        self.create_project(organization=self.organization)
-
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={},
-            )
-
-        assert sorted(
-            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted(mock_query_builder.mock_calls[0].kwargs["snuba_params"].project_ids)
-
-        assert response.status_code == 200, response.content
-
-    def test_event_id(self):
-        self.load_trace()
-        # When given an event_id even if its not the root transaction we should prioritize loading that specific event
-        # over loading roots
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={
-                    "timestamp": self.root_event.timestamp,
-                    # Limit of one means the only result is the target event
-                    "limit": 1,
-                    "eventId": self.gen1_events[0].event_id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_event(trace_transaction, self.gen1_events[0], "root")
-
-    def test_span_id(self):
-        """Event id is going away, so some parts of the UI have started passing a span id instead"""
-        self.load_trace()
-        # When given an event_id even if its not the root transaction we should prioritize loading that specific event
-        # over loading roots
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={
-                    "timestamp": self.root_event.timestamp,
-                    # Limit of one means the only result is the target event
-                    "limit": 1,
-                    "eventId": self.gen1_events[0].data["contexts"]["trace"]["span_id"],
-                },
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_event(trace_transaction, self.gen1_events[0], "root")
-
-    @pytest.mark.skip(reason="flaky: #84070")
-    def test_timestamp_optimization_without_mock(self):
-        """Make sure that even if the params are smaller the query still works"""
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={
-                    "timestamp": self.root_event.timestamp,
-                    "statsPeriod": "90d",
-                },
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        # We shouldn't have detailed fields here
-        assert "transaction.status" not in trace_transaction
-        assert "tags" not in trace_transaction
-
-    def test_measurements(self):
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        root = trace_transaction
-        assert root["measurements"]["lcp"]["value"] == 1000
-        assert root["measurements"]["lcp"]["type"] == "duration"
-        assert root["measurements"]["fid"]["value"] == 3.5
-        assert root["measurements"]["fid"]["type"] == "duration"
-
-    def test_project_param(self):
-        self.load_trace()
-        with self.feature(self.FEATURES):
-            # If project is included we should still return the entire trace
-            response = self.client_get(
-                data={"project": self.project.id},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        # We shouldn't have detailed fields here
-        assert "transaction.status" not in trace_transaction
-        assert "tags" not in trace_transaction
-
-    @pytest.mark.skip(reason="flaky: #84070")
-    def test_split_by_char_optimization(self):
-        self.load_trace()
-        # This changes the span_id condition so its a split on a string instead of an array
-        options.set("performance.traces.span_query_minimum_spans", 1)
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={},
-            )
-        assert response.status_code == 200, response.content
-        trace_transaction = response.data["transactions"][0]
-        self.assert_trace_data(trace_transaction)
-        # We shouldn't have detailed fields here
-        assert "transaction.status" not in trace_transaction
-        assert "tags" not in trace_transaction
 
 
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
@@ -1677,6 +1463,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 0
         assert data["errors"] == 0
         assert data["performance_issues"] == 0
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -1702,6 +1490,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
     def test_no_team(self):
         self.load_trace()
@@ -1717,6 +1507,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
     def test_with_errors(self):
         self.load_trace()
@@ -1733,6 +1525,8 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 3
         assert data["performance_issues"] == 2
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
 
     def test_with_default(self):
         self.load_trace()
@@ -1749,6 +1543,6 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["transactions"] == 8
         assert data["errors"] == 1
         assert data["performance_issues"] == 2
-        assert len(data["transaction_child_count_map"]) == 8
-        for item in data["transaction_child_count_map"]:
-            assert item["count"] > 1, item
+        assert data["span_count"] == 0
+        assert data["span_count_map"] == {}
+        assert len(data["transaction_child_count_map"]) == 0

@@ -1,46 +1,60 @@
 import logging
 
 import sentry_sdk
-from django.db.models import Prefetch
 
 from sentry.utils import metrics
-from sentry.workflow_engine.models import DataPacket, DataSource, Detector
+from sentry.workflow_engine.models import DataPacket, Detector
 
 logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
 
-def process_data_sources(
-    data_packets: list[DataPacket], query_type: str
-) -> list[tuple[DataPacket, list[Detector]]]:
-    metrics.incr("sentry.workflow_engine.process_data_sources", tags={"query_type": query_type})
+def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detector]:
+    """
+    Get all of the enabled detectors for a list of detector source ids and types.
+    This will also prefetch all the subsequent data models for evaluating the detector.
+    """
+    return list(
+        Detector.objects.filter(
+            enabled=True, data_sources__source_id=source_id, data_sources__type=query_type
+        )
+        .select_related("workflow_condition_group")
+        .prefetch_related("workflow_condition_group__conditions")
+        .distinct()
+        .order_by("id")
+    )
 
-    # TODO - change data_source.query_id to be a string to support UUIDs
-    data_packet_ids = {int(packet.query_id) for packet in data_packets}
 
-    # Fetch all data sources and associated detectors for the given data packets
-    with sentry_sdk.start_span(op="sentry.workflow_engine.process_data_sources.fetch_data_sources"):
-        data_sources = DataSource.objects.filter(
-            query_id__in=data_packet_ids, type=query_type
-        ).prefetch_related(Prefetch("detectors"))
+# TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.
+def process_data_source[
+    T
+](data_packet: DataPacket[T], query_type: str) -> tuple[DataPacket[T], list[Detector]]:
+    metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
-    # Build a lookup dict for query_id to detectors
-    query_id_to_detectors = {int(ds.query_id): list(ds.detectors.all()) for ds in data_sources}
+    with sentry_sdk.start_span(op="workflow_engine.process_data_sources.get_enabled_detectors"):
+        detectors = bulk_fetch_enabled_detectors(data_packet.source_id, query_type)
 
-    # Create the result tuples
-    result = []
-    for packet in data_packets:
-        detectors = query_id_to_detectors.get(int(packet.query_id))
+    if detectors:
+        metrics.incr(
+            "workflow_engine.process_data_sources.detectors",
+            len(detectors),
+            tags={"query_type": query_type},
+        )
+        logger.info(
+            "workflow_engine.process_data_sources detectors",
+            extra={
+                "detectors": [detector.id for detector in detectors],
+                "source_id": data_packet.source_id,
+            },
+        )
+    else:
+        # XXX: this likely means the rule is muted / detector is disabled
+        logger.warning(
+            "workflow_engine.process_data_sources no detectors",
+            extra={"source_id": data_packet.source_id, "query_type": query_type},
+        )
+        metrics.incr(
+            "workflow_engine.process_data_sources.no_detectors",
+            tags={"query_type": query_type},
+        )
 
-        if detectors:
-            data_packet_tuple = (packet, detectors)
-            result.append(data_packet_tuple)
-        else:
-            logger.warning(
-                "No detectors found", extra={"query_id": packet.query_id, "query_type": query_type}
-            )
-            metrics.incr(
-                "sentry.workflow_engine.process_data_sources.no_detectors",
-                tags={"query_type": query_type},
-            )
-
-    return result
+    return data_packet, detectors

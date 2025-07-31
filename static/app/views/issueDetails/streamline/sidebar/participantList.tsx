@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Avatar from 'sentry/components/avatar';
-import AvatarList from 'sentry/components/avatar/avatarList';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import {Button} from 'sentry/components/button';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
@@ -17,10 +17,15 @@ import useOverlay from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
   users: User[];
+  hideTimestamp?: boolean;
   teams?: Team[];
 }
 
-export default function ParticipantList({users, teams}: DropdownListProps) {
+export default function ParticipantList({
+  users,
+  teams,
+  hideTimestamp,
+}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
     shouldCloseOnBlur: true,
@@ -41,8 +46,12 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
           renderTooltip={user => (
             <Fragment>
               {userDisplayName(user)}
-              <br />
-              <LastSeen date={(user as AvatarUser).lastSeen} />
+              {!hideTimestamp && (
+                <Fragment>
+                  <br />
+                  <LastSeen date={(user as AvatarUser).lastSeen} />
+                </Fragment>
+              )}
             </Fragment>
           )}
         />
@@ -70,13 +79,13 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
               )}
               {users.map(user => (
                 <UserRow key={user.id}>
-                  <Avatar user={user} size={20} />
+                  <UserAvatar user={user} size={20} />
                   <NameWrapper>
                     <div>{user.name}</div>
-                    {user.email !== user.name ? (
+                    {user.email === user.name ? null : (
                       <SmallText>{user.email}</SmallText>
-                    ) : null}
-                    <LastSeen date={(user as AvatarUser).lastSeen} />
+                    )}
+                    {!hideTimestamp && <LastSeen date={(user as AvatarUser).lastSeen} />}
                   </NameWrapper>
                 </UserRow>
               ))}
@@ -109,10 +118,10 @@ const ListTitle = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const UserRow = styled('div')`
@@ -121,7 +130,7 @@ const UserRow = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   gap: ${space(1)};
   line-height: 1.2;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-height: 45px;
 `;
 
@@ -132,7 +141,7 @@ const NameWrapper = styled('div')`
 `;
 
 const SmallText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const StyledAvatarList = styled(AvatarList)`
@@ -142,5 +151,5 @@ const StyledAvatarList = styled(AvatarList)`
 
 const LastSeen = styled(DateTime)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;

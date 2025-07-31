@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import TextArea from 'sentry/components/forms/controls/textarea';
+import {Button} from 'sentry/components/core/button';
+import {TextArea} from 'sentry/components/core/textarea';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,13 +32,16 @@ function WidgetBuilderNameAndDescription({
 
   return (
     <Fragment>
-      <SectionHeader title={t('Widget Name & Description')} />
-      <StyledInput
-        name={t('Widget Name')}
+      <SectionHeader
+        title={t('Display Name')}
+        tooltipText={t('This will appear in the header of your widget.')}
+      />
+      <StyledTextField
+        name={t('Name')}
         size="md"
         placeholder={t('Name')}
-        title={t('Widget Name')}
-        aria-label={t('Widget Name')}
+        title={t('Name')}
+        aria-label={t('Name')}
         value={state.title}
         onChange={(newTitle: any) => {
           // clear error once user starts typing
@@ -61,21 +64,21 @@ function WidgetBuilderNameAndDescription({
         inline={false}
       />
       {!isDescSelected && (
-        <AddDescriptionButton
+        <Button
           priority="link"
-          aria-label={t('Add Widget Description')}
+          aria-label={t('Add Description')}
           onClick={() => {
             setIsDescSelected(true);
           }}
           data-test-id={'add-description'}
         >
-          {t('+ Add Widget Description')}
-        </AddDescriptionButton>
+          {t('+ Add Description')}
+        </Button>
       )}
       {isDescSelected && (
-        <DescriptionTextArea
+        <TextArea
           placeholder={t('Description')}
-          aria-label={t('Widget Description')}
+          aria-label={t('Description')}
           autosize
           rows={4}
           value={state.description}
@@ -101,16 +104,8 @@ function WidgetBuilderNameAndDescription({
 
 export default WidgetBuilderNameAndDescription;
 
-const StyledInput = styled(TextField)`
+const StyledTextField = styled(TextField)`
   margin-bottom: ${space(1)};
   padding: 0;
   border: none;
-`;
-
-const AddDescriptionButton = styled(Button)`
-  margin-bottom: ${space(1)};
-`;
-
-const DescriptionTextArea = styled(TextArea)`
-  margin: ${space(2)} 0;
 `;

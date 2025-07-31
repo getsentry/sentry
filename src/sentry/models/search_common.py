@@ -10,3 +10,4 @@ class SearchType(IntEnum):
     SPAN = 5
     ERROR = 6
     TRANSACTION = 7
+    LOG = 8

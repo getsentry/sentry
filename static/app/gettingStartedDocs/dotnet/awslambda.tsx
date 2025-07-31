@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -184,7 +183,6 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNetCore'}),
   crashReportOnboarding,
 };
 

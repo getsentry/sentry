@@ -117,6 +117,7 @@ describe('EventOrGroupTitle', function () {
           },
           actor: UserFixture(),
           isTombstone: true,
+          dateAdded: '2025-06-25T00:00:00Z',
         }}
         withStackTracePreview
       />
@@ -141,7 +142,6 @@ describe('EventOrGroupTitle', function () {
       render(<EventOrGroupTitle data={perfData} />);
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
-      expect(screen.getByText('transaction name')).toBeInTheDocument();
     });
   });
 });

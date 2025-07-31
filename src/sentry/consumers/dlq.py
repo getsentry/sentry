@@ -5,6 +5,7 @@ from concurrent.futures import Future
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 
+from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.dlq import InvalidMessage, KafkaDlqProducer
 from arroyo.processing.strategies.abstract import (
@@ -17,6 +18,7 @@ from arroyo.types import Topic as ArroyoTopic
 from arroyo.types import Value
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.utils import metrics
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -42,7 +44,7 @@ class MultipleDestinationDlqProducer(KafkaDlqProducer):
         self,
         value: BrokerValue[KafkaPayload],
         reason: str | None = None,
-    ) -> Future[BrokerValue[KafkaPayload]]:
+    ) -> ProducerFuture[BrokerValue[KafkaPayload]]:
 
         reject_reason = RejectReason(reason) if reason else RejectReason.INVALID
         producer = self.producers.get(reject_reason)
@@ -110,6 +112,7 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
 
             if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
+                metrics.incr(key="consumer.stale-messages.routed", sample_rate=1.0)
                 raise InvalidMessage(
                     message.value.partition,
                     message.value.offset,

@@ -1,10 +1,11 @@
 import type React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
-import {inputStyles} from 'sentry/components/input';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
 
 import type {InputFieldProps, OnEvent} from './inputField';
@@ -50,12 +51,13 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
     onKeyDown: OnEvent;
     suffix: React.ReactNode;
     value: string | number;
+    alignRight?: boolean;
     hideControlState?: boolean;
     monospace?: NumberFieldProps['monospace'];
     placeholder?: string;
     size?: NumberFieldProps['size'];
   }) {
-    const {size, monospace} = rest;
+    const {size, monospace, alignRight} = rest;
     return (
       <InputGroup>
         <InputGroup.Input
@@ -64,8 +66,10 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
           onChange={e => onChange(e.target.value, e)}
           name={name}
           {...rest}
+          // Do not forward required to `input` to avoid default browser behavior
+          required={undefined}
         />
-        <SuffixWrapper {...{size, monospace}}>
+        <SuffixWrapper {...{size, monospace, alignRight}}>
           <HiddenValue aria-hidden>{rest.value || rest.placeholder}</HiddenValue>
           <Suffix>{suffix}</Suffix>
         </SuffixWrapper>
@@ -78,22 +82,31 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
     );
   };
 }
-const SuffixWrapper = styled('span')<Omit<NumberFieldProps, 'name'>>`
-  ${p => inputStyles(p)};
+const SuffixWrapper = styled(Input.withComponent('span'))<Omit<NumberFieldProps, 'name'>>`
   color: transparent;
   background: transparent;
   border-color: transparent;
-  box-shadow: inset transparent;
   position: absolute;
   top: 0;
   left: 0;
+  overflow: hidden;
+  text-overflow: clip;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
+  ${p =>
+    p.alignRight
+      ? css`
+          text-align: right;
+        `
+      : undefined}
 `;
 const HiddenValue = styled('span')`
   visibility: hidden;
 `;
 const Suffix = styled('span')`
-  color: ${p => p.theme.formPlaceholder};
+  color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 `;

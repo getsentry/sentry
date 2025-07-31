@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -17,7 +17,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ExploreContent} from 'sentry/views/explore/content';
+import {ExploreContent} from 'sentry/views/explore/spans/content';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {usePageParams} from './hooks/usePageParams';
@@ -31,7 +31,7 @@ const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/'
 const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 
-export default function Wrapper(props: any) {
+export default function Wrapper() {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -39,10 +39,10 @@ export default function Wrapper(props: any) {
     location.query.view !== 'trace' &&
     organization.features.includes('visibility-explore-view')
   ) {
-    return <ExploreContent {...props} />;
+    return <ExploreContent />;
   }
 
-  return <Content {...props} />;
+  return <Content />;
 }
 
 function Content() {
@@ -77,9 +77,8 @@ function Content() {
 
   const handleClearSearch = useCallback(
     (searchIndex: number) => {
-      const newQueries = [...queries];
       // TODO: do we need to return false when `newQueries[searchIndex] === undefined`?
-      delete newQueries[searchIndex];
+      const newQueries = queries.toSpliced(searchIndex, 1);
       browserHistory.push({
         ...location,
         query: {
@@ -136,9 +135,7 @@ function Content() {
                 <DatePageFilter defaultPeriod="2h" />
               </PageFilterBar>
               {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
-                <StyledAlert type="error" showIcon>
-                  {tracesQuery.error?.responseJSON?.detail}
-                </StyledAlert>
+                <Alert type="error">{tracesQuery.error?.responseJSON?.detail}</Alert>
               ) : null}
               <TracesSearchBar
                 queries={queries}
@@ -175,8 +172,4 @@ const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;

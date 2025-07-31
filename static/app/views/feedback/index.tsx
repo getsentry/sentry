@@ -1,36 +1,29 @@
-import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {t} from 'sentry/locale';
+import Redirect from 'sentry/components/redirect';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   children: React.ReactNode;
 };
 
 export default function FeedbackContainer({children}: Props) {
   const organization = useOrganization();
 
-  return (
-    <Feature
-      features="user-feedback-ui"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <AnalyticsArea name="feedback">
-        <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-      </AnalyticsArea>
-    </Feature>
-  );
-}
+  const redirectPath = useRedirectNavV2Routes({
+    oldPathPrefix: '/feedback/',
+    newPathPrefix: '/issues/feedback/',
+  });
 
-function NoAccess() {
+  if (redirectPath) {
+    return <Redirect to={redirectPath} />;
+  }
+
   return (
-    <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-    </Layout.Page>
+    <AnalyticsArea name="feedback">
+      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+    </AnalyticsArea>
   );
 }

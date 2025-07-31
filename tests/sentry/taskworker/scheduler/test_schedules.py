@@ -33,6 +33,20 @@ def test_timedeltaschedule_is_due() -> None:
     assert schedule.is_due(six_min_ago)
 
 
+def test_timedeltaschedule_monitor_interval() -> None:
+    schedule = TimedeltaSchedule(timedelta(seconds=10))
+    assert schedule.monitor_interval() == (10, "second")
+
+    schedule = TimedeltaSchedule(timedelta(minutes=5))
+    assert schedule.monitor_interval() == (5, "minute")
+
+    schedule = TimedeltaSchedule(timedelta(minutes=5, seconds=10))
+    assert schedule.monitor_interval() == (5, "minute")
+
+    schedule = TimedeltaSchedule(timedelta(hours=1))
+    assert schedule.monitor_interval() == (1, "hour")
+
+
 @freeze_time("2025-01-24 14:25:00")
 def test_timedeltaschedule_remaining_seconds() -> None:
     now = timezone.now()
@@ -112,9 +126,15 @@ def test_crontabschedule_remaining_seconds() -> None:
         five_min_ago = timezone.now()
         assert schedule.remaining_seconds(five_min_ago) == 300
 
+    # Later in the minute. crontabs only have minute precision.
     with freeze_time("2025-01-24 14:25:59"):
         five_min_ago = timezone.now()
         assert schedule.remaining_seconds(five_min_ago) == 300
+
+    # It isn't time yet, as we're mid interval
+    with freeze_time("2025-01-24 14:23:10"):
+        three_min_ago = timezone.now() - timedelta(minutes=3)
+        assert schedule.remaining_seconds(three_min_ago) == 120
 
     # 14:19 was 1 min late, we missed a beat but we're currently on time.
     with freeze_time("2025-01-24 14:25:10"):
@@ -154,3 +174,14 @@ def test_crontabschedule_runtime_after() -> None:
     schedule = CrontabSchedule("test", crontab(minute="*/1"))
     now = timezone.now()
     assert schedule.runtime_after(now) == datetime(2025, 1, 24, 14, 26, 0, tzinfo=UTC)
+
+
+def test_crontabschedule_monitor_value() -> None:
+    schedule = CrontabSchedule("test", crontab(minute="*/5"))
+    assert schedule.monitor_value() == "*/5 * * * *"
+
+    schedule = CrontabSchedule("test", crontab(minute="*/10", hour="*/2"))
+    assert schedule.monitor_value() == "*/10 */2 * * *"
+
+    schedule = CrontabSchedule("test", crontab(minute="*/10", day_of_week="1"))
+    assert schedule.monitor_value() == "*/10 * * * 1"

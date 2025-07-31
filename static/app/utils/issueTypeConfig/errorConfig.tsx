@@ -27,6 +27,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
       events: {enabled: true},
       openPeriods: {enabled: false},
       checkIns: {enabled: false},
+      uptimeChecks: {enabled: false},
       attachments: {enabled: true},
       userFeedback: {enabled: true},
       replays: {enabled: true},
@@ -79,12 +80,12 @@ const ErrorInfoChecks: ErrorInfo[] = [
     errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
   {
-    errorTitle: 'TypeError: Load failed',
+    errorTitle: 'Load failed',
     projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.LOAD_FAILED,
   },
   {
-    errorTitle: 'Failed to fetch',
+    errorTitle: /Failed to fetch|NetworkError when attempting to fetch resource/,
     projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.FAILED_TO_FETCH,
   },

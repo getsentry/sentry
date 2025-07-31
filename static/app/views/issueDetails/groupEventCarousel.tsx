@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button, LinkButton} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
@@ -26,7 +27,6 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
@@ -41,6 +41,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -112,6 +113,7 @@ function EventNavigationButton({
             query: {...location.query, referrer},
           }}
           disabled={disabled}
+          preventScrollReset
         />
       </div>
     </Tooltip>
@@ -123,8 +125,9 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const organization = useOrganization();
-  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const largeViewport = useMedia(`(min-width: ${theme.breakpoints.lg})`);
   const defaultIssueEvent = useDefaultIssueEvent();
+  const navigate = useNavigate();
 
   if (!largeViewport) {
     return null;
@@ -161,14 +164,14 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       label: t('Oldest'),
       details: t('First seen event in this issue'),
     },
-    ...(!selectedValue
-      ? [
+    ...(selectedValue
+      ? []
+      : [
           {
             value: EventNavDropdownOption.CUSTOM,
             label: t('Custom Selection'),
           },
-        ]
-      : []),
+        ]),
     {
       options: [{value: EventNavDropdownOption.ALL, label: 'View All Events'}],
     },
@@ -179,16 +182,18 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
       size="sm"
       disabled={isDisabled}
       options={eventNavDropdownOptions}
-      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+      value={selectedValue ? selectedValue : EventNavDropdownOption.CUSTOM}
       triggerLabel={
-        !selectedValue ? (
+        selectedValue ? (
+          selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
+        ) : (
           <TimeSince
             date={event.dateCreated ?? event.dateReceived}
             disabledAbsoluteTooltip
           />
-        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-          t('Recommended')
-        ) : undefined
+        )
       }
       menuWidth={232}
       onChange={selectedOption => {
@@ -204,7 +209,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
           case EventNavDropdownOption.RECOMMENDED:
           case EventNavDropdownOption.LATEST:
           case EventNavDropdownOption.OLDEST:
-            browserHistory.push({
+            navigate({
               pathname: normalizeUrl(
                 makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
               ),
@@ -213,7 +218,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
             break;
           case EventNavDropdownOption.ALL: {
             const searchTermWithoutQuery = omit(location.query, 'query');
-            browserHistory.push({
+            navigate({
               pathname: normalizeUrl(
                 `/organizations/${organization.slug}/issues/${group.id}/events/`
               ),
@@ -237,7 +242,7 @@ type GroupEventActionsProps = {
 
 function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
-  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xl})`);
   const organization = useOrganization();
 
   const hasReplay = Boolean(getReplayIdFromEvent(event));
@@ -316,7 +321,7 @@ function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) 
             hidden: !organization.features.includes('discover-basic'),
             to: eventDetailsRoute({
               eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-              orgSlug: organization.slug,
+              organization,
             }),
             onAction: () => {
               trackAnalytics('issue_details.event_details_clicked', {
@@ -390,6 +395,13 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
               <strong>Event ID:</strong>
               <Button
                 aria-label={t('Copy')}
+                analyticsEventKey="issue_details.copy_event_id_clicked"
+                analyticsEventName="Issue Details: Copy Event ID Clicked"
+                analyticsParams={{
+                  ...getAnalyticsDataForGroup(group),
+                  ...getAnalyticsDataForEvent(event),
+                  streamline: false,
+                }}
                 borderless
                 onClick={copyEventId}
                 size="zero"
@@ -473,10 +485,10 @@ const EventHeading = styled('div')`
   align-items: center;
   flex-wrap: wrap;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -540,15 +552,15 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   &:hover {
     > span {
       display: flex;
     }
   }
   @media (max-width: 600px) {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 

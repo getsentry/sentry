@@ -30,7 +30,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/"
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -42,7 +42,9 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
 class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/latest/"
+        self.url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/latest/"
+        )
 
     def test_get(self):
         response = self.client.get(self.url)

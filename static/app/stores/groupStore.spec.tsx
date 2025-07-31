@@ -251,7 +251,6 @@ describe('GroupStore', function () {
                 id: '1',
                 type: GroupActivityType.NOTE,
                 dateCreated: '',
-                project: ProjectFixture(),
                 data: {text: 'Orginal Text'},
               },
             ],

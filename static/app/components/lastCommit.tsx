@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -88,7 +88,7 @@ const Meta = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
 `;
 

@@ -32,7 +32,9 @@ describe('LoginForm', function () {
       },
     });
 
-    render(<LoginForm authConfig={emptyAuthConfig} />);
+    render(<LoginForm authConfig={emptyAuthConfig} />, {
+      deprecatedRouterMocks: true,
+    });
     await doLogin();
 
     expect(await screen.findByText('Bad username password')).toBeInTheDocument();
@@ -55,7 +57,10 @@ describe('LoginForm', function () {
       },
     });
 
-    render(<LoginForm authConfig={emptyAuthConfig} />, {router});
+    render(<LoginForm authConfig={emptyAuthConfig} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await doLogin();
 
     expect(mockRequest).toHaveBeenCalledWith(
@@ -76,7 +81,9 @@ describe('LoginForm', function () {
       githubLoginLink: '/githubLogin',
     };
 
-    render(<LoginForm authConfig={authConfig} />);
+    render(<LoginForm authConfig={authConfig} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(screen.getByText('Sign in with GitHub')).toBeInTheDocument();
     expect(screen.getByText('Sign in with Azure DevOps')).toBeInTheDocument();

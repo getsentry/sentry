@@ -1,6 +1,7 @@
-from typing import Any
+from __future__ import annotations
 
-from sentry.eventstore.models import Event
+from typing import TYPE_CHECKING, Any
+
 from sentry.grouping.component import (
     CSPGroupingComponent,
     ExpectCTGroupingComponent,
@@ -19,11 +20,14 @@ from sentry.grouping.strategies.base import (
 )
 from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
 
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 @strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)
 @produces_variants(["default"])
 def expect_ct_v1(
-    interface: ExpectCT, event: Event, context: GroupingContext, **meta: Any
+    interface: ExpectCT, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return {
         context["variant"]: ExpectCTGroupingComponent(
@@ -38,7 +42,7 @@ def expect_ct_v1(
 @strategy(ids=["expect-staple:v1"], interface=ExpectStaple, score=1001)
 @produces_variants(["default"])
 def expect_staple_v1(
-    interface: ExpectStaple, event: Event, context: GroupingContext, **meta: Any
+    interface: ExpectStaple, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return {
         context["variant"]: ExpectStapleGroupingComponent(
@@ -53,7 +57,7 @@ def expect_staple_v1(
 @strategy(ids=["hpkp:v1"], interface=Hpkp, score=1002)
 @produces_variants(["default"])
 def hpkp_v1(
-    interface: Hpkp, event: Event, context: GroupingContext, **meta: Any
+    interface: Hpkp, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     return {
         context["variant"]: HPKPGroupingComponent(
@@ -67,7 +71,9 @@ def hpkp_v1(
 
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
-def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
+def csp_v1(
+    interface: Csp, event: Event, context: GroupingContext, **kwargs: Any
+) -> ReturnedVariants:
     violation_component = ViolationGroupingComponent()
     uri_component = URIGroupingComponent()
 

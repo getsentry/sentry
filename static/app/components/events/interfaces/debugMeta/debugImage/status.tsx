@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 
@@ -16,6 +16,9 @@ function Status({status}: Props) {
     case ImageStatus.MALFORMED:
     case ImageStatus.TIMEOUT: {
       return <StyledTag type="error">{t('Error')}</StyledTag>;
+    }
+    case ImageStatus.UNSUPPORTED: {
+      return <StyledTag type="error">{t('Unsupported')}</StyledTag>;
     }
     case ImageStatus.MISSING: {
       return <StyledTag type="error">{t('Missing')}</StyledTag>;
@@ -39,8 +42,5 @@ function Status({status}: Props) {
 export default Status;
 
 const StyledTag = styled(Tag)`
-  &,
-  span div {
-    max-width: 100%;
-  }
+  max-width: 100%;
 `;

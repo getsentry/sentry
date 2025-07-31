@@ -10,6 +10,8 @@ from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import tempest_tasks
 from sentry.tempest.models import MessageType, TempestCredentials
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -43,6 +46,7 @@ def poll_tempest(**kwargs):
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # FIXME: Try catch this later
@@ -61,10 +65,21 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         result = response.json()
 
         if "latest_id" in result:
-            credentials.latest_fetched_item_id = result["latest_id"]
-            credentials.message = ""
-            credentials.save(update_fields=["message", "latest_fetched_item_id"])
-            return
+            if result["latest_id"] is None:
+                # If there are no crashes in the CRS we want to communicate that back to the
+                # customer so that they are not surprised about no crashes arriving.
+                credentials.message = "No crashes found"
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
+                return
+            else:
+                credentials.latest_fetched_item_id = result["latest_id"]
+                credentials.message = ""
+                credentials.message_type = MessageType.SUCCESS
+                credentials.save(
+                    update_fields=["message", "latest_fetched_item_id", "message_type"]
+                )
+                return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
                 credentials.message = "Seems like the provided credentials are invalid"
@@ -108,6 +123,7 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
@@ -127,8 +143,9 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                     project_id=project_id, trigger="tempest:poll_tempest_crashes"
                 )
 
-            # Check if we should attach screenshots (opt-in feature)
+            # Check if we should attach screenshots  and or dumps (opt-in features)
             attach_screenshot = credentials.project.get_option("sentry:tempest_fetch_screenshots")
+            attach_dump = credentials.project.get_option("sentry:tempest_fetch_dumps")
 
             response = fetch_items_from_tempest(
                 org_id=org_id,
@@ -139,6 +156,7 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 offset=int(credentials.latest_fetched_item_id),
                 limit=options.get("tempest.poll-limit"),
                 attach_screenshot=attach_screenshot,
+                attach_dump=attach_dump,
             )
         else:
             raise ValueError(
@@ -149,7 +167,11 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
 
         result = response.json()
         credentials.latest_fetched_item_id = result["latest_id"]
-        credentials.save(update_fields=["latest_fetched_item_id"])
+        # Make sure that once existing customers pull crashes the message is set to SUCCESS,
+        # since due to legacy reasons they might still have an empty ERROR message.
+        credentials.message = ""
+        credentials.message_type = MessageType.SUCCESS
+        credentials.save(update_fields=["latest_fetched_item_id", "message", "message_type"])
     except Exception as e:
         logger.exception(
             "Fetching the crashes failed.",
@@ -195,6 +217,7 @@ def fetch_items_from_tempest(
     offset: int,
     limit: int = 10,
     attach_screenshot: bool = False,
+    attach_dump: bool = False,
     time_out: int = 50,  # Since there is a timeout of 45s in the middleware anyways
 ) -> Response:
     payload = {
@@ -206,6 +229,7 @@ def fetch_items_from_tempest(
         "offset": offset,
         "limit": limit,
         "attach_screenshot": attach_screenshot,
+        "attach_dump": attach_dump,
     }
 
     response = requests.post(

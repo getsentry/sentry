@@ -3,14 +3,15 @@ from dataclasses import dataclass
 import pytest
 from jsonschema import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
+from sentry.workflow_engine.types import DetectorSettings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
-class TestJsonConfigBase(BaseGroupTypeTest):
-    def setUp(self):
+class JSONConfigBaseTest(BaseGroupTypeTest):
+    def setUp(self) -> None:
         super().setUp()
         self.correct_config = {
             "username": "user123",
@@ -43,7 +44,8 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            detector_config_schema = self.example_schema
+            category_v2 = GroupCategory.ERROR.value
+            detector_settings = DetectorSettings(config_schema=self.example_schema)
 
         @dataclass(frozen=True)
         class ExampleGroupType(GroupType):
@@ -51,59 +53,68 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             slug = "example"
             description = "Example"
             category = GroupCategory.PERFORMANCE.value
-            detector_config_schema = {"type": "object", "additionalProperties": False}
+            category_v2 = GroupCategory.DB_QUERY.value
+            detector_settings = DetectorSettings(
+                config_schema={"type": "object", "additionalProperties": False},
+            )
 
 
-class TestDetectorConfig(TestJsonConfigBase):
-    def test_detector_no_registration(self):
+# TODO - Move this to the detector model test
+class TestDetectorConfig(JSONConfigBaseTest):
+    def test_detector_no_registration(self) -> None:
         with pytest.raises(ValueError):
             self.create_detector(name="test_detector", type="no_registration")
 
-    def test_detector_schema(self):
+    def test_detector_schema(self) -> None:
         self.create_detector(name="test_detector", type="test", config=self.correct_config)
 
         with pytest.raises(ValidationError):
             self.create_detector(name="test_detector", type="test", config={"hi": "there"})
 
-    def test_detector_empty_schema(self):
+    def test_detector_empty_schema(self) -> None:
         self.create_detector(name="example_detector", type="example", config={})
 
         with pytest.raises(ValidationError):
             self.create_detector(name="test_detector", type="example", config={"hi": "there"})
 
 
-class TestWorkflowConfig(TestJsonConfigBase):
-    def test_workflow_mismatched_schema(self):
+# TODO - Move this to the workflow model test
+class TestWorkflowConfig(JSONConfigBaseTest):
+    def test_workflow_mismatched_schema(self) -> None:
         with pytest.raises(ValidationError):
             self.create_workflow(
                 organization=self.organization, name="test_workflow", config={"hi": "there"}
             )
 
-    def test_workflow_correct_schema(self):
+    def test_workflow_correct_schema(self) -> None:
         self.create_workflow(organization=self.organization, name="test_workflow", config={})
         self.create_workflow(
             organization=self.organization, name="test_workflow2", config={"frequency": 30}
         )
 
 
-class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
-    def setUp(self):
+# TODO - This should be moved into incidents directory
+class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
+    def setUp(self) -> None:
         super().setUp()
         self.metric_alert = self.create_alert_rule(threshold_period=1)
 
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
             type_id = 3
-            slug = "test_metric_alert_fire"
+            slug = "test_metric_issue"
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
-            detector_config_schema = MetricAlertFire.detector_config_schema
+            category_v2 = GroupCategory.METRIC.value
+            detector_settings = DetectorSettings(
+                config_schema=MetricIssue.detector_settings.config_schema,
+            )
 
-    def test_detector_correct_schema(self):
+    def test_detector_correct_schema(self) -> None:
         self.create_detector(
             name=self.metric_alert.name,
             project_id=self.project.id,
-            type="test_metric_alert_fire",
+            type="test_metric_issue",
             owner_user_id=self.metric_alert.user_id,
             config={
                 "threshold_period": self.metric_alert.threshold_period,
@@ -114,55 +125,54 @@ class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
             },
         )
 
-    def test_empty_config(self):
-        self.create_detector(
-            name=self.metric_alert.name,
-            project_id=self.project.id,
-            type="test_metric_alert_fire",
-            owner_user_id=self.metric_alert.user_id,
-            config={},
-        )
-
-    def test_no_config(self):
-        self.create_detector(
-            name=self.metric_alert.name,
-            project_id=self.project.id,
-            type="test_metric_alert_fire",
-            owner_user_id=self.metric_alert.user_id,
-        )
-
-    def test_incorrect_config(self):
+    def test_empty_config(self) -> None:
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type="test_metric_alert_fire",
+                type="test_metric_issue",
+                owner_user_id=self.metric_alert.user_id,
+                config={},
+            )
+
+    def test_no_config(self) -> None:
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.metric_alert.name,
+                project_id=self.project.id,
+                type="test_metric_issue",
+                owner_user_id=self.metric_alert.user_id,
+            )
+
+    def test_incorrect_config(self) -> None:
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.metric_alert.name,
+                project_id=self.project.id,
+                type="test_metric_issue",
                 owner_user_id=self.metric_alert.user_id,
                 config=["some", "stuff"],
             )
 
-    def test_mismatched_schema(self):
+    def test_mismatched_schema(self) -> None:
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type="test_metric_alert_fire",
+                type="test_metric_issue",
                 owner_user_id=self.metric_alert.user_id,
                 config={
-                    "threshold_period": self.metric_alert.threshold_period,
-                    "comparison_delta": self.metric_alert.comparison_delta,
+                    "comparison_delta": "matcha",
                     "detection_type": self.metric_alert.detection_type,
-                    "sensitivity": self.metric_alert.sensitivity,
-                    "seasonality": 42,
                 },
             )
 
-    def test_missing_required(self):
+    def test_missing_required(self) -> None:
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type="test_metric_alert_fire",
+                type="test_metric_issue",
                 owner_user_id=self.metric_alert.user_id,
                 config={
                     "threshold_period": self.metric_alert.threshold_period,

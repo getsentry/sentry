@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -20,18 +21,14 @@ const LOCAL_STORAGE_KEY = 'replay-canvas-supported';
 export function CanvasSupportNotice() {
   const organization = useOrganization();
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
-  const {isFetching, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
   const projectId = replay?.getReplay().project_id;
   const {needsUpdate} = useProjectSdkNeedsUpdate({
     minVersion: '7.98.0',
     organization,
     projectId: [projectId ?? '-1'],
   });
-
-  // No need for notice if they are not feature flagged into the replayer
-  if (!organization.features.includes('session-replay-enable-canvas-replayer')) {
-    return null;
-  }
 
   // User has dismissed this alert already, do not show
   if (isDismissed || isFetching) {
@@ -49,7 +46,6 @@ export function CanvasSupportNotice() {
   return (
     <StyledAlert
       type="info"
-      showIcon
       trailingItems={
         <Button
           aria-label={t('Dismiss banner')}

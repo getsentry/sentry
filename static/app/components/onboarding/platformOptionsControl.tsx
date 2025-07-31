@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -30,13 +30,17 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
       const values = platformOptions[key]!.items.map(({value}) => value);
       acc[key as keyof PlatformOptions] = values.includes(query[key])
         ? query[key]
-        : defaultValue ?? values[0];
+        : (defaultValue ?? values[0]);
       return acc;
     }, {} as SelectedPlatformOptions<PlatformOptions>);
   }, [platformOptions, query]);
 }
 
 type OptionControlProps = {
+  /**
+   * Click handler.
+   */
+  onChange: (option: string) => void;
   /**
    * The platform options for which the control is rendered
    */
@@ -45,10 +49,6 @@ type OptionControlProps = {
    * Value of the currently selected item
    */
   value: string;
-  /**
-   * Click handler.
-   */
-  onChange?: (option: string) => void;
 };
 
 function OptionControl({option, value, onChange}: OptionControlProps) {
@@ -61,7 +61,7 @@ function OptionControl({option, value, onChange}: OptionControlProps) {
   );
 }
 
-export type PlatformOptionsControlProps = {
+type PlatformOptionsControlProps = {
   /**
    * Object with an option array for each platformOption
    */

@@ -6,9 +6,9 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -25,7 +25,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import KeyRow from './keyRow';
 
@@ -211,7 +211,7 @@ function ProjectKeys({project}: Props) {
         )}
       </TextBlock>
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       {isEmpty ? renderEmpty() : renderResults()}
     </div>

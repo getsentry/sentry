@@ -14,8 +14,10 @@ class OwnerModel(Model):
     A base model that adds ownership fields to existing models.
     """
 
-    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
+    owner_user_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
+    )
+    owner_team = FlexibleForeignKey("sentry.Team", null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         abstract = True

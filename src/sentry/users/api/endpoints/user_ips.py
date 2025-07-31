@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,6 +7,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.demo_mode.utils import is_demo_user
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.userip import UserIPSerializer
 from sentry.users.models.user import User
@@ -28,6 +30,9 @@ class UserIPsEndpoint(UserEndpoint):
 
         :auth required:
         """
+
+        if is_demo_user(user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         queryset = UserIP.objects.filter(user=user)
 

@@ -1,29 +1,26 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
   frame: Parameters<typeof useStacktraceLink>[0]['frame'];
-  eventId?: string;
+  event?: Parameters<typeof useStacktraceLink>[0]['event'];
   projectId?: string;
 }
 
-export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
+export function StackTraceMiniFrame({frame, event, projectId}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
-
-  const {data: event} = useEventDetails({eventId, projectSlug: project?.slug});
 
   return (
     <FrameContainer>
@@ -88,7 +85,7 @@ export const FrameContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   border-top: 1px solid ${p => p.theme.border};
 
@@ -104,7 +101,7 @@ const Emphasize = styled('span')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const PushRight = styled('span')`
@@ -155,7 +152,7 @@ const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledIconWrapper = styled('span')`

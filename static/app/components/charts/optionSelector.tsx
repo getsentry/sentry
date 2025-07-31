@@ -1,14 +1,14 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
-} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
@@ -55,7 +55,9 @@ function OptionSelector({
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       textValue: String(opt.label),
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);

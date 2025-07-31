@@ -1,15 +1,29 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {GitRepoLink} from 'sentry/components/events/autofix/autofixSetupModal';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+
+function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
+  return (
+    <RepoItem isOk={repo.ok}>
+      <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
+        {repo.owner}/{repo.name}
+      </ExternalLink>
+      {repo.ok && <IconCheckmark color="success" size="sm" />}
+    </RepoItem>
+  );
+}
 
 interface AutofixSetupWriteAccessModalProps extends ModalRenderProps {
   groupId: string;
@@ -35,7 +49,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
   if (canCreatePullRequests) {
     return (
       <DoneWrapper>
-        <DoneIcon color="success" size="xxl" isCircled />
+        <DoneIcon color="success" size="2xl" isCircled />
         <p>{t("You've successfully configured write access!")}</p>
         <Button onClick={closeModal} priority="primary">
           {t("Let's go")}
@@ -49,11 +63,11 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
       <Fragment>
         <p>
           {tct(
-            'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the following repositories:',
+            'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the following repositories:',
             {
               link: (
                 <ExternalLink
-                  href={`https://github.com/apps/sentry-autofix/installations/new`}
+                  href={`https://github.com/apps/seer-by-sentry/installations/new`}
                 />
               ),
             }
@@ -72,11 +86,11 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
     <Fragment>
       <p>
         {tct(
-          'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the relevant repositories.',
+          'In order to create pull requests, install and grant write access to the [link:Sentry Seer GitHub App] for the relevant repositories.',
           {
             link: (
               <ExternalLink
-                href={`https://github.com/apps/sentry-autofix/installations/new`}
+                href={`https://github.com/apps/seer-by-sentry/installations/new`}
               />
             ),
           }
@@ -93,26 +107,36 @@ export function AutofixSetupWriteAccessModal({
   groupId,
   closeModal,
 }: AutofixSetupWriteAccessModalProps) {
+  const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
   const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  useEffect(() => {
+    return () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+    };
+  }, [queryClient, orgSlug, groupId]);
 
   return (
     <div id="autofix-write-access-modal">
       <Header closeButton>
-        <h3>{t('Allow Autofix to Make Pull Requests')}</h3>
+        <h3>{t('Allow Seer to Make Pull Requests')}</h3>
       </Header>
       <Body>
         <Content groupId={groupId} closeModal={closeModal} />
       </Body>
       {!canCreatePullRequests && (
         <Footer>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <Button onClick={closeModal}>{t('Later')}</Button>
             <LinkButton
-              href="https://github.com/apps/sentry-autofix/installations/new"
+              href="https://github.com/apps/seer-by-sentry/installations/new"
               external
               priority="primary"
             >
-              {t('Install the Autofix GitHub App')}
+              {t('Install the Seer GitHub App')}
             </LinkButton>
           </ButtonBar>
         </Footer>
@@ -128,7 +152,7 @@ const DoneWrapper = styled('div')`
   justify-content: center;
   flex-direction: column;
   padding: 40px;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const DoneIcon = styled(IconCheckmark)`
@@ -140,4 +164,15 @@ const RepoLinkUl = styled('ul')`
   flex-direction: column;
   gap: ${space(0.5)};
   padding: 0;
+`;
+
+const RepoItem = styled('li')<{isOk?: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(2)};
+  padding: ${space(1)};
+  margin-bottom: ${space(0.5)};
+  background-color: ${p => (p.isOk ? p.theme.green100 : 'transparent')};
+  border-radius: ${p => p.theme.borderRadius};
 `;

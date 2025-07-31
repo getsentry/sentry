@@ -2,7 +2,7 @@ import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearc
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 /**
  * A search bar for exploring tags and values for spans in Dashboards.
@@ -11,21 +11,34 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 function SpansSearchBar({
   widgetQuery,
   onSearch,
-}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch'>) {
+  portalTarget,
+  onClose,
+}: Pick<
+  WidgetBuilderSearchBarProps,
+  'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
+>) {
   const {
     selection: {projects},
   } = usePageFilters();
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
   return (
     <EAPSpanSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       numberTags={numberTags}
       stringTags={stringTags}
+      numberSecondaryAliases={numberSecondaryAliases}
+      stringSecondaryAliases={stringSecondaryAliases}
       supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="dashboards"
       projects={projects}
+      portalTarget={portalTarget}
+      onChange={(query, state) => {
+        onClose?.(query, {validSearch: state.queryIsValid});
+      }}
     />
   );
 }

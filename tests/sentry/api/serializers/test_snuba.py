@@ -19,7 +19,7 @@ class ZeroFillTest(unittest.TestCase):
         expected.sort(key=sort_key)
         assert zerofill(buckets, start, end, int(rollup.total_seconds())) == expected
 
-    def test_missing_buckets(self):
+    def test_missing_buckets(self) -> None:
         start = timezone.now().replace(minute=0, second=0, microsecond=0)
         rollup = timedelta(minutes=10)
         self.run_test(
@@ -34,7 +34,7 @@ class ZeroFillTest(unittest.TestCase):
             [1, 3, 5],
         )
 
-    def test_non_rollup_buckets(self):
+    def test_non_rollup_buckets(self) -> None:
         start = timezone.now().replace(minute=0, second=0, microsecond=0)
         rollup = timedelta(minutes=10)
         self.run_test(
@@ -49,7 +49,7 @@ class ZeroFillTest(unittest.TestCase):
             zerofilled_buckets=[2, 3, 4, 5],
         )
 
-    def test_misaligned_last_bucket(self):
+    def test_misaligned_last_bucket(self) -> None:
         # the start does NOT align the first bucket due to the zerofill
         start = timezone.now().replace(minute=5, second=0, microsecond=0)
         rollup = timedelta(minutes=10)

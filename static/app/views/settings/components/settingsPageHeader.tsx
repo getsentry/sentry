@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 
 type Props = {
@@ -52,7 +53,7 @@ function UnstyledSettingsPageHeader({
           {icon && <Icon>{icon}</Icon>}
           {title && (
             <Title tabs={tabs} styled={noTitleStyles}>
-              <HeaderTitle>{title}</HeaderTitle>
+              <Layout.Title>{title}</Layout.Title>
               {subtitle && <Subtitle colorSubtitle={colorSubtitle}>{subtitle}</Subtitle>}
             </Title>
           )}
@@ -71,13 +72,6 @@ interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
   tabs?: React.ReactNode;
 }
 
-const HeaderTitle = styled('h4')`
-  ${p => p.theme.text.pageTitle};
-  color: ${p => p.theme.headingColor};
-  flex: 1;
-  margin: 0;
-`;
-
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
   align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
@@ -87,13 +81,13 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<TitleProps>`
-  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeightBold};`};
+  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeight.bold};`};
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1.5)} 0 0;
 `;
 
@@ -118,7 +112,7 @@ const BodyWrapper = styled('div')`
 `;
 const TabsWrapper = styled('div')`
   flex: 1;
-  margin: 0; /* sentry/components/navTabs has added margin */
+  margin: 0;
 `;
 
 export default SettingsPageHeader;

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction} from 'sentry/types/event';
@@ -16,6 +16,10 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -37,7 +41,8 @@ function renderSpanSamples(
   aggSpan: AggregateSpanType,
   project: Project | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  view?: DomainView
 ) {
   if (!project) {
     return null;
@@ -49,7 +54,6 @@ function renderSpanSamples(
       to={generateLinkToEventInTraceView({
         organization,
         traceSlug: trace,
-        projectSlug: project.slug,
         eventId: transaction,
         timestamp,
         location: {
@@ -61,6 +65,7 @@ function renderSpanSamples(
         },
         spanId: span,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+        view,
       })}
     >{`${span}${index < aggSpan.samples.length - 1 ? ', ' : ''}`}</Link>
   ));
@@ -69,6 +74,7 @@ function renderSpanSamples(
 function AggregateSpanDetail({span, organization}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
+  const {view} = useDomainViewFilters();
 
   const project = projects.find(p => p.id === location.query.project);
 
@@ -89,7 +95,7 @@ function AggregateSpanDetail({span, organization}: Props) {
             <Row title={t('Avg Duration')}>{getDuration(avgDuration)}</Row>
             <Row title={t('Frequency')}>{frequency && formatPercentage(frequency)}</Row>
             <Row title={t('Span Samples')}>
-              {renderSpanSamples(span, project, location, organization)}
+              {renderSpanSamples(span, project, location, organization, view)}
             </Row>
           </tbody>
         </table>
@@ -100,7 +106,7 @@ function AggregateSpanDetail({span, organization}: Props) {
 
 export default AggregateSpanDetail;
 
-export function Row({
+function Row({
   title,
   keep,
   children,
@@ -108,10 +114,10 @@ export function Row({
   extra = null,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
 }) {
   if (!keep && !children) {
     return null;
@@ -137,7 +143,7 @@ export function Row({
   );
 }
 
-export const SpanDetailContainer = styled('div')`
+const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: auto;
 `;
@@ -170,7 +176,7 @@ const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
-export const SpanDetails = styled('div')`
+const SpanDetails = styled('div')`
   padding: ${space(2)};
 
   table.table.key-value td.key {

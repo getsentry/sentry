@@ -20,14 +20,12 @@ export function ExpandedContextProvider(props: any) {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const theme = useTheme();
   const preferences = useLegacyStore(PreferencesStore);
-  const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const shouldAccordionFloat = horizontal || !!preferences.collapsed;
 
   return (
-    <ExpandedContext.Provider
-      value={{expandedItemId, setExpandedItemId, shouldAccordionFloat}}
-    >
+    <ExpandedContext value={{expandedItemId, setExpandedItemId, shouldAccordionFloat}}>
       {props.children}
-    </ExpandedContext.Provider>
+    </ExpandedContext>
   );
 }

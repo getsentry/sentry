@@ -27,11 +27,11 @@ def test_hash_values(seed, value, hash):
 
 
 class HashlibTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert md5_text("x").hexdigest() == "9dd4e461268c8034f5c8564e155c67a6"
         assert sha1_text("x").hexdigest() == "11f6ad8ec52a2984abaafd7c3b516503785c2072"
 
-    def test_unicode(self):
+    def test_unicode(self) -> None:
         assert md5_text("ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
         assert sha1_text("ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"
 
@@ -42,9 +42,6 @@ class HashlibTest(TestCase):
         ("c:transactions/count_per_root_project@none", 2684394786),
         ("d:transactions/duration@millisecond", 1147819254),
         ("s:transactions/user@none", 1739810785),
-        ("c:custom/user.click@none", 1248146441),
-        ("d:custom/page.load@millisecond", 2103554973),
-        ("s:custom/username@none", 670706478),
     ),
 )
 def test_fnv1a_32_with_mris(value, expected_value):

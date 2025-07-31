@@ -1,8 +1,8 @@
-import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
@@ -48,7 +48,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
 
-export const fields: Record<string, Field> = {
+export const fields = {
   name: {
     name: 'name',
     type: 'string',
@@ -165,6 +165,8 @@ export const fields: Record<string, Field> = {
     help: t(
       'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
     ),
+    saveOnBlur: false,
+    saveMessage: t('Ensure you update usages of your security token.'),
     setValue: value => getDynamicText({value, fixed: '__SECURITY_TOKEN__'}),
   },
   securityTokenHeader: {
@@ -175,6 +177,8 @@ export const fields: Record<string, Field> = {
     help: t(
       'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
     ),
+    saveOnBlur: false,
+    saveMessage: t('Ensure you update usages of the security token header.'),
   },
   verifySSL: {
     name: 'verifySSL',
@@ -182,4 +186,4 @@ export const fields: Record<string, Field> = {
     label: t('Verify TLS/SSL'),
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
-};
+} satisfies Record<string, Field>;

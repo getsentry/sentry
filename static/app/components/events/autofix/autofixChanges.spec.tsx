@@ -36,7 +36,7 @@ describe('AutofixChanges', () => {
       status: AutofixStatus.COMPLETED,
       changes: [AutofixCodebaseChangeData({pull_request: undefined})],
     },
-  };
+  } satisfies React.ComponentProps<typeof AutofixChanges>;
 
   beforeEach(() => {
     mockUseAutofix.mockReturnValue({
@@ -90,17 +90,18 @@ describe('AutofixChanges', () => {
       />
     );
 
-    expect(screen.getByText('Could not find a fix.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Seer had trouble applying its code changes.')
+    ).toBeInTheDocument();
   });
 
   it('renders changes with action buttons', () => {
     render(<AutofixChanges {...defaultProps} />);
 
-    expect(screen.getByText('Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('Add error handling')).toBeInTheDocument();
     expect(screen.getByText('owner/hello-world')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Add Tests'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Check Out Locally'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
   });

@@ -2,16 +2,16 @@ import type {InitializeDataSettings} from 'sentry-test/performance/initializePer
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
-
-import {QUERY_LIMIT_PARAM} from '../utils';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
@@ -26,7 +26,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MetricsCardinalityProvider
         location={data.router.location}
         organization={data.organization}
@@ -52,7 +52,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
           </PerformanceDisplayProvider>
         </MEPSettingProvider>
       </MetricsCardinalityProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -69,6 +69,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   let issuesListMock: jest.Mock;
 
   beforeEach(function () {
+    ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
@@ -180,7 +181,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '28d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -316,7 +317,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '14d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -869,7 +870,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/backend/database/'
+      '/organizations/org-slug/insights/backend/database/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -877,20 +878,21 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'span.op',
             'span.group',
             'project.id',
-            'span.description',
+            'sentry.normalized_description',
             'sum(span.self_time)',
             'avg(span.self_time)',
             'time_spent_percentage()',
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'has:span.description span.module:db transaction.op:pageload',
+          query:
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -915,7 +917,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/backend/http/'
+      '/organizations/org-slug/insights/backend/http/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -923,7 +925,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'project.id',
@@ -934,7 +936,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.module:http',
+          query: 'span.category:http',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -959,7 +961,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/frontend/assets/'
+      '/organizations/org-slug/insights/frontend/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -967,10 +969,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
-            'span.description',
+            'sentry.normalized_description',
             'span.op',
             'project.id',
             'span.group',
@@ -981,11 +983,32 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            '!span.description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
+            '!sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
       })
+    );
+  });
+
+  it('should not contain org in link with customer domain', async function () {
+    const data = initializeData();
+    ConfigStore.set('customerDomain', {
+      subdomain: 'sentry',
+      organizationUrl: 'https://sentry.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+
+    wrapper = render(
+      <WrappedComponent
+        data={data}
+        defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/insights/frontend/assets/'
     );
   });
 
@@ -1008,7 +1031,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/backend/caches/'
+      '/organizations/org-slug/insights/backend/caches/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -1017,7 +1040,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           cursor: '0:0:1',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: ['transaction', 'project.id', 'cache_miss_rate()'],
           noPagination: true,
@@ -1048,13 +1071,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Best Page Opportunities'
     );
+
     expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -1072,10 +1096,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
-            'total_opportunity_score()',
+            'count_scores(measurements.score.total)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -1143,7 +1167,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1184,7 +1208,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1225,7 +1249,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_frozen):>0',
           sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),

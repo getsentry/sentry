@@ -7,28 +7,35 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from operator import attrgetter
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
-from sentry.integrations.utils.sync import where_should_sync
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.utils import get_notification_group_title
-from sentry.silo.base import all_silo_function
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import all_silo_function, region_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
 
 logger = logging.getLogger("sentry.integrations.issues")
 MAX_CHAR = 50
@@ -84,15 +91,14 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 result.append(output)
         return "\n\n".join(result)
 
-    def get_feedback_issue_body(self, event: GroupEvent) -> str:
+    def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
         messages = []
         others = []
-        if event.occurrence:
-            for evidence in event.occurrence.evidence_display:
-                if evidence.name == "message":
-                    messages.append(evidence)
-                else:
-                    others.append(evidence)
+        for evidence in occurrence.evidence_display:
+            if evidence.name == "message":
+                messages.append(evidence)
+            else:
+                others.append(evidence)
 
         body = ""
         for message in messages:
@@ -133,7 +139,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             and group.issue_category == GroupCategory.FEEDBACK
         ):
             body = ""
-            body = self.get_feedback_issue_body(event)
+            body = self.get_feedback_issue_body(event.occurrence)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
@@ -143,7 +149,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         """
         These fields are used to render a form for the user,
@@ -222,10 +228,12 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             new_config.setdefault("project_issue_defaults", {}).setdefault(
                 str(project.id), {}
             ).update(project_defaults)
-            self.org_integration = integration_service.update_organization_integration(
+            org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.org_integration.id,
                 config=new_config,
             )
+            if org_integration is not None:
+                self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
@@ -241,7 +249,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project: Project, user: User):
+    def get_defaults(self, project: Project, user: User | RpcUser):
         project_defaults = (
             {}
             if not self.org_integration
@@ -368,6 +376,40 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         pass
 
 
+@region_silo_function
+def where_should_sync(
+    integration: RpcIntegration | Integration,
+    key: str,
+    organization_id: int | None = None,
+) -> Sequence[Organization]:
+    """
+    Given an integration, get the list of organizations where the sync type in
+    `key` is enabled. If an optional `organization_id` is passed, then only
+    check the integration for that organization.
+    """
+    kwargs = dict()
+    if organization_id is not None:
+        kwargs["id"] = organization_id
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration.id, organization_id=organization_id
+        )
+    else:
+        ois = integration_service.get_organization_integrations(integration_id=integration.id)
+
+    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
+    ret = []
+    for organization in organizations.filter(**kwargs):
+        if features.has("organizations:integrations-issue-sync", organization):
+            installation = integration.get_installation(organization_id=organization.id)
+            if isinstance(installation, IssueBasicIntegration) and installation.should_sync(key):
+                ret.append(organization)
+    return ret
+
+
+class IntegrationSyncTargetNotFound(IntegrationError):
+    pass
+
+
 class IssueSyncIntegration(IssueBasicIntegration, ABC):
     comment_key: ClassVar[str | None] = None
     outbound_status_key: ClassVar[str | None] = None
@@ -405,13 +447,8 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
 
     @abstractmethod
     def sync_status_outbound(
-        self,
-        external_issue,
-        is_resolved,
-        project_id,
-        assignment_source: AssignmentSource | None = None,
-        **kwargs,
-    ):
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """

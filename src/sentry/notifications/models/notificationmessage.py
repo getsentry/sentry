@@ -68,7 +68,7 @@ class NotificationMessage(Model):
     open_period_start = DateTimeField(null=True)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "notifications"
         db_table = "sentry_notificationmessage"
         # A notification message should exist for either issue or metric alert, but never both
         constraints = [
@@ -123,17 +123,6 @@ class NotificationMessage(Model):
                     parent_notification_message__isnull=True,
                 ),
                 name="singular_parent_message_per_rule_fire_history_rule_action_open_",
-            ),
-            # 1 parent message per action and group (open_period_start null not distinct)
-            UniqueConstraint(
-                "action",
-                "group",
-                Coalesce("open_period_start", Value(timezone.make_aware(datetime.datetime.min))),
-                condition=Q(
-                    error_code__isnull=True,
-                    parent_notification_message__isnull=True,
-                ),
-                name="singular_parent_message_per_action_group_open_period",
             ),
         ]
 

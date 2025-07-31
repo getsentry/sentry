@@ -3,11 +3,15 @@ from __future__ import annotations
 import abc
 import logging
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from cronsim import CronSim, CronSimError
 from django.utils import timezone
 
 from sentry.conf.types.taskworker import crontab
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import MonitorConfigScheduleUnit
 
 logger = logging.getLogger("taskworker.scheduler")
 
@@ -35,7 +39,14 @@ class Schedule(metaclass=abc.ABCMeta):
 
 
 class TimedeltaSchedule(Schedule):
-    """Task schedules defined as `datetime.timedelta` intervals"""
+    """
+    Task schedules defined as `datetime.timedelta` intervals
+
+    If a timedelta interval loses it's last_run state, it will assume
+    that at least one interval has been missed, and it will become due immediately.
+
+    After the first spawn, the schedule will align to to the interval's duration.
+    """
 
     def __init__(self, delta: timedelta) -> None:
         self._delta = delta
@@ -43,6 +54,21 @@ class TimedeltaSchedule(Schedule):
             raise ValueError("microseconds are not supported")
         if delta.total_seconds() < 0:
             raise ValueError("interval must be at least one second")
+
+    def monitor_interval(self) -> tuple[int, MonitorConfigScheduleUnit]:
+        time_units: tuple[tuple[MonitorConfigScheduleUnit, float], ...] = (
+            ("day", 60 * 60 * 24.0),
+            ("hour", 60 * 60.0),
+            ("minute", 60.0),
+        )
+
+        seconds = self._delta.total_seconds()
+        for unit, divider in time_units:
+            if seconds >= divider:
+                interval = int(seconds / divider)
+                return (interval, unit)
+
+        return (int(seconds), "second")
 
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
@@ -71,13 +97,16 @@ class CrontabSchedule(Schedule):
     """
     Task schedules defined as crontab expressions.
 
-    Last run state is used to determine the next scheduled time.
+    crontab expressions naturally align to clock intervals. For example
+    an interval of `crontab(minute="*/2")` will spawn on the even numbered minutes.
 
-    If last run is in the future, the future value will be used to
-    calculate the next scheduled time.
+    If a crontab schedule loses its last_run state, it will assume that
+    one or more intervals have been missed, and it will align to the next
+    interval window. Missed intervals will not be recovered.
 
-    If runs are missed, the schedule will align to the next interval
-    that would be scheduled. Lost runs are not recovered.
+    For tasks with very long intervals, you should consider the impact of a deploy
+    or scheduler restart causing a missed window. Consider a more frequent interval
+    to help spread load out and reduce the impacts of missed intervals.
     """
 
     def __init__(self, name: str, crontab: crontab) -> None:
@@ -87,6 +116,10 @@ class CrontabSchedule(Schedule):
             self._cronsim = CronSim(str(crontab), timezone.now())
         except CronSimError as e:
             raise ValueError(f"crontab expression {self._crontab} is invalid") from e
+
+    def monitor_value(self) -> str:
+        """Get the crontab expression as a string"""
+        return str(self._crontab)
 
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
@@ -127,20 +160,22 @@ class CrontabSchedule(Schedule):
         # If last run is in the past, see if the next runtime
         # is in the future.
         if last_run < now:
-            next_run = self._advance(last_run)
+            next_run = self._advance(last_run + timedelta(minutes=1))
             # Our next runtime is in the future, or now
             if next_run >= now:
                 return int(next_run.timestamp() - now.timestamp())
 
             # still in the past, we missed an interval :(
+            missed = next_run
             next_run = self._advance(now)
             logger.warning(
                 "taskworker.scheduler.missed_interval",
                 extra={
                     "task": self._name,
-                    "last_run": last_run,
-                    "now": now,
-                    "next_run": next_run,
+                    "last_run": last_run.isoformat(),
+                    "missed": missed.isoformat(),
+                    "now": now.isoformat(),
+                    "next_run": next_run.isoformat(),
                 },
             )
             return int(next_run.timestamp() - now.timestamp())

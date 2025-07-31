@@ -7,14 +7,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
@@ -28,16 +25,14 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
+import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-
-import AppStartWidgets from '../components/widgets';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 type Query = {
-  [SpanMetricsField.APP_START_TYPE]: string;
+  [SpanFields.APP_START_TYPE]: string;
   'device.class': string;
   primaryRelease: string;
   project: string;
@@ -51,18 +46,13 @@ type Query = {
 export function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
-  const organization = useOrganization();
-
-  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
         <MobileHeader
-          hideDefaultTabs={isMobileScreensEnabled}
-          module={
-            isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
-          }
+          hideDefaultTabs
+          module={ModuleName.MOBILE_VITALS}
           headerTitle={transactionName}
           breadcrumbs={[
             {
@@ -88,7 +78,7 @@ export function ScreenSummaryContentPage() {
   const {
     transaction: transactionName,
     spanGroup,
-    [SpanMetricsField.APP_START_TYPE]: appStartType,
+    [SpanFields.APP_START_TYPE]: appStartType,
   } = location.query;
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -101,7 +91,7 @@ export function ScreenSummaryContentPage() {
           ...location,
           query: {
             ...location.query,
-            [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+            [SpanFields.APP_START_TYPE]: COLD_START_TYPE,
           },
         },
         {replace: true}
@@ -112,12 +102,7 @@ export function ScreenSummaryContentPage() {
   useSamplesDrawer({
     Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.APP_START} />,
     moduleName: ModuleName.APP_START,
-    requiredParams: [
-      'transaction',
-      'spanGroup',
-      'spanOp',
-      SpanMetricsField.APP_START_TYPE,
-    ],
+    requiredParams: ['transaction', 'spanGroup', 'spanOp', SpanFields.APP_START_TYPE],
     onClose: () => {
       navigate(
         {
@@ -144,14 +129,13 @@ export function ScreenSummaryContentPage() {
           <StartTypeSelector />
         </ToolRibbon>
         <MobileMetricsRibbon
-          dataset={DiscoverDatasets.SPANS_METRICS}
           filters={[
             `transaction:${transactionName}`,
             `span.op:app.start.${appStartType}`,
             '(',
-            'span.description:"Cold Start"',
+            'span.description:["Cold Start","Cold App Start"]',
             'OR',
-            'span.description:"Warm Start"',
+            'span.description:["Warm Start","Warm App Start"]',
             ')',
           ]}
           fields={[
@@ -209,16 +193,6 @@ export function ScreenSummaryContentPage() {
     </Fragment>
   );
 }
-
-function PageWithProviders() {
-  return (
-    <ModulePageProviders moduleName="app_start" pageTitle={t('Screen Summary')}>
-      <ScreenSummary />
-    </ModulePageProviders>
-  );
-}
-
-export default PageWithProviders;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

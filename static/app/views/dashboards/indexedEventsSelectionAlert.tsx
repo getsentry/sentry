@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,13 +58,13 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
             {({isMetricsData}) => {
               if (
                 isMetricsData === false &&
-                widget.widgetType === WidgetType.DISCOVER &&
+                widget.widgetType === WidgetType.TRANSACTIONS &&
                 metricSettingContext &&
                 metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
               ) {
                 if (!widgetContainsErrorFields) {
                   return (
-                    <StoredDataAlert showIcon>
+                    <StoredDataAlert type="info">
                       {tct(
                         "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                         {
@@ -88,5 +88,4 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
 
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
-  margin-bottom: 0;
 `;

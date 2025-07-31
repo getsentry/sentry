@@ -3,8 +3,9 @@ from __future__ import annotations
 import pickle
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     MultiprocessingPool as ArroyoMultiprocessingPool,
@@ -17,7 +18,9 @@ from arroyo.types import Message, TStrategyPayload
 from arroyo.utils.metrics import Metrics
 from django.conf import settings
 
-from sentry.metrics.base import MetricsBackend
+if TYPE_CHECKING:
+    from sentry.metrics.base import MetricsBackend
+
 
 Tags = Mapping[str, str]
 
@@ -131,6 +134,10 @@ def initialize_arroyo_main() -> None:
 
     from sentry.utils.metrics import backend
 
+    # XXX: we initially called this function only to initialize sentry consumer
+    # metrics, and namespaced arroyo metrics under sentry.consumer. Now we
+    # initialize arroyo metrics in every sentry process, and so even producer
+    # metrics are namespaced under sentry.consumer.
     metrics_wrapper = MetricsWrapper(backend, name="consumer")
     configure_metrics(metrics_wrapper)
 
@@ -191,3 +198,56 @@ def run_task_with_multiprocessing(
         assert pool.pool is not None
 
         return ArroyoRunTaskWithMultiprocessing(pool=pool.pool, function=function, **kwargs)
+
+
+def _import_and_run(
+    initializer: Callable[[], None],
+    main_fn_pickle: bytes,
+    args_pickle: bytes,
+    *additional_args: Any,
+) -> None:
+    initializer()
+
+    # explicitly use pickle so that we can be sure arguments get unpickled
+    # after sentry gets initialized
+    main_fn = pickle.loads(main_fn_pickle)
+    args = pickle.loads(args_pickle)
+
+    main_fn(*args, *additional_args)
+
+
+def run_with_initialized_sentry(main_fn: Callable[..., None], *args: Any) -> Callable[..., None]:
+    main_fn_pickle = pickle.dumps(main_fn)
+    args_pickle = pickle.dumps(args)
+    return partial(
+        _import_and_run, _get_arroyo_subprocess_initializer(None), main_fn_pickle, args_pickle
+    )
+
+
+class SetJoinTimeout(ProcessingStrategy[TStrategyPayload]):
+    """
+    A strategy for setting and re-setting the join timeout for individual
+    sub-sections of the processing chain. This way one can granularly disable
+    join() for steps that are idempotent anyway, making rebalancing faster and simpler.
+    """
+
+    def __init__(
+        self, timeout: float | None, next_step: ProcessingStrategy[TStrategyPayload]
+    ) -> None:
+        self.timeout = timeout
+        self.next_step = next_step
+
+    def submit(self, message: Message[TStrategyPayload]) -> None:
+        self.next_step.submit(message)
+
+    def poll(self) -> None:
+        self.next_step.poll()
+
+    def join(self, timeout: float | None = None) -> None:
+        self.next_step.join(self.timeout)
+
+    def close(self) -> None:
+        self.next_step.close()
+
+    def terminate(self) -> None:
+        self.next_step.terminate()

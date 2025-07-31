@@ -205,3 +205,45 @@ Any request content-type is acceptable (JSON, XML, binary-formats) so long as th
 - Request
 
 - Response 201
+
+## Suspect Scores [/organizations/<organization_id_or_slug>/issues/<issue_id>/suspect/flags/]
+
+### Browse Suspect Scores [GET]
+
+Retrieve a collection of confidence scores for all feature flags associated with an issue. Each flag appears exactly once in the result.
+
+**Parameters**
+
+| Field       | Type             | Description                                                         |
+| ----------- | ---------------- | ------------------------------------------------------------------- |
+| environment | optional, string | The environment to filter by. Multiple parameters may be specified. |
+| statsPeriod | optional, string | A positive integer suffixed with a unit type (s, m, h, d, w).       |
+| start       | optional, string | ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`).                       |
+| end         | optional, string | ISO 8601 format. Required if `start` is set.                        |
+
+**Attributes**
+
+| Column           | Type   | Description                                                     |
+| ---------------- | ------ | --------------------------------------------------------------- |
+| flag             | string | The name of the flag.                                           |
+| score            | number | A suspicion score from 0 to infinity.                           |
+| baseline_percent | number | Percentage of events in the same project with the flag enabled. |
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "flag": "hello",
+        "score": 5.83,
+        "baseline_percent": 0.33
+      },
+      {
+        "flag": "world",
+        "score": 0.0021,
+        "baseline_percent": 0.491
+      }
+    ]
+  }
+  ```

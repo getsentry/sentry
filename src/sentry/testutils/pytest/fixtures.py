@@ -12,7 +12,7 @@ import sys
 from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
-from typing import Any, Protocol
+from typing import Any, Protocol, overload
 
 import pytest
 import requests
@@ -32,7 +32,26 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
 
 
-def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs):
+@overload
+def django_db_all[R, **P](func: Callable[P, R]) -> Callable[P, R]: ...
+
+
+@overload
+def django_db_all[
+    R, **P
+](*, transaction: bool | None = None, reset_sequences: bool | None = None) -> Callable[
+    [Callable[P, R]], Callable[P, R]
+]: ...
+
+
+def django_db_all[
+    R, **P
+](
+    func: Callable[P, R] | None = None,
+    *,
+    transaction: bool | None = None,
+    reset_sequences: bool | None = None,
+) -> (Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]):
     """Pytest decorator for resetting all databases"""
 
     if func is not None:
@@ -40,7 +59,7 @@ def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs
             transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
         )(func)
 
-    def decorator(function):
+    def decorator(function: Callable[P, R]) -> Callable[P, R]:
         return pytest.mark.django_db(
             transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
         )(function)

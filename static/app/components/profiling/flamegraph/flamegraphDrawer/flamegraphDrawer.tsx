@@ -1,13 +1,16 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -20,6 +23,7 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -45,6 +49,7 @@ interface FlamegraphDrawerProps {
 const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
+  const theme = useTheme();
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
@@ -64,9 +69,9 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           : () => false;
 
     const maybeFilteredRoots =
-      treeType !== 'all'
-        ? filterFlamegraphTree(props.rootNodes, skipFunction)
-        : props.rootNodes;
+      treeType === 'all'
+        ? props.rootNodes
+        : filterFlamegraphTree(props.rootNodes, skipFunction);
 
     if (tab === 'top down') {
       return maybeFilteredRoots;
@@ -180,7 +185,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         <ProfilingDetailsListItem>
           <FrameDrawerLabel>
             <Checkbox
-              size="xs"
+              size="sm"
               checked={recursion === 'collapsed'}
               onChange={handleRecursionChange}
             />
@@ -202,42 +207,54 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               : undefined
           }
         />
-        <ProfilingDetailsListItem margin="none">
-          <ExportProfileButton
-            variant="xs"
-            eventId={params.eventId}
-            projectId={params.projectId}
-            orgId={orgSlug}
-            disabled={params.eventId === undefined || params.projectId === undefined}
-          />
-        </ProfilingDetailsListItem>
+        {defined(params.eventId) && defined(params.projectId) && (
+          <ProfilingDetailsListItem margin="none">
+            <ExportProfileButton
+              size="zero"
+              priority={theme.isChonk ? 'transparent' : undefined}
+              eventId={params.eventId}
+              projectId={params.projectId}
+              orgId={orgSlug}
+              disabled={params.eventId === undefined || params.projectId === undefined}
+            />
+          </ProfilingDetailsListItem>
+        )}
         <Separator />
         <ProfilingDetailsListItem>
           <LayoutSelectionContainer>
-            <StyledButton
-              active={flamegraphPreferences.layout === 'table left'}
-              onClick={onTableLeftClick}
-              size="xs"
-              title={t('Table left')}
-            >
-              <IconPanel size="xs" direction="left" />
-            </StyledButton>
-            <StyledButton
-              active={flamegraphPreferences.layout === 'table bottom'}
-              onClick={onTableBottomClick}
-              size="xs"
-              title={t('Table bottom')}
-            >
-              <IconPanel size="xs" direction="down" />
-            </StyledButton>
-            <StyledButton
-              active={flamegraphPreferences.layout === 'table right'}
-              onClick={onTableRightClick}
-              size="xs"
-              title={t('Table right')}
-            >
-              <IconPanel size="xs" direction="right" />
-            </StyledButton>
+            <Tooltip title={t('Table left')} skipWrapper>
+              <StyledButton
+                priority={theme.isChonk ? 'transparent' : undefined}
+                active={flamegraphPreferences.layout === 'table left'}
+                onClick={onTableLeftClick}
+                title={t('Table left')}
+                aria-label={t('Table left')}
+                size="xs"
+                icon={<IconPanel direction="left" />}
+              />
+            </Tooltip>
+            <Tooltip title={t('Table bottom')} skipWrapper>
+              <StyledButton
+                priority={theme.isChonk ? 'transparent' : undefined}
+                active={flamegraphPreferences.layout === 'table bottom'}
+                onClick={onTableBottomClick}
+                title={t('Table bottom')}
+                aria-label={t('Table bottom')}
+                size="xs"
+                icon={<IconPanel direction="down" />}
+              />
+            </Tooltip>
+            <Tooltip title={t('Table right')} skipWrapper>
+              <StyledButton
+                priority={theme.isChonk ? 'transparent' : undefined}
+                active={flamegraphPreferences.layout === 'table right'}
+                onClick={onTableRightClick}
+                title={t('Table right')}
+                aria-label={t('Table right')}
+                size="xs"
+                icon={<IconPanel direction="right" />}
+              />
+            </Tooltip>
           </LayoutSelectionContainer>
         </ProfilingDetailsListItem>
       </ProfilingDetailsFrameTabs>
@@ -304,7 +321,7 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(0.5)};
 `;
 
@@ -359,23 +376,29 @@ export const ProfilingDetailsListItem = styled('li')<{
   margin?: 'none';
   size?: 'sm';
 }>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSize.sm};
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
   button {
+    height: 100%;
     border: none;
     border-top: 2px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: 0;
+    font-weight: ${p => p.theme.fontWeight.normal};
     margin: 0;
-    padding: ${space(0.5)} 0;
+
     color: ${p => p.theme.textColor};
-    max-height: auto;
+
+    display: inline-block;
 
     &::after {
       display: block;
       content: attr(data-title);
-      font-weight: ${p => p.theme.fontWeightBold};
+      font-weight: ${p => p.theme.fontWeight.bold};
       height: 1px;
       color: transparent;
       overflow: hidden;
@@ -389,34 +412,33 @@ export const ProfilingDetailsListItem = styled('li')<{
   }
 
   &.active button {
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     border-bottom: 2px solid ${prop => prop.theme.active};
   }
 `;
 
-const StyledButton = styled(Button)<{active: boolean}>`
-  border: none;
-  background-color: transparent;
-  box-shadow: none;
-  transition: none !important;
-  opacity: ${p => (p.active ? 0.7 : 0.5)};
-  line-height: 26px;
-
-  &:not(:last-child) {
-    margin-right: ${space(1)};
-  }
-
-  &:hover {
-    border: none;
+const StyledButton = withChonk(
+  styled(Button)<{active: boolean}>`
+    opacity: ${p => (p.active ? 0.7 : 0.5)};
+    padding: ${space(0.5)} ${space(0.5)};
     background-color: transparent;
-    box-shadow: none;
-    opacity: ${p => (p.active ? 0.6 : 0.5)};
-  }
-`;
+
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      opacity: ${p => (p.active ? 0.6 : 0.5)};
+    }
+  `,
+  Button
+);
 
 const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
+  height: 100%;
+  gap: ${space(0.25)};
 `;
 
 export {FlamegraphDrawer};

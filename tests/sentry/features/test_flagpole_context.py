@@ -10,16 +10,18 @@ from sentry.features.flagpole_context import (
     user_context_transformer,
 )
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
 
 
 class TestSentryFlagpoleContext(TestCase):
-    def test_sentry_flagpole_context_builder(self):
+    def test_sentry_flagpole_context_builder(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, platform="php")
         sentry_flagpole_builder = get_sentry_flagpole_context_builder()
 
         sentry_context = sentry_flagpole_builder.build(
@@ -30,21 +32,24 @@ class TestSentryFlagpoleContext(TestCase):
         assert sentry_context.get("organization_slug") == org.slug
         assert sentry_context.get("project_slug") == project.slug
         assert sentry_context.get("project_id") == project.id
+        assert sentry_context.get("project_platform") == project.platform
 
 
 class TestSentryOrganizationContextTransformer(TestCase):
-    def test_without_organization_passed(self):
+    def test_without_organization_passed(self) -> None:
         context_data = organization_context_transformer(SentryContextData())
         assert context_data == {}
 
-    def test_with_invalid_organization(self):
+    def test_with_invalid_organization(self) -> None:
         with pytest.raises(InvalidContextDataException):
             organization_context_transformer(SentryContextData(organization=1234))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(SentryContextData(organization=self.create_project()))  # type: ignore[arg-type]
+            organization_context_transformer(
+                SentryContextData(organization=self.create_project())  # type: ignore[arg-type]
+            )
 
-    def test_with_valid_organization(self):
+    def test_with_valid_organization(self) -> None:
         org = self.create_organization(slug="foobar", name="Foo Bar")
         org.flags.early_adopter = True
         org.save()
@@ -59,7 +64,7 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_is-early-adopter": True,
         }
 
-    def test_with_rpc_organization_summary(self):
+    def test_with_rpc_organization_summary(self) -> None:
         org = self.create_organization(slug="foobar", name="Foo Bar")
         rpc_org_summary = organization_service.get_org_by_id(id=org.id)
 
@@ -73,7 +78,7 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_is-early-adopter": False,
         }
 
-    def test_with_rpc_organization(self):
+    def test_with_rpc_organization(self) -> None:
         org = self.create_organization(slug="foobar", name="Foo Bar")
         rpc_org = organization_service.get(id=org.id)
 
@@ -85,7 +90,7 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_is-early-adopter": False,
         }
 
-    def test_with_rpc_organization_mapping(self):
+    def test_with_rpc_organization_mapping(self) -> None:
         org = self.create_organization(slug="foobar", name="Foo Bar")
         org_mapping = organization_mapping_service.get(organization_id=org.id)
 
@@ -97,44 +102,59 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_is-early-adopter": False,
         }
 
+    def test_with_organization_mapping(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org = self.create_organization(slug="foobar", name="Foo Bar")
+            org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
+            context_data = organization_context_transformer(
+                SentryContextData(organization=org_mapping)
+            )
+            assert context_data == {
+                "organization_slug": "foobar",
+                "organization_id": org.id,
+                "organization_name": "Foo Bar",
+                "organization_is-early-adopter": False,
+            }
+
 
 class TestProjectContextTransformer(TestCase):
-    def test_without_project_passed(self):
+    def test_without_project_passed(self) -> None:
         context_data = project_context_transformer(SentryContextData())
         assert context_data == {}
 
-    def test_with_invalid_project_passed(self):
+    def test_with_invalid_project_passed(self) -> None:
         with pytest.raises(InvalidContextDataException):
             project_context_transformer(SentryContextData(project=123))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
             project_context_transformer(SentryContextData(project=self.create_organization()))
 
-    def test_with_valid_project(self):
-        project = self.create_project(slug="foobar", name="Foo Bar")
+    def test_with_valid_project(self) -> None:
+        project = self.create_project(slug="foobar", name="Foo Bar", platform="php")
 
         context_data = project_context_transformer(SentryContextData(project=project))
         assert context_data == {
             "project_slug": "foobar",
             "project_name": "Foo Bar",
             "project_id": project.id,
+            "project_platform": "php",
         }
 
 
 @control_silo_test
 class TestUserContextTransformer(TestCase):
-    def test_without_user_passed(self):
+    def test_without_user_passed(self) -> None:
         context_data = project_context_transformer(SentryContextData())
         assert context_data == {}
 
-    def test_with_invalid_user_passed(self):
+    def test_with_invalid_user_passed(self) -> None:
         with pytest.raises(InvalidContextDataException):
             user_context_transformer(SentryContextData(actor=123))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
             user_context_transformer(SentryContextData(actor=self.create_organization()))
 
-    def test_with_valid_user(self):
+    def test_with_valid_user(self) -> None:
         user = self.create_user(email="foobar@example.com")
         # Create a new, unverified email to ensure we don't list it
         self.create_useremail(user=user, email="unverified_email@example.com")
@@ -148,7 +168,7 @@ class TestUserContextTransformer(TestCase):
             "user_is-staff": False,
         }
 
-    def test_with_only_unverified_emails(self):
+    def test_with_only_unverified_emails(self) -> None:
         user = self.create_user(email="foobar@example.com")
         user_email = UserEmail.objects.filter(user_id=user.id).get()
         user_email.is_verified = False
@@ -161,7 +181,7 @@ class TestUserContextTransformer(TestCase):
             "user_is-staff": False,
         }
 
-    def test_with_super_user_and_staff(self):
+    def test_with_super_user_and_staff(self) -> None:
         user = self.create_user(email="super_user_admin_person@sentry.io", is_superuser=True)
         context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {
@@ -184,7 +204,7 @@ class TestUserContextTransformer(TestCase):
             "user_is-staff": True,
         }
 
-    def test_with_anonymous_user(self):
+    def test_with_anonymous_user(self) -> None:
         user = AnonymousUser()
         context_data = user_context_transformer(SentryContextData(actor=user))
         assert context_data == {}

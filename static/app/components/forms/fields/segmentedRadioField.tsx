@@ -1,15 +1,15 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Radio from 'sentry/components/radio';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 
-export interface SegmentedRadioFieldProps<Choices extends string = string>
+interface SegmentedRadioFieldProps<Choices extends string = string>
   extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
@@ -73,7 +73,7 @@ function RadioControlGroup<C extends string>({
               <InteractionStateLayer />
               <Radio
                 name={groupName}
-                aria-label={name?.toString()}
+                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
                 disabled={disabled}
                 checked={value === id}
                 onChange={(e: React.FormEvent<HTMLInputElement>) =>
@@ -95,7 +95,7 @@ const Container = styled('div')`
   grid-auto-flow: row;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-rows: minmax(0, 1fr);
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: column;
   }
   overflow: hidden;
@@ -105,7 +105,7 @@ const Container = styled('div')`
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-export const RadioItem = styled('label', {shouldForwardProp})<{
+const RadioItem = styled('label', {shouldForwardProp})<{
   index: number;
   disabled?: boolean;
 }>`
@@ -116,8 +116,8 @@ export const RadioItem = styled('label', {shouldForwardProp})<{
   gap: ${space(0.25)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  border: 1px solid ${p => p.theme.gray200};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  border: 1px solid ${p => p.theme.border};
   margin: 0;
 
   &[aria-checked='true'] {
@@ -139,7 +139,7 @@ export const RadioItem = styled('label', {shouldForwardProp})<{
     border-top-color: transparent;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     &:nth-child(n + 2) {
       border-top-color: ${p => p.theme.gray200};
       border-left-color: transparent;
@@ -168,13 +168,13 @@ export const RadioItem = styled('label', {shouldForwardProp})<{
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
   opacity: ${p => (p.disabled ? 0.4 : null)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray500};
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4em;
 `;

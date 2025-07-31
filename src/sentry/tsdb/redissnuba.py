@@ -28,9 +28,9 @@ method_specifications = {
     # method: (type, function(callargs) -> set[model])
     "get_range": (READ, single_model_argument),
     "get_sums": (READ, single_model_argument),
+    "get_timeseries_sums": (READ, single_model_argument),
     "get_distinct_counts_series": (READ, single_model_argument),
     "get_distinct_counts_totals": (READ, single_model_argument),
-    "get_distinct_counts_totals_with_conditions": (READ, single_model_argument),
     "get_frequency_series": (READ, single_model_argument),
     "incr": (WRITE, single_model_argument),
     "incr_multi": (WRITE, lambda callargs: {item[0] for item in callargs["items"]}),

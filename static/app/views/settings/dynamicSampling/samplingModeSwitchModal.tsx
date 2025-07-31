@@ -8,9 +8,9 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -97,7 +97,7 @@ function SamplingModeSwitchModal({
                   'Deactivating advanced mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [learnMoreLink:Learn more]',
                   {
                     learnMoreLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/" />
                     ),
                   }
                 )
@@ -105,10 +105,10 @@ function SamplingModeSwitchModal({
                   'Switching to advanced mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [learnMoreLink:Learn more]',
                   {
                     prioritiesLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities" />
                     ),
                     learnMoreLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
                     ),
                   }
                 )}
@@ -187,7 +187,7 @@ const InputWrapper = styled('div')`
 
 const ErrorMessage = styled('div')`
   color: ${p => p.theme.red300};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const ButtonWrapper = styled('div')`

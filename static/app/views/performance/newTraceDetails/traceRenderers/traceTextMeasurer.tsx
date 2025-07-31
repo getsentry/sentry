@@ -1,15 +1,15 @@
-import theme from 'sentry/utils/theme';
+import type {Theme} from '@emotion/react';
 
 export class TraceTextMeasurer {
   queue: string[] = [];
   drainRaf: number | null = null;
   cache: Map<string, number> = new Map();
 
-  number: number = 0;
-  dot: number = 0;
+  number = 0;
+  dot = 0;
   duration: Record<string, number> = {};
 
-  constructor() {
+  constructor(theme: Theme) {
     this.drain = this.drain.bind(this);
 
     const canvas = document.createElement('canvas');

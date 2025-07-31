@@ -22,8 +22,8 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 @region_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: AuthenticatedHttpRequest, group: Group) -> Response:

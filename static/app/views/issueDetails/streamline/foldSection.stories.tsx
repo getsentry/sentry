@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
-export default storyBook('FoldSection', story => {
+export default Storybook.story('FoldSection', story => {
   story('Usage', () => (
     <Fragment>
       <CodeSnippet language="jsx">
@@ -60,6 +60,25 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
     );
   });
 
+  story('Disabling persistence of collapsed state', () => {
+    return (
+      <Fragment>
+        <FoldSection
+          title="Disable Persistence Section"
+          sectionKey={SectionKey.HIGHLIGHTS}
+          disableCollapsePersistence
+        >
+          <Lorem />
+        </FoldSection>
+        <CodeSnippet language="jsx">
+          {`<FoldSection title="Disable Persistence Section" sectionKey={SectionKey.MY_SECTION} disableCollapsePersistence>
+  <p>Lorem ipsum...</p>
+</FoldSection>`}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
   story('Custom headers/titles for the section', () => {
     return (
       <Fragment>
@@ -72,7 +91,7 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         <FoldSection
           title="Header with Actions"
           actions={
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button size="xs" icon={<IconAdd />}>
                 Add
               </Button>

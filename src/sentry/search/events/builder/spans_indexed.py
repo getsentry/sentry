@@ -68,9 +68,6 @@ class SpansEAPQueryBuilder(BaseQueryBuilder):
     size_fields = SIZE_FIELDS
     config_class = SpansEAPDatasetConfig
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def get_field_type(self, field: str) -> str | None:
         tag_match = constants.TYPED_TAG_KEY_RE.search(field)
         field_type = tag_match.group("type") if tag_match else None

@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Tag, {Background} from 'sentry/components/badge/tag';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {ExternalLink} from 'sentry/components/core/link';
 import MenuItem from 'sentry/components/menuItem';
 import Truncate from 'sentry/components/truncate';
 import {space} from 'sentry/styles/space';
@@ -12,7 +12,7 @@ import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export const QuickTraceContainer = styled('div')`
@@ -47,13 +47,11 @@ export type NodeType = keyof ReturnType<typeof nodeColors>;
 
 export const EventNode = styled(Tag)<{type: NodeType}>`
   height: 20px;
+  background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
+  border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   span {
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
-  }
-  & ${Background} {
-    background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
-    border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
 `;
 
@@ -76,7 +74,7 @@ export const DropdownContainer = styled('span')`
 
 export const DropdownMenuHeader = styled(MenuItem)<{first?: boolean}>`
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.backgroundSecondary};
@@ -102,7 +100,7 @@ type DropdownItemProps = {
   children: React.ReactNode;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
-  to?: string | LocationDescriptor;
+  to?: LocationDescriptor;
   width?: 'small' | 'large';
 };
 

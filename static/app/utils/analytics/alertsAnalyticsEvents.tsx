@@ -5,7 +5,7 @@ export type AlertsEventParameters = {
   };
 };
 
-export type AlertsEventKey = keyof AlertsEventParameters;
+type AlertsEventKey = keyof AlertsEventParameters;
 
 export const alertsEventMap: Record<AlertsEventKey, string | null> = {
   'anomaly-detection.feedback-submitted': 'Anomaly Detection Feedback Submitted',

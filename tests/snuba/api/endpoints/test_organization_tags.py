@@ -101,12 +101,11 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
         )
 
-        with self.feature({"organizations:feature-flag-autocomplete": True}):
-            response = self.client.get(
-                url,
-                {"statsPeriod": "14d", "useFlagsBackend": "1", "dataset": "events"},
-                format="json",
-            )
+        response = self.client.get(
+            url,
+            {"statsPeriod": "14d", "useFlagsBackend": "1", "dataset": "events"},
+            format="json",
+        )
         assert response.status_code == 200, response.content
         data = response.data
         data.sort(key=lambda val: val["totalValues"], reverse=True)
@@ -332,7 +331,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         assert response.data == []
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_tag_caching(self, mock_snuba_query):
+    def test_tag_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -354,7 +353,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 1
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_different_statsperiod_caching(self, mock_snuba_query):
+    def test_different_statsperiod_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -377,7 +376,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 2
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_different_times_caching(self, mock_snuba_query):
+    def test_different_times_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)

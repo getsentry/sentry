@@ -1,11 +1,11 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -132,11 +132,13 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
       </TextBlock>
 
       {!hasWrite && (
-        <Alert type="warning">
-          {t(
-            'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon={false}>
+            {t(
+              'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
+            )}
+          </Alert>
+        </Alert.Container>
       )}
 
       <Panel>

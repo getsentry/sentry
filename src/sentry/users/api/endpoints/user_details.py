@@ -67,6 +67,10 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
+    prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
+    prefersStackedNavigation = serializers.BooleanField(required=False)
+    prefersChonkUI = serializers.BooleanField(required=False)
+    prefersAgentsInsightsModule = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
@@ -175,9 +179,14 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
-        if "username" in request.data:
+        email = None
+        if "email" in request.data and len(request.data["email"]) > 0:
+            email = request.data["email"]
+        elif "username" in request.data and len(request.data["username"]) > 0:
+            email = request.data["username"]
+        if email:
             verified_email_found = UserEmail.objects.filter(
-                user_id=user.id, email=request.data["username"], is_verified=True
+                user_id=user.id, email=email, is_verified=True
             ).exists()
             if not verified_email_found:
                 return Response({"detail": "Verified email address is not found."}, status=400)
@@ -230,6 +239,10 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
+            "prefersStackedNavigation": "prefers_stacked_navigation",
+            "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
+            "prefersChonkUI": "prefers_chonk_ui",
+            "prefersAgentsInsightsModule": "prefers_agents_insights_module",
         }
 
         options_result = serializer_options.validated_data

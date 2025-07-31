@@ -39,7 +39,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
     def is_substring(self, string, substring):
         # in case either have special characters, we want to preserve the strings
         # as is, so we escape both before applying re.match
-        string = re.escape(string)
         substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 

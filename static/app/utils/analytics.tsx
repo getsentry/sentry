@@ -7,12 +7,20 @@ import {
   alertsEventMap,
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
-import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
-import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {
+  type GamingAnalyticsEventParameters,
+  gamingEventMap,
+} from 'sentry/utils/analytics/gamingAnalyticsEvents';
+import {
+  logsAnalyticsEventMap,
+  type LogsAnalyticsEventParameters,
+} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
+import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -22,6 +30,8 @@ import {
   type StatsEventParameters,
 } from 'sentry/utils/analytics/statsAnalyticsEvents';
 
+import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
+import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -42,7 +52,11 @@ import type {IntegrationEventParameters} from './analytics/integrations';
 import {integrationEventMap} from './analytics/integrations';
 import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
+import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
+import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
+import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
+import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
 import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
@@ -66,21 +80,25 @@ import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
+import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
+    AgentMonitoringEventParameters,
     AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
-    DDMEventParameters,
     DiscoverEventParameters,
     FeatureFlagEventParameters,
     FeedbackEventParameters,
     InsightEventParameters,
     IssueEventParameters,
+    LaravelInsightsEventParameters,
+    McpMonitoringEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
     ProfilingEventParameters,
@@ -91,31 +109,37 @@ interface EventParameters
     TeamInsightsEventParameters,
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
+    GamingAnalyticsEventParameters,
     StackTraceEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
+    LogsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
     QuickStartEventParameters,
+    TempestEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
-  ...ddmEventMap,
   ...discoverEventMap,
   ...featureFlagEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
   ...insightEventMap,
   ...issueEventMap,
+  ...laravelInsightsEventMap,
   ...monitorsEventMap,
+  ...nextJsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
+  ...logsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,
@@ -123,6 +147,7 @@ const allEventMap: Record<string, string | null> = {
   ...workflowEventMap,
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
+  ...gamingEventMap,
   ...stackTraceEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
@@ -131,6 +156,9 @@ const allEventMap: Record<string, string | null> = {
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,
+  ...navigationAnalyticsEventMap,
+  ...tempestEventMap,
+  ...mcpMonitoringEventMap,
 };
 
 /**
@@ -170,16 +198,6 @@ export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
   options
 ) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
-/**
- * This should be used to log when a `organization.experiments` experiment
- * variant is checked in the application.
- *
- * Refer for the backend implementation provided through HookStore for more
- * details.
- */
-export const logExperiment: Hooks['analytics:log-experiment'] = options =>
-  HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
-
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {
     /**
@@ -197,7 +215,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Additional data that will be sent with measure()
      * This is useful if you want to track initial state
      */
-    data?: object;
+    data?: Record<PropertyKey, unknown>;
   }) => void;
 
   measure: (opts: {
@@ -205,7 +223,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Additional data to send with metric event.
      * If a key collide with the data in mark(), this will overwrite them
      */
-    data?: object;
+    data?: Record<PropertyKey, unknown>;
     /**
      * Name of ending mark
      */
@@ -239,7 +257,7 @@ type RecordMetric = Hooks['metrics:event'] & {
 /**
  * Used to pass data between metric.mark() and metric.measure()
  */
-const metricDataStore = new Map<string, object>();
+const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
 
 /**
  * Record metrics.

@@ -47,7 +47,7 @@ describe('EventsChart with legend', function () {
         start={null}
         end={null}
         utc={false}
-        router={router}
+        location={router.location}
         showLegend
       />
     );

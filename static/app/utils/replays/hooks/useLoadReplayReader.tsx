@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import type {Group} from 'sentry/types/group';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
@@ -12,6 +11,7 @@ type Props = {
     endTimestampMs: number;
     startTimestampMs: number;
   };
+  eventTimestampMs?: number;
   group?: Group;
 };
 
@@ -24,11 +24,21 @@ export default function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,
+  eventTimestampMs,
   group,
 }: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, fetching, ...replayData} = useReplayData({
+  const {
+    attachments,
+    errors,
+    feedbackEvents,
+    replayRecord,
+    status,
+    isError,
+    isPending,
+    ...replayData
+  } = useReplayData({
     orgSlug,
     replayId,
   });
@@ -54,29 +64,39 @@ export default function useLoadReplayReader({
     );
   }, [clipWindow, firstMatchingError]);
 
-  const featureFlags = useOrganization().features;
-
-  const replay = useMemo(
-    () =>
-      ReplayReader.factory({
-        attachments,
-        clipWindow: memoizedClipWindow,
-        errors,
-        featureFlags,
-        fetching,
-        replayRecord,
-      }),
-    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
-  );
+  const replay = useMemo(() => {
+    return replayRecord?.is_archived
+      ? null
+      : ReplayReader.factory({
+          attachments,
+          clipWindow: memoizedClipWindow,
+          errors,
+          feedbackEvents,
+          fetching: isPending,
+          replayRecord,
+          eventTimestampMs,
+        });
+  }, [
+    attachments,
+    memoizedClipWindow,
+    errors,
+    feedbackEvents,
+    isPending,
+    replayRecord,
+    eventTimestampMs,
+  ]);
 
   return {
     ...replayData,
     attachments,
     errors,
-    fetching,
+    feedbackEvents,
+    isError,
+    isPending,
     replay,
     replayId,
     replayRecord,
+    status,
   };
 }
 

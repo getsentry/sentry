@@ -1,10 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -104,7 +104,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
   const onSlowestFunctionClick = useCallback(() => {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: `profiling_transaction.slowest_functions_table`,
+      source: 'unknown',
     });
   }, [organization]);
 
@@ -133,11 +133,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           <SlowestFunctionsQueryState>
             {t('Failed to fetch slowest functions')}
           </SlowestFunctionsQueryState>
-        ) : !functions.length ? (
-          <SlowestFunctionsQueryState>
-            {t('The fastest code is one that never runs.')}
-          </SlowestFunctionsQueryState>
-        ) : (
+        ) : functions.length ? (
           functions.map((fn, i) => {
             return (
               <SlowestFunctionEntry
@@ -149,6 +145,10 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
               />
             );
           })
+        ) : (
+          <SlowestFunctionsQueryState>
+            {t('The fastest code is one that never runs.')}
+          </SlowestFunctionsQueryState>
         )}
       </SlowestFunctionsList>
     </SlowestFunctionsContainer>
@@ -162,6 +162,7 @@ interface SlowestFunctionEntryProps {
   project: Project | null;
 }
 function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
+  const organization = useOrganization();
   const frame = useMemo(() => {
     return new Frame(
       {
@@ -182,7 +183,7 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   const example = props.func['all_examples()']?.[0];
   if (defined(example)) {
     const target = generateProfileRouteFromProfileReference({
-      orgSlug: props.organization.slug,
+      organization,
       projectSlug: props.project?.slug ?? '',
       frameName: frame.name,
       framePackage: frame.package as string,
@@ -290,7 +291,7 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;

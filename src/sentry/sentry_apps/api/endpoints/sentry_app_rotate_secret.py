@@ -8,7 +8,7 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import DemoSafePermission
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SentryAppStatus
@@ -16,12 +16,13 @@ from sentry.models.apiapplication import generate_token
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
 
-class SentryAppRotateSecretPermission(SentryPermission):
+class SentryAppRotateSecretPermission(DemoSafePermission):
     scope_map = {
         "POST": ["org:write", "org:admin"],
     }
@@ -58,6 +59,13 @@ class SentryAppRotateSecretPermission(SentryPermission):
                 "user does not belong to the integration owner organization", extra=log_info
             )
             raise Http404
+
+        for scope in sentry_app.scope_list:
+            if not request.access.has_scope(scope):
+                raise SentryAppError(
+                    message=f"Requested permission of {scope} exceeds requester's permission. Please contact an owner to make the requested change.",
+                    status_code=403,
+                )
 
         # permission check inside an organization
         allowed_scopes = set(self.scope_map.get(request.method or "", []))

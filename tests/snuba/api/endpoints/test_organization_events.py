@@ -1,13 +1,16 @@
 import math
 import uuid
-from datetime import timedelta
+from datetime import UTC, timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
+from dateutil import parser
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReason
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -30,15 +33,18 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.testutils.cases import (
     APITransactionTestCase,
+    OurLogTestCase,
     PerformanceIssueTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    UptimeCheckSnubaTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
+from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -48,7 +54,9 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, SpanTestCase):
+class OrganizationEventsEndpointTestBase(
+    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase
+):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
@@ -199,7 +207,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
 
     def test_invalid_field(self):
-        self.features["organizations:performance-discover-dataset-selector"] = True
         self.create_project()
         query: dict[str, Any] = {"field": ["foo[…]bar"], "dataset": "transactions"}
         model = DiscoverSavedQuery.objects.create(
@@ -4120,7 +4127,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert data[0]["failure_count()"] == 6
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         self.create_project()
         mock_quantize.return_value = before_now(days=1)
 
@@ -4146,15 +4153,15 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_limit_number_of_fields(self):
         self.create_project()
-        for i in range(1, 25):
+        for i in range(1, 60, 10):
             response = self.do_request({"field": ["id"] * i})
-            if i <= 20:
+            if i <= 50:
                 assert response.status_code == 200
             else:
                 assert response.status_code == 400
                 assert (
                     response.data["detail"]
-                    == "You can view up to 20 fields at a time. Please delete some and try again."
+                    == "You can view up to 50 fields at a time. Please delete some and try again."
                 )
 
     def test_percentile_function_meta_types(self):
@@ -5053,8 +5060,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["measurements.frames_slow_rate"] == "percentage"
         assert meta["measurements.frames_frozen_rate"] == "percentage"
         assert meta["measurements.stall_count"] == "number"
-        assert meta["measurements.stall_total_time"] == "number"
-        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_total_time"] == "duration"
+        assert meta["measurements.stall_longest_time"] == "duration"
         assert meta["measurements.stall_percentage"] == "percentage"
 
         query = {
@@ -5124,7 +5131,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             assert response.status_code == 400, query_text
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_removes_unnecessary_default_project_and_transaction_thresholds(self, mock_snql_query):
+    def test_removes_unnecessary_default_project_and_transaction_thresholds(
+        self, mock_snql_query: mock.MagicMock
+    ) -> None:
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         ProjectTransactionThreshold.objects.create(
@@ -5741,27 +5750,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
         assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
-        features = {
-            "organizations:discover-basic": True,
-            "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": False,
-        }
-        query = {
-            "field": ["project", "user"],
-            "query": "has:user event.type:transaction",
-            "statsPeriod": "14d",
-            "discoverSavedQueryId": model.id,
-        }
-        response = self.do_request(query, features=features)
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert "discoverSplitDecision" not in response.data["meta"]
-
-        model = DiscoverSavedQuery.objects.get(id=model.id)
-        assert model.dataset == DiscoverSavedQueryTypes.DISCOVER
-        assert model.dataset_source == DatasetSourcesTypes.UNKNOWN.value
-
     def test_saves_discover_saved_query_split_transaction(self):
         self.store_event(self.transaction_data, project_id=self.project.id)
         query = {"fields": ["message"], "query": "", "limit": 10}
@@ -5780,7 +5768,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["project", "user"],
@@ -5821,7 +5808,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["project", "user"],
@@ -5861,7 +5847,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["transaction"],
@@ -5901,7 +5886,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         features = {
             "organizations:discover-basic": True,
             "organizations:global-views": True,
-            "organizations:performance-discover-dataset-selector": True,
         }
         query = {
             "field": ["transaction.status"],
@@ -5954,7 +5938,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             project_id=self.project.id,
         )
         features = {
-            "organizations:performance-discover-dataset-selector": True,
             "organizations:discover-basic": True,
             "organizations:global-views": True,
         }
@@ -5972,10 +5955,94 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # count() is 1 because it falls back to transactions
         assert response.data["data"][0]["count()"] == 1
 
+    def test_profiled_transaction_condition(self):
+        no_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        self.store_event(no_profile, project_id=self.project.id)
+
+        profile_id = uuid.uuid4().hex
+        transaction_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        transaction_profile.setdefault("contexts", {}).setdefault("profile", {})[
+            "profile_id"
+        ] = profile_id
+        transaction_profile["event_id"] = uuid.uuid4().hex
+        self.store_event(transaction_profile, project_id=self.project.id)
+
+        profiler_id = uuid.uuid4().hex
+        continuous_profile = load_data("transaction", timestamp=self.ten_mins_ago)
+        continuous_profile.setdefault("contexts", {}).setdefault("profile", {})[
+            "profiler_id"
+        ] = profiler_id
+        continuous_profile.setdefault("contexts", {}).setdefault("trace", {}).setdefault(
+            "data", {}
+        )["thread.id"] = "12345"
+        continuous_profile["event_id"] = uuid.uuid4().hex
+        self.store_event(continuous_profile, project_id=self.project.id)
+        query = {
+            "field": ["id", "profile.id", "profiler.id"],
+            "query": "has:profile.id OR (has:profiler.id has:thread.id)",
+            "dataset": "discover",
+            "orderby": "id",
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["data"] == sorted(
+            [
+                {
+                    "id": transaction_profile["event_id"],
+                    "profile.id": profile_id,
+                    "profiler.id": None,
+                    "project.name": self.project.slug,
+                },
+                {
+                    "id": continuous_profile["event_id"],
+                    "profile.id": None,
+                    "profiler.id": profiler_id,
+                    "project.name": self.project.slug,
+                },
+            ],
+            key=lambda row: row["id"],
+        )
+
+    def test_debug_param(self):
+        self.user = self.create_user("user@example.com", is_superuser=False)
+
+        query = {
+            "field": ["spans.http"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+            "dataset": "discover",
+            "debug": True,
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        # Debug should be ignored without superuser
+        assert "query" not in response.data["meta"]
+
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "query" in response.data["meta"]
+        # We should get the snql query back in the query key
+        assert "MATCH" in response.data["meta"]["query"]
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_profiles_dataset_simple(self, mock_snql_query):
+    def test_profiles_dataset_simple(self, mock_snql_query: mock.MagicMock) -> None:
         mock_snql_query.side_effect = [
             {
                 "data": [
@@ -6527,6 +6594,395 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_error_upsampling_with_allowlisted_project(self):
+        """Test that count() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event without sampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect the count to be upsampled (1 event / 0.1 = 10) + 1 event with no sampling = 11
+            assert response.data["data"][0]["count()"] == 11
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "count()" in meta["fields"]
+            assert meta["fields"]["count()"] == "integer"
+
+    def test_error_upsampling_eps_with_allowlisted_project(self):
+        """Test that eps() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for eps upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "b1" * 16,
+                    "message": "Error event without sampling for eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - eps() should be upsampled
+            query = {
+                "field": ["eps()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect eps to be upsampled (10 events / 7200 seconds) + (1 event / 7200 seconds) = 11/7200
+            # Since we have 1 event upsampled to 10 + 1 event with no sampling over 2 hour period
+            expected_eps = 11 / 7200
+            actual_eps = response.data["data"][0]["eps()"]
+            assert abs(actual_eps - expected_eps) < 0.0001  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "eps()" in meta["fields"]
+            assert meta["fields"]["eps()"] == "rate"
+            assert meta["units"]["eps()"] == "1/second"
+
+    def test_error_upsampling_epm_with_allowlisted_project(self):
+        """Test that epm() is upsampled for allowlisted projects when querying error events."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Error event for epm upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "c1" * 16,
+                    "message": "Error event without sampling for epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - epm() should be upsampled
+            query = {
+                "field": ["epm()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect epm to be upsampled (10 events / 120 minutes) + (1 event / 120 minutes) = 11/120
+            # Since we have 1 event upsampled to 10 + 1 event with no sampling over 2 hour period
+            expected_epm = 11 / 120
+            actual_epm = response.data["data"][0]["epm()"]
+            assert abs(actual_epm - expected_epm) < 0.001  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "epm()" in meta["fields"]
+            assert meta["fields"]["epm()"] == "rate"
+            assert meta["units"]["epm()"] == "1/minute"
+
+    def test_error_upsampling_with_no_allowlist(self):
+        """Test that count() is not upsampled when project is not allowlisted."""
+        # No allowlisted projects
+        with self.options({"issues.client_error_sampling.project_allowlist": []}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect the count to remain as-is (no upsampling)
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_error_upsampling_with_partial_allowlist(self):
+        """Test that count() is upsampled when any project in the query is allowlisted."""
+        # Create a second project
+        project2 = self.create_project(organization=self.organization)
+
+        # Only allowlist the first project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error events in both projects
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for upsampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=project2.id,
+            )
+
+            # Test with errors dataset, querying both projects
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+                "project": [self.project.id, project2.id],
+            }
+            features = {"organizations:discover-basic": True, "organizations:global-views": True}
+            response = self.do_request(query, features=features)
+            assert response.status_code == 200, response.content
+            # Expect upsampling since any project is allowlisted (both events upsampled: 10 + 10 = 20)
+            assert response.data["data"][0]["count()"] == 20
+
+    def test_sample_count_with_allowlisted_project(self):
+        """Test that sample_count() returns raw sample count (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "Error event for sample_count",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event without sampling",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_count() should return raw count, not upsampled
+            query = {
+                "field": ["sample_count()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_count to return raw count: 2 events (not upsampled 11)
+            assert response.data["data"][0]["sample_count()"] == 2
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_count()" in meta["fields"]
+            assert meta["fields"]["sample_count()"] == "integer"
+
+    def test_sample_eps_with_allowlisted_project(self):
+        """Test that sample_eps() returns raw sample rate (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "Error event for sample_eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "b1" * 16,
+                    "message": "Error event without sampling for sample_eps",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_eps() should return raw rate, not upsampled
+            query = {
+                "field": ["sample_eps()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_eps to return raw rate: 2 events / 7200 seconds = 2/7200
+            expected_sample_eps = 2 / 7200
+            actual_sample_eps = response.data["data"][0]["sample_eps()"]
+            assert (
+                abs(actual_sample_eps - expected_sample_eps) < 0.0001
+            )  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_eps()" in meta["fields"]
+            assert meta["fields"]["sample_eps()"] == "rate"
+            assert meta["units"]["sample_eps()"] == "1/second"
+
+    def test_sample_epm_with_allowlisted_project(self):
+        """Test that sample_epm() returns raw sample rate (not upsampled) for allowlisted projects."""
+        # Set up allowlisted project
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            # Store error event with error_sampling context
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "Error event for sample_epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.project.id,
+            )
+
+            # Store error event without error_sampling context (sample_weight = null should count as 1)
+            self.store_event(
+                data={
+                    "event_id": "c1" * 16,
+                    "message": "Error event without sampling for sample_epm",
+                    "type": "error",
+                    "exception": [{"type": "ValueError", "value": "Something else went wrong"}],
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3_no_sampling"],
+                },
+                project_id=self.project.id,
+            )
+
+            # Test with errors dataset - sample_epm() should return raw rate, not upsampled
+            query = {
+                "field": ["sample_epm()"],
+                "statsPeriod": "2h",
+                "query": "event.type:error",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            # Expect sample_epm to return raw rate: 2 events / 120 minutes = 2/120
+            expected_sample_epm = 2 / 120
+            actual_sample_epm = response.data["data"][0]["sample_epm()"]
+            assert (
+                abs(actual_sample_epm - expected_sample_epm) < 0.001
+            )  # Allow small rounding differences
+
+            # Check meta information
+            meta = response.data["meta"]
+            assert "fields" in meta
+            assert "sample_epm()" in meta["fields"]
+            assert meta["fields"]["sample_epm()"] == "rate"
+            assert meta["units"]["sample_epm()"] == "1/minute"
+
     def test_is_status(self):
         self.store_event(
             data={
@@ -6783,3 +7239,141 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "count_scores(measurements.score.lcp)": 1,
             "count_scores(measurements.score.total)": 3,
         }
+
+    def test_remapping(self):
+        self.store_event(self.transaction_data, self.project.id)
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction.duration",
+                    "span.duration",
+                ],
+                "query": "has:span.duration",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+
+        assert data[0]["transaction.duration"] == 3000
+        assert data[0]["span.duration"] == 3000
+
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["fields"]["transaction.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["units"]["transaction.duration"] == "millisecond"
+
+
+class OrganizationEventsUptimeDatasetEndpointTest(
+    OrganizationEventsEndpointTestBase, UptimeCheckSnubaTestCase
+):
+    def coerce_response(self, response: Response) -> None:
+        for item in response.data["data"]:
+            for field in ("uptime_subscription_id", "uptime_check_id", "trace_id"):
+                if field in item:
+                    item[field] = uuid.UUID(item[field])
+
+            for field in ("timestamp", "scheduled_check_time"):
+                if field in item:
+                    item[field] = parser.parse(item[field]).replace(tzinfo=UTC)
+
+            for field in ("duration_ms", "http_status_code"):
+                if field in item:
+                    item[field] = int(item[field])
+
+    def test_basic(self):
+        subscription_id = uuid.uuid4().hex
+        check_id = uuid.uuid4()
+        self.store_snuba_uptime_check(
+            subscription_id=subscription_id, check_status="success", check_id=check_id
+        )
+        query = {
+            "field": ["uptime_subscription_id", "uptime_check_id"],
+            "statsPeriod": "2h",
+            "query": "",
+            "dataset": "uptimeChecks",
+            "orderby": ["uptime_subscription_id"],
+        }
+
+        response = self.do_request(query)
+        self.coerce_response(response)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "uptime_subscription_id": uuid.UUID(subscription_id),
+                "uptime_check_id": check_id,
+            }
+        ]
+
+    def test_all_fields(self):
+        subscription_id = uuid.uuid4().hex
+        check_id = uuid.uuid4()
+        scheduled_check_time = before_now(minutes=5)
+        actual_check_time = before_now(minutes=2)
+        duration_ms = 100
+        region = "us"
+        check_status: CheckStatus = "failure"
+        check_status_reason: CheckStatusReason = {
+            "type": "timeout",
+            "description": "Request timed out",
+        }
+        http_status = 200
+        trace_id = uuid.uuid4()
+        environment = "test"
+        self.store_snuba_uptime_check(
+            environment=environment,
+            subscription_id=subscription_id,
+            check_status=check_status,
+            check_id=check_id,
+            incident_status=IncidentStatus.NO_INCIDENT,
+            scheduled_check_time=scheduled_check_time,
+            http_status=http_status,
+            actual_check_time=actual_check_time,
+            duration_ms=duration_ms,
+            region=region,
+            check_status_reason=check_status_reason,
+            trace_id=trace_id,
+        )
+
+        query = {
+            "field": [
+                "environment",
+                "uptime_subscription_id",
+                "uptime_check_id",
+                "scheduled_check_time",
+                "timestamp",
+                "duration_ms",
+                "region",
+                "check_status",
+                "check_status_reason",
+                "http_status_code",
+                "trace_id",
+            ],
+            "statsPeriod": "1h",
+            "query": "",
+            "dataset": "uptimeChecks",
+        }
+
+        response = self.do_request(query)
+        self.coerce_response(response)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "environment": environment,
+                "uptime_subscription_id": uuid.UUID(subscription_id),
+                "uptime_check_id": check_id,
+                "environment": environment,
+                "scheduled_check_time": scheduled_check_time.replace(microsecond=0),
+                "timestamp": actual_check_time,
+                "duration_ms": duration_ms,
+                "region": region,
+                "check_status": check_status,
+                "check_status_reason": check_status_reason["type"],
+                "http_status_code": http_status,
+                "trace_id": trace_id,
+            }
+        ]

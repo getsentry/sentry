@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ErrorFrame} from 'sentry/utils/replays/types';

@@ -1,9 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import PageOverview from 'sentry/views/insights/browser/webVitals/views/pageOverview';
 
 jest.mock('sentry/utils/useLocation');
@@ -26,22 +28,8 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -64,6 +52,10 @@ describe('PageOverview', function () {
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -71,30 +63,24 @@ describe('PageOverview', function () {
   });
 
   it('renders', () => {
-    render(<PageOverview />, {organization});
+    render(<PageOverview />, {organization, deprecatedRouterMocks: true});
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.inp, any)',
             'count()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -104,7 +90,7 @@ describe('PageOverview', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
@@ -126,7 +112,7 @@ describe('PageOverview', function () {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -145,31 +131,42 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             field: [
               'measurements.inp',
-              'measurements.score.inp',
-              'measurements.score.weight.inp',
+              'measurements.score.ratio.inp',
               'measurements.score.total',
-              'span_id',
-              'timestamp',
+              'trace',
               'profile_id',
+              'profile.id',
               'replay.id',
-              'user',
-              'origin.transaction',
+              'replayId',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
-              'browser.name',
-              'span.self_time',
               'span.description',
+              'timestamp',
+              'span.self_time',
+              'transaction',
+              'span.op',
+              'lcp.element',
+              'cls.source.1',
+              'id',
             ],
             query:
-              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
+              'has:message !span.description:<unknown> transaction:/  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
           }),
         })
       )
@@ -192,31 +189,42 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             field: [
               'measurements.inp',
-              'measurements.score.inp',
-              'measurements.score.weight.inp',
+              'measurements.score.ratio.inp',
               'measurements.score.total',
-              'span_id',
-              'timestamp',
+              'trace',
               'profile_id',
+              'profile.id',
               'replay.id',
-              'user',
-              'origin.transaction',
+              'replayId',
+              'user.email',
+              'user.username',
+              'user.id',
+              'user.ip',
               'project',
-              'browser.name',
-              'span.self_time',
               'span.description',
+              'timestamp',
+              'span.self_time',
+              'transaction',
+              'span.op',
+              'lcp.element',
+              'cls.source.1',
+              'id',
             ],
             query:
-              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
+              'has:message !span.description:<unknown> transaction:"/page-with-a-\\*/"  span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press] ',
           }),
         })
       )

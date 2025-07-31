@@ -210,12 +210,9 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user: User | None = None) -> RpcOrganizationMember | None:
+    def accept_invite(self, user: User) -> RpcOrganizationMember | None:
         member = self.invite_context.member
         assert member
-
-        if user is None:
-            user = self.request.user
 
         if self.member_already_exists:
             self.handle_member_already_exists()

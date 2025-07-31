@@ -4,14 +4,14 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectTemplateOptionManagerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
         self.project_template = ProjectTemplate.objects.create(
             name="test_project_template", organization=self.org
         )
 
-    def test_set_value(self):
+    def test_set_value(self) -> None:
         ProjectTemplateOption.objects.set_value(self.project_template, "foo", "bar")
         assert (
             ProjectTemplateOption.objects.get(
@@ -20,7 +20,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
             == "bar"
         )
 
-    def test_get_value(self):
+    def test_get_value(self) -> None:
         result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
         assert result is None
 
@@ -31,7 +31,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
         assert result == "bar"
 
-    def test_get_value_validated(self):
+    def test_get_value_validated(self) -> None:
         result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
         assert result is None
 
@@ -51,7 +51,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         )
         assert result is None
 
-    def test_unset_value(self):
+    def test_unset_value(self) -> None:
         ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
@@ -60,7 +60,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
             project_template=self.project_template, key="foo"
         ).exists()
 
-    def test_get_value_bulk(self):
+    def test_get_value_bulk(self) -> None:
         result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
         assert result == {}
 
@@ -70,7 +70,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
         assert result == {self.project_template: "bar"}
 
-    def test_get_value_actually_bulk(self):
+    def test_get_value_actually_bulk(self) -> None:
         second_template = ProjectTemplate.objects.create(
             name="second_test_project_template", organization=self.org
         )
@@ -91,7 +91,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         )
         assert result == {self.project_template: "bar", second_template: "baz"}
 
-    def test_update_value(self):
+    def test_update_value(self) -> None:
         result = ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
@@ -103,7 +103,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         )
         assert result.value == "baz"
 
-    def test_get_all_values(self):
+    def test_get_all_values(self) -> None:
         ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
@@ -111,7 +111,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_all_values(self.project_template)
         assert result == {"foo": "bar"}
 
-    def test_get_all_values_id(self):
+    def test_get_all_values_id(self) -> None:
         ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
@@ -119,7 +119,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_all_values(self.project_template.id)
         assert result == {"foo": "bar"}
 
-    def test_get_all_values_without_cache(self):
+    def test_get_all_values_without_cache(self) -> None:
         ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
@@ -131,7 +131,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
 
 
 class ProjectTemplateOptionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
         self.project_template = ProjectTemplate.objects.create(
@@ -142,7 +142,7 @@ class ProjectTemplateOptionTest(TestCase):
         self.org.delete()
         self.project_template.delete()
 
-    def test_create_simple_project_template(self):
+    def test_create_simple_project_template(self) -> None:
         template_option = ProjectTemplateOption.objects.create(
             project_template=self.project_template,
             key="key",

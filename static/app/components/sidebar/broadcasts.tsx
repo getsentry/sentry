@@ -1,6 +1,5 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -47,7 +46,8 @@ export function Broadcasts({
   const {isPending, data: broadcasts = []} = useApiQuery<Broadcast[]>(
     [`/organizations/${organization.slug}/broadcasts/`],
     {
-      staleTime: 0,
+      // Five minute stale time prevents window focus frequent refetches
+      staleTime: 1000 * 60 * 5,
       refetchInterval: POLLER_DELAY,
       refetchOnWindowFocus: true,
     }
@@ -88,7 +88,7 @@ export function Broadcasts({
   }, []);
 
   return (
-    <DemoModeGate>
+    <Fragment>
       <SidebarItem
         data-test-id="sidebar-broadcasts"
         orientation={orientation}
@@ -130,6 +130,6 @@ export function Broadcasts({
           )}
         </SidebarPanel>
       )}
-    </DemoModeGate>
+    </Fragment>
   );
 }

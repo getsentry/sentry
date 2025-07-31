@@ -4,6 +4,8 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react';
 
+import {Switch} from 'sentry/components/core/switch';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -13,8 +15,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Switch from 'sentry/components/switchButton';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 
 import FooterWithButtons from './components/footerWithButtons';
@@ -133,8 +133,8 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
                 <StyledSwitch
                   size="lg"
                   name="toggleAll"
-                  toggle={this.handleToggle}
-                  isActive={this.allStatesToggled}
+                  onChange={this.handleToggle}
+                  checked={this.allStatesToggled}
                 />
               </Tooltip>
             )}

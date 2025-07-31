@@ -11,16 +11,17 @@ export enum StackType {
   MINIFIED = 'minified',
 }
 
-export type StacktraceType = {
-  framesOmitted: any;
+export interface StacktraceType {
+  /**
+   * Omitted segment of frames (start, end)
+   */
+  framesOmitted: [start: number, end: number] | null;
   hasSystemFrames: boolean;
-  registers: Record<string, any> | null;
+  registers: Record<string, string | null> | null;
   frames?: Frame[];
-};
+}
 
-export type RawStacktrace = StacktraceType | null;
-
-type MechanismMeta = {
+interface MechanismMeta {
   errno?: {
     number: number;
     name?: string;
@@ -37,12 +38,12 @@ type MechanismMeta = {
     code_name?: string;
     name?: string;
   };
-};
+}
 
-export type StackTraceMechanism = {
+export interface StackTraceMechanism {
   handled: boolean;
   type: string;
-  data?: object;
+  data?: Record<PropertyKey, string | unknown[] | Record<PropertyKey, unknown> | Date>;
   description?: string;
   exception_id?: number;
   help_link?: string;
@@ -51,4 +52,4 @@ export type StackTraceMechanism = {
   parent_id?: number;
   source?: string;
   synthetic?: boolean;
-};
+}

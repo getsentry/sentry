@@ -6,7 +6,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 
 type Props = {
@@ -72,7 +72,7 @@ const ContentHeader = styled('div')`
   gap: ${space(4)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr repeat(3, max-content);
   }
 `;
@@ -91,22 +91,22 @@ const NumericSectionWrapper = styled('div')`
 `;
 
 const SectionBody = styled('div')<{overflowEllipsis?: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
 
 const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
-export const SpanLabelContainer = styled('div')`
+const SpanLabelContainer = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const emptyValue = <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>;

@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import type {DateTimeObject, GranularityLadder} from 'sentry/components/charts/utils';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {
@@ -17,31 +15,11 @@ export function getIntervalForMetricFunction(
   metricFunction: Aggregate | SpanFunctions | string,
   datetimeObj: DateTimeObject
 ) {
-  const {start, end, period, utc} = datetimeObj;
-
-  const interval = Sentry.startSpan(
-    {
-      op: 'function',
-      name: 'getIntervalForMetricFunction',
-      attributes: {
-        start: start ? start.toString() : undefined,
-        end: end ? end.toString() : undefined,
-        period: period || undefined,
-        utc: utc || undefined,
-      },
-    },
-    () => {
-      const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
-      return ladder.getInterval(getDiffInMinutes(datetimeObj));
-    }
-  );
-
-  return interval;
+  const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
+  return ladder.getInterval(getDiffInMinutes(datetimeObj));
 }
 
-type GranularityLookup = {
-  [metricName: string]: GranularityLadder;
-};
+type GranularityLookup = Record<string, GranularityLadder>;
 
 const GRANULARITIES: GranularityLookup = {};
 

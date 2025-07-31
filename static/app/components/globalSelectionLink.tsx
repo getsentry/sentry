@@ -1,8 +1,8 @@
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -47,11 +47,11 @@ function GlobalSelectionLink(props: Props) {
   }
 
   if (location) {
-    const toWithGlobalQuery: LocationDescriptor = !hasGlobalQuery
-      ? {}
-      : typeof to === 'string'
+    const toWithGlobalQuery: LocationDescriptor = hasGlobalQuery
+      ? typeof to === 'string'
         ? {pathname: to, query}
-        : {...to, query};
+        : {...to, query}
+      : {};
 
     if (toWithGlobalQuery.query && Object.keys(toWithGlobalQuery.query).length === 0) {
       delete toWithGlobalQuery.query;

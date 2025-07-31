@@ -1,5 +1,5 @@
-import {LinkButton} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -91,7 +91,12 @@ function CommitLink({
 
   const Icon = providerData.icon;
 
-  return !inline ? (
+  return inline ? (
+    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
+      {showIcon ? <Icon size="xs" /> : null}
+      {' ' + label}
+    </ExternalLink>
+  ) : (
     <LinkButton
       external
       href={commitUrl}
@@ -102,11 +107,6 @@ function CommitLink({
     >
       {label}
     </LinkButton>
-  ) : (
-    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
-      {showIcon ? <Icon size="xs" /> : null}
-      {' ' + label}
-    </ExternalLink>
   );
 }
 

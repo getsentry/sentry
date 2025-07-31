@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
@@ -26,7 +28,7 @@ class TempestCredentials(DefaultFieldsModel):
     # used to communicate the status of the latest actions with credentials
     message = models.TextField()
     message_type = models.CharField(
-        max_length=20, choices=MessageType.choices, default=MessageType.ERROR
+        max_length=20, choices=MessageType.choices, default=None, null=True
     )
 
     client_id = models.CharField()
@@ -43,7 +45,7 @@ class TempestCredentials(DefaultFieldsModel):
             )
         ]
 
-    def get_audit_log_data(self) -> dict:
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "project_id": self.project.id,
             "client_id": self.client_id,

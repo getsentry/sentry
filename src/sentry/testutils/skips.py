@@ -18,7 +18,7 @@ def _service_available(host: str, port: int) -> bool:
 
 
 def _requires_service_message(name: str) -> str:
-    return f"requires '{name}' server running\n\t💡 Hint: run `sentry devservices up {name}`"
+    return f"requires '{name}' server running\n\t💡 Hint: run `devservices up`"
 
 
 @pytest.fixture(scope="session")
@@ -45,7 +45,8 @@ def _requires_symbolicator() -> None:
     (port,) = symbolicator_conf["ports"].values()
 
     if not _service_available("127.0.0.1", port):
-        pytest.fail(_requires_service_message("symbolicator"))
+        service_message = "requires 'symbolicator' server running\n\t💡 Hint: run `devservices up --mode=symbolicator`"
+        pytest.fail(service_message)
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")

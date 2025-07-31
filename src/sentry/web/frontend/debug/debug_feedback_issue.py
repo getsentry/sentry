@@ -5,7 +5,8 @@ from django.views.generic import View
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.utils import get_generic_data, get_group_settings_link, get_rules
+from sentry.notifications.utils import get_generic_data
+from sentry.notifications.utils.links import get_group_settings_link, get_rules
 from sentry.utils import json
 
 from .mail import COMMIT_EXAMPLE, MailPreview, make_feedback_issue
@@ -28,11 +29,15 @@ class DebugFeedbackIssueEmailView(View):
             text_template="sentry/emails/feedback.txt",
             context={
                 "rule": rule,
-                "rules": get_rules([rule], org, project),
+                "rules": get_rules([rule], org, project, group.type),
                 "group": group,
                 "event": event,
                 "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
-                "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+                "link": get_group_settings_link(
+                    group,
+                    None,
+                    get_rules([rule], org, project, group.type),
+                ),
                 "generic_issue_data": [(section_header, mark_safe(generic_issue_data_html), None)],
                 "tags": event.tags,
                 "project_label": project.slug,

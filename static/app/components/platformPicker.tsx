@@ -1,17 +1,19 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
+import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import categoryList, {
+import {gaming} from 'sentry/data/platformCategories';
+import {
   createablePlatforms,
   filterAliases,
+  getCategoryList,
 } from 'sentry/data/platformPickerCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
@@ -40,7 +42,7 @@ function startsWithPunctuation(name: string) {
   return /^[\p{P}]/u.test(name);
 }
 
-export type Category = (typeof categoryList)[number]['id'];
+export type Category = ReturnType<typeof getCategoryList>[number]['id'];
 
 export type Platform = PlatformIntegration & {
   category: Category;
@@ -51,6 +53,7 @@ interface PlatformPickerProps {
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
+  loading?: boolean;
   modal?: boolean;
   navClassName?: string;
   noAutoFilter?: boolean;
@@ -59,189 +62,225 @@ interface PlatformPickerProps {
   showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
+  /**
+   * When `false`, hides the close button and does not display a custom background color.
+   */
+  visibleSelection?: boolean;
 }
 
-type State = {
-  category: Category;
-  filter: string;
-};
+function PlatformPicker({
+  defaultCategory,
+  noAutoFilter,
+  platform,
+  setPlatform,
+  listProps,
+  listClassName,
+  navClassName,
+  organization,
+  source,
+  visibleSelection = true,
+  loading = false,
+  showFilterBar = true,
+  showOther = true,
+}: PlatformPickerProps) {
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
+  }, [organization]);
 
-class PlatformPicker extends Component<PlatformPickerProps, State> {
-  static defaultProps = {
-    showOther: true,
-  };
+  const [category, setCategory] = useState(defaultCategory ?? categories[0]!.id);
+  const [filter, setFilter] = useState(
+    noAutoFilter ? '' : (platform || '').split('-')[0]!
+  );
 
-  state: State = {
-    category: this.props.defaultCategory ?? categoryList[0]!.id,
-    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0]!,
-  };
+  const includeGamingPlatforms =
+    organization?.features.includes('project-creation-games-tab') ?? false;
 
-  get platformList() {
-    const {category} = this.state;
-
-    const currentCategory = categoryList.find(({id}) => id === category);
-
-    const filter = this.state.filter.toLowerCase();
-
-    const subsetMatch = (platform: PlatformIntegration) =>
-      platform.id.includes(filter) ||
-      platform.name.toLowerCase().includes(filter) ||
-      filterAliases[platform.id]?.some(alias => alias.includes(filter));
-
-    const categoryMatch = (platform: PlatformIntegration) => {
-      return currentCategory?.platforms?.has(platform.id);
-    };
-
-    // temporary replacement of selectablePlatforms while `nintendo-switch` is behind feature flag
-    const tempSelectablePlatforms = selectablePlatforms;
-
-    if (this.props.organization?.features.includes('selectable-nintendo-platform')) {
-      const nintendo = platforms.find(p => p.id === 'nintendo-switch');
-      if (nintendo) {
-        if (!tempSelectablePlatforms.includes(nintendo)) {
-          tempSelectablePlatforms.push(nintendo);
-        }
-      }
+  const availablePlatforms = useMemo(() => {
+    if (!includeGamingPlatforms) {
+      return selectablePlatforms;
     }
 
-    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
-    const filtered = tempSelectablePlatforms.filter(
-      this.state.filter ? subsetMatch : categoryMatch
+    const gamingPlatforms = platforms.filter(
+      p => gaming.includes(p.id) && !createablePlatforms.has(p.id)
     );
 
-    if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
+    return [...selectablePlatforms, ...gamingPlatforms];
+  }, [includeGamingPlatforms]);
+
+  const platformList = useMemo(() => {
+    const currentCategory = categories.find(({id}) => id === category);
+
+    const subsetMatch = (platformIntegration: PlatformIntegration) =>
+      platformIntegration.id.includes(filter.toLowerCase()) ||
+      platformIntegration.name.toLowerCase().includes(filter.toLowerCase()) ||
+      filterAliases[platformIntegration.id]?.some(alias =>
+        alias.includes(filter.toLowerCase())
+      );
+
+    const categoryMatch = (platformIntegration: PlatformIntegration) => {
+      return currentCategory?.platforms?.has(platformIntegration.id);
+    };
+
+    // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
+    const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
+
+    if (showOther && filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
       return [otherPlatform];
     }
 
-    if (category !== 'popular') {
-      // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
-      return filtered.sort((a, b) => {
-        if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
-          return 1;
-        }
-        if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
-          return -1;
-        }
-        return a.name.localeCompare(b.name);
-      });
+    if (category === 'popular') {
+      const popularPlatformList = Array.from(currentCategory?.platforms ?? []);
+      // We keep the order of the platforms defined in the set
+      return filtered.sort(
+        (a, b) => popularPlatformList.indexOf(a.id) - popularPlatformList.indexOf(b.id)
+      );
     }
 
-    return filtered;
-  }
+    // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
+    return filtered.sort((a, b) => {
+      if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
+        return 1;
+      }
+      if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
+        return -1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [filter, category, availablePlatforms, showOther, categories]);
 
-  logSearch = debounce(() => {
-    if (this.state.filter) {
-      trackAnalytics('growth.platformpicker_search', {
-        search: this.state.filter.toLowerCase(),
-        num_results: this.platformList.length,
-        source: this.props.source,
-        organization: this.props.organization ?? null,
-      });
-    }
-  }, DEFAULT_DEBOUNCE_DURATION);
+  const latestValuesRef = useRef({filter, platformList, source, organization});
 
-  render() {
-    const platformList = this.platformList;
-    const {
-      setPlatform,
-      listProps,
-      listClassName,
-      navClassName,
-      showFilterBar = true,
-    } = this.props;
-    const {filter, category} = this.state;
+  useEffect(() => {
+    latestValuesRef.current = {filter, platformList, source, organization};
+  });
 
-    return (
-      <Fragment>
-        <NavContainer className={navClassName}>
-          <CategoryNav>
-            {categoryList.map(({id, name}) => (
-              <ListLink
-                key={id}
-                onClick={(e: React.MouseEvent) => {
-                  trackAnalytics('growth.platformpicker_category', {
-                    category: id,
-                    source: this.props.source,
-                    organization: this.props.organization ?? null,
-                  });
-                  this.setState({category: id, filter: ''});
-                  e.preventDefault();
-                }}
-                to=""
-                isActive={() => id === (filter ? 'all' : category)}
-              >
-                {name}
-              </ListLink>
-            ))}
-          </CategoryNav>
-          {showFilterBar && (
-            <StyledSearchBar
-              size="sm"
-              query={filter}
-              placeholder={t('Filter Platforms')}
-              onChange={val => this.setState({filter: val}, this.logSearch)}
-            />
-          )}
-        </NavContainer>
-        <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => {
-            return (
+  const debounceLogSearch = useRef(
+    debounce(() => {
+      const {
+        filter: currentFilter,
+        platformList: currentPlatformList,
+        source: currentSource,
+        organization: currentOrganization,
+      } = latestValuesRef.current;
+      if (currentFilter) {
+        trackAnalytics('growth.platformpicker_search', {
+          search: currentFilter.toLowerCase(),
+          num_results: currentPlatformList.length,
+          source: currentSource,
+          organization: currentOrganization ?? null,
+        });
+      }
+    }, DEFAULT_DEBOUNCE_DURATION)
+  ).current;
+
+  return (
+    <Fragment>
+      <NavContainer className={navClassName}>
+        <TabsContainer>
+          <Tabs
+            value={category}
+            onChange={val => {
+              trackAnalytics('growth.platformpicker_category', {
+                category: val,
+                source,
+                organization: organization ?? null,
+              });
+              setCategory(val);
+              setFilter('');
+            }}
+          >
+            <TabList>
+              {categories.map(({id, name}) => (
+                <TabList.Item key={id}>{name}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
+        {showFilterBar && (
+          <StyledSearchBar
+            size="sm"
+            query={filter}
+            placeholder={t('Filter Platforms')}
+            onChange={val => {
+              setFilter(val);
+              debounceLogSearch();
+            }}
+          />
+        )}
+      </NavContainer>
+      <PlatformList className={listClassName} {...listProps}>
+        {platformList.map(item => {
+          return (
+            <div key={item.id} style={{position: 'relative'}}>
+              <TransparentLoadingMask visible={loading} />
               <PlatformCard
-                data-test-id={`platform-${platform.id}`}
-                key={platform.id}
-                platform={platform}
-                selected={this.props.platform === platform.id}
+                visibleSelection={visibleSelection}
+                data-test-id={`platform-${item.id}`}
+                platform={item}
+                selected={platform === item.id}
                 onClear={(e: React.MouseEvent) => {
                   setPlatform(null);
                   e.stopPropagation();
                 }}
                 onClick={() => {
                   trackAnalytics('growth.select_platform', {
-                    platform_id: platform.id,
-                    source: this.props.source,
-                    organization: this.props.organization ?? null,
+                    platform_id: item.id,
+                    source,
+                    organization: organization ?? null,
                   });
-                  setPlatform({...platform, category});
+
+                  const itemCategories = categories
+                    .filter(cat => cat.platforms.has(item.id))
+                    .map(cat => cat.id);
+
+                  if (itemCategories.includes(category)) {
+                    setPlatform({...item, category});
+                  } else {
+                    setPlatform({...item, category: itemCategories[0] ?? 'all'});
+                  }
                 }}
               />
-            );
-          })}
-        </PlatformList>
-        {platformList.length === 0 && (
-          <EmptyMessage
-            icon={<IconProject size="xl" />}
-            title={t("We don't have an SDK for that yet!")}
-          >
-            {tct(
-              `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
-              {
-                linkOther: (
-                  <Button
-                    aria-label={t("Select 'Other'")}
-                    priority="link"
-                    onClick={() => {
-                      this.setState({filter: otherPlatform.name});
-                      setPlatform({...otherPlatform, category});
-                    }}
-                  />
-                ),
-              }
-            )}
-          </EmptyMessage>
-        )}
-      </Fragment>
-    );
-  }
+            </div>
+          );
+        })}
+      </PlatformList>
+      {platformList.length === 0 && (
+        <EmptyMessage
+          icon={<IconProject size="xl" />}
+          title={t("We don't have an SDK for that yet!")}
+        >
+          {tct(
+            `Sure you haven't misspelled? If you're using a lesser-known platform, consider choosing a more generic SDK like Browser JavaScript, Python, Node, .NET & Java or create a generic project, by selecting [linkOther:“Other”].`,
+            {
+              linkOther: (
+                <Button
+                  aria-label={t("Select 'Other'")}
+                  priority="link"
+                  onClick={() => {
+                    setFilter(otherPlatform.name);
+                    setPlatform({...otherPlatform, category});
+                  }}
+                />
+              ),
+            }
+          )}
+        </EmptyMessage>
+      )}
+    </Fragment>
+  );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  grid-template-columns: 1fr minmax(0, 200px);
   align-items: start;
-  border-bottom: 1px solid ${p => p.theme.border};
 
   &.centered {
     grid-template-columns: none;
@@ -259,20 +298,9 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const CategoryNav = styled(NavTabs)`
-  margin: 0;
-  margin-top: 4px;
-  white-space: nowrap;
-
-  > li {
-    float: none;
-    display: inline-block;
-  }
-`;
-
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -291,35 +319,47 @@ const ClearButton = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
 
-const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
-  <div {...props}>
-    <StyledPlatformIcon
-      platform={platform.id}
-      size={56}
-      radius={5}
-      withLanguageIcon
-      format="lg"
-    />
-    <h3>{platform.name}</h3>
-    {selected && (
-      <ClearButton
-        icon={<IconClose isCircled />}
-        borderless
-        size="xs"
-        onClick={onClear}
-        aria-label={t('Clear')}
+const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
+  ${p => !p.visible && 'display: none;'};
+  opacity: 0.4;
+  z-index: 1;
+`;
+
+const PlatformCard = styled(
+  ({platform, selected, visibleSelection, onClear, ...props}: any) => (
+    <div {...props}>
+      <StyledPlatformIcon
+        platform={platform.id}
+        size={56}
+        radius={5}
+        withLanguageIcon={platform.iconConfig?.withLanguageIcon ?? true}
+        format="lg"
       />
-    )}
-  </div>
-))`
+      <h3>{platform.name}</h3>
+      {selected && visibleSelection && (
+        <ClearButton
+          icon={<IconClose isCircled />}
+          borderless
+          size="xs"
+          onClick={onClear}
+          aria-label={t('Clear')}
+        />
+      )}
+    </div>
+  )
+)`
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  background: ${p => p.selected && p.theme.alert.info.backgroundLight};
-  cursor: pointer;
+  cursor: ${p => (p.loading ? 'default' : 'pointer')};
+
+  ${p =>
+    p.selected &&
+    p.visibleSelection &&
+    `background: ${p.theme.alert.info.backgroundLight};`}
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};
@@ -333,7 +373,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
     width: 100%;
     color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
     text-align: center;
-    font-size: ${p => p.theme.fontSizeExtraSmall};
+    font-size: ${p => p.theme.fontSize.xs};
     text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};

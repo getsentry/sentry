@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
@@ -47,18 +47,15 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ? generateLinkToEventInTraceView({
         timestamp: transaction.endTimestamp ?? '',
         eventId: transaction.id,
-        projectSlug,
         traceSlug: transaction.contexts?.trace?.trace_id ?? '',
         location,
         organization,
-        transactionName,
       })
     : null;
 
   const handleGoToTransaction = useCallback(() => {
     trackAnalytics('profiling_views.go_to_transaction', {
       organization,
-      source: 'transaction_details',
     });
   }, [organization]);
 
@@ -96,7 +93,7 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
         <FeedbackWidgetButton />
         {transactionTarget && (
           <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
-            {t('Go to Transaction')}
+            {t('Go to Trace')}
           </LinkButton>
         )}
       </StyledHeaderActions>

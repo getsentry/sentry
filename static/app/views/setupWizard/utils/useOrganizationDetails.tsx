@@ -1,7 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import {useQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {type ApiQueryKey, fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationDetails({
@@ -9,18 +7,17 @@ export function useOrganizationDetails({
 }: {
   organization?: OrganizationWithRegion;
 }) {
-  const api = useApi();
-
-  return useQuery<Organization, RequestError>({
-    queryKey: [`/organizations/${organization?.slug}/`],
-    queryFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/`, {
+  return useQuery({
+    queryKey: [
+      `/organizations/${organization?.slug}/`,
+      {
         host: organization?.region.url,
         query: {
           include_feature_flags: 1,
         },
-      });
-    },
+      },
+    ] satisfies ApiQueryKey,
+    queryFn: context => fetchDataQuery<Organization>(context).then(result => result[0]),
     enabled: !!organization,
     refetchOnWindowFocus: true,
     retry: false,

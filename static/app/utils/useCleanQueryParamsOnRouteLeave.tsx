@@ -9,7 +9,7 @@ type Opts<Q> = {
   shouldClean?: (newLocation: Location<Q>) => boolean;
 };
 
-export function handleRouteLeave<Q extends object>({
+export function handleRouteLeave<Q extends Record<PropertyKey, unknown>>({
   fieldsToClean,
   newLocation,
   oldPathname,
@@ -19,7 +19,6 @@ export function handleRouteLeave<Q extends object>({
   oldPathname: string;
 }) {
   const hasSomeValues = fieldsToClean.some(
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     field => newLocation.query[field] !== undefined
   );
 

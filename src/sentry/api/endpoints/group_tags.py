@@ -13,6 +13,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.serializers import serialize
 from sentry.search.utils import DEVICE_CLASS
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -24,13 +25,25 @@ class GroupTagsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+        }
+    }
+
     def get(self, request: Request, group: Group) -> Response:
+
+        if request.GET.get("useFlagsBackend") == "1":
+            backend = tagstore.flag_backend
+        else:
+            backend = tagstore.backend
 
         # optional queryparam `key` can be used to get results
         # only for specific keys.
-        keys = [
-            tagstore.backend.prefix_reserved_key(k) for k in request.GET.getlist("key") if k
-        ] or None
+        keys = [backend.prefix_reserved_key(k) for k in request.GET.getlist("key") if k] or None
 
         # There are 2 use-cases for this method. For the 'Tags' tab we
         # get the top 10 values, for the tag distribution bars we get 9
@@ -46,7 +59,7 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
-        tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
+        tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
             environment_ids,
             keys=keys,

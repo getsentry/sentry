@@ -14,8 +14,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+
+jest.mock('sentry/views/insights/pages/useFilters', () => ({
+  useDomainViewFilters: jest.fn(),
+}));
 
 function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
@@ -26,13 +31,13 @@ function initializeData(settings: Parameters<typeof _initializeData>[0]) {
 describe('Performance > Transaction Spans > Span Summary', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: [{'count()': 1}]},
+    });
+
+    (useDomainViewFilters as jest.Mock).mockReturnValue({
+      isInDomainView: true,
+      view: 'frontend',
     });
   });
 
@@ -101,7 +106,9 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
       const {container} = render(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
-        {organization: data.organization}
+        {
+          organization: data.organization,
+        }
       );
 
       expect(container).toBeEmptyDOMElement();
@@ -112,7 +119,9 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
       const {container} = render(
         <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
-        {organization: data.organization}
+        {
+          organization: data.organization,
+        }
       );
 
       expect(container).toBeEmptyDOMElement();
@@ -125,8 +134,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        router: data.router,
         organization: data.organization,
+        initialRouterConfig: data.initialRouterConfig,
       });
 
       expect(
@@ -204,8 +213,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        router: data.router,
         organization: data.organization,
+        initialRouterConfig: data.initialRouterConfig,
       });
 
       expect(await screen.findByText('Event ID')).toBeInTheDocument();
@@ -278,8 +287,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        router: data.router,
         organization: data.organization,
+        initialRouterConfig: data.initialRouterConfig,
       });
 
       expect(await screen.findByText('Span Summary')).toBeInTheDocument();
@@ -344,8 +353,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        router: data.router,
         organization: data.organization,
+        initialRouterConfig: data.initialRouterConfig,
       });
 
       expect(await screen.findByText('Self Time Breakdown')).toBeInTheDocument();
@@ -358,8 +367,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        router: data.router,
         organization: data.organization,
+        initialRouterConfig: data.initialRouterConfig,
       });
 
       expect(await screen.findByText('Event ID')).toBeInTheDocument();
@@ -387,8 +396,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
@@ -402,8 +411,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         const resetButton = await screen.findByRole('button', {
@@ -420,8 +429,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         const resetButton = await screen.findByRole('button', {
@@ -436,16 +445,19 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
         });
 
-        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
-          organization: data.organization,
-        });
+        const {router} = render(
+          <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
+          {
+            organization: data.organization,
+            initialRouterConfig: data.initialRouterConfig,
+          }
+        );
 
         const resetButton = await screen.findByRole('button', {
           name: /reset view/i,
         });
         await userEvent.click(resetButton);
-        expect(data.router.push).toHaveBeenCalledWith(
+        expect(router.location.query).toEqual(
           expect.not.objectContaining({min: expect.any(String), max: expect.any(String)})
         );
       });
@@ -456,16 +468,20 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           query: {project: '1', transaction: 'transaction'},
         });
 
-        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
-          organization: data.organization,
-        });
+        const {router} = render(
+          <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
+          {
+            organization: data.organization,
+            initialRouterConfig: data.initialRouterConfig,
+          }
+        );
+        const initialLocation = router.location;
 
         const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
         await userEvent.click(searchBarNode);
         await userEvent.paste('count():>3');
         expect(searchBarNode).toHaveTextContent('count():>3');
-        expect(data.router.push).not.toHaveBeenCalled();
+        expect(router.location).toEqual(initialLocation);
       });
 
       it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
@@ -483,10 +499,13 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           query: {project: '1', transaction: 'transaction'},
         });
 
-        render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
-          organization: data.organization,
-        });
+        const {router} = render(
+          <SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />,
+          {
+            organization: data.organization,
+            initialRouterConfig: data.initialRouterConfig,
+          }
+        );
 
         expect(await screen.findByTestId('total-value')).toBeInTheDocument();
 
@@ -506,7 +525,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           })
         );
 
-        expect(data.router.push).toHaveBeenCalledWith(
+        expect(router.location).toEqual(
           expect.objectContaining({
             query: {
               display: 'histogram',
@@ -533,8 +552,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         const displayToggle = await screen.findByTestId('display-toggle');
@@ -558,8 +577,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         expect(await screen.findByTestId('histogram-error-panel')).toBeInTheDocument();
@@ -581,8 +600,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         const nodes = await screen.findAllByText('Self Time Distribution');
@@ -600,8 +619,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         await waitFor(() => {
@@ -628,8 +647,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          router: data.router,
           organization: data.organization,
+          initialRouterConfig: data.initialRouterConfig,
         });
 
         await waitFor(() => {
@@ -662,7 +681,7 @@ describe('spanDetailsRouteWithQuery', function () {
     expect(target).toEqual(
       expect.objectContaining({
         pathname:
-          '/organizations/org-slug/performance/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
+          '/organizations/org-slug/insights/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
       })
     );
   });

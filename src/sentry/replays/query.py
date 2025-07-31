@@ -21,11 +21,14 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
+from sentry import options
+from sentry.api.event_search import ParenExpression, QueryToken, SearchConfig, SearchFilter
+from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
     PREFERRED_SOURCE,
+    VIEWED_BY_DENYLIST_MSG,
     Paginators,
     execute_query,
     make_full_aggregation_query,
@@ -54,7 +57,7 @@ def query_replays_collection_paginated(
     sort: str | None,
     limit: int,
     offset: int,
-    search_filters: Sequence[SearchFilter],
+    search_filters: Sequence[QueryToken],
     preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
     actor: Any | None = None,
@@ -118,6 +121,10 @@ def query_replay_viewed_by_ids(
         project_ids = project_id
     else:
         project_ids = [project_id]
+
+    for project_id in project_ids:
+        if project_id in options.get("replay.viewed-by.project-denylist"):
+            raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
 
     return execute_query(
         query=make_full_aggregation_query(
@@ -343,8 +350,11 @@ replay_url_parser_config = SearchConfig(
         "activity",
         "count_warnings",
         "count_infos",
+        "count_traces",
+        "count_screens",
     },
     duration_keys={"duration"},
+    boolean_keys={"is_archived"},
 )
 
 
@@ -548,12 +558,17 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
+    "ota_updates": ["ota_updates_channel", "ota_updates_runtime_version", "ota_updates_update_id"],
     "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
     "user.username": ["user_username"],
     "user.ip": ["user_ip"],
+    "user.geo.city": ["user_geo_city"],
+    "user.geo.country_code": ["user_geo_country_code"],
+    "user.geo.region": ["user_geo_region"],
+    "user.geo.subdivision": ["user_geo_subdivision"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
     "browser.name": ["browser_name"],
@@ -564,6 +579,9 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "device.model": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
+    "ota_updates.channel": ["ota_updates_channel"],
+    "ota_updates.runtime_version": ["ota_updates_runtime_version"],
+    "ota_updates.update_id": ["ota_updates_update_id"],
     # Click actions
     "click.alt": ["click.alt"],
     "click.label": ["click.aria_label"],
@@ -706,6 +724,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
+    "user_geo_city": anyIf(column_name="user_geo_city"),
+    "user_geo_country_code": anyIf(column_name="user_geo_country_code"),
+    "user_geo_region": anyIf(column_name="user_geo_region"),
+    "user_geo_subdivision": anyIf(column_name="user_geo_subdivision"),
     "os_name": anyIf(column_name="os_name"),
     "os_version": anyIf(column_name="os_version"),
     "browser_name": anyIf(column_name="browser_name"),
@@ -716,6 +738,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     "device_model": anyIf(column_name="device_model"),
     "sdk_name": anyIf(column_name="sdk_name"),
     "sdk_version": anyIf(column_name="sdk_version"),
+    "ota_updates_channel": anyIf(column_name="ota_updates_channel"),
+    "ota_updates_runtime_version": anyIf(column_name="ota_updates_runtime_version"),
+    "ota_updates_update_id": anyIf(column_name="ota_updates_update_id"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
     "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),

@@ -8,12 +8,13 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
 class ReleaseMetaTest(APITestCase):
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -28,6 +29,9 @@ class ReleaseMetaTest(APITestCase):
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
         release.add_project(project)
         release.add_project(project2)
+
+        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=10)
+        ReleaseProject.objects.filter(project=project2, release=release).update(new_groups=10)
 
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
@@ -61,7 +65,6 @@ class ReleaseMetaTest(APITestCase):
 
         release.commit_count = 2
         release.total_deploys = 1
-        release.new_groups = 42
         release.save()
 
         self.create_member(teams=[team1, team2], user=user, organization=org)
@@ -79,12 +82,12 @@ class ReleaseMetaTest(APITestCase):
         data = orjson.loads(response.content)
         assert data["deployCount"] == 1
         assert data["commitCount"] == 2
-        assert data["newGroups"] == 42
+        assert data["newGroups"] == 20
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2
 
-    def test_artifact_count_without_weak_association(self):
+    def test_artifact_count_without_weak_association(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -114,7 +117,7 @@ class ReleaseMetaTest(APITestCase):
         assert data["releaseFileCount"] == 2
         assert not data["isArtifactBundle"]
 
-    def test_artifact_count_with_single_weak_association(self):
+    def test_artifact_count_with_single_weak_association(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -152,7 +155,7 @@ class ReleaseMetaTest(APITestCase):
         assert data["releaseFileCount"] == 10
         assert data["isArtifactBundle"]
 
-    def test_artifact_count_with_multiple_weak_association(self):
+    def test_artifact_count_with_multiple_weak_association(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False

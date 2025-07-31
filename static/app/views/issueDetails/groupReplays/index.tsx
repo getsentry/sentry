@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,7 +13,11 @@ import GroupReplays from './groupReplays';
 function renderNoAccess() {
   return (
     <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      <Alert.Container>
+        <Alert type="warning" showIcon={false}>
+          {t("You don't have access to this feature")}
+        </Alert>
+      </Alert.Container>
     </Layout.Page>
   );
 }
@@ -33,7 +37,7 @@ function GroupReplaysWithGroup() {
   return <GroupReplays group={group} />;
 }
 
-function GroupReplaysContainer() {
+export default function GroupReplaysContainer() {
   const organization = useOrganization();
 
   return (
@@ -46,5 +50,3 @@ function GroupReplaysContainer() {
     </Feature>
   );
 }
-
-export default GroupReplaysContainer;

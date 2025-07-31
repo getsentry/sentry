@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 import socket
 from collections.abc import Mapping
 from hashlib import sha256
@@ -88,7 +89,7 @@ class RegionSiloClient(BaseApiClient):
     access_modes = [SiloMode.CONTROL]
 
     metrics_prefix = "silo_client.region"
-    log_path = "sentry.silo.client.region"
+    logger = logging.getLogger("sentry.silo.client.region")
     silo_client_name = "region"
 
     def __init__(self, region: Region, retry: bool = False) -> None:

@@ -51,7 +51,6 @@ function ProfileFlamegraph(): React.ReactElement {
     trackAnalytics('profiling_views.profile_flamegraph', {
       organization,
       project_platform: currentProject?.platform,
-      project_id: currentProject?.id,
     });
     // ignore  currentProject so we don't block the analytics event
     // or fire more than once unnecessarily
@@ -70,7 +69,7 @@ function ProfileFlamegraph(): React.ReactElement {
         ...queryStringState.preferences,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-          ...(storedPreferences?.preferences?.timelines ?? {}),
+          ...storedPreferences?.preferences?.timelines,
         },
         layout:
           storedPreferences?.preferences?.layout ??

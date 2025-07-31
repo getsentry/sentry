@@ -115,7 +115,7 @@ type ChartProps = {
   disableChartPadding?: boolean;
 };
 
-export function Chart(props: ChartProps) {
+function Chart(props: ChartProps) {
   const theme = useTheme();
   const {chartData, zoomProps, spanSlug} = props;
 
@@ -130,7 +130,7 @@ export function Chart(props: ChartProps) {
       top: '40px',
       bottom: '0px',
     },
-    colors: () => pickBarColor(spanSlug.op),
+    colors: () => pickBarColor(spanSlug.op, theme),
     seriesOptions: {
       showSymbol: false,
     },

@@ -1,9 +1,24 @@
+from datetime import datetime
+from typing import TypedDict
+
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models.incident import IncidentActivity
+from sentry.interfaces.user import EventUserApiContext
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+
+
+class IncidentActivitySerializerResponse(TypedDict):
+    id: str
+    incidentIdentifier: str
+    user: EventUserApiContext
+    type: int
+    value: str
+    previousValue: str
+    comment: str
+    dateCreated: datetime
 
 
 @register(IncidentActivity)
@@ -17,7 +32,7 @@ class IncidentActivitySerializer(Serializer):
         user_lookup = {user["id"]: user for user in serialized_users}
         return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> IncidentActivitySerializerResponse:
         incident = obj.incident
 
         return {

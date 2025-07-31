@@ -1,28 +1,33 @@
 import * as qs from 'query-string';
 
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function getAlertsUrl({
   project,
   query,
   aggregate,
-  orgSlug,
+  organization,
   pageFilters,
   name,
   interval,
   dataset = Dataset.GENERIC_METRICS,
+  eventTypes = 'transaction',
+  referrer,
 }: {
   aggregate: string;
-  orgSlug: string;
+  organization: Organization;
   pageFilters: PageFilters;
   dataset?: Dataset;
+  eventTypes?: string;
   interval?: string;
   name?: string;
   project?: Project;
   query?: string;
+  referrer?: string;
 }) {
   const statsPeriod = getStatsPeriod(pageFilters);
   const environment = pageFilters.environments;
@@ -31,15 +36,20 @@ export function getAlertsUrl({
     aggregate,
     dataset,
     project: project?.slug,
-    eventTypes: 'transaction',
+    eventTypes,
     query,
     statsPeriod,
     environment,
     name,
     interval: supportedInterval,
+    referrer,
   };
-  return normalizeUrl(
-    `/organizations/${orgSlug}/alerts/new/metric/?${qs.stringify(queryParams)}`
+
+  return (
+    makeAlertsPathname({
+      path: `/new/metric/`,
+      organization,
+    }) + `?${qs.stringify(queryParams)}`
   );
 }
 

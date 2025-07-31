@@ -329,7 +329,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 )
                 remove_invite_details_from_session(request)
             elif invite_helper.valid_request:
-                invite_helper.accept_invite()
+                invite_helper.accept_invite(user)
                 remove_invite_details_from_session(request)
 
         return response

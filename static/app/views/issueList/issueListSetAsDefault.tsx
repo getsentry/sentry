@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {removeSpace} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -18,8 +18,10 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ProjectParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Projects"])
@@ -28,6 +30,19 @@ class ProjectKeysEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
+    }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
     }
 
     @extend_schema(
@@ -104,6 +119,11 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 rate_limit_count = result["rateLimit"]["count"]
                 rate_limit_window = result["rateLimit"]["window"]
 
+        if is_active_superuser(request):
+            use_case = result.get("useCase", UseCase.USER.value)
+        else:
+            use_case = UseCase.USER.value
+
         key = ProjectKey.objects.create(
             project=project,
             label=result.get("name"),
@@ -112,6 +132,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             rate_limit_count=rate_limit_count,
             rate_limit_window=rate_limit_window,
             data=get_default_loader_data(project),
+            use_case=use_case,
         )
 
         self.create_audit_entry(

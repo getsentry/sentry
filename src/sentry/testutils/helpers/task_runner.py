@@ -17,7 +17,7 @@ def TaskRunner() -> Generator[None]:
     prev = settings.CELERY_ALWAYS_EAGER
     settings.CELERY_ALWAYS_EAGER = True
     current_app.conf.CELERY_ALWAYS_EAGER = True
-    with mock.patch.object(settings, "TASK_WORKER_ALWAYS_EAGER", True):
+    with mock.patch.object(settings, "TASKWORKER_ALWAYS_EAGER", True):
         try:
             yield
         finally:

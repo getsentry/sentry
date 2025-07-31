@@ -7,9 +7,9 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
@@ -31,13 +31,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-
-import {MetricsRemovedAlertsWidgetsAlert} from '../../../metrics/metricsRemovedAlertsWidgetsAlert';
-import FilterBar from '../../filterBar';
-import type {CombinedAlerts} from '../../types';
-import {AlertRuleType, CombinedAlertType} from '../../types';
-import {getTeamParams, isIssueAlert} from '../../utils';
-import AlertHeader from '../header';
+import FilterBar from 'sentry/views/alerts/filterBar';
+import AlertHeader from 'sentry/views/alerts/list/header';
+import type {CombinedAlerts} from 'sentry/views/alerts/types';
+import {AlertRuleType, CombinedAlertType} from 'sentry/views/alerts/types';
+import {getTeamParams, isIssueAlert} from 'sentry/views/alerts/utils';
 
 import RuleListRow from './row';
 
@@ -134,7 +132,7 @@ function AlertRulesList() {
 
     const endpoint =
       rule.type === 'alert_rule'
-        ? `/organizations/${organization.slug}/alert-rules/${rule.id}`
+        ? `/organizations/${organization.slug}/alert-rules/${rule.id}/`
         : `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 
@@ -205,7 +203,6 @@ function AlertRulesList() {
         <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <MetricsRemovedAlertsWidgetsAlert organization={organization} />
             <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}
@@ -223,7 +220,11 @@ function AlertRulesList() {
                   key="name"
                   role="columnheader"
                   aria-sort={
-                    sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    sort.field === 'name'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -241,7 +242,7 @@ function AlertRulesList() {
                   key="status"
                   role="columnheader"
                   aria-sort={
-                    !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    isAlertRuleSort ? (sort.asc ? 'ascending' : 'descending') : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -286,7 +287,7 @@ function AlertRulesList() {
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
-                          orgId={organization.slug}
+                          organization={organization}
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}
@@ -340,11 +341,11 @@ const StyledSortLink = styled(Link)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     overflow: initial;
   }
 
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

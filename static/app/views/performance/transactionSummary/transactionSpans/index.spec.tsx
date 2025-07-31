@@ -23,7 +23,10 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
+function initializeData(options: {
+  query: Record<string, unknown>;
+  additionalFeatures?: string[];
+}) {
   const {query, additionalFeatures} = options;
 
   const defaultFeatures = ['performance-view'];
@@ -53,7 +56,7 @@ describe('Performance > Transaction Spans', function () {
   let eventsSpansPerformanceMock: jest.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -111,7 +114,6 @@ describe('Performance > Transaction Spans', function () {
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -134,7 +136,6 @@ describe('Performance > Transaction Spans', function () {
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -164,7 +165,6 @@ describe('Performance > Transaction Spans', function () {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
         render(<TransactionSpans location={initialData.router.location} />, {
-          router: initialData.router,
           organization: initialData.organization,
         });
 
@@ -180,7 +180,6 @@ describe('Performance > Transaction Spans', function () {
     it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -206,7 +205,6 @@ describe('Performance > Transaction Spans', function () {
       });
 
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 

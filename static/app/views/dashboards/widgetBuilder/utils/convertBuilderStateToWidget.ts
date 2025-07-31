@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString, type Sort} from 'sentry/utils/discover/fields';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -7,9 +7,11 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {
+  serializeSorts,
+  type WidgetBuilderState,
+} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-
-import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
@@ -41,11 +43,14 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       ? state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 
-  // If there's no sort, use the first field as the default sort
-  const defaultSort = fields?.[0] ?? defaultQuery.orderby;
+  // If there's no sort, use the first field as the default sort (this doesn't apply to release table widgets)
+  const defaultSort =
+    state.displayType === DisplayType.TABLE && state.dataset === WidgetType.RELEASE
+      ? ''
+      : (fields?.[0] ?? defaultQuery.orderby);
   const sort =
     defined(state.sort) && state.sort.length > 0
-      ? _formatSort(state.sort[0]!)
+      ? serializeSorts(state.dataset)(state.sort)[0]!
       : defaultSort;
 
   const widgetQueries: WidgetQuery[] = queries.map((query, index) => {
@@ -74,9 +79,4 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     limit: state.limit,
     thresholds: state.thresholds,
   };
-}
-
-function _formatSort(sort: Sort): string {
-  const direction = sort.kind === 'desc' ? '-' : '';
-  return `${direction}${sort.field}`;
 }

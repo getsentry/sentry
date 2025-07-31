@@ -38,6 +38,10 @@ export type IssueTypeConfig = {
     resolution: string;
   };
   /**
+   * Default time period to use for the issue type
+   */
+  defaultTimePeriod: {sinceFirstSeen: boolean};
+  /**
    * Should show detector section in the sidebar
    * Optionally set a custom title for it
    */
@@ -69,10 +73,10 @@ export type IssueTypeConfig = {
       fixedEnvironment?: boolean;
     };
     graph: DisabledWithReasonConfig & {
-      type: 'discover-events' | 'checkin-timeline' | 'detector-history';
+      type?: 'detector-history' | 'discover-events' | 'cron-checks' | 'uptime-checks';
     };
     occurrenceSummary: DisabledWithReasonConfig & {
-      duration?: boolean;
+      downtime?: boolean;
     };
     tagDistribution: DisabledWithReasonConfig;
   };
@@ -97,7 +101,7 @@ export type IssueTypeConfig = {
      */
     attachments: DisabledWithReasonConfig;
     /**
-     * Is the Check-Ins page shown for this issue
+     * Is the Cron Checks page shown for this issue
      */
     checkIns: DisabledWithReasonConfig;
     /**
@@ -121,6 +125,10 @@ export type IssueTypeConfig = {
      */
     tagsTab: DisabledWithReasonConfig;
     /**
+     * Is the Uptime Checks page shown for this issue
+     */
+    uptimeChecks: DisabledWithReasonConfig;
+    /**
      * Is the User Feedback page shown for this issue
      */
     userFeedback: DisabledWithReasonConfig;
@@ -142,7 +150,7 @@ export type IssueTypeConfig = {
    * about the given issue type
    */
   resources: {
-    description: string | JSX.Element;
+    description: string | React.JSX.Element;
     /**
      * Resources to be shown for all platforms
      */

@@ -1,9 +1,10 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
@@ -12,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -27,13 +27,13 @@ export default function ReplayInlineOnboardingPanel({
   platform,
   projectId,
 }: OnboardingCTAProps) {
+  const theme = useTheme();
   const organization = useOrganization();
-
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformKey = platforms.find(p => p.id === platform) ?? otherPlatform;
   const platformName = platformKey === otherPlatform ? '' : platformKey.name;
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_replay_inline_onboarding',
@@ -111,7 +111,7 @@ export default function ReplayInlineOnboardingPanel({
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerWrapper = styled('div')`
@@ -129,9 +129,9 @@ const BannerWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('div')`

@@ -1,18 +1,22 @@
-import type {StoreDefinition} from 'reflux';
 import {createStore} from 'reflux';
 
 import type {Project} from 'sentry/types/project';
 
-interface ProjectsStatsStoreDefinition extends StoreDefinition {
-  getAll(): ProjectsStatsStoreDefinition['itemsBySlug'];
+import type {StrictStoreDefinition} from './types';
 
+type SlugStatsMapping = Record<string, Project>;
+type State = SlugStatsMapping;
+
+interface ProjectsStatsStoreDefinition extends StrictStoreDefinition<State> {
+  getAll(): SlugStatsMapping;
   getBySlug(slug: string): Project;
-  getInitialState(): ProjectsStatsStoreDefinition['itemsBySlug'];
-  itemsBySlug: Record<string, Project>;
+  getInitialState(): SlugStatsMapping;
   onStatsLoadSuccess(projects: Project[]): void;
   onUpdate(projectSlug: string, data: Partial<Project>): void;
   onUpdateError(err: Error, projectSlug: string): void;
+  onUpdateSuccess(data: Project): void;
   reset(): void;
+  updatingItems: Map<string, Project>;
 }
 
 /**
@@ -21,7 +25,8 @@ interface ProjectsStatsStoreDefinition extends StoreDefinition {
  * (as to not disrupt ProjectsStore which a lot more components use)
  */
 const storeConfig: ProjectsStatsStoreDefinition = {
-  itemsBySlug: {},
+  state: {},
+  updatingItems: new Map(),
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -31,19 +36,19 @@ const storeConfig: ProjectsStatsStoreDefinition = {
   },
 
   getInitialState() {
-    return this.itemsBySlug;
+    return this.state;
   },
 
   reset() {
-    this.itemsBySlug = {};
-    this.updatingItems = new Map();
+    this.state = {};
+    this.updatingItems.clear();
   },
 
   onStatsLoadSuccess(projects) {
     projects.forEach(project => {
-      this.itemsBySlug[project.slug] = project;
+      this.state = {...this.state, [project.slug]: project};
     });
-    this.trigger(this.itemsBySlug);
+    this.trigger(this.state);
   },
 
   /**
@@ -63,11 +68,11 @@ const storeConfig: ProjectsStatsStoreDefinition = {
       ...data,
     };
 
-    this.itemsBySlug = {
-      ...this.itemsBySlug,
+    this.state = {
+      ...this.state,
       [project.slug]: newProject,
     };
-    this.trigger(this.itemsBySlug);
+    this.trigger(this.state);
   },
 
   onUpdateSuccess(data: Project) {
@@ -88,19 +93,23 @@ const storeConfig: ProjectsStatsStoreDefinition = {
 
     this.updatingItems.delete(projectSlug);
     // Restore old project
-    this.itemsBySlug = {
-      ...this.itemsBySlug,
+    this.state = {
+      ...this.state,
       [project.slug]: {...project},
     };
-    this.trigger(this.itemsBySlug);
+    this.trigger(this.state);
   },
 
   getAll() {
-    return this.itemsBySlug;
+    return this.state;
+  },
+
+  getState() {
+    return this.state;
   },
 
   getBySlug(slug) {
-    return this.itemsBySlug[slug]!;
+    return this.state[slug]!;
   },
 };
 

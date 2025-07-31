@@ -50,16 +50,16 @@ const EmptyMessage = styled(
   flex-direction: column;
   color: ${p => p.theme.textColor};
   font-size: ${p =>
-    p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeMedium};
+    p.size && p.size === 'large' ? p.theme.fontSize.xl : p.theme.fontSize.md};
 `;
 
 const IconWrapper = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => (p.theme.isChonk ? p.theme.gray400 : p.theme.gray200)};
   margin-bottom: ${space(1)};
 `;
 
 const Title = styled('strong')<{noMargin: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   ${p => !p.noMargin && `margin-bottom: ${space(1)};`}
 `;
 

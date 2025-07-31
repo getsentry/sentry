@@ -2,8 +2,9 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {DateTime} from 'sentry/components/dateTime';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -11,7 +12,6 @@ import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -26,7 +26,7 @@ import {
   useReleases,
   useReleaseSelection,
 } from 'sentry/views/insights/common/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 
 export const PRIMARY_RELEASE_ALIAS = 'R1';
 export const SECONDARY_RELEASE_ALIAS = 'R2';
@@ -39,7 +39,7 @@ type Props = {
   triggerLabelPrefix?: string;
 };
 
-export function ReleaseSelector({
+function ReleaseSelector({
   selectorKey,
   selectorValue,
   triggerLabelPrefix,
@@ -154,9 +154,9 @@ function LabelDetails(props: LabelDetailsProps) {
           : t('No screens')}
       </div>
       <div>
-        {defined(props.dateCreated)
-          ? getFormattedDate(props.dateCreated, 'MMM D, YYYY')
-          : null}
+        {defined(props.dateCreated) && (
+          <DateTime dateOnly year date={props.dateCreated} />
+        )}
       </div>
     </DetailsContainer>
   );
@@ -268,7 +268,7 @@ export function ReleaseComparisonSelector() {
 }
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: 275px;
   }
 `;

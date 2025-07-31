@@ -1,21 +1,24 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import {Button} from 'sentry/components/core/button';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {useIsCreatingProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import Radio from 'sentry/components/radio';
-import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
+import {createablePlatforms, getCategoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
@@ -45,6 +48,7 @@ const topGoFrameworks: PlatformKey[] = [
 export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-react',
+  'javascript-react-router',
   'javascript-vue',
   'javascript-nuxt',
   'javascript-angular',
@@ -112,13 +116,13 @@ export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   ),
 };
 
-type Props = ModalRenderProps & {
+interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onConfigure: (selectedFramework: OnboardingSelectedSDK) => void;
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
   newOrg?: boolean;
-};
+}
 
 export function FrameworkSuggestionModal({
   Body,
@@ -130,7 +134,9 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-}: Props) {
+}: FrameworkSuggestionModalProps) {
+  const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
+
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
@@ -225,6 +231,19 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
 
+  const handleClick = useCallback(() => {
+    if (selectedFramework?.key === selectedPlatform.key) {
+      handleSkip();
+    } else {
+      handleConfigure();
+    }
+  }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
+
+  const debounceHandleClick = useMemo(
+    () => debounce(handleClick, 2000, {leading: true, trailing: false}),
+    [handleClick]
+  );
+
   const listEntries: PlatformIntegration[] = [
     ...topFrameworksOrdered,
     ...otherFrameworksSortedAlphabetically,
@@ -241,6 +260,21 @@ export function FrameworkSuggestionModal({
     ...listEntries,
   ];
 
+  useEffect(() => {
+    const documentElement = document.querySelector('[role="dialog"] [role="document"]');
+    if (
+      !(documentElement instanceof HTMLElement) ||
+      listEntriesWithVanilla.length <= COLLAPSE_COUNT
+    ) {
+      return;
+    }
+    documentElement.style.minHeight = '631px';
+  }, [listEntriesWithVanilla.length]);
+
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
+  }, [organization]);
+
   return (
     <Fragment>
       <Header>
@@ -252,49 +286,70 @@ export function FrameworkSuggestionModal({
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
         <StyledPanel>
           <StyledPanelBody>
-            <PlatformList>
-              {listEntriesWithVanilla.map((platform, index) => {
-                const platformCategory =
-                  categoryList.find(category => {
-                    return category.platforms?.has(platform.id);
-                  })?.id ?? 'all';
-
+            <CollapsePanel
+              items={listEntriesWithVanilla.length}
+              collapseCount={COLLAPSE_COUNT}
+              buttonTitle={tn(
+                'Hidden Framework',
+                'Hidden Frameworks',
+                listEntriesWithVanilla.length - COLLAPSE_COUNT
+              )}
+            >
+              {({isExpanded, showMoreButton}) => {
+                const items = isExpanded
+                  ? listEntriesWithVanilla
+                  : listEntriesWithVanilla.slice(0, COLLAPSE_COUNT);
                 return (
-                  <PlatformListItem key={platform.id}>
-                    <RadioLabel
-                      index={index}
-                      onClick={() =>
-                        setSelectedFramework({
-                          key: platform.id,
-                          type: platform.type,
-                          language: platform.language,
-                          category: platformCategory,
-                          link: platform.link,
-                          name: platform.name,
-                        })
-                      }
-                    >
-                      <RadioBox
-                        radioSize="small"
-                        checked={selectedFramework?.key === platform.id}
-                        readOnly
-                      />
-                      <PlatformListItemIcon size={24} platform={platform.id} />
-                      {platform.name}
-                    </RadioLabel>
-                  </PlatformListItem>
+                  <Fragment>
+                    <PlatformList>
+                      {items.map((platform, index) => {
+                        const platformCategory =
+                          categories.find(category => {
+                            return category.platforms?.has(platform.id);
+                          })?.id ?? 'all';
+
+                        return (
+                          <PlatformListItem key={platform.id}>
+                            <RadioLabel
+                              index={index}
+                              onClick={() =>
+                                setSelectedFramework({
+                                  key: platform.id,
+                                  type: platform.type,
+                                  language: platform.language,
+                                  category: platformCategory,
+                                  link: platform.link,
+                                  name: platform.name,
+                                })
+                              }
+                            >
+                              <RadioBox
+                                size="sm"
+                                checked={selectedFramework?.key === platform.id}
+                                readOnly
+                              />
+                              <PlatformListItemIcon size={24} platform={platform.id} />
+                              {platform.name}
+                            </RadioLabel>
+                          </PlatformListItem>
+                        );
+                      })}
+                    </PlatformList>
+                    {showMoreButton && (
+                      <ShowMoreButtonWrapper>{showMoreButton}</ShowMoreButtonWrapper>
+                    )}
+                  </Fragment>
                 );
-              })}
-            </PlatformList>
+              }}
+            </CollapsePanel>
           </StyledPanelBody>
         </StyledPanel>
       </Body>
       <Footer>
         <Button
           priority="primary"
-          onClick={
-            selectedFramework?.key === selectedPlatform.key ? handleSkip : handleConfigure
-          }
+          onClick={debounceHandleClick}
+          busy={isCreatingProjectAndRules}
         >
           {t('Configure SDK')}
         </Button>
@@ -344,7 +399,7 @@ const Header = styled('header')`
   height: 30px;
 
   margin: -${space(4)} -${space(2)} 0 -${space(3)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)} -${space(4)} 0 -${space(4)};
   }
 `;
@@ -356,13 +411,14 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`
   position: relative;
   width: 256px;
   height: 108px;
+  min-height: 108px;
   margin: 0px auto ${space(2)};
 `;
 
@@ -377,9 +433,11 @@ const Description = styled(TextBlock)`
 `;
 
 const PlatformList = styled(List)`
+  margin: 0 !important;
+  gap: 0;
   display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
-  max-height: 550px;
+  max-height: 631px;
 `;
 
 const StyledPanel = styled(Panel)`
@@ -392,6 +450,16 @@ const StyledPanelBody = styled(PanelBody)`
   display: flex;
   flex-direction: column;
   min-height: 0;
+`;
+
+const ShowMoreButtonWrapper = styled('div')`
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  > :first-child {
+    flex: 1;
+  }
 `;
 
 const PlatformListItem = styled(ListItem)`
@@ -430,7 +498,7 @@ export const modalCss = css`
     display: flex;
     flex-direction: column;
     max-height: 80vh;
-    min-height: 500px;
+    min-height: 550px;
   }
   section {
     display: flex;

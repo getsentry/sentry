@@ -43,14 +43,14 @@ export function RecursiveStructuredData({
 }: Props) {
   let i = 0;
   const formattedObjectKey =
-    objectKey !== undefined ? (
+    objectKey === undefined ? null : (
       <Fragment>
         <ValueObjectKey>
           {config?.renderObjectKeys?.(objectKey) ?? objectKey}
         </ValueObjectKey>
         <span>{': '}</span>
       </Fragment>
-    ) : null;
+    );
 
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
@@ -232,12 +232,12 @@ export function RecursiveStructuredData({
 }
 
 const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: var(--prism-property);
 `;
 
 const ValueBoolean = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: var(--prism-property);
 `;
 
@@ -259,7 +259,7 @@ const ValueMultiLineString = styled('pre')`
 `;
 
 const ValueStrippedString = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: var(--prism-keyword);
 `;
 

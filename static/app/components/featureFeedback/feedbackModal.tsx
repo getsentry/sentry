@@ -13,14 +13,14 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import Textarea from 'sentry/components/forms/controls/textarea';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
+import {TextArea} from 'sentry/components/core/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -46,7 +46,7 @@ const defaultFeedbackTypes = [
   t('Other reason'),
 ];
 
-export type ChildrenProps<T> = {
+type ChildrenProps<T> = {
   Body: (props: {
     children: React.ReactNode;
     showSelfHostedMessage?: boolean;
@@ -103,7 +103,7 @@ export function FeedbackModal<T extends Data>({
       ? ({subject: undefined, additionalInfo: undefined} as unknown as T)
       : props.initialData
   );
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const project = useMemo(() => {
     if (projectsLoaded && location.query.project) {
@@ -171,7 +171,7 @@ export function FeedbackModal<T extends Data>({
         } else {
           feedbackClient.captureEvent({
             ...commonEventProps,
-            ...(submitEventData ?? {}),
+            ...submitEventData,
           });
         }
       }
@@ -219,15 +219,15 @@ export function FeedbackModal<T extends Data>({
               <Button onClick={onBack}>{t('Back')}</Button>
             </BackButtonWrapper>
           )}
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"
               title={
                 props.children === undefined
-                  ? !defined(state.subject)
-                    ? t('Required fields must be filled out')
-                    : undefined
+                  ? defined(state.subject)
+                    ? undefined
+                    : t('Required fields must be filled out')
                   : primaryDisabledReason
               }
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
@@ -255,14 +255,16 @@ export function FeedbackModal<T extends Data>({
         <Body>
           {bodyChildren}
           {isSelfHosted && showSelfHostedMessage && (
-            <Alert type="info">
-              {tct(
-                "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
-                {
-                  privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
-                }
-              )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info" showIcon={false}>
+                {tct(
+                  "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
+                  {
+                    privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
           )}
         </Body>
       );
@@ -305,7 +307,7 @@ export function FeedbackModal<T extends Data>({
             flexibleControlStateSize
             stacked
           >
-            <Textarea
+            <TextArea
               name="additional-feedback"
               value={state.additionalInfo}
               rows={5}

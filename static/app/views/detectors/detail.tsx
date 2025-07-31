@@ -1,42 +1,45 @@
-/* eslint-disable no-alert */
-import {Fragment} from 'react';
-
-import {Button, LinkButton} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
-import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
+import {DetectorDetailsContent} from 'sentry/views/detectors/components/details';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
-export default function DetectorDetail() {
+export default function DetectorDetails() {
   useWorkflowEngineFeatureGate({redirect: true});
+  const params = useParams<{detectorId: string}>();
+  const {projects, fetching: isFetchingProjects} = useProjects();
+
+  const {
+    data: detector,
+    isPending,
+    isError,
+    refetch,
+  } = useDetectorQuery(params.detectorId);
+
+  const project = projects.find(p => p.id === detector?.projectId);
+
+  if (isPending || isFetchingProjects) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!project) {
+    return <LoadingError message={t('Project not found')} />;
+  }
 
   return (
-    <SentryDocumentTitle title={t('Edit Monitor')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
-        <ActionsProvider actions={<Actions />}>
-          <DetailLayout>
-            <DetailLayout.Main>main</DetailLayout.Main>
-            <DetailLayout.Sidebar>sidebar</DetailLayout.Sidebar>
-          </DetailLayout>
-        </ActionsProvider>
-      </BreadcrumbsProvider>
+    <SentryDocumentTitle title={detector.name} noSuffix>
+      <PageFiltersContainer>
+        <DetectorDetailsContent detector={detector} project={project} />
+      </PageFiltersContainer>
     </SentryDocumentTitle>
-  );
-}
-
-function Actions() {
-  const disable = () => {
-    window.alert('disable');
-  };
-  return (
-    <Fragment>
-      <Button onClick={disable}>{t('Disable')}</Button>
-      <LinkButton to="/monitors/edit" priority="primary" icon={<IconEdit />}>
-        {t('Edit')}
-      </LinkButton>
-    </Fragment>
   );
 }

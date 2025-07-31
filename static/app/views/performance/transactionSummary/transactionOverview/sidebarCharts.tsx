@@ -147,7 +147,7 @@ function SidebarChartsContainer({
   const api = useApi();
   const theme = useTheme();
 
-  const colors = theme.charts.getColorPalette(2) ?? [];
+  const colors = theme.chart.getColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -229,7 +229,7 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0]!, colors[1]!],
+    colors: [colors[0], colors[1]],
     tooltip: {
       trigger: 'axis',
       truncate: 80,
@@ -333,7 +333,7 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default SidebarChartsContainer;

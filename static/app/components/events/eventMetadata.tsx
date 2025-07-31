@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -62,11 +62,11 @@ const MetaDataID = styled('div')`
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const MetadataJSON = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

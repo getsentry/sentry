@@ -111,13 +111,14 @@ def test_resolve_rdap_provider(mocked_rdap_registry):
 
 @responses.activate
 @mock.patch("sentry.uptime.rdap.query.resolve_hostname", return_value="1.0.0.0")
-def test_resolve_rdap_network_details(mock_resolve_hostname):
+def test_resolve_rdap_network_details(mock_resolve_hostname: mock.MagicMock) -> None:
     responses.add(
         "GET",
         "https://rdap.example.net/rdap/ip/1.0.0.0",
         json=SIMPLE_RDAP_RESPONSE,
     )
     details = resolve_rdap_network_details("abc.com")
+    assert details is not None
 
     mock_resolve_hostname.assert_called_with("abc.com")
     assert details["handle"] == "CC-3517"

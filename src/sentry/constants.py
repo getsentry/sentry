@@ -16,6 +16,7 @@ import sentry_relay.processing
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
@@ -89,8 +90,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "404",
         "500",
         "_admin",
-        "_experiment",
         "_static",
+        "a",
         "about",
         "accept",
         "access",
@@ -109,6 +110,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "avatar",
         "billing",
         "blog",
+        "bounce",
         "branding",
         "careers",
         "client",
@@ -121,6 +123,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "debug",
         "devinfra",
         "docs",
+        "email",
         "enterprise",
         "eu",
         "events",
@@ -131,9 +134,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "features",
         "finance",
         "for",
+        "forum",
         "from",
         "get-cli",
         "github-deployment-gate",
+        "gsnlink",
+        "go",
         "guide",
         "help",
         "ingest",
@@ -145,13 +151,17 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ja",
         "jobs",
         "legal",
+        "live",
         "login",
         "logout",
         "lp",
         "mail",
         "manage",
+        "marketing",
+        "md",
         "my",
         "onboarding",
+        "open",
         "organization-avatar",
         "organizations",
         "out",
@@ -174,7 +184,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sa1",
         "sales",
         "security",
+        "securityportal",
         "sentry-apps",
+        "services",
         "settings",
         "signup",
         "sponsorship",
@@ -183,6 +195,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "staff",
         "subscribe",
         "support",
+        "swag",
         "syntax",
         "syntaxfm",
         "team-avatar",
@@ -194,6 +207,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "us",
         "vs",
         "welcome",
+        "www",
+        "www2",
     )
 )
 
@@ -316,7 +331,7 @@ SENTRY_APP_ACTIONS = frozenset(
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
+# See https://github.com/getsentry/relay/blob/master/relay-event-schema/src/protocol/constants.rs
 VALID_PLATFORMS = sentry_relay.processing.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
@@ -544,6 +559,16 @@ class SentryAppStatus:
         else:
             raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
+    @classmethod
+    def as_int_choices(cls) -> Sequence[int]:
+        return [
+            cls.UNPUBLISHED,
+            cls.PUBLISHED,
+            cls.INTERNAL,
+            cls.PUBLISH_REQUEST_INPROGRESS,
+            cls.DELETION_IN_PROGRESS,
+        ]
+
 
 class SentryAppInstallationStatus:
     PENDING = 0
@@ -614,55 +639,45 @@ class InsightModules(Enum):
     CACHE = "cache"
     QUEUE = "queue"
     LLM_MONITORING = "llm_monitoring"
+    AGENTS = "agents"
+    MCP = "mcp"
 
 
 INSIGHT_MODULE_FILTERS = {
-    InsightModules.HTTP: lambda transaction: any(
-        [
-            span.get("sentry_tags", {}).get("category") == "http"
-            and span.get("op") == "http.client"
-            for span in transaction["spans"]
-        ]
+    InsightModules.HTTP: lambda spans: any(
+        span.get("sentry_tags", {}).get("category") == "http" and span.get("op") == "http.client"
+        for span in spans
     ),
-    InsightModules.DB: lambda transaction: any(
-        [
-            span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
-            for span in transaction["spans"]
-        ]
+    InsightModules.DB: lambda spans: any(
+        span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
+        for span in spans
     ),
-    InsightModules.ASSETS: lambda transaction: any(
-        [
-            span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
-            for span in transaction["spans"]
-        ]
+    InsightModules.ASSETS: lambda spans: any(
+        span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
+        for span in spans
     ),
-    InsightModules.APP_START: lambda transaction: any(
-        [span.get("op").startswith("app.start.") for span in transaction["spans"]]
+    InsightModules.APP_START: lambda spans: any(
+        span.get("op").startswith("app.start.") for span in spans
     ),
-    InsightModules.SCREEN_LOAD: lambda transaction: any(
-        [
-            span.get("sentry_tags", {}).get("transaction.op") == "ui.load"
-            for span in transaction["spans"]
-        ]
+    InsightModules.SCREEN_LOAD: lambda spans: any(
+        span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans
     ),
-    InsightModules.VITAL: lambda transaction: any(
-        [
-            span.get("sentry_tags", {}).get("transaction.op") == "pageload"
-            for span in transaction["spans"]
-        ]
+    InsightModules.VITAL: lambda spans: any(
+        span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans
     ),
-    InsightModules.CACHE: lambda transaction: any(
-        [
-            span.get("op") in ["cache.get_item", "cache.get", "cache.put"]
-            for span in transaction["spans"]
-        ]
+    InsightModules.CACHE: lambda spans: any(
+        span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans
     ),
-    InsightModules.QUEUE: lambda transaction: any(
-        [span.get("op") in ["queue.process", "queue.publish"] for span in transaction["spans"]]
+    InsightModules.QUEUE: lambda spans: any(
+        span.get("op") in ["queue.process", "queue.publish"] for span in spans
     ),
-    InsightModules.LLM_MONITORING: lambda transaction: any(
-        [span.get("op").startswith("ai.pipeline") for span in transaction["spans"]]
+    InsightModules.LLM_MONITORING: lambda spans: any(
+        span.get("op").startswith("ai.pipeline") for span in spans
     ),
+    InsightModules.AGENTS: lambda spans: any(
+        span.get("op").startswith("gen_ai.") for span in spans
+    ),
+    InsightModules.MCP: lambda spans: any(span.get("op").startswith("mcp.") for span in spans),
 }
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -697,27 +712,27 @@ PROJECT_RATE_LIMIT_DEFAULT = 100
 ACCOUNT_RATE_LIMIT_DEFAULT = 0
 REQUIRE_SCRUB_DATA_DEFAULT = False
 REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
-SENSITIVE_FIELDS_DEFAULT = None
-SAFE_FIELDS_DEFAULT = None
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 DEBUG_FILES_ROLE_DEFAULT = "admin"
 EVENTS_ADMIN_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
-TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
+GITLAB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
-METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
-METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
-STREAMLINE_UI_ONLY = None
+DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
+DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
+ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
+ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
+INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

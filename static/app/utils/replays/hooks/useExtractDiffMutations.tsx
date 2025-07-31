@@ -88,7 +88,7 @@ async function extractDiffMutations({
         const adds = {};
         for (const add of lastFrame.data.adds) {
           const node = mirror.getNode(add.node.id) as HTMLElement | null;
-          if (!node || !node.outerHTML) {
+          if (!node?.outerHTML) {
             continue;
           }
           const selector = getSelectorForElem(node);
@@ -106,7 +106,7 @@ async function extractDiffMutations({
         const attributes = {};
         for (const attr of lastFrame.data.attributes) {
           const node = mirror.getNode(attr.id) as HTMLElement | null;
-          if (!node || !node.outerHTML) {
+          if (!node?.outerHTML) {
             continue;
           }
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -156,7 +156,7 @@ async function extractDiffMutations({
         const removes = {};
         for (const removal of frame.data.removes) {
           const node = mirror.getNode(removal.id) as HTMLElement | null;
-          if (!node || !node.outerHTML) {
+          if (!node?.outerHTML) {
             continue;
           }
           const selector = getSelectorForElem(node);
@@ -229,7 +229,7 @@ function getNameForElem(element: HTMLElement) {
 function getSelectorForElem(element: HTMLElement): string {
   const parts: string[] = [];
   let elem: HTMLElement | null =
-    element.nodeType !== Node.ELEMENT_NODE ? element.parentElement : element;
+    element.nodeType === Node.ELEMENT_NODE ? element : element.parentElement;
 
   while (elem) {
     parts.unshift(getNameForElem(elem));

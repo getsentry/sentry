@@ -12,26 +12,13 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
-
-const mockWidgetAsQueryParams = {
-  defaultTableColumns: ['field1', 'field2'],
-  defaultTitle: 'Default title',
-  defaultWidgetQuery: '',
-  displayType: DisplayType.LINE,
-  end: undefined,
-  environment: [],
-  project: [1],
-  source: DashboardWidgetSource.DISCOVERV2,
-  start: undefined,
-  statsPeriod: '1h',
-  utc: undefined,
-};
 
 describe('add to dashboard modal', () => {
   let eventsStatsMock!: jest.Mock;
@@ -44,6 +31,9 @@ describe('add to dashboard modal', () => {
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgetDisplay: [DisplayType.AREA],
     widgetPreview: [],
+    projects: [],
+    environment: [],
+    filters: {},
   };
   const testDashboard: DashboardDetails = {
     id: '1',
@@ -89,7 +79,15 @@ describe('add to dashboard modal', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{...testDashboardListItem, widgetDisplay: [DisplayType.AREA]}],
+      body: [
+        {...testDashboardListItem, widgetDisplay: [DisplayType.AREA]},
+        {
+          ...testDashboardListItem,
+          title: 'Other Dashboard',
+          id: '2',
+          widgetDisplay: [DisplayType.AREA],
+        },
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -125,7 +123,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -157,7 +154,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -187,7 +183,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -213,7 +208,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -267,7 +261,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -303,7 +296,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
+        source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
     );
@@ -315,8 +308,18 @@ describe('add to dashboard modal', () => {
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
-      query: mockWidgetAsQueryParams,
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+      query: {
+        ...convertWidgetToBuilderStateParams(widget),
+        environment: [],
+        end: undefined,
+        start: undefined,
+        utc: undefined,
+        project: [1],
+        source: DashboardWidgetSource.DISCOVERV2,
+        statsPeriod: '1h',
+        title: 'Test title',
+      },
     });
   });
 
@@ -332,7 +335,7 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
+        source={DashboardWidgetSource.DISCOVERV2}
         location={LocationFixture()}
       />
     );
@@ -344,15 +347,19 @@ describe('add to dashboard modal', () => {
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
       query: expect.objectContaining({
-        defaultTableColumns: ['field1', 'field2'],
-        defaultTitle: 'Default title',
-        defaultWidgetQuery: '',
+        title: 'Test title',
+        description: 'Test description',
+        field: [],
+        query: [''],
+        yAxis: ['count()'],
+        sort: [''],
         displayType: DisplayType.LINE,
+        dataset: WidgetType.ERRORS,
         project: [1],
-        source: DashboardWidgetSource.DISCOVERV2,
         statsPeriod: '1h',
+        source: DashboardWidgetSource.DISCOVERV2,
       }),
     });
   });
@@ -378,7 +385,6 @@ describe('add to dashboard modal', () => {
         widget={{...widget, widgetType: WidgetType.ERRORS}}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -440,7 +446,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -521,7 +526,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -579,7 +583,6 @@ describe('add to dashboard modal', () => {
         widget={widget}
         selection={defaultSelection}
         router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
         location={LocationFixture()}
       />
     );
@@ -594,5 +597,38 @@ describe('add to dashboard modal', () => {
 
     expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
+  });
+
+  it('does not show the current dashboard in the list of options', async () => {
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        location={LocationFixture({pathname: '/organizations/org-slug/dashboard/1/'})}
+      />,
+      {
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+          },
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByText('Select Dashboard'));
+    expect(screen.getByText('Other Dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('Test Dashboard')).not.toBeInTheDocument();
   });
 });

@@ -29,7 +29,7 @@ const Wrapper = styled('div')`
   margin-bottom: ${space(3)};
   flex-direction: column;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;
@@ -38,7 +38,7 @@ const LeftPanel = styled('div')`
   padding: ${space(2)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: 250px;
     border-right: 1px solid ${p => p.theme.border};
     border-bottom: 0;
@@ -46,13 +46,13 @@ const LeftPanel = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin: 0 0 ${space(0.5)};
 `;
 
 const Description = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const RightPanel = styled('div')`

@@ -2,64 +2,101 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
+import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
-
-export type Item = {
-  link: string;
-  name: string;
-  project: AvatarProject;
-  description?: string;
-};
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 export type ConnectionCellProps = {
-  items: Item[];
-  renderText: (count: number) => string;
+  ids: string[];
+  type: 'detector' | 'workflow';
+  className?: string;
+  disabled?: boolean;
 };
 
-export function ConnectionCell({items, renderText}: ConnectionCellProps) {
+const labels: Record<ConnectionCellProps['type'], (n: number) => string> = {
+  detector: count => tn('%s monitor', '%s monitors', count),
+  workflow: count => tn('%s automation', '%s automations', count),
+};
+const links: Record<
+  ConnectionCellProps['type'],
+  (orgSlug: string, id: string) => string
+> = {
+  detector: (orgSlug, id) => makeMonitorDetailsPathname(orgSlug, id),
+  workflow: (orgSlug, id) => makeAutomationDetailsPathname(orgSlug, id),
+};
+
+export function ConnectionCell({
+  ids: items = [],
+  type,
+  disabled = false,
+  className,
+}: ConnectionCellProps) {
   if (items.length === 0) {
-    return <EmptyCell />;
+    return <EmptyCell className={className} />;
   }
+  const renderText = labels[type];
   return (
-    <div>
-      <Hovercard
-        body={items.map(({name, project, description, link}, index) => (
-          <Fragment key={link}>
-            {index > 0 && <Divider />}
-            <HovercardRow to={link}>
-              <strong>{name}</strong>
-              <MonitorDetails>
-                <ProjectBadge
-                  css={css`
-                    && img {
-                      box-shadow: none;
-                    }
-                  `}
-                  project={project}
-                  avatarSize={16}
-                  disableLink
-                />
-                {description && (
-                  <Fragment>
-                    <Separator />
-                    {description}
-                  </Fragment>
-                )}
-              </MonitorDetails>
-            </HovercardRow>
-          </Fragment>
-        ))}
-      >
+    <div className={className}>
+      <StyledHovercard body={<Overlay ids={items} type={type} />} hide={disabled}>
         <MonitorCount>{renderText(items.length)}</MonitorCount>
-      </Hovercard>
+      </StyledHovercard>
     </div>
   );
 }
+
+function Overlay(props: ConnectionCellProps) {
+  const {ids, type} = props;
+  const organization = useOrganization();
+
+  const createLink = links[type];
+  // TODO(natemoo-re): fetch data for each id
+  return ids.map((id, index) => {
+    const link = createLink(organization.slug, id);
+    const description = 'description';
+    return (
+      <Fragment key={id}>
+        {index > 0 && <Divider />}
+        <HovercardRow to={link}>
+          <strong>
+            {type}-{index + 1}
+          </strong>
+          <MonitorDetails>
+            <ProjectBadge
+              css={css`
+                && img {
+                  box-shadow: none;
+                }
+              `}
+              project={{id: '1', slug: 'project-slug'}}
+              avatarSize={16}
+              disableLink
+            />
+            {description && (
+              <Fragment>
+                <Separator />
+                {description}
+              </Fragment>
+            )}
+          </MonitorDetails>
+        </HovercardRow>
+      </Fragment>
+    );
+  });
+}
+
+const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
+  ${p =>
+    p.hide &&
+    css`
+      display: none;
+    `};
+`;
 
 const MonitorDetails = styled('div')`
   display: inline-grid;
@@ -68,12 +105,12 @@ const MonitorDetails = styled('div')`
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 500px;
   white-space: nowrap;
   line-height: 1.2;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     line-height: 1;
   }
 `;
@@ -103,11 +140,11 @@ const HovercardRow = styled(Link)`
   padding: ${space(2)};
 
   &:first-child {
-    border-radius: ${p => p.theme.borderRadiusTop};
+    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
 
   &:last-child {
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   }
 
   &:hover {

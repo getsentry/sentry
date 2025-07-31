@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DifferentialFlamegraphNegationSwitch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphNegationSwitch';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {t} from 'sentry/locale';
@@ -48,7 +48,7 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
   );
 }
 
-export const DifferentialFlamegraphToolbarContainer = styled('div')`
+const DifferentialFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;

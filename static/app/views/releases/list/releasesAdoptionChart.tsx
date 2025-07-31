@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import compact from 'lodash/compact';
@@ -123,6 +124,11 @@ class ReleasesAdoptionChart extends Component<Props> {
 
     const project = selection.projects[0];
 
+    if (!params.seriesId) {
+      Sentry.logger.warn('Releases: Adoption Chart clicked with no seriesId');
+      return;
+    }
+
     router.push(
       normalizeUrl({
         pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
@@ -177,10 +183,9 @@ class ReleasesAdoptionChart extends Component<Props> {
 
           const numDataPoints = releasesSeries[0]!.data.length;
           const xAxisData = releasesSeries[0]!.data.map(point => point.name);
-          const hideLastPoint =
-            releasesSeries.findIndex(
-              series => series.data[numDataPoints - 1]!.value > 0
-            ) === -1;
+          const hideLastPoint = !releasesSeries.some(
+            series => series.data[numDataPoints - 1]!.value > 0
+          );
 
           return (
             <Panel>
@@ -267,7 +272,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .map(
                                   s =>
                                     `<div><span class="tooltip-label">${
-                                      s.marker
+                                      s.marker as string
                                     }<strong>${
                                       s.seriesName &&
                                       truncationFormatter(s.seriesName, 32)

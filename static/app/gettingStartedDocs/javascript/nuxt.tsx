@@ -1,18 +1,15 @@
-import {Fragment} from 'react';
-
-import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
+import {ExternalLink} from 'sentry/components/core/link';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -20,8 +17,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -29,37 +24,26 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct, tctCode} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
-const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '--saas' : '--saas';
-
-  return [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
-        {
-          wizardLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          language: 'bash',
-          code: `npx @sentry/wizard@latest -i nuxt ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
-        },
-      ],
-    },
-  ];
-};
-
-const getInstallConfig = (params: Params) => [
+const getInstallContent = (params: Params): ContentBlock[] => [
   {
-    type: StepType.INSTALL,
-    configurations: getConfigStep(params),
+    type: 'text',
+    text: tct(
+      'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
+        ),
+      }
+    ),
+  },
+  {
+    type: 'code',
+    language: 'bash',
+    code: `npx @sentry/wizard@latest -i nuxt ${params.isSelfHosted ? '' : '--saas'}  --org ${params.organization.slug} --project ${params.projectSlug}`,
   },
 ];
 
@@ -78,43 +62,28 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       title: t('Automatic Configuration (Recommended)'),
-      configurations: getConfigStep(params),
+      content: getInstallContent(params),
     },
   ],
   configure: params => [
     {
-      title: t('Manual Configuration'),
       collapsible: true,
-      description: tct(
-        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+      title: t('Manual Configuration'),
+      content: [
         {
-          manualSetupLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/" />
-          ),
-        }
-      ),
-      configurations: [
-        {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tctCode('Add [code:@sentry/nuxt/module] to your [code:nuxt.config.ts].')}
-              </ListItem>
-              <ListItem>
-                {tctCode(
-                  'Create or update [code:sentry.client.config.ts] and [code:sentry.server.config.ts] with the default [code:Sentry.init] call.'
-                )}
-              </ListItem>
-              <ListItem>
-                {tctCode(
-                  'Configure source maps upload options in your [code:nuxt.config.ts].'
-                )}
-              </ListItem>
-            </List>
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/" />
+              ),
+            }
           ),
         },
         {
-          description: <CopyDsnField params={params} />,
+          type: 'custom',
+          content: <CopyDsnField params={params} />,
         },
       ],
     },
@@ -122,31 +91,34 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: (
-        <Fragment>
-          <p>
-            {tctCode(
-              'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.'
-            )}
-          </p>
-          <p>{t('Or, throw an error in a simple vue component.')}</p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tctCode(
+            'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.'
+          ),
+        },
+        {
+          type: 'text',
+          text: t('Or, throw an error in a simple vue component.'),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Vue',
-              value: 'vue',
               language: 'html',
               code: getVerifyNuxtSnippet(),
             },
           ],
         },
+        {
+          type: 'text',
+          text: t(
+            'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
+          ),
+        },
       ],
-      additionalInfo: t(
-        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
-      ),
     },
   ],
   nextSteps: () => [
@@ -160,19 +132,27 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: (params: Params) => getInstallConfig(params),
-  configure: (params: Params) => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/session-replay/',
-      }),
-      configurations: [
+      content: getInstallContent(params),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/session-replay/',
+          }),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nuxt";`,
@@ -195,13 +175,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/nuxt]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/nuxt]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getInstallContent(params),
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -256,16 +241,35 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  installSnippetBlock: {
+    type: 'code',
+    tabs: [
+      {
+        label: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/nuxt',
+      },
+      {
+        label: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/nuxt',
+      },
+      {
+        label: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/nuxt',
+      },
+    ],
+  },
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nuxt/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

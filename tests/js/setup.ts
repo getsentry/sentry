@@ -66,6 +66,25 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 
+jest.mock('getsentry/utils/stripe');
+jest.mock('getsentry/utils/trackMarketingEvent');
+jest.mock('getsentry/utils/trackAmplitudeEvent');
+jest.mock('getsentry/utils/trackReloadEvent');
+jest.mock('getsentry/utils/trackMetric');
+
+jest.mock('sentry/utils/testableWindowLocation', () => ({
+  /**
+   * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
+   * instead of mocking properties on the testableLocation object.
+   * Use this mock for checking if window.location.assign was called.
+   */
+  testableWindowLocation: {
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+  },
+}));
+
 DANGEROUS_SET_TEST_HISTORY({
   goBack: jest.fn(),
   push: jest.fn(),
@@ -148,6 +167,15 @@ jest.mock('@sentry/react', function sentryReact() {
 
 ConfigStore.loadInitialData(ConfigFixture());
 
+// Default browser timezone to UTC
+jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
+  locale: 'en-US',
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+}));
+
 /**
  * Test Globals
  */
@@ -175,13 +203,7 @@ window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
 
-// We need to re-define `window.location`, otherwise we can't spyOn certain
-// methods as `window.location` is read-only
-Object.defineProperty(window, 'location', {
-  value: {...window.location, assign: jest.fn(), reload: jest.fn(), replace: jest.fn()},
-  configurable: true,
-  writable: true,
-});
+window.ra = {event: jest.fn()};
 
 // The JSDOM implementation is too slow
 // Especially for dropdowns that try to position themselves

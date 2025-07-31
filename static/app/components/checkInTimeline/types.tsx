@@ -1,5 +1,6 @@
+import type {Theme} from '@emotion/react';
+
 import type {DateTimeProps} from 'sentry/components/dateTime';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
@@ -38,6 +39,17 @@ export interface RollupConfig {
    * How many total number of buckets are we fitting into our timeline
    */
   totalBuckets: number;
+  /**
+   * How many total buckets are part of the underscan area
+   */
+  underscanBuckets: number;
+  /**
+   * The negative pixel offset that must be applied to all ticks when the
+   * underscan width cannot evenly fit each bucket. This happens because the
+   * underscan is the "remaining" size of the timeine container and thus will
+   * not always be an even multiple of the pixel bucket size.
+   */
+  underscanStartOffset: number;
 }
 
 export interface TimeWindowConfig {
@@ -62,16 +74,18 @@ export interface TimeWindowConfig {
    */
   intervals: MarkerIntervals;
   /**
+   * The start of the window excluding the underscan period.
+   */
+  periodStart: Date;
+  /**
    * Configures how check-ins are bucketed into the timeline
    */
   rollupConfig: RollupConfig;
   /**
-   * When true the underscan help indicator should be rendered after the date
-   * time markers.
-   */
-  showUnderscanHelp: boolean;
-  /**
-   * The start of the window
+   * The start of the window.
+   *
+   * NOTE that this includes the underscan period. The periodStart value is
+   * what the selected period is actually configured for.
    */
   start: Date;
   /**
@@ -81,21 +95,25 @@ export interface TimeWindowConfig {
   timelineWidth: number;
 }
 
-export interface TickStyle {
+interface StatusStyle {
   /**
    * The color of the tooltip label
    */
-  labelColor: ColorOrAlias;
+  labelColor: string;
   /**
    * The color of the tick
    */
-  tickColor: ColorOrAlias;
+  tickColor: string;
   /**
    * Use a cross hatch fill for the tick instead of a solid color. The tick
    * color will be used as the border color
    */
-  hatchTick?: ColorOrAlias;
+  hatchTick?: string;
 }
+
+export type TickStyle<Status extends string> = (
+  theme: Theme
+) => Record<Status, StatusStyle>;
 
 export type CheckInBucket<Status extends string> = [
   timestamp: number,

@@ -17,17 +17,14 @@ ACCESS_TOKENS_URL = (
 )
 
 
+def test_conf_key() -> None:
+    assert SessionStackPlugin().conf_key == "sessionstack"
+
+
 class SessionStackPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SessionStackPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "sessionstack"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("sessionstack", self.plugin)
-        self.assertAppInstalled("sessionstack", "sentry_plugins.sessionstack")
 
     @responses.activate
     def test_config_validation(self):

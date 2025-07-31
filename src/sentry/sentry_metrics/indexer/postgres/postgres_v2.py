@@ -23,7 +23,11 @@ from sentry.sentry_metrics.indexer.base import (
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
-from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import (
+    TABLE_MAPPING,
+    BaseIndexer,
+    PerfStringIndexer,
+)
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils import metrics
@@ -77,7 +81,7 @@ class PGStringIndexerV2(StringIndexer):
         )
 
     def _bulk_create_with_retry(
-        self, table: IndexerTable, new_records: Sequence[BaseIndexer]
+        self, table: type[BaseIndexer], new_records: Sequence[BaseIndexer]
     ) -> None:
         """
         With multiple instances of the Postgres indexer running, we found that
@@ -194,7 +198,8 @@ class PGStringIndexerV2(StringIndexer):
             table = self._get_table_from_metric_path_key(metric_path_key)
 
             if metric_path_key is UseCaseKey.PERFORMANCE:
-                new_records = [
+                assert issubclass(table, PerfStringIndexer), table
+                new_records: list[BaseIndexer] = [
                     table(
                         organization_id=int(organization_id),
                         string=string,
@@ -253,12 +258,16 @@ class PGStringIndexerV2(StringIndexer):
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
             if metric_path_key is UseCaseKey.PERFORMANCE:
+                assert issubclass(table, PerfStringIndexer), table
                 return int(
                     table.objects.using_replica()
                     .get(organization_id=org_id, string=string, use_case_id=use_case_id.value)
                     .id
                 )
-            return int(table.objects.using_replica().get(organization_id=org_id, string=string).id)
+            else:
+                return int(
+                    table.objects.using_replica().get(organization_id=org_id, string=string).id
+                )
         except table.DoesNotExist:
             return None
 
@@ -304,10 +313,12 @@ class PGStringIndexerV2(StringIndexer):
             )
         return next(iter(metrics_paths))
 
-    def _get_table_from_use_case_ids(self, use_case_ids: Collection[UseCaseID]) -> IndexerTable:
+    def _get_table_from_use_case_ids(
+        self, use_case_ids: Collection[UseCaseID]
+    ) -> type[BaseIndexer]:
         return TABLE_MAPPING[self._get_metric_path_key(use_case_ids)]
 
-    def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> IndexerTable:
+    def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> type[BaseIndexer]:
         return TABLE_MAPPING[metric_path_key]
 
     def resolve_shared_org(self, string: str) -> int | None:

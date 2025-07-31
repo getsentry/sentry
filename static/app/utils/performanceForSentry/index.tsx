@@ -22,7 +22,7 @@ export {Profiler};
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
-export function getPerformanceTransaction(): Span | undefined {
+function getPerformanceTransaction(): Span | undefined {
   const span = PerformanceInteraction.getSpan();
   if (span) {
     return span;
@@ -163,7 +163,7 @@ export function VisuallyCompleteWithData({
 
   const isVCDSet = useRef(false);
 
-  if (isVCDSet && hasData && performance && performance.mark && !disabled) {
+  if (isVCDSet && hasData && performance?.mark && !disabled) {
     performance.mark(`${id}-${VCD_START}`);
     isVCDSet.current = true;
   }
@@ -523,7 +523,7 @@ export const setGroupedEntityTag = (
   Sentry.setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
 
-export const addSlowAppInit = (transaction: TransactionEvent) => {
+const addSlowAppInit = (transaction: TransactionEvent) => {
   const appInitSpan = transaction.spans?.find(
     s => s.description === 'sentry-tracing-init'
   );

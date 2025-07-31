@@ -54,7 +54,7 @@ mock_options_as_features = {
 
 
 class OrganizationSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
@@ -82,8 +82,10 @@ class OrganizationSerializerTest(TestCase):
             "integrations-incident-management",
             "integrations-issue-basic",
             "integrations-issue-sync",
+            "integrations-scm-multi-org",
             "integrations-stacktrace-link",
             "integrations-ticket-rules",
+            "integrations-vercel",
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
@@ -101,7 +103,7 @@ class OrganizationSerializerTest(TestCase):
         ]
 
     @mock.patch("sentry.features.batch_has")
-    def test_organization_batch_has(self, mock_batch):
+    def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
@@ -119,7 +121,7 @@ class OrganizationSerializerTest(TestCase):
         assert "disabled-feature" not in result["features"]
 
     @mock.patch.dict(ORGANIZATION_OPTIONS_AS_FEATURES, mock_options_as_features)
-    def test_organization_options_as_features(self):
+    def test_organization_options_as_features(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
@@ -144,7 +146,7 @@ class OrganizationSerializerTest(TestCase):
 
 
 class DetailedOrganizationSerializerTest(TestCase):
-    def test_detailed(self):
+    def test_detailed(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         acc = access.from_user(user, organization)
@@ -162,7 +164,7 @@ class DetailedOrganizationSerializerTest(TestCase):
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
-    def test_detailed_org_projs_teams(self):
+    def test_detailed_org_projs_teams(self) -> None:
         # access the test fixtures so they're initialized
         self.team
         self.project
@@ -177,7 +179,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
 
-    def test_disable_last_deploys_killswitch(self):
+    def test_disable_last_deploys_killswitch(self) -> None:
         self.team
         self.project
         self.release = self.create_release(self.project)
@@ -218,38 +220,38 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
 
 
 class OnboardingTasksSerializerTest(TestCase):
-    def test_onboarding_tasks_serializer(self):
+    def test_onboarding_tasks_serializer(self) -> None:
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
             organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
-            status=OnboardingTaskStatus.PENDING,
+            status=OnboardingTaskStatus.COMPLETE,
             user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
         result = serialize(task, self.user, serializer)
         assert result["task"] == "create_project"
-        assert result["status"] == "pending"
+        assert result["status"] == "complete"
         assert result["completionSeen"] == completion_seen
         assert result["data"] == {}
 
 
 class TrustedRelaySerializer(TestCase):
-    def test_trusted_relay_serializer(self):
+    def test_trusted_relay_serializer(self) -> None:
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
             organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
-            status=OnboardingTaskStatus.PENDING,
+            status=OnboardingTaskStatus.COMPLETE,
             user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
         result = serialize(task, self.user, serializer)
         assert result["task"] == "create_project"
-        assert result["status"] == "pending"
+        assert result["status"] == "complete"
         assert result["completionSeen"] == completion_seen
         assert result["data"] == {}

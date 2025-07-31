@@ -5,12 +5,12 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
-import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
+import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -202,7 +202,7 @@ export function OwnershipRulesTable({
         })}
       </StyledPanelTable>
       <PaginationWrapper>
-        <ButtonBar merged>
+        <ButtonBar merged gap="0">
           <Button
             icon={<IconChevron direction="left" size="sm" />}
             onClick={() => {
@@ -246,7 +246,7 @@ const RulesTableWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: min-content minmax(1fr, max-content) auto;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0;
 
   ${p =>
@@ -274,7 +274,7 @@ const RowRule = styled('div')`
   align-items: center;
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
 `;
 

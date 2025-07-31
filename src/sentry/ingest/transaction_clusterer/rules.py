@@ -9,6 +9,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_clien
 from sentry.ingest.transaction_clusterer.rule_validator import RuleValidator
 from sentry.models.project import Project
 from sentry.utils import metrics
+from sentry.utils.sdk import set_span_attribute
 
 from .base import ReplacementRule
 
@@ -145,8 +146,8 @@ class CompositeRuleStore:
         sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
 
         if self.MERGE_MAX_RULES < len(rules):
-            sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
-            sentry_sdk.Scope.get_isolation_scope().set_context(
+            set_span_attribute("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
+            sentry_sdk.get_isolation_scope().set_context(
                 "clustering_rules_max",
                 {
                     "num_existing_rules": len(rules),

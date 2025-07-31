@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useReplayUserAction} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
@@ -12,7 +12,7 @@ export default function JumpToOffsetButtonBar({intervals}: Props) {
   const userAction = useReplayUserAction();
 
   return (
-    <ButtonBar merged>
+    <ButtonBar merged gap="0">
       {intervals.map(interval => {
         const intervalMs = intervalToMilliseconds(interval);
         return (

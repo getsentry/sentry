@@ -9,7 +9,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
-    MonitorType,
     ScheduleType,
 )
 from sentry.monitors.validators import ConfigValidator
@@ -17,7 +16,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MonitorTestCase(TestCase):
-    def test_next_run_crontab(self):
+    def test_next_run_crontab(self) -> None:
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
             config={
@@ -45,7 +44,7 @@ class MonitorTestCase(TestCase):
             2019, 1, 1, 1, 16, tzinfo=timezone.utc
         )
 
-    def test_next_run_latest_crontab_with_margin(self):
+    def test_next_run_latest_crontab_with_margin(self) -> None:
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
             config={
@@ -65,7 +64,7 @@ class MonitorTestCase(TestCase):
             2019, 1, 1, 1, 16, tzinfo=timezone.utc
         )
 
-    def test_next_run_crontab_with_timezone(self):
+    def test_next_run_crontab_with_timezone(self) -> None:
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
             config={
@@ -90,7 +89,7 @@ class MonitorTestCase(TestCase):
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
-    def test_next_run_interval(self):
+    def test_next_run_interval(self) -> None:
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
             config={
@@ -107,11 +106,10 @@ class MonitorTestCase(TestCase):
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
-    def test_save_defaults_slug_to_name(self):
+    def test_save_defaults_slug_to_name(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             config={
                 "schedule": [1, "month"],
@@ -123,11 +121,10 @@ class MonitorTestCase(TestCase):
 
         assert monitor.slug == "my-awesome-monitor"
 
-    def test_save_defaults_slug_unique(self):
+    def test_save_defaults_slug_unique(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             slug="my-awesome-monitor",
             config={
@@ -144,7 +141,6 @@ class MonitorTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             config={
                 "schedule": [1, "month"],
@@ -157,12 +153,11 @@ class MonitorTestCase(TestCase):
         assert monitor.slug.startswith("my-awesome-monitor-")
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
-    def test_monitor_organization_limit(self):
+    def test_monitor_organization_limit(self) -> None:
         for i in range(settings.MAX_MONITORS_PER_ORG):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                type=MonitorType.CRON_JOB,
                 name=f"Unicron-{i}",
                 slug=f"unicron-{i}",
                 config={
@@ -180,7 +175,6 @@ class MonitorTestCase(TestCase):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                type=MonitorType.CRON_JOB,
                 name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
                 slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
                 config={
@@ -194,11 +188,10 @@ class MonitorTestCase(TestCase):
 
 class MonitorEnvironmentTestCase(TestCase):
     @override_settings(MAX_ENVIRONMENTS_PER_MONITOR=2)
-    def test_monitor_environment_limits(self):
+    def test_monitor_environment_limits(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
             config={
@@ -220,11 +213,10 @@ class MonitorEnvironmentTestCase(TestCase):
                 self.project, monitor, f"space-{settings.MAX_ENVIRONMENTS_PER_MONITOR}"
             )
 
-    def test_update_config(self):
+    def test_update_config(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
             config={
@@ -257,11 +249,10 @@ class MonitorEnvironmentTestCase(TestCase):
             "alert_rule_id": 1,
         }
 
-    def test_config_validator(self):
+    def test_config_validator(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
             config={

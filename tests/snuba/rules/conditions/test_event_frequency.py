@@ -1,14 +1,15 @@
 import time
 from copy import deepcopy
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from django.utils import timezone
 from snuba_sdk import Op
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -27,7 +28,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -36,9 +37,14 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
     def _make_sessions(
-        self, num: int, environment_name: str | None = None, project: Project | None = None
+        self,
+        num: int,
+        environment_name: str | None = None,
+        project: Project | None = None,
+        received: float | None = None,
     ):
-        received = time.time()
+        if received is None:
+            received = time.time()
 
         def make_session(i):
             return dict(
@@ -153,6 +159,76 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             environment_id=self.environment2.id,
         )
         assert batch_query == {self.event3.group_id: 1}
+
+    @patch("sentry.tsdb.snuba.LIMIT", 3)
+    def test_batch_query_group_on_time(self):
+        """
+        Test that if we hit the snuba query limit we get incorrect results when group_on_time is enabled
+        """
+
+        def _store_events(fingerprint: str, offset=True) -> int:
+            hours = 1
+            group_id = None
+
+            for i in range(4):
+                if offset:
+                    hours += 1
+                event = self.store_event(
+                    data={
+                        "event_id": str(i) * 32,
+                        "timestamp": before_now(hours=hours).isoformat(),
+                        "fingerprint": [fingerprint],
+                    },
+                    project_id=self.project.id,
+                )
+                hours += 1
+                group_id = event.group_id
+            assert group_id
+            return group_id
+
+        group_1_id = _store_events("group-hb")
+        group_2_id = _store_events("group-pb", offset=False)
+
+        condition_inst = self.get_rule(
+            data={"interval": "1w", "value": 1},
+            project=self.project.id,
+            rule=Rule(),
+        )
+        start = before_now(days=7)
+        end = timezone.now()
+
+        batch_query = condition_inst.get_chunked_result(
+            tsdb_function=condition_inst.tsdb.get_timeseries_sums,
+            model=get_issue_tsdb_group_model(GroupCategory.ERROR),
+            group_ids=[group_1_id, group_2_id],
+            organization_id=self.organization.id,
+            start=start,
+            end=end,
+            environment_id=None,
+            referrer_suffix="batch_alert_event_frequency",
+            group_on_time=True,
+        )
+
+        assert batch_query == {
+            group_1_id: 1,
+            group_2_id: 2,
+        }
+
+        batch_query = condition_inst.get_chunked_result(
+            tsdb_function=condition_inst.tsdb.get_sums,
+            model=get_issue_tsdb_group_model(GroupCategory.ERROR),
+            group_ids=[group_1_id, group_2_id],
+            organization_id=self.organization.id,
+            start=start,
+            end=end,
+            environment_id=None,
+            referrer_suffix="batch_alert_event_frequency",
+            group_on_time=False,
+        )
+        assert batch_query == {
+            group_1_id: 4,
+            group_2_id: 4,
+        }
 
     def test_get_error_and_generic_group_ids(self):
         groups = Group.objects.filter(
@@ -469,7 +545,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         self.assertDoesNotPass(rule, event, is_new=False)
 
     @patch("sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.get_rate")
-    def test_is_new_issue_skips_snuba(self, mock_get_rate):
+    def test_is_new_issue_skips_snuba(self, mock_get_rate: MagicMock) -> None:
         # Looking for more than 1 event
         data = {"interval": "1m", "value": 6}
         minutes = 1
@@ -530,7 +606,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-@apply_feature_flag_on_cls("organizations:event-unique-user-frequency-condition-with-conditions")
+@with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
 class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTestBase):
     __test__ = Abstract(__module__, __qualname__)
 

@@ -16,7 +16,6 @@ from sentry.rules.base import CallbackFuture
 class TicketEventAction(IntegrationEventAction, abc.ABC):
     """Shared ticket actions"""
 
-    form_cls = IntegrationNotifyServiceForm
     integration_key = "integration"
     link: str | None
     rule: Rule
@@ -97,3 +96,6 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
             integration_id=integration_id,
             provider=self.provider,
         )
+
+    def get_form_instance(self) -> IntegrationNotifyServiceForm:
+        return IntegrationNotifyServiceForm(self.data, integrations=self.get_integrations())

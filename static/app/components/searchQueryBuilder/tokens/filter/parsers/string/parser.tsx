@@ -1,4 +1,5 @@
 import {
+  type SearchConfig,
   type Token,
   TokenConverter,
   type TokenResult,
@@ -14,10 +15,11 @@ import grammar from './grammar.pegjs';
  * - Does not disallow spaces or parens outside of quoted values
  */
 export function parseMultiSelectFilterValue(
-  value: string
+  value: string,
+  config?: Partial<SearchConfig>
 ): TokenResult<Token.VALUE_TEXT_LIST> | null {
   try {
-    return grammar.parse(value, {TokenConverter});
+    return grammar.parse(value, {TokenConverter, config});
   } catch (e) {
     return null;
   }

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import SwitchButton from 'sentry/components/switchButton';
-import {Tooltip} from 'sentry/components/tooltip';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Switch} from 'sentry/components/core/switch';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,7 +34,7 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
           'Manually specify the percentage of incoming traffic that should be stored for each project. [link:Read the docs]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+              <ExternalLink href="https://docs.sentry.io/organization/dynamic-sampling/#advanced-mode" />
             ),
           }
         )}
@@ -46,11 +46,11 @@ export function SamplingModeSwitch({initialTargetRate}: Props) {
         disabled={hasAccess}
         title={t('You do not have permission to change this setting.')}
       >
-        <SwitchButton
+        <Switch
           size="lg"
-          toggle={handleSwitchMode}
-          isDisabled={!hasAccess}
-          isActive={samplingMode === 'project'}
+          onChange={handleSwitchMode}
+          disabled={!hasAccess}
+          checked={samplingMode === 'project'}
         />
       </Tooltip>
     </Wrapper>

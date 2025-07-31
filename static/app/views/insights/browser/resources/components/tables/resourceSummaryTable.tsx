@@ -1,11 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -27,11 +30,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -39,15 +38,16 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
   USER_GEO_SUBREGION,
-} = SpanMetricsField;
+} = SpanFields;
 
-type Row = {
-  'avg(http.response_content_length)': number;
-  'avg(span.self_time)': number;
-  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  'spm()': number;
-  transaction: string;
-};
+type Row = Pick<
+  SpanResponse,
+  | 'avg(http.response_content_length)'
+  | 'avg(span.self_time)'
+  | 'epm()'
+  | 'resource.render_blocking_status'
+  | 'transaction'
+>;
 
 type Column = GridColumnHeader<keyof Row>;
 
@@ -68,7 +68,7 @@ function ResourceSummaryTable() {
   const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
-      key: 'spm()',
+      key: 'epm()',
       width: COL_WIDTH_UNDEFINED,
       name: getThroughputTitle('http'),
     },
@@ -91,7 +91,7 @@ function ResourceSummaryTable() {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    if (key === 'spm()') {
+    if (key === 'epm()') {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {
@@ -133,9 +133,9 @@ function ResourceSummaryTable() {
                   group={groupId}
                   moduleName={ModuleName.RESOURCE}
                   filters={{
-                    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
+                    [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]:
                       row[RESOURCE_RENDER_BLOCKING_STATUS],
-                    [SpanIndexedField.TRANSACTION]: row[TRANSACTION],
+                    [SpanFields.TRANSACTION]: row[TRANSACTION],
                   }}
                 />
               </Fragment>
@@ -192,15 +192,6 @@ function ResourceSummaryTable() {
     </Fragment>
   );
 }
-
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
-  }
-};
 
 const TitleWrapper = styled('div')`
   margin-bottom: ${space(1)};

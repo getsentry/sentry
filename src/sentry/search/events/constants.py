@@ -4,6 +4,12 @@ from typing import Literal, TypedDict
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
+NOT_HAS_FILTER_ERROR_MESSAGE = """
+"!has" filter is not supported in this search.
+"""
+RATE_LIMIT_ERROR_MESSAGE = """
+Rate limit exceeded. Please try your query with a smaller date range or fewer projects.
+"""
 TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
@@ -60,6 +66,10 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
+TRACE = "trace"
+REPLAY_ALIAS = "replay"
+MESSAGING_OPERATION_TYPE_ALIAS = "messaging.operation.type"
+MESSAGING_OPERATION_NAME_ALIAS = "messaging.operation.name"
 
 
 class ThresholdDict(TypedDict):
@@ -105,6 +115,7 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
 
 MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+FLAG_KEY_RE = re.compile(r"^(flags)\[(?P<flag>.*)\]$")
 
 TYPED_TAG_KEY_RE = re.compile(
     r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
@@ -176,7 +187,14 @@ SIZE_UNITS: dict[SizeUnit, float] = {
 }
 
 DurationUnit = Literal[
-    "nanosecond", "microsecond", "millisecond", "second", "minute", "hour", "day", "week"
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
 ]
 
 # event_search normalizes to seconds
@@ -374,6 +392,8 @@ DEFAULT_METRIC_TAGS = {
     "span.op",
     "trace.status",
     "messaging.destination.name",
+    "messaging.operation.name",
+    "messaging.operation.type",
 }
 SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"

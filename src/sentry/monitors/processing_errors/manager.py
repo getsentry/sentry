@@ -6,11 +6,13 @@ import uuid
 from datetime import timedelta
 from itertools import chain
 
+import sentry_sdk
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry import analytics
+from sentry.analytics.events.checkin_processing_error_stored import CheckinProcessingErrorStored
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
@@ -114,7 +116,9 @@ def _delete_for_entity_by_type(entity_identifier: str, type: ProcessingErrorType
         # If the processing error has other errors, filter out the matching error and update the redis value
         else:
             filtered_errors = list(filter(lambda error: error["type"] != type, errors))
-            new_checkin_error = CheckinProcessingError(filtered_errors, checkin_error.checkin)
+            new_checkin_error = CheckinProcessingError(
+                filtered_errors, checkin_error.checkin, id=checkin_error.id
+            )
             new_serialized_checkin_error = json.dumps(new_checkin_error.to_dict())
             error_key = build_error_identifier(checkin_error.id)
             pipeline.set(error_key, new_serialized_checkin_error, ex=MONITOR_ERRORS_LIFETIME)
@@ -190,13 +194,19 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
         )
 
         if random.random() < ANALYTICS_SAMPLING_RATE:
-            analytics.record(
-                "checkin_processing_error.stored",
-                organization_id=organization.id,
-                project_id=project.id,
-                monitor_slug=item.payload["monitor_slug"],
-                error_types=[process_error["type"] for process_error in error.processing_errors],
-            )
+            try:
+                analytics.record(
+                    CheckinProcessingErrorStored(
+                        organization_id=organization.id,
+                        project_id=project.id,
+                        monitor_slug=item.payload["monitor_slug"],
+                        error_types=[
+                            process_error["type"].value for process_error in error.processing_errors
+                        ],
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
         store_error(checkin_processing_error, error.monitor)

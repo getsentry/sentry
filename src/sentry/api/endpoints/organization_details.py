@@ -45,26 +45,28 @@ from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ENABLED_CONSOLE_PLATFORMS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
+    INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
-    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ROLLBACK_ENABLED_DEFAULT,
-    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
-    UPTIME_AUTODETECTION,
+    ObjectStatus,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
@@ -90,12 +92,14 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
+from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
@@ -109,7 +113,6 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
-
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
     (
@@ -125,8 +128,8 @@ ORG_OPTIONS = (
         ACCOUNT_RATE_LIMIT_DEFAULT,
     ),
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
-    ("sensitiveFields", "sentry:sensitive_fields", list, SENSITIVE_FIELDS_DEFAULT),
-    ("safeFields", "sentry:safe_fields", list, SAFE_FIELDS_DEFAULT),
+    ("sensitiveFields", "sentry:sensitive_fields", list, None),
+    ("safeFields", "sentry:safe_fields", list, None),
     (
         "scrapeJavaScript",
         "sentry:scrape_javascript",
@@ -203,6 +206,18 @@ ORG_OPTIONS = (
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
+        "gitlabPRBot",
+        "sentry:gitlab_pr_bot",
+        bool,
+        GITLAB_COMMENT_BOT_DEFAULT,
+    ),
+    (
+        "gitlabOpenPRBot",
+        "sentry:gitlab_open_pr_bot",
+        bool,
+        GITLAB_COMMENT_BOT_DEFAULT,
+    ),
+    (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
         bool,
@@ -214,27 +229,51 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
-    (
-        "metricsActivatePercentiles",
-        "sentry:metrics_activate_percentiles",
-        bool,
-        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
-    ),
-    (
-        "metricsActivateLastForGauges",
-        "sentry:metrics_activate_last_for_gauges",
-        bool,
-        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
-    ),
-    ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
+    (
+        # Sets the default value for new projects created in this organization
+        "defaultAutofixAutomationTuning",
+        "sentry:default_autofix_automation_tuning",
+        str,
+        DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    ),
+    (
+        "defaultSeerScannerAutomation",
+        "sentry:default_seer_scanner_automation",
+        bool,
+        DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+    ),
+    (
+        "enablePrReviewTestGeneration",
+        "sentry:enable_pr_review_test_generation",
+        bool,
+        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    ),
+    (
+        "ingestThroughTrustedRelaysOnly",
+        "sentry:ingest-through-trusted-relays-only",
+        str,
+        INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
+    ),
+    (
+        "enabledConsolePlatforms",
+        "sentry:enabled_console_platforms",
+        list,
+        ENABLED_CONSOLE_PLATFORMS_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
+
+CONSOLE_PLATFORMS = {
+    "playstation": "PlayStation",
+    "xbox": "Xbox",
+    "nintendo-switch": "Nintendo Switch",
+}
 
 UNSAVED = object()
 DEFERRED = object()
@@ -279,20 +318,34 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    gitlabPRBot = serializers.BooleanField(required=False)
+    gitlabOpenPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    uptimeAutodetection = serializers.BooleanField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
+    defaultAutofixAutomationTuning = serializers.ChoiceField(
+        choices=[item.value for item in AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The default automation tuning setting for new projects.",
+    )
+    defaultSeerScannerAutomation = serializers.BooleanField(required=False)
+    enabledConsolePlatforms = serializers.ListField(
+        child=serializers.ChoiceField(choices=list(CONSOLE_PLATFORMS.keys())),
+        required=False,
+        allow_empty=True,
+    )
+    enablePrReviewTestGeneration = serializers.BooleanField(required=False)
+    ingestThroughTrustedRelaysOnly = serializers.ChoiceField(
+        choices=[("enabled", "enabled"), ("disabled", "disabled")], required=False
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -368,6 +421,38 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
+    def validate_ingestThroughTrustedRelaysOnly(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:ingest-through-trusted-relays-only", organization, actor=request.user
+        ):
+            # NOTE (vgrozdanic): For now allow access to this setting only to orgs with the feature flag enabled
+            raise serializers.ValidationError(
+                "Organization does not have the ingest through trusted relays only feature enabled."
+            )
+        return value
+
+    def validate_enabledConsolePlatforms(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        if not is_active_staff(request):
+            raise serializers.ValidationError("Only staff members can toggle console platforms.")
+
+        if not features.has(
+            "organizations:project-creation-games-tab", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the project creation games tab feature enabled."
+            )
+
+        # Remove duplicates by converting to set and back to list
+        if value is not None:
+            value = list(set(value))
+
+        return value
+
     def validate_accountRateLimit(self, value):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
@@ -406,6 +491,28 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
+    def validate_defaultAutofixAutomationTuning(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
+    def validate_defaultSeerScannerAutomation(self, value):
+        organization = self.context["organization"]
+        request = self.context["request"]
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
@@ -442,6 +549,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             # get what we already have
             existing = OrganizationOption.objects.get(organization=organization, key=option_key)
 
+            assert existing.value is not None
             key_dict = {val.get("public_key"): val for val in existing.value}
             original_number_of_keys = len(existing.value)
         except OrganizationOption.DoesNotExist:
@@ -632,14 +740,43 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+def create_console_platform_audit_log(
+    request, organization, previously_enabled_platforms, currently_requested_platforms
+):
+    """Create a single audit log entry for console platform changes."""
+    prev = set(previously_enabled_platforms or [])
+    curr = set(currently_requested_platforms or [])
+    added = curr - prev
+    removed = prev - curr
+    enabled = [CONSOLE_PLATFORMS[p] for p in sorted(added) if p in CONSOLE_PLATFORMS]
+    disabled = [CONSOLE_PLATFORMS[p] for p in sorted(removed) if p in CONSOLE_PLATFORMS]
+
+    changes = []
+    if enabled:
+        changes.append(f"Enabled platforms: {', '.join(enabled)}")
+    if disabled:
+        changes.append(f"Disabled platforms: {', '.join(disabled)}")
+
+    if changes:
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_CONSOLE_PLATFORM_EDIT"),
+            data={"console_platforms": "; ".join(changes)},
+        )
+
+
 @extend_schema_serializer(
     exclude_fields=[
         "accountRateLimit",
         "projectRateLimit",
         "apdexThreshold",
         "genAIConsent",
-        "metricsActivatePercentiles",
-        "metricsActivateLastForGauges",
+        "defaultAutofixAutomationTuning",
+        "defaultSeerScannerAutomation",
+        "ingestThroughTrustedRelaysOnly",
+        "enabledConsolePlatforms",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -814,6 +951,16 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
 
+    # gitlab features
+    gitlabPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitLab integration.",
+        required=False,
+    )
+    gitlabOpenPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitLab integration.",
+        required=False,
+    )
+
     # slack features
     issueAlertsThreadFlag = serializers.BooleanField(
         help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Issue Alert notification. Requires a Slack integration.",
@@ -840,10 +987,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     )
     apdexThreshold = serializers.IntegerField(required=False)
 
-    # TODO: publish when GA'd
-    metricsActivatePercentiles = serializers.BooleanField(required=False)
-    metricsActivateLastForGauges = serializers.BooleanField(required=False)
-
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
@@ -867,7 +1010,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return details on an individual organization, including various details
         such as membership access and teams.
@@ -949,6 +1092,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             slug_change_requested = "slug" in request.data and request.data["slug"]
 
+            # Capture previous console platforms before serializer.save() updates them
+            previous_console_platforms = None
+            if "enabledConsolePlatforms" in request.data:
+                previous_console_platforms = organization.get_option(
+                    "sentry:enabled_console_platforms", []
+                )
+
             # Attempt slug change first as it's a more complex, control-silo driven workflow.
             if slug_change_requested:
                 slug = request.data["slug"]
@@ -971,8 +1121,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if "samplingMode" in changed_data:
                     with transaction.atomic(router.db_for_write(ProjectOption)):
                         if is_project_mode_sampling(organization):
-                            self._compute_project_target_sample_rates(organization)
+                            self._compute_project_target_sample_rates(request, organization)
                             organization.delete_option("sentry:target_sample_rate")
+                            changed_data["samplingMode"] = "to Advanced Mode"
 
                         elif is_org_mode:
                             if "targetSampleRate" in changed_data:
@@ -980,6 +1131,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                     "sentry:target_sample_rate",
                                     serializer.validated_data["targetSampleRate"],
                                 )
+                            changed_data["samplingMode"] = "to Default Mode"
 
                             ProjectOption.objects.filter(
                                 project__organization_id=organization.id,
@@ -1001,6 +1153,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         organization.id,
                     )
 
+                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
+                    organization.update_option(
+                        "sentry:default_autofix_automation_tuning",
+                        serializer.validated_data["defaultAutofixAutomationTuning"],
+                    )
+                if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
+                    organization.update_option(
+                        "sentry:default_seer_scanner_automation",
+                        serializer.validated_data["defaultSeerScannerAutomation"],
+                    )
+
             if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,
@@ -1011,13 +1174,24 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 )
                 RegionScheduledDeletion.cancel(organization)
             elif changed_data:
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=organization.id,
-                    event=audit_log.get_event_id("ORG_EDIT"),
-                    data=changed_data,
-                )
+                if "enabledConsolePlatforms" in changed_data:
+                    create_console_platform_audit_log(
+                        request,
+                        organization,
+                        previous_console_platforms,
+                        serializer.validated_data.get("enabledConsolePlatforms", []),
+                    )
+
+                    del changed_data["enabledConsolePlatforms"]
+
+                if changed_data:
+                    self.create_audit_entry(
+                        request=request,
+                        organization=organization,
+                        target_object=organization.id,
+                        event=audit_log.get_event_id("ORG_EDIT"),
+                        data=changed_data,
+                    )
 
             context = serialize(
                 organization,
@@ -1030,7 +1204,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _compute_project_target_sample_rates(self, organization: Organization):
+    def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
@@ -1051,13 +1225,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             org_id, projects_with_tx_count_and_rates
         )
 
+        project_ids = set(
+            Project.objects.filter(organization_id=org_id, status=ObjectStatus.ACTIVE).values_list(
+                "id", flat=True
+            )
+        )
+
         if rebalanced_projects is not None:
             for rebalanced_item in rebalanced_projects:
-                ProjectOption.objects.create_or_update(
-                    project_id=rebalanced_item.id,
-                    key="sentry:target_sample_rate",
-                    values={"value": round(rebalanced_item.new_sample_rate, 4)},
-                )
+                if int(rebalanced_item.id) in project_ids:
+                    ProjectOption.objects.create_or_update(
+                        project_id=rebalanced_item.id,
+                        key="sentry:target_sample_rate",
+                        values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                    )
 
     def handle_delete(self, request: Request, organization: Organization):
         """

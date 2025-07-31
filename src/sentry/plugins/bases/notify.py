@@ -88,12 +88,13 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
-    def get_notification_recipients(self, project, user_option: str) -> set:
+    def get_notification_recipients(self, project, user_option: str) -> set[int]:
         from sentry.users.models.user_option import UserOption
 
         alert_settings = {
             o.user_id: int(o.value)
             for o in UserOption.objects.filter(project_id=project.id, key=user_option)
+            if o.value is not None
         }
 
         disabled = {u for u, v in alert_settings.items() if v == 0}
@@ -112,7 +113,7 @@ class NotificationPlugin(Plugin):
                 )
                 if str(uo.value) == "0"
             }
-            member_set = [x for x in member_set if x not in disabled]
+            member_set -= disabled
 
         return member_set
 

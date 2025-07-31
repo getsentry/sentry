@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -127,12 +127,10 @@ const ChartFooter = styled(PanelFooter)`
   padding: ${space(1)} 20px;
 `;
 
-const FooterHeader = styled(SectionHeading)`
-  display: flex;
-  align-items: center;
+const FooterHeader = styled('h4')`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 

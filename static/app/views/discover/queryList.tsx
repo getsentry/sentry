@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -20,6 +20,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -44,9 +45,9 @@ import {
 type Props = {
   api: Client;
   location: Location;
-  onQueryChange: () => void;
   organization: Organization;
   pageLinks: string;
+  refetchSavedQueries: () => void;
   renderPrebuilt: boolean;
   router: InjectedRouter;
   savedQueries: SavedQuery[];
@@ -63,28 +64,27 @@ class QueryList extends Component<Props> {
   }
 
   handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, onQueryChange, location, savedQueries} = this.props;
+    const {api, organization, location, savedQueries, refetchSavedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
+      refetchSavedQueries();
       if (savedQueries.length === 1 && location.query.cursor) {
         browserHistory.push({
           pathname: location.pathname,
           query: {...location.query, cursor: undefined},
         });
-      } else {
-        onQueryChange();
       }
     });
   };
 
   handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization, onQueryChange} = this.props;
+    const {api, location, organization, refetchSavedQueries} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
-      onQueryChange();
+      refetchSavedQueries();
       browserHistory.push({
         pathname: location.pathname,
         query: {},
@@ -150,11 +150,7 @@ class QueryList extends Component<Props> {
     const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
 
     const list = views.map((view, index) => {
-      const newQuery = organization.features.includes(
-        'performance-discover-dataset-selector'
-      )
-        ? (getSavedQueryWithDataset(view) as NewQuery)
-        : view;
+      const newQuery = getSavedQueryWithDataset(view) as NewQuery;
       const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
       // if a search is performed on the list of queries, we filter
@@ -174,12 +170,16 @@ class QueryList extends Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(
-        organization.slug,
+        organization,
         false,
         hasDatasetSelector(organization) ? view.queryDataset : undefined
       );
 
-      const menuItems = [
+      const deprecateTransactionQuery =
+        organization.features.includes('discover-saved-queries-deprecation') &&
+        view.queryDataset === SavedQueryDatasets.TRANSACTIONS;
+
+      const menuItems: MenuItemProps[] = [
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
@@ -199,6 +199,7 @@ class QueryList extends Component<Props> {
                 : undefined,
               source: DashboardWidgetSource.DISCOVERV2,
             }),
+          disabled: deprecateTransactionQuery,
         },
         {
           key: 'set-as-default',
@@ -258,11 +259,7 @@ class QueryList extends Component<Props> {
     }
 
     return savedQueries.map((query, index) => {
-      const savedQuery = organization.features.includes(
-        'performance-discover-dataset-selector'
-      )
-        ? (getSavedQueryWithDataset(query) as SavedQuery)
-        : query;
+      const savedQuery = getSavedQueryWithDataset(query) as SavedQuery;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =
@@ -270,9 +267,13 @@ class QueryList extends Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = eventView.getResultsViewShortUrlTarget(organization.slug);
+      const to = eventView.getResultsViewShortUrlTarget(organization);
       const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
       const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
+
+      const deprecateTransactionQuery =
+        organization.features.includes('discover-saved-queries-deprecation') &&
+        savedQuery.queryDataset === SavedQueryDatasets.TRANSACTIONS;
 
       const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
         ...(canAddToDashboard
@@ -296,6 +297,7 @@ class QueryList extends Component<Props> {
                       : undefined,
                     source: DashboardWidgetSource.DISCOVERV2,
                   }),
+                disabled: deprecateTransactionQuery,
               },
             ]
           : []),
@@ -316,6 +318,7 @@ class QueryList extends Component<Props> {
           label: t('Duplicate Query'),
           onAction: () =>
             this.handleDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
+          disabled: deprecateTransactionQuery,
         },
         {
           key: 'delete',
@@ -393,11 +396,11 @@ const QueryGrid = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;

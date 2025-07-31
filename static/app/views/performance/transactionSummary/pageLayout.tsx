@@ -1,18 +1,19 @@
 import {useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {Alert} from 'sentry/components/core/alert';
+import {Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tabs} from 'sentry/components/tabs';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -31,13 +32,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
-
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
   getTransactionName,
-} from '../utils';
+} from 'sentry/views/performance/utils';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
@@ -77,10 +77,11 @@ export type ChildProps = {
 };
 
 type Props = {
-  childComponent: (props: ChildProps) => JSX.Element;
+  childComponent: (props: ChildProps) => React.JSX.Element;
   generateEventView: (props: {
     location: Location;
     organization: Organization;
+    shouldUseOTelFriendlyUI: boolean;
     transactionName: string;
   }) => EventView;
   getDocumentTitle: (name: string) => string;
@@ -147,8 +148,6 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.AGGREGATE_WATERFALL:
-          return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
             organization,
@@ -184,12 +183,19 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
-  const eventView = generateEventView({location, transactionName, organization});
+  const eventView = generateEventView({
+    location,
+    organization,
+    transactionName,
+    shouldUseOTelFriendlyUI,
+  });
 
   if (!defined(projectId)) {
     // Using a discover query to get the projects associated
@@ -260,7 +266,11 @@ function PageLayout(props: Props) {
 
   let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
     tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-  if (isInDomainView) {
+
+  // TODO: /performance routes have been deprecated and all orgs should now evaluate isInDomainView as true
+  // We do not show the old web vitals tab for any orgs, with the exception of AM1 orgs as they do not have access to the new web vitals module
+  // Delete this check once all orgs have been migrated off AM1
+  if (isInDomainView && organization.features.includes('insights-modules-use-eap')) {
     hasWebVitals = 'no';
   }
 
@@ -300,11 +310,7 @@ function PageLayout(props: Props) {
                     metricsCardinality={metricsCardinality}
                   />
                   <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && (
-                      <StyledAlert type="error" showIcon>
-                        {error}
-                      </StyledAlert>
-                    )}
+                    {defined(error) && <StyledAlert type="error">{error}</StyledAlert>}
                     <ChildComponent
                       location={location}
                       organization={organization}
@@ -328,28 +334,33 @@ function PageLayout(props: Props) {
 }
 
 export function NoAccess() {
-  return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+  return (
+    <Alert.Container>
+      <Alert type="warning" showIcon={false}>
+        {t("You don't have access to this feature")}
+      </Alert>
+    </Alert.Container>
+  );
 }
 
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
-  margin: 0;
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`
   ${p =>
     p.fillSpace &&
-    `
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
+    css`
+      display: flex;
+      flex-direction: column;
+      gap: ${space(3)};
 
-  @media (min-width: ${p.theme.breakpoints.large}) {
-    display: flex;
-    flex-direction: column;
-    gap: ${space(3)};
-  }
-  `}
+      @media (min-width: ${p.theme.breakpoints.lg}) {
+        display: flex;
+        flex-direction: column;
+        gap: ${space(3)};
+      }
+    `}
 `;
 
 export function redirectToPerformanceHomepage(
@@ -359,7 +370,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug),
+      pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
       query: {
         ...location.query,
       },

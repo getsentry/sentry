@@ -3,33 +3,35 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import Accordion from 'sentry/components/container/accordion';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
-import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayPanel from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {
-  large: string;
-  medium: string;
-  small: string;
-  xlarge: string;
+  lg: string;
+  md: string;
+  sm: string;
+  xl: string;
 };
 
 const OnboardingCTAHook = HookOrDefault({
@@ -47,7 +49,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
 
   const supportedPlatforms = replayPlatforms;
 
@@ -77,16 +79,16 @@ export default function ReplayOnboardingPanel() {
 
   const breakpoints = preferences.collapsed
     ? {
-        small: '800px',
-        medium: '992px',
-        large: '1210px',
-        xlarge: '1450px',
+        sm: '800px',
+        md: '992px',
+        lg: '1210px',
+        xl: '1450px',
       }
     : {
-        small: '800px',
-        medium: '1175px',
-        large: '1375px',
-        xlarge: '1450px',
+        sm: '800px',
+        md: '1175px',
+        lg: '1375px',
+        xl: '1450px',
       };
 
   return (
@@ -99,7 +101,6 @@ export default function ReplayOnboardingPanel() {
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
-            orgSlug={organization.slug}
             primaryAction={primaryAction}
             disabled={primaryActionDisabled}
           />
@@ -110,7 +111,6 @@ export default function ReplayOnboardingPanel() {
 }
 
 interface SetupReplaysCTAProps {
-  orgSlug: string;
   primaryAction: 'setup' | 'create';
   disabled?: boolean;
 }
@@ -118,11 +118,11 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({
   disabled,
   primaryAction = 'setup',
-  orgSlug,
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});
+  const organization = useOrganization();
 
   const FAQ = [
     {
@@ -256,7 +256,10 @@ export function SetupReplaysCTA({
       >
         <LinkButton
           data-test-id="create-project-btn"
-          to={`/organizations/${orgSlug}/projects/new/`}
+          to={makeProjectsPathname({
+            path: '/new/',
+            organization,
+          })}
           priority="primary"
           disabled={disabled}
         >
@@ -274,7 +277,7 @@ export function SetupReplaysCTA({
           'See a video-like reproduction of your user sessions so you can see what happened before, during, and after an error or latency issue occurred.'
         )}
       </p>
-      <ButtonList gap={1}>
+      <ButtonList>
         {renderCTA()}
         <LinkButton
           href={
@@ -307,7 +310,7 @@ export function SetupReplaysCTA({
 }
 
 const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
-  @media (min-width: ${p => p.breakpoints.small}) {
+  @media (min-width: ${p => p.breakpoints.sm}) {
     user-select: none;
     position: absolute;
     top: 0;
@@ -319,19 +322,19 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
     left: 50%;
   }
 
-  @media (min-width: ${p => p.breakpoints.medium}) {
+  @media (min-width: ${p => p.breakpoints.md}) {
     transform: translateX(-55%);
     width: 300px;
     min-width: 300px;
   }
 
-  @media (min-width: ${p => p.breakpoints.large}) {
+  @media (min-width: ${p => p.breakpoints.lg}) {
     transform: translateX(-60%);
     width: 380px;
     min-width: 380px;
   }
 
-  @media (min-width: ${p => p.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.breakpoints.xl}) {
     transform: translateX(-65%);
     width: 420px;
     min-width: 420px;
@@ -357,14 +360,14 @@ const AnswerContent = styled('div')`
 `;
 
 const QuestionContent = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   cursor: pointer;
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.subText};
   display: flex;
   gap: ${space(0.5)};
   align-items: center;

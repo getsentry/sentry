@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -19,30 +20,29 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {TransactionCell} from 'sentry/views/insights/http/components/tables/transactionCell';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'project.id'
   | 'transaction'
   | 'transaction.method'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -52,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -77,7 +77,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -85,11 +85,11 @@ const COLUMN_ORDER: Column[] = [
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
-  'spm()',
+  'epm()',
   'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',
-  'time_spent_percentage()',
+  'sum(span.self_time)',
 ] as const;
 
 type ValidSort = Sort & {
@@ -119,6 +119,7 @@ export function DomainTransactionsTable({
   sort,
   domain,
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -153,7 +154,7 @@ export function DomainTransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, domain, location, organization),
+            renderBodyCell(column, row, meta, domain, location, organization, theme),
         }}
       />
 
@@ -168,7 +169,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   domain: string | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     return (
@@ -193,6 +195,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
+      theme,
     }
   );
 }

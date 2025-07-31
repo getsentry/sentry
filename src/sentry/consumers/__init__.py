@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -82,35 +83,13 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     return options
 
 
-def ingest_replay_recordings_buffered_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings-buffered options."""
-    options = [
-        click.Option(
-            ["--max-buffer-message-count", "max_buffer_message_count"],
-            type=int,
-            default=100,
-        ),
-        click.Option(
-            ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"],
-            type=int,
-            default=2_500_000,
-        ),
-        click.Option(
-            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
-            type=int,
-            default=1,
-        ),
-    ]
-    return options
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel"]),
-            default="parallel",
+            type=click.Choice(["serial", "batched-parallel"]),
+            default="batched-parallel",
             help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
@@ -140,7 +119,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel", "thread-queue-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),
@@ -160,8 +139,11 @@ def uptime_options() -> list[click.Option]:
             ["--max-workers", "max_workers"],
             type=int,
             default=None,
-            help="The maximum number of threads to spawn in parallel mode.",
+            help="The maximum amount of parallelism to use when in a parallel mode.",
         ),
+        click.Option(["--processes", "num_processes"], default=1, type=int),
+        click.Option(["--input-block-size"], type=int, default=None),
+        click.Option(["--output-block-size"], type=int, default=None),
     ]
     return options
 
@@ -269,11 +251,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
-    "ingest-replay-recordings-buffered": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
-        "click_options": ingest_replay_recordings_buffered_options(),
-    },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
@@ -295,6 +272,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.UPTIME_RESULTS,
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
         "click_options": uptime_options(),
+        "pass_consumer_group": True,
     },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
@@ -339,6 +317,15 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "events_analytics_platform"},
     },
+    "subscription-results-eap-items": {
+        "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
+        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "static_args": {
+            "dataset": "events_analytics_platform",
+            "topic_override": "subscription-results-eap-items",
+        },
+    },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
@@ -347,7 +334,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": ConsumerType.Events,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
-        "stale_topic": Topic.INGEST_EVENTS_DLQ,
+        "stale_topic": Topic.INGEST_EVENTS_BACKLOG,
     },
     "ingest-feedback-events": {
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
@@ -439,15 +426,32 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "process-spans": {
-        "topic": Topic.SNUBA_SPANS,
+        "topic": Topic.INGEST_SPANS,
+        "dlq_topic": Topic.INGEST_SPANS_DLQ,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            *multiprocessing_options(default_max_batch_size=100),
+            click.Option(
+                ["--flusher-processes", "flusher_processes"],
+                default=1,
+                type=int,
+                help="Maximum number of processes for the span flusher. Defaults to 1.",
+            ),
+        ],
+        "pass_kafka_slice_id": True,
     },
-    "detect-performance-issues": {
+    "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
-        "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
         "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
+        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
+        "click_options": [
+            click.Option(
+                ["--skip-produce", "skip_produce"],
+                is_flag=True,
+                default=False,
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -471,6 +475,10 @@ def get_stream_processor(
     stale_threshold_sec: int | None = None,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
+    max_dlq_buffer_length: int | None = None,
+    kafka_slice_id: int | None = None,
+    shutdown_strategy_before_consumer: bool = False,
+    add_global_tags: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -492,7 +500,7 @@ def get_stream_processor(
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
 
-    topic_defn = get_topic_definition(consumer_topic)
+    topic_defn = get_topic_definition(consumer_topic, kafka_slice_id=kafka_slice_id)
     real_topic = topic_defn["real_topic_name"]
     cluster_from_config = topic_defn["cluster"]
 
@@ -506,8 +514,16 @@ def get_stream_processor(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
     cmd_context = cmd.make_context(consumer_name, list(consumer_args))
+    extra_kwargs: dict[str, Any] = {}
+    if consumer_definition.get("pass_consumer_group", False):
+        extra_kwargs["consumer_group"] = group_id
+    if consumer_definition.get("pass_kafka_slice_id", False):
+        extra_kwargs["kafka_slice_id"] = kafka_slice_id
     strategy_factory = cmd_context.invoke(
-        strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
+        strategy_factory_cls,
+        **cmd_context.params,
+        **consumer_definition.get("static_args") or {},
+        **extra_kwargs,
     )
 
     def build_consumer_config(group_id: str):
@@ -583,6 +599,9 @@ def get_stream_processor(
             stale_threshold_sec, strategy_factory
         )
 
+    if add_global_tags:
+        strategy_factory = MinPartitionMetricTagWrapper(strategy_factory)
+
     if healthcheck_file_path is not None:
         strategy_factory = HealthcheckStrategyFactoryWrapper(
             healthcheck_file_path, strategy_factory
@@ -604,7 +623,7 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             dlq_producer,
             None,
-            None,
+            max_dlq_buffer_length,
         )
 
     else:
@@ -617,6 +636,7 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
+        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
     )
 
 
@@ -636,6 +656,27 @@ class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
         rv = self.inner.create_with_partitions(commit, partitions)
 
         return ValidateSchema(self.topic, self.enforce_schema, rv)
+
+
+class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
+    """
+    A wrapper that tracks the minimum partition index being processed by the consumer
+    and adds it as a global metric tag. This helps with monitoring partition distribution
+    and debugging partition-specific issues.
+    """
+
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        from sentry.metrics.middleware import add_global_tags
+
+        # Update the min_partition global tag based on current partition assignment
+        if partitions:
+            min_partition = min(p.index for p in partitions)
+            add_global_tags(min_partition=str(min_partition))
+
+        return self.inner.create_with_partitions(commit, partitions)
 
 
 class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):

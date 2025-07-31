@@ -1,6 +1,7 @@
-from typing import Any
+from __future__ import annotations
 
-from sentry.eventstore.models import Event
+from typing import TYPE_CHECKING, Any
+
 from sentry.grouping.component import (
     ContextLineGroupingComponent,
     FilenameGroupingComponent,
@@ -14,11 +15,14 @@ from sentry.grouping.strategies.base import (
 )
 from sentry.interfaces.template import Template
 
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 @strategy(ids=["template:v1"], interface=Template, score=1100)
 @produces_variants(["default"])
 def template_v1(
-    interface: Template, event: Event, context: GroupingContext, **meta: Any
+    interface: Template, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
     filename_component = FilenameGroupingComponent()
     if interface.filename is not None:

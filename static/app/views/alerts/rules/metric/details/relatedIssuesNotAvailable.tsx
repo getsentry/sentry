@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
-import type {LinkProps} from 'sentry/components/links/link';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import type {LinkProps} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 
 interface Props {
@@ -19,21 +19,22 @@ export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
  */
 export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
   return (
-    <StyledAlert
-      type="info"
-      showIcon
-      trailingItems={
-        <Feature features="discover-basic">
-          <LinkButton priority="default" size="xs" to={buttonTo}>
-            {buttonText}
-          </LinkButton>
-        </Feature>
-      }
-    >
-      <div data-test-id="loading-error-message">
-        Related Issues unavailable for this alert.
-      </div>
-    </StyledAlert>
+    <Alert.Container>
+      <StyledAlert
+        type="info"
+        trailingItems={
+          <Feature features="discover-basic">
+            <LinkButton priority="default" size="xs" to={buttonTo}>
+              {buttonText}
+            </LinkButton>
+          </Feature>
+        }
+      >
+        <div data-test-id="loading-error-message">
+          Related Issues unavailable for this alert.
+        </div>
+      </StyledAlert>
+    </Alert.Container>
   );
 }
 

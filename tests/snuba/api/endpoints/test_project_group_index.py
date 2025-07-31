@@ -4,11 +4,12 @@ import time
 from collections.abc import Sequence
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import quote
 from uuid import uuid4
 
 from django.conf import settings
+from django.db.utils import OperationalError
 from django.utils import timezone
 
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -32,7 +33,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import Feature, parse_link_header, with_feature
+from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -474,7 +475,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_resolve_with_integration(self, mock_sync_status_outbound):
+    def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.organization
@@ -533,7 +534,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
+    def test_set_unresolved_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
         org = self.organization
@@ -1315,7 +1316,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
+    def test_merge(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -1349,7 +1352,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+    def test_merge_performance_issues(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -1467,7 +1472,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         "sentry.models.OrganizationMember.get_scopes",
         return_value=frozenset(s for s in settings.SENTRY_SCOPES if s != "event:admin"),
     )
-    def test_discard_requires_events_admin(self, mock_get_scopes):
+    def test_discard_requires_events_admin(self, mock_get_scopes: MagicMock) -> None:
         group1 = self.create_group(is_public=True)
         user = self.user
 
@@ -1507,7 +1512,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
             assert not GroupHash.objects.filter(group_id=g.id).exists()
 
-        # XXX: I do not understand why this update is necessary for the tests to function
+        # This is necessary before calling the delete task
         Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
 
     def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
@@ -1521,56 +1526,34 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert Group.objects.get(id=g.id).status != GroupStatus.PENDING_DELETION
             assert GroupHash.objects.filter(group_id=g.id).exists()
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
+    def assert_audit_log_entry(self, groups: Sequence[Group], mock_record_audit_log: Mock) -> None:
+        calls = mock_record_audit_log.call_args_list
+        assert len(calls) > 0
+        for i, group in enumerate(groups):
+            assert calls[i].kwargs["event"].actor_user_id == self.user.id
+            assert calls[i].kwargs["event"].data["issue_id"] == group.id
 
-        groups = self.create_groups(
-            [
-                (GroupStatus.RESOLVED, self.project, None),
-                (GroupStatus.UNRESOLVED, self.project, None),
-                (GroupStatus.IGNORED, self.project, None),
-                (GroupStatus.UNRESOLVED, self.create_project(slug="foo"), None),
-            ],
-        )
-        group1, group2, group3, group4 = groups
+    @patch("sentry.utils.audit.log_service.record_audit_log")
+    def test_delete_by_id(self, mock_record_audit_log: MagicMock) -> None:
+        group1, group2 = self.create_n_groups_with_hashes(2, self.project)
+        groups_to_deleted = [group1, group2]
+        group3 = self.create_n_groups_with_hashes(1, project=self.create_project(slug="foo"))[0]
 
         self.login_as(user=self.user)
-        # Group 4 will not be deleted because it belongs to a different project
-        url = f"{self.path}?id={group1.id}&id={group2.id}&id={group4.id}"
-
-        response = self.client.delete(url, format="json")
-
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
-
-        assert response.status_code == 204
-
-        self.assert_groups_being_deleted([group1, group2])
-        # Group 4 is not deleted because it belongs to a different project
-        self.assert_groups_not_deleted([group3, group4])
+        # Group 3 will not be deleted because it belongs to a different project
+        url = f"{self.path}?id={group1.id}&id={group2.id}&id={group3.id}"
 
         with self.tasks():
             response = self.client.delete(url, format="json")
+            assert response.status_code == 204
 
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
-        ]
-
-        assert response.status_code == 204
-
-        self.assert_groups_are_gone([group1, group2])
-        self.assert_groups_not_deleted([group3, group4])
+        self.assert_audit_log_entry(groups_to_deleted, mock_record_audit_log)
+        self.assert_groups_are_gone(groups_to_deleted)
+        self.assert_groups_not_deleted([group3])
 
     @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4()}
+    def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
+        eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1, group2 = self.create_groups(
@@ -1583,14 +1566,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}"
 
-        response = self.client.delete(url, format="json")
-
-        # We do not support issue platform deletions
-        assert response.status_code == 400
-        self.assert_groups_not_deleted([group1, group2])
-
-        # We are allowed to delete the groups with the feature flag enabled
-        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+        with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
             self.assert_groups_are_gone([group1, group2])
@@ -1628,13 +1604,60 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
-        response = self.client.delete(url, format="json")
-        # We do not support issue platform deletions
-        assert response.status_code == 400
-        self.assert_groups_not_deleted(groups)
-
-        # We are allowed to delete the groups with the feature flag enabled
-        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+        with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
             self.assert_groups_are_gone(groups)
+
+    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
+    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock):
+        """
+        Test that the issue is not marked as pending deletion if the seer call fails.
+        """
+        # When trying to gather the hashes, the query could be cancelled by the user
+        mock_seer_delete.side_effect = OperationalError(
+            "QueryCanceled('canceling statement due to user request\n')"
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group1 = Group.objects.get(id=event.group_id)
+        assert GroupHash.objects.filter(group=group1).exists()
+
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group1.id}"
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 500
+            assert response.data["detail"] == "Error deleting groups"
+
+        # The group has not been marked as pending deletion
+        assert Group.objects.get(id=group1.id).status == group1.status
+        assert GroupHash.objects.filter(group=group1).exists()
+
+    def test_new_event_for_pending_deletion_group_creates_new_group(self):
+        """Test that after deleting a group, new events with the same fingerprint create a new group."""
+        data = {
+            "fingerprint": ["test-fingerprint"],
+            "timestamp": timezone.now().isoformat(),
+        }
+        # Store an event to create a group
+        event1 = self.store_event(data=data, project_id=self.project.id)
+        original_group = event1.group
+        original_group_id = original_group.id
+
+        # First we call the endpoint which will mark the group as pending deletion & delete the hashes
+        self.login_as(user=self.user)
+
+        # Since we're calling without self.tasks(), the group will not be deleted
+        # We're emulating the delay between the endpoint being called and the task being executed
+        response = self.client.delete(f"{self.path}?id={original_group_id}", format="json")
+        assert response.status_code == 204
+
+        assert Group.objects.get(id=original_group_id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=original_group_id).exists()
+
+        # Since the group hash has been deleted, a new group will be created
+        event2 = self.store_event(data=data, project_id=self.project.id)
+        # Verify a new group is created with a different ID
+        new_group = event2.group
+        assert new_group.id != original_group_id
+        assert Group.objects.filter(id=new_group.id).exists()

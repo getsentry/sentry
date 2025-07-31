@@ -1,7 +1,7 @@
 import type {LocationDescriptorObject} from 'history';
 
+import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceDetailsUrl, shouldForceRouteToOldView} from './utils';
 
 type Props = {
-  children: JSX.Element;
+  children: React.JSX.Element;
   event: Event;
 };
 
@@ -25,10 +25,8 @@ function TraceDetailsRouting(props: Props) {
     return children;
   }
 
-  if (
-    organization.features.includes('trace-view-v1') &&
-    !shouldForceRouteToOldView(organization, getEventTimestamp(event))
-  ) {
+  const timestamp = getEventTimestampInSeconds(event);
+  if (!shouldForceRouteToOldView(organization, timestamp)) {
     if (event?.groupID && event?.eventID) {
       const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
       browserHistory.replace({
@@ -39,7 +37,7 @@ function TraceDetailsRouting(props: Props) {
         organization,
         traceSlug: traceId,
         dateSelection: datetimeSelection,
-        timestamp: getEventTimestamp(event),
+        timestamp,
         eventId: event.eventID,
         location,
       });
@@ -48,7 +46,7 @@ function TraceDetailsRouting(props: Props) {
       if (location.hash.includes('span')) {
         const spanHashValue = location.hash
           .split('#')
-          .filter(value => value.includes('span'))[0]!;
+          .find(value => value.includes('span'))!;
         const spanId = spanHashValue.split('-')[1];
 
         if (spanId) {

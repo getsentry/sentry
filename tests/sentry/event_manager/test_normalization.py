@@ -21,7 +21,7 @@ def make_event(**kwargs):
     return result
 
 
-def test_tags_as_list():
+def test_tags_as_list() -> None:
     manager = EventManager(make_event(tags=[("foo", "bar")]))
     manager.normalize()
     data = manager.get_data()
@@ -29,7 +29,7 @@ def test_tags_as_list():
     assert data["tags"] == [["foo", "bar"]]
 
 
-def test_tags_as_dict():
+def test_tags_as_dict() -> None:
     manager = EventManager(make_event(tags={"foo": "bar"}))
     manager.normalize()
     data = manager.get_data()
@@ -37,7 +37,7 @@ def test_tags_as_dict():
     assert data["tags"] == [["foo", "bar"]]
 
 
-def test_interface_is_relabeled():
+def test_interface_is_relabeled() -> None:
     manager = EventManager(make_event(**{"sentry.interfaces.User": {"id": "1"}}))
     manager.normalize()
     data = manager.get_data()
@@ -61,7 +61,7 @@ def test_does_default_ip_address_to_user(user):
     assert data["user"]["ip_address"] == "127.0.0.1"
 
 
-def test_does_default_ip_address_if_present():
+def test_does_default_ip_address_if_present() -> None:
     manager = EventManager(
         make_event(
             **{
@@ -75,21 +75,21 @@ def test_does_default_ip_address_if_present():
     assert data["user"]["ip_address"] == "192.168.0.1"
 
 
-def test_long_culprit():
+def test_long_culprit() -> None:
     manager = EventManager(make_event(culprit="x" * (MAX_CULPRIT_LENGTH + 1)))
     manager.normalize()
     data = manager.get_data()
     assert len(data["culprit"]) == MAX_CULPRIT_LENGTH
 
 
-def test_long_transaction():
+def test_long_transaction() -> None:
     manager = EventManager(make_event(transaction="x" * (MAX_CULPRIT_LENGTH + 1)))
     manager.normalize()
     data = manager.get_data()
     assert len(data["transaction"]) == MAX_CULPRIT_LENGTH
 
 
-def test_long_message():
+def test_long_message() -> None:
     allowance = 200
     manager = EventManager(
         make_event(message="x" * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1 + allowance))
@@ -99,28 +99,28 @@ def test_long_message():
     assert len(data["logentry"]["formatted"]) == settings.SENTRY_MAX_MESSAGE_LENGTH
 
 
-def test_empty_message():
+def test_empty_message() -> None:
     manager = EventManager(make_event(message=""))
     manager.normalize()
     data = manager.get_data()
     assert "logentry" not in data
 
 
-def test_default_version():
+def test_default_version() -> None:
     manager = EventManager(make_event())
     manager.normalize()
     data = manager.get_data()
     assert data["version"] == "5"
 
 
-def test_explicit_version():
+def test_explicit_version() -> None:
     manager = EventManager(make_event(), "6")
     manager.normalize()
     data = manager.get_data()
     assert data["version"] == "6"
 
 
-def test_logger():
+def test_logger() -> None:
     manager = EventManager(make_event(logger="foo\nbar"))
     manager.normalize()
     data = manager.get_data()
@@ -132,7 +132,7 @@ def test_logger():
     assert data["logger"] == DEFAULT_LOGGER_NAME
 
 
-def test_moves_stacktrace_to_exception():
+def test_moves_stacktrace_to_exception() -> None:
     manager = EventManager(
         make_event(
             exception={"type": "MyException"},
@@ -152,7 +152,7 @@ def test_moves_stacktrace_to_exception():
     assert "stacktrace" not in data
 
 
-def test_bad_interfaces_no_exception():
+def test_bad_interfaces_no_exception() -> None:
     manager = EventManager(
         make_event(**{"user": None, "request": None, "sdk": "A string for sdk is not valid"}),
         client_ip="1.2.3.4",
@@ -163,7 +163,7 @@ def test_bad_interfaces_no_exception():
     manager.normalize()
 
 
-def test_event_pii():
+def test_event_pii() -> None:
     manager = EventManager(
         make_event(user={"id": None}, _meta={"user": {"id": {"": {"err": ["invalid"]}}}})
     )
@@ -172,7 +172,7 @@ def test_event_pii():
     assert data["_meta"]["user"]["id"] == {"": {"err": ["invalid"]}}
 
 
-def test_event_id_lowercase():
+def test_event_id_lowercase() -> None:
     manager = EventManager(make_event(event_id="1234ABCD" * 4))
     manager.normalize()
     data = manager.get_data()

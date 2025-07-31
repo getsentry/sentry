@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -11,11 +11,10 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {Field} from 'sentry/views/admin/options';
+import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
-import type {Field} from '../options';
-import {getForm, getOptionDefault, getOptionField} from '../options';
-
-export type InstallWizardProps = {
+type InstallWizardProps = {
   onConfigured: () => void;
 };
 
@@ -42,11 +41,13 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
 
   if (isError) {
     return (
-      <Alert type="error" showIcon>
-        {t(
-          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error">
+          {t(
+            'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -177,7 +178,7 @@ const Heading = styled('h1')`
 `;
 
 const Version = styled('small')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: inherit;
 `;
 
@@ -185,8 +186,8 @@ const SetupWizard = styled('div')`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  margin-top: 40px;
   padding: 40px 40px 20px;
-  width: 600px;
+  max-width: 1000px;
+  margin: ${space(3)};
   z-index: ${p => p.theme.zIndex.initial};
 `;

@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,7 +13,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -23,10 +23,9 @@ import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentEx
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-
-import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import {X_AXIS_SELECT_OPTIONS} from './constants';
 import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';
@@ -132,7 +131,7 @@ function InnerContent(
     (tagKey: string) => {
       if (lastTag.current !== tagKey) {
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           tagKey,
           [TAG_PAGE_TABLE_CURSOR]: undefined,
         });
@@ -159,7 +158,7 @@ function InnerContent(
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 
@@ -297,7 +296,7 @@ function TagsSideBar(props: {
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
@@ -319,14 +318,14 @@ const ReversedLayoutBody = styled('div')`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
     gap: ${space(3)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 225px minmax(100px, auto);
   }
 `;
@@ -341,12 +340,12 @@ const StyledMain = styled('div')`
 `;
 
 const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }
@@ -357,7 +356,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 1fr auto;
   }
 `;

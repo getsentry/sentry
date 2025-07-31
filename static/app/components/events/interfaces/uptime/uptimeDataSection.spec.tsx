@@ -22,14 +22,12 @@ describe('Uptime Data Section', function () {
         data: {},
         id: '2',
         dateCreated: '2024-06-21T20:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_RESOLVED,
       },
       {
         data: {},
         id: '1',
         dateCreated: '2024-06-20T20:36:51.884284Z',
-        project,
         type: GroupActivityType.FIRST_SEEN,
       },
     ];
@@ -67,28 +65,24 @@ describe('Uptime Data Section', function () {
         data: {},
         id: '4',
         dateCreated: '2024-06-22T22:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_RESOLVED,
       },
       {
         data: {},
         id: '3',
         dateCreated: '2024-06-22T20:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_REGRESSION,
       },
       {
         data: {},
         id: '2',
         dateCreated: '2024-06-21T20:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_RESOLVED,
       },
       {
         data: {},
         id: '1',
         dateCreated: '2024-06-20T20:36:51.884284Z',
-        project,
         type: GroupActivityType.FIRST_SEEN,
       },
     ];

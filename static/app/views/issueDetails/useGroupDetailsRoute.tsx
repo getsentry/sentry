@@ -6,14 +6,14 @@ import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
-type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}, {}>;
+type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}>;
 
 function getCurrentTab({router}: {router: RouteProps['router']}) {
   const currentRoute = router.routes[router.routes.length - 1];
 
-  // If we're in the tag details page ("/tags/:tagKey/")
+  // If we're in the tag details page ("/distributions/:tagKey/")
   if (router.params.tagKey) {
-    return Tab.TAGS;
+    return Tab.DISTRIBUTIONS;
   }
   return (
     Object.values(Tab).find(tab => currentRoute?.path === TabPaths[tab]) ?? Tab.DETAILS

@@ -76,16 +76,23 @@ SessionsQueryValue = Union[None, float]
 
 ProjectWithCount = tuple[ProjectId, int]
 
+#: Group key as featured in output format
+GroupKeyDict = TypedDict(
+    "GroupKeyDict",
+    {"project": int, "release": str, "environment": str, "session.status": str},
+    total=False,
+)
+
 
 class SessionsQueryGroup(TypedDict):
-    by: dict[str, str | int]
-    series: dict[str, list[SessionsQueryValue]]
-    totals: dict[str, SessionsQueryValue]
+    by: GroupKeyDict
+    series: dict[SessionsQueryFunction, list[SessionsQueryValue]]
+    totals: dict[SessionsQueryFunction, SessionsQueryValue]
 
 
 class SessionsQueryResult(TypedDict):
-    start: DateString
-    end: DateString
+    start: datetime
+    end: datetime
     intervals: list[DateString]
     groups: list[SessionsQueryGroup]
     query: str
@@ -338,7 +345,7 @@ class ReleaseHealthBackend(Service):
         Inputs:
             * project_id
             * release
-            * org_id: Organisation Id
+            * org_id: Organization Id
             * environments
         Return:
             Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that

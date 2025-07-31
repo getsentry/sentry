@@ -1,4 +1,4 @@
-import {DurationUnit} from '../discover/fields';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 
 import {convertDuration} from './convertDuration';
 

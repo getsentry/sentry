@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -29,7 +29,7 @@ function Modal({
       <Header closeButton>{title}</Header>
       <Body>{content}</Body>
       <Footer>
-        <ButtonBar gap={1.5}>
+        <ButtonBar gap="lg">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             onClick={event => {

@@ -1,10 +1,11 @@
 import type {ReactNode} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -41,7 +42,7 @@ export default function SuspectSpansTable(props: Props) {
     sort,
     project,
   } = props;
-
+  const theme = useTheme();
   const data: TableDataRowWithExtras[] = suspectSpans.map(suspectSpan => ({
     operation: suspectSpan.op,
     group: suspectSpan.group,
@@ -72,6 +73,7 @@ export default function SuspectSpansTable(props: Props) {
           location,
           organization,
           transactionName,
+          theme,
           project
         ),
       }}
@@ -96,6 +98,7 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
+  theme: Theme,
   project?: Project
 ) {
   return function (
@@ -119,7 +122,7 @@ function renderBodyCellWithMeta(
       );
     }
 
-    return fieldRenderer(dataRow, {location, organization});
+    return fieldRenderer(dataRow, {location, organization, theme});
   };
 }
 

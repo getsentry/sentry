@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -15,7 +15,7 @@ export default function ReplayInlineCTAPanel() {
   return (
     <PageBanner
       button={
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             type="button"
             priority="primary"
@@ -40,5 +40,5 @@ export default function ReplayInlineCTAPanel() {
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

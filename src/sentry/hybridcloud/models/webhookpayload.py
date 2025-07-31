@@ -4,6 +4,7 @@ import datetime
 from typing import Any, Self
 
 from django.db import models
+from django.db.models import Case, ExpressionWrapper, F, IntegerField, Q, TextChoices, Value, When
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -18,12 +19,25 @@ BACKOFF_INTERVAL = 3
 BACKOFF_RATE = 1.4
 
 
+class DestinationType(TextChoices):
+    SENTRY_REGION = "sentry_region"
+    CODECOV = "codecov"
+
+
 @control_silo_model
 class WebhookPayload(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     mailbox_name = models.CharField(null=False, blank=False)
-    region_name = models.CharField(null=False)
+    provider = models.CharField(null=True, blank=True)
+
+    # Destination attributes
+    # Table is constantly being deleted from so let's make this non-nullable with a default value, since the table should be small at any given point in time.
+    destination_type = models.CharField(
+        choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
+    )
+    region_name = models.CharField(null=True)
+
     # May need to add organization_id in the future for debugging.
     integration_id = models.BigIntegerField(null=True)
 
@@ -46,10 +60,36 @@ class WebhookPayload(Model):
         indexes = (
             models.Index(fields=["mailbox_name"]),
             models.Index(fields=["schedule_for"]),
+            models.Index(fields=["provider"], name="webhookpayload_provider_idx"),
+            models.Index(
+                fields=["mailbox_name", "id"],
+                name="webhookpayload_mailbox_id_idx",
+            ),
+            models.Index(
+                ExpressionWrapper(
+                    Case(
+                        When(provider="stripe", then=Value(1)),
+                        default=Value(10),
+                        output_field=IntegerField(),
+                    ),
+                    output_field=IntegerField(),
+                ),
+                F("id"),
+                name="webhookpayload_priority_idx",
+            ),
         )
+
+        constraints = [
+            models.CheckConstraint(
+                condition=~Q(destination_type=DestinationType.SENTRY_REGION)
+                | Q(region_name__isnull=False),
+                name="webhookpayload_region_name_not_null",
+            ),
+        ]
 
     __repr__ = sane_repr(
         "mailbox_name",
+        "destination_type",
         "region_name",
         "schedule_for",
         "attempts",
@@ -83,6 +123,7 @@ class WebhookPayload(Model):
         metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
+            provider=provider,
             region_name=region,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),

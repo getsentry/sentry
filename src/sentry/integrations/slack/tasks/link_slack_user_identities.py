@@ -12,6 +12,9 @@ from sentry.integrations.utils.identities import get_identities_by_user
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -24,6 +27,10 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
     max_retries=3,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_control_tasks,
+        retry=Retry(times=3),
+    ),
 )
 def link_slack_user_identities(
     integration_id: int,

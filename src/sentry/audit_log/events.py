@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sentry.audit_log.manager import AuditLogEvent
@@ -101,6 +100,16 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
         return f"required member {user_display_name} to setup 2FA"
 
 
+class OrgAddAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=10, name="ORG_ADD", api_name="org.create")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        if channel := audit_log_entry.data.get("channel"):
+            return f"created the organization with {channel} integration"
+        return "created the organization"
+
+
 class OrgEditAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=11, name="ORG_EDIT", api_name="org.edit")
@@ -171,7 +180,7 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         from sentry.api.endpoints.project_performance_issue_settings import (
-            internal_only_project_settings_to_group_map as map,
+            project_settings_to_group_map as map,
         )
 
         data = audit_log_entry.data
@@ -340,32 +349,6 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
         return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
-
-
-class DataSecrecyWaivedAuditLogEvent(AuditLogEvent):
-    def __init__(self):
-        super().__init__(
-            event_id=1141,
-            name="DATA_SECRECY_WAIVED",
-            api_name="data-secrecy.waived",
-        )
-
-    def render(self, audit_log_entry: AuditLogEntry):
-        entry_data = audit_log_entry.data
-        access_start = entry_data.get("access_start")
-        access_end = entry_data.get("access_end")
-
-        rendered_text = "waived data secrecy"
-        if access_start is not None and access_end is not None:
-            start_dt = datetime.fromisoformat(access_start)
-            end_dt = datetime.fromisoformat(access_end)
-
-            formatted_start = start_dt.strftime("%b %d, %Y %I:%M %p UTC")
-            formatted_end = end_dt.strftime("%b %d, %Y %I:%M %p UTC")
-
-            rendered_text += f" from {formatted_start} to {formatted_end}"
-
-        return rendered_text
 
 
 class MonitorAddAuditLogEvent(AuditLogEvent):

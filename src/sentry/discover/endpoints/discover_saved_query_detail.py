@@ -24,6 +24,7 @@ from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.models.organization import Organization
 
 
 class DiscoverSavedQueryBase(OrganizationEndpoint):
@@ -96,7 +97,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
     )
-    def put(self, request: Request, organization, query) -> Response:
+    def put(self, request: Request, organization: Organization, query) -> Response:
         """
         Modify a saved query.
         """
@@ -120,14 +121,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        user_selected_dataset = (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            )
-            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
-        )
+        user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
 
         query.update(
             organization=organization,

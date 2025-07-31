@@ -43,3 +43,11 @@ class MiddlewareOperationEvent(EventLifecycleMetric):
             "integration_name": self.get_integration_name(),
             "region": self.get_region(),
         }
+
+
+class MiddlewareHaltReason(StrEnum):
+    """
+    Reasons why a middleware operation may halt without success/failure.
+    """
+
+    ORG_INTEGRATION_DOES_NOT_EXIST = "org_integration_does_not_exist"

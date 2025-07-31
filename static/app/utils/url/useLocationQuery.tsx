@@ -21,7 +21,7 @@ type KnownDecoder =
 
 type GenericDecoder<T = unknown> = (query: QueryValue) => T;
 
-export type Decoder = KnownDecoder | GenericDecoder;
+type Decoder = KnownDecoder | GenericDecoder;
 
 /**
  * Select and memoize query params from location.
@@ -80,6 +80,7 @@ export default function useLocationQuery<
       ...(forwardedFields as any),
       ...(locationFields as any),
     }),
-    [stringyForwardedFields, stringyLocationFields] // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stringyForwardedFields, stringyLocationFields]
   );
 }

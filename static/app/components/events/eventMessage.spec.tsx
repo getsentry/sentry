@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -20,21 +19,6 @@ describe('EventMessage', () => {
       <EventMessage data={group} message="Test message" type={EventOrGroupType.ERROR} />
     );
     expect(screen.getByText('Test message')).toBeInTheDocument();
-  });
-
-  it('renders location (with issue-stream-table-layout)', () => {
-    const organization = OrganizationFixture({
-      features: ['issue-stream-table-layout'],
-    });
-
-    render(
-      <EventMessage data={group} message="Test message" type={EventOrGroupType.ERROR} />,
-      {organization}
-    );
-
-    expect(
-      screen.getByText('fetchData(app/components/group/suggestedOwners/suggestedOwners)')
-    ).toBeInTheDocument();
   });
 
   it('renders "No error message" when message is not provided', () => {

@@ -20,6 +20,7 @@ from snuba_sdk import (
 )
 
 from sentry import features, options, quotas
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -69,6 +70,9 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
@@ -89,9 +93,17 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=5 * 60,  # 5 minutes
-    time_limit=5 * 60 + 5,
+    soft_time_limit=10 * 60,  # 10 minutes
+    time_limit=10 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=10 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
@@ -166,6 +178,14 @@ def partition_by_measure(
     soft_time_limit=3 * 60,
     time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=3 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects_of_org_with_query(
@@ -211,6 +231,14 @@ def boost_low_volume_projects_of_org_with_query(
     soft_time_limit=3 * 60,
     time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=3 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
@@ -278,9 +306,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 
 def query_project_counts_by_org(
-    org_ids: list[int],
-    measure: SamplingMeasure,
-    query_interval: timedelta | None = None,
+    org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
@@ -296,6 +322,11 @@ def query_project_counts_by_org(
         granularity = Granularity(3600)
 
     org_ids = list(org_ids)
+    project_ids = list(
+        Project.objects.filter(organization_id__in=org_ids, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
+    )
     transaction_string_id = indexer.resolve_shared_org("decision")
     transaction_tag = f"tags_raw[{transaction_string_id}]"
     if measure == SamplingMeasure.SPANS:
@@ -334,6 +365,7 @@ def query_project_counts_by_org(
             Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
             Condition(Column("metric_id"), Op.EQ, metric_id),
             Condition(Column("org_id"), Op.IN, org_ids),
+            Condition(Column("project_id"), Op.IN, project_ids),
         ],
         granularity=granularity,
         orderby=[

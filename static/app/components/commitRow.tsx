@@ -3,16 +3,15 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconQuestion, IconWarning} from 'sentry/icons';
@@ -82,7 +81,10 @@ function CommitRow({
   return hasStreamlinedUI ? (
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
-        <StyledExternalLink href={commit.pullRequest?.externalUrl}>
+        <StyledExternalLink
+          href={commit.pullRequest?.externalUrl}
+          onClick={onPullRequestClick}
+        >
           <Message>{formatCommitMessage(commit.message)}</Message>
         </StyledExternalLink>
       ) : (
@@ -92,7 +94,7 @@ function CommitRow({
         <span>
           {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
         </span>
-        <Meta>
+        <Meta hasStreamlinedUI>
           <Tooltip
             title={tct(
               'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
@@ -118,7 +120,7 @@ function CommitRow({
             isHoverable
           >
             <AuthorWrapper>
-              {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
               {commit.author && commit.author.id === undefined && (
                 <IconQuestion size="xs" />
               )}
@@ -209,7 +211,7 @@ function CommitRow({
           {tct('[author] committed [commitLink] \u2022 [date]', {
             author: (
               <strong>
-                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+                {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
               </strong>
             ),
             commitLink: (
@@ -255,7 +257,7 @@ const AvatarWrapper = styled('div')`
 `;
 
 const EmailWarning = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.4;
   margin: -4px;
 `;
@@ -293,12 +295,12 @@ const CommitMessage = styled('div')`
 `;
 
 const Message = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
 `;
 
 const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
-  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSizeMedium : '13px')};
+  font-size: ${p => (p.hasStreamlinedUI ? p.theme.fontSize.md : '13px')};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.subText};
@@ -317,7 +319,7 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
 const StreamlinedCommitRow = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)} ${space(1.5)} ${space(1.5)};
+  padding: 0 ${space(1.5)} ${space(1.5)};
 `;
 
 const MetaWrapper = styled('div')`
@@ -325,7 +327,8 @@ const MetaWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
+  padding-top: ${space(0.25)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

@@ -87,7 +87,6 @@ function getTermDescriptions(platform: PlatformKey | null) {
   const technology =
     platform === 'react-native' ||
     platform === 'java-spring' ||
-    platform === 'apple-ios' ||
     platform === 'dotnet-aspnetcore'
       ? platform
       : platform?.split('-')[0];
@@ -118,13 +117,21 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.CRASHED]: t(
           'An unhandled exception that resulted in the application crashing'
         ),
+        [SessionTerm.ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error'
+        ),
+        [SessionTerm.FOREGROUND_ANR_RATE]: t(
+          'Percentage of unique users that experienced an App Not Responding (ANR) error when the app was running in the foreground'
+        ),
       };
-
     case 'apple': {
       return {
         ...commonTermsDescription,
         ...mobileTermsDescription,
         [SessionTerm.CRASHED]: t('An error that resulted in the application crashing'),
+        [SessionTerm.ANR_RATE]: t(
+          "Percentage of unique users that experienced a fatal App Hang. You must enable AppHangsV2 to get the correct statistics for the App Hang Rate. AppHangV1 events don't impact this metric."
+        ),
       };
     }
     case 'node':
@@ -142,10 +149,11 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.UNHANDLED]:
           "An error was captured by the global 'onerror' or 'onunhandledrejection' handler.",
       };
-    case 'apple-ios':
     case 'minidump':
     case 'native':
     case 'nintendo-switch':
+    case 'playstation':
+    case 'xbox':
       return {
         ...commonTermsDescription,
         ...desktopTermDescriptions,

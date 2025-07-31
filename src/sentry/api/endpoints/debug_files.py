@@ -7,7 +7,7 @@ from collections.abc import Sequence
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Q
+from django.db.models import Exists, Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.request import Request
@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import features, ratelimits
+from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -265,15 +265,37 @@ class DebugFilesEndpoint(ProjectEndpoint):
             except SymbolicError:
                 pass
 
-        if debug_id:
-            # If a debug ID is specified, do not consider the stored code
-            # identifier and strictly filter by debug identifier. Often there
-            # are mismatches in the code identifier in PEs.
-            q = Q(debug_id__exact=debug_id)
+        q = Q(project_id=project.id)
+        if file_formats:
+            file_format_q = Q()
+            for file_format in file_formats:
+                known_file_format = DIF_MIMETYPES.get(file_format)
+                if known_file_format:
+                    file_format_q |= Q(file__headers__icontains=known_file_format)
+            q &= file_format_q
+
+        queryset = None
+        if debug_id and code_id:
+            # Be lenient when searching for debug files, check either for a matching debug id
+            # or a matching code id. We only fallback to code id if there is no debug id match.
+            # While both identifiers should be unique, in practice they are not and the debug id
+            # yields better results.
+            #
+            # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
+            # that the debug id does not perfectly match due to 'age' differences, but the code-id
+            # will match.
+            debug_id_qs = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id) & q)
+            queryset = debug_id_qs.select_related("file").union(
+                ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
+                # Only return any code id matches if there are *no* debug id matches.
+                .filter(~Exists(debug_id_qs)).select_related("file")
+            )
+        elif debug_id:
+            q &= Q(debug_id__exact=debug_id)
         elif code_id:
-            q = Q(code_id__exact=code_id)
+            q &= Q(code_id__exact=code_id)
         elif query:
-            q = (
+            query_q = (
                 Q(object_name__icontains=query)
                 | Q(debug_id__icontains=query)
                 | Q(code_id__icontains=query)
@@ -283,25 +305,17 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
             known_file_format = DIF_MIMETYPES.get(query)
             if known_file_format:
-                q |= Q(file__headers__icontains=known_file_format)
-        else:
-            q = Q()
+                query_q |= Q(file__headers__icontains=known_file_format)
 
-        if file_formats:
-            file_format_q = Q()
-            for file_format in file_formats:
-                known_file_format = DIF_MIMETYPES.get(file_format)
-                if known_file_format:
-                    file_format_q |= Q(file__headers__icontains=known_file_format)
-            q &= file_format_q
+            q &= query_q
 
-        q &= Q(project_id=project.id)
-        queryset = ProjectDebugFile.objects.filter(q).select_related("file")
+        if queryset is None:
+            queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
         def on_results(difs: Sequence[ProjectDebugFile]):
             # NOTE: we are only refreshing files if there is direct query for specific files
             if debug_id and not query and not file_formats:
-                maybe_renew_debug_files(q, difs)
+                maybe_renew_debug_files(difs)
 
             return serialize(difs, request.user)
 
@@ -478,7 +492,7 @@ def batch_assemble(project, files):
     checksums_to_check -= checksums_without_chunks
 
     # 4. Find missing chunks and group them per checksum.
-    all_missing_chunks = find_missing_chunks(project.organization.id, list(chunks_to_check.keys()))
+    all_missing_chunks = find_missing_chunks(project.organization.id, set(chunks_to_check.keys()))
 
     missing_chunks_per_checksum: dict[str, set[str]] = {}
     for chunk in all_missing_chunks:
@@ -505,90 +519,11 @@ def batch_assemble(project, files):
         if file_info is None:
             continue
 
-        name, debug_id, chunks = file_info
-        assemble_dif.apply_async(
-            kwargs={
-                "project_id": project.id,
-                "name": name,
-                "debug_id": debug_id,
-                "checksum": checksum,
-                "chunks": chunks,
-            }
-        )
-
-        file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
-
-    return file_response
-
-
-def sequential_assemble(project, files):
-    """
-    Performs assembling in a sequential fashion, issuing queries for each file, identified by its `checksum`.
-    """
-    file_response = {}
-
-    for checksum, file_to_assemble in files.items():
-        name = file_to_assemble.get("name", None)
-        debug_id = file_to_assemble.get("debug_id", None)
-        chunks = file_to_assemble.get("chunks", [])
-
-        # First, check the cached assemble status. During assembling, a
-        # ProjectDebugFile will be created and we need to prevent a race
-        # condition.
-        state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
-        if state == ChunkFileState.OK:
-            file_response[checksum] = {
-                "state": state,
-                "detail": None,
-                "missingChunks": [],
-                "dif": detail,
-            }
-            continue
-        elif state is not None:
-            file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
-            continue
-
-        # Next, check if this project already owns the ProjectDebugFile.
-        # This can under rare circumstances yield more than one file
-        # which is why we use first() here instead of get().
-        dif = (
-            ProjectDebugFile.objects.filter(project_id=project.id, checksum=checksum)
-            .select_related("file")
-            .order_by("-id")
-            .first()
-        )
-
-        if dif is not None:
-            file_response[checksum] = {
-                "state": ChunkFileState.OK,
-                "detail": None,
-                "missingChunks": [],
-                "dif": serialize(dif),
-            }
-            continue
-
-        # There is neither a known file nor a cached state, so we will
-        # have to create a new file.  Assure that there are checksums.
-        # If not, we assume this is a poll and report NOT_FOUND
-        if not chunks:
-            file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
-            continue
-
-        # Check if all requested chunks have been uploaded.
-        missing_chunks = find_missing_chunks(project.organization.id, chunks)
-        if missing_chunks:
-            file_response[checksum] = {
-                "state": ChunkFileState.NOT_FOUND,
-                "missingChunks": missing_chunks,
-            }
-            continue
-
-        # We don't have a state yet, this means we can now start
-        # an assemble job in the background.
+        # We don't have a state yet, this means we can now start an assemble job in the background and mark
+        # this in the state.
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
-        from sentry.tasks.assemble import assemble_dif
-
+        name, debug_id, chunks = file_info
         assemble_dif.apply_async(
             kwargs={
                 "project_id": project.id,
@@ -647,16 +582,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        use_batch_assemble = features.has(
-            "organizations:batch-assemble-debug-files",
-            organization=project.organization,
-            actor=request.user,
-        )
-
-        if use_batch_assemble:
-            file_response = batch_assemble(project=project, files=files)
-        else:
-            file_response = sequential_assemble(project=project, files=files)
+        file_response = batch_assemble(project=project, files=files)
 
         return Response(file_response, status=200)
 

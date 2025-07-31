@@ -10,7 +10,8 @@ describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
   const createWrapper = (props = {}) =>
-    render(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
+    // eslint-disable-next-line react/no-children-prop
+    render(<Projects orgId="org-slug" children={renderer} {...props} />);
 
   beforeEach(function () {
     renderer.mockClear();

@@ -1,12 +1,12 @@
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {SPAN_SYSTEM, SPAN_DOMAIN, SPAN_ACTION} = SpanMetricsField;
+const {SPAN_SYSTEM, SPAN_DOMAIN, SPAN_ACTION} = SpanFields;
 
 export function DatabaseSystemSelector() {
   const location = useLocation();

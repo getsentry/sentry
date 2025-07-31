@@ -43,7 +43,7 @@ export const StyledPanelItem = styled(PanelItem)<{
 `;
 
 export const MoreMatchingSpans = styled(StyledPanelItem)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export const WrappingText = styled('div')`
@@ -89,15 +89,15 @@ export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName:
 `;
 
 export const EmptyStateText = styled('div')<{
-  size: 'fontSizeExtraLarge' | 'fontSizeMedium';
+  size: 'xl' | 'md';
 }>`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme[p.size]};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize[p.size]};
   padding-bottom: ${space(1)};
 `;
 
 export const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export const SpanPanelContent = styled('div')`

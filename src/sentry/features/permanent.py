@@ -48,8 +48,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:dynamic-sampling": False,
         # Enable attaching arbitrary files to events.
         "organizations:event-attachments": True,
-        # Enable multi project selection
-        "organizations:global-views": False,
         # Enable incidents feature
         "organizations:incidents": False,
         # Enable integration functionality to work with alert rules
@@ -108,6 +106,9 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:team-roles": True,
         # Enable the uptime monitoring features
         "organizations:uptime": True,
+        # Feature flag for continuous profiling billing-related features.
+        # Separate from organizations:continuous-profiling feature flag.
+        "organizations:continuous-profiling-billing": False,
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
@@ -119,6 +120,12 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
+        # Enable Vercel integration - there is a custom handler in getsentry
+        "organizations:integrations-vercel": True,
+        # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
+        "organizations:integrations-scm-multi-org": True,
+        # Enable issue view endpoints and UI
+        "organizations:issue-views": False,
     }
 
     permanent_project_features = {

@@ -29,7 +29,9 @@ describe('IdBadge', function () {
   it('renders the correct component when `organization` property is passed', function () {
     render(<IdBadge organization={OrganizationFixture()} />);
     expect(screen.getByTestId('default-avatar')).toHaveTextContent('OS');
-    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('org-slug');
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent(
+      'Organization Name'
+    );
   });
 
   it('throws when no valid properties are passed', function () {

@@ -13,19 +13,16 @@ export const customRepoTypeLabel = {
 
 export const dropDownItems = [
   {
-    value: CustomRepoType.S3,
+    key: CustomRepoType.S3,
     label: customRepoTypeLabel[CustomRepoType.S3],
-    searchKey: t('aws amazon s3 bucket'),
   },
   {
-    value: CustomRepoType.GCS,
+    key: CustomRepoType.GCS,
     label: customRepoTypeLabel[CustomRepoType.GCS],
-    searchKey: t('gcs google cloud storage bucket'),
   },
   {
-    value: CustomRepoType.HTTP,
+    key: CustomRepoType.HTTP,
     label: customRepoTypeLabel[CustomRepoType.HTTP],
-    searchKey: t('http symbol server ssqp symstore symsrv'),
   },
 ];
 

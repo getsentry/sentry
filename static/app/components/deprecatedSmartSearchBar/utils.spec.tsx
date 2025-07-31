@@ -69,7 +69,7 @@ describe('getTagItemsFromKeys()', function () {
         title: 'device',
         value: 'device:',
         kind: FieldKind.FIELD,
-        documentation: '-',
+        documentation: 'The device that the event was seen on',
       },
       {
         title: 'someTag',

@@ -111,7 +111,10 @@ describe('Sudo Modal', function () {
     expect(sudoMock).not.toHaveBeenCalled();
 
     // "Sudo" auth
-    await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), 'password');
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Password'}),
+      'password'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
 
     expect(sudoMock).toHaveBeenCalledWith(
@@ -150,10 +153,10 @@ describe('Sudo Modal', function () {
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Continue'})).toHaveAttribute(
       'href',
       '/auth/login/?next=http%3A%2F%2Flocalhost%2F'
     );
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 });

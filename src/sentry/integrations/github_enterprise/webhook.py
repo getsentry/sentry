@@ -27,12 +27,12 @@ from sentry.integrations.github.webhook import (
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
-from sentry.utils.sdk import Scope
 
 logger = logging.getLogger("sentry.webhooks")
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -78,7 +78,7 @@ def get_installation_metadata(event, host):
     external_id = get_github_external_id(event=event, host=host)
     integration = integration_service.get_integration(
         external_id=external_id,
-        provider="github_enterprise",
+        provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         status=ObjectStatus.ACTIVE,
     )
     if integration is None:
@@ -90,7 +90,7 @@ def get_installation_metadata(event, host):
 class GitHubEnterpriseWebhook:
     @property
     def provider(self) -> str:
-        return "github_enterprise"
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
@@ -152,7 +152,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         try:
             host = get_host(request=request)

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import ConfirmDelete from 'sentry/components/confirmDelete';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
@@ -46,7 +46,7 @@ function CardHeader({
       <DateCreated>
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
-      <StyledButtonBar gap={1}>
+      <StyledButtonBar>
         <Button size="sm" icon={<IconCopy />} onClick={onClick}>
           {t('Copy Key')}
         </Button>
@@ -88,12 +88,12 @@ const KeyName = styled('div')`
 
 const DateCreated = styled('div')`
   grid-row: 2/3;
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-row: 1/3;
   }
 `;
@@ -103,7 +103,7 @@ const Header = styled('div')`
   grid-row-gap: ${space(0.25)};
   margin-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr max-content;
     grid-template-rows: repeat(2, max-content);
   }

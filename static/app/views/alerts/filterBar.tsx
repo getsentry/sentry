@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -37,7 +39,7 @@ function FilterBar({
 
   return (
     <Wrapper>
-      <FilterButtons gap={1.5}>
+      <FilterButtons gap="lg">
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
         <ProjectPageFilter />
         {hasTypeFilter && (
@@ -47,6 +49,16 @@ function FilterBar({
             triggerProps={{
               prefix: t('Alert Type'),
             }}
+            menuFooter={
+              <ButtonBar>
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/crons/">
+                  {t('Crons Overview')}
+                </LinkButton>
+                <LinkButton size="xs" icon={<IconOpen />} to="/insights/uptime/">
+                  {t('Uptime Overview')}
+                </LinkButton>
+              </ButtonBar>
+            }
             options={[
               {
                 value: CombinedAlertType.ISSUE,
@@ -109,20 +121,20 @@ const Wrapper = styled('div')`
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: min-content 1fr;
   }
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
     gap: ${space(1.5)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-auto-columns: max-content;
   }

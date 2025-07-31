@@ -1,25 +1,22 @@
 from __future__ import annotations
 
-import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-import orjson
 import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -27,6 +24,12 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -88,7 +91,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 class ProjectRuleDetailsBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.create_project_rule(project=self.project)
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)
@@ -130,7 +133,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
 
 
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
         )
@@ -138,10 +141,10 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
 
-    def test_non_existing_rule(self):
+    def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
 
-    def test_with_environment(self):
+    def test_with_environment(self) -> None:
         self.rule.update(environment_id=self.environment.id)
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -150,7 +153,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] == self.environment.name
         assert response.data["status"] == "active"
 
-    def test_with_filters(self):
+    def test_with_filters(self) -> None:
         conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -178,7 +181,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
-    def test_with_assigned_to_team_filter(self):
+    def test_with_assigned_to_team_filter(self) -> None:
         conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {
@@ -208,7 +211,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             == f"The issue is assigned to team #{self.team.slug}"
         )
 
-    def test_with_assigned_to_user_filter(self):
+    def test_with_assigned_to_user_filter(self) -> None:
         conditions: list[dict[str, Any]] = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {
@@ -238,7 +241,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @responses.activate
-    def test_neglected_rule(self):
+    def test_neglected_rule(self) -> None:
         now = datetime.now(UTC)
         NeglectedRule.objects.create(
             rule=self.rule,
@@ -261,7 +264,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert not response.data.get("disableDate")
 
     @responses.activate
-    def test_with_snooze_rule(self):
+    def test_with_snooze_rule(self) -> None:
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.rule)
 
         response = self.get_success_response(
@@ -273,7 +276,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert not response.data["snoozeForEveryone"]
 
     @responses.activate
-    def test_with_snooze_rule_everyone(self):
+    def test_with_snooze_rule_everyone(self) -> None:
         user2 = self.create_user("user2@example.com")
         self.snooze_rule(owner_id=user2.id, rule=self.rule)
 
@@ -286,7 +289,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["snoozeForEveryone"]
 
     @responses.activate
-    def test_with_sentryapp_action(self):
+    def test_with_sentryapp_action(self) -> None:
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -343,7 +346,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
 
     @responses.activate
-    def test_with_unresponsive_sentryapp(self):
+    def test_with_unresponsive_sentryapp(self) -> None:
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -389,7 +392,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["actions"][0]["disabled"] is True
 
     @responses.activate
-    def test_with_deleted_sentry_app(self):
+    def test_with_deleted_sentry_app(self) -> None:
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
@@ -419,7 +422,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["actions"] == []
 
     @freeze_time()
-    def test_last_triggered(self):
+    def test_last_triggered(self) -> None:
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
@@ -431,7 +434,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["lastTriggered"] == datetime.now(UTC)
 
     @responses.activate
-    def test_with_jira_action_error(self):
+    def test_with_jira_action_error(self) -> None:
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -490,7 +493,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
     @responses.activate
-    def test_with_jira_server_action_error(self):
+    def test_with_jira_server_action_error(self) -> None:
         conditions = [
             {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
@@ -581,7 +584,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
-    def test_simple(self, send_robust):
+    def test_simple(self, send_robust: MagicMock) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -605,7 +608,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
-    def test_no_owner(self):
+    def test_no_owner(self) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -628,7 +631,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
 
-    def test_update_owner_type(self):
+    def test_update_owner_type(self) -> None:
         team = self.create_team(organization=self.organization)
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         payload = {
@@ -663,7 +666,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rule.owner_team_id is None
         assert rule.owner_user_id == self.user.id
 
-    def test_update_name(self):
+    def test_update_name(self) -> None:
         conditions = [
             {
                 "interval": "1h",
@@ -696,7 +699,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(self.rule, payload)
 
-    def test_remove_conditions(self):
+    def test_remove_conditions(self) -> None:
         """Test that you can edit an alert rule to have no conditions (aka fire on every event)"""
         rule = self.create_project_rule(
             project=self.project,
@@ -719,7 +722,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(rule, payload)
 
-    def test_update_duplicate_rule(self):
+    def test_update_duplicate_rule(self) -> None:
         """Test that if you edit a rule such that it's now the exact duplicate of another rule in the same project
         we do not allow it"""
         conditions = [
@@ -764,7 +767,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             == f"This rule is an exact duplicate of '{rule.label}' in this project and may not be created."
         )
 
-    def test_duplicate_rule_environment(self):
+    def test_duplicate_rule_environment(self) -> None:
         """Test that if one rule doesn't have an environment set (i.e. 'All Environments') and we compare it to a rule
         that does have one set, we consider this when determining if it's a duplicate"""
         self.create_project_rule(
@@ -805,7 +808,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             **payload,
         )
 
-    def test_duplicate_rule_both_have_environments(self):
+    def test_duplicate_rule_both_have_environments(self) -> None:
         """Test that we do not allow editing a rule to be the exact same as another rule in the same project
         when they both have the same environment set, and then that we do allow it when they have different
         environments set (slightly different than if one if set and the other is not).
@@ -852,7 +855,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             **payload,
         )
 
-    def test_duplicate_rule_actions(self):
+    def test_duplicate_rule_actions(self) -> None:
         """Test that if one rule doesn't have an action set (i.e. 'Do Nothing') and we compare it to a rule
         that does have one set, we consider this when determining if it's a duplicate"""
 
@@ -881,7 +884,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             **payload,
         )
 
-    def test_edit_rule(self):
+    def test_edit_rule(self) -> None:
         """Test that you can edit an alert rule w/o it comparing it to itself as a dupe"""
         conditions = [
             {
@@ -913,7 +916,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_reenable_disabled_rule(self, record_analytics):
+    def test_reenable_disabled_rule(self, record_analytics: MagicMock) -> None:
         """Test that when you edit and save a rule that was disabled, it's re-enabled as long as it passes the checks"""
         rule = Rule.objects.create(
             label="hello world",
@@ -951,7 +954,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_explicit(self, record_analytics):
+    def test_rule_disable_opt_out_explicit(self, record_analytics: MagicMock) -> None:
         """Test that if a user explicitly opts out of their neglected rule being migrated
         to being disabled (by clicking a button on the front end), that we mark it as opted out.
         """
@@ -993,7 +996,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert neglected_rule.opted_out is True
 
     @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_edit(self, record_analytics):
+    def test_rule_disable_opt_out_edit(self, record_analytics: MagicMock) -> None:
         """Test that if a user passively opts out of their neglected rule being migrated
         to being disabled (by editing the rule), that we mark it as opted out.
         """
@@ -1034,7 +1037,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         neglected_rule = NeglectedRule.objects.get(rule=rule)
         assert neglected_rule.opted_out is True
 
-    def test_with_environment(self):
+    def test_with_environment(self) -> None:
         payload = {
             "name": "hello world",
             "environment": self.environment.name,
@@ -1052,7 +1055,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] == self.environment.name
         assert_rule_from_payload(self.rule, payload)
 
-    def test_with_null_environment(self):
+    def test_with_null_environment(self) -> None:
         self.rule.update(environment_id=self.environment.id)
 
         payload = {
@@ -1073,230 +1076,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert_rule_from_payload(self.rule, payload)
 
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch(
-        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
-    )
-    def test_update_channel_slack_sdk(self, mock_send_confirmation_notification):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "#old_channel_name",
-            }
-        ]
-        self.rule.update(data={"conditions": conditions, "actions": actions})
-
-        actions[0]["channel"] = "#new_channel_name"
-        actions[0]["channel_id"] = "new_channel_id"
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-                {"name": "new_channel_name", "id": "new_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels["channels"]):
-            with self.mock_conversations_info(channels["channels"][1]):
-                payload = {
-                    "name": "#new_channel_name",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "actions": actions,
-                    "conditions": conditions,
-                    "frequency": 30,
-                }
-                self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                assert mock_send_confirmation_notification.call_count == 1
-                assert_rule_from_payload(self.rule, payload)
-
-    @responses.activate
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    @patch(
-        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
-        return_value={
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        },
-    )
-    def test_slack_confirmation_notification_contents_remove_environment(
-        self, mock_api_call, mock_post
-    ):
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "old_channel_name",
-                "uuid": str(uuid.uuid4()),
-                "tags": "",
-            }
-        ]
-        self.rule.update(
-            data={"actions": actions, "filter_match": "all", "action_match": "any"},
-            label="my rule",
-            environment_id=self.environment.id,
-        )
-
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels):
-            with self.mock_conversations_info(channels["channels"][0]):
-
-                blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
-                payload = {
-                    "text": blocks.get("text"),
-                    "blocks": orjson.dumps(blocks.get("blocks")).decode(),
-                    "channel": "new_channel_id",
-                    "unfurl_links": False,
-                    "unfurl_media": False,
-                }
-                # Pass none environment to payload
-                payload = {
-                    "name": self.rule.label,
-                    "actionMatch": "any",
-                    "filterMatch": "all",
-                    "actions": actions,
-                    "environment": None,
-                }
-                response = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                rule_id = response.data["id"]
-                rule_label = response.data["name"]
-                assert response.data["actions"][0]["channel_id"] == "old_channel_id"
-                sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-                message = "*Alert rule updated*\n\n"
-                message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
-                assert sent_blocks[0]["text"]["text"] == message
-
-                changes = "Changes\n"
-                changes += f"• Removed '{self.environment.name}' environment\n"
-                assert sent_blocks[1]["text"]["text"] == changes
-                assert (
-                    sent_blocks[2]["elements"][0]["text"]
-                    == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
-                )
-
-    @responses.activate
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    @patch(
-        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
-        return_value={
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        },
-    )
-    def test_slack_confirmation_notification_contents_sdk(self, mock_api_call, mock_post):
-        conditions = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-        ]
-        filters = [
-            {
-                "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": GroupCategory.PERFORMANCE.value,
-            }
-        ]
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "#old_channel_name",
-            }
-        ]
-        self.rule.update(
-            data={"conditions": conditions, "filters": filters, "actions": actions, "frequency": 5},
-            label="my rule",
-        )
-
-        actions[0]["channel"] = "#new_channel_name"
-        actions[0]["channel_id"] = "new_channel_id"
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-                {"name": "new_channel_name", "id": "new_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels["channels"]):
-            with self.mock_conversations_info(channels["channels"][1]):
-                blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
-                payload = {
-                    "text": blocks.get("text"),
-                    "blocks": orjson.dumps(blocks.get("blocks")).decode(),
-                    "channel": "new_channel_id",
-                    "unfurl_links": False,
-                    "unfurl_media": False,
-                }
-                staging_env = self.create_environment(
-                    self.project, name="staging", organization=self.organization
-                )
-                payload = {
-                    "name": "new rule",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "actions": actions,
-                    "conditions": conditions,
-                    "frequency": 180,
-                    "filters": filters,
-                    "environment": staging_env.name,
-                    "owner": f"user:{self.user.id}",
-                }
-                response = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                rule_id = response.data["id"]
-                rule_label = response.data["name"]
-                assert response.data["actions"][0]["channel_id"] == "new_channel_id"
-                sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-                message = "*Alert rule updated*\n\n"
-                message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
-                assert sent_blocks[0]["text"]["text"] == message
-
-                changes = "Changes\n"
-                changes += "• Added condition 'The issue's category is equal to Performance'\n"
-                changes += "• Changed action from 'Send a notification to the Awesome Team Slack workspace to #old_channel_name' to 'Send a notification to the Awesome Team Slack workspace to #new_channel_name'\n"
-                changes += "• Changed frequency from '5 minutes' to '3 hours'\n"
-                changes += f"• Added '{staging_env.name}' environment\n"
-                changes += "• Changed rule name from 'my rule' to 'new rule'\n"
-                changes += "• Changed trigger from 'None' to 'any'\n"
-                changes += "• Changed filter from 'None' to 'any'\n"
-                changes += f"• Changed owner from 'Unassigned' to '{self.user.email}'\n"
-                assert sent_blocks[1]["text"]["text"] == changes
-                assert (
-                    sent_blocks[2]["elements"][0]["text"]
-                    == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
-                )
-
-    def test_update_channel_slack_workspace_fail_sdk(self):
+    def test_update_channel_slack_workspace_fail_sdk(self) -> None:
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [
             {
@@ -1335,7 +1115,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                     **payload,
                 )
 
-    def test_slack_channel_id_saved_sdk(self):
+    def test_slack_channel_id_saved_sdk(self) -> None:
         channel_id = "CSVK0921"
 
         channel = {"name": "team-team-team", "id": channel_id}
@@ -1364,7 +1144,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             assert response.data["id"] == str(self.rule.id)
             assert response.data["actions"][0]["channel_id"] == channel_id
 
-    def test_invalid_rule_node_type(self):
+    def test_invalid_rule_node_type(self) -> None:
         payload = {
             "name": "hello world",
             "actionMatch": "any",
@@ -1376,7 +1156,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
 
-    def test_invalid_rule_node(self):
+    def test_invalid_rule_node(self) -> None:
         payload = {
             "name": "hello world",
             "actionMatch": "any",
@@ -1388,7 +1168,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
 
-    def test_rule_form_not_valid(self):
+    def test_rule_form_not_valid(self) -> None:
         payload = {
             "name": "hello world",
             "actionMatch": "any",
@@ -1400,7 +1180,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
 
-    def test_rule_form_owner_perms(self):
+    def test_rule_form_owner_perms(self) -> None:
         new_user = self.create_user()
         payload = {
             "name": "hello world",
@@ -1415,7 +1195,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert str(response.data["owner"][0]) == "User is not a member of this organization"
 
-    def test_rule_form_missing_action(self):
+    def test_rule_form_missing_action(self) -> None:
         payload = {
             "name": "hello world",
             "actionMatch": "any",
@@ -1427,7 +1207,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
 
-    def test_update_filters(self):
+    def test_update_filters(self) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -1453,7 +1233,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
-    def test_update_sentry_app_action_success(self):
+    def test_update_sentry_app_action_success(self) -> None:
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
@@ -1483,7 +1263,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_update_sentry_app_action_failure(self):
+    def test_update_sentry_app_action_failure(self) -> None:
         error_message = "Something is totally broken :'("
         responses.add(
             method=responses.POST,
@@ -1508,12 +1288,120 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filters": [],
         }
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
 
-    def test_edit_condition_metric(self):
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_with_public_context(self, result: MagicMock) -> None:
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=SentryAppErrorType.CLIENT,
+            public_context={"bruh": "bruhhhh"},
+            status_code=409,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=409, **payload
+        )
+        assert error_message in response.json().get("actions")[0]
+        assert response.json().get("context") == {"bruh": "bruhhhh"}
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_sentry_error(self, result: MagicMock) -> None:
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=SentryAppErrorType.SENTRY,
+            public_context={"bruh": "bro!"},
+            webhook_context={"swig": "swoog"},
+            status_code=510,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=510, **payload
+        )
+        assert error_message not in response.json().get("actions")[0]
+        assert (
+            response.json().get("actions")[0]
+            == "Something went wrong during the custom integration process!"
+        )
+        assert response.json().get("context") == {"bruh": "bro!"}
+        assert list(response.json().keys()) == ["context", "actions"]
+
+    @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
+    def test_update_sentry_app_action_failure_missing_error_type(self, result: MagicMock) -> None:
+        error_message = "Something is totally broken :'("
+        result.return_value = RpcAlertRuleActionResult(
+            success=False,
+            message=error_message,
+            error_type=None,
+            status_code=500,
+        )
+
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": [],
+            "filters": [],
+        }
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=500, **payload
+        )
+        assert error_message not in response.json().get("actions")[0]
+        assert (
+            response.json().get("actions")[0]
+            == "Something went wrong during the custom integration process!"
+        )
+        assert list(response.json().keys()) == ["actions"]
+
+    def test_edit_condition_metric(self) -> None:
         payload = {
             "name": "name",
             "owner": self.user.id,
@@ -1526,7 +1414,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
 
-    def test_edit_non_condition_metric(self):
+    def test_edit_non_condition_metric(self) -> None:
         payload = {
             "name": "new name",
             "owner": self.user.id,
@@ -1543,7 +1431,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         rule = self.create_project_rule(self.project)
         self.get_success_response(
             self.organization.slug, rule.project.slug, rule.id, status_code=202
@@ -1552,3 +1440,48 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not Rule.objects.filter(
             id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_dual_delete_workflow_engine(self) -> None:
+        rule = self.create_project_rule(
+            self.project,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter",
+                    "name": "The event occurs",
+                },
+            ],
+        )
+        IssueAlertMigrator(rule, user_id=self.user.id).run()
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        workflow = alert_rule_workflow.workflow
+        when_dcg = workflow.when_condition_group
+        assert when_dcg
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
+        )
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
+        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
+        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
+        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+
+    def test_dual_delete_workflow_engine_no_migrated_models(self) -> None:
+        rule = self.create_project_rule(self.project)
+        self.get_success_response(
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
+        )
+
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()

@@ -1,6 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -19,10 +18,10 @@ class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
 
-    def test(self):
+    def test(self) -> None:
         group = Group.objects.create(
             project=self.project,
             first_seen=timezone.now() - timedelta(hours=1),
@@ -40,7 +39,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
         assert len(resp.data) == 1
         assert resp.data[0]["id"] == str(group.id)
 
-    def test_invalid_conditions(self):
+    def test_invalid_conditions(self) -> None:
         conditions = [
             [],
             [{"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}],
@@ -57,7 +56,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             )
             assert resp.status_code == 400
 
-    def test_invalid_filters(self):
+    def test_invalid_filters(self) -> None:
         invalid_filter = [{"id": "sentry.rules.filters.latest_release.LatestReleaseFilter"}]
         condition = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
@@ -72,7 +71,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
         )
         assert resp.status_code == 400
 
-    def test_endpoint(self):
+    def test_endpoint(self) -> None:
         time_to_freeze = timezone.now()
         with freeze_time(time_to_freeze) as frozen_time:
             resp = self.get_success_response(
@@ -88,7 +87,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 endpoint=None,
             )
 
-            result = parse_datetime(resp["endpoint"])
+            result = datetime.fromisoformat(resp["endpoint"])
             endpoint = time_to_freeze.replace(tzinfo=result.tzinfo)
             assert result == endpoint
             frozen_time.shift(1)
@@ -106,9 +105,9 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 endpoint=endpoint,
             )
 
-            assert parse_datetime(resp["endpoint"]) == endpoint
+            assert datetime.fromisoformat(resp["endpoint"]) == endpoint
 
-    def test_inbox_reason(self):
+    def test_inbox_reason(self) -> None:
         prev_hour = timezone.now() - timedelta(hours=1)
         group_reason = []
         for reason in GroupInboxReason:
@@ -136,7 +135,7 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                     assert preview_group["inbox"]["reason"] == reason.value
                     break
 
-    def test_last_triggered(self):
+    def test_last_triggered(self) -> None:
         prev_hour = timezone.now() - timedelta(hours=1)
         prev_two_hour = timezone.now() - timedelta(hours=2)
         for time in (prev_hour, prev_two_hour):

@@ -153,7 +153,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     props.canvasPoolManager,
     flamegraphCanvas,
@@ -225,7 +225,6 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         disableCallOrderSort
         disableColorCoding
         scheduler={props.scheduler}
-        canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={props.canvasPoolManager}
         flamegraph={flamegraph}
         flamegraphRenderer={flamegraphRenderer}

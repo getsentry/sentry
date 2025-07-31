@@ -4,10 +4,11 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
-import type {SeriesWithOrdering} from '../datasetConfig/errorsAndTransactions';
-import type {WidgetQuery} from '../types';
-import {transformSeries} from '../widgetCard/widgetQueries';
+import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
+
+type SeriesWithOrdering = [order: number, series: Series];
 
 import {
   isEventsStats,
@@ -26,7 +27,7 @@ export function transformEventsResponseToSeries(
     const field = widgetQuery.aggregates[0]!;
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
 
-    seriesWithOrdering.push([0, transformSeries(data, prefixedName, field)]);
+    seriesWithOrdering.push([0, transformEventsStatsToSeries(data, prefixedName, field)]);
   } else if (isMultiSeriesEventsStats(data)) {
     Object.keys(data).forEach(seriesName => {
       const seriesData = data[seriesName]!;
@@ -34,7 +35,7 @@ export function transformEventsResponseToSeries(
 
       seriesWithOrdering.push([
         seriesData.order ?? 0,
-        transformSeries(seriesData, prefixedName, seriesName),
+        transformEventsStatsToSeries(seriesData, prefixedName, seriesName),
       ]);
     });
   } else if (isGroupedMultiSeriesEventsStats(data)) {
@@ -54,7 +55,7 @@ export function transformEventsResponseToSeries(
 
         seriesWithOrdering.push([
           (groupData.order as unknown as number) ?? 0,
-          transformSeries(seriesData, prefixedName, seriesName),
+          transformEventsStatsToSeries(seriesData, prefixedName, seriesName),
         ]);
       });
     });

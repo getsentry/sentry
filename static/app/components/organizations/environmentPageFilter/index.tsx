@@ -5,6 +5,7 @@ import sortBy from 'lodash/sortBy';
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,11 +16,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
-
 import {EnvironmentPageFilterTrigger} from './trigger';
 
-export interface EnvironmentPageFilterProps
+interface EnvironmentPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<string>,
@@ -30,6 +29,7 @@ export interface EnvironmentPageFilterProps
       | 'defaultValue'
       | 'onReplace'
       | 'onToggle'
+      | 'menuTitle'
       | 'menuBody'
       | 'menuFooter'
       | 'menuFooterMessage'
@@ -54,7 +54,6 @@ export function EnvironmentPageFilter({
   sizeLimit,
   sizeLimitMessage,
   emptyMessage,
-  menuTitle,
   menuWidth,
   trigger,
   resetParamsOnChange,
@@ -185,6 +184,7 @@ export function EnvironmentPageFilter({
   return (
     <HybridFilter
       {...selectProps}
+      checkboxPosition="leading"
       searchable
       multiple
       options={options}
@@ -198,7 +198,7 @@ export function EnvironmentPageFilter({
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={menuTitle ?? t('Filter Environments')}
+      menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooterMessage={footerMessage}

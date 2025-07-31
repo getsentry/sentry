@@ -6,7 +6,6 @@ import {motion} from 'framer-motion';
 import Text from 'sentry/components/text';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
-
 /**
  * The default wrapper for the detail text.
  *
@@ -37,7 +36,7 @@ const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
 ))`
   display: flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(1)};
 `;
 

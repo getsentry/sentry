@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {LinkButton} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -26,13 +26,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
-import {ViewButton} from 'sentry/views/issueDetails/streamline/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+function getAuthorName(item: GroupActivity) {
+  if (item.sentry_app) {
+    return item.sentry_app.name;
+  }
+  if (item.user) {
+    return item.user.name;
+  }
+  return 'Sentry';
+}
 
 function TimelineItem({
   item,
@@ -40,16 +51,18 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
+  isDrawer,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
+  isDrawer?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
-  const authorName = item.user ? item.user.name : 'Sentry';
+  const authorName = getAuthorName(item);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
@@ -60,13 +73,17 @@ function TimelineItem({
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction(item.data)
-    : iconMapping?.Component ?? null;
+    ? iconMapping.componentFunction({
+        data: item.data,
+        user: item.user,
+        sentry_app: item.sentry_app,
+      })
+    : (iconMapping?.Component ?? null);
 
   return (
     <ActivityTimelineItem
       title={
-        <Flex gap={space(0.5)} align="center" justify="flex-start">
+        <Flex gap="xs" align="center" justify="start">
           <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
@@ -104,11 +121,11 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper>
+        <NoteWrapper isDrawer={isDrawer}>
           <NoteBody text={message} />
         </NoteWrapper>
       ) : (
-        message
+        <MessageWrapper isDrawer={isDrawer}>{message}</MessageWrapper>
       )}
     </ActivityTimelineItem>
   );
@@ -116,6 +133,10 @@ function TimelineItem({
 
 interface StreamlinedActivitySectionProps {
   group: Group;
+  /**
+   * Whether to filter the activity to only show comments.
+   */
+  filterComments?: boolean;
   /**
    * Whether the activity section is being rendered in the activity drawer.
    * Disables collapse feature, and hides headers
@@ -126,6 +147,7 @@ interface StreamlinedActivitySectionProps {
 export default function StreamlinedActivitySection({
   group,
   isDrawer,
+  filterComments,
 }: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
@@ -221,30 +243,52 @@ export default function StreamlinedActivitySection({
     [group.activity, mutators, group.id, organization]
   );
 
-  return (
-    <div>
-      {!isDrawer && (
-        <Flex justify="space-between" align="center">
-          <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-          <ViewButton
-            aria-label={t('Open activity drawer')}
-            to={{
-              pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-              query: {
-                ...location.query,
-                cursor: undefined,
-              },
-            }}
-            analyticsEventKey="issue_details.activity_drawer_opened"
-            analyticsEventName="Issue Details: Activity Drawer Opened"
-            analyticsParams={{
-              num_activities: group.activity.length,
-            }}
-          >
-            {t('View')}
-          </ViewButton>
-        </Flex>
-      )}
+  const activityLink = {
+    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+    query: {
+      ...location.query,
+      cursor: undefined,
+    },
+  };
+
+  return isDrawer ? (
+    <Timeline.Container>
+      <NoteInputWithStorage
+        key={inputId}
+        storageKey="groupinput:latest"
+        itemKey={group.id}
+        onCreate={n => {
+          handleCreate(n, activeUser);
+          setInputId(uniqueId());
+        }}
+        source="issue-details"
+        {...noteProps}
+      />
+      {group.activity
+        .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
+        .map(item => {
+          return (
+            <TimelineItem
+              item={item}
+              handleDelete={handleDelete}
+              handleUpdate={handleUpdate}
+              group={group}
+              teams={teams}
+              key={item.id}
+              isDrawer={isDrawer}
+            />
+          );
+        })}
+    </Timeline.Container>
+  ) : (
+    <SidebarFoldSection
+      title={
+        <SidebarSectionTitle style={{gap: space(0.75), margin: 0}}>
+          {t('Activity')}
+        </SidebarSectionTitle>
+      }
+      sectionKey={SectionKey.ACTIVITY}
+    >
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -257,20 +301,23 @@ export default function StreamlinedActivitySection({
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length < 5 || isDrawer) &&
-          group.activity.map(item => {
-            return (
-              <TimelineItem
-                item={item}
-                handleDelete={handleDelete}
-                handleUpdate={handleUpdate}
-                group={group}
-                teams={teams}
-                key={item.id}
-              />
-            );
-          })}
-        {!isDrawer && group.activity.length >= 5 && (
+        {group.activity.length < 5 ? (
+          group.activity
+            .filter(item => !filterComments || item.type === GroupActivityType.NOTE)
+            .map(item => {
+              return (
+                <TimelineItem
+                  item={item}
+                  handleDelete={handleDelete}
+                  handleUpdate={handleUpdate}
+                  group={group}
+                  teams={teams}
+                  key={item.id}
+                  isDrawer={isDrawer}
+                />
+              );
+            })
+        ) : (
           <Fragment>
             {group.activity.slice(0, 3).map(item => {
               return (
@@ -281,6 +328,7 @@ export default function StreamlinedActivitySection({
                   group={group}
                   teams={teams}
                   key={item.id}
+                  isDrawer={isDrawer}
                 />
               );
             })}
@@ -288,13 +336,7 @@ export default function StreamlinedActivitySection({
               title={
                 <LinkButton
                   aria-label={t('View all activity')}
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-                    query: {
-                      ...location.query,
-                      cursor: undefined,
-                    },
-                  }}
+                  to={activityLink}
                   size="xs"
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
@@ -310,7 +352,7 @@ export default function StreamlinedActivitySection({
           </Fragment>
         )}
       </Timeline.Container>
-    </div>
+    </SidebarFoldSection>
   );
 }
 
@@ -331,7 +373,7 @@ const ActivityTimelineItem = styled(Timeline.Item)`
 `;
 
 const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
@@ -339,6 +381,11 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
 `;
 
-const NoteWrapper = styled('div')`
+const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
+`;
+
+const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
+  font-size: ${p => (p.isDrawer ? p.theme.fontSize.md : p.theme.fontSize.sm)};
 `;

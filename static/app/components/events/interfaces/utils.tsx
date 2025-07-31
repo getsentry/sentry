@@ -9,7 +9,7 @@ import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/type
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import type {AvatarUser} from 'sentry/types/user';
+import {type AvatarUser, StacktraceOrder} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -27,8 +27,8 @@ interface ImageForAddressProps {
 
 interface HiddenFrameIndicesProps {
   data: StacktraceType;
-  frameCountMap: {[frameIndex: number]: number};
-  toggleFrameMap: {[frameIndex: number]: boolean};
+  frameCountMap: Record<number, number>;
+  toggleFrameMap: Record<number, boolean>;
 }
 
 export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
@@ -63,7 +63,7 @@ export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   );
 }
 
-export function getRepeatedFrameIndices(data: StacktraceType) {
+function getRepeatedFrameIndices(data: StacktraceType) {
   const repeats: number[] = [];
   (data.frames ?? []).forEach((frame, frameIdx) => {
     const nextFrame = (data.frames ?? [])[frameIdx + 1];
@@ -113,9 +113,9 @@ export function getLastFrameIndex(frames: Frame[]) {
     })
     .filter(frame => frame !== undefined);
 
-  return !inAppFrameIndexes.length
-    ? frames.length - 1
-    : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+  return inAppFrameIndexes.length
+    ? inAppFrameIndexes[inAppFrameIndexes.length - 1]
+    : frames.length - 1;
 }
 
 // TODO(dcramer): support cookies
@@ -154,7 +154,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
       case 'application/x-www-form-urlencoded':
         result +=
           ' \\\n --data "' +
-          escapeBashString(qs.stringify(data.data as {[key: string]: any})) +
+          escapeBashString(qs.stringify(data.data as Record<string, any>)) +
           '"';
         break;
 
@@ -382,11 +382,11 @@ export function isStacktraceNewestFirst() {
   }
 
   switch (user.options.stacktraceOrder) {
-    case 2:
+    case StacktraceOrder.MOST_RECENT_FIRST:
       return true;
-    case 1:
+    case StacktraceOrder.MOST_RECENT_LAST:
       return false;
-    case -1:
+    case StacktraceOrder.DEFAULT:
     default:
       return true;
   }
@@ -439,4 +439,29 @@ export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   }
 
   return event.platform ?? 'other';
+}
+
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestampInSeconds(event: Event): number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (key in event) {
+      const value = event[key as keyof Event];
+
+      if (typeof value === 'number') {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        return new Date(value).getTime() / 1_000;
+      }
+    }
+  }
+
+  return undefined;
 }

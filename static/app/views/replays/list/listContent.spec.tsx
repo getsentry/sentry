@@ -21,6 +21,7 @@ const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
   isLoading: false,
   isError: false,
+  error: null,
   data: [],
   pageLinks: undefined,
 });
@@ -54,7 +55,7 @@ describe('ReplayList', () => {
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
-    // mockUseAllMobileProj.mockClear();
+    mockUseAllMobileProj.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -132,7 +133,7 @@ describe('ReplayList', () => {
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
-  it('should render the rage-click sdk update banner when the org is AM2, has sent replays, but the sdk version is low', async () => {
+  it('should not render the rage click cards when the sdk version is not up to date', async () => {
     const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
@@ -148,10 +149,9 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Introducing Rage and Dead Clicks')).toBeInTheDocument();
-    });
-    expect(screen.getByTestId('replay-table')).toBeInTheDocument();
+    await screen.findByTestId('replay-table');
+    expect(screen.queryByText('Most Dead Clicks')).not.toBeInTheDocument();
+    expect(screen.queryByText('Most Rage Clicks')).not.toBeInTheDocument();
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 

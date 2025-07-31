@@ -5,7 +5,8 @@ import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
@@ -32,6 +33,7 @@ type EventAttachmentsProps = {
    */
   group: Group | undefined;
   project: Project;
+  disableCollapsePersistence?: boolean;
 };
 
 type AttachmentPreviewOpenMap = Record<string, boolean>;
@@ -60,7 +62,12 @@ function ViewAllGroupAttachmentsButton() {
   );
 }
 
-function EventAttachmentsContent({event, project, group}: EventAttachmentsProps) {
+function EventAttachmentsContent({
+  event,
+  project,
+  group,
+  disableCollapsePersistence,
+}: EventAttachmentsProps) {
   const organization = useOrganization();
   const {
     data: attachments = [],
@@ -113,6 +120,7 @@ function EventAttachmentsContent({event, project, group}: EventAttachmentsProps)
       actions={
         hasStreamlinedUI && project && group ? <ViewAllGroupAttachmentsButton /> : null
       }
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
@@ -132,9 +140,10 @@ function EventAttachmentsContent({event, project, group}: EventAttachmentsProps)
         >
           {attachments.map(attachment => (
             <Fragment key={attachment.id}>
-              <FlexCenter>
+              <Flex align="center">
                 <Name>{attachment.name}</Name>
-              </FlexCenter>
+              </Flex>
+
               <Size>
                 <FileSize bytes={attachment.size} />
               </Size>
@@ -189,12 +198,6 @@ export function EventAttachments(props: EventAttachmentsProps) {
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;
-`;
-
-const FlexCenter = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  align-items: center;
 `;
 
 const Name = styled('div')`

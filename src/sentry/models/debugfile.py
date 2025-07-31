@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
@@ -34,17 +35,13 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
-
-# How long we cache a conversion failure by checksum in cache.  Currently
-# 10 minutes is assumed to be a reasonable value here.
-CONVERSION_ERROR_TTL = 60 * 10
 
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
@@ -90,7 +87,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
         # because otherwise this would be a circular import:
         from sentry.debug_files.debug_files import maybe_renew_debug_files
 
-        maybe_renew_debug_files(query, difs)
+        maybe_renew_debug_files(difs)
 
         difs_by_id: dict[str, list[ProjectDebugFile]] = {}
         for dif in difs:
@@ -126,11 +123,11 @@ class ProjectDebugFile(Model):
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = BoundedBigIntegerField(null=True, db_index=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    date_accessed = models.DateTimeField(default=timezone.now)
+    date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 
@@ -317,6 +314,13 @@ def create_dif_from_id(
         file.type = "project.dif"
         file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
         file.save()
+
+    metrics.distribution(
+        "storage.put.size",
+        file.size,
+        tags={"usecase": "debug-files", "compression": "none"},
+        unit="byte",
+    )
 
     dif = ProjectDebugFile.objects.create(
         file=file,

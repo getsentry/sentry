@@ -3,7 +3,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 interface Props {
   /**
@@ -32,18 +32,20 @@ interface Props {
 
 interface ResponsePage<Data> {
   data: undefined | Data;
-  error: unknown;
+  error: RequestError | undefined;
   getResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
+  status: 'pending' | 'error' | 'success';
 }
 
 interface State<Data> {
-  error: unknown;
+  error: RequestError[] | undefined;
   getLastResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
   pages: Data[];
+  status: 'pending' | 'error' | 'success';
 }
 
 /**
@@ -92,7 +94,6 @@ export default function useFetchParallelPages<Data>({
   getQueryKey,
   perPage,
 }: Props): State<Data> {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
@@ -103,13 +104,13 @@ export default function useFetchParallelPages<Data>({
     [pages, perPage]
   );
 
-  const willFetch = enabled && Boolean(cursors.length);
   const [state, setState] = useState<State<Data>>({
     pages: [],
     error: undefined,
     getLastResponseHeader: undefined,
+    status: enabled ? (cursors.length ? 'pending' : 'success') : 'pending',
     isError: false,
-    isFetching: willFetch,
+    isFetching: enabled && Boolean(cursors.length),
   });
 
   const fetch = useCallback(
@@ -121,13 +122,14 @@ export default function useFetchParallelPages<Data>({
               data: undefined,
               error: undefined,
               getResponseHeader: undefined,
+              status: 'pending',
               isError: false,
               isFetching: true,
             });
 
             const [data, , resp] = await queryClient.fetchQuery({
               queryKey: getQueryKey({cursor, per_page: perPage}),
-              queryFn: fetchDataQuery(api),
+              queryFn: fetchDataQuery<Data>,
               staleTime: Infinity,
             });
 
@@ -135,6 +137,7 @@ export default function useFetchParallelPages<Data>({
               data,
               error: undefined,
               getResponseHeader: resp?.getResponseHeader,
+              status: 'success',
               isError: false,
               isFetching: false,
             });
@@ -143,6 +146,7 @@ export default function useFetchParallelPages<Data>({
               data: undefined,
               error,
               getResponseHeader: undefined,
+              status: 'error',
               isError: true,
               isFetching: false,
             });
@@ -150,8 +154,13 @@ export default function useFetchParallelPages<Data>({
             const values = Array.from(responsePages.current.values());
             setState({
               pages: values.map(value => value.data).filter(defined),
-              error: values.map(value => value.error),
+              error: values.map(value => value.error).filter(defined),
               getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
+              status: values.some(value => value.status === 'error')
+                ? 'error'
+                : values.some(value => value.status === 'pending')
+                  ? 'pending'
+                  : 'success',
               isError: values.map(value => value.isError).some(Boolean),
               isFetching: values.map(value => value.isFetching).some(Boolean),
             });
@@ -159,21 +168,21 @@ export default function useFetchParallelPages<Data>({
         })
       );
     },
-    [api, cursors, getQueryKey, perPage, queryClient]
+    [cursors, getQueryKey, perPage, queryClient]
   );
 
   useEffect(() => {
-    if (!willFetch) {
-      return;
+    if (enabled) {
+      if (cursors.length) {
+        setState(prev => ({...prev, status: 'pending', isFetching: true}));
+        fetch();
+      } else {
+        setState(prev => ({...prev, status: 'success', isFetching: false}));
+      }
+    } else {
+      setState(prev => ({...prev, status: 'pending', isFetching: false}));
     }
-
-    setState(prev => ({
-      ...prev,
-      isFetching: true,
-    }));
-
-    fetch();
-  }, [willFetch, fetch]);
+  }, [cursors, enabled, fetch]);
 
   return state;
 }

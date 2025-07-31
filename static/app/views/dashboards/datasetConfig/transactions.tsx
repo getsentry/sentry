@@ -1,7 +1,6 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -13,9 +12,11 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
+  getAggregations,
   type QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   TRANSACTION_FIELDS,
+  TRANSACTIONS_AGGREGATION_FUNCTIONS,
 } from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryExtras,
@@ -23,6 +24,7 @@ import type {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -30,14 +32,13 @@ import {
   shouldUseOnDemandMetrics,
 } from 'sentry/utils/performance/contexts/onDemandControl';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
-import {eventViewFromWidget} from '../utils';
-import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
-import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
 import {
@@ -54,20 +55,18 @@ import {
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count_unique(user)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count_unique(user)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count_unique(user)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count_unique', 'user', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
-
-export type SeriesWithOrdering = [order: number, series: Series];
 
 export const TransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
@@ -139,6 +138,7 @@ function getEventsTableFieldOptions(
   customMeasurements?: CustomMeasurementCollection
 ) {
   const measurements = getMeasurements();
+  const aggregates = getAggregations(DiscoverDatasets.TRANSACTIONS);
 
   return generateFieldOptions({
     organization,
@@ -151,6 +151,13 @@ function getEventsTableFieldOptions(
         functions,
       })
     ),
+    aggregations: Object.keys(aggregates)
+      .filter(key => TRANSACTIONS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+      .reduce((obj, key) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        obj[key] = aggregates[key];
+        return obj;
+      }, {}),
     fieldKeys: TRANSACTION_FIELDS,
   });
 }

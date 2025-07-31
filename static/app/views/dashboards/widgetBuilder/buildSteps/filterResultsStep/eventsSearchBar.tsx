@@ -6,16 +6,25 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 
 interface Props {
   onClose: SearchBarProps['onClose'];
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
+  portalTarget?: HTMLElement | null;
 }
 
-export function EventsSearchBar({pageFilters, onClose, widgetQuery, dataset}: Props) {
+export function EventsSearchBar({
+  pageFilters,
+  onClose,
+  widgetQuery,
+  dataset,
+  portalTarget,
+  disabled,
+}: Props) {
   const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
@@ -31,10 +40,12 @@ export function EventsSearchBar({pageFilters, onClose, widgetQuery, dataset}: Pr
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
+      disabled={disabled}
       customMeasurements={customMeasurements}
       dataset={dataset}
       includeTransactions={hasDatasetSelector(organization) ? false : true}
       searchSource="widget_builder"
+      portalTarget={portalTarget}
     />
   );
 }

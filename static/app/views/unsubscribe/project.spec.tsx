@@ -32,7 +32,10 @@ describe('UnsubscribeProject', function () {
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
@@ -46,7 +49,10 @@ describe('UnsubscribeProject', function () {
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();

@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
@@ -6,7 +8,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,7 +55,7 @@ function GroupListBody({
   const organization = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator hideMessage />;
+    return <LoadingIndicator />;
   }
 
   if (error) {
@@ -93,23 +94,20 @@ function GroupList({
   groupStatsPeriod,
   onActionTaken,
 }: GroupListProps) {
-  const organization = useOrganization();
+  const theme = useTheme();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
   const topIssue = groupIds[0];
   const canSelect = !useMedia(
-    `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
-    })`
+    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const columns: GroupListColumn[] = [
     'graph',
-    ...(organization.features.includes('issue-stream-table-layout')
-      ? ['firstSeen' as const, 'lastSeen' as const]
-      : []),
+    'firstSeen',
+    'lastSeen',
     'event',
     'users',
     'priority',
@@ -119,13 +117,12 @@ function GroupList({
 
   return (
     <PanelBody>
-      {groupIds.map((id, index) => {
+      {groupIds.map(id => {
         const hasGuideAnchor = id === topIssue;
         const group = GroupStore.get(id) as Group | undefined;
 
         return (
           <StreamGroup
-            index={index}
             key={id}
             id={id}
             statsPeriod={groupStatsPeriod}
@@ -135,7 +132,6 @@ function GroupList({
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={canSelect}
-            narrowGroups={isSavedSearchesOpen}
             onPriorityChange={priority => onActionTaken([id], {priority})}
             withColumns={columns}
           />

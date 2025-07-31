@@ -5,7 +5,7 @@ import {extractSlug} from 'sentry/utils/extractSlug';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 /**
- * In yarn dev-ui mode we proxy API calls to sentry.io.
+ * In pnpm dev-ui mode we proxy API calls to sentry.io.
  * However, browser URLs are in the form of acme.dev.getsentry.net.
  * In order to not redirect to production we swap domains.
  */

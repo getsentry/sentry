@@ -75,7 +75,9 @@ export function StackTracePreviewContent({
     newestFirst,
     event,
     isHoverPreviewed: true,
-  };
+  } satisfies
+    | Partial<React.ComponentProps<typeof NativeContent>>
+    | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
     return (
@@ -91,7 +93,7 @@ export function StackTracePreviewContent({
 }
 
 type StackTracePreviewProps = {
-  children: React.ReactChild;
+  children: React.ReactNode;
   groupId: string;
   eventId?: string;
   groupingCurrentLevel?: number;
@@ -134,7 +136,7 @@ function StackTracePreviewBody({
   if (isPending) {
     return (
       <NoStackTraceWrapper>
-        <LoadingIndicator hideMessage size={32} />
+        <LoadingIndicator size={32} />
       </NoStackTraceWrapper>
     );
   }
@@ -199,7 +201,7 @@ const StackTracePreviewWrapper = styled('div')`
 const NoStackTraceWrapper = styled('div')`
   color: ${p => p.theme.subText};
   padding: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   align-items: center;
   justify-content: center;

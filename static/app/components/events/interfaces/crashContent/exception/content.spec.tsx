@@ -140,7 +140,11 @@ describe('Exception Content', function () {
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization: org, router}
+      {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -202,7 +206,11 @@ describe('Exception Content', function () {
         event={event}
         values={event.entries[0]!.data.values}
         projectSlug={project.slug}
-      />
+        newestFirst
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Cocoa override should render a native stack trace component
@@ -247,7 +255,9 @@ describe('Exception Content', function () {
     };
 
     it('displays exception group tree under first exception', function () {
-      render(<Content {...defaultProps} />);
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       const exceptions = screen.getAllByTestId('exception-value');
 
@@ -259,7 +269,9 @@ describe('Exception Content', function () {
     });
 
     it('displays exception group tree in first frame when there is no other context', function () {
-      render(<Content {...defaultProps} />);
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       const exceptions = screen.getAllByTestId('exception-value');
 
@@ -270,7 +282,9 @@ describe('Exception Content', function () {
     });
 
     it('collapses sub-groups by default', async function () {
-      render(<Content {...defaultProps} />);
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       // There are 4 values, but 1 should be hidden
       expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
@@ -294,7 +308,9 @@ describe('Exception Content', function () {
     });
 
     it('auto-opens sub-groups when clicking link in tree', async function () {
-      render(<Content {...defaultProps} />);
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 

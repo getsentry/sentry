@@ -7,7 +7,7 @@ from sentry.utils.strings import strip, truncatechars
 
 
 class BaseEvent:
-    id = None
+    key: str  # abstract
 
     def get_metadata(self, data):
         metadata = self.extract_metadata(data)
@@ -48,7 +48,7 @@ class DefaultEvent(BaseEvent):
         )
 
         if message:
-            title = truncatechars(message.splitlines()[0], 100)
+            title = truncatechars(message.splitlines()[0], 256)
         else:
             title = "<unlabeled event>"
 

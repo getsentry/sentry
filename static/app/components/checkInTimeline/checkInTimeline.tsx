@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import {Tooltip} from 'sentry/components/tooltip';
+import {tn} from 'sentry/locale';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {getTickStyle} from './utils/getTickStyle';
@@ -23,16 +24,24 @@ interface CheckInTimelineConfig<Status extends string> {
   /**
    * Configures the styling of the tooltip labels
    */
-  statusStyle: Record<Status, TickStyle>;
+  statusStyle: TickStyle<Status>;
   timeWindowConfig: TimeWindowConfig;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export interface CheckInTimelineProps<Status extends string>
+interface CheckInTimelineProps<Status extends string>
   extends CheckInTimelineConfig<Status> {
   /**
    * Represents each check-in tick as bucketed check-in data.
    */
   bucketedData: Array<CheckInBucket<Status>>;
+  /**
+   * Status unit. Displayed on the check-in tooltip.
+   *
+   * Defaults to 'check-ins'
+   */
+  makeUnit?: (count: number) => React.ReactNode;
 }
 
 function getBucketedCheckInsPosition(
@@ -50,6 +59,9 @@ export function CheckInTimeline<Status extends string>({
   statusLabel,
   statusStyle,
   statusPrecedent,
+  className,
+  style,
+  makeUnit = count => tn('check-in', 'check-ins', count),
 }: CheckInTimelineProps<Status>) {
   const jobTicks = mergeBuckets(
     statusPrecedent,
@@ -58,7 +70,7 @@ export function CheckInTimeline<Status extends string>({
   );
 
   return (
-    <TimelineContainer>
+    <TimelineContainer role="figure" className={className} style={style}>
       {jobTicks.map(jobTick => {
         const {left, startTs, width, stats, isStarting, isEnding} = jobTick;
 
@@ -72,12 +84,13 @@ export function CheckInTimeline<Status extends string>({
             timeWindowConfig={timeWindowConfig}
             skipWrapper
             key={startTs}
+            makeUnit={makeUnit}
           >
             <JobTick
               style={{left, width}}
               css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={isStarting}
-              roundedRight={isEnding}
+              roundedLeft={isStarting && left !== 0}
+              roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
@@ -87,7 +100,7 @@ export function CheckInTimeline<Status extends string>({
   );
 }
 
-export interface MockCheckInTimelineProps<Status extends string>
+interface MockCheckInTimelineProps<Status extends string>
   extends CheckInTimelineConfig<Status> {
   mockTimestamps: Date[];
   /**
@@ -136,7 +149,11 @@ export function MockCheckInTimeline<Status extends string>({
 
 const TimelineContainer = styled('div')`
   position: relative;
-  height: 100%;
+  height: 14px;
+  width: 100%;
+  overflow: hidden;
+  /* TimelineContainer should be above the GridLineContainer */
+  z-index: 2;
 `;
 
 const JobTick = styled('div')<{
@@ -144,10 +161,8 @@ const JobTick = styled('div')<{
   roundedRight: boolean;
 }>`
   position: absolute;
-  top: calc(50% + 1px);
   width: 4px;
   height: 14px;
-  transform: translateY(-50%);
   opacity: 0.7;
 
   ${p =>

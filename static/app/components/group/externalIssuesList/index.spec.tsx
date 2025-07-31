@@ -10,6 +10,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import type {Group} from 'sentry/types/group';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
 import ExternalIssuesList from '.';
@@ -106,5 +107,60 @@ describe('ExternalIssuesList', () => {
     const externalIssues = screen.getAllByTestId('external-issue-item');
     expect(externalIssues[0]).toHaveTextContent('Test-Sentry/github-test#13');
     expect(externalIssues[1]).toHaveTextContent('Jira Issue');
+  });
+
+  it('renders group plugin issues', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+
+    // Create a group with plugin issues
+    const groupWithPluginIssues: Group = {
+      ...group,
+      pluginIssues: [
+        {
+          id: 'trello',
+          name: 'Trello',
+          slug: 'trello',
+          shortName: 'Trello',
+          title: 'Trello',
+          canDisable: true,
+          contexts: [],
+          doc: '',
+          enabled: true,
+          featureDescriptions: [],
+          features: [],
+          hasConfiguration: true,
+          isDeprecated: false,
+          isHidden: false,
+          isTestable: true,
+          metadata: {},
+          status: 'active',
+          type: 'issue-tracking',
+          issue: {
+            issue_id: 'TRL-123',
+            url: 'https://trello.com/c/123456/card-title',
+            label: 'TRL-123',
+          },
+        },
+      ],
+      pluginActions: [],
+    };
+
+    render(
+      <ExternalIssuesList
+        group={groupWithPluginIssues}
+        project={project}
+        event={event}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('TRL-123')).toBeInTheDocument();
   });
 });

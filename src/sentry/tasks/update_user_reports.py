@@ -1,20 +1,18 @@
 import logging
-from datetime import timedelta
-from typing import Any
+from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import eventstore, quotas
-from sentry.feedback.usecases.create_feedback import (
-    FeedbackCreationSource,
-    is_in_feedback_denylist,
-    shim_to_feedback,
-)
+from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
+from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 
@@ -25,26 +23,42 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.update_user_reports",
     queue="update",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=30,
+    ),
 )
-def update_user_reports(**kwargs: Any) -> None:
+def update_user_reports(
+    start_datetime: str | None = None,
+    end_datetime: str | None = None,
+    max_events: int | None = None,
+    event_lookback_days: int | None = None,
+) -> None:
     now = timezone.now()
-    start = kwargs.get("start", now - timedelta(days=1))
-    end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
+    start = now - timedelta(days=1)
+    # +5 minutes just to catch clock skew
+    end = now + timedelta(minutes=5)
+
+    if start_datetime:
+        start = datetime.fromisoformat(start_datetime)
+    if end_datetime:
+        end = datetime.fromisoformat(end_datetime)
 
     # The event query time range is [start - event_lookback, end].
-    event_lookback = kwargs.get("event_lookback", timedelta(days=1))
+    if event_lookback_days is None:
+        event_lookback_days = 1
+    event_lookback = timedelta(days=event_lookback_days)
 
     # Filter for user reports where there was no event associated with them at
     # ingestion time
     user_reports = UserReport.objects.filter(
         group_id__isnull=True,
-        environment_id__isnull=True,
         date_added__gte=start,
         date_added__lte=end,
     )
 
     # We do one query per project, just to avoid the small case that two projects have the same event ID
-    project_map: dict[int, Any] = {}
+    project_map: dict[int, list[UserReport]] = {}
     for r in user_reports:
         project_map.setdefault(r.project_id, []).append(r)
 
@@ -53,10 +67,8 @@ def update_user_reports(**kwargs: Any) -> None:
     updated_reports = 0
     samples = None
 
-    MAX_EVENTS = kwargs.get(
-        "max_events",
-        2000,  # the default max_query_size is 256 KiB, which we're hitting with 5000 events, so keeping it safe at 2000
-    )
+    # the default max_query_size is 256 KiB, which we're hitting with 5000 events, so keeping it safe at 2000
+    MAX_EVENTS = max_events or 2000
     for project_id, reports in project_map.items():
         project = Project.objects.get(id=project_id)
         event_ids = [r.event_id for r in reports]
@@ -90,24 +102,22 @@ def update_user_reports(**kwargs: Any) -> None:
         for event in events:
             report = report_by_event.get(event.event_id)
             if report:
-                if not is_in_feedback_denylist(project.organization):
-                    logger.info(
-                        "update_user_reports.shim_to_feedback",
-                        extra={"report_id": report.id, "event_id": event.event_id},
-                    )
-                    metrics.incr("tasks.update_user_reports.shim_to_feedback")
-                    shim_to_feedback(
-                        {
-                            "name": report.name,
-                            "email": report.email,
-                            "comments": report.comments,
-                            "event_id": report.event_id,
-                            "level": "error",
-                        },
-                        event,
-                        project,
-                        FeedbackCreationSource.UPDATE_USER_REPORTS_TASK,
-                    )
+                if report.environment_id is None:
+                    if not is_in_feedback_denylist(project.organization):
+                        metrics.incr("tasks.update_user_reports.shim_to_feedback")
+                        shim_to_feedback(
+                            {
+                                "name": report.name,
+                                "email": report.email,
+                                "comments": report.comments,
+                                "event_id": report.event_id,
+                                "level": "error",
+                            },
+                            event,
+                            project,
+                            FeedbackCreationSource.UPDATE_USER_REPORTS_TASK,
+                        )
+                # XXX(aliu): If a report has environment_id but not group_id, this report was shimmed from a feedback issue, so no need to shim again.
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
 

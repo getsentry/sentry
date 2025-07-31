@@ -1,26 +1,35 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 from sentry.api.serializers import serialize
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.integrations.models.integration import Integration
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.silo.base import SiloMode
+from sentry.rules.history.base import TimeSeriesValue
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.endpoints.serializers import (
+    TimeSeriesValueSerializer,
+    WorkflowGroupHistory,
+    fetch_workflow_groups_paginated,
+    fetch_workflow_hourly_stats,
+)
+from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
+pytestmark = [requires_snuba]
+
 
 class TestDetectorSerializer(TestCase):
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
         )
         result = serialize(detector)
 
@@ -28,15 +37,24 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": MetricIssue.slug,
+            "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
-            "config": {},
+            "workflowIds": [],
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": "static",
+            },
+            "owner": None,
+            "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
         }
 
-    def test_serialize_full(self):
+    def test_serialize_full(self) -> None:
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -47,13 +65,22 @@ class TestDetectorSerializer(TestCase):
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.USER.value,
+            },
+        )
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricIssue.slug,
             workflow_condition_group=condition_group,
+            owner_user_id=self.user.id,
+            created_by_id=self.user.id,
         )
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
@@ -71,17 +98,21 @@ class TestDetectorSerializer(TestCase):
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
         data_source.detectors.set([detector])
+        workflow = self.create_workflow(
+            organization=self.organization,
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
 
         result = serialize(detector)
-        # print("result: ", result)
         assert result == {
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": MetricIssue.slug,
+            "createdBy": str(self.user.id),
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -89,7 +120,7 @@ class TestDetectorSerializer(TestCase):
                     "id": str(data_source.id),
                     "organizationId": str(self.organization.id),
                     "type": type_name,
-                    "queryId": str(subscription.id),
+                    "sourceId": str(subscription.id),
                     "queryObj": {
                         "id": str(subscription.id),
                         "snubaQuery": {
@@ -99,6 +130,7 @@ class TestDetectorSerializer(TestCase):
                             "id": str(snuba_query.id),
                             "query": "hello",
                             "timeWindow": 60,
+                            "eventTypes": ["error"],
                         },
                         "status": 1,
                         "subscription": None,
@@ -108,32 +140,42 @@ class TestDetectorSerializer(TestCase):
             "conditionGroup": {
                 "id": str(condition_group.id),
                 "organizationId": str(self.organization.id),
-                "logicType": DataConditionGroup.Type.ANY,
+                "logicType": DataConditionGroup.Type.ANY.value,
                 "conditions": [
                     {
                         "id": str(condition.id),
-                        "condition": Condition.GREATER.value,
+                        "type": Condition.GREATER.value,
                         "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH,
+                        "conditionResult": DetectorPriorityLevel.HIGH.value,
                     }
                 ],
                 "actions": [
                     {
                         "id": str(action.id),
                         "type": "email",
-                        "data": '{"foo":"bar"}',
+                        "data": {},
+                        "integrationId": None,
+                        "config": {"targetType": 1, "targetIdentifier": "123"},
                     }
                 ],
             },
-            "config": {},
+            "workflowIds": [str(workflow.id)],
+            "config": {
+                "thresholdPeriod": 1,
+                "detectionType": "static",
+            },
+            "owner": self.user.get_actor_identifier(),
+            "enabled": detector.enabled,
+            "alertRuleId": None,
+            "ruleId": None,
         }
 
-    def test_serialize_bulk(self):
+    def test_serialize_bulk(self) -> None:
         detectors = [
             self.create_detector(
                 project_id=self.project.id,
                 name=f"Test Detector {i}",
-                type=MetricAlertFire.slug,
+                type=MetricIssue.slug,
             )
             for i in range(2)
         ]
@@ -145,7 +187,7 @@ class TestDetectorSerializer(TestCase):
 
 
 class TestDataSourceSerializer(TestCase):
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
             Dataset.Events,
@@ -159,10 +201,11 @@ class TestDataSourceSerializer(TestCase):
         subscription = create_snuba_subscription(
             self.project, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, snuba_query
         )
+
         data_source = self.create_data_source(
             organization=self.organization,
             type=type_name,
-            query_id=subscription.id,
+            source_id=str(subscription.id),
         )
 
         result = serialize(data_source)
@@ -171,7 +214,7 @@ class TestDataSourceSerializer(TestCase):
             "id": str(data_source.id),
             "organizationId": str(self.organization.id),
             "type": type_name,
-            "queryId": str(subscription.id),
+            "sourceId": str(subscription.id),
             "queryObj": {
                 "id": str(subscription.id),
                 "snubaQuery": {
@@ -181,6 +224,7 @@ class TestDataSourceSerializer(TestCase):
                     "id": str(snuba_query.id),
                     "query": "hello",
                     "timeWindow": 60,
+                    "eventTypes": ["error"],
                 },
                 "status": 1,
                 "subscription": None,
@@ -189,7 +233,7 @@ class TestDataSourceSerializer(TestCase):
 
 
 class TestDataConditionGroupSerializer(TestCase):
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -205,7 +249,7 @@ class TestDataConditionGroupSerializer(TestCase):
             "actions": [],
         }
 
-    def test_serialize_full(self):
+    def test_serialize_full(self) -> None:
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -217,7 +261,14 @@ class TestDataConditionGroupSerializer(TestCase):
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.USER.value,
+            },
+        )
 
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
 
@@ -230,55 +281,101 @@ class TestDataConditionGroupSerializer(TestCase):
             "conditions": [
                 {
                     "id": str(condition.id),
-                    "condition": "gt",
+                    "type": "gt",
                     "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
+                    "conditionResult": DetectorPriorityLevel.HIGH,
                 }
             ],
             "actions": [
                 {
                     "id": str(action.id),
                     "type": "email",
-                    "data": '{"foo":"bar"}',
+                    "data": {},
+                    "integrationId": None,
+                    "config": {"targetType": 1, "targetIdentifier": "123"},
                 }
             ],
         }
 
 
 class TestActionSerializer(TestCase):
-    def test_serialize_simple(self):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            provider="slack",
+            name="example-integration",
+            external_id="123-id",
+            metadata={},
+            organization=self.organization,
+        )
+
+    def test_serialize_simple(self) -> None:
         action = self.create_action(
-            type=Action.Type.EMAIL,
-            data={"foo": "bar"},
+            type=Action.Type.PLUGIN,
+            data={},
         )
 
         result = serialize(action)
 
-        assert result == {"id": str(action.id), "type": "email", "data": '{"foo":"bar"}'}
+        assert result == {
+            "id": str(action.id),
+            "type": "plugin",
+            "data": {},
+            "integrationId": None,
+            "config": {},
+        }
 
-    def test_serialize_with_legacy_fields(self):
-        """
-        Legacy fields should not be serialized.
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                provider="slack", name="example-integration", external_id="123-id", metadata={}
-            )
+    def test_serialize_with_integration(self) -> None:
+
         action = self.create_action(
+            type=Action.Type.OPSGENIE,
+            data={"priority": "P1"},
+            integration_id=self.integration.id,
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.SPECIFIC.value,
+            },
+        )
+
+        result = serialize(action)
+
+        assert result == {
+            "id": str(action.id),
+            "type": "opsgenie",
+            "data": {"priority": "P1"},
+            "integrationId": str(self.integration.id),
+            "config": {"targetType": 0, "targetIdentifier": "123"},
+        }
+
+    def test_serialize_with_integration_and_config(self) -> None:
+        action2 = self.create_action(
             type=Action.Type.SLACK,
-            data={"foo": "bar"},
-            integration_id=integration.id,
-            target_display="freddy frog",
-            target_type=ActionTarget.USER,
+            data={"tags": "bar"},
+            integration_id=self.integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_display": "freddy frog",
+                "target_identifier": "123-id",
+            },
         )
 
-        result = serialize(action)
+        result2 = serialize(action2)
 
-        assert result == {"id": str(action.id), "type": "slack", "data": '{"foo":"bar"}'}
+        assert result2 == {
+            "id": str(action2.id),
+            "type": "slack",
+            "data": {"tags": "bar"},
+            "integrationId": str(self.integration.id),
+            "config": {
+                "targetType": 0,
+                "targetDisplay": "freddy frog",
+                "targetIdentifier": "123-id",
+            },
+        }
 
 
 class TestWorkflowSerializer(TestCase):
-    def test_serialize_simple(self):
+    def test_serialize_simple(self) -> None:
         workflow = self.create_workflow(
             name="hojicha",
             organization_id=self.organization.id,
@@ -289,16 +386,21 @@ class TestWorkflowSerializer(TestCase):
 
         assert result == {
             "id": str(workflow.id),
+            "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": None,
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": None,
             "actionFilters": [],
             "environment": None,
+            "detectorIds": [],
+            "enabled": workflow.enabled,
+            "lastTriggered": None,
         }
 
-    def test_serialize_full(self):
+    def test_serialize_full(self) -> None:
         when_condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
@@ -315,13 +417,21 @@ class TestWorkflowSerializer(TestCase):
             config={},
             when_condition_group=when_condition_group,
             environment=self.environment,
+            created_by_id=self.user.id,
         )
 
         condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ALL,
         )
-        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.USER.value,
+            },
+        )
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         condition = self.create_data_condition(
             condition_group=condition_group,
@@ -335,12 +445,45 @@ class TestWorkflowSerializer(TestCase):
             workflow=workflow,
         )
 
+        detector = self.create_detector()
+        self.create_detector_workflow(
+            detector=detector,
+            workflow=workflow,
+        )
+
+        history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=True,
+        )
+        # Too old, shouldn't be used.
+        WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=True,
+        )
+        history.date_added = workflow.date_added + timedelta(seconds=1)
+        history.save()
+        # Dual written, shouldn't be used.
+        dual_written_history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=False,
+        )
+        dual_written_history.date_added = workflow.date_added + timedelta(seconds=2)
+        dual_written_history.save()
+
         result = serialize(workflow)
 
         assert result == {
             "id": str(workflow.id),
+            "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
+            "createdBy": str(self.user.id),
             "dateCreated": workflow.date_added,
             "dateUpdated": workflow.date_updated,
             "triggers": {
@@ -350,9 +493,9 @@ class TestWorkflowSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(trigger_condition.id),
-                        "condition": "first_seen_event",
+                        "type": "first_seen_event",
                         "comparison": True,
-                        "result": True,
+                        "conditionResult": True,
                     }
                 ],
                 "actions": [],
@@ -365,19 +508,340 @@ class TestWorkflowSerializer(TestCase):
                     "conditions": [
                         {
                             "id": str(condition.id),
-                            "condition": "gt",
+                            "type": "gt",
                             "comparison": 100,
-                            "result": DetectorPriorityLevel.HIGH.value,
+                            "conditionResult": DetectorPriorityLevel.HIGH.value,
                         }
                     ],
                     "actions": [
                         {
                             "id": str(action.id),
                             "type": "email",
-                            "data": '{"foo":"bar"}',
+                            "data": {},
+                            "integrationId": None,
+                            "config": {"targetType": 1, "targetIdentifier": "123"},
                         }
                     ],
                 },
             ],
             "environment": self.environment.name,
+            "detectorIds": [str(detector.id)],
+            "enabled": workflow.enabled,
+            "lastTriggered": history.date_added,
         }
+
+
+class TimeSeriesValueSerializerTest(TestCase):
+    def test(self) -> None:
+        time_series_value = TimeSeriesValue(datetime.now(), 30)
+        result = serialize([time_series_value], self.user, TimeSeriesValueSerializer())
+        assert result == [
+            {
+                "date": time_series_value.bucket,
+                "count": time_series_value.count,
+            }
+        ]
+
+
+@freeze_time()
+class WorkflowGroupsPaginatedTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.group = self.create_group()
+        self.project = self.group.project
+        self.organization = self.project.organization
+
+        self.history: list[WorkflowFireHistory] = []
+        self.workflow = self.create_workflow(organization=self.organization)
+
+        self.detector_1 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
+        for i in range(3):
+            self.history.append(
+                WorkflowFireHistory(
+                    detector=self.detector_1,
+                    workflow=self.workflow,
+                    group=self.group,
+                    event_id=uuid4().hex,
+                    is_single_written=True,
+                )
+            )
+        self.group_2 = self.create_group()
+        self.detector_2 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
+        self.history.append(
+            WorkflowFireHistory(
+                detector=self.detector_2,
+                workflow=self.workflow,
+                group=self.group_2,
+                event_id=uuid4().hex,
+                is_single_written=True,
+            )
+        )
+        self.group_3 = self.create_group()
+        self.detector_3 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
+        for i in range(2):
+            self.history.append(
+                WorkflowFireHistory(
+                    detector=self.detector_3,
+                    workflow=self.workflow,
+                    group=self.group_3,
+                    event_id=uuid4().hex,
+                    is_single_written=True,
+                )
+            )
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            detector=self.detector_3,
+            workflow=self.workflow,
+            group=self.group_3,
+            event_id=uuid4().hex,
+            is_single_written=False,
+        )
+        # this will be ordered after the WFH with self.detector_1
+        self.detector_4 = self.create_detector(
+            project_id=self.project.id,
+            type=MetricIssue.slug,
+        )
+        self.workflow_2 = self.create_workflow(organization=self.organization)
+        self.history.append(
+            WorkflowFireHistory(
+                detector=self.detector_4,
+                workflow=self.workflow_2,
+                group=self.group,
+                event_id=uuid4().hex,
+                is_single_written=True,
+            )
+        )
+
+        histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
+
+        # manually update date_added
+        for i in range(3):
+            histories[i].update(date_added=before_now(days=i + 1))
+        histories[3].update(date_added=before_now(days=1))
+        for i in range(2):
+            histories[i + 4].update(date_added=before_now(days=i + 1))
+        histories[-1].update(date_added=before_now(days=0))
+
+        self.base_triggered_date = before_now(days=1)
+
+        self.login_as(self.user)
+
+    def assert_expected_results(
+        self, workflow, start, end, expected_results, cursor=None, per_page=25
+    ):
+        result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page)
+        assert result.results == expected_results, (result.results, expected_results)
+        return result
+
+    def test_workflow_groups_paginated__simple(self) -> None:
+        self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group,
+                    count=3,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[0].event_id,
+                    detector=self.detector_1,
+                ),
+                WorkflowGroupHistory(
+                    self.group_3,
+                    count=2,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[4].event_id,
+                    detector=self.detector_3,
+                ),
+                WorkflowGroupHistory(
+                    self.group_2,
+                    count=1,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[3].event_id,
+                    detector=self.detector_2,
+                ),
+            ],
+        )
+
+    def test_workflow_groups_paginated__cursor(self) -> None:
+        result = self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group,
+                    count=3,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[0].event_id,
+                    detector=self.detector_1,
+                ),
+            ],
+            per_page=1,
+        )
+        # use the cursor to get the next page
+        result = self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group_3,
+                    count=2,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[4].event_id,
+                    detector=self.detector_3,
+                ),
+            ],
+            cursor=result.next,
+            per_page=1,
+        )
+        # get the next page
+        self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group_2,
+                    count=1,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[3].event_id,
+                    detector=self.detector_2,
+                ),
+            ],
+            cursor=result.next,
+            per_page=1,
+        )
+
+    def test_workflow_groups_paginated__filters_counts(self) -> None:
+        # Test that the count is updated if the date range affects it
+        self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=1),
+            end=before_now(days=0),
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group,
+                    count=1,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[0].event_id,
+                    detector=self.detector_1,
+                ),
+                WorkflowGroupHistory(
+                    self.group_2,
+                    count=1,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[3].event_id,
+                    detector=self.detector_2,
+                ),
+                WorkflowGroupHistory(
+                    self.group_3,
+                    count=1,
+                    last_triggered=self.base_triggered_date,
+                    event_id=self.history[4].event_id,
+                    detector=self.detector_3,
+                ),
+            ],
+        )
+
+    def test_workflow_groups_paginated__past_date_range(self) -> None:
+        self.assert_expected_results(
+            workflow=self.workflow,
+            start=before_now(days=3),
+            end=before_now(days=2),
+            expected_results=[
+                WorkflowGroupHistory(
+                    self.group,
+                    count=1,
+                    last_triggered=self.base_triggered_date - timedelta(days=2),
+                    event_id=self.history[2].event_id,
+                    detector=self.detector_1,
+                ),
+            ],
+        )
+
+
+@freeze_time()
+class WorkflowHourlyStatsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.group = self.create_group()
+        self.project = self.group.project
+        self.organization = self.project.organization
+
+        self.history: list[WorkflowFireHistory] = []
+        self.workflow = self.create_workflow(organization=self.organization)
+
+        for i in range(3):
+            for _ in range(i + 1):
+                self.history.append(
+                    WorkflowFireHistory(
+                        workflow=self.workflow,
+                        group=self.group,
+                        is_single_written=True,
+                    )
+                )
+
+        self.workflow_2 = self.create_workflow(organization=self.organization)
+        for i in range(2):
+            self.history.append(
+                WorkflowFireHistory(
+                    workflow=self.workflow_2,
+                    group=self.group,
+                    is_single_written=True,
+                )
+            )
+
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow_2,
+            group=self.group,
+            is_single_written=False,
+        )
+
+        histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
+
+        # manually update date_added
+        index = 0
+        for i in range(3):
+            for _ in range(i + 1):
+                histories[index].update(date_added=before_now(hours=i + 1))
+                index += 1
+
+        for i in range(2):
+            histories[i + 6].update(date_added=before_now(hours=i + 4))
+
+        self.base_triggered_date = before_now(days=1)
+
+        self.login_as(self.user)
+
+    def test_workflow_hourly_stats(self) -> None:
+        results = fetch_workflow_hourly_stats(self.workflow, before_now(hours=6), before_now())
+        assert len(results) == 6
+        assert [result.count for result in results] == [
+            0,
+            0,
+            3,
+            2,
+            1,
+            0,
+        ]  # last zero is for the current hour
+
+    def test_workflow_hourly_stats__past_date_range(self) -> None:
+        results = fetch_workflow_hourly_stats(
+            self.workflow_2, before_now(hours=6), before_now(hours=2)
+        )
+        assert len(results) == 4
+        assert [result.count for result in results] == [1, 1, 0, 0]

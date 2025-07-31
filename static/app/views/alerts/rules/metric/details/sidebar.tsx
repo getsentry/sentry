@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import AlertBadge from 'sentry/components/badge/alertBadge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -18,7 +18,9 @@ import type {Actor} from 'sentry/types/core';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -46,19 +48,13 @@ function TriggerDescription({
   rule: MetricRule;
   threshold: number;
 }) {
+  const organization = useOrganization();
   const status =
     label === AlertRuleTriggerType.CRITICAL
       ? t('Critical')
       : label === AlertRuleTriggerType.WARNING
         ? t('Warning')
         : t('Resolved');
-
-  const statusIconColor =
-    label === AlertRuleTriggerType.CRITICAL
-      ? 'errorText'
-      : label === AlertRuleTriggerType.WARNING
-        ? 'warningText'
-        : 'successText';
 
   const defaultAction = t('Change alert status to %s', status);
 
@@ -76,7 +72,7 @@ function TriggerDescription({
       : t('below');
   const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
   const metricName = capitalize(
-    AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]
+    AlertWizardAlertNames[getAlertTypeFromAggregateDataset({...rule, organization})]
   );
 
   const thresholdText = rule.comparisonDelta
@@ -104,22 +100,22 @@ function TriggerDescription({
   return (
     <TriggerContainer>
       <TriggerTitle>
-        <IconDiamond color={statusIconColor} size="xs" />
+        <StyledIconDiamond
+          type={
+            label === AlertRuleTriggerType.CRITICAL
+              ? 'critical'
+              : label === AlertRuleTriggerType.WARNING
+                ? 'warning'
+                : 'success'
+          }
+          size="xs"
+        />
         <TriggerTitleText>{t('%s Conditions', status)}</TriggerTitleText>
       </TriggerTitle>
       <TriggerStep>
         <TriggerTitleText>{t('When')}</TriggerTitleText>
         <TriggerActions>
-          <TriggerText>
-            {thresholdText}
-            {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
-              <FeatureBadge
-                type="alpha"
-                title="Anomaly detection is in alpha and may produce inaccurate results"
-                tooltipProps={{isHoverable: true}}
-              />
-            ) : null}
-          </TriggerText>
+          <TriggerText>{thresholdText}</TriggerText>
         </TriggerActions>
       </TriggerStep>
       <TriggerStep>
@@ -134,6 +130,24 @@ function TriggerDescription({
     </TriggerContainer>
   );
 }
+
+function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
+  if (isChonkTheme(theme)) {
+    return type === 'critical'
+      ? theme.colors.chonk.red400
+      : type === 'warning'
+        ? theme.colors.chonk.yellow400
+        : theme.colors.chonk.green400;
+  }
+  return type === 'critical'
+    ? theme.errorText
+    : type === 'warning'
+      ? theme.warningText
+      : theme.successText;
+}
+const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
+  fill: ${p => getColor(p.theme, p.type)};
+`;
 
 export function MetricDetailsSidebar({
   rule,
@@ -182,13 +196,13 @@ export function MetricDetailsSidebar({
     <Fragment>
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Alert Status')}</Heading>
+          <SectionHeading>{t('Alert Status')}</SectionHeading>
           <Status>
             <AlertBadge status={status} withText />
           </Status>
         </HeaderItem>
         <HeaderItem>
-          <Heading noMargin>{t('Last Triggered')}</Heading>
+          <SectionHeading>{t('Last Triggered')}</SectionHeading>
           <Status>
             {activityDate ? <TimeSince date={activityDate} /> : t('No alerts triggered')}
           </Status>
@@ -222,7 +236,7 @@ export function MetricDetailsSidebar({
       </SidebarGroup>
       {showOnDemandMetricAlertUI && (
         <SidebarGroup>
-          <Heading>{t('Filters Used')}</Heading>
+          <SectionHeading>{t('Filters Used')}</SectionHeading>
           <KeyValueTable>
             {getSearchFilters(rule.query).map(({key, operator, value}) => (
               <FilterKeyValueTableRow
@@ -236,7 +250,7 @@ export function MetricDetailsSidebar({
         </SidebarGroup>
       )}
       <SidebarGroup>
-        <Heading>{t('Alert Rule Details')}</Heading>
+        <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
         <KeyValueTable>
           <KeyValueTableRow
             keyName={t('Environment')}
@@ -371,18 +385,17 @@ const Status = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StatusContainer = styled('div')`
   height: 60px;
   display: flex;
-  margin-bottom: ${space(1)};
-`;
+  margin-bottom: ${space(2)};
 
-const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
+  h4 {
+    margin-top: 0;
+  }
 `;
 
 const OverflowTableValue = styled('div')`
@@ -404,7 +417,7 @@ const TriggerTitle = styled('div')`
 
 const TriggerTitleText = styled('h4')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: 24px;
   min-width: 40px;
@@ -429,7 +442,7 @@ const TriggerText = styled('span')`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   width: 100%;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;

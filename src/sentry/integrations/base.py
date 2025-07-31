@@ -3,30 +3,30 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections.abc import Mapping, MutableMapping, Sequence
-from enum import Enum, StrEnum
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
+import sentry_sdk
+from django.http.request import HttpRequest
 from rest_framework.exceptions import NotFound
-from rest_framework.request import Request
 
-from sentry import audit_log, features
-from sentry.constants import ObjectStatus
+from sentry import audit_log
 from sentry.exceptions import InvalidIdentity
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.notify_disable import notify_disable
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     organization_service,
 )
-from sentry.pipeline import PipelineProvider
+from sentry.pipeline.provider import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
@@ -43,12 +43,12 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.users.models.identity import Identity
-from sentry.utils.audit import create_audit_entry, create_system_audit_entry
-from sentry.utils.sdk import Scope
+from sentry.utils.audit import create_audit_entry
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
+    from sentry.integrations.pipeline import IntegrationPipeline  # noqa: F401
     from sentry.integrations.services.integration import RpcOrganizationIntegration
     from sentry.integrations.services.integration.model import RpcIntegration
 
@@ -96,7 +96,7 @@ class IntegrationMetadata(NamedTuple):
         return metadata
 
 
-class IntegrationFeatures(Enum):
+class IntegrationFeatures(StrEnum):
     """
     IntegrationFeatures are used for marking supported features on an
     integration. Features are marked on the IntegrationProvider itself, as well
@@ -119,6 +119,7 @@ class IntegrationFeatures(Enum):
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
+    USER_MAPPING = "user-mapping"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -133,22 +134,7 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
-
-
-class IntegrationProviderSlug(StrEnum):
-    SLACK = "slack"
-    DISCORD = "discord"
-    MSTEAMS = "msteams"
-    JIRA = "jira"
-    JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "vsts"
-    GITHUB = "github"
-    GITHUB_ENTERPRISE = "github_enterprise"
-    GITLAB = "gitlab"
-    BITBUCKET = "bitbucket"
-    BITBUCKET_SERVER = "bitbucket_server"
-    PAGERDUTY = "pagerduty"
-    OPSGENIE = "opsgenie"
+    GENERAL = "general"  # for processes that span multiple integration domains
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
@@ -176,7 +162,26 @@ INTEGRATION_TYPE_TO_PROVIDER = {
 }
 
 
-class IntegrationProvider(PipelineProvider, abc.ABC):
+class _UserIdentity(TypedDict):
+    type: str
+    external_id: str
+    data: dict[str, str]
+    scopes: list[str]
+
+
+class IntegrationData(TypedDict):
+    external_id: str
+    name: NotRequired[str]
+    metadata: NotRequired[dict[str, Any]]
+    post_install_data: NotRequired[dict[str, Any]]
+    expect_exists: NotRequired[bool]
+    idp_external_id: NotRequired[str]
+    idp_config: NotRequired[dict[str, Any]]
+    user_identity: NotRequired[_UserIdentity]
+    provider: NotRequired[str]  # maybe unused ???
+
+
+class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
 
@@ -254,7 +259,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property
-    def integration_key(self) -> str | None:
+    def integration_key(self) -> str:
         return self._integration_key or self.key
 
     def get_logger(self) -> logging.Logger:
@@ -263,8 +268,9 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         pass
 
@@ -272,7 +278,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         self,
         integration: Integration,
         organization: RpcOrganizationSummary,
-        request: Request,
+        request: HttpRequest,
         action: str,
         extra: Any | None = None,
     ) -> None:
@@ -288,7 +294,11 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[
+        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
+    ]:
         """
         Return a list of ``View`` instances describing this integration's
         configuration pipeline.
@@ -298,7 +308,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         """
         raise NotImplementedError
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         """
         Given state captured during the setup pipeline, return a dictionary
         of configuration and metadata to store with this integration.
@@ -356,22 +366,18 @@ class IntegrationInstallation(abc.ABC):
     def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration: RpcOrganizationIntegration | None
 
-    @property
-    def org_integration(self) -> RpcOrganizationIntegration | None:
+    @cached_property
+    def org_integration(self) -> RpcOrganizationIntegration:
         from sentry.integrations.services.integration import integration_service
 
-        if not hasattr(self, "_org_integration"):
-            self._org_integration = integration_service.get_organization_integration(
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-            )
-        return self._org_integration
-
-    @org_integration.setter
-    def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
-        self._org_integration = org_integration
+        integration = integration_service.get_organization_integration(
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+        )
+        if integration is None:
+            raise OrganizationIntegrationNotFound("missing org_integration")
+        return integration
 
     @cached_property
     def organization(self) -> RpcOrganization:
@@ -401,10 +407,12 @@ class IntegrationInstallation(abc.ABC):
 
         config = self.org_integration.config
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def get_config_data(self) -> Mapping[str, str]:
         if not self.org_integration:
@@ -433,18 +441,22 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_default_identity(self) -> RpcIdentity:
+    @cached_property
+    def default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
-        if self.org_integration is None or self.org_integration.default_auth_id is None:
+        try:
+            org_integration = self.org_integration
+        except OrganizationIntegrationNotFound:
             raise Identity.DoesNotExist
-        identity = identity_service.get_identity(
-            filter={"id": self.org_integration.default_auth_id}
-        )
+        else:
+            if org_integration.default_auth_id is None:
+                raise Identity.DoesNotExist
+        identity = identity_service.get_identity(filter={"id": org_integration.default_auth_id})
         if identity is None:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("integration_provider", self.model.get_provider().name)
-            scope.set_tag("org_integration_id", self.org_integration.id)
-            scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            scope.set_tag("org_integration_id", org_integration.id)
+            scope.set_tag("default_auth_id", org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 
@@ -492,10 +504,9 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
-    def is_rate_limited_error(self, exc: Exception) -> bool:
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
         raise NotImplementedError
 
     @property
@@ -525,66 +536,6 @@ def is_response_error(resp: Any) -> bool:
     if not resp.status_code:
         return False
     return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
-
-
-def disable_integration(
-    buffer: IntegrationRequestBuffer, redis_key: str, integration_id: int | None = None
-) -> None:
-    from sentry.integrations.services.integration import integration_service
-
-    result = integration_service.organization_contexts(integration_id=integration_id)
-    rpc_integration = result.integration
-    rpc_org_integrations = result.organization_integrations
-    if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
-        return None
-
-    org = None
-    if len(rpc_org_integrations) > 0:
-        org_context = organization_service.get_organization_by_id(
-            id=rpc_org_integrations[0].organization_id,
-            include_projects=False,
-            include_teams=False,
-        )
-        if org_context:
-            org = org_context.organization
-
-    extra = {
-        "integration_id": integration_id,
-        "buffer_record": buffer._get_all_from_buffer(),
-    }
-    extra["provider"] = "unknown" if rpc_integration is None else rpc_integration.provider
-    extra["organization_id"] = (
-        "unknown" if len(rpc_org_integrations) == 0 else rpc_org_integrations[0].organization_id
-    )
-
-    logger.info(
-        "integration.disabled",
-        extra=extra,
-    )
-
-    if not rpc_integration:
-        return None
-
-    if org and (
-        (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
-        or (rpc_integration.provider == "github")
-        or (
-            features.has("organizations:gitlab-disable-on-broken", org)
-            and rpc_integration.provider == "gitlab"
-        )
-    ):
-        integration_service.update_integration(
-            integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
-        )
-        notify_disable(org, rpc_integration.provider, redis_key)
-        buffer.clear()
-        create_system_audit_entry(
-            organization_id=org.id,
-            target_object=org.id,
-            event=audit_log.get_event_id("INTEGRATION_DISABLED"),
-            data={"provider": rpc_integration.provider},
-        )
-    return None
 
 
 def get_integration_types(provider: str):

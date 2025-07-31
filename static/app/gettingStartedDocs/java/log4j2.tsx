@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -125,7 +124,10 @@ SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-ag
 `;
 
 const getSentryPropertiesSnippet = (params: Params) => `
-dsn=${params.dsn.public}${
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/guides/log4j2/data-management/data-collected/ for more info
+send-default-pii=true${
   params.isPerformanceSelected
     ? `
 traces-sample-rate=1.0`
@@ -216,9 +218,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
           language: 'bash',

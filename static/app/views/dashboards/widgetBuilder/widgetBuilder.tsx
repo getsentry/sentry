@@ -9,7 +9,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -51,6 +51,9 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -63,18 +66,14 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import {DEFAULT_STATS_PERIOD} from '../data';
-import {getDatasetConfig} from '../datasetConfig/base';
-import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
-import {hasThresholdMaxValue} from '../utils';
+import {hasThresholdMaxValue} from 'sentry/views/dashboards/utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
-} from '../widgetCard/dashboardsMEPContext';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -115,6 +114,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.ERRORS]: DataSet.ERRORS,
   [WidgetType.TRANSACTIONS]: DataSet.TRANSACTIONS,
   [WidgetType.SPANS]: DataSet.SPANS,
+  [WidgetType.LOGS]: DataSet.LOGS,
 };
 
 export const DATA_SET_TO_WIDGET_TYPE = {
@@ -125,6 +125,7 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.ERRORS]: WidgetType.ERRORS,
   [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
   [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
 };
 
 interface RouteParams {
@@ -140,7 +141,7 @@ interface QueryData {
   queryOrderby: string;
 }
 
-interface Props extends RouteComponentProps<RouteParams, {}> {
+interface Props extends RouteComponentProps<RouteParams> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
   selection: PageFilters;
@@ -222,14 +223,8 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const defaultWidgetType =
-    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
-      ? WidgetType.ERRORS
-      : WidgetType.DISCOVER;
-  const defaultDataset =
-    organization.features.includes('performance-discover-dataset-selector') && !isEditing // i.e. creating
-      ? DataSet.ERRORS
-      : DataSet.EVENTS;
+  const defaultWidgetType = WidgetType.ERRORS;
+  const defaultDataset = DataSet.ERRORS;
   const dataSet = dataset ? dataset : defaultDataset;
 
   const api = useApi();
@@ -307,9 +302,9 @@ function WidgetBuilder({
   let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
-  if (state.dataSet === DataSet.SPANS) {
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
+  if (state.dataSet === DataSet.SPANS || state.dataSet === DataSet.LOGS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
 
@@ -321,7 +316,7 @@ function WidgetBuilder({
       from: source,
     });
 
-    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
+    if (isEmptyObject(tags) && ![DataSet.SPANS, DataSet.LOGS].includes(dataSet)) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
@@ -695,14 +690,8 @@ function WidgetBuilder({
 
       if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
-        newQuery.fields = [
-          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
-          ...fieldStrings,
-        ];
-        newQuery.aggregates = [
-          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
-          ...fieldStrings,
-        ];
+        newQuery.fields = [...(newQuery.fields?.slice(0, -1) ?? []), ...fieldStrings];
+        newQuery.aggregates = [...newQuery.aggregates.slice(0, -1), ...fieldStrings];
       } else {
         newQuery.fields = [...newQuery.columns, ...fieldStrings];
         newQuery.aggregates = fieldStrings;
@@ -763,11 +752,11 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!orderOptions.length) {
-          newQuery.orderby = '';
-        } else {
+        if (orderOptions.length) {
           orderOption = orderOptions[0]!.value;
           newQuery.orderby = `-${orderOption}`;
+        } else {
+          newQuery.orderby = '';
         }
       }
       return newQuery;
@@ -876,27 +865,21 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      const nextWidgetData = {
-        ...widgetData,
-        id: widgetToBeUpdated.id,
-      };
+      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) ===
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
+      } else {
         nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
-      } else {
-        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(
-        {
-          ...dashboard,
-          widgets: [...nextWidgetList],
-        },
+        {...dashboard, widgets: [...nextWidgetList]},
         nextWidgetData
       );
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
@@ -979,10 +962,7 @@ function WidgetBuilder({
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
       Object.keys(queryParamsWithoutSource).length > 0 || query
-        ? {
-            ...queryParamsWithoutSource,
-            ...query,
-          }
+        ? {...queryParamsWithoutSource, ...query}
         : {};
 
     const sanitizedQuery = omit(pathQuery, ['defaultWidgetQuery', 'defaultTitle']);
@@ -1088,7 +1068,7 @@ function WidgetBuilder({
 
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
-    state.dataSet !== DataSet.SPANS &&
+    ![DataSet.SPANS, DataSet.LOGS].includes(state.dataSet) &&
     state.queries.length < 3;
 
   const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
@@ -1147,6 +1127,8 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
+        disablePersistence
+        skipLoadLastUsed
       >
         <OnRouteLeave message={UNSAVED_CHANGES_MESSAGE} when={onRouteLeave} />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -1444,11 +1426,11 @@ const Body = styled(Layout.Body)`
 
   grid-template-rows: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(100px, auto) 400px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: 1fr;
   }
 `;
@@ -1463,11 +1445,11 @@ const Main = styled(Layout.Main)`
 
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(4)};
   }
 
-  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
+  @media (max-width: calc(${p => p.theme.breakpoints.lg} + ${space(4)})) {
     ${ListItem} {
       width: calc(100% - ${space(4)});
     }
@@ -1477,14 +1459,14 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-top: 1px solid ${p => p.theme.gray200};
     grid-row: 2/2;
     grid-column: 1/-1;
     max-width: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
@@ -1497,7 +1479,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-column: 1/-1;
   }
 `;

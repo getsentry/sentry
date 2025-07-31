@@ -28,12 +28,14 @@ export type Project = {
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasFlags: boolean;
+  hasInsightsAgentMonitoring: boolean;
   hasInsightsAppStart: boolean;
   hasInsightsAssets: boolean;
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
   hasInsightsLlmMonitoring: boolean;
+  hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
@@ -64,11 +66,9 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
-  eventProcessing?: {
-    symbolicationDegraded?: boolean;
-  };
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
@@ -81,6 +81,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
   securityToken?: string;
   securityTokenHeader?: string;
+  seerScannerAutomation?: boolean;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
@@ -89,6 +90,7 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchDumps?: boolean;
   tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
@@ -107,6 +109,8 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    otlp_traces: string;
+    playstation: string;
     public: string;
     secret: string;
     security: string;
@@ -164,6 +168,7 @@ export type PlatformKey =
   | 'c'
   | 'capacitor'
   | 'cfml'
+  | 'clojure'
   | 'cocoa'
   | 'cocoa-objc'
   | 'cocoa-swift'
@@ -197,6 +202,7 @@ export type PlatformKey =
   | 'go-iris'
   | 'go-martini'
   | 'go-negroni'
+  | 'godot'
   | 'groovy'
   | 'ionic'
   | 'java'
@@ -222,11 +228,13 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-nuxt'
   | 'javascript-react'
+  | 'javascript-react-router'
   | 'javascript-remix'
   | 'javascript-solid'
   | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
+  | 'javascript-tanstackstart-react'
   | 'javascript-vue'
   | 'kotlin'
   | 'minidump'
@@ -259,6 +267,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'playstation'
   | 'powershell'
   | 'python'
   | 'python-aiohttp'
@@ -295,10 +304,12 @@ export type PlatformKey =
   | 'ruby-rack'
   | 'ruby-rails'
   | 'rust'
+  | 'scala'
   | 'swift'
   | 'switt'
   | 'unity'
-  | 'unreal';
+  | 'unreal'
+  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;
@@ -306,4 +317,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  iconConfig?: {
+    withLanguageIcon: boolean;
+  };
 };

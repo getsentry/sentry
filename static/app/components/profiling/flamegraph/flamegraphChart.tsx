@@ -17,7 +17,6 @@ import {
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
-import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -31,7 +30,6 @@ import {
 import {FlamegraphChartTooltip} from './flamegraphChartTooltip';
 
 interface FlamegraphChartProps {
-  canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   chart: FlamegraphChartModel | null;
   chartCanvas: FlamegraphCanvas | null;
@@ -51,7 +49,6 @@ export function FlamegraphChart({
   chartCanvas,
   chartCanvasRef,
   setChartCanvasRef,
-  canvasBounds,
   noMeasurementMessage,
   configViewUnit,
 }: FlamegraphChartProps) {
@@ -310,7 +307,6 @@ export function FlamegraphChart({
           chartCanvas={chartCanvas}
           chartView={chartView}
           chartRenderer={chartRenderer}
-          canvasBounds={canvasBounds}
           configViewUnit={configViewUnit}
         />
       ) : null}

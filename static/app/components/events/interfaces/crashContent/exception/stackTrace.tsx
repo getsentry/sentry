@@ -1,4 +1,6 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
+import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
@@ -11,13 +13,11 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import StackTraceContent from '../stackTrace/content';
-import {NativeContent} from '../stackTrace/nativeContent';
-
 type Props = {
   chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
+  newestFirst: boolean;
   platform: PlatformKey;
   stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
@@ -25,7 +25,6 @@ type Props = {
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   stackView?: StackView;
   threadId?: number;
 };

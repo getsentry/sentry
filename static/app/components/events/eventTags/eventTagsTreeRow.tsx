@@ -4,12 +4,11 @@ import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
@@ -17,20 +16,22 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {generateQueryWithTag} from 'sentry/utils';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag
@@ -126,9 +127,8 @@ function EventTagsTreeRowDropdown({
   project,
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const location = useLocation();
-  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
   });
@@ -147,30 +147,35 @@ function EventTagsTreeRowDropdown({
     project?.highlightTags &&
     // Skip tags already highlighted
     highlightTagSet.has(originalTag.key);
-  const query = generateQueryWithTag({referrer}, originalTag);
+  const query = generateQueryWithTag(
+    {referrer},
+    {
+      ...originalTag,
+      key: escapeIssueTagKey(originalTag.key),
+    }
+  );
+
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
     project,
   });
   const isIssueDetailsRoute = location.pathname.includes(`issues/${event.groupID}/`);
+  const isFeedback = Boolean(event.contexts.feedback);
 
   const items: MenuItemProps[] = [
-    ...(isIssueDetailsRoute
-      ? [
-          {
-            key: 'tag-details',
-            label: t('Tag breakdown'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/${encodeURIComponent(originalTag.key)}/`,
-              query: location.query,
-            },
-          },
-        ]
-      : []),
+    {
+      key: 'tag-details',
+      label: t('Tag breakdown'),
+      hidden: !isIssueDetailsRoute,
+      to: {
+        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(originalTag.key)}/`,
+        query: location.query,
+      },
+    },
     {
       key: 'view-events',
       label: t('View other events with this tag value'),
-      hidden: !event.groupID,
+      hidden: !event.groupID || isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
         query,
@@ -179,20 +184,29 @@ function EventTagsTreeRowDropdown({
     {
       key: 'view-issues',
       label: t('Search issues with this tag value'),
+      hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
         query,
       },
     },
-  ];
-
-  if (hasNewTraceUi && hasTraceDrawerAction) {
-    items.push({
+    {
+      key: 'view-feedback',
+      label: t('Search feedbacks with this tag value'),
+      hidden: !isFeedback,
+      to: {
+        pathname: `/organizations/${organization.slug}/feedback/`,
+        query,
+      },
+    },
+    {
       key: 'view-traces',
       label: t('Find more samples with this value'),
+      hidden: !hasExploreEnabled || isFeedback,
       to: getSearchInExploreTarget(
         organization,
         location,
+        project.id,
         originalTag.key,
         originalTag.value,
         TraceDrawerActionKind.INCLUDE
@@ -202,13 +216,11 @@ function EventTagsTreeRowDropdown({
           organization,
           originalTag.key,
           originalTag.value,
-          TraceDrawerActionKind.INCLUDE
+          TraceDrawerActionKind.INCLUDE,
+          'drawer'
         );
       },
-    });
-  }
-
-  items.push(
+    },
     {
       key: 'copy-value',
       label: t('Copy tag value to clipboard'),
@@ -217,7 +229,7 @@ function EventTagsTreeRowDropdown({
     {
       key: 'add-to-highlights',
       label: t('Add to event highlights'),
-      hidden: hideAddHighlightsOption || !isProjectAdmin,
+      hidden: hideAddHighlightsOption || !isProjectAdmin || isFeedback,
       onAction: () => {
         saveTag({
           highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
@@ -230,7 +242,10 @@ function EventTagsTreeRowDropdown({
       hidden: originalTag.key !== 'release',
       to:
         originalTag.key === 'release'
-          ? `/organizations/${organization.slug}/releases/${encodeURIComponent(content.value)}/`
+          ? makeReleasesPathname({
+              organization,
+              path: `/${encodeURIComponent(content.value)}/`,
+            })
           : undefined,
     },
     {
@@ -256,7 +271,10 @@ function EventTagsTreeRowDropdown({
       to:
         originalTag.key === 'replay_id' || originalTag.key === 'replayId'
           ? {
-              pathname: `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/`,
+              pathname: makeReplaysPathname({
+                path: `/${encodeURIComponent(content.value)}/`,
+                organization,
+              }),
               query: {referrer},
             }
           : undefined,
@@ -268,8 +286,8 @@ function EventTagsTreeRowDropdown({
       onAction: () => {
         openNavigateToExternalLinkModal({linkText: content.value});
       },
-    }
-  );
+    },
+  ];
 
   return (
     <TreeValueDropdown
@@ -342,11 +360,20 @@ function EventTagsTreeValue({
     }
     case 'replayId':
     case 'replay_id': {
-      const replayQuery = qs.stringify({referrer});
-      const replayDestination = `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`;
+      const replayPath = makeReplaysPathname({
+        path: `/${encodeURIComponent(content.value)}/`,
+        organization,
+      });
       tagValue = (
         <TagLinkText>
-          <Link to={replayDestination}>{content.value}</Link>
+          <Link
+            to={{
+              pathname: replayPath,
+              query: {referrer},
+            }}
+          >
+            {content.value}
+          </Link>
         </TagLinkText>
       );
       break;
@@ -355,9 +382,7 @@ function EventTagsTreeValue({
       tagValue = defaultValue;
   }
 
-  return !isUrl(content.value) ? (
-    tagValue
-  ) : (
+  return isUrl(content.value) ? (
     <TagLinkText>
       <ExternalLink
         onClick={e => {
@@ -368,6 +393,8 @@ function EventTagsTreeValue({
         {content.value}
       </ExternalLink>
     </TagLinkText>
+  ) : (
+    tagValue
   );
 }
 
@@ -441,7 +468,7 @@ const TreeValue = styled('div')<{hasErrors?: boolean}>`
   padding: ${space(0.25)} 0;
   align-self: start;
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   grid-column: span 1;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};

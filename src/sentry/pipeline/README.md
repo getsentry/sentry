@@ -45,16 +45,6 @@ which may use a slightly different process to do identity lookup on the
 external service, however the end of the process (and what is done in the
 final `finish_pipeline` call) all result in an Identity object being created.
 
-### Provider Manager
-
-The pipeline is not directly given a provider, but instead it is given a key
-that is used to lookup the provider within the provided `provider_manager`
-instance.
-
-There is no explicit interface for the manager object other than that it should
-have a `get` method that takes the `provider_key` and returns an instance of
-the provider.
-
 ## Pipeline Provider Model
 
 While not explicitly required, a pipeline supports lookup of a model that is
@@ -82,7 +72,7 @@ An example pipeline view might be a form that asks the user for some input.
 
 ```python
 class GetUserInput(PipelineView):
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         # The pipeline supports a generic error method that will render a
         # pipeline error view
         if 'my_data' not in request.POST:
@@ -102,7 +92,7 @@ The pipeline views are declared within the executing pipeline provider's
 `get_pipeline_views` method, for example it could look like:
 
 ```python
-def get_pipeline_views(self):
+def get_pipeline_views(self) -> list[PipelineView]:
     return [GetUserInput(), RequestApiTokenStep()]
 ```
 
@@ -184,7 +174,7 @@ def get_pipeline_views(self):
     identity_pipeline_view = NestedPipelineView(
         bind_key='identity',
         provider_key='slack',
-        pipeline_cls=IdentityProviderPipeline,
+        pipeline_cls=IdentityPipeline,
         config=identity_pipeline_config,
     )
 

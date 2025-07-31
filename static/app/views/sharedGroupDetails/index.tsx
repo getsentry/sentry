@@ -1,10 +1,10 @@
 import {useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import NotFound from 'sentry/components/errors/notFound';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import Footer from 'sentry/components/footer';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -13,12 +13,11 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
-type Props = RouteComponentProps<{shareId: string; orgId?: string}, {}>;
+type Props = RouteComponentProps<{shareId: string; orgId?: string}>;
 
 function SharedGroupDetails({params}: Props) {
   useLayoutEffect(() => {
@@ -74,7 +73,7 @@ function SharedGroupDetails({params}: Props) {
 
   return (
     <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
@@ -105,7 +104,7 @@ function SharedGroupDetails({params}: Props) {
             </div>
           </div>
         </div>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     </SentryDocumentTitle>
   );
 }

@@ -1,9 +1,7 @@
-import Badge from 'sentry/components/badge/badge';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -25,6 +23,7 @@ export default function getConfiguration({
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return [
     {
+      id: 'settings-project',
       name: t('Project'),
       items: [
         {
@@ -63,6 +62,11 @@ export default function getConfiguration({
           title: t('Data Forwarding'),
         },
         {
+          path: `${pathPrefix}/seer/`,
+          title: t('Seer'),
+          show: () => !organization?.hideAiFeatures,
+        },
+        {
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
           show: () => !isSelfHostedErrorsOnly,
@@ -70,12 +74,13 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
-          show: () => !!organization?.features?.includes('dev-toolbar-ui'),
-          badge: () => <Badge type="beta">Beta</Badge>,
+          show: () => !!organization?.features?.includes('sentry-toolbar-ui'),
+          badge: () => 'beta',
         },
       ],
     },
     {
+      id: 'settings-processing',
       name: t('Processing'),
       items: [
         {
@@ -116,12 +121,7 @@ export default function getConfiguration({
             !!organization?.features?.includes('performance-view') &&
             !isSelfHostedErrorsOnly,
         },
-        {
-          path: `${pathPrefix}/metrics/`,
-          title: t('Metrics'),
-          show: () =>
-            !!(organization && hasCustomMetrics(organization)) && !isSelfHostedErrorsOnly,
-        },
+
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
@@ -132,12 +132,13 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
-          badge: () => <Badge type="beta">Beta</Badge>,
+          badge: () => 'beta',
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],
     },
     {
+      id: 'settings-sdk',
       name: t('SDK Setup'),
       items: [
         {
@@ -161,6 +162,7 @@ export default function getConfiguration({
       ],
     },
     {
+      id: 'settings-legacy-integrations',
       name: t('Legacy Integrations'),
       items: [
         {

@@ -1,4 +1,3 @@
-import type {LegacyRef, MutableRefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import maxBy from 'lodash/maxBy';
@@ -168,8 +167,8 @@ function renderMeasurements(
 }
 
 export function SpanGroupBar(props: Props) {
-  const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
-  const spanContentRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
+  const spanTitleRef = useRef<HTMLDivElement | null>(null);
+  const spanContentRef = useRef<HTMLDivElement | null>(null);
 
   const {
     onWheel,

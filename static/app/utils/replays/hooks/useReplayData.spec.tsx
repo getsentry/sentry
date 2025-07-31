@@ -12,26 +12,16 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import useProjects from 'sentry/utils/useProjects';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-jest.mock('sentry/utils/useProjects');
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const {organization, project} = initializeOrg();
 
-jest.mocked(useProjects).mockReturnValue({
-  fetching: false,
-  projects: [project],
-  fetchError: null,
-  hasMore: false,
-  initiallyLoaded: true,
-  onSearch: () => Promise.resolve(),
-  reloadProjects: jest.fn(),
-  placeholders: [],
-});
+ProjectsStore.loadInitialData([project]);
 
 const mockInvalidateQueries = jest.fn();
 
@@ -40,10 +30,14 @@ function wrapper({children}: {children?: ReactNode}) {
 
   queryClient.invalidateQueries = mockInvalidateQueries;
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
+    </QueryClientProvider>
+  );
 }
 
-function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
+function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
   const HYDRATED_REPLAY = ReplayRecordFixture({
     ...replayRecord,
     project_id: project.id,
@@ -107,11 +101,14 @@ describe('useReplayData', () => {
       expect(result.current).toEqual({
         attachments: expect.any(Array),
         errors: expect.any(Array),
+        feedbackEvents: expect.any(Array),
         fetchError: undefined,
-        fetching: false,
+        isError: false,
+        isPending: false,
         onRetry: expect.any(Function),
         projectSlug: project.slug,
         replayRecord: expectedReplay,
+        status: 'success',
       })
     );
   });
@@ -180,13 +177,15 @@ describe('useReplayData', () => {
     await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
-        errors: [],
-        replayRecord: expectedReplay,
-      })
-    );
+    await waitFor(() => {
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [...mockSegmentResponse1, ...mockSegmentResponse2],
+          errors: [],
+          replayRecord: expectedReplay,
+        })
+      );
+    });
   });
 
   it('should always fetch DISCOVER & ISSUE_PLATFORM errors', async () => {
@@ -250,13 +249,15 @@ describe('useReplayData', () => {
     await waitFor(() => expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(1));
     expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1);
 
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [],
-        errors: [],
-        replayRecord: expectedReplay,
-      })
-    );
+    await waitFor(() => {
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [],
+          errors: [],
+          replayRecord: expectedReplay,
+        })
+      );
+    });
   });
 
   it('should concat N error responses and pass them through to Replay Reader', async () => {
@@ -384,18 +385,20 @@ describe('useReplayData', () => {
     expect(mockedIssuePlatformEventsMetaCall1).toHaveBeenCalledTimes(1);
     expect(mockedIssuePlatformEventsMetaCall2).toHaveBeenCalledTimes(1);
 
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [],
-        errors: [
-          ...mockErrorResponse1,
-          ...mockErrorResponse2,
-          ...mockErrorResponse3,
-          ...mockErrorResponse4,
-        ],
-        replayRecord: expectedReplay,
-      })
-    );
+    await waitFor(() => {
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [],
+          errors: [
+            ...mockErrorResponse1,
+            ...mockErrorResponse2,
+            ...mockErrorResponse3,
+            ...mockErrorResponse4,
+          ],
+          replayRecord: expectedReplay,
+        })
+      );
+    });
   });
 
   it('should incrementally load attachments and errors', async () => {
@@ -458,11 +461,14 @@ describe('useReplayData', () => {
     const expectedReplayData = {
       attachments: [],
       errors: [],
+      feedbackEvents: [],
       fetchError: undefined,
-      fetching: true,
+      isError: true,
+      isPending: true,
       onRetry: expect.any(Function),
       projectSlug: null,
       replayRecord: undefined,
+      status: 'error',
     } as Record<string, unknown>;
 
     // Immediately we will see the replay call is made
@@ -479,13 +485,15 @@ describe('useReplayData', () => {
       expect(mockedIssuePlatformEventsMetaCall).toHaveBeenCalledTimes(1)
     );
     expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: [],
-        errors: [],
-        projectSlug: project.slug,
-        replayRecord: expectedReplay,
-      })
+    await waitFor(() =>
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: [],
+          errors: [],
+          projectSlug: project.slug,
+          replayRecord: expectedReplay,
+        })
+      )
     );
 
     // Next we see that some rrweb data has arrived
@@ -554,8 +562,10 @@ describe('useReplayData', () => {
 
     result.current.onRetry();
 
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: [`/organizations/${organization.slug}/replays/${replayId}/`],
+    await waitFor(() => {
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: [`/organizations/${organization.slug}/replays/${replayId}/`],
+      });
     });
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
       queryKey: [

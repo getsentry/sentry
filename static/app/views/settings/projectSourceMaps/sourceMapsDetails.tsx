@@ -1,23 +1,24 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import type {Artifact} from 'sentry/types/release';
+import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -78,7 +79,7 @@ function ArtifactsTableRow({
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
             {
               downloadRole,
-              orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+              orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
               settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
             }
           )}
@@ -99,10 +100,7 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = RouteComponentProps<
-  {bundleId: string; orgId: string; projectId: string},
-  {}
-> & {
+type Props = RouteComponentProps<{bundleId: string; orgId: string; projectId: string}> & {
   project: Project;
 };
 
@@ -143,7 +141,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
   );
 
   const {
-    data: debugIdBundlesArtifactsData,
+    data: debugIdBundlesArtifacts,
     getResponseHeader: debugIdBundlesArtifactsHeaders,
     isPending: debugIdBundlesArtifactsLoading,
   } = useApiQuery<DebugIdBundleArtifact>(
@@ -159,6 +157,47 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       enabled: isDebugIdBundle,
     }
   );
+
+  const releaseVersions = debugIdBundlesArtifacts?.associations.map(
+    association => `"${association.release}"`
+  );
+
+  const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/`,
+      {
+        query: {
+          project: [project.id],
+          query: `release:[${releaseVersions?.join(',')}]`,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled: !!releaseVersions?.length,
+    }
+  );
+
+  const debugIdBundlesArtifactsData = useMemo(() => {
+    if (releasesLoading) {
+      return debugIdBundlesArtifacts;
+    }
+
+    if (!debugIdBundlesArtifacts) {
+      return undefined;
+    }
+
+    const existingReleaseNames = new Set((releasesData ?? []).map(r => r.version));
+
+    return {
+      ...debugIdBundlesArtifacts,
+      associations: debugIdBundlesArtifacts.associations.map(association => ({
+        ...association,
+        exists: existingReleaseNames.has(association.release),
+      })),
+    };
+  }, [releasesLoading, releasesData, debugIdBundlesArtifacts]);
 
   const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
     onSuccess: () =>
@@ -200,7 +239,10 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
         <DetailsPanel>
-          <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
+          <DebugIdBundleDetails
+            debugIdBundle={debugIdBundlesArtifactsData}
+            projectId={project.id}
+          />
         </DetailsPanel>
       )}
       <SearchBarWithMarginBottom
@@ -223,8 +265,8 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         }
         isEmpty={
           (isDebugIdBundle
-            ? debugIdBundlesArtifactsData?.files ?? []
-            : artifactsData ?? []
+            ? (debugIdBundlesArtifactsData?.files ?? [])
+            : (artifactsData ?? [])
           ).length === 0
         }
         isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
@@ -284,12 +326,14 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                         <IconClock size="sm" />
                         <TimeSince date={data.dateCreated} />
                       </TimeWrapper>
-                      <StyledTag
-                        type={data.dist ? 'info' : undefined}
-                        tooltipText={data.dist ? undefined : t('No distribution set')}
+                      <Tooltip
+                        title={data.dist ? undefined : t('No distribution set')}
+                        skipWrapper
                       >
-                        {data.dist ?? t('none')}
-                      </StyledTag>
+                        <StyledTag type={data.dist ? 'info' : undefined}>
+                          {data.dist ?? t('none')}
+                        </StyledTag>
+                      </Tooltip>
                     </TimeAndDistWrapper>
                   }
                 />
@@ -299,8 +343,8 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
       <Pagination
         pageLinks={
           isDebugIdBundle
-            ? debugIdBundlesArtifactsHeaders?.('Link') ?? ''
-            : artifactsHeaders?.('Link') ?? ''
+            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
+            : (artifactsHeaders?.('Link') ?? '')
         }
       />
     </Fragment>
@@ -314,10 +358,10 @@ const StyledPanelTable = styled(PanelTable)<{hasTypeColumn: boolean}>`
     );
   ${p =>
     p.hasTypeColumn &&
-    `
-  grid-template-columns:
-    minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-    minmax(74px, max-content);
+    css`
+      grid-template-columns:
+        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
+        minmax(74px, max-content);
     `}
 `;
 
@@ -381,7 +425,7 @@ const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-items: center;
   color: ${p => p.theme.subText};
 `;

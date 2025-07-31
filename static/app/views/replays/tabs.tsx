@@ -1,12 +1,11 @@
-import {useMemo} from 'react';
-
+import {TabList} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
   selected: 'replays' | 'selectors';
@@ -17,40 +16,42 @@ export default function ReplayTabs({selected}: Props) {
   const location = useLocation();
   const {allMobileProj} = useAllMobileProj({});
 
-  const tabs = useMemo(
-    () => [
-      {
-        key: 'replays',
-        label: t('Replays'),
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
-        query: {...location.query, sort: undefined},
-      },
-      {
-        key: 'selectors',
-        label: t('Selectors'),
-        pathname: normalizeUrl(`/organizations/${organization.slug}/replays/selectors/`),
-        query: {...location.query, sort: '-count_dead_clicks'},
-      },
-    ],
-    [organization.slug, location.query]
-  );
-
   return (
     <Layout.HeaderTabs value={selected}>
       <TabList hideBorder>
-        {tabs.map(tab => (
-          <TabList.Item
-            key={tab.key}
-            to={{
-              ...location,
-              pathname: tab.pathname,
-              query: tab.query,
-            }}
-            disabled={tab.key === 'selectors' && allMobileProj}
+        <TabList.Item
+          key="replays"
+          to={{
+            ...location,
+            pathname: makeReplaysPathname({
+              path: '/',
+              organization,
+            }),
+            query: {...location.query, sort: undefined},
+          }}
+        >
+          {t('Replays')}
+        </TabList.Item>
+
+        <TabList.Item
+          key="selectors"
+          to={{
+            ...location,
+            pathname: makeReplaysPathname({
+              path: '/selectors/',
+              organization,
+            }),
+            query: {...location.query, sort: '-count_dead_clicks'},
+          }}
+          disabled={allMobileProj}
+        >
+          <Tooltip
+            disabled={!allMobileProj}
+            title={t('Selectors are not available with mobile replays')}
           >
-            {tab.label}
-          </TabList.Item>
-        ))}
+            {t('Selectors')}
+          </Tooltip>
+        </TabList.Item>
       </TabList>
     </Layout.HeaderTabs>
   );

@@ -13,6 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
@@ -102,7 +103,7 @@ def _get_channel_and_integration_by_team(
 
 def get_integrations_by_channel_by_recipient(
     organization: Organization,
-    recipients: Iterable[Actor],
+    recipients: Iterable[Actor | User],
     provider: ExternalProviders,
 ) -> Mapping[Actor, Mapping[str, RpcIntegration]]:
     output: MutableMapping[Actor, Mapping[str, RpcIntegration]] = defaultdict(dict)

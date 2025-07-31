@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -25,7 +25,7 @@ import {
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -37,8 +37,8 @@ function WidgetBuilderSortBySelector() {
   const datasetConfig = getDatasetConfig(state.dataset);
 
   let tags: TagCollection = useTags();
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
   if (state.dataset === WidgetType.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
@@ -71,10 +71,7 @@ function WidgetBuilderSortBySelector() {
       return;
     }
     if (state.limit > maxLimit) {
-      dispatch({
-        type: BuilderStateAction.SET_LIMIT,
-        payload: maxLimit,
-      });
+      dispatch({type: BuilderStateAction.SET_LIMIT, payload: maxLimit});
     }
   }, [state.limit, maxLimit, dispatch]);
 
@@ -94,6 +91,7 @@ function WidgetBuilderSortBySelector() {
       <Tooltip
         title={disableSortReason}
         disabled={!(disableSortDirection && disableSort)}
+        skipWrapper
       >
         <FieldGroup
           inline={false}
@@ -106,7 +104,7 @@ function WidgetBuilderSortBySelector() {
               disabled={disableSortDirection && disableSort}
               name="resultsLimit"
               menuPlacement="auto"
-              options={[...Array(maxLimit).keys()].map(resultLimit => {
+              options={[...new Array(maxLimit).keys()].map(resultLimit => {
                 const value = resultLimit + 1;
                 return {
                   label: tn('Limit to %s result', 'Limit to %s results', value),
@@ -115,10 +113,7 @@ function WidgetBuilderSortBySelector() {
               })}
               value={state.limit}
               onChange={(option: SelectValue<number>) => {
-                dispatch({
-                  type: BuilderStateAction.SET_LIMIT,
-                  payload: option.value,
-                });
+                dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
               }}
             />
           )}
@@ -161,6 +156,6 @@ function WidgetBuilderSortBySelector() {
 
 export default WidgetBuilderSortBySelector;
 
-const ResultsLimitSelector = styled(SelectControl)`
+const ResultsLimitSelector = styled(Select)`
   margin-bottom: ${space(1)};
 `;

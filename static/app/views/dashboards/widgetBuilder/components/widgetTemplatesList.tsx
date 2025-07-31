@@ -1,14 +1,14 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -20,6 +20,7 @@ import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
 interface WidgetTemplatesListProps {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setCustomizeFromLibrary: (customizeFromLibrary: boolean) => void;
   setIsPreviewDraggable: (isPreviewDraggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
@@ -28,9 +29,11 @@ function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
+  setCustomizeFromLibrary,
 }: WidgetTemplatesListProps) {
+  const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
@@ -62,7 +65,7 @@ function WidgetTemplatesList({
   return (
     <Fragment>
       {widgets.map((widget, index) => {
-        const iconColor = theme.charts.getColorPalette(widgets.length - 2)?.[index]!;
+        const iconColor = theme.chart.getColorPalette(widgets.length - 1)?.[index]!;
 
         const Icon = getWidgetIcon(widget.displayType);
         const lastWidget = index === widgets.length - 1;
@@ -96,6 +99,7 @@ function WidgetTemplatesList({
                       onClick={e => {
                         e.stopPropagation();
                         setOpenWidgetTemplates(false);
+                        setCustomizeFromLibrary(true);
                         // reset preview when customizing templates
                         setIsPreviewDraggable(false);
                         trackAnalytics(
@@ -168,14 +172,14 @@ const TemplateCard = styled('div')<{selected: boolean}>`
 `;
 
 const WidgetTitle = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(0.25)};
 `;
 
 const WidgetDescription = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
   margin-bottom: 0;
 `;
 

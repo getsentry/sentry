@@ -226,22 +226,25 @@ class GoogleCloudFile(File):
 
 
 class GoogleCloudStorage(Storage):
-    project_id = None
-    credentials = None
-    bucket_name = None
-    file_name_charset = "utf-8"
-    file_overwrite = True
-    download_url = "https://www.googleapis.com"
-    # The max amount of memory a returned file can take up before being
-    # rolled over into a temporary file on disk. Default is 0: Do not roll over.
-    max_memory_size = 0
-
-    def __init__(self, **settings):
-        # check if some of the settings we've provided as class attributes
-        # need to be overwritten with values passed in here
-        for name, value in settings.items():
-            if hasattr(self, name):
-                setattr(self, name, value)
+    def __init__(
+        self,
+        project_id=None,
+        credentials=None,
+        bucket_name=None,
+        file_name_charset="utf-8",
+        file_overwrite=True,
+        download_url="https://www.googleapis.com",
+        # The max amount of memory a returned file can take up before being
+        # rolled over into a temporary file on disk. Default is 0: Do not roll over.
+        max_memory_size=0,
+    ):
+        self.project_id = project_id
+        self.credentials = credentials
+        self.bucket_name = bucket_name
+        self.file_name_charset = file_name_charset
+        self.file_overwrite = file_overwrite
+        self.download_url = download_url
+        self.max_memory_size = max_memory_size
 
         self._bucket = None
         self._client = None
@@ -390,16 +393,15 @@ class GoogleCloudStorage(Storage):
 class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
     """Google cloud storage class with replay upload policy."""
 
-    # "try_del" and "try_get" inherit the default behavior. We don't want to exponentially
-    # wait in those contexts. We're maintaining the status-quo for now but in the future we
-    # can add policies for these methods or use no policy at all and implement retries at a
-    # higher, more contextual level.
+    # "try_get" inherits the default behavior. We don't want to exponentially wait in that
+    # context. We're maintaining the status-quo for now but in the future we can add policies for
+    # these methods or use no policy at all and implement retries at a higher, more contextual
+    # level.
     #
-    # def try_del(self, callable: Callable[[], None]) -> None:
     # def try_get(self, callable: Callable[[], None]) -> None:
 
-    def try_set(self, callable: Callable[[], None]) -> None:
-        """Upload a blob with exponential delay for a maximum of five attempts."""
+    def create_retry_policy(self):
+        """Retry an action with sigmoid delay for a maximum of five attempts."""
 
         def should_retry(attempt: int, e: Exception) -> bool:
             """Retry gateway timeout exceptions up to the limit."""
@@ -407,5 +409,12 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
 
         # Retry cadence: After a brief period of fast retries the function will retry once
         # per second for two minutes.
-        policy = ConditionalRetryPolicy(should_retry, sigmoid_delay())
+        return ConditionalRetryPolicy(should_retry, sigmoid_delay())
+
+    def try_set(self, callable: Callable[[], None]) -> None:
+        policy = self.create_retry_policy()
+        policy(callable)
+
+    def try_del(self, callable: Callable[[], None]) -> None:
+        policy = self.create_retry_policy()
         policy(callable)

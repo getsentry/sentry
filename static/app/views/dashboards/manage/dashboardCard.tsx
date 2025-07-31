@@ -2,13 +2,12 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +15,7 @@ import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
-  onFavorite: (isFavorited: boolean) => void;
+  onFavorite: (isFavorited: boolean) => Promise<void>;
   renderWidgets: () => React.ReactNode;
   title: string;
   to: LinkProps['to'];
@@ -87,30 +86,28 @@ function DashboardCard({
       </CardLink>
 
       <ContextMenuWrapper>
-        <Feature features="dashboards-favourite">
-          <StyledButton
-            icon={
-              <IconStar
-                isSolid={favorited}
-                color={favorited ? 'yellow300' : 'gray300'}
-                size="sm"
-                aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-              />
+        <StyledButton
+          icon={
+            <IconStar
+              isSolid={favorited}
+              color={favorited ? 'yellow300' : 'gray300'}
+              size="sm"
+              aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            />
+          }
+          borderless
+          aria-label={t('Dashboards Favorite')}
+          size="xs"
+          onClick={async () => {
+            try {
+              setFavorited(!favorited);
+              await onFavorite(!favorited);
+            } catch (error) {
+              // If the api call fails, revert the state
+              setFavorited(favorited);
             }
-            size="zero"
-            borderless
-            aria-label={t('Dashboards Favorite')}
-            onClick={async () => {
-              try {
-                setFavorited(!favorited);
-                await onFavorite(!favorited);
-              } catch (error) {
-                // If the api call fails, revert the state
-                setFavorited(favorited);
-              }
-            }}
-          />
-        </Feature>
+          }}
+        />
         {renderContextMenu?.()}
       </ContextMenuWrapper>
     </CardWithoutMargin>
@@ -134,10 +131,14 @@ const CardWithoutMargin = styled(Card)`
 `;
 
 const Title = styled('div')`
-  ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  line-height: 1.2;
+  /* @TODO(jonasbadalic) font weight normal? This is inconsisten with other titles */
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const CardLink = styled(Link)`
@@ -164,8 +165,8 @@ const CardHeader = styled('div')`
 
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
 `;
@@ -188,7 +189,7 @@ const CardFooter = styled('div')`
 `;
 
 const DateSelected = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};
@@ -205,6 +206,7 @@ const ContextMenuWrapper = styled('div')`
   right: ${space(2)};
   bottom: ${space(1)};
   display: flex;
+  ${p => (p.theme.isChonk ? `gap: ${space(0.5)};` : '')}
 `;
 
 const StyledButton = styled(Button)`

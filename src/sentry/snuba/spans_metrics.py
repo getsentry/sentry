@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Sequence
 from datetime import timedelta
 
 from snuba_sdk import Column
@@ -45,6 +44,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
@@ -73,11 +73,13 @@ def query(
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
+    if debug:
+        result["meta"]["query"] = str(builder.get_snql_query().query)
     return result
 
 
 def timeseries_query(
-    selected_columns: Sequence[str],
+    selected_columns: list[str],
     query: str,
     snuba_params: SnubaParams,
     rollup: int,
@@ -124,7 +126,7 @@ def timeseries_query(
             snuba_params.start_date,
             snuba_params.end_date,
             rollup,
-            "time",
+            ["time"],
         )
         if zerofill_results
         else result["data"]
@@ -249,7 +251,7 @@ def top_events_timeseries(
             {
                 "data": (
                     discover.zerofill(
-                        [], snuba_params.start_date, snuba_params.end_date, rollup, "time"
+                        [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
                     )
                     if zerofill_results
                     else []
@@ -282,12 +284,16 @@ def top_events_timeseries(
                 "spans_metrics.top-events.timeseries.key-mismatch",
                 extra={"result_key": result_key, "top_event_keys": list(results.keys())},
             )
-    for key, item in results.items():
-        results[key] = SnubaTSResult(
+    return {
+        key: SnubaTSResult(
             {
                 "data": (
                     discover.zerofill(
-                        item["data"], snuba_params.start_date, snuba_params.end_date, rollup, "time"
+                        item["data"],
+                        snuba_params.start_date,
+                        snuba_params.end_date,
+                        rollup,
+                        ["time"],
                     )
                     if zerofill_results
                     else item["data"]
@@ -299,5 +305,5 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
-
-    return results
+        for key, item in results.items()
+    }

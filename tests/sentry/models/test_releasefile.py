@@ -1,5 +1,3 @@
-import errno
-import os
 from datetime import datetime, timezone
 from io import BytesIO
 from threading import Thread
@@ -8,7 +6,6 @@ from zipfile import ZipFile
 
 import pytest
 
-from sentry import options
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
@@ -59,7 +56,7 @@ def test_normalize(s, expected):
 
 
 class ReleaseFileTestCase(TestCase):
-    def test_count_artifacts(self):
+    def test_count_artifacts(self) -> None:
         assert self.release.count_artifacts() == 0
         for count in (3, 1, None, 0):
             file = self.create_file(name=f"dummy-{count}.txt")
@@ -72,56 +69,6 @@ class ReleaseFileTestCase(TestCase):
             )
 
         assert self.release.count_artifacts() == 5
-
-
-class ReleaseFileCacheTest(TestCase):
-    def test_getfile_fs_cache(self):
-        file_content = b"this is a test"
-
-        file = self.create_file(name="dummy.txt")
-        file.putfile(BytesIO(file_content))
-        release_file = self.create_release_file(file=file)
-
-        expected_path = os.path.join(
-            options.get("releasefile.cache-path"),
-            str(self.organization.id),
-            str(file.id),
-        )
-
-        # Set the threshold to zero to force caching on the file system
-        options.set("releasefile.cache-limit", 0)
-        with ReleaseFile.cache.getfile(release_file) as f:
-            assert f.read() == file_content
-            assert f.name == expected_path
-
-        # Check that the file was cached
-        os.stat(expected_path)
-
-    def test_getfile_streaming(self):
-        file_content = b"this is a test"
-
-        file = self.create_file(name="dummy.txt")
-        file.putfile(BytesIO(file_content))
-        release_file = self.create_release_file(file=file)
-
-        expected_path = os.path.join(
-            options.get("releasefile.cache-path"),
-            str(self.organization.id),
-            str(file.id),
-        )
-
-        # Set the threshold larger than the file size to force streaming
-        options.set("releasefile.cache-limit", 1024)
-        with ReleaseFile.cache.getfile(release_file) as f:
-            assert f.read() == file_content
-
-        # Check that the file was not cached
-        try:
-            os.stat(expected_path)
-        except OSError as e:
-            assert e.errno == errno.ENOENT
-        else:
-            assert False, "file should not exist"
 
 
 class ReleaseArchiveTestCase(TestCase):
@@ -142,7 +89,7 @@ class ReleaseArchiveTestCase(TestCase):
 
         return update_artifact_index(self.release, dist, file_)
 
-    def test_multi_archive(self):
+    def test_multi_archive(self) -> None:
         assert read_artifact_index(self.release, None) is None
 
         # Delete does nothing
@@ -239,7 +186,7 @@ class ReleaseArchiveTestCase(TestCase):
         expected["files"].pop("fake://foo")
         assert read_artifact_index(self.release, None) == expected
 
-    def test_same_sha(self):
+    def test_same_sha(self) -> None:
         """Stand-alone release file has same sha1 as one in manifest"""
         self.create_archive(fields={}, files={"foo": "bar"})
         file_ = File.objects.create()
@@ -264,7 +211,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
 
         return f
 
-    def test_locking(self):
+    def test_locking(self) -> None:
         release = self.release
         dist = None
 
@@ -302,7 +249,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         assert index is not None
         assert index["files"].keys() == {"123", "abc"}
 
-    def test_lock_existing(self):
+    def test_lock_existing(self) -> None:
         release = self.release
         dist = None
 

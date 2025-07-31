@@ -7,10 +7,11 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-export type ScoreCardProps = {
+type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
+  isEstimate?: boolean;
   isTooltipHoverable?: boolean;
   renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
@@ -18,7 +19,7 @@ export type ScoreCardProps = {
   trendStatus?: 'good' | 'bad';
 };
 
-function ScoreCard({
+export function ScoreCard({
   title,
   score,
   help,
@@ -28,6 +29,8 @@ function ScoreCard({
   renderOpenButton,
   isTooltipHoverable,
 }: ScoreCardProps) {
+  const displayScore = score ?? '\u2014';
+
   return (
     <ScorePanel className={className}>
       <HeaderWrapper>
@@ -46,7 +49,7 @@ function ScoreCard({
       </HeaderWrapper>
 
       <ScoreWrapper>
-        <Score>{score ?? '\u2014'}</Score>
+        <Score>{displayScore}</Score>
         {defined(trend) && (
           <Trend trendStatus={trendStatus}>
             <TextOverflow>{trend}</TextOverflow>
@@ -76,7 +79,7 @@ export const ScorePanel = styled(Panel)`
   min-height: 96px;
 `;
 
-export const HeaderTitle = styled('div')`
+const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
@@ -85,10 +88,10 @@ export const HeaderTitle = styled('div')`
 `;
 
 export const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -121,5 +124,3 @@ export const Trend = styled('div')<TrendProps>`
   line-height: 1;
   overflow: hidden;
 `;
-
-export default ScoreCard;

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {
   BaseTraceChildrenProps,
   FullQuickTrace,
@@ -36,18 +36,13 @@ type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
   };
 
 function getTraceFullRequestPayload({
-  type,
   eventId,
   limit,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload: any = getTraceRequestPayload(props);
 
-  if (type === 'spans') {
-    additionalApiPayload.useSpans = '1';
-  } else {
-    additionalApiPayload.detailed = '1';
-  }
+  additionalApiPayload.detailed = '1';
 
   if (eventId) {
     additionalApiPayload.event_id = eventId;

@@ -2,7 +2,7 @@ import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
+from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, PROVIDER_MAP
 from sentry.flags.providers import (
     DeserializationError,
     LaunchDarklyItemSerializer,
@@ -12,7 +12,7 @@ from sentry.flags.providers import (
 default_timezone = timezone.get_default_timezone()
 
 
-def test_launchdarkly_create():
+def test_launchdarkly_create() -> None:
     request_data = {
         "_links": {
             "canonical": {
@@ -155,11 +155,12 @@ def test_launchdarkly_create():
     assert flag_row["created_by"] == "michelle@example.com"
     assert flag_row["created_by_type"] == CREATED_BY_TYPE_MAP["email"]
     assert flag_row["organization_id"] == 123
+    assert flag_row["provider"] == PROVIDER_MAP["launchdarkly"]
     assert flag_row["tags"] is not None
     assert flag_row["tags"]["description"] == "flag was created"
 
 
-def test_launchdarkly_update():
+def test_launchdarkly_update() -> None:
     request_data = {
         "_id": "1234",
         "_accountId": "1234",
@@ -351,7 +352,7 @@ def test_launchdarkly_update():
     assert flag_row["action"] == ACTION_MAP["updated"]
 
 
-def test_launchdarkly_create_no_member():
+def test_launchdarkly_create_no_member() -> None:
     request_data = {
         "_links": {
             "canonical": {
@@ -481,11 +482,12 @@ def test_launchdarkly_create_no_member():
     assert flag_row["created_by"] is None
     assert flag_row["created_by_type"] is None
     assert flag_row["organization_id"] == 123
+    assert flag_row["provider"] == PROVIDER_MAP["launchdarkly"]
     assert flag_row["tags"] is not None
     assert flag_row["tags"]["description"] == "flag was created"
 
 
-def test_launchdarkly_delete_and_update():
+def test_launchdarkly_delete_and_update() -> None:
     request_data = {
         "_id": "1234",
         "_accountId": "1234",
@@ -519,7 +521,7 @@ def test_launchdarkly_delete_and_update():
     assert flag_row_delete["action"] == ACTION_MAP["deleted"]
 
 
-def test_launchdarkly_no_valid_action():
+def test_launchdarkly_no_valid_action() -> None:
     request_data = {
         "_id": "1234",
         "_accountId": "1234",
@@ -557,7 +559,7 @@ def test_launchdarkly_no_valid_action():
     assert len(res) == 0
 
 
-def test_bad_launchdarkly_data():
+def test_bad_launchdarkly_data() -> None:
     request_data = {
         "accesses": [],
         "description": {},

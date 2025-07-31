@@ -5,8 +5,8 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 
 type CallbackOptions = {
-  error?: Function;
-  success?: Function;
+  error?: (...args: unknown[]) => void;
+  success?: (...args: unknown[]) => void;
 };
 
 const doCallback = (
@@ -29,22 +29,6 @@ type MemberId = {memberId: string};
 export async function fetchUserTeams(api: Client, params: OrgSlug) {
   const teams = await api.requestPromise(`/organizations/${params.orgId}/user-teams/`);
   TeamStore.loadUserTeams(teams);
-}
-
-export function fetchTeamDetails(
-  api: Client,
-  params: OrgAndTeamSlug,
-  options?: CallbackOptions
-) {
-  return api.request(`/teams/${params.orgId}/${params.teamId}/`, {
-    success: data => {
-      TeamStore.onUpdateSuccess(params.teamId, data);
-      doCallback(options, 'success', data);
-    },
-    error: error => {
-      doCallback(options, 'error', error);
-    },
-  });
 }
 
 export function updateTeamSuccess(teamId: OrgAndTeamSlug['teamId'], data: Team) {

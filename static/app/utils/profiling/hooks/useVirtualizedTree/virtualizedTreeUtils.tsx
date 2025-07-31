@@ -9,7 +9,7 @@ import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtuali
 
 import type {VirtualizedState} from './useVirtualizedTreeReducer';
 
-export function updateGhostRow({
+function updateGhostRow({
   element,
   selectedNodeIndex,
   rowHeight,
@@ -124,7 +124,7 @@ type AnimationTimeoutId = {
 };
 
 export function requestAnimationTimeout(
-  callback: Function,
+  callback: () => void,
   delay: number
 ): AnimationTimeoutId {
   let start: any;
@@ -156,7 +156,7 @@ export function cancelAnimationTimeout(frame: AnimationTimeoutId) {
   window.cancelAnimationFrame(frame.id);
 }
 
-export function findOptimisticStartIndex<T extends TreeLike>({
+function findOptimisticStartIndex<T extends TreeLike>({
   items,
   overscroll,
   rowHeight,

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useEffect, useRef} from 'react';
 
 import toArray from 'sentry/utils/array/toArray';
 
@@ -55,13 +55,16 @@ type Hotkey = {
  *
  * Note: you can only use one non-modifier (keys other than shift, ctrl, alt, command) key at a time.
  */
-export function useHotkeys(hotkeys: Hotkey[], deps: React.DependencyList): void {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoizedHotkeys = useMemo(() => hotkeys, deps);
+export function useHotkeys(hotkeys: Hotkey[]): void {
+  const hotkeysRef = useRef(hotkeys);
 
-  const onKeyDown = useCallback(
-    (evt: KeyboardEvent) => {
-      for (const hotkey of memoizedHotkeys) {
+  useEffect(() => {
+    hotkeysRef.current = hotkeys;
+  });
+
+  useEffect(() => {
+    const onKeyDown = (evt: KeyboardEvent) => {
+      for (const hotkey of hotkeysRef.current) {
         const preventDefault = !hotkey.skipPreventDefault;
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 
@@ -87,15 +90,12 @@ export function useHotkeys(hotkeys: Hotkey[], deps: React.DependencyList): void 
           }
         }
       }
-    },
-    [memoizedHotkeys]
-  );
+    };
 
-  useEffect(() => {
     document.addEventListener('keydown', onKeyDown);
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [onKeyDown]);
+  }, []);
 }

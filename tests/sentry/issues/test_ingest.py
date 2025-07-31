@@ -1,14 +1,17 @@
 from collections import namedtuple
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.constants import LOG_LEVELS_MAP
+from sentry.api.helpers.group_index.update import handle_priority
+from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssueDetectorHandler
+from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -19,15 +22,19 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import (
     _create_issue_kwargs,
+    hash_fingerprint,
     materialize_metadata,
     save_issue_from_occurrence,
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
 )
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -35,12 +42,18 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -139,7 +152,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(
             event_id=event.event_id,
-            initial_issue_priority=PriorityLevel.HIGH,
+            priority=PriorityLevel.HIGH,
         )
         _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         assert group_info is not None
@@ -161,6 +174,184 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assignee = GroupAssignee.objects.get(group=group_info.group)
         assert assignee.team_id == self.team.id
+
+    def test_issue_platform_handles_deprecated_initial_priority(self) -> None:
+        # test initial_issue_priority is handled
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            assignee=f"team:{self.team.id}",
+            initial_issue_priority=PriorityLevel.MEDIUM,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+
+        # test that the priority overrides the initial_issue_priority
+        Group.objects.all().delete()
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            assignee=f"team:{self.team.id}",
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            priority=PriorityLevel.HIGH,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.HIGH
+
+    def test_creates_detector_group(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="error",
+            enabled=True,
+            config={},
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            evidence_data={"detector_id": detector.id},
+            type=ErrorGroupType.type_id,
+        )
+
+        saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+
+        detector_group = DetectorGroup.objects.get(group_id=group_info.group.id)
+        assert detector_group.detector_id == detector.id
+
+    def test_metric_issue_creates_detector_group(self) -> None:
+        from datetime import timedelta
+
+        # Create models for the detector
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            query="",
+            aggregate="count()",
+            time_window=int(timedelta(minutes=5).total_seconds()),
+            resolution=int(timedelta(minutes=1).total_seconds()),
+        )
+        query_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=snuba_query,
+            type="test_subscription",
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.project.organization_id
+        )
+        _ = DataCondition.objects.create(
+            type="gt",
+            comparison=10,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=condition_group,
+        )
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Metric Detector",
+            type="metric_issue",
+            enabled=True,
+            config={"threshold_period": 1, "detection_type": "static"},
+            workflow_condition_group=condition_group,
+        )
+        _ = AlertRuleDetector.objects.create(
+            detector=detector,
+            alert_rule_id=123,
+        )
+
+        # Create event
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        query_subscription_update: ProcessedSubscriptionUpdate = ProcessedSubscriptionUpdate(
+            entity="events",
+            subscription_id=str(query_subscription.id),
+            values={"value": 15},
+            timestamp=datetime.now(UTC),
+        )
+
+        handler = MetricIssueDetectorHandler(detector)
+        data_packet: DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate] = DataPacket(
+            str(query_subscription.id), query_subscription_update
+        )
+        eval_result = handler.evaluate(data_packet)
+
+        occurrence = None
+        for result in eval_result.values():
+            if result.result is None:
+                continue
+
+            if (
+                isinstance(result.result, IssueOccurrence)
+                and result.result.evidence_data
+                and "detector_id" in result.result.evidence_data
+            ):
+                occurrence = result.result
+                break
+
+        assert occurrence is not None, "No occurrence was created by the handler"
+
+        # Update the occurrence dict to have the correct event_id
+        occurrence_dict = occurrence.to_dict()
+        occurrence_dict["event_id"] = event.event_id
+
+        with self.tasks(), mock.patch("sentry.issues.ingest.eventstream") as _:
+            saved_occurrence, group_info = save_issue_occurrence(occurrence_dict, event)
+            assert group_info is not None
+
+            detector_group = DetectorGroup.objects.get(detector_id=detector.id)
+            assert detector_group.group_id == group_info.group.id
+
+    def test_no_detector_group_without_detector_id(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            evidence_data={},
+            type=ErrorGroupType.type_id,
+        )
+
+        saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+
+        assert not DetectorGroup.objects.filter().exists()
+
+    def test_detector_group_not_created_for_existing_group(self) -> None:
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="error",
+            enabled=True,
+            config={},
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            evidence_data={"detector_id": detector.id},
+            type=ErrorGroupType.type_id,
+        )
+
+        # First call - creates group and DetectorGroup
+        saved_occurrence1, group_info1 = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info1 is not None
+
+        # Verify DetectorGroup was created
+        detector_group1 = DetectorGroup.objects.get(detector_id=detector.id)
+        assert detector_group1.group_id == group_info1.group.id
+
+        # Second call - should not create new group or DetectorGroup
+        saved_occurrence2, group_info2 = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info2 is not None
+        assert group_info1.group.id == group_info2.group.id
+
+        # Verify only one DetectorGroup exists (no duplicate created)
+        detector_groups = DetectorGroup.objects.filter(detector_id=detector.id)
+        assert detector_groups.count() == 1
+        item = detector_groups.first()
+        assert item is not None
+        assert item.group_id == group_info1.group.id
 
 
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
@@ -213,6 +404,21 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 },
             )
 
+    def test_new_group_multiple_fingerprint(self) -> None:
+        fingerprint = ["hi", "bye"]
+        occurrence = self.build_occurrence(type=ErrorGroupType.type_id, fingerprint=fingerprint)
+        event = self.store_event(project_id=self.project.id, data={})
+
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.is_new
+        assert not group_info.is_regression
+
+        group = group_info.group
+        assert group.title == occurrence.issue_title
+        grouphashes = set(GroupHash.objects.filter(group=group).values_list("hash", flat=True))
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+
     def test_existing_group(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
@@ -237,7 +443,78 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert updated_group.times_seen == 2
         assert updated_group.message == "<unlabeled event> new title new subtitle api/123"
 
-    def test_existing_group_different_category(self) -> None:
+    def test_existing_group_multiple_fingerprints(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(fingerprint=fingerprint)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.is_new
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+
+        fingerprint = ["some-fingerprint", "another-fingerprint"]
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(fingerprint=fingerprint)
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        assert group_info.group.id == updated_group_info.group.id
+        assert not updated_group_info.is_new
+        assert not updated_group_info.is_regression
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+
+    def test_existing_group_multiple_fingerprints_overlap(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        group_info = save_issue_from_occurrence(
+            self.build_occurrence(fingerprint=fingerprint),
+            self.store_event(data={}, project_id=self.project.id),
+            None,
+        )
+        assert group_info is not None
+        assert group_info.is_new
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+        other_fingerprint = ["another-fingerprint"]
+        other_group_info = save_issue_from_occurrence(
+            self.build_occurrence(fingerprint=other_fingerprint),
+            self.store_event(data={}, project_id=self.project.id),
+            None,
+        )
+        assert other_group_info is not None
+        assert other_group_info.is_new
+        grouphashes = set(
+            GroupHash.objects.filter(group=other_group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(other_fingerprint)) == grouphashes
+
+        # Should process the in order, and not join an already used fingerprint
+        overlapping_fingerprint = ["another-fingerprint", "some-fingerprint"]
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(fingerprint=overlapping_fingerprint)
+        with self.tasks():
+            overlapping_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert overlapping_group_info is not None
+        assert other_group_info.group.id == overlapping_group_info.group.id
+        assert not overlapping_group_info.is_new
+        assert not overlapping_group_info.is_regression
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+        other_grouphashes = set(
+            GroupHash.objects.filter(group=other_group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(other_fingerprint)) == other_grouphashes
+
+    def test_existing_group_different_type(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -250,9 +527,10 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
             logger.error.assert_called_once_with(
-                "save_issue_from_occurrence.category_mismatch",
+                "save_issue_from_occurrence.type_mismatch",
                 extra={
-                    "issue_category": group_info.group.issue_category,
+                    "issue_type": group_info.group.issue_type.slug,
+                    "occurrence_type": MonitorIncidentType.slug,
                     "event_type": "platform",
                     "group_id": group_info.group.id,
                 },
@@ -294,13 +572,16 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 slug = "test"
                 description = "Test"
                 category = GroupCategory.PROFILE.value
+                category_v2 = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=self.project.id)
             occurrence = self.build_occurrence(type=TestGroupType.type_id)
             with mock.patch("sentry.issues.ingest.metrics") as metrics:
                 assert save_issue_from_occurrence(occurrence, event, None) is None
-                metrics.incr.assert_called_once_with("issues.issue.dropped.noise_reduction")
+                metrics.incr.assert_called_once_with(
+                    "issues.issue.dropped.noise_reduction", tags={"group_type": "test"}
+                )
 
             new_event = self.store_event(data={}, project_id=self.project.id)
             new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
@@ -355,22 +636,76 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info.group.priority == PriorityLevel.LOW
 
     def test_new_group_with_priority(self) -> None:
-        occurrence = self.build_occurrence(initial_issue_priority=PriorityLevel.HIGH)
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
 
+    @with_feature("organizations:issue-open-periods")
+    def test_update_open_period(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.data["highest_seen_priority"] == PriorityLevel.MEDIUM
+
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+        open_period.refresh_from_db()
+        assert open_period.data["highest_seen_priority"] == PriorityLevel.HIGH
+
+    def test_group_with_priority_locked(self) -> None:
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.HIGH
+        assert group.priority_locked_at is None
+
+        handle_priority(
+            priority=PriorityLevel.LOW.to_str(),
+            group_list=[group],
+            acting_user=None,
+            project_lookup={self.project.id: self.project},
+        )
+
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        save_issue_from_occurrence(occurrence, event, None)
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.LOW
+        assert group.priority_locked_at is not None
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
-        occurrence = self.build_occurrence()
+        culprit = "abcde" * 100
+        occurrence = self.build_occurrence(culprit=culprit)
         event = self.store_event(data={}, project_id=self.project.id)
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
-            "culprit": occurrence.culprit,
+            # Should truncate the culprit to max allowable length
+            "culprit": f"{culprit[:MAX_CULPRIT_LENGTH-3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
@@ -391,7 +726,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "metadata": {
                 "title": occurrence.issue_title,
                 "value": occurrence.subtitle,
-                "initial_priority": occurrence.initial_issue_priority,
+                "initial_priority": occurrence.priority,
             },
             "title": occurrence.issue_title,
             "location": event.location,
@@ -409,7 +744,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
-            "initial_priority": occurrence.initial_issue_priority,
+            "initial_priority": occurrence.priority,
         }
 
     def test_populates_feedback_metadata(self) -> None:
@@ -435,7 +770,35 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
-            "initial_priority": occurrence.initial_issue_priority,
+            "initial_priority": occurrence.priority,
+        }
+
+    def test_populates_feedback_metadata_with_linked_error(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+                "source": "crash report widget",
+                "associated_event_id": "55798fee4d21425c8689c980cde794f2",
+            },
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
+            "name": "Name Test",
+            "source": "crash report widget",
+            "initial_priority": occurrence.priority,
+            "associated_event_id": "55798fee4d21425c8689c980cde794f2",
         }
 
 

@@ -1,3 +1,5 @@
+import moment from 'moment-timezone';
+
 import {getFormat} from 'sentry/utils/dates';
 
 import {getConfigFromTimeRange} from './getConfigFromTimeRange';
@@ -10,6 +12,7 @@ describe('getConfigFromTimeRange', function () {
     const end = new Date('2023-06-15T11:05:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
     expect(config).toEqual({
+      periodStart: start,
       start,
       end,
       dateLabelFormat: getFormat({timeOnly: true, seconds: true}),
@@ -19,8 +22,9 @@ describe('getConfigFromTimeRange', function () {
         interval: 15,
         timelineUnderscanWidth: 0,
         totalBuckets: 20,
+        underscanBuckets: 0,
+        underscanStartOffset: 0,
       },
-      showUnderscanHelp: false,
       intervals: {
         normalMarkerInterval: 1,
         minimumMarkerInterval: 0.625,
@@ -36,7 +40,10 @@ describe('getConfigFromTimeRange', function () {
     const end = new Date('2023-06-16T11:05:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
     expect(config).toEqual({
-      start,
+      periodStart: start,
+      start: moment(start)
+        .subtract(60 * 154, 'seconds')
+        .toDate(),
       end,
       dateLabelFormat: getFormat(),
       elapsedMinutes: 1445,
@@ -45,8 +52,9 @@ describe('getConfigFromTimeRange', function () {
         interval: 60,
         timelineUnderscanWidth: 77,
         totalBuckets: 1446,
+        underscanBuckets: 154,
+        underscanStartOffset: 0,
       },
-      showUnderscanHelp: false,
       intervals: {
         normalMarkerInterval: 240,
         minimumMarkerInterval: 219.8478561549101,
@@ -62,7 +70,10 @@ describe('getConfigFromTimeRange', function () {
     const end = new Date('2023-06-15T23:00:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
     expect(config).toEqual({
-      start,
+      periodStart: start,
+      start: moment(start)
+        .subtract(900 * 2, 'seconds')
+        .toDate(),
       end,
       dateLabelFormat: getFormat({timeOnly: true}),
       elapsedMinutes: 900,
@@ -71,13 +82,14 @@ describe('getConfigFromTimeRange', function () {
         interval: 900,
         timelineUnderscanWidth: 20,
         totalBuckets: 60,
+        underscanBuckets: 2,
+        underscanStartOffset: 6,
       },
       intervals: {
         normalMarkerInterval: 120,
         minimumMarkerInterval: 115.38461538461537,
         referenceMarkerInterval: 132.69230769230768,
       },
-      showUnderscanHelp: false,
       dateTimeProps: {timeOnly: true},
       timelineWidth: 780,
     });
@@ -88,7 +100,10 @@ describe('getConfigFromTimeRange', function () {
     const end = new Date('2023-06-15T11:00:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
     expect(config).toEqual({
-      start,
+      periodStart: start,
+      start: moment(start)
+        .subtract(1800 * 112, 'seconds')
+        .toDate(),
       end,
       dateLabelFormat: getFormat(),
       // 31 elapsed days
@@ -98,6 +113,8 @@ describe('getConfigFromTimeRange', function () {
         interval: 1800,
         timelineUnderscanWidth: 56,
         totalBuckets: 1488,
+        underscanBuckets: 112,
+        underscanStartOffset: 0,
       },
       // 5 days in between each time label
       intervals: {
@@ -105,7 +122,6 @@ describe('getConfigFromTimeRange', function () {
         minimumMarkerInterval: 6000,
         referenceMarkerInterval: 6900,
       },
-      showUnderscanHelp: false,
       dateTimeProps: {dateOnly: true},
       timelineWidth: 744,
     });
@@ -116,7 +132,10 @@ describe('getConfigFromTimeRange', function () {
     const end = new Date('2023-05-15T10:00:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
     expect(config).toEqual({
-      start,
+      periodStart: start,
+      start: moment(start)
+        .subtract(900 * 2, 'seconds')
+        .toDate(),
       end,
       dateLabelFormat: getFormat(),
       // 14 hours
@@ -126,8 +145,9 @@ describe('getConfigFromTimeRange', function () {
         interval: 900,
         timelineUnderscanWidth: 16,
         totalBuckets: 56,
+        underscanBuckets: 2,
+        underscanStartOffset: 12,
       },
-      showUnderscanHelp: false,
       intervals: {
         normalMarkerInterval: 120,
         minimumMarkerInterval: 117.85714285714285,

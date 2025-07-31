@@ -127,6 +127,18 @@ def _adjust_request_members(ctx: ClassDefContext) -> None:
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
 
 
+def _adjust_http_response_members(ctx: ClassDefContext) -> None:
+    if ctx.cls.name == "HttpResponseBase":
+        dict_str_list_str = ctx.api.named_type(
+            "builtins.dict",
+            [
+                ctx.api.named_type("builtins.str"),
+                ctx.api.named_type("builtins.list", [ctx.api.named_type("builtins.str")]),
+            ],
+        )
+        add_attribute_to_class(ctx.api, ctx.cls, "_csp_replace", dict_str_list_str)
+
+
 def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type:
     # we use `Any` as the `__getattr__` return value
     # allow existing attributes to be returned as normal if they are not `Any`
@@ -156,12 +168,15 @@ class SentryMypyPlugin(Plugin):
     ) -> Callable[[FunctionSigContext], FunctionLike] | None:
         return _FUNCTION_SIGNATURE_HOOKS.get(fullname)
 
-    def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
-        # XXX: this is a hack -- I don't know if there's a better callback to modify a class
-        if fullname == "_io.BytesIO":
+    def get_customize_class_mro_hook(
+        self, fullname: str
+    ) -> Callable[[ClassDefContext], None] | None:
+        if fullname == "django.http.request.HttpRequest":
             return _adjust_http_request_members
-        elif fullname == "django.http.request.HttpRequest":
+        elif fullname == "rest_framework.request.Request":
             return _adjust_request_members
+        elif fullname == "django.http.response.HttpResponseBase":
+            return _adjust_http_response_members
         else:
             return None
 

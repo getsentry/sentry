@@ -38,6 +38,42 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
             },
             3,
         )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": self.now - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.PROFILE_DURATION_UI,
+                "quantity": 2000,  # Duration in milliseconds
+            },
+            2,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": self.now - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.RATE_LIMITED,
+                "reason": "none",
+                "category": DataCategory.PROFILE_CHUNK,
+                "quantity": 420,
+            },
+            1,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": self.now - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.RATE_LIMITED,
+                "reason": "none",
+                "category": DataCategory.PROFILE_CHUNK_UI,
+                "quantity": 69,
+            },
+            1,
+        )
 
         self.url = reverse(
             "sentry-api-0-organization-stats-v2",
@@ -55,19 +91,20 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
 
         self.validate_schema(request, response)
 
-    def test_profile_duration_category(self):
-        """
-        Test that the organization stats endpoint correctly handles profile duration category.
-        This test verifies that the endpoint returns valid schema when filtering by profile_duration category
-        and aggregating quantity values.
-        """
-        query = {
-            "interval": "1d",
-            "field": "sum(quantity)",
-            "groupBy": "category",
-            "category": "profile_duration",
-        }
-        response = self.client.get(self.url, query, format="json")
-        request = RequestFactory().get(self.url)
+    def test_continuous_profiling_categories(self):
+        for category in [
+            "profile_duration",
+            "profile_duration_ui",
+            "profile_chunk",
+            "profile_chunk_ui",
+        ]:
+            query = {
+                "interval": "1d",
+                "field": "sum(quantity)",
+                "groupBy": "category",
+                "category": category,
+            }
+            response = self.client.get(self.url, query, format="json")
+            request = RequestFactory().get(self.url)
 
-        self.validate_schema(request, response)
+            self.validate_schema(request, response)

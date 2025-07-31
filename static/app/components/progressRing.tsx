@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 import type {SerializedStyles, Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
-import theme from 'sentry/utils/theme';
 
 type TextProps = {
   percent: number;
@@ -57,12 +57,12 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   height: 100%;
   width: 100%;
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   transition: color 100ms;
   ${p => p.textCss?.(p)}
 `;
 
-const AnimatedText = motion(Text);
+const AnimatedText = motion.create(Text);
 
 const animatedTextDefaultProps = {
   initial: {opacity: 0, y: -10},
@@ -80,11 +80,12 @@ function ProgressRing({
   text,
   textCss,
   animate = false,
-  progressColor = theme.green300,
-  backgroundColor = theme.gray200,
   progressEndcaps,
   ...p
 }: Props) {
+  const theme = useTheme();
+  const progressColor = p.progressColor ?? theme.green300;
+  const backgroundColor = p.backgroundColor ?? theme.gray200;
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -97,7 +98,7 @@ function ProgressRing({
 
   let textNode = (
     <TextComponent
-      key={text?.toString()}
+      key={typeof text === 'object' && text !== null ? 'text-node' : text?.toString()}
       {...(animate ? animatedTextDefaultProps : {})}
       {...{textCss, percent}}
     >
@@ -182,7 +183,7 @@ const RingBar = styled('circle')<{
     stroke 100ms;
 `;
 
-const MotionRingBar = motion(RingBar);
+const MotionRingBar = motion.create(RingBar);
 
 export default ProgressRing;
 

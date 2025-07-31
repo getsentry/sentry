@@ -99,6 +99,7 @@ class IntegrationService(RpcService):
         has_grace_period: bool | None = None,
         grace_period_expired: bool | None = None,
         limit: int | None = None,
+        name: str | None = None,
     ) -> list[RpcOrganizationIntegration]:
         """
         Returns all RpcOrganizationIntegrations from the matching kwargs.
@@ -228,7 +229,7 @@ class IntegrationService(RpcService):
         new_status: int,
         incident_attachment_json: str,
         organization_id: int,
-        metric_value: str | None = None,
+        metric_value: float,
         notification_uuid: str | None = None,
     ) -> bool:
         pass

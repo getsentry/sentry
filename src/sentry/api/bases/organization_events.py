@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -15,10 +17,14 @@ from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
+from sentry.api.helpers.error_upsampling import (
+    are_any_projects_error_upsampled,
+    convert_fields_for_upsampling,
+)
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
-from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQueryTypes
@@ -29,12 +35,15 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -58,9 +67,12 @@ def get_query_columns(columns, rollup):
 
 
 def resolve_axis_column(
-    column: str, index: int = 0, transform_alias_to_input_format: bool = False
+    column: str,
+    index: int = 0,
+    transform_alias_to_input_format: bool = False,
+    use_rpc: bool = False,
 ) -> str:
-    if is_equation(column):
+    if is_equation(column) and not use_rpc:
         return f"equation[{index}]"
 
     # Function columns on input have names like `"p95(duration)"`. By default, we convert them to their aliases like `"p95_duration"`. Here, we want to preserve the original name, so we return the column as-is
@@ -82,17 +94,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             )
         )
 
-    def get_equation_list(self, organization: Organization, request: Request) -> list[str]:
+    def get_equation_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         return [
-            strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
+            strip_equation(field)
+            for field in request.GET.getlist(param_name)[:]
+            if is_equation(field)
         ]
 
-    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
-        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
-
-    def get_team_ids(self, request: Request, organization: Organization) -> list[int]:
-        return [team.id for team in self.get_teams(request, organization)]
+    def get_field_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
+        return [field for field in request.GET.getlist(param_name)[:] if not is_equation(field)]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
@@ -105,7 +120,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return [team for team in teams]
 
     def get_dataset(self, request: Request) -> Any:
-        dataset_label = request.GET.get("dataset", "discover")
+        dataset_label = request.GET.get("dataset", Dataset.Discover.value)
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
@@ -130,7 +145,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
-            filter_params: dict[str, Any] = self.get_filter_params(request, organization)
+            filter_params = self.get_filter_params(request, organization)
+            query = request.GET.get("query", "")
+            sampling_mode = request.GET.get("sampling", None)
+            if sampling_mode is not None:
+                if sampling_mode.upper() not in SAMPLING_MODE_MAP:
+                    raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
+                sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
+
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -138,9 +160,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 end=filter_params["end"],
                 environments=filter_params.get("environment_objects", []),
                 projects=filter_params["project_objects"],
-                user=request.user if request.user else None,
+                user=serialize_generic_user(
+                    request.user if request.user.is_authenticated else None
+                ),
                 teams=self.get_teams(request, organization),
                 organization=organization,
+                query_string=query,
+                sampling_mode=sampling_mode,
+                debug=request.user.is_superuser and "debug" in request.GET,
             )
 
             if check_global_views:
@@ -164,7 +191,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return orderby
         return None
 
-    def quantize_date_params(self, request: Request, params: dict[str, Any]) -> dict[str, Any]:
+    def quantize_date_params(
+        self, request: Request, params: FilterParamsDateNotNull
+    ) -> FilterParamsDateNotNull:
         # We only need to perform this rounding on relative date periods
         if "statsPeriod" not in request.GET:
             return params
@@ -188,7 +217,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.PERFORMANCE
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor | None) -> str:
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
@@ -230,21 +259,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
-            if features.has(
-                "organizations:performance-discover-dataset-selector", organization, actor=user
-            ):
-                # In the case that neither side has data, or both sides have data, default to errors.
-                decision = DashboardWidgetTypes.ERROR_EVENTS
-                source = DashboardDatasetSourcesTypes.FORCED.value
-                sentry_sdk.set_tag("discover.split_reason", "default")
-            else:
-                # This branch can be deleted once the feature flag for the discover split is removed
-                if has_errors and has_transactions_data:
-                    decision = DashboardWidgetTypes.DISCOVER
-                else:
-                    # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
-                    # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
-                    decision = None
+            # In the case that neither side has data, or both sides have data, default to errors.
+            decision = DashboardWidgetTypes.ERROR_EVENTS
+            source = DashboardDatasetSourcesTypes.FORCED.value
+            sentry_sdk.set_tag("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
         if decision is not None and widget.discover_widget_split != decision:
@@ -293,24 +311,25 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         units: dict[str, str | None] = {}
         meta: dict[str, str] = result_meta.copy()
         for key, value in result_meta.items():
-            if value in SIZE_UNITS:
-                units[key] = value
-                meta[key] = "size"
-            elif value in DURATION_UNITS:
-                units[key] = value
-                meta[key] = "duration"
-            elif value == "rate":
-                if key in ["eps()", "sps()", "tps()"]:
-                    units[key] = "1/second"
-                elif key in ["epm()", "spm()", "tpm()"]:
-                    units[key] = "1/minute"
-                else:
-                    units[key] = None
-            elif value == "duration":
-                units[key] = "millisecond"
-            else:
-                units[key] = None
+            units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
+
+    def get_unit_and_type(self, field, field_type):
+        if field_type in SIZE_UNITS:
+            return field_type, "size"
+        elif field_type in DURATION_UNITS:
+            return field_type, "duration"
+        elif field_type == "rate":
+            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
+                return "1/second", field_type
+            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
+                return "1/minute", field_type
+            else:
+                return None, field_type
+        elif field_type == "duration":
+            return "millisecond", field_type
+        else:
+            return None, field_type
 
     def handle_results_with_meta(
         self,
@@ -330,6 +349,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
+                full_scan = meta.pop("full_scan", None)
+                query = meta.pop("query", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -344,6 +365,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if discoverSplitDecision is not None:
                     meta["discoverSplitDecision"] = discoverSplitDecision
+
+                if full_scan is not None:
+                    meta["dataScanned"] = "full" if full_scan else "partial"
+                else:
+                    # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
+                    meta["dataScanned"] = "full"
+
+                # Only appears in meta when debug is passed to the endpoint
+                if query:
+                    meta["query"] = query
             else:
                 meta = fields_meta
 
@@ -353,6 +384,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if not data:
                 return {"data": [], "meta": meta}
             if "confidence" in results:
+                meta["accuracy"] = {
+                    "confidence": results["confidence"],
+                }
+                # Confidence being a top level key is going to be deprecated in favour of confidence being in the meta
                 return {"data": data, "meta": meta, "confidence": results["confidence"]}
             return {"data": data, "meta": meta}
 
@@ -392,6 +427,17 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
+    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
+        """
+        If the query is for error upsampled projects, we convert various functions under the hood.
+        We need to rename these fields before returning the results to the client, to hide the conversion.
+        This is done here to work around a limitation in how aliases are handled in the SnQL parser.
+        """
+        if are_any_projects_error_upsampled(project_ids):
+            data = results.get("data", [])
+            fields_meta = results.get("meta", {}).get("fields", {})
+            convert_fields_for_upsampling(data, fields_meta)
+
     def handle_issues(
         self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
     ) -> None:
@@ -410,12 +456,49 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 if readable_value:
                     result["readable"] = readable_value
 
+    def get_rollup(
+        self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
+    ) -> int:
+        """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
+        try:
+            rollup = get_rollup_from_request(
+                request,
+                snuba_params.date_range,
+                default_interval=None,
+                error=InvalidSearchQuery(),
+                top_events=top_events,
+                allow_interval_over_range=not use_rpc,
+            )
+        # If the user sends an invalid interval, use the default instead
+        except InvalidSearchQuery:
+            # on RPC don't use default interval on error
+            if use_rpc:
+                raise
+            sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
+            date_range = snuba_params.date_range
+            stats_period = parse_stats_period(get_interval_from_range(date_range, False))
+            rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
+        return rollup
+
+    def validate_comparison_delta(
+        self,
+        comparison_delta: timedelta | None,
+        snuba_params: SnubaParams,
+        organization: Organization,
+    ) -> None:
+        if comparison_delta is not None:
+            retention = quotas.backend.get_event_retention(organization=organization)
+            comparison_start = snuba_params.start_date - comparison_delta
+            if retention and comparison_start < timezone.now() - timedelta(days=retention):
+                raise ValidationError("Comparison period is outside your retention window")
+
     def get_event_stats_data(
         self,
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [list[str], str, SnubaParams, int, bool, timedelta | None], SnubaTSResult
+            [list[str], str, SnubaParams, int, bool, timedelta | None],
+            SnubaTSResult | dict[str, SnubaTSResult],
         ],
         top_events: int = 0,
         query_column: str = "count()",
@@ -427,6 +510,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_columns: list[str] | None = None,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query_creation"):
@@ -448,25 +532,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
-                try:
-                    rollup = get_rollup_from_request(
-                        request,
-                        snuba_params.date_range,
-                        default_interval=None,
-                        error=InvalidSearchQuery(),
-                        top_events=top_events,
+                if use_rpc and snuba_params.date_range.total_seconds() < min(VALID_GRANULARITIES):
+                    raise InvalidSearchQuery(
+                        f"Timeseries queries must be for periods of at least {min(VALID_GRANULARITIES)} seconds"
                     )
-                # If the user sends an invalid interval, use the default instead
-                except InvalidSearchQuery:
-                    sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-                    date_range = snuba_params.date_range
-                    stats_period = parse_stats_period(get_interval_from_range(date_range, False))
-                    rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
-                if comparison_delta is not None:
-                    retention = quotas.get_event_retention(organization=organization)
-                    comparison_start = snuba_params.start_date - comparison_delta
-                    if retention and comparison_start < timezone.now() - timedelta(days=retention):
-                        raise ValidationError("Comparison period is outside your retention window")
+                rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+                snuba_params.granularity_secs = rollup
+                self.validate_comparison_delta(comparison_delta, snuba_params, organization)
 
                 query_columns = get_query_columns(columns, rollup)
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
@@ -481,7 +553,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.
             is_multiple_axis = len(query_columns) > 1
-            if top_events > 0 and isinstance(result, dict):
+            if isinstance(result, dict):
                 results = {}
                 for key, event_result in result.items():
                     if is_multiple_axis:
@@ -497,21 +569,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                             transform_alias_to_input_format=transform_alias_to_input_format,
+                            use_rpc=use_rpc,
                         )
                         if request.query_params.get("useOnDemandMetrics") == "true":
                             results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
                                 results, key, query_columns
                             )
                     else:
+                        column = resolve_axis_column(
+                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                        )
                         results[key] = serializer.serialize(
                             event_result,
-                            column=resolve_axis_column(
-                                query_columns[0], 0, transform_alias_to_input_format
-                            ),
+                            column=column,
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
-                        results[key]["meta"] = self.handle_results_with_meta(
+                        meta = self.handle_results_with_meta(
                             request,
                             organization,
                             snuba_params.project_ids,
@@ -519,6 +593,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             True,
                             dataset=dataset,
                         )["meta"]
+                        self.update_meta_with_accuracy(meta, event_result, column)
+                        results[key]["meta"] = meta
 
                 serialized_result = results
             elif is_multiple_axis:
@@ -534,6 +610,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     zerofill_results=zerofill_results,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -541,16 +618,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 extra_columns = None
                 if comparison_delta:
                     extra_columns = ["comparisonCount"]
+                column = resolve_axis_column(
+                    query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                )
                 serialized_result = serializer.serialize(
                     result,
-                    column=resolve_axis_column(
-                        query_columns[0], 0, transform_alias_to_input_format
-                    ),
+                    column=column,
                     allow_partial_buckets=allow_partial_buckets,
                     zerofill_results=zerofill_results,
                     extra_columns=extra_columns,
+                    confidence_column=column,
                 )
-                serialized_result["meta"] = self.handle_results_with_meta(
+                meta = self.handle_results_with_meta(
                     request,
                     organization,
                     snuba_params.project_ids,
@@ -558,6 +637,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     True,
                     dataset=dataset,
                 )["meta"]
+                self.update_meta_with_accuracy(meta, result, column)
+                serialized_result["meta"] = meta
 
             return serialized_result
 
@@ -580,7 +661,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         self,
         request: Request,
         organization: Organization,
-        serializer: BaseSnubaSerializer,
+        serializer: SnubaTSResultSerializer,
         event_result: SnubaTSResult,
         snuba_params: SnubaParams,
         columns: Sequence[str],
@@ -589,6 +670,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         zerofill_results: bool = True,
         dataset: Any | None = None,
         transform_alias_to_input_format: bool = False,
+        use_rpc: bool = False,
     ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
@@ -604,19 +686,58 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(
                 event_result,
-                resolve_axis_column(query_column, equations, transform_alias_to_input_format),
+                resolve_axis_column(
+                    query_column, equations, transform_alias_to_input_format, use_rpc
+                ),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
                 zerofill_results=zerofill_results,
             )
             if is_equation(query_column):
                 equations += 1
-            result[columns[index]]["meta"] = meta
+            column_meta = meta.copy()
+            self.update_meta_with_accuracy(column_meta, event_result, query_column)
+            result[columns[index]]["meta"] = column_meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
 
         return result
+
+    def update_meta_with_accuracy(self, meta, event_result, query_column) -> None:
+        if "processed_timeseries" in event_result.data:
+            processed_timeseries = event_result.data["processed_timeseries"]
+            meta["accuracy"] = {
+                "confidence": self.serialize_accuracy_data(
+                    processed_timeseries.confidence, query_column
+                ),
+                "sampleCount": self.serialize_accuracy_data(
+                    processed_timeseries.sample_count, query_column
+                ),
+                "samplingRate": self.serialize_accuracy_data(
+                    processed_timeseries.sampling_rate, query_column, null_zero=True
+                ),
+            }
+
+    def serialize_accuracy_data(
+        self,
+        data: Any,
+        column: str,
+        null_zero: bool = False,
+    ):
+        serialized_values = []
+        for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
+            for row in group:
+                row_value = row.get(column, None)
+                if row_value == 0 and null_zero:
+                    row_value = None
+                serialized_values.append(
+                    {
+                        "timestamp": timestamp,
+                        "value": row_value,
+                    }
+                )
+        return serialized_values
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):

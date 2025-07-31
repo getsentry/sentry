@@ -5,22 +5,25 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconFocus, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MiniAggregateWaterfall} from 'sentry/views/insights/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {usePageSummary} from 'sentry/views/insights/browser/webVitals/queries/usePageSummary';
+import {useSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -42,32 +45,22 @@ export function PageOverviewSidebar({
   browserTypes,
   subregions,
 }: Props) {
+  const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
+  const organization = useOrganization();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-  const shouldDoublePeriod = shouldFetchPreviousPeriod({
-    includePrevious: true,
-    period,
-    start,
-    end,
-  });
-  const doubledPeriod = getPeriod({period, start, end}, {shouldDoublePeriod});
-  const doubledDatetime: PageFilters['datetime'] = {
-    period: doubledPeriod.statsPeriod ?? null,
-    start: doubledPeriod.start ?? null,
-    end: doubledPeriod.end ?? null,
-    utc,
-  };
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
-    datetime: doubledDatetime,
     browserTypes,
     subregions,
   });
 
+  const shouldDoublePeriod = false;
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data?.count,
+    data['count()'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -86,7 +79,7 @@ export function PageOverviewSidebar({
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data.countInp,
+    data['count_scores(measurements.score.inp)'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -118,8 +111,31 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
+  const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  // Query for 3 trace samples, targetting pageloads
+  const {data: traceSamples} = useSpanSamplesWebVitalsQuery({
+    transaction,
+    limit: 3,
+    webVital: 'ttfb', // Using TTFB as a proxy for pageloads
+    enabled: hasSeerWebVitalsSuggestions,
+  });
+
+  const traceIds = traceSamples?.map(sample => sample.trace);
+
+  const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary(traceIds, {
+    enabled: hasSeerWebVitalsSuggestions && traceIds && traceIds.length > 0,
+  });
+
+  const insightCards = [
+    {
+      id: 'suggestions',
+      title: t('Suggestions'),
+      insight: pageSummary?.suggestedInvestigations,
+      icon: <IconFocus size="sm" />,
+    },
+  ];
 
   return (
     <Fragment>
@@ -152,6 +168,62 @@ export function PageOverviewSidebar({
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
+      <SidebarSpacer />
+      {hasSeerWebVitalsSuggestions && (
+        <Fragment>
+          <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+          <Content>
+            <InsightGrid>
+              {isLoadingPageSummary && <Placeholder height="1.5rem" />}
+              {insightCards.map(card => {
+                if (!card.insight || typeof card.insight !== 'object') {
+                  return null;
+                }
+                return card.insight.map(insight => (
+                  <InsightCard key={card.id}>
+                    <CardTitle>
+                      <CardTitleIcon>
+                        <StyledIconSeer size="md" />
+                      </CardTitleIcon>
+                      <div>
+                        <SpanOp>{insight.spanOp}</SpanOp>
+                        <Summary>
+                          {' \u2014 '}
+                          {insight.explanation}
+                        </Summary>
+                      </div>
+                    </CardTitle>
+                    <CardContentContainer>
+                      <CardLineDecorationWrapper>
+                        <CardLineDecoration />
+                      </CardLineDecorationWrapper>
+                      <CardContent>
+                        <SuggestionsList>
+                          {insight.suggestions.map((suggestion, i) => (
+                            <li key={i}>{suggestion}</li>
+                          ))}
+                        </SuggestionsList>
+                        <SuggestionLinks>
+                          <Link
+                            to={`/organizations/${organization.slug}/insights/frontend/trace/${insight.traceId}/?node=span-${insight.spanId}`}
+                          >
+                            {t('Example')}
+                          </Link>
+                          {insight.referenceUrl && (
+                            <ExternalLink href={insight.referenceUrl}>
+                              {t('Reference')}
+                            </ExternalLink>
+                          )}
+                        </SuggestionLinks>
+                      </CardContent>
+                    </CardContentContainer>
+                  </InsightCard>
+                ));
+              })}
+            </InsightGrid>
+          </Content>
+        </Fragment>
+      )}
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}
@@ -194,9 +266,6 @@ export function PageOverviewSidebar({
           />
         )}
       </ChartZoom>
-      <MiniAggregateWaterfallContainer>
-        <MiniAggregateWaterfall transaction={transaction} />
-      </MiniAggregateWaterfallContainer>
       <SidebarSpacer />
       <SidebarSpacer />
       <SectionHeading>
@@ -271,12 +340,12 @@ const processSeriesData = (
   {period, start, end}: PageFilters['datetime'],
   shouldDoublePeriod: boolean
 ) => {
-  let seriesData = !isLoading
-    ? count.map(({name, value}) => ({
+  let seriesData = isLoading
+    ? []
+    : count.map(({name, value}) => ({
         name,
         value,
-      }))
-    : [];
+      }));
 
   // Trim off last data point since it's incomplete
   if (seriesData.length > 0 && period && !start && !end) {
@@ -288,12 +357,12 @@ const processSeriesData = (
     : seriesData;
   const previousSeries = seriesData.slice(0, dataMiddleIndex);
 
-  const initialCount = !isLoading
-    ? previousSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
-  const currentCount = !isLoading
-    ? currentSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
+  const initialCount = isLoading
+    ? undefined
+    : previousSeries.reduce((acc, {value}) => acc + value, 0);
+  const currentCount = isLoading
+    ? undefined
+    : currentSeries.reduce((acc, {value}) => acc + value, 0);
   const countDiff =
     !isLoading && currentCount !== undefined && initialCount !== undefined
       ? currentCount / initialCount
@@ -310,11 +379,11 @@ const SidebarPerformanceScoreRingContainer = styled('div')`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const ChartSubText = styled('div')<{color?: string}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.color ?? p.theme.subText};
 `;
 
@@ -324,16 +393,111 @@ const SectionHeading = styled('h4')`
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
-`;
-
-const MiniAggregateWaterfallContainer = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
 `;
 
 const ProjectScoreEmptyLoadingElement = styled('div')`
   width: 220px;
   height: 160px;
+`;
+
+const Content = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  position: relative;
+  margin: ${space(1)} 0;
+`;
+
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border-radius: ${p => p.theme.borderRadius};
+  width: 100%;
+  min-height: 0;
+`;
+
+const CardTitle = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding-bottom: ${space(0.5)};
+`;
+
+const SpanOp = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  display: inline;
+`;
+const Summary = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.md};
+  display: inline;
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 1px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+  flex: 1;
+`;
+
+const SuggestionsList = styled('ul')`
+  margin: ${space(0.5)} 0;
+`;
+
+const SuggestionLinks = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+
+  > *:not(:last-child) {
+    border-right: 1px solid ${p => p.theme.border};
+    padding-right: ${space(1)};
+  }
+`;
+
+const StyledIconSeer = styled(IconSeer)`
+  color: ${p => p.theme.blue400};
 `;

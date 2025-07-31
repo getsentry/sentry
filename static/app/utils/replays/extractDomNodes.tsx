@@ -14,7 +14,7 @@ export type Extraction = {
 const extractDomNodes = {
   shouldVisitFrame: (frame: any) => {
     const nodeIds = getNodeIds(frame);
-    return nodeIds.filter((nodeId: any) => nodeId !== -1).length > 0;
+    return nodeIds.some((nodeId: any) => nodeId !== -1);
   },
   onVisitFrame: (frame: any, collection: any, replayer: any) => {
     const mirror = replayer.getMirror();
@@ -90,9 +90,8 @@ function extractSelector(node: Node): string | null {
   return null;
 }
 
-function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {
-  for (let i = 0; i < collection.length; i++) {
-    const child = collection[i]!;
+function removeChildLevel(max: number, collection: HTMLCollection, current = 0) {
+  for (const child of collection) {
     if (child.nodeName === 'STYLE') {
       child.textContent = '/* Inline CSS */';
     }

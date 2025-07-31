@@ -61,13 +61,14 @@ function ProjectScoreCards({
         query={query}
       />
 
-      {isPlatformANRCompatible(project?.platform) ? (
+      {isPlatformANRCompatible(project?.platform, project?.features) ? (
         <ProjectAnrScoreCard
           organization={organization}
           selection={selection}
           isProjectStabilized={isProjectStabilized}
           query={query}
           location={location}
+          platform={project?.platform}
         />
       ) : (
         <ProjectApdexScoreCard
@@ -88,7 +89,7 @@ const CardWrapper = styled('div')`
   grid-template-columns: 1fr;
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: grid;
     grid-column-gap: ${space(2)};
     grid-template-columns: repeat(2, minmax(0, 1fr));

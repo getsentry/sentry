@@ -13,7 +13,7 @@ S001_methods = frozenset(("not_called", "called_once", "called_once_with"))
 
 S002_msg = "S002 print functions or statements are not allowed."
 
-S003_msg = "S003 Use ``from sentry.utils import json`` instead."
+S003_msg = "S003 Use `from sentry.utils import json` instead."
 S003_modules = frozenset(("json", "simplejson"))
 
 S004_msg = "S004 Use `pytest.raises` instead for better debuggability."
@@ -25,11 +25,20 @@ S006_msg = "S006 Do not use force_bytes / force_str -- test the types directly"
 
 S007_msg = "S007 Do not import sentry.testutils into production code."
 
+S008_msg = "S008 Use datetime.fromisoformat rather than guessing at date formats"
+
 S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
 
 S010_msg = "S010 Except handler does nothing and should be removed"
 
 S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
+
+# SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
+S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+
+S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
+
+S014_msg = "S014 Use `unittest.mock` instead"
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -52,12 +61,22 @@ class SentryVisitor(ast.NodeVisitor):
             ):
                 self.errors.append((node.lineno, node.col_offset, S006_msg))
             elif (
+                "tests/" in self.filename or "testutils/" in self.filename
+            ) and node.module == "dateutil.parser":
+                self.errors.append((node.lineno, node.col_offset, S008_msg))
+            elif (
                 "tests/" not in self.filename
                 and "fixtures/" not in self.filename
                 and "sentry/testutils/" not in self.filename
                 and "sentry.testutils" in node.module
             ):
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
+            elif node.module == "rest_framework.permissions" and any(
+                x.name == "IsAuthenticated" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S012_msg))
+            elif node.module == "sentry.db.models.fields.array":
+                self.errors.append((node.lineno, node.col_offset, S013_msg))
 
         self.generic_visit(node)
 
@@ -86,6 +105,12 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if node.id == "print":
             self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_arg(self, node: ast.arg) -> None:
+        if node.arg == "monkeypatch":
+            self.errors.append((node.lineno, node.col_offset, S014_msg))
 
         self.generic_visit(node)
 

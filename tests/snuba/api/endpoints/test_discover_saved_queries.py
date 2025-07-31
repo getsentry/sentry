@@ -710,3 +710,52 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 400, response.content
+
+    def test_post_success_is_filter(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "new query",
+                    "projects": self.project_ids,
+                    "fields": ["title"],
+                    "query": "is:unresolved",
+                    "range": "24h",
+                    "yAxis": ["count(id)"],
+                    "display": "releases",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["fields"] == ["title"]
+        assert data["range"] == "24h"
+        assert data["query"] == "is:unresolved"
+        assert data["yAxis"] == ["count(id)"]
+        assert data["display"] == "releases"
+        assert data["version"] == 2
+
+    def test_post_transactions_query_with_deprecation_flag(self):
+        with (
+            self.feature(self.feature_name),
+            self.feature("organizations:discover-saved-queries-deprecation"),
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "new query",
+                    "projects": self.project_ids,
+                    "fields": ["title"],
+                    "yAxis": ["count(id)"],
+                    "range": "24h",
+                    "queryDataset": "transaction-like",
+                    "display": "default",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+        response_data = response.json()
+        assert (
+            f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.org.slug}/explore/saved/` endpoint with the filter to save new transaction queries."
+            in response_data["queryDataset"][0]
+        )

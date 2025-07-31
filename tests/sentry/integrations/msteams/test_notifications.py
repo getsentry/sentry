@@ -32,14 +32,14 @@ TEST_CARD = {"type": "test_card"}
     [DummyNotification],
 )
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
+    "sentry.integrations.msteams.MsTeamsClientABC.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
 @patch(
-    "sentry.integrations.msteams.MsTeamsClientMixin.get_member_list",
+    "sentry.integrations.msteams.MsTeamsClientABC.get_member_list",
     Mock(return_value={"members": [{"user": "some_user", "tenantId": "some_tenant_id"}]}),
 )
-@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
+@patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
 class MSTeamsNotificationTest(TestCase):
     def _install_msteams_personal(self):
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
@@ -83,7 +83,7 @@ class MSTeamsNotificationTest(TestCase):
             user=self.user_1, identity_provider=self.idp, external_id=self.user_id_1
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_simple(
@@ -124,7 +124,7 @@ class MSTeamsNotificationTest(TestCase):
         self._install_msteams_team()
 
         with patch(
-            "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
+            "sentry.integrations.msteams.MsTeamsClientABC.get_user_conversation_id",
         ) as mock_get_user_conversation_id:
             mock_get_user_conversation_id.return_value = "some_conversation_id"
 
@@ -205,12 +205,12 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
             content_type="application/json",
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._setup_msteams_api()
 
     @responses.activate
-    def test_send_note_activity_notification(self):
+    def test_send_note_activity_notification(self) -> None:
         notification = NoteActivityNotification(
             Activity(
                 project=self.project,

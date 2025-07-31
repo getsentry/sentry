@@ -16,7 +16,7 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('EventAttachments', function () {
-  const {router, organization, project} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: {
       features: ['event-attachments'],
       orgRole: 'member',
@@ -45,7 +45,6 @@ describe('EventAttachments', function () {
     });
     const strippedCrashEvent = {...event, metadata: {stripped_crash: true}};
     render(<EventAttachments {...props} event={strippedCrashEvent} />, {
-      router,
       organization,
     });
 
@@ -81,7 +80,9 @@ describe('EventAttachments', function () {
         {...props}
         event={{...event, metadata: {stripped_crash: false}}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     // No loading state to wait for
@@ -91,7 +92,7 @@ describe('EventAttachments', function () {
   });
 
   it('displays message when user lacks permission to preview an attachment', async function () {
-    const {router: newRouter, organization: orgWithWrongAttachmentRole} = initializeOrg({
+    const {organization: orgWithWrongAttachmentRole} = initializeOrg({
       organization: {
         features: ['event-attachments'],
         orgRole: 'member',
@@ -117,7 +118,6 @@ describe('EventAttachments', function () {
     });
 
     render(<EventAttachments {...props} />, {
-      router: newRouter,
       organization: orgWithWrongAttachmentRole,
     });
 
@@ -148,7 +148,9 @@ describe('EventAttachments', function () {
       body: 'file contents',
     });
 
-    render(<EventAttachments {...props} />, {router, organization});
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
@@ -175,7 +177,9 @@ describe('EventAttachments', function () {
       method: 'DELETE',
     });
 
-    render(<EventAttachments {...props} />, {router, organization});
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
     renderGlobalModal();
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();

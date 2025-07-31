@@ -2,16 +2,15 @@ import {Fragment} from 'react';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {StackType, StackView} from 'sentry/types/stacktrace';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -51,65 +50,56 @@ export function Exception({
 
   const stackTraceNotFound = !(data.values ?? []).length;
 
+  const hasNonAppFrames = !!data.values?.some(value =>
+    value.stacktrace?.frames?.some(frame => !frame.inApp)
+  );
+
   return (
-    <TraceEventDataSection
-      title={t('Stack Trace')}
-      type={EntryType.EXCEPTION}
+    <StacktraceContext
       projectSlug={projectSlug}
-      eventId={event.id}
-      recentFirst={isStacktraceNewestFirst()}
-      fullStackTrace={!data.hasSystemFrames}
-      platform={event.platform ?? 'other'}
-      hasMinified={!!data.values?.some(value => value.rawStacktrace)}
-      hasVerboseFunctionNames={
-        !!data.values?.some(
-          value =>
-            !!value.stacktrace?.frames?.some(
-              frame =>
-                !!frame.rawFunction &&
-                !!frame.function &&
-                frame.rawFunction !== frame.function
-            )
-        )
-      }
-      hasAbsoluteFilePaths={
-        !!data.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
-        )
-      }
-      hasAbsoluteAddresses={
-        !!data.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-        )
-      }
-      hasAppOnlyFrames={
-        !!data.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-        )
-      }
-      hasNewestFirst={
-        !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
-      }
-      stackTraceNotFound={stackTraceNotFound}
+      forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
+      defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
+      hasSystemFrames={data.hasSystemFrames}
     >
-      {({recentFirst, display, fullStackTrace}) => {
-        return stackTraceNotFound ? (
+      <TraceEventDataSection
+        title={t('Stack Trace')}
+        type={EntryType.EXCEPTION}
+        projectSlug={projectSlug}
+        eventId={event.id}
+        platform={event.platform ?? 'other'}
+        hasMinified={!!data.values?.some(value => value.rawStacktrace)}
+        hasVerboseFunctionNames={
+          !!data.values?.some(
+            value =>
+              !!value.stacktrace?.frames?.some(
+                frame =>
+                  !!frame.rawFunction &&
+                  !!frame.function &&
+                  frame.rawFunction !== frame.function
+              )
+          )
+        }
+        hasAbsoluteFilePaths={
+          !!data.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+          )
+        }
+        hasAbsoluteAddresses={
+          !!data.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+          )
+        }
+        hasNewestFirst={
+          !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
+        }
+        stackTraceNotFound={stackTraceNotFound}
+      >
+        {stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
           <Fragment>
             <ExceptionContent
-              stackType={
-                display.includes('minified') ? StackType.MINIFIED : StackType.ORIGINAL
-              }
-              stackView={
-                display.includes('raw-stack-trace')
-                  ? StackView.RAW
-                  : fullStackTrace
-                    ? StackView.FULL
-                    : StackView.APP
-              }
               projectSlug={projectSlug}
-              newestFirst={recentFirst}
               event={event}
               values={data.values}
               groupingCurrentLevel={groupingCurrentLevel}
@@ -129,8 +119,8 @@ export function Exception({
               </ErrorBoundary>
             )}
           </Fragment>
-        );
-      }}
-    </TraceEventDataSection>
+        )}
+      </TraceEventDataSection>
+    </StacktraceContext>
   );
 }

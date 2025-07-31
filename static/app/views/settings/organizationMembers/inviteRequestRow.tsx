@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +18,7 @@ import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 type Props = {
   allRoles: OrgRole[];
   inviteRequest: Member;
-  inviteRequestBusy: {[key: string]: boolean};
+  inviteRequestBusy: Record<string, boolean>;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
@@ -60,11 +60,9 @@ function InviteRequestRow({
             </Description>
           )
         ) : (
-          <JoinRequestIndicator
-            tooltipText={t('This user has asked to join your organization.')}
-          >
+          <Tag title={t('This user has asked to join your organization.')}>
             {t('Join request')}
-          </JoinRequestIndicator>
+          </Tag>
         )}
       </div>
 
@@ -157,10 +155,6 @@ function InviteRequestRow({
   );
 }
 
-const JoinRequestIndicator = styled(Tag)`
-  text-transform: uppercase;
-`;
-
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
@@ -169,7 +163,7 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const UserName = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

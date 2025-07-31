@@ -4,16 +4,15 @@ from jsonschema import ValidationError
 from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
 class TestRegressionEventCondition(ConditionTestCase):
     condition = Condition.REGRESSION_EVENT
-    rule_cls = RegressionEventCondition
     payload = {"id": RegressionEventCondition.id}
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -22,7 +21,7 @@ class TestRegressionEventCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -40,19 +39,18 @@ class TestRegressionEventCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             dc.save()
 
-    def test(self):
-        job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    {
-                        "id": 1,
-                        "is_regression": True,
-                        "is_new": False,
-                        "is_new_group_environment": False,
-                    }
-                ),
-            }
+    def test(self) -> None:
+        job = WorkflowEventData(
+            event=self.group_event,
+            group=self.group_event.group,
+            group_state=GroupState(
+                {
+                    "id": 1,
+                    "is_regression": True,
+                    "is_new": False,
+                    "is_new_group_environment": False,
+                }
+            ),
         )
         dc = self.create_data_condition(
             type=self.condition,
@@ -62,5 +60,6 @@ class TestRegressionEventCondition(ConditionTestCase):
 
         self.assert_passes(dc, job)
 
-        job["group_state"]["is_regression"] = False
+        assert job.group_state
+        job.group_state["is_regression"] = False
         self.assert_does_not_pass(dc, job)

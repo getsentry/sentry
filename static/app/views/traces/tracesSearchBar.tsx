@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -102,7 +102,7 @@ const SpanLetter = styled('div')`
   min-width: 220px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   align-content: center;
 `;
 

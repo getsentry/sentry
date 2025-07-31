@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
+from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, UnleashProvider
 
 
-def test_handle_update_no_email():
+def test_handle_update_no_email() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -24,6 +25,7 @@ def test_handle_update_no_email():
     assert items[0]["created_by_type"] == 1
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["unleash"]
     assert items[0]["tags"] == {
         "environment": "development",
         "project": "default",
@@ -31,7 +33,7 @@ def test_handle_update_no_email():
     }
 
 
-def test_handle_update_with_email():
+def test_handle_update_with_email() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -52,6 +54,7 @@ def test_handle_update_with_email():
     assert items[0]["created_by_type"] == 0
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["unleash"]
     assert items[0]["tags"] == {
         "environment": "development",
         "project": "default",
@@ -59,7 +62,7 @@ def test_handle_update_with_email():
     }
 
 
-def test_handle_create():
+def test_handle_create() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -77,7 +80,7 @@ def test_handle_create():
     assert items[0]["action"] == 0
 
 
-def test_handle_junk_action():
+def test_handle_junk_action() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -94,7 +97,7 @@ def test_handle_junk_action():
     assert len(items) == 0
 
 
-def test_handle_no_tags():
+def test_handle_no_tags() -> None:
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -113,10 +116,11 @@ def test_handle_no_tags():
     assert items[0]["created_by_type"] == 0
     assert items[0]["flag"] == "test-flag"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["unleash"]
     assert items[0]["tags"] == {}
 
 
-def test_blank():
+def test_blank() -> None:
     try:
         UnleashProvider(123, "abcdefgh").handle({})
     except DeserializationError as exc:
@@ -127,7 +131,7 @@ def test_blank():
         assert exc.errors["createdBy"][0].code == "required"
 
 
-def test_partial_fill():
+def test_partial_fill() -> None:
     try:
         UnleashProvider(123, "abcdefgh").handle(
             {

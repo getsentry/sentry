@@ -1,10 +1,10 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
@@ -13,11 +13,12 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -64,11 +65,11 @@ getError() {
 
 const getDecoratedGlobalFilter =
   () => `import { Catch, ExceptionFilter } from '@nestjs/common';
-import { WithSentry } from '@sentry/nestjs';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 
 @Catch()
 export class YourCatchAllExceptionFilter implements ExceptionFilter {
-  @WithSentry()
+  @SentryExceptionCaptured()
   catch(exception, host): void {
     // your implementation here
   }
@@ -170,7 +171,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'If you are using a global catch-all exception filter add a [code:@WithSentry()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
+            'If you are using a global catch-all exception filter add a [code:@SentryExceptionCaptured()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
             {
               code: <code />,
             }
@@ -187,7 +188,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Alternatively, add the [code:SentryGlobalFilter] (or [code:SentryGlobalGraphQLFilter] if you are using GraphQL) before any other exception filters to the providers of your main module.',
+            'Alternatively, add the [code:SentryGlobalFilter] before any other exception filters to the providers of your main module.',
             {
               code: <code />,
             }
@@ -223,6 +224,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const feedbackOnboardingNode: OnboardingConfig = {
@@ -277,17 +294,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: () => null,
-};
-
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
-  customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
-  profilingOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/nestjs',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nestjs',
+  }),
 };
 
 export default docs;

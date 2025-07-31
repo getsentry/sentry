@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import Link from 'sentry/components/links/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
@@ -19,7 +20,6 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
@@ -46,6 +46,7 @@ function TeamMisery({
   period,
   error,
 }: TeamMiseryProps) {
+  const theme = useTheme();
   const miseryRenderer =
     periodTableData?.meta &&
     getFieldRenderer('user_misery()', periodTableData.meta, false);
@@ -93,9 +94,9 @@ function TeamMisery({
               </LinkButton>
             }
             headers={[
-              <FlexCenter key="transaction">
+              <Flex align="center" key="transaction">
                 <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
-              </FlexCenter>,
+              </Flex>,
               t('Project'),
               tct('Last [period]', {period}),
               t('Last 7 Days'),
@@ -114,9 +115,13 @@ function TeamMisery({
                 return null;
               }
 
-              const periodMisery = miseryRenderer?.(dataRow, {organization, location});
+              const periodMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+                theme,
+              });
               const weekMisery =
-                weekRow && miseryRenderer?.(weekRow, {organization, location});
+                weekRow && miseryRenderer?.(weekRow, {organization, location, theme});
               const trendValue = Math.round(Math.abs(trend));
 
               if (idx >= COLLAPSE_COUNT && !isExpanded) {
@@ -142,13 +147,13 @@ function TeamMisery({
                       </Link>
                     </TransactionWrapper>
                   </KeyTransactionTitleWrapper>
-                  <FlexCenter>
+                  <Flex align="center">
                     <ProjectBadgeContainer>
                       {project && <ProjectBadge avatarSize={18} project={project} />}
                     </ProjectBadgeContainer>
-                  </FlexCenter>
-                  <FlexCenter>{periodMisery}</FlexCenter>
-                  <FlexCenter>{weekMisery ?? '\u2014'}</FlexCenter>
+                  </Flex>
+                  <Flex align="center">{periodMisery}</Flex>
+                  <Flex align="center">{weekMisery ?? '\u2014'}</Flex>
                   <ScoreWrapper>
                     {trendValue === 0 ? (
                       <SubText>
@@ -156,7 +161,7 @@ function TeamMisery({
                         {t('change')}
                       </SubText>
                     ) : (
-                      <TrendText color={trend >= 0 ? 'successText' : 'errorText'}>
+                      <TrendText color={trend >= 0 ? theme.successText : theme.errorText}>
                         {`${trendValue}\u0025 `}
                         {trend >= 0 ? t('better') : t('worse')}
                       </TrendText>
@@ -270,7 +275,7 @@ export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;
@@ -287,11 +292,6 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
         padding: 48px ${space(2)};
       }
     `}
-`;
-
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`
@@ -325,6 +325,6 @@ const SubText = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const TrendText = styled('div')<{color: ColorOrAlias}>`
-  color: ${p => p.theme[p.color]};
+const TrendText = styled('div')<{color: string}>`
+  color: ${p => p.color};
 `;

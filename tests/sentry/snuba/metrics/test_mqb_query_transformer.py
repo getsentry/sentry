@@ -831,8 +831,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             where=[],
             having=[],
             groupby=[
-                MetricGroupByField("transaction", alias=None),
-                MetricGroupByField("project_id", alias=None),
+                MetricGroupByField("transaction"),
+                MetricGroupByField("project_id"),
             ],
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -949,8 +949,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             ],
             having=[],
             groupby=[
-                MetricGroupByField("project_id", alias=None),
-                MetricGroupByField("transaction", alias=None),
+                MetricGroupByField("project_id"),
+                MetricGroupByField("transaction"),
             ],
             limit=Limit(limit=51),
             offset=Offset(offset=0),

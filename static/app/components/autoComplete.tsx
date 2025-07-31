@@ -10,7 +10,11 @@
  */
 import {Component} from 'react';
 
-import type {GetActorArgs, GetMenuArgs} from 'sentry/components/deprecatedDropdownMenu';
+import type {
+  DeprecatedDropdownMenuProps,
+  GetActorArgs,
+  GetMenuArgs,
+} from 'sentry/components/deprecatedDropdownMenu';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {uniqueId} from 'sentry/utils/guid';
 
@@ -68,7 +72,7 @@ type GetItemArgs<T> = {
   onClick?: (item: T) => (e: React.MouseEvent) => void;
 };
 
-type ChildrenProps<T> = Parameters<DeprecatedDropdownMenu['props']['children']>[0] & {
+type ChildrenProps<T> = Parameters<DeprecatedDropdownMenuProps['children']>[0] & {
   /**
    * Returns props for the input element that handles searching the items
    */
@@ -177,7 +181,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     window.clearTimeout(this.cancelCloseTimeout);
   }
 
-  private _mounted: boolean = false;
+  private _mounted = false;
   private _id = `autocomplete-${uniqueId()}`;
 
   /**
@@ -446,7 +450,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
     }
 
     this.setState(state => ({
-      isOpen: !this.isOpenIsControlled ? false : state.isOpen,
+      isOpen: this.isOpenIsControlled ? state.isOpen : false,
       inputValue: resetInputOnClose ? '' : state.inputValue,
     }));
   };

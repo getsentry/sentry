@@ -107,6 +107,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         "user_misery()",
     }
     non_nullable_keys = {"event.type"}
+    nullable_context_keys = {"thread.id"}
     use_entity_prefix_for_fields: bool = False
 
     def __init__(self, builder: BaseQueryBuilder):
@@ -137,6 +138,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
             "performance.issue_ids": self._performance_issue_ids_filter_converter,
             EVENT_TYPE_ALIAS: self._event_type_filter_converter,
+            "transaction": self._transaction_filter_converter,
         }
 
     @property
@@ -1035,6 +1037,32 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="integer",
                     private=True,
+                ),
+                SnQLFunction(
+                    "upsampled_count",
+                    required_args=[],
+                    snql_aggregate=lambda args, alias: Function(
+                        "toInt64",
+                        [Function("sum", [Function("ifNull", [Column("sample_weight"), 1])])],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "upsampled_eps",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_upsampled_eps(
+                        args, alias, self.builder
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "upsampled_epm",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_upsampled_epm(
+                        args, alias, self.builder
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
                 ),
             ]
         }
@@ -1955,5 +1983,22 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ["transaction"],
             ]:
                 return None
+
+        return self.builder.default_filter_converter(search_filter)
+
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        if self.builder.dataset == Dataset.Transactions:
+            operator = search_filter.operator
+            value = search_filter.value.value
+
+            if operator in ("=", "!=") and value == "":
+                # !has:transaction
+                if operator == "=":
+                    raise InvalidSearchQuery(
+                        "All events have a transaction so this query wouldn't return anything"
+                    )
+                else:
+                    # All events have a "transaction" since we map null -> unparam so no need to filter
+                    return None
 
         return self.builder.default_filter_converter(search_filter)

@@ -2,7 +2,7 @@ from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.lang.native.applecrashreport import AppleCrashReport
 
 
-def test_get_threads_apple_string():
+def test_get_threads_apple_string() -> None:
     acr = AppleCrashReport(
         threads=[
             {
@@ -95,7 +95,7 @@ Thread 2 name: com.apple.test\n\
     )
 
 
-def test_get_threads_apple_string_symbolicated():
+def test_get_threads_apple_string_symbolicated() -> None:
     acr = AppleCrashReport(
         symbolicated=True,
         threads=[
@@ -207,7 +207,7 @@ Thread 2 name: com.apple.test
 # 7   SentrySwift                     0x000000010031caa4 0x1002c8000 + 346788
 
 
-def test_get_thread_apple_string():
+def test_get_thread_apple_string() -> None:
     acr = AppleCrashReport()
     thread = acr.get_thread_apple_string(
         {
@@ -330,7 +330,7 @@ def test_get_thread_apple_string():
     )
 
 
-def test__convert_frame_to_apple_string():
+def test__convert_frame_to_apple_string() -> None:
     acr = AppleCrashReport()
     frame = acr._convert_frame_to_apple_string(
         frame={
@@ -369,7 +369,7 @@ def test__convert_frame_to_apple_string():
     )
 
 
-def test_get_binary_images_apple_string():
+def test_get_binary_images_apple_string() -> None:
     acr = AppleCrashReport(
         debug_images=[
             {
@@ -430,7 +430,7 @@ def test_get_binary_images_apple_string():
     )
 
 
-def test_binary_images_without_code_file():
+def test_binary_images_without_code_file() -> None:
     acr = AppleCrashReport(
         debug_images=[
             {
@@ -490,7 +490,7 @@ def test_binary_images_without_code_file():
     )
 
 
-def test__convert_debug_meta_to_binary_image_row():
+def test__convert_debug_meta_to_binary_image_row() -> None:
     acr = AppleCrashReport(
         context={
             "device": {
@@ -533,7 +533,7 @@ def test__convert_debug_meta_to_binary_image_row():
     )
 
 
-def test__get_exception_info():
+def test__get_exception_info() -> None:
     acr = AppleCrashReport(
         exceptions=[
             {
@@ -572,7 +572,7 @@ Attempted to dereference garbage pointer 0x10."
     )
 
 
-def test__get_exception_info_legacy_mechanism():
+def test__get_exception_info_legacy_mechanism() -> None:
     acr = AppleCrashReport(
         exceptions=[
             {
@@ -608,7 +608,7 @@ Attempted to dereference garbage pointer 0x10."
     )
 
 
-def test__get_exception_info_partial():
+def test__get_exception_info_partial() -> None:
     acr = AppleCrashReport(
         exceptions=[
             {
@@ -628,7 +628,7 @@ Attempted to dereference garbage pointer 0x10."
     )
 
 
-def test__get_crashed_thread_registers_no_exception():
+def test__get_crashed_thread_registers_no_exception() -> None:
     acr = AppleCrashReport(
         exceptions=[],
         threads=[{"id": 1, "crashed": True, "stacktrace": {"registers": {}}}],
@@ -637,7 +637,7 @@ def test__get_crashed_thread_registers_no_exception():
     assert acr._get_crashed_thread_registers() == ""
 
 
-def test__get_crashed_thread_registers_no_thread_registers():
+def test__get_crashed_thread_registers_no_thread_registers() -> None:
     acr = AppleCrashReport(
         exceptions=[{"thread_id": 1}],
         threads=[],
@@ -646,7 +646,7 @@ def test__get_crashed_thread_registers_no_thread_registers():
     assert acr._get_crashed_thread_registers() == ""
 
 
-def test__get_crashed_thread_registers_arm64():
+def test__get_crashed_thread_registers_arm64() -> None:
     acr = AppleCrashReport(
         exceptions=[{"thread_id": 1}],
         context={"device": {"arch": "arm64"}},
@@ -711,7 +711,7 @@ def test__get_crashed_thread_registers_arm64():
     )
 
 
-def test__get_crashed_thread_registers_x86():
+def test__get_crashed_thread_registers_x86() -> None:
     acr = AppleCrashReport(
         exceptions=[{"thread_id": 1}],
         context={"device": {"arch": "x86"}},
@@ -740,7 +740,7 @@ def test__get_crashed_thread_registers_x86():
     )
 
 
-def test__get_crashed_thread_registers_unknown_arch():
+def test__get_crashed_thread_registers_unknown_arch() -> None:
     acr = AppleCrashReport(
         exceptions=[{"thread_id": 1}],
         context={"device": {"arch": "ABC"}},

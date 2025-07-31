@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import type {EventErrorData} from 'sentry/components/events/errorItem';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -338,7 +338,7 @@ function groupedErrors(
   event: Event,
   data?: ActionableItemsResponse,
   progaurdErrors?: EventErrorData[]
-): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
+): Partial<Record<ActionableItemTypes, ErrorMessageType[]>> {
   if (!data || !progaurdErrors || !event) {
     return {};
   }
@@ -362,11 +362,10 @@ function groupedErrors(
 
 interface ActionableItemsProps {
   event: Event;
-  isShare: boolean;
   project: Project;
 }
 
-export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
+export function ActionableItems({event, project}: ActionableItemsProps) {
   const organization = useOrganization();
   const {data, isPending} = useActionableItems({
     eventId: event.id,
@@ -377,7 +376,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
     event,
     project,
-    isShare,
+    isShare: false,
   });
 
   useEffect(() => {
@@ -443,22 +442,20 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
       )
   );
 
-  for (const errorKey in Object.keys(errorMessages)) {
+  for (const errorKey of Object.keys(errorMessages)) {
     const isWarning = ActionableItemWarning.includes(
       errorKey as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
     );
     const shouldDelete = hasErrorAlert ? isWarning : !isWarning;
 
     if (shouldDelete) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete errorMessages[errorKey];
+      delete errorMessages[errorKey as keyof typeof errorMessages];
     }
   }
 
   return (
     <StyledAlert
       defaultExpanded
-      showIcon
       type={hasErrorAlert ? 'error' : 'warning'}
       expand={
         <Fragment>

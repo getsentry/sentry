@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
@@ -12,10 +12,9 @@ type Props = {
   hasFeature: boolean;
   onDelete: () => void;
   onEdit: () => void;
-  repositoryName: string;
 };
 
-function Actions({repositoryName, onEdit, onDelete, hasFeature, hasAccess}: Props) {
+function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
   const actionsDisabled = !hasAccess || !hasFeature;
 
   return (
@@ -27,13 +26,13 @@ function Actions({repositoryName, onEdit, onDelete, hasFeature, hasAccess}: Prop
           aria-label={t('Actions')}
           disabled={actionsDisabled}
           title={
-            !hasFeature
-              ? undefined
-              : !hasAccess
-                ? t(
+            hasFeature
+              ? hasAccess
+                ? undefined
+                : t(
                     'You do not have permission to edit and delete custom repositories configurations.'
                   )
-                : undefined
+              : undefined
           }
           icon={<IconEllipsis />}
           {...triggerProps}
@@ -51,7 +50,6 @@ function Actions({repositoryName, onEdit, onDelete, hasFeature, hasAccess}: Prop
           label: t('Delete'),
           onAction: () => {
             openConfirmModal({
-              header: <h6>{t('Delete %s?', repositoryName)}</h6>,
               message: (
                 <Fragment>
                   <TextBlock>

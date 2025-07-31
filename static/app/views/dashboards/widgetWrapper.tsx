@@ -4,7 +4,9 @@ import {motion} from 'framer-motion';
 
 import type {Widget} from './types';
 
-const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
+const WidgetWrapper = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'displayType',
+})<{displayType: Widget['displayType']}>`
   position: relative;
   touch-action: manipulation;
 
@@ -15,12 +17,12 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
           /* 2 cols */
           grid-area: span 1 / span 2;
 
-          @media (min-width: ${p.theme.breakpoints.small}) {
+          @media (min-width: ${p.theme.breakpoints.sm}) {
             /* 4 cols */
             grid-area: span 1 / span 1;
           }
 
-          @media (min-width: ${p.theme.breakpoints.xlarge}) {
+          @media (min-width: ${p.theme.breakpoints.xl}) {
             /* 6 and 8 cols */
             grid-area: span 1 / span 2;
           }

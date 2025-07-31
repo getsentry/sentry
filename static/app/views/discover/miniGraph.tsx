@@ -203,9 +203,9 @@ class MiniGraph extends Component<Props> {
 
           const hasOther = topEvents && topEvents + 1 === allSeries.length;
           const chartColors = allSeries.length
-            ? (theme.charts
-                .getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))
-                ?.slice() as string[] | undefined) ?? []
+            ? (theme.chart
+                .getColorPalette(allSeries.length - 1 - (hasOther ? 1 : 0))
+                .slice() as string[])
             : undefined;
 
           if (chartColors?.length && hasOther) {
@@ -284,7 +284,7 @@ const StyledGraphContainer = styled((props: any) => (
 `;
 
 const StyledErrorMessage = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-left: 4px;
 `;
 

@@ -1,14 +1,17 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-
-import {isSpanNode, isTransactionNode} from '../traceGuards';
-import {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {
@@ -31,16 +34,16 @@ function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefine
 export function makeTransactionProfilingLink(
   profileId: string,
   options: {
-    orgSlug: string;
+    organization: Organization;
     projectSlug: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.orgSlug) {
+  if (!options.projectSlug || !options.organization) {
     return null;
   }
   return generateProfileFlamechartRouteWithQuery({
-    orgSlug: options.orgSlug,
+    organization: options.organization,
     projectSlug: options.projectSlug,
     profileId,
     query,
@@ -54,14 +57,14 @@ export function makeTraceContinuousProfilingLink(
   node: TraceTreeNode<TraceTree.NodeValue>,
   profilerId: string,
   options: {
-    orgSlug: string;
+    organization: Organization;
     projectSlug: string;
     threadId: string | undefined;
     traceId: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.orgSlug) {
+  if (!options.projectSlug || !options.organization) {
     return null;
   }
 
@@ -119,7 +122,7 @@ export function makeTraceContinuousProfilingLink(
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery({
-    orgSlug: options.orgSlug,
+    organization: options.organization,
     projectSlug: options.projectSlug,
     profilerId,
     start: start.toISOString(),

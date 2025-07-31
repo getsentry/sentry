@@ -3,5 +3,5 @@ from sentry.models.debugfile import ProjectDebugFile
 
 
 @bgtask()
-def clean_dsymcache():
+def clean_dsymcache() -> None:
     ProjectDebugFile.difcache.clear_old_entries()

@@ -4,16 +4,16 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -1032,8 +1032,8 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-export const Change = styled('div')<{color?: Color}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+const Change = styled('div')<{color?: Color}>`
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
 
@@ -1047,7 +1047,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
     border-bottom: 1px solid ${p => p.theme.border};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
         p.withExpanders ? '75px' : ''};
   }
@@ -1068,8 +1068,8 @@ const ShowMoreWrapper = styled('div')`
 `;
 
 const ShowMoreTitle = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
   display: inline-grid;
   grid-template-columns: auto auto;
   gap: 10px;

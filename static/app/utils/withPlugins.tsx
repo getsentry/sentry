@@ -85,7 +85,11 @@ function withPlugins<P extends WithPluginProps>(
 
     render() {
       return (
-        <WrappedComponent {...(this.props as P & WithPluginProps)} plugins={this.state} />
+        <WrappedComponent
+          // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
+          {...(this.props as P & WithPluginProps as any)}
+          plugins={this.state}
+        />
       );
     }
   }

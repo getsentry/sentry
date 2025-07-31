@@ -1,14 +1,18 @@
 import {Component} from 'react';
-import type {OptionsType, OptionTypeBase, ValueType} from 'react-select';
-import {components as SelectComponents} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import SelectOption from 'sentry/components/forms/controls/selectOption';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
+import {SelectOption} from 'sentry/components/core/select/option';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import type {
+  OptionsType,
+  OptionTypeBase,
+  ValueType,
+} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
@@ -125,7 +129,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
 
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
-              <SelectControl
+              <Select
                 {...props}
                 value={showTempNoneOption ? undefined : props.value}
                 options={

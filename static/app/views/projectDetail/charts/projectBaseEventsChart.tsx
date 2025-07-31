@@ -65,7 +65,7 @@ class ProjectBaseEventsChart extends Component<Props> {
 
   render() {
     const {
-      router,
+      location,
       organization,
       selection,
       api,
@@ -84,7 +84,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       value: (
         <EventsChart
           {...eventsChartProps}
-          router={router}
+          location={location}
           organization={organization}
           showLegend
           yAxis={yAxis}

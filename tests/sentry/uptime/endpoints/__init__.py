@@ -1,7 +1,7 @@
-from sentry.testutils.cases import APITestCase, UptimeTestCaseMixin
+from sentry.testutils.cases import APITestCase
 
 
-class UptimeAlertBaseEndpointTest(UptimeTestCaseMixin, APITestCase):
-    def setUp(self):
+class UptimeAlertBaseEndpointTest(APITestCase):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)

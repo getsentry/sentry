@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -100,8 +100,8 @@ const Label = styled('div')<{
   isSingleLabel?: boolean;
 }>`
   transform: ${p => (p.isSingleLabel ? `translate(-50%, 15%)` : `translateY(15%)`)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => (p.failedThreshold ? `${p.theme.errorText}` : `${p.theme.textColor}`)};
   background: ${p => p.theme.background};
   border: 1px solid;

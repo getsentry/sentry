@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from io import BytesIO
 from time import time
 from unittest import mock
 
@@ -9,6 +8,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.attachments import attachment_cache
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
@@ -16,13 +16,11 @@ from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
@@ -37,16 +35,14 @@ pytestmark = [requires_snuba]
 
 
 def _create_event_attachment(evt, type):
-    file = File.objects.create(name="foo", type=type)
-    file.putfile(BytesIO(b"hello world"))
     EventAttachment.objects.create(
         event_id=evt.event_id,
         group_id=evt.group_id,
         project_id=evt.project_id,
-        file_id=file.id,
-        type=file.type,
+        type=type,
         name="foo",
-        size=file.size,
+        size=len("hello world"),
+        blob_path=":hello world",
     )
 
 
@@ -117,7 +113,6 @@ def test_basic(
     reset_snuba,
     process_and_save,
     register_event_preprocessor,
-    monkeypatch,
     django_cache,
 ):
     from sentry import eventstream
@@ -129,92 +124,94 @@ def test_basic(
         tombstone_calls.append((args, kwargs))
         old_tombstone_fn(*args, **kwargs)
 
-    monkeypatch.setattr("sentry.eventstream.backend.tombstone_events_unsafe", tombstone_called)
+    with mock.patch("sentry.eventstream.backend.tombstone_events_unsafe", tombstone_called):
 
-    abs_count = 0
+        abs_count = 0
 
-    @register_event_preprocessor
-    def event_preprocessor(data):
-        nonlocal abs_count
+        @register_event_preprocessor
+        def event_preprocessor(data):
+            nonlocal abs_count
 
-        tags = data.setdefault("tags", [])
-        assert all(not x or x[0] != "processing_counter" for x in tags)
-        tags.append(("processing_counter", f"x{abs_count}"))
-        abs_count += 1
+            tags = data.setdefault("tags", [])
+            assert all(not x or x[0] != "processing_counter" for x in tags)
+            tags.append(("processing_counter", f"x{abs_count}"))
+            abs_count += 1
+
+            if change_groups:
+                data["fingerprint"] = [uuid.uuid4().hex]
+            else:
+                data["fingerprint"] = ["foo"]
+
+            return data
+
+        event_id = process_and_save({"tags": [["key1", "value"], None, ["key2", "value"]]})
+
+        def get_event_by_processing_counter(n: str) -> list[Event]:
+            return list(
+                eventstore.backend.get_events(
+                    eventstore.Filter(
+                        project_ids=[default_project.id],
+                        conditions=[["tags[processing_counter]", "=", n]],
+                    ),
+                    tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
+                )
+            )
+
+        event = eventstore.backend.get_event_by_id(
+            default_project.id,
+            event_id,
+            tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
+        )
+        assert event is not None
+        assert event.get_tag("processing_counter") == "x0"
+        assert not event.data.get("errors")
+
+        assert get_event_by_processing_counter("x0")[0].event_id == event.event_id
+
+        old_event = event
+
+        with BurstTaskRunner() as burst:
+            reprocess_group(default_project.id, event.group_id)
+
+            burst(max_jobs=100)
+
+        (event,) = get_event_by_processing_counter("x1")
+
+        # Assert original data is used
+        assert event.get_tag("processing_counter") == "x1"
+        assert not event.data.get("errors")
 
         if change_groups:
-            data["fingerprint"] = [uuid.uuid4().hex]
+            assert event.get_hashes() != old_event.get_hashes()
         else:
-            data["fingerprint"] = ["foo"]
+            assert event.get_hashes() == old_event.get_hashes()
 
-        return data
+        assert event.group_id != old_event.group_id
 
-    event_id = process_and_save({"tags": [["key1", "value"], None, ["key2", "value"]]})
-
-    def get_event_by_processing_counter(n: str) -> list[Event]:
-        return list(
-            eventstore.backend.get_events(
-                eventstore.Filter(
-                    project_ids=[default_project.id],
-                    conditions=[["tags[processing_counter]", "=", n]],
-                ),
-                tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
-            )
+        assert event.event_id == old_event.event_id
+        assert (
+            int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == old_event.group_id
         )
 
-    event = eventstore.backend.get_event_by_id(
-        default_project.id,
-        event_id,
-        tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
-    )
-    assert event is not None
-    assert event.get_tag("processing_counter") == "x0"
-    assert not event.data.get("errors")
+        assert not Group.objects.filter(id=old_event.group_id).exists()
 
-    assert get_event_by_processing_counter("x0")[0].event_id == event.event_id
+        assert is_group_finished(old_event.group_id)
 
-    old_event = event
-
-    with BurstTaskRunner() as burst:
-        reprocess_group(default_project.id, event.group_id)
-
-        burst(max_jobs=100)
-
-    (event,) = get_event_by_processing_counter("x1")
-
-    # Assert original data is used
-    assert event.get_tag("processing_counter") == "x1"
-    assert not event.data.get("errors")
-
-    if change_groups:
-        assert event.get_hashes() != old_event.get_hashes()
-    else:
-        assert event.get_hashes() == old_event.get_hashes()
-
-    assert event.group_id != old_event.group_id
-
-    assert event.event_id == old_event.event_id
-    assert int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == old_event.group_id
-
-    assert not Group.objects.filter(id=old_event.group_id).exists()
-
-    assert is_group_finished(old_event.group_id)
-
-    # Old event is actually getting tombstoned
-    assert not get_event_by_processing_counter("x0")
-    if change_groups:
-        assert tombstone_calls == [
-            (
-                (default_project.id, [old_event.event_id]),
-                {
-                    "from_timestamp": old_event.datetime,
-                    "old_primary_hash": old_event.get_primary_hash(),
-                    "to_timestamp": old_event.datetime,
-                },
-            )
-        ]
-    else:
-        assert not tombstone_calls
+        # Old event is actually getting tombstoned
+        assert not get_event_by_processing_counter("x0")
+        if change_groups:
+            assert tombstone_calls == [
+                (
+                    (default_project.id, [old_event.event_id]),
+                    {
+                        "from_timestamp": old_event.datetime,
+                        "old_primary_hash": old_event.get_primary_hash(),
+                        "to_timestamp": old_event.datetime,
+                    },
+                )
+            ]
+        else:
+            assert not tombstone_calls
 
 
 @django_db_all
@@ -298,7 +295,6 @@ def test_max_events(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    monkeypatch,
     remaining_events,
     max_events,
 ):
@@ -379,7 +375,6 @@ def test_attachments_and_userfeedback(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    monkeypatch,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -451,7 +446,6 @@ def test_nodestore_missing(
     default_project,
     reset_snuba,
     process_and_save,
-    monkeypatch,
     remaining_events,
     django_cache,
 ):
@@ -489,7 +483,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    mock_logger.error.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
+    mock_logger.warning.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
 @django_db_all
@@ -636,10 +630,10 @@ def test_apply_new_stack_trace_rules(
         "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
-            "enhancements": Enhancements.from_config_string(
+            "enhancements": Enhancements.from_rules_text(
                 "function:c -group",
                 bases=[],
-            ).dumps(),
+            ).base64_string,
         },
     ):
         # Reprocess

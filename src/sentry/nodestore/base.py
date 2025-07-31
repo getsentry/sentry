@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 from sentry import options
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
+from sentry.utils.storage import measure_storage_put
 
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
@@ -180,6 +181,8 @@ class NodeStorage(local, Service):
         }
         """
         with sentry_sdk.start_span(op="nodestore.get_multi") as span:
+            # Deduplicate ids, preserving order
+            id_list = list(dict.fromkeys(id_list))
             span.set_tag("subkey", str(subkey))
             span.set_tag("num_ids", len(id_list))
 
@@ -229,7 +232,8 @@ class NodeStorage(local, Service):
         >>> nodestore.set_bytes('key1', b"{'foo': 'bar'}")
         """
         metrics.distribution("nodestore.set_bytes", len(data))
-        return self._set_bytes(item_id, data, ttl)
+        with measure_storage_put(len(data), "nodestore"):
+            return self._set_bytes(item_id, data, ttl)
 
     def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         raise NotImplementedError

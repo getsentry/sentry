@@ -228,7 +228,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     gap: ${space(0.75)};
     align-items: center;
     justify-content: center;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 
   .rr-controller__btns button {

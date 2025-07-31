@@ -2,14 +2,13 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import type {EventId} from '../../types';
-import {EventIdStatus} from '../../types';
-import {saveToSourceGroupData} from '../utils';
+import {saveToSourceGroupData} from 'sentry/views/settings/components/dataScrubbing/modals/utils';
+import type {EventId} from 'sentry/views/settings/components/dataScrubbing/types';
+import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
 
@@ -148,7 +147,7 @@ export default EventIdField;
 
 const StyledInput = styled(Input)`
   flex: 1;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   input {
     padding-right: ${space(1.5)};
   }

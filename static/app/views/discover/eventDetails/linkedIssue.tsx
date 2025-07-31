@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
+import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
@@ -40,9 +40,11 @@ function LinkedIssue({eventId, groupId}: Props) {
 
     if (hasNotFound) {
       return (
-        <Alert type="warning" showIcon>
-          {t('The linked issue cannot be found. It may have been deleted, or merged.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning">
+            {t('The linked issue cannot be found. It may have been deleted, or merged.')}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -120,13 +122,13 @@ const IssueCardBody = styled('div')`
 `;
 
 const StyledShortId = styled(ShortId)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
 `;
 
 const IssueCardFooter = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(0.5)} ${space(1)};
 `;
 

@@ -9,7 +9,7 @@ export function string(tokens: Token[], options: Options = {}): string {
   const accumulator = new StringAccumulator();
 
   let precedingNonWhitespaceToken: Token | undefined = undefined;
-  let parenthesisLevel: number = 0; // Tracks the current parenthesis nesting level
+  let parenthesisLevel = 0; // Tracks the current parenthesis nesting level
   const indentationLevels: number[] = []; // Tracks the parenthesis nesting levels at which we've incremented the indentation
 
   function contentize(token: Token): void {

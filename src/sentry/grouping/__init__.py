@@ -104,7 +104,7 @@ stacktrace strategy can produce a component tree for a stacktrace.  Because
 events can have different forms and different strategies for the same interface,
 strategy configurations define which ones are picked.
 
-For instance, there is a `frame:legacy` strategy, which is the legacy
+For instance, there was a `frame:legacy` strategy, which was the legacy
 version of the `frame` strategy.  Then there are the new ones (`frame:v1`,
 `frame:v2`, etc.).  The strategy configuration defines which one is used.
 These are in `sentry.grouping.strategies.configurations`.  A strategy can
@@ -114,19 +114,18 @@ overridden.
 This for instance is how one of the configurations is defined::
 
     register_strategy_config(
-        id="newstyle:2019-10-29",
-        base="newstyle:2019-05-08",
+        id="newstyle:SomeDate",
+        base="newstyle:AnotherDate",
         delegates=["frame:v4"],
         risk=RISK_LEVEL_MEDIUM,
         changelog="...",
     )
 
-The configuration ID (`newstyle:2019-10-29`) is defined in the project
+The configuration ID (`newstyle:YYYY-MM-DD`) is defined in the project
 options and then becomes the strategy configuration of choice for all new
 events.  Because in this case it inherits from another strategy, the default
 configurations from that strategy are reused.  Here the `frame` is changed
-to version `v4`.  Additionally a risk level and changelog are defined, which
-the UI uses to guide the user through upgrades.
+to version `v4`.
 
 Note that here the frame is defined as a delegate.  A delegate is a strategy
 that is used for an interface which by itself is not used for grouping.  This

@@ -2,8 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
@@ -158,24 +158,25 @@ export function CodeOwnerErrors({
           0
         );
         return (
-          <Alert
-            key={id}
-            type="error"
-            showIcon
-            expand={
-              <AlertContentContainer key="container">
-                {errorPairs.map(([type, values]) => (
-                  <ErrorContainer key={`${id}-${type}`}>
-                    {errMessage(codeMapping!, type, values)}
-                  </ErrorContainer>
-                ))}
-              </AlertContentContainer>
-            }
-          >
-            {errorCount === 1
-              ? `There was ${errorCount} ownership issue within Sentry on the latest sync with the CODEOWNERS file`
-              : `There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
-          </Alert>
+          <Alert.Container key={id}>
+            <Alert
+              key={id}
+              type="error"
+              expand={
+                <AlertContentContainer key="container">
+                  {errorPairs.map(([type, values]) => (
+                    <ErrorContainer key={`${id}-${type}`}>
+                      {errMessage(codeMapping!, type, values)}
+                    </ErrorContainer>
+                  ))}
+                </AlertContentContainer>
+              }
+            >
+              {errorCount === 1
+                ? `There was ${errorCount} ownership issue within Sentry on the latest sync with the CODEOWNERS file`
+                : `There were ${errorCount} ownership issues within Sentry on the latest sync with the CODEOWNERS file`}
+            </Alert>
+          </Alert.Container>
         );
       })}
     </Fragment>

@@ -2,19 +2,18 @@ import {Fragment} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Link} from 'sentry/components/core/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-
-import {DataScrubbing} from '../components/dataScrubbing';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   organization: Organization;
@@ -41,7 +40,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
     <Fragment>
       <SentryDocumentTitle title={title} projectSlug={projectSlug} />
       <SettingsPageHeader title={title} />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <Form
         saveOnBlur

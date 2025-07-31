@@ -4,12 +4,16 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import urlencode
 
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -18,7 +22,9 @@ from sentry.integrations.base import (
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
-from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -81,7 +87,7 @@ class DiscordIntegration(IntegrationInstallation):
 
         installations = integration_service.get_organization_integrations(
             integration_id=self.model.id,
-            providers=["discord"],
+            providers=[IntegrationProviderSlug.DISCORD.value],
         )
 
         # Remove any installations pending deletion
@@ -112,7 +118,7 @@ class DiscordIntegration(IntegrationInstallation):
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
-    key = "discord"
+    key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration
@@ -143,10 +149,10 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
-    def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         guild_id = str(state.get("guild_id"))
 
         if not guild_id.isdigit():
@@ -159,7 +165,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        discord_config = state.get("discord", {})
+        discord_config = state.get(IntegrationProviderSlug.DISCORD.value, {})
         if isinstance(discord_config, dict):
             use_configure = discord_config.get("use_configure") == "1"
         else:
@@ -180,7 +186,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             "name": guild_name,
             "external_id": guild_id,
             "user_identity": {
-                "type": "discord",
+                "type": IntegrationProviderSlug.DISCORD.value,
                 "external_id": discord_user_id,
                 "scopes": [],
                 "data": {},
@@ -204,8 +210,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         if self._credentials_exist() and not self._has_application_commands():
             try:
@@ -276,14 +283,14 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return has_credentials
 
 
-class DiscordInstallPipeline(PipelineView):
+class DiscordInstallPipeline:
     def __init__(self, params):
         self.params = params
         super().__init__()
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
-            state = pipeline.fetch_state(key="discord") or {}
+            state = pipeline.fetch_state(key=IntegrationProviderSlug.DISCORD.value) or {}
             redirect_uri = (
                 absolute_uri("extensions/discord/configure/")
                 if state.get("use_configure") == "1"
@@ -296,7 +303,7 @@ class DiscordInstallPipeline(PipelineView):
                 }
             )
             redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return self.redirect(redirect_uri)
+            return HttpResponseRedirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])

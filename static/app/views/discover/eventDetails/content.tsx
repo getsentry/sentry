@@ -1,17 +1,19 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import EventVitals from 'sentry/components/events/eventVitals';
-import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -42,18 +44,17 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import DiscoverBreadcrumb from 'sentry/views/discover/breadcrumb';
+import {generateTitle, getExpandedResults} from 'sentry/views/discover/utils';
 import TraceDetailsRouting from 'sentry/views/performance/traceDetails/TraceDetailsRouting';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import DiscoverBreadcrumb from '../breadcrumb';
-import {generateTitle, getExpandedResults} from '../utils';
-
 import LinkedIssue from './linkedIssue';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location'> & {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
@@ -77,9 +78,9 @@ function EventHeader({event}: {event: Event}) {
 }
 
 function EventDetailsContent(props: Props) {
+  const theme = useTheme();
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
   const projectId = props.eventSlug.split(':')[0]!;
-
   const {
     data: event,
     isPending,
@@ -100,7 +101,7 @@ function EventDetailsContent(props: Props) {
     }
     const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
-    return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
+    return nextView.getResultsViewUrlTarget(organization, isHomepage);
   };
 
   function renderContent() {
@@ -145,7 +146,7 @@ function EventDetailsContent(props: Props) {
               <EventHeader event={event} />
             </Layout.HeaderContent>
             <Layout.HeaderActions>
-              <ButtonBar gap={1}>
+              <ButtonBar>
                 <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
                   {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                 </Button>
@@ -185,6 +186,7 @@ function EventDetailsContent(props: Props) {
           <Layout.Body>
             <Layout.Main fullWidth>
               <EventMetas
+                theme={theme}
                 quickTrace={results ?? null}
                 meta={metaResults?.meta ?? null}
                 event={event}
@@ -192,19 +194,18 @@ function EventDetailsContent(props: Props) {
                 projectId={projectId}
                 location={location}
                 errorDest="discover"
-                transactionDest="discover"
               />
             </Layout.Main>
             <Layout.Main fullWidth={!isSidebarVisible}>
               <Projects orgId={organization.slug} slugs={[projectId]}>
                 {({projects, initiallyLoaded}) =>
                   initiallyLoaded ? (
-                    <SpanEntryContext.Provider
+                    <SpanEntryContext
                       value={{
                         getViewChildTransactionTarget: childTransactionProps => {
                           const childTransactionLink = eventDetailsRoute({
                             eventSlug: childTransactionProps.eventSlug,
-                            orgSlug: organization.slug,
+                            organization,
                           });
 
                           return {
@@ -214,7 +215,7 @@ function EventDetailsContent(props: Props) {
                         },
                       }}
                     >
-                      <QuickTraceContext.Provider value={results}>
+                      <QuickTraceContext value={results}>
                         {hasProfilingFeature ? (
                           <ProfilesProvider
                             orgSlug={organization.slug}
@@ -248,8 +249,8 @@ function EventDetailsContent(props: Props) {
                             showTagSummary={false}
                           />
                         )}
-                      </QuickTraceContext.Provider>
-                    </SpanEntryContext.Provider>
+                      </QuickTraceContext>
+                    </SpanEntryContext>
                   ) : (
                     <LoadingIndicator />
                   )
@@ -331,9 +332,9 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error">{error.message}</Alert>
+      </Alert.Container>
     );
   }
 
@@ -359,13 +360,13 @@ function EventDetailsContent(props: Props) {
       orgSlug={organization.slug}
       projectSlug={projectSlug}
     >
-      {renderContent() as React.ReactChild}
+      {renderContent()}
     </SentryDocumentTitle>
   );
 }
 
 const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints.small};
+  max-width: ${p => p.theme.breakpoints.sm};
 `;
 
 const TitleWrapper = styled('div')`

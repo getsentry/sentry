@@ -1,4 +1,4 @@
-import {useLayoutEffect, useState} from 'react';
+import {useLayoutEffect} from 'react';
 import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -19,6 +19,7 @@ import type {
 } from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {TrimTextCenter} from 'sentry/utils/string/trimTextCenter';
 
 export function initializeFlamegraphRenderer(
   renderers: FlamegraphRendererConstructor[],
@@ -314,7 +315,6 @@ export function safeGetContext(
   return ctx;
 }
 
-export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
     return Rect.Empty();
@@ -474,13 +474,6 @@ export function formatColorForFrame(
   return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
-export interface TrimTextCenter {
-  end: number;
-  length: number;
-  start: number;
-  text: string;
-}
-
 export function hexToColorChannels(color: string, alpha: number): ColorChannels {
   return [
     parseInt(color.slice(1, 3), 16) / 255,
@@ -568,7 +561,7 @@ export function computeHighlightedBounds(
     return [bounds[0] - trim.length + 1, bounds[1] - trim.length + 1];
   }
 
-  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
+  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${JSON.stringify(trim)}`);
 }
 
 // Utility function to allow zooming into frames using a specific strategy. Supports
@@ -695,8 +688,8 @@ export function getTranslationMatrixFromPhysicalSpace(
   deltaY: number,
   view: CanvasView<any>,
   canvas: FlamegraphCanvas,
-  multiplierX: number = 0.8,
-  multiplierY: number = 1
+  multiplierX = 0.8,
+  multiplierY = 1
 ) {
   const physicalDelta = vec2.fromValues(deltaX * multiplierX, deltaY * multiplierY);
   const physicalToConfig = mat3.invert(
@@ -825,24 +818,17 @@ export function useResizeCanvasObserver(
   canvasPoolManager: CanvasPoolManager,
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null
-): Rect {
-  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-
+) {
   useLayoutEffect(() => {
     if (!canvas || !canvases.length) {
       return undefined;
     }
 
-    if (canvases.some(c => c === null)) {
+    if (canvases.includes(null)) {
       return undefined;
     }
 
-    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      // We cannot use the resize observer's reported rect because it does not report x
-      // coordinate that is required to do edge detection.
-      const rect = entries[0]!.target.getBoundingClientRect();
-      setCanvasBounds(new Rect(rect.x, rect.y, rect.width, rect.height));
-
+    const observer = watchForResize(canvases as HTMLCanvasElement[], () => {
       canvas.initPhysicalSpace();
       if (view) {
         view.resizeConfigSpace(canvas);
@@ -854,6 +840,4 @@ export function useResizeCanvasObserver(
       observer.disconnect();
     };
   }, [canvases, canvas, view, canvasPoolManager]);
-
-  return bounds;
 }

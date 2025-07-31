@@ -50,7 +50,11 @@ def calculate_time_frame(start, end, rollup):
     return {"start": rollup_start, "end": rollup_end}
 
 
-class BaseSnubaSerializer:
+class SnubaTSResultSerializer:
+    """
+    Serializer for time-series Snuba data.
+    """
+
     def __init__(self, organization, lookup, user):
         self.organization = organization
         self.lookup = lookup
@@ -62,12 +66,6 @@ class BaseSnubaSerializer:
 
         return self.lookup.serializer(self.organization, item_list, self.user)
 
-
-class SnubaTSResultSerializer(BaseSnubaSerializer):
-    """
-    Serializer for time-series Snuba data.
-    """
-
     def serialize(
         self,
         result,
@@ -76,6 +74,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         allow_partial_buckets=False,
         zerofill_results=True,
         extra_columns=None,
+        confidence_column="count",
     ):
         data = [
             (key, list(group))
@@ -115,11 +114,14 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         }
 
         confidence_values = []
-        if "confidence" in result.data:
-            for key, group in itertools.groupby(result.data["confidence"], key=lambda r: r["time"]):
+        # TODO: remove this once frontend starts using `accuracy` in `meta`
+        if "processed_timeseries" in result.data:
+            for key, group in itertools.groupby(
+                result.data["processed_timeseries"].confidence, key=lambda r: r["time"]
+            ):
                 result_row = []
                 for confidence_row in group:
-                    item = {"count": confidence_row.get(column, None)}
+                    item = {confidence_column: confidence_row.get(column, None)}
                     if extra_columns is not None:
                         for extra_column in extra_columns:
                             item[extra_column] = confidence_row.get(extra_column, 0)

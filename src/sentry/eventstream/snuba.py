@@ -208,10 +208,10 @@ class SnubaProtocolEventStream(EventStream):
             raise ValueError("expected groups to delete!")
 
         state = {
-            "transaction_id": uuid4().hex,
+            "transaction_id": str(uuid4().hex),
             "project_id": project_id,
             "group_ids": list(group_ids),
-            "datetime": datetime.now(tz=timezone.utc),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_delete_groups", extra_data=(state,), asynchronous=False)
@@ -400,6 +400,13 @@ class SnubaEventStream(SnubaProtocolEventStream):
     ) -> None:
         if headers is None:
             headers = {}
+
+        if event_type == EventStreamEventType.Error:
+            # error events now have a timestamp_ms field, this does not exist on the nodestore event
+            # but instead should be derived from the datetime field on regular Snuba processing.
+            # Since here we insert it using the eventstream API we need to add it manually
+            if "datetime" in extra_data[0]:
+                extra_data[0]["timestamp_ms"] = extra_data[0]["datetime"]
 
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 

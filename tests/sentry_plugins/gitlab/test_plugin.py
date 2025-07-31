@@ -9,6 +9,10 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.gitlab.plugin import GitLabPlugin
 
 
+def test_conf_key() -> None:
+    assert GitLabPlugin().conf_key == "gitlab"
+
+
 class GitLabPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
@@ -17,12 +21,6 @@ class GitLabPluginTest(PluginTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "gitlab"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("gitlab", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")

@@ -1,23 +1,27 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
 
 from .card_builder.installation import (
     build_personal_installation_confirmation_message,
@@ -77,17 +81,17 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
-    key = "msteams"
+    key = IntegrationProviderSlug.MSTEAMS.value
     name = "Microsoft Teams"
     can_add = False
     metadata = metadata
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [MsTeamsPipelineView()]
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state[self.key]
         external_id = data["external_id"]
         external_name = data["external_name"]
@@ -98,7 +102,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         # TODO: add try/except for request errors
         token_data = get_token_data()
 
-        integration = {
+        return {
             "name": external_name,
             "external_id": external_id,
             "metadata": {
@@ -109,20 +113,20 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "tenant_id": data["tenant_id"],
             },
             "user_identity": {
-                "type": "msteams",
+                "type": IntegrationProviderSlug.MSTEAMS.value,
                 "external_id": user_id,
                 "scopes": [],
                 "data": {},
             },
             "post_install_data": {"conversation_id": conversation_id},
         }
-        return integration
 
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         client = MsTeamsClient(integration)
         card = (
@@ -134,6 +138,6 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         client.send_card(conversation_id, card)
 
 
-class MsTeamsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+class MsTeamsPipelineView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         return pipeline.next_step()

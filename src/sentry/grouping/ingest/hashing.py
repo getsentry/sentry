@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 import sentry_sdk
 
-from sentry import features, options
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     SecondaryGroupingConfigLoader,
-    apply_server_fingerprinting,
+    apply_server_side_fingerprinting,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_project,
     load_grouping_config,
@@ -23,6 +22,7 @@ from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
+    should_handle_grouphash_metadata,
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
@@ -66,7 +66,7 @@ def _calculate_event_grouping(
             # removed it from the payload.  The call to `get_hashes_and_variants` will then
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
+            apply_server_side_fingerprinting(
                 event.data.data, get_fingerprinting_config_for_project(project)
             )
 
@@ -213,41 +213,58 @@ def get_or_create_grouphashes(
     event: Event,
     project: Project,
     variants: dict[str, BaseVariant],
-    hashes: Sequence[str],
-    grouping_config: str,
+    hashes: Iterable[str],
+    grouping_config_id: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
     grouphashes: list[GroupHash] = []
 
-    # The only utility of secondary hashes is to link new primary hashes to an existing group.
-    # Secondary hashes which are also new are therefore of no value, so there's no need to store or
-    # annotate them and we can bail now.
-    if is_secondary and not GroupHash.objects.filter(project=project, hash__in=hashes).exists():
-        return grouphashes
+    if is_secondary:
+        # The only utility of secondary hashes is to link new primary hashes to an existing group
+        # via an existing grouphash. Secondary hashes which are new are therefore of no value, so
+        # filter them out before creating grouphash records.
+        existing_hashes = set(
+            GroupHash.objects.filter(project=project, hash__in=hashes).values_list(
+                "hash", flat=True
+            )
+        )
+        hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
-        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
-            "organizations:grouphash-metadata-creation", project.organization
-        ):
+        if should_handle_grouphash_metadata(project, created):
             try:
                 # We don't expect this to throw any errors, but collecting this metadata
                 # shouldn't ever derail ingestion, so better to be safe
                 create_or_update_grouphash_metadata_if_needed(
-                    event, project, grouphash, created, grouping_config, variants
+                    event, project, grouphash, created, grouping_config_id, variants
                 )
             except Exception as exc:
-                sentry_sdk.capture_exception(exc)
+                event_id = sentry_sdk.capture_exception(exc)
+                # Temporary log to try to debug why two metrics which should be equivalent are
+                # consistently unequal - maybe the code is erroring out between incrementing the
+                # first one and the second one?
+                logger.warning(
+                    "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
+                )
 
         if grouphash.metadata:
-            record_grouphash_metadata_metrics(grouphash.metadata)
+            record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
         else:
-            # Collect a temporary metric to get a sense of how often we would be adding metadata to an
-            # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given
-            # non-backfilled grouphash, not the once per non-backfilled grouphash we'd actually be doing a
-            # backfill, but it will give us a ceiling from which we can work down.)
-            metrics.incr("grouping.grouphashmetadata.backfill_needed")
+            # Now that the sample rate for grouphash metadata creation is 100%, we should never land
+            # here, and yet we still do. Log some data for debugging purposes.
+            logger.warning(
+                "grouphash_metadata.hash_without_metadata",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "hash": hash_value,
+                    "is_new": created,
+                    "has_group": bool(grouphash.group_id),
+                },
+            )
+            metrics.incr("grouping.grouphashmetadata.backfill_needed", sample_rate=1.0)
 
         grouphashes.append(grouphash)
 

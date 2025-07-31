@@ -13,7 +13,7 @@ describe('useRouteAnalyticsParams', function () {
   it('calls setRouteAnalyticsParams', function () {
     const setRouteAnalyticsParams = jest.fn();
     const getComponent = (extraContext?: Record<string, any>) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           setRouteAnalyticsParams,
           setOrganization: jest.fn(),
@@ -24,7 +24,7 @@ describe('useRouteAnalyticsParams', function () {
         }}
       >
         <TestComponent />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
 
     const {rerender} = render(getComponent());

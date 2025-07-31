@@ -122,6 +122,61 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             "dart:core-patch/growable_array.dart",
             True,
         ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_flutter-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_logging-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_dio-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_file-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_sqflite-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_drift-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_hive-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_isar-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_link-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "/some/directory/.pub-cache/hosted/pub.dev/sentry_firebase_remote_config-9.5.0/lib/src/sentry.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
     ],
 )
 @decorators
@@ -214,6 +269,53 @@ def test_too_low_min_sdk_version_not_detected(
 ):
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="8.1.9")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_ignore_handle_begin_frame(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleBeginFrame")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_ignore_handle_draw_frame(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleDrawFrame")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_ignore_flutter_error_integration(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+):
+    event_data = get_crash_event(sdk_function="FlutterErrorIntegration.call.<fn>")
     event = store_event(data=event_data)
 
     configs[1].organization_allowlist = [event.project.organization_id]

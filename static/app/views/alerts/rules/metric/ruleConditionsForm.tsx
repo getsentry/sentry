@@ -1,18 +1,19 @@
 import {Fragment, PureComponent} from 'react';
-import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
@@ -22,16 +23,14 @@ import {
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -43,56 +42,48 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  DEVICE_CLASS_TAG_VALUES,
-  FieldKind,
-  isDeviceClass,
-} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
 } from 'sentry/utils/measurements/measurements';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
-import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
-import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 import {
-  SpanTagsContext,
-  SpanTagsProvider,
-} from 'sentry/views/explore/contexts/spanTagsContext';
-import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+  DEPRECATED_TRANSACTION_ALERTS,
+  getSupportedAndOmittedTags,
+} from 'sentry/views/alerts/wizard/options';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemAttributeProvider,
+  useTraceItemAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
-import {getProjectOptions} from '../utils';
-
-import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
-
-const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: t('1 minute'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
-  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
-  [TimeWindow.ONE_HOUR]: t('1 hour'),
-  [TimeWindow.TWO_HOURS]: t('2 hours'),
-  [TimeWindow.FOUR_HOURS]: t('4 hours'),
-  [TimeWindow.ONE_DAY]: t('24 hours'),
-};
+import {
+  DEFAULT_AGGREGATE,
+  DEFAULT_TRANSACTION_AGGREGATE,
+  getTimeWindowOptions,
+} from './constants';
+import type {EventTypes} from './types';
+import {AlertRuleComparisonType, Dataset, Datasource} from './types';
 
 type Props = {
   aggregate: string;
@@ -101,6 +92,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
   disabled: boolean;
+  eventTypes: EventTypes[];
   isEditing: boolean;
   onComparisonDeltaChange: (value: number) => void;
   onFilterSearch: (query: string, isQueryValid: any) => void;
@@ -118,8 +110,8 @@ type Props = {
   disableProjectSelector?: boolean;
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
-  isForLlmMetric?: boolean;
   isLowConfidenceChartData?: boolean;
+  isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
 };
@@ -252,54 +244,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     return values.filter(({name}) => defined(name)).map(({name}) => name);
   };
 
-  get timeWindowOptions() {
-    let options: Record<string, string> = TIME_WINDOW_MAP;
-    const {alertType} = this.props;
-
-    if (alertType === 'custom_metrics') {
-      // Do not show ONE MINUTE interval as an option for custom_metrics alert
-      options = omit(options, TimeWindow.ONE_MINUTE.toString());
-    }
-
-    if (isCrashFreeAlert(this.props.dataset)) {
-      options = pick(TIME_WINDOW_MAP, [
-        // TimeWindow.THIRTY_MINUTES, leaving this option out until we figure out the sub-hour session resolution chart limitations
-        TimeWindow.ONE_HOUR,
-        TimeWindow.TWO_HOURS,
-        TimeWindow.FOUR_HOURS,
-        TimeWindow.ONE_DAY,
-      ]);
-    }
-
-    if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
-      options = pick(TIME_WINDOW_MAP, [
-        TimeWindow.FIFTEEN_MINUTES,
-        TimeWindow.THIRTY_MINUTES,
-        TimeWindow.ONE_HOUR,
-      ]);
-    }
-
-    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-      options = pick(TIME_WINDOW_MAP, [
-        TimeWindow.FIVE_MINUTES,
-        TimeWindow.TEN_MINUTES,
-        TimeWindow.FIFTEEN_MINUTES,
-        TimeWindow.THIRTY_MINUTES,
-        TimeWindow.ONE_HOUR,
-        TimeWindow.TWO_HOURS,
-        TimeWindow.FOUR_HOURS,
-        TimeWindow.ONE_DAY,
-      ]);
-    }
-
-    return Object.entries(options).map(([value, label]) => ({
-      value: parseInt(value, 10),
-      label: tct('[timeWindow] interval', {
-        timeWindow: label.slice(-1) === 's' ? label.slice(0, -1) : label,
-      }),
-    }));
-  }
-
   get searchPlaceholder() {
     switch (this.props.dataset) {
       case Dataset.ERRORS:
@@ -314,16 +258,34 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get selectControlStyles() {
     return {
-      control: (provided: {[x: string]: string | number | boolean}) => ({
+      control: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         minWidth: 200,
         maxWidth: 300,
       }),
-      container: (provided: {[x: string]: string | number | boolean}) => ({
+      container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         margin: `${space(0.5)}`,
       }),
     };
+  }
+
+  get disableTransactionAlertType() {
+    const {organization, alertType, isEditing} = this.props;
+
+    return (
+      isEditing &&
+      alertType &&
+      deprecateTransactionAlerts(organization) &&
+      DEPRECATED_TRANSACTION_ALERTS.includes(alertType) &&
+      hasEAPAlerts(organization)
+    );
+  }
+
+  get transactionAlertDisabledMessage() {
+    return t(
+      'Transaction based alerts are no longer supported. Create span alerts instead.'
+    );
   }
 
   renderEventTypeFilter() {
@@ -351,7 +313,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (
       organization.features.includes('performance-view') &&
-      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+      alertType === 'custom_transactions'
     ) {
       dataSourceOptions.push({
         label: t('Transactions'),
@@ -384,7 +346,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             formEventTypes
           );
           return (
-            <SelectControl
+            <Select
               value={mappedValue}
               inFieldLabel={t('Events: ')}
               onChange={({value}: any) => {
@@ -449,8 +411,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             _selectedProject;
 
           return (
-            <SelectControl
-              isDisabled={disabled || disableProjectSelector}
+            <Select
+              isDisabled={
+                disabled || disableProjectSelector || this.disableTransactionAlertType
+              }
               value={selectedProject.id}
               options={projectOptions}
               onChange={({value}: {value: Project['id']}) => {
@@ -462,8 +426,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);
@@ -497,8 +460,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       disabled,
       alertType,
       project,
-      isForLlmMetric,
+      dataset,
+      comparisonType,
       onTimeWindowChange,
+      isEditing,
+      eventTypes,
     } = this.props;
 
     return (
@@ -508,8 +474,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <div>{t('Define your metric')}</div>
           </StyledListTitle>
         </StyledListItem>
-        <FormRow>
-          {isForLlmMetric ? null : (
+        <Tooltip
+          title={this.transactionAlertDisabledMessage}
+          disabled={!this.disableTransactionAlertType}
+          isHoverable
+        >
+          <FormRow>
             <WizardField
               name="aggregate"
               help={null}
@@ -525,19 +495,26 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               columnWidth={200}
               alertType={alertType}
               required
+              isEditing={isEditing}
+              eventTypes={eventTypes}
+              disabledReason={
+                this.disableTransactionAlertType
+                  ? this.transactionAlertDisabledMessage
+                  : undefined
+              }
             />
-          )}
-          <SelectControl
-            name="timeWindow"
-            styles={this.selectControlStyles}
-            options={this.timeWindowOptions}
-            isDisabled={disabled}
-            value={timeWindow}
-            onChange={({value}: any) => onTimeWindowChange(value)}
-            inline={false}
-            flexibleControlStateSize
-          />
-        </FormRow>
+            <Select
+              name="timeWindow"
+              styles={this.selectControlStyles}
+              options={getTimeWindowOptions(dataset, comparisonType)}
+              isDisabled={disabled || this.disableTransactionAlertType}
+              value={timeWindow}
+              onChange={({value}: any) => onTimeWindowChange(value)}
+              inline={false}
+              flexibleControlStateSize
+            />
+          </FormRow>
+        </Tooltip>
       </Fragment>
     );
   }
@@ -553,10 +530,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isExtrapolatedChartData,
       isTransactionMigration,
       isErrorMigration,
-      aggregate,
       project,
       comparisonType,
       isLowConfidenceChartData,
+      isOnDemandLimitReached,
+      eventTypes,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -571,6 +549,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const confidenceEnabled = hasEAPAlerts(organization);
 
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+
     return (
       <Fragment>
         <ChartPanel>
@@ -584,11 +564,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            <SpanTagsProvider
-              dataset={DiscoverDatasets.SPANS_EAP}
+            <TraceItemAttributeProvider
+              projects={[project]}
+              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
               enabled={
-                organization.features.includes('alerts-eap') &&
-                alertType === 'eap_metrics'
+                organization.features.includes('visibility-explore-view') &&
+                isEapAlertType(alertType)
               }
             >
               {isExtrapolatedChartData && (
@@ -599,42 +580,53 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 />
               )}
               {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert showIcon type="warning">
-                  {t(
-                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
-                  )}
-                </Alert>
+                <Alert.Container>
+                  <Alert type="warning">
+                    {t(
+                      'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                    )}
+                  </Alert>
+                </Alert.Container>
               )}
               {!isErrorMigration && this.renderInterval()}
               <StyledListItem>{t('Filter events')}</StyledListItem>
-              <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
-                {this.renderProjectSelector()}
-                <SelectField
-                  name="environment"
-                  placeholder={t('All Environments')}
-                  style={{
-                    ...this.formElemBaseStyle,
-                    minWidth: 230,
-                    flex: 1,
-                  }}
-                  styles={{
-                    singleValue: (base: any) => ({
-                      ...base,
-                    }),
-                    option: (base: any) => ({
-                      ...base,
-                    }),
-                  }}
-                  options={environmentOptions}
-                  isDisabled={
-                    disabled || this.state.environments === null || isErrorMigration
-                  }
-                  isClearable
-                  inline={false}
-                  flexibleControlStateSize
-                />
-                {allowChangeEventTypes && this.renderEventTypeFilter()}
-              </FormRow>
+              <Tooltip
+                title={this.transactionAlertDisabledMessage}
+                disabled={!this.disableTransactionAlertType}
+                isHoverable
+              >
+                <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+                  {this.renderProjectSelector()}
+                  <SelectField
+                    name="environment"
+                    placeholder={t('All Environments')}
+                    style={{
+                      ...this.formElemBaseStyle,
+                      minWidth: 230,
+                      flex: 1,
+                    }}
+                    styles={{
+                      singleValue: (base: any) => ({
+                        ...base,
+                      }),
+                      option: (base: any) => ({
+                        ...base,
+                      }),
+                    }}
+                    options={environmentOptions}
+                    isDisabled={
+                      disabled ||
+                      this.state.environments === null ||
+                      isErrorMigration ||
+                      this.disableTransactionAlertType
+                    }
+                    isClearable
+                    inline={false}
+                    flexibleControlStateSize
+                  />
+                  {allowChangeEventTypes && this.renderEventTypeFilter()}
+                </FormRow>
+              </Tooltip>
               <FormRow noMargin>
                 <FormField
                   name="query"
@@ -646,38 +638,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
-                    return hasCustomMetrics(organization) &&
-                      alertType === 'custom_metrics' ? (
-                      <MetricSearchBar
-                        mri={getMRI(aggregate)}
-                        projectIds={[project.id]}
-                        placeholder={this.searchPlaceholder}
-                        query={initialData.query}
-                        defaultQuery={initialData?.query ?? ''}
-                        useFormWrapper={false}
-                        searchSource="alert_builder"
-                        onChange={query => {
-                          onFilterSearch(query, true);
+                    return isEapAlertType(alertType) ? (
+                      <EAPSearchQueryBuilderWithContext
+                        initialQuery={value ?? ''}
+                        onSearch={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
                           onChange(query, {});
                         }}
+                        project={project}
+                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
                       />
-                    ) : alertType === 'eap_metrics' ? (
-                      <SpanTagsContext.Consumer>
-                        {tags => (
-                          <EAPSpanSearchQueryBuilder
-                            numberTags={tags?.number ?? {}}
-                            stringTags={tags?.string ?? {}}
-                            initialQuery={value ?? ''}
-                            searchSource="alerts"
-                            onSearch={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onChange(query, {});
-                            }}
-                            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-                            projects={[parseInt(project.id, 10)]}
-                          />
-                        )}
-                      </SpanTagsContext.Consumer>
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
@@ -686,7 +656,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           placeholder={this.searchPlaceholder}
                           searchSource="alert_builder"
                           filterKeys={filterKeys}
-                          disabled={disabled || isErrorMigration}
+                          disabled={
+                            disabled ||
+                            isErrorMigration ||
+                            this.disableTransactionAlertType
+                          }
                           onChange={onChange}
                           invalidMessages={{
                             [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
@@ -713,24 +687,46 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               : dataset === Dataset.GENERIC_METRICS
                           }
                         />
-                        {isExtrapolatedChartData && isOnDemandQueryString(value) && (
-                          <OnDemandWarningIcon
-                            color="gray500"
-                            msg={tct(
-                              `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
-                              {
-                                fields: (
-                                  <strong>
-                                    {getOnDemandKeys(value)
-                                      .map(key => `"${key}"`)
-                                      .join(', ')}
-                                  </strong>
-                                ),
-                                strong: <strong />,
-                              }
-                            )}
-                          />
-                        )}
+                        {isExtrapolatedChartData &&
+                          isOnDemandQueryString(value) &&
+                          (isOnDemandLimitReached ? (
+                            <OnDemandWarningIcon
+                              color="red400"
+                              msg={tct(
+                                'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
+                                {
+                                  fields: (
+                                    <strong>
+                                      {getOnDemandKeys(value)
+                                        .map(key => `"${key}"`)
+                                        .join(', ')}
+                                    </strong>
+                                  ),
+                                  docLink: (
+                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
+                                  ),
+                                }
+                              )}
+                              isHoverable
+                            />
+                          ) : (
+                            <OnDemandWarningIcon
+                              color="gray500"
+                              msg={tct(
+                                'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
+                                {
+                                  fields: (
+                                    <strong>
+                                      {getOnDemandKeys(value)
+                                        .map(key => `"${key}"`)
+                                        .join(', ')}
+                                    </strong>
+                                  ),
+                                  strong: <strong />,
+                                }
+                              )}
+                            />
+                          ))}
                       </SearchContainer>
                     );
                   }}
@@ -763,12 +759,45 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }}
                 </FormField>
               </FormRow>
-            </SpanTagsProvider>
+            </TraceItemAttributeProvider>
           </Fragment>
         )}
       </Fragment>
     );
   }
+}
+
+interface EAPSearchQueryBuilderWithContextProps {
+  initialQuery: string;
+  onSearch: (query: string, isQueryValid: any) => void;
+  project: Project;
+  traceItemType: TraceItemDataset;
+}
+
+function EAPSearchQueryBuilderWithContext({
+  initialQuery,
+  onSearch,
+  project,
+  traceItemType,
+}: EAPSearchQueryBuilderWithContextProps) {
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributes('number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributes('string');
+
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery,
+    searchSource: 'alerts',
+    onSearch,
+    numberAttributes,
+    stringAttributes,
+    itemType: traceItemType,
+    projects: [parseInt(project.id, 10)],
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+  };
+
+  return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
 const StyledListTitle = styled('div')`
@@ -811,7 +840,7 @@ const SearchContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: 1.3;
 `;
 

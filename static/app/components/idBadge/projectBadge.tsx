@@ -1,12 +1,13 @@
 import {cloneElement} from 'react';
 import styled from '@emotion/styled';
 
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import BadgeDisplayName from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
@@ -71,9 +72,11 @@ function ProjectBadge({
   );
 
   if (!disableLink && organization?.slug) {
-    const defaultTo = `/organizations/${organization.slug}/projects/${project.slug}/${
-      project.id ? `?project=${project.id}` : ''
-    }`;
+    const defaultTo =
+      makeProjectsPathname({
+        path: `/${project.slug}/`,
+        organization,
+      }) + (project.id ? `?project=${project.id}` : '');
 
     return (
       <StyledLink

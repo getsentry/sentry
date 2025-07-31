@@ -1,22 +1,14 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
 describe('Related Issues View', function () {
-  let sameRootIssuesMock: jest.Mock;
-  let traceIssuesMock: jest.Mock;
-  let issuesMock: jest.Mock;
-
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['global-views']});
   const groupId = '12345678';
   const group = GroupFixture({id: groupId});
-  const router = RouterFixture({
-    params: {groupId: group.id},
-  });
   const orgSlug = organization.slug;
   const group1 = '15';
   const group2 = '20';
@@ -79,20 +71,32 @@ describe('Related Issues View', function () {
   });
 
   it('renders with same root issues', async function () {
-    sameRootIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/?type=same_root_cause`,
+    const sameRootIssuesMock = MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: onlySameRootData,
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/?type=trace_connected`,
+      url: `/issues/${groupId}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
       body: [],
     });
-    issuesMock = MockApiClient.addMockResponse({
+    const issuesMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
       body: issuesData,
     });
 
-    render(<GroupRelatedIssues />, {router, organization});
+    render(<GroupRelatedIssues group={group} />, {
+      organization,
+    });
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -104,24 +108,36 @@ describe('Related Issues View', function () {
     expect(linkButton).toHaveAttribute(
       'href',
       // Opening in Issues needs to include the group we are currently viewing
-      `/organizations/org-slug/issues/?project=-1&query=issue.id:[${groupId},${group1},${group2}]`
+      `/organizations/org-slug/issues/?project=-1&query=${encodeURIComponent(`issue.id:[${groupId},${group1},${group2}]`)}`
     );
   });
 
   it('renders with trace connected issues', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/?type=same_root_cause`,
+      url: `/issues/${groupId}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+        }),
+      ],
       body: [],
     });
-    traceIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/?type=trace_connected`,
+    const traceIssuesMock = MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+        }),
+      ],
       body: onlyTraceConnectedData,
     });
-    issuesMock = MockApiClient.addMockResponse({
+    const issuesMock = MockApiClient.addMockResponse({
       url: orgIssuesEndpoint,
       body: issuesData,
     });
-    render(<GroupRelatedIssues />, {router, organization});
+    render(<GroupRelatedIssues group={group} />, {
+      organization,
+    });
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -138,7 +154,44 @@ describe('Related Issues View', function () {
     // The Issue search supports using `trace` as a parameter
     expect(linkButton).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/?project=-1&query=trace:1234`
+      `/organizations/org-slug/issues/?project=-1&query=${encodeURIComponent('trace:1234')}`
+    );
+  });
+
+  it('sets project id when global views is disabled', async function () {
+    MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'same_root_cause',
+          project: group.project.id,
+        }),
+      ],
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${groupId}/related-issues/`,
+      match: [
+        MockApiClient.matchQuery({
+          type: 'trace_connected',
+          project: group.project.id,
+        }),
+      ],
+      body: onlyTraceConnectedData,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/issues/?project=${group.project.id}&query=${encodeURIComponent(`issue.id:[${group1},${group2}]`)}`,
+      body: issuesData,
+    });
+    const noGlobalViewsOrganization = OrganizationFixture({features: []});
+    render(<GroupRelatedIssues group={group} />, {
+      organization: noGlobalViewsOrganization,
+    });
+    expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
+    const linkButton = screen.getByRole('button', {name: /open in issues/i});
+    expect(linkButton).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/?project=${group.project.id}&query=${encodeURIComponent('trace:1234')}`
     );
   });
 });

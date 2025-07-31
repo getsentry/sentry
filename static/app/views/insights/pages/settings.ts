@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {MODULES as AGENTS_MODULES} from 'sentry/views/insights/pages/agents/settings';
 import {MODULES as AI_MODULES} from 'sentry/views/insights/pages/ai/settings';
 import {MODULES as BACKEND_MODULES} from 'sentry/views/insights/pages/backend/settings';
 import {MODULES as FRONTEND_MODULES} from 'sentry/views/insights/pages/frontend/settings';
@@ -14,5 +15,6 @@ export const DOMAIN_VIEW_MODULES: Record<DomainView, ModuleName[]> = {
   frontend: FRONTEND_MODULES,
   backend: BACKEND_MODULES,
   ai: AI_MODULES,
+  agents: AGENTS_MODULES,
   mobile: MOBILE_MODULES,
 };

@@ -1,12 +1,14 @@
 import {ReleaseFixture} from 'sentry-fixture/release';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {lightTheme} from 'sentry/utils/theme';
 import {
   generateReleaseMarkLines,
   releaseMarkLinesLabels,
 } from 'sentry/views/releases/detail/utils';
+
+const theme = ThemeFixture();
 
 describe('releases/detail/utils', () => {
   describe('generateReleaseMarkLines', () => {
@@ -19,7 +21,7 @@ describe('releases/detail/utils', () => {
       const marklines = generateReleaseMarkLines(
         release,
         project,
-        lightTheme,
+        theme,
         router.location
       );
 
@@ -27,7 +29,7 @@ describe('releases/detail/utils', () => {
     });
 
     it('generates also Adoption marklines if exactly one env is selected', () => {
-      const marklines = generateReleaseMarkLines(release, project, lightTheme, {
+      const marklines = generateReleaseMarkLines(release, project, theme, {
         ...router.location,
         query: {environment: 'prod'},
       });
@@ -67,7 +69,7 @@ describe('releases/detail/utils', () => {
       const marklines = generateReleaseMarkLines(
         {...release, projects: [{...release.projects[0]!, platform: 'javascript'}]},
         {...project, platform: 'javascript'},
-        lightTheme,
+        theme,
         {
           ...router.location,
           query: {environment: 'prod'},
@@ -78,7 +80,7 @@ describe('releases/detail/utils', () => {
     });
 
     it('shows only marklines that are in current time window', () => {
-      const marklines = generateReleaseMarkLines(release, project, lightTheme, {
+      const marklines = generateReleaseMarkLines(release, project, theme, {
         ...router.location,
         query: {
           environment: 'prod',
@@ -94,7 +96,7 @@ describe('releases/detail/utils', () => {
       const marklines = generateReleaseMarkLines(
         {...release, dateCreated: '2010-03-24T01:00:30Z'},
         project,
-        lightTheme,
+        theme,
         router.location
       );
 

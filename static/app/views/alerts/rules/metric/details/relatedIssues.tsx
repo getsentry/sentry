@@ -1,8 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,6 +20,7 @@ import {
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
 
@@ -65,6 +66,10 @@ function RelatedIssues({
         rule,
         query,
         timePeriod,
+        traceItemType: getTraceItemTypeForDatasetAndEventType(
+          rule.dataset,
+          rule.eventTypes
+        ),
       });
       return <RelatedIssuesNotAvailable buttonTo={to} buttonText={buttonText} />;
     }
@@ -106,7 +111,7 @@ function RelatedIssues({
     <Fragment>
       {!skipHeader && (
         <ControlsWrapper>
-          <StyledSectionHeading>{t('Related Issues')}</StyledSectionHeading>
+          <SectionHeading>{t('Related Issues')}</SectionHeading>
           <LinkButton data-test-id="issues-open" size="xs" to={issueSearch}>
             {t('Open in Issues')}
           </LinkButton>
@@ -115,7 +120,6 @@ function RelatedIssues({
 
       <TableWrapper>
         <GroupList
-          orgSlug={organization.slug}
           endpointPath={path}
           queryParams={queryParams}
           canSelectGroups={false}
@@ -132,11 +136,6 @@ function RelatedIssues({
     </Fragment>
   );
 }
-
-const StyledSectionHeading = styled(SectionHeading)`
-  display: flex;
-  align-items: center;
-`;
 
 const ControlsWrapper = styled('div')`
   display: flex;

@@ -1,12 +1,14 @@
 from django.utils import timezone
 
-from sentry.issues.escalating import manage_issue_states
+from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.signals import issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 
 
 @instrumented_task(
@@ -14,6 +16,10 @@ from sentry.tasks.base import instrumented_task
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def clear_expired_snoozes():
     groupsnooze_list = list(

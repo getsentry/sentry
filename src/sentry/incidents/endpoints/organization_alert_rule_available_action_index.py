@@ -90,10 +90,10 @@ def build_action_response(
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """

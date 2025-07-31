@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -20,15 +21,25 @@ from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import Environment
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
-class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+class GroupTagKeyDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+        }
+    }
 
     @extend_schema(
         operation_id="Retrieve Tag Details",
@@ -56,9 +67,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids = {"organization_id": group.project.organization_id}
         try:
-            environment_id = self._get_environment_id_from_request(
-                request, group.project.organization_id
-            )
+            environment_id = get_environment_id(request, group.project.organization_id)
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist

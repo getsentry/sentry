@@ -2,7 +2,7 @@ import {
   type Monitor,
   MonitorStatus,
   ScheduleType,
-} from 'sentry/views/monitors/types';
+} from 'sentry/views/insights/crons/types';
 
 import {ActorFixture} from './actor';
 import {ProjectFixture} from './project';
@@ -16,6 +16,7 @@ export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
     slug: 'my-monitor',
     status: 'active',
     owner: ActorFixture(),
+    isUpserting: false,
     config: {
       checkin_margin: 5,
       max_runtime: 10,

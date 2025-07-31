@@ -10,7 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
-from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
+from sentry.sentry_apps.alert_rule_action_creator import SentryAppAlertRuleActionCreator
 from sentry.sentry_apps.api.serializers.sentry_app_component import (
     SentryAppAlertRuleActionSerializer,
 )
@@ -38,6 +38,7 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -60,12 +61,12 @@ class DatabaseBackedAppService(AppService):
     def find_app_components(self, *, app_id: int) -> list[RpcSentryAppComponent]:
         return [
             serialize_sentry_app_component(c)
-            for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
+            for c in SentryAppComponent.objects.using_replica().filter(sentry_app_id=app_id)
         ]
 
     def get_sentry_app_by_id(self, *, id: int) -> RpcSentryApp | None:
         try:
-            sentry_app = SentryApp.objects.get(id=id)
+            sentry_app = SentryApp.objects.using_replica().get(id=id)
         except SentryApp.DoesNotExist:
             return None
         return serialize_sentry_app(sentry_app)
@@ -97,12 +98,20 @@ class DatabaseBackedAppService(AppService):
         except SentryApp.DoesNotExist:
             return None
 
+    def get_sentry_apps_by_proxy_users(self, *, proxy_user_ids: list[int]) -> list[RpcSentryApp]:
+        sentry_apps = SentryApp.objects.filter(proxy_user_id__in=proxy_user_ids).prefetch_related(
+            "avatar"
+        )
+        return [
+            serialize_sentry_app(app=app, avatars=list(app.avatar.all())) for app in sentry_apps
+        ]
+
     def get_installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
-        ).select_related("sentry_app")
+        ).select_related("sentry_app", "api_token")
         fq = self._AppServiceFilterQuery()
         return [fq.serialize_rpc(i) for i in installations]
 
@@ -170,6 +179,41 @@ class DatabaseBackedAppService(AppService):
                 output.append(context_item)
         return output
 
+    def get_installation_component_contexts(
+        self,
+        *,
+        filter: SentryAppInstallationFilterArgs,
+        component_type: str,
+        include_contexts_without_component: bool = False,
+    ) -> list[RpcSentryAppComponentContext]:
+        install_query = self._FQ.query_many(filter=filter)
+        app_ids = install_query.values_list("sentry_app_id", flat=True)
+
+        component_query = SentryAppComponent.objects.filter(
+            type=component_type, sentry_app_id__in=list(app_ids)
+        )
+        component_map: dict[int, SentryAppComponent] = {}
+        output = []
+
+        for component in component_query:
+            component_map[component.sentry_app_id] = component
+
+        for install in install_query:
+            install_component = component_map.get(install.sentry_app_id)
+            if include_contexts_without_component or install_component:
+                context_item = RpcSentryAppComponentContext(
+                    installation=serialize_sentry_app_installation(
+                        installation=install, app=install.sentry_app
+                    ),
+                    component=(
+                        serialize_sentry_app_component(install_component)
+                        if install_component
+                        else None
+                    ),
+                )
+                output.append(context_item)
+        return output
+
     class _AppServiceFilterQuery(
         FilterQueryDatabaseImpl[
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
@@ -184,7 +228,12 @@ class DatabaseBackedAppService(AppService):
             self,
         ) -> Callable[[SentryAppInstallationFilterArgs], str | None]:
             return self._filter_has_any_key_validator(
-                "organization_id", "installation_ids", "app_ids", "uuids", "status"
+                "organization_id",
+                "installation_ids",
+                "app_ids",
+                "uuids",
+                "status",
+                "proxy_user_ids",
             )
 
         def serialize_api(self, serializer: None) -> Serializer:
@@ -254,9 +303,21 @@ class DatabaseBackedAppService(AppService):
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
-        result = AlertRuleActionCreator(install=install, fields=fields).run()
-        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
+            return RpcAlertRuleActionResult(
+                success=False,
+                message="Installation does not exist",
+                error_type=SentryAppErrorType.SENTRY,
+                webhook_type={"installation_uuid": install_uuid},
+            )
+        result = SentryAppAlertRuleActionCreator(install=install, fields=fields).run()
+        return RpcAlertRuleActionResult(
+            success=result["success"],
+            message=result["message"],
+            error_type=result.get("error_type"),
+            webhook_context=result.get("webhook_context"),
+            public_context=result.get("public_context"),
+            status_code=result.get("status_code"),
+        )
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         try:

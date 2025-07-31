@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import TimeSince from 'sentry/components/timeSince';
 
 interface GroupStatusBadgeProps {
@@ -10,7 +11,7 @@ interface GroupStatusBadgeProps {
   dateAdded?: string;
   fontSize?: 'sm' | 'md';
   tooltip?: React.ReactNode;
-  type?: keyof Theme['tag'];
+  type?: TagProps['type'];
 }
 
 /**
@@ -24,28 +25,29 @@ export function GroupStatusTag({
   children,
 }: GroupStatusBadgeProps) {
   return (
-    <StyledTag type={type} tooltipText={tooltip} fontSize={fontSize}>
-      {children}
-      {dateAdded && (
-        <Fragment>
-          <Separator type={type}>{' | '}</Separator>
-          <TimeSince
-            date={dateAdded}
-            suffix=""
-            unitStyle="extraShort"
-            disabledAbsoluteTooltip
-          />
-        </Fragment>
-      )}
-    </StyledTag>
+    <Tooltip title={tooltip} skipWrapper>
+      <StyledTag type={type} fontSize={fontSize}>
+        {children}
+        {dateAdded && (
+          <Fragment>
+            <Separator type={type}>{' | '}</Separator>
+            <TimeSince
+              date={dateAdded}
+              suffix=""
+              unitStyle="extraShort"
+              disabledAbsoluteTooltip
+            />
+          </Fragment>
+        )}
+      </StyledTag>
+    </Tooltip>
   );
 }
 
 const StyledTag = styled(Tag, {
   shouldForwardProp: p => p !== 'fontSize',
 })<{fontSize: 'sm' | 'md'}>`
-  font-size: ${p =>
-    p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
+  font-size: ${p => (p.fontSize === 'sm' ? p.theme.fontSize.sm : p.theme.fontSize.md)};
 `;
 
 const Separator = styled('span')<{type: keyof Theme['tag']}>`

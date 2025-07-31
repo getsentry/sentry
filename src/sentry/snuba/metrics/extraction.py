@@ -422,7 +422,7 @@ def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
     return search_filter
 
 
-def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _transform_search_query(query: Sequence[QueryToken]) -> list[QueryToken]:
     transformed_query: list[QueryToken] = []
 
     for token in query:
@@ -438,7 +438,7 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
 
 @metrics.wraps("metrics.extraction.parse_search_query")
 def parse_search_query(
-    query: str | None,
+    query: str,
     removed_blacklisted: bool = False,
     force_transaction_event_type: bool = False,
 ) -> Sequence[QueryToken]:
@@ -446,7 +446,7 @@ def parse_search_query(
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
-    tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
+    tokens = event_search.parse_search_query(query)
 
     # We might want to force the `event.type:transaction` to be in the query, as a validation step.
     if force_transaction_event_type:
@@ -462,7 +462,7 @@ def parse_search_query(
     return tokens
 
 
-def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def cleanup_search_query(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
 
@@ -596,7 +596,7 @@ def should_use_on_demand_metrics_for_querying(organization: Organization, **kwar
 def _should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
-    query: str | None,
+    query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
 ) -> bool:
@@ -637,7 +637,7 @@ def _should_use_on_demand_metrics(
 def should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
-    query: str | None,
+    query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
     organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
@@ -777,7 +777,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
     return SupportedBy.combine(*[_get_field_support(groupby) for groupby in groupbys])
 
 
-def _get_query_supported_by(query: str | None) -> SupportedBy:
+def _get_query_supported_by(query: str) -> SupportedBy:
     try:
         parsed_query = parse_search_query(query=query, removed_blacklisted=False)
 
@@ -907,7 +907,7 @@ def to_standard_metrics_query(query: str) -> str:
     return query_tokens_to_string(cleaned_query)
 
 
-def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Converts a query in token form containing on-demand search fields to a query
     that has all on-demand filters removed and can be run using only standard metrics.
@@ -930,7 +930,7 @@ def query_tokens_to_string(tokens: Sequence[QueryToken]) -> str:
     return ret_val.strip()
 
 
-def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Removes tokens that contain filters that can only be handled by on demand metrics.
     """
@@ -947,7 +947,7 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     return ret_val
 
 
-def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> list[QueryToken]:
     """
     Removes tokens that contain filters that are blacklisted.
     """
@@ -1173,6 +1173,10 @@ class MetricSpecType(Enum):
     SIMPLE_QUERY = "simple_query"
     # Omits environment from the query hash, supports group-by on environment for dynamic switching between envs.
     DYNAMIC_QUERY = "dynamic_query"
+
+
+class OnDemandMetricSpecError(Exception):
+    pass
 
 
 @dataclass
@@ -1460,7 +1464,7 @@ class OnDemandMetricSpec:
             return None
 
         if len(parsed_field.arguments) == 0:
-            raise Exception(f"The operation {op} supports one or more parameters")
+            raise OnDemandMetricSpecError(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
         return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
@@ -1478,7 +1482,7 @@ class OnDemandMetricSpec:
         if op is not None:
             return op
 
-        raise Exception(f"Unsupported aggregate function {function}")
+        raise OnDemandMetricSpecError(f"Unsupported aggregate function {function}")
 
     @staticmethod
     def _get_metric_type(function: str) -> str:
@@ -1486,7 +1490,7 @@ class OnDemandMetricSpec:
         if metric_type is not None:
             return metric_type
 
-        raise Exception(f"Unsupported aggregate function {function}")
+        raise OnDemandMetricSpecError(f"Unsupported aggregate function {function}")
 
     @staticmethod
     def _parse_field(value: str) -> FieldParsingResult:
@@ -1499,7 +1503,9 @@ class OnDemandMetricSpec:
             column = query_builder.resolve_column(value)
             return column
         except InvalidSearchQuery as e:
-            raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
+            raise OnDemandMetricSpecError(
+                f"Unable to parse the field '{value}' in on demand spec: {e}"
+            )
 
     @staticmethod
     def _parse_query(value: str) -> QueryParsingResult:
@@ -1515,7 +1521,7 @@ class OnDemandMetricSpec:
 
             return QueryParsingResult(conditions=conditions)
         except InvalidSearchQuery as e:
-            raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
+            raise OnDemandMetricSpecError(f"Invalid search query '{value}' in on demand spec: {e}")
 
 
 def fetch_on_demand_metric_spec(

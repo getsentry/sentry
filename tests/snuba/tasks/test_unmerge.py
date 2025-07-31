@@ -12,10 +12,12 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
@@ -30,6 +32,7 @@ from sentry.tasks.unmerge import (
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
@@ -171,6 +174,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
+    @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record):
         now = before_now(minutes=5).replace(microsecond=0)
@@ -343,6 +347,17 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
         }
+        source_open_periods = (
+            GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
+        )
+        destination_open_period = (
+            GroupOpenPeriod.objects.filter(group=destination).order_by("-date_started").first()
+        )
+
+        assert source_open_periods is not None
+        assert source_open_periods.date_ended is None
+        assert destination_open_period is not None
+        assert destination_open_period.date_ended is None
 
         rollup_duration = 3600
 
@@ -439,10 +454,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             aggregate.add(
                 get_event_user_from_interface(event.data["user"], event.group.project).tag_value
             )
-            mock_record.assert_called_with(
-                "eventuser_endpoint.request",
-                project_id=event.group.project.id,
-                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            assert_last_analytics_event(
+                mock_record,
+                EventUserEndpointRequest(
+                    project_id=event.group.project.id,
+                    endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+                ),
             )
             return aggregate
 

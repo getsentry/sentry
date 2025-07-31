@@ -1,6 +1,5 @@
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import type {FieldKind} from 'sentry/utils/fields';
-
-import type {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
@@ -63,13 +62,6 @@ export type SearchItem = {
    * A value of null means that this item is not selectable in the search dropdown
    */
   value?: string | null;
-};
-
-export type Tag = {
-  desc: string;
-  key: string;
-  predefined: boolean;
-  values: string[];
 };
 
 export enum ShortcutType {

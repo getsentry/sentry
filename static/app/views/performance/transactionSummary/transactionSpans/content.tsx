@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -23,8 +23,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
-
-import type {SetStateAction} from '../types';
+import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 
 import OpsFilter from './opsFilter';
 import SuspectSpansTable from './suspectSpansTable';
@@ -72,7 +71,7 @@ function SpansContent(props: Props) {
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 
@@ -210,7 +209,7 @@ function SpansContentV2(props: Props) {
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 
@@ -276,22 +275,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(3, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr auto;
   }
 `;
 
 const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/5;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

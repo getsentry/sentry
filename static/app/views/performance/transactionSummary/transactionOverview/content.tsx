@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -12,13 +14,12 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined, generateQueryWithTag} from 'sentry/utils';
+import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -34,24 +35,27 @@ import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
+import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
+import {SpanFields} from 'sentry/views/insights/types';
+import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import Filter, {
   decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
-} from '../filter';
+} from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  makeVitalGroups,
+  PERCENTILE as VITAL_PERCENTILE,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -60,14 +64,17 @@ import {
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  isSummaryViewFrontend,
+  isSummaryViewFrontendPageLoad,
+} from 'sentry/views/performance/utils';
 
 import TransactionSummaryCharts from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
-import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
 
@@ -85,6 +92,218 @@ type Props = {
   transactionName: string;
 };
 
+export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
+
+function OTelSummaryContentInner({
+  eventView,
+  location,
+  totalValues,
+  spanOperationBreakdownFilter,
+  organization,
+  projects,
+  projectId,
+  transactionName,
+}: Props) {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const domainViewFilters = useDomainViewFilters();
+  const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      const queryParams = normalizeDateTimeParams({
+        ...location.query,
+        query,
+      });
+
+      // do not propagate pagination when making a new search
+      const searchQueryParams = omit(queryParams, 'cursor');
+
+      navigate({
+        pathname: location.pathname,
+        query: searchQueryParams,
+      });
+    },
+    [location, navigate]
+  );
+
+  function handleTransactionsListSortChange(value: string) {
+    const target = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        showTransactions: value,
+        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+      },
+    };
+
+    navigate(target);
+  }
+
+  const query = useMemo(() => {
+    return decodeScalar(location.query.query, '');
+  }, [location]);
+
+  // NOTE: This is not a robust check for whether or not a transaction is a front end
+  // transaction, however it will suffice for now.
+  const hasWebVitals =
+    isSummaryViewFrontendPageLoad(eventView, projects) ||
+    (totalValues !== null &&
+      makeVitalGroups(theme).some(group =>
+        group.vitals.some(vital => {
+          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
+          const field = functionName;
+          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
+        })
+      ));
+
+  const isFrontendView = isSummaryViewFrontend(eventView, projects);
+
+  const transactionsListTitles = [
+    t('event id'),
+    t('user'),
+    t('total duration'),
+    t('trace id'),
+    t('timestamp'),
+  ];
+
+  const project = projects.find(p => p.id === projectId);
+
+  let transactionsListEventView = eventView.clone();
+  const fields = [...transactionsListEventView.fields];
+
+  if (
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project)
+  ) {
+    transactionsListTitles.push(t('replay'));
+    fields.push({field: 'replayId'});
+  }
+
+  if (
+    // only show for projects that already sent a profile
+    // once we have a more compact design we will show this for
+    // projects that support profiling as well
+    project?.hasProfiles &&
+    (organization.features.includes('profiling') ||
+      organization.features.includes('continuous-profiling'))
+  ) {
+    transactionsListTitles.push(t('profile'));
+
+    if (organization.features.includes('profiling')) {
+      fields.push({field: 'profile.id'});
+    }
+
+    if (organization.features.includes('continuous-profiling')) {
+      fields.push({field: 'profiler.id'});
+      fields.push({field: 'thread.id'});
+      fields.push({field: 'precise.start_ts'});
+      fields.push({field: 'precise.finish_ts'});
+    }
+  }
+
+  // update search conditions
+
+  const spanOperationBreakdownConditions = filterToSearchConditions(
+    spanOperationBreakdownFilter,
+    location
+  );
+
+  if (spanOperationBreakdownConditions) {
+    eventView = eventView.clone();
+    eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+    transactionsListEventView = eventView.clone();
+  }
+
+  if (spanCategory) {
+    eventView = eventView.clone();
+    eventView.query =
+      `${eventView.query} ${SpanFields.SPAN_CATEGORY}:${spanCategory}`.trim();
+    transactionsListEventView = eventView.clone();
+  }
+
+  transactionsListEventView.fields = fields;
+
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
+
+  function renderSearchBar() {
+    return (
+      <TransactionSearchQueryBuilder
+        projects={projectIds}
+        initialQuery={query}
+        onSearch={handleSearch}
+        searchSource="transaction_summary"
+        disableLoadingTags // already loaded by the parent component
+        filterKeyMenuWidth={420}
+      />
+    );
+  }
+
+  return (
+    <Fragment>
+      <Layout.Main>
+        <FilterActions>
+          <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter />
+          </PageFilterBar>
+          <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
+        </FilterActions>
+        <EAPChartsWidgetContainer>
+          <EAPChartsWidget transactionName={transactionName} query={query} />
+        </EAPChartsWidgetContainer>
+
+        <PerformanceAtScaleContextProvider>
+          <ServiceEntrySpansTable
+            eventView={transactionsListEventView}
+            handleDropdownChange={handleTransactionsListSortChange}
+            totalValues={totalValues}
+            transactionName={transactionName}
+            supportsInvestigationRule
+            showViewSampledEventsButton
+          />
+        </PerformanceAtScaleContextProvider>
+        <TagExplorer
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          projects={projects}
+          transactionName={transactionName}
+          currentFilter={spanOperationBreakdownFilter}
+          domainViewFilters={domainViewFilters}
+        />
+        <SuspectFunctionsTable
+          eventView={eventView}
+          analyticsPageSource="performance_transaction"
+          project={project}
+        />
+        <RelatedIssues
+          organization={organization}
+          location={location}
+          transaction={transactionName}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+        />
+      </Layout.Main>
+      <Layout.Side>
+        {!isFrontendView && (
+          <StatusBreakdown
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+        )}
+        <SidebarSpacer />
+        <EAPSidebarCharts transactionName={transactionName} hasWebVitals={hasWebVitals} />
+        <SidebarSpacer />
+      </Layout.Side>
+    </Fragment>
+  );
+}
+
 function SummaryContent({
   eventView,
   location,
@@ -98,6 +317,7 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const theme = useTheme();
   const routes = useRoutes();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
@@ -106,7 +326,7 @@ function SummaryContent({
   const handleSearch = useCallback(
     (query: string) => {
       const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
+        ...location.query,
         query,
       });
 
@@ -130,8 +350,8 @@ function SummaryContent({
     };
   }
 
-  function handleCellAction(column: TableColumn<React.ReactText>) {
-    return (action: Actions, value: React.ReactText) => {
+  function handleCellAction(column: TableColumn<string | number>) {
+    return (action: Actions, value: string | number) => {
       const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);
@@ -209,7 +429,7 @@ function SummaryContent({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
@@ -319,10 +539,6 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
-
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
   function renderSearchBar() {
@@ -379,7 +595,7 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionIdLink(transactionName, domainViewFilters.view),
+              id: generateTransactionIdLink(domainViewFilters.view),
               trace: generateTraceLink(
                 eventView.normalizeDateSelection(location),
                 domainViewFilters.view
@@ -398,22 +614,6 @@ function SummaryContent({
             supportsInvestigationRule
           />
         </PerformanceAtScaleContextProvider>
-
-        {!hasNewSpansUIFlag && (
-          <SuspectSpans
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            totals={
-              defined(totalValues?.['count()'])
-                ? {'count()': totalValues['count()']}
-                : null
-            }
-            projectId={projectId}
-            transactionName={transactionName}
-          />
-        )}
-
         <TagExplorer
           eventView={eventView}
           organization={organization}
@@ -573,22 +773,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr;
   }
 `;
 
 const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/4;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }
@@ -598,4 +798,11 @@ const StyledIconWarning = styled(IconWarning)`
   display: block;
 `;
 
+const EAPChartsWidgetContainer = styled('div')`
+  height: 300px;
+  margin-bottom: ${space(2)};
+`;
+
 export default withProjects(SummaryContent);
+
+export const OTelSummaryContent = withProjects(OTelSummaryContentInner);

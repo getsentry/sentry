@@ -11,9 +11,9 @@ import {
   IconClock,
   IconDelete,
   IconExclamation,
+  IconSliders,
   IconStar,
   IconTag,
-  IconToggle,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,7 +33,7 @@ export function addSpace(query = '') {
 
 export function removeSpace(query = '') {
   if (query[query.length - 1] === ' ') {
-    return query.slice(0, query.length - 1);
+    return query.slice(0, -1);
   }
 
   return query;
@@ -75,7 +75,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
   // Change based on tagName and default to "icon-tag"
   switch (tagName) {
     case 'is':
-      return <IconToggle size="xs" />;
+      return <IconSliders size="xs" />;
     case 'assigned':
     case 'assigned_or_suggested':
     case 'bookmarks':

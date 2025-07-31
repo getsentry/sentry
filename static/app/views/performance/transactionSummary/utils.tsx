@@ -16,10 +16,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
-import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -157,7 +156,7 @@ export function generateTraceLink(dateSelection: any, view?: DomainView) {
   };
 }
 
-export function generateTransactionIdLink(transactionName?: string, view?: DomainView) {
+export function generateTransactionIdLink(view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -168,11 +167,9 @@ export function generateTransactionIdLink(transactionName?: string, view?: Domai
       eventId: tableRow.id,
       timestamp: tableRow.timestamp!,
       traceSlug: tableRow.trace?.toString()!,
-      projectSlug: tableRow['project.name']?.toString()!,
       location,
       organization,
       spanId,
-      transactionName,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       view,
     });
@@ -190,7 +187,7 @@ export function generateProfileLink() {
     const profileId = tableRow['profile.id'];
     if (projectSlug && profileId) {
       return generateProfileFlamechartRoute({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(tableRow['project.name']),
         profileId: String(profileId),
       });
@@ -214,7 +211,7 @@ export function generateProfileLink() {
       }
 
       return generateContinuousProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         projectSlug: String(projectSlug),
         profilerId: String(profilerId),
         start: start.toISOString(),
@@ -242,9 +239,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: normalizeUrl(
-          `/organizations/${organization.slug}/replays/${replayId}/`
-        ),
+        pathname: makeReplaysPathname({
+          path: `/${replayId}/`,
+          organization,
+        }),
         query: {
           referrer,
         },
@@ -257,7 +255,10 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
       : undefined;
 
     return {
-      pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
+      pathname: makeReplaysPathname({
+        path: `/${replayId}/`,
+        organization,
+      }),
       query: {
         event_t: transactionStartTimestamp,
         referrer,
@@ -269,21 +270,14 @@ export function generateReplayLink(routes: Array<PlainRoute<any>>) {
 export function getTransactionSummaryBaseUrl(
   organization: Organization,
   view?: DomainView,
-  bare: boolean = false
+  bare = false
 ) {
-  const hasPerfLandingRemovalFlag = organization?.features.includes(
-    'insights-performance-landing-removal'
-  );
-
   // Eventually the performance landing page will be removed, so there is no need to rely on `getPerformanceBaseUrl`
-  if (hasPerfLandingRemovalFlag) {
-    const url = view
-      ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
-      : `${DOMAIN_VIEW_BASE_URL}/summary`;
+  const url = view
+    ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
+    : `${DOMAIN_VIEW_BASE_URL}/summary`;
 
-    return bare ? url : normalizeUrl(`/organizations/${organization.slug}/${url}`);
-  }
-  return `${getPerformanceBaseUrl(organization.slug, view, bare)}/summary`;
+  return bare ? url : normalizeUrl(`/organizations/${organization.slug}/${url}`);
 }
 
 export const SidebarSpacer = styled('div')`

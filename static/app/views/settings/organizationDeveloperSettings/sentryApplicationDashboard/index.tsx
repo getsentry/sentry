@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -24,9 +24,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import RequestLog from './requestLog';
 
 type Interactions = {
-  componentInteractions: {
-    [key: string]: Array<[number, number]>;
-  };
+  componentInteractions: Record<string, Array<[number, number]>>;
   views: Array<[number, number]>;
 };
 
@@ -42,7 +40,7 @@ function SentryApplicationDashboard() {
   const {appSlug} = useParams<{appSlug: string}>();
 
   // Default time range for now: 90 days ago to now
-  const now = Math.floor(new Date().getTime() / 1000);
+  const now = Math.floor(Date.now() / 1000);
   const ninety_days_ago = 3600 * 24 * 90;
 
   const {
@@ -230,9 +228,7 @@ function SentryApplicationDashboard() {
 export default SentryApplicationDashboard;
 
 type InteractionsChartProps = {
-  data: {
-    [key: string]: Array<[number, number]>;
-  };
+  data: Record<string, Array<[number, number]>>;
 };
 function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(

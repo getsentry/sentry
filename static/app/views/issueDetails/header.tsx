@@ -4,18 +4,18 @@ import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Link} from 'sentry/components/core/link';
+import {TabList} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,7 +35,7 @@ import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import {GroupActions} from './actions';
-import {Tab} from './types';
+import {Tab, TabPaths} from './types';
 import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
@@ -51,7 +51,7 @@ interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'projec
   eventRoute: LocationDescriptor;
 }
 
-export function GroupHeaderTabs({
+function GroupHeaderTabs({
   baseUrl,
   disabledTabs,
   eventRoute,
@@ -107,7 +107,7 @@ export function GroupHeaderTabs({
         to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
-        <IconBadge>
+        <IconBadge type="default">
           {group.numComments}
           <IconChat size="xs" />
         </IconBadge>
@@ -119,7 +119,7 @@ export function GroupHeaderTabs({
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
-        {t('User Feedback')} <Badge text={group.userReportCount} />
+        {t('User Feedback')} <Badge type="default">{group.userReportCount}</Badge>
       </TabList.Item>
       <TabList.Item
         key={Tab.ATTACHMENTS}
@@ -130,10 +130,10 @@ export function GroupHeaderTabs({
         {t('Attachments')}
       </TabList.Item>
       <TabList.Item
-        key={Tab.TAGS}
+        key={Tab.DISTRIBUTIONS}
         hidden={!issueTypeConfig.pages.tagsTab.enabled}
-        disabled={disabledTabs.includes(Tab.TAGS)}
-        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
+        disabled={disabledTabs.includes(Tab.DISTRIBUTIONS)}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`, query: queryParams}}
       >
         {t('Tags')}
       </TabList.Item>
@@ -172,6 +172,14 @@ export function GroupHeaderTabs({
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
       </TabList.Item>
+      <TabList.Item
+        key={Tab.UPTIME_CHECKS}
+        textValue={t('Uptime Checks')}
+        hidden={!issueTypeConfig.pages.uptimeChecks.enabled}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`, query: queryParams}}
+      >
+        {t('Uptime Checks')}
+      </TabList.Item>
     </StyledTabList>
   );
 }
@@ -198,7 +206,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
+  const NEW_ISSUE_TYPES: IssueType[] = []; // adds a "new" banner next to the title
 
   return (
     <Layout.Header>
@@ -243,7 +251,6 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
               data={group}
               message={message}
               level={group.level}
-              levelIndicatorSize="11px"
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
@@ -261,15 +268,15 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                 </GuideAnchor>
                 <div className="count">
                   <h6 className="nav-header">{t('Users')}</h6>
-                  {userCount !== 0 ? (
+                  {userCount === 0 ? (
+                    <span>0</span>
+                  ) : (
                     <Link
                       disabled={disableActions}
-                      to={`${baseUrl}tags/user/${location.search}`}
+                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                     >
                       <Count className="count" value={userCount} />
                     </Link>
-                  ) : (
-                    <span>0</span>
                   )}
                 </div>
               </Fragment>
@@ -306,13 +313,13 @@ const HeaderRow = styled('div')`
   justify-content: space-between;
   margin-top: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
   }
 `;
 
 const TitleWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 65%;
   }
 `;
@@ -331,7 +338,7 @@ const StatsWrapper = styled('div')`
   display: flex;
   gap: calc(${space(3)} + ${space(3)});
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     justify-content: flex-end;
   }
 `;

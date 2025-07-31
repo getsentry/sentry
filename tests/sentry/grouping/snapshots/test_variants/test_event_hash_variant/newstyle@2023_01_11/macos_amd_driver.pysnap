@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:16.466801+00:00'
+created: '2025-02-26T00:34:10.510211+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -52,7 +52,7 @@ app:
           frame (non app frame)
             function*
               "code"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:system -app))
             function*
               "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
           frame (non app frame)
@@ -302,7 +302,7 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
             function*
               "abort"
           frame (ignored by stack trace rule (category:throw ^-group))

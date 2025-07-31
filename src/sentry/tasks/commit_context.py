@@ -5,12 +5,16 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
-from celery import Task
+import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
 from sentry import analytics
+from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
+from sentry.analytics.events.integration_commit_context_all_frames import (
+    IntegrationsFailedToFetchCommitContextAllFrames,
+)
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.utils.commit_context import (
@@ -28,6 +32,9 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -37,8 +44,6 @@ DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pull
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
-# TODO: replace this with isinstance(installation, CommitContextIntegration)
-PR_COMMENT_SUPPORTED_PROVIDERS = {"github"}
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +57,16 @@ logger = logging.getLogger(__name__)
     retry_backoff_max=60 * 60 * 3,  # 3 hours
     retry_jitter=False,
     silo_mode=SiloMode.REGION,
-    bind=True,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=90,
+        retry=Retry(
+            times=5,
+            on=(ApiError,),
+        ),
+    ),
 )
 def process_commit_context(
-    self: Task,
     event_id: str,
     event_platform: str,
     event_frames: Sequence[Mapping[str, Any]],
@@ -115,14 +126,15 @@ def process_commit_context(
                     sdk_name=sdk_name,
                 )
                 analytics.record(
-                    "integrations.failed_to_fetch_commit_context_all_frames",
-                    organization_id=project.organization_id,
-                    project_id=project_id,
-                    group_id=basic_logging_details["group"],
-                    event_id=basic_logging_details["event"],
-                    num_frames=0,
-                    num_successfully_mapped_frames=0,
-                    reason="could_not_find_in_app_stacktrace_frame",
+                    IntegrationsFailedToFetchCommitContextAllFrames(
+                        organization_id=project.organization_id,
+                        project_id=project_id,
+                        group_id=basic_logging_details["group"],
+                        event_id=basic_logging_details["event"],
+                        num_frames=0,
+                        num_successfully_mapped_frames=0,
+                        reason="could_not_find_in_app_stacktrace_frame",
+                    )
                 )
 
                 return
@@ -143,10 +155,10 @@ def process_commit_context(
             except ApiError:
                 logger.info(
                     "process_commit_context_all_frames.retry",
-                    extra={**basic_logging_details, "retry_count": self.request.retries},
+                    extra=basic_logging_details,
                 )
                 metrics.incr("tasks.process_commit_context_all_frames.retry")
-                self.retry()
+                retry_task()
 
             if not blame or not installation:
                 # Fall back to the release logic if we can't find a commit for any of the frames
@@ -183,13 +195,8 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if (
-                installation
-                and isinstance(installation, CommitContextIntegration)
-                and installation.integration_name
-                in PR_COMMENT_SUPPORTED_PROVIDERS  # TODO: remove this check
-            ):
-                installation.queue_comment_task_if_needed(project, commit, group_owner, group_id)
+            if installation and isinstance(installation, CommitContextIntegration):
+                installation.queue_pr_comment_task_if_needed(project, commit, group_owner, group_id)
 
             ProjectOwnership.handle_auto_assignment(
                 project_id=project.id,
@@ -225,19 +232,23 @@ def process_commit_context(
                     "detail": f'successfully {"created" if created else "updated"}',
                 },
             )
-            analytics.record(
-                "groupowner.assignment",
-                organization_id=project.organization_id,
-                project_id=project.id,
-                group_id=group_id,
-                new_assignment=created,
-                user_id=group_owner.user_id,
-                group_owner_type=group_owner.type,
-                method="scm_integration",
-            )
+            try:
+                analytics.record(
+                    GroupOwnerAssignment(
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        group_id=group_id,
+                        new_assignment=created,
+                        user_id=group_owner.user_id,
+                        group_owner_type=group_owner.type,
+                        method="scm_integration",
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
     except UnableToAcquireLock:
         pass
-    except MaxRetriesExceededError:
+    except (MaxRetriesExceededError, NoRetriesRemainingError):
         metrics.incr("tasks.process_commit_context.max_retries_exceeded")
         logger.info(
             "process_commit_context.max_retries_exceeded",

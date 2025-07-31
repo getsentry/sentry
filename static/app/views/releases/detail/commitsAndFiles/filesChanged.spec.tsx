@@ -36,7 +36,7 @@ describe('FilesChanged', () => {
 
   function renderComponent() {
     return render(
-      <ReleaseContext.Provider
+      <ReleaseContext
         value={{
           release,
           project,
@@ -48,8 +48,11 @@ describe('FilesChanged', () => {
         }}
       >
         <FilesChanged />
-      </ReleaseContext.Provider>,
-      {router}
+      </ReleaseContext>,
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 

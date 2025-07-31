@@ -27,6 +27,8 @@ class EventProcessingStore(Service):
     implementations.
     """
 
+    __all__ = ("exists", "store", "get", "delete", "delete_by_key")
+
     def __init__(self, inner: KVStorage[str, Event]):
         self.inner = inner
         self.timeout = timedelta(seconds=DEFAULT_TIMEOUT)
@@ -43,6 +45,10 @@ class EventProcessingStore(Service):
         if unprocessed:
             key = self.__get_unprocessed_key(key)
         self.inner.set(key, event, self.timeout)
+        # TODO(swatinem): we would like to gather size metrics for things stored
+        # in the processing store, though we need `bytes` for that, and it looks
+        # like the processing store is used with `dict`s directly, for which the
+        # encoding is non-obvious.
         return key
 
     def get(self, key: str, unprocessed: bool = False) -> MutableMapping[str, Any] | None:

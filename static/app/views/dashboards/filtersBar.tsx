@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -21,6 +21,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
+import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions} from './types';
@@ -36,7 +37,8 @@ type FiltersBarProps = {
   dashboardCreator?: User;
   dashboardPermissions?: DashboardPermissions;
   onCancel?: () => void;
-  onSave?: () => void;
+  onSave?: () => Promise<void>;
+  shouldBusySaveButton?: boolean;
 };
 
 export default function FiltersBar({
@@ -50,6 +52,7 @@ export default function FiltersBar({
   onCancel,
   onDashboardFilterChange,
   onSave,
+  shouldBusySaveButton,
 }: FiltersBarProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -62,6 +65,8 @@ export default function FiltersBar({
     dashboardPermissions,
     dashboardCreator
   );
+
+  const invalidateStarredDashboards = useInvalidateStarredDashboards();
 
   const selectedReleases =
     (defined(location.query?.[DashboardFilterKeys.RELEASE])
@@ -100,7 +105,7 @@ export default function FiltersBar({
         />
       </PageFilterBar>
       <Fragment>
-        <FilterButtons>
+        <FilterButtons gap="lg">
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
               handleChangeFilter={activeFilters => {
@@ -116,14 +121,18 @@ export default function FiltersBar({
           </ReleasesProvider>
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-          <FilterButtons>
+          <FilterButtons gap="lg">
             <Button
               title={
                 !hasEditAccess && t('You do not have permission to edit this dashboard')
               }
               priority="primary"
-              onClick={onSave}
+              onClick={async () => {
+                await onSave?.();
+                invalidateStarredDashboards();
+              }}
               disabled={!hasEditAccess}
+              busy={shouldBusySaveButton}
             >
               {t('Save')}
             </Button>
@@ -144,19 +153,21 @@ const Wrapper = styled('div')`
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  & button[aria-haspopup] {
+    height: 100%;
+    width: 100%;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-auto-flow: row;
   }
 `;
 
 const FilterButtons = styled(ButtonBar)`
-  display: grid;
-  gap: ${space(1.5)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: flex-start;
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space[p.gap!]};
   }
 `;

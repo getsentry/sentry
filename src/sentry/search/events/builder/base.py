@@ -29,6 +29,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -78,7 +79,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
     Dataset.Events: EntityKey.Events,
     Dataset.Transactions: EntityKey.Transactions,
-    Dataset.EventsAnalyticsPlatform: EntityKey.EAPSpans,
+    Dataset.EventsAnalyticsPlatform: EntityKey.EAPItems,
 }
 
 
@@ -132,9 +133,7 @@ class BaseQueryBuilder:
 
         if "project_objects" in params:
             projects = params["project_objects"]
-        elif "project_id" in params and (
-            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
-        ):
+        elif "project_id" in params and isinstance(params["project_id"], (list, tuple)):
             projects = list(Project.objects.filter(id__in=params["project_id"]))
         else:
             projects = []
@@ -202,12 +201,11 @@ class BaseQueryBuilder:
         array_join: str | None = None,
         entity: Entity | None = None,
     ):
+        sentry_sdk.set_tag("querybuilder.name", type(self).__name__)
         if config is None:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
-        if self.builder_config.parser_config_overrides is None:
-            self.builder_config.parser_config_overrides = {}
 
         self.dataset = dataset
 
@@ -224,7 +222,7 @@ class BaseQueryBuilder:
         self.raw_equations = equations
         self.raw_orderby = orderby
         self.query = query
-        self.selected_columns = selected_columns
+        self.selected_columns = selected_columns or []
         self.groupby_columns = groupby_columns
         self.tips: dict[str, set[str]] = {
             "query": set(),
@@ -317,6 +315,9 @@ class BaseQueryBuilder:
         if not col.startswith("tags[") and column_name.startswith("tags["):
             self.prefixed_to_tag_map[f"tags_{col}"] = col
             self.tag_to_prefixed_map[col] = f"tags_{col}"
+        elif not col.startswith("flags[") and column_name.startswith("flags["):
+            self.prefixed_to_tag_map[f"flags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"flags_{col}"
         return column_name
 
     def resolve_query(
@@ -385,8 +386,7 @@ class BaseQueryBuilder:
         where_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.SearchFilter):
-                # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
-                condition = self.format_search_filter(cast(event_search.SearchFilter, term))
+                condition = self.format_search_filter(term)
                 if condition:
                     where_conditions.append(condition)
 
@@ -402,10 +402,7 @@ class BaseQueryBuilder:
         having_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.AggregateFilter):
-                # I have no idea why but mypy thinks this is AggregateFilter | AggregateFilter, which is incompatible with AggregateFilter...
-                condition = self.convert_aggregate_filter_to_condition(
-                    cast(event_search.AggregateFilter, term)
-                )
+                condition = self.convert_aggregate_filter_to_condition(term)
                 if condition:
                     having_conditions.append(condition)
 
@@ -417,7 +414,8 @@ class BaseQueryBuilder:
     ) -> tuple[list[WhereType], list[WhereType]]:
         sentry_sdk.set_tag("query.query_string", query if query else "<No Query>")
         sentry_sdk.set_tag(
-            "query.use_aggregate_conditions", self.builder_config.use_aggregate_conditions
+            "query.use_aggregate_conditions",
+            self.builder_config.use_aggregate_conditions,
         )
         parsed_terms = self.parse_query(query)
 
@@ -534,11 +532,10 @@ class BaseQueryBuilder:
 
         where, having = [], []
 
-        # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
         if isinstance(term, event_search.SearchFilter):
-            where = self.resolve_where([cast(event_search.SearchFilter, term)])
+            where = self.resolve_where([term])
         elif isinstance(term, event_search.AggregateFilter):
-            having = self.resolve_having([cast(event_search.AggregateFilter, term)])
+            having = self.resolve_having([term])
 
         return where, having
 
@@ -684,7 +681,13 @@ class BaseQueryBuilder:
         dataset and return the Snql Column
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
-        field = tag_match.group("tag") if tag_match else raw_field
+        flag_match = constants.FLAG_KEY_RE.search(raw_field)
+        if tag_match:
+            field = tag_match.group("tag")
+        elif flag_match:
+            field = flag_match.group("flag")
+        else:
+            field = raw_field
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)
@@ -977,12 +980,25 @@ class BaseQueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
+        should_use_user_time_range = self.params.organization is not None and features.has(
+            "organizations:performance-discover-get-custom-measurements-reduced-range",
+            self.params.organization,
+            actor=None,
+        )
+
+        start = (
+            self.params.start
+            if should_use_user_time_range
+            else datetime.today() - timedelta(days=90)
+        )
+        end = self.params.end if should_use_user_time_range else datetime.today()
+
         try:
-            result: Sequence[MetricMeta] = get_custom_measurements(
+            result = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
+                start=start,
+                end=end,
             )
         # Don't fully fail if we can't get the CM, but still capture the exception
         except Exception as error:
@@ -1146,8 +1162,12 @@ class BaseQueryBuilder:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
-                builder=self,
-                config_overrides=self.builder_config.parser_config_overrides,
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    **self.builder_config.parser_config_overrides,
+                ),
+                get_field_type=self.get_field_type,
+                get_function_result_type=self.get_function_result_type,
             )
         except ParseError as e:
             if e.expr is not None:
@@ -1219,7 +1239,9 @@ class BaseQueryBuilder:
             if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
                 value = self.resolve_measurement_value(unit, value)
                 search_filter = event_search.SearchFilter(
-                    search_filter.key, search_filter.operator, event_search.SearchValue(value)
+                    search_filter.key,
+                    search_filter.operator,
+                    event_search.SearchValue(value),
                 )
 
         if name in constants.NO_CONVERSION_FIELDS:
@@ -1257,6 +1279,41 @@ class BaseQueryBuilder:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
+
+        strs = search_filter.value.split_wildcards()
+        if strs is not None:
+            # If we have a mixture of wildcards and non-wildcards in a [] set, we must
+            # group them into their own sets to apply the appropriate operators, and
+            # then 'OR' them together.
+            # It's also the case that queries can look like 'foo:[A*]', meaning a single
+            # wildcard in a set.  Handle that case as well.
+            (non_wildcards, wildcards) = strs
+            if len(wildcards) > 0:
+                operator = "="
+                if search_filter.operator == "NOT IN":
+                    operator = "!="
+                filters = [
+                    self.default_filter_converter(
+                        event_search.SearchFilter(
+                            search_filter.key, operator, event_search.SearchValue(wc)
+                        )
+                    )
+                    for wc in wildcards
+                ]
+
+                if len(non_wildcards) > 0:
+                    lhs = self.default_filter_converter(
+                        event_search.SearchFilter(
+                            search_filter.key,
+                            search_filter.operator,
+                            event_search.SearchValue(non_wildcards),
+                        )
+                    )
+                    filters.append(lhs)
+                if len(filters) > 1:
+                    return Or(filters)
+                else:
+                    return filters[0]
 
         # Some fields aren't valid queries
         if name in constants.SKIP_FILTER_RESOLUTION:
@@ -1320,12 +1377,20 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
+            if is_context and name in self.config.nullable_context_keys:
+                return Condition(
+                    Function("has", [Column("contexts.key"), lhs.key]),
+                    Op(search_filter.operator),
+                    0,
+                )
+            elif is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             elif is_measurement(name):
                 # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check
                 return Condition(
-                    Function("isNull", [lhs]), Op.EQ, 1 if search_filter.operator == "=" else 0
+                    Function("isNull", [lhs]),
+                    Op.EQ,
+                    1 if search_filter.operator == "=" else 0,
                 )
             elif isinstance(lhs, Column):
                 # If not a tag, we can just check that the column is null.
@@ -1524,7 +1589,10 @@ class BaseQueryBuilder:
         )
 
     def run_query(
-        self, referrer: str | None, use_cache: bool = False, query_source: QuerySource | None = None
+        self,
+        referrer: str | None,
+        use_cache: bool = False,
+        query_source: QuerySource | None = None,
     ) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")

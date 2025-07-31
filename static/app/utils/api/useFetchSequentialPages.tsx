@@ -3,7 +3,6 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {defined} from 'sentry/utils';
 import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {type ApiQueryKey, fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 
 interface Props {
   /**
@@ -41,6 +40,7 @@ interface ResponsePage<Data> {
   getResponseHeader: ((header: string) => string | null) | undefined;
   isError: boolean;
   isFetching: boolean;
+  status: 'pending' | 'error' | 'success';
 }
 
 interface State<Data> {
@@ -49,6 +49,7 @@ interface State<Data> {
   isError: boolean;
   isFetching: boolean;
   pages: Data[];
+  status: 'pending' | 'error' | 'success';
 }
 
 /**
@@ -94,7 +95,6 @@ export default function useFetchSequentialPages<Data>({
   initialCursor,
   perPage,
 }: Props): State<Data> {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
@@ -102,6 +102,7 @@ export default function useFetchSequentialPages<Data>({
     pages: [],
     error: undefined,
     getLastResponseHeader: undefined,
+    status: 'pending',
     isError: false,
     isFetching: enabled,
   });
@@ -122,7 +123,7 @@ export default function useFetchSequentialPages<Data>({
           }
           const [data, , resp] = await queryClient.fetchQuery({
             queryKey,
-            queryFn: fetchDataQuery(api),
+            queryFn: fetchDataQuery<Data>,
             staleTime: Infinity,
           });
 
@@ -130,6 +131,7 @@ export default function useFetchSequentialPages<Data>({
             data,
             error: undefined,
             getResponseHeader: resp?.getResponseHeader,
+            status: 'success',
             isError: false,
             isFetching: false,
           });
@@ -142,6 +144,7 @@ export default function useFetchSequentialPages<Data>({
           data: undefined,
           error,
           getResponseHeader: undefined,
+          status: 'error',
           isError: true,
           isFetching: false,
         });
@@ -151,12 +154,17 @@ export default function useFetchSequentialPages<Data>({
           pages: values.map(value => value.data).filter(defined),
           error: values.map(value => value.error).at(0),
           getLastResponseHeader: values.at(-1)?.getResponseHeader,
+          status: values.some(value => value.status === 'error')
+            ? 'error'
+            : values.some(value => value.status === 'pending')
+              ? 'pending'
+              : 'success',
           isError: values.map(value => value.isError).some(Boolean),
           isFetching: values.map(value => value.isFetching).every(Boolean),
         });
       }
     },
-    [api, initialCursor, getQueryKey, perPage, queryClient]
+    [initialCursor, getQueryKey, perPage, queryClient]
   );
 
   useEffect(() => {
@@ -166,6 +174,7 @@ export default function useFetchSequentialPages<Data>({
 
     setState(prev => ({
       ...prev,
+      status: 'pending',
       isFetching: true,
     }));
 

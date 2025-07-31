@@ -4,12 +4,13 @@ import heapq
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 from sentry_sdk import capture_exception
+from sentry_sdk.crons import MonitorStatus, capture_checkin
 
 from sentry.conf.types.taskworker import ScheduleConfig, crontab
 from sentry.taskworker.registry import TaskRegistry
@@ -18,6 +19,9 @@ from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 logger = logging.getLogger("taskworker.scheduler")
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import MonitorConfig
 
 
 class RunStorage:
@@ -42,7 +46,8 @@ class RunStorage:
         Returns False when the key is set and a task should not be spawned.
         """
         now = timezone.now()
-        duration = next_runtime - now
+        # next_runtime & now could be the same second, and redis gets sad if ex=0
+        duration = max(int((next_runtime - now).total_seconds()), 1)
 
         result = self._redis.set(self._make_key(taskname), now.isoformat(), ex=duration, nx=True)
         return bool(result)
@@ -55,6 +60,8 @@ class RunStorage:
         result = self._redis.get(self._make_key(taskname))
         if result:
             return datetime.fromisoformat(result)
+
+        metrics.incr("taskworker.scheduler.run_storage.read.miss", tags={"taskname": taskname})
         return None
 
     def read_many(self, tasknames: list[str]) -> Mapping[str, datetime | None]:
@@ -76,7 +83,8 @@ class RunStorage:
 class ScheduleEntry:
     """An individual task that can be scheduled to be run."""
 
-    def __init__(self, *, task: Task[Any, Any], schedule: timedelta | crontab) -> None:
+    def __init__(self, *, key: str, task: Task[Any, Any], schedule: timedelta | crontab) -> None:
+        self._key = key
         self._task = task
         scheduler: Schedule
         if isinstance(schedule, crontab):
@@ -90,9 +98,23 @@ class ScheduleEntry:
         # Secondary sorting for heapq when remaining time is the same
         return self.fullname < other.fullname
 
+    def __repr__(self) -> str:
+        last_run = self._last_run.isoformat() if self._last_run else None
+        remaining_seconds = self.remaining_seconds()
+
+        return f"<ScheduleEntry key={self._key} fullname={self.fullname} last_run={last_run} remaining_seconds={remaining_seconds}>"
+
     @property
     def fullname(self) -> str:
         return self._task.fullname
+
+    @property
+    def namespace(self) -> str:
+        return self._task.namespace.name
+
+    @property
+    def taskname(self) -> str:
+        return self._task.name
 
     def set_last_run(self, last_run: datetime | None) -> None:
         self._last_run = last_run
@@ -107,8 +129,43 @@ class ScheduleEntry:
         return self._schedule.runtime_after(start)
 
     def delay_task(self) -> None:
-        logger.info("taskworker.scheduler.delay_task", extra={"task": self._task.fullname})
-        self._task.delay()
+        monitor_config = self.monitor_config()
+        headers: dict[str, Any] = {}
+        if monitor_config:
+            check_in_id = capture_checkin(
+                monitor_slug=self._key,
+                monitor_config=monitor_config,
+                status=MonitorStatus.IN_PROGRESS,
+            )
+            headers = {
+                "sentry-monitor-check-in-id": check_in_id,
+                "sentry-monitor-slug": self._key,
+            }
+
+        # We don't need every task linked back to the scheduler trace
+        headers["sentry-propagate-traces"] = False
+
+        self._task.apply_async(headers=headers)
+
+    def monitor_config(self) -> MonitorConfig | None:
+        checkin_config: MonitorConfig = {
+            "schedule": {},
+            "timezone": timezone.get_current_timezone_name(),
+        }
+        if isinstance(self._schedule, CrontabSchedule):
+            checkin_config["schedule"]["type"] = "crontab"
+            checkin_config["schedule"]["value"] = self._schedule.monitor_value()
+        elif isinstance(self._schedule, TimedeltaSchedule):
+            (interval_value, interval_units) = self._schedule.monitor_interval()
+            # Monitors does not support intervals less than 1 minute.
+            if interval_units == "second":
+                return None
+
+            checkin_config["schedule"]["type"] = "interval"
+            checkin_config["schedule"]["value"] = interval_value
+            checkin_config["schedule"]["unit"] = interval_units
+
+        return checkin_config
 
 
 class ScheduleRunner:
@@ -127,17 +184,21 @@ class ScheduleRunner:
         self._run_storage = run_storage
         self._heap: list[tuple[int, ScheduleEntry]] = []
 
-    def add(self, task_config: ScheduleConfig) -> None:
-        """Add a task to the runner."""
+    def add(self, key: str, task_config: ScheduleConfig) -> None:
+        """Add a scheduled task to the runner."""
         try:
             (namespace, taskname) = task_config["task"].split(":")
         except ValueError:
             raise ValueError("Invalid task name. Must be in the format namespace:taskname")
 
         task = self._registry.get_task(namespace, taskname)
-        entry = ScheduleEntry(task=task, schedule=task_config["schedule"])
+        entry = ScheduleEntry(key=key, task=task, schedule=task_config["schedule"])
         self._entries.append(entry)
         self._heap = []
+
+    def log_startup(self) -> None:
+        task_names = [entry.fullname for entry in self._entries]
+        logger.info("taskworker.scheduler.startup", extra={"tasks": task_names})
 
     def tick(self) -> float:
         """
@@ -145,7 +206,11 @@ class ScheduleRunner:
 
         Returns the number of seconds to sleep until the next task is due.
         """
-        self._build_heap()
+        self._update_heap()
+
+        if not self._heap:
+            logger.warning("taskworker.scheduler.no_heap")
+            return 60
 
         while True:
             # Peek at the top, and if it is due, pop, spawn and update last run time
@@ -163,7 +228,7 @@ class ScheduleRunner:
                 # The top of the heap isn't ready, break for sleep
                 break
 
-        return entry.remaining_seconds()
+        return self._heap[0][0]
 
     def _try_spawn(self, entry: ScheduleEntry) -> None:
         now = timezone.now()
@@ -172,26 +237,56 @@ class ScheduleRunner:
             entry.delay_task()
             entry.set_last_run(now)
 
-            logger.info("taskworker.scheduler.delay_task", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.delay_task")
+            logger.debug("taskworker.scheduler.delay_task", extra={"fullname": entry.fullname})
+            metrics.incr(
+                "taskworker.scheduler.delay_task",
+                tags={
+                    "taskname": entry.taskname,
+                    "namespace": entry.namespace,
+                },
+            )
         else:
-            # sync with last_run state in storage
-            entry.set_last_run(self._run_storage.read(entry.fullname))
+            # We were not able to set a key, load last run from storage.
+            run_state = self._run_storage.read(entry.fullname)
+            entry.set_last_run(run_state)
 
-            logger.info("taskworker.scheduler.sync_with_storage", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.sync_with_storage")
+            logger.info(
+                "taskworker.scheduler.sync_with_storage",
+                extra={
+                    "taskname": entry.taskname,
+                    "namespace": entry.namespace,
+                    "last_runtime": run_state.isoformat() if run_state else None,
+                },
+            )
+            metrics.incr(
+                "taskworker.scheduler.sync_with_storage",
+                tags={"taskname": entry.taskname, "namespace": entry.namespace},
+            )
 
-    def _build_heap(self) -> None:
-        if self._heap:
-            return
+    def _update_heap(self) -> None:
+        """update the heap to reflect current remaining time"""
+        if not self._heap:
+            self._load_last_run()
 
-        heap_items = []
+        heap_items = [(item.remaining_seconds(), item) for item in self._entries]
+        heapq.heapify(heap_items)
+        self._heap = heap_items
+
+    def _load_last_run(self) -> None:
+        """
+        load last_run state from storage
+
+        We synchronize each time the schedule set is modified and
+        then incrementally as tasks spawn attempts are made.
+        """
         last_run_times = self._run_storage.read_many([item.fullname for item in self._entries])
         for item in self._entries:
             last_run = last_run_times.get(item.fullname, None)
             item.set_last_run(last_run)
-            remaining_time = item.remaining_seconds()
-            heap_items.append((remaining_time, item))
-
-        heapq.heapify(heap_items)
-        self._heap = heap_items
+        logger.info(
+            "taskworker.scheduler.load_last_run",
+            extra={
+                "entry_count": len(self._entries),
+                "loaded_count": len(last_run_times),
+            },
+        )

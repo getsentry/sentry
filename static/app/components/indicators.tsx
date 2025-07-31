@@ -1,17 +1,9 @@
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {removeIndicator} from 'sentry/actionCreators/indicator';
-import ToastIndicator from 'sentry/components/alerts/toastIndicator';
+import {Toast} from 'sentry/components/core/toast';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-
-const Toasts = styled('div')`
-  position: fixed;
-  right: 30px;
-  bottom: 30px;
-  z-index: ${p => p.theme.zIndex.toast};
-`;
 
 type Props = {
   className?: string;
@@ -29,10 +21,10 @@ function Indicators(props: Props) {
        */}
       <AnimatePresence mode="wait">
         {items.map(indicator => (
-          <ToastIndicator
-            onDismiss={removeIndicator}
-            indicator={indicator}
+          <Toast
             key={indicator.id}
+            onDismiss={() => IndicatorStore.remove(indicator)}
+            indicator={indicator}
           />
         ))}
       </AnimatePresence>
@@ -41,3 +33,10 @@ function Indicators(props: Props) {
 }
 
 export default Indicators;
+
+const Toasts = styled('div')`
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  z-index: ${p => p.theme.zIndex.toast};
+`;

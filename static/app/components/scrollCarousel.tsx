@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space, type ValidSize} from 'sentry/styles/space';
@@ -201,7 +201,7 @@ const RightMask = styled('div')<{transparentMask: boolean}>`
   right: 0;
   background: ${p =>
     p.transparentMask
-      ? 'linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1))'
+      ? `linear-gradient(to right, transparent, ${p.theme.background})`
       : `linear-gradient(
     270deg,
     ${p.theme.background} 50%,

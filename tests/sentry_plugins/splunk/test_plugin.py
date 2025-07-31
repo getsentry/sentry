@@ -9,16 +9,14 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.splunk.plugin import SplunkPlugin
 
 
+def test_conf_key() -> None:
+    assert SplunkPlugin().conf_key == "splunk"
+
+
 class SplunkPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SplunkPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "splunk"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("splunk", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

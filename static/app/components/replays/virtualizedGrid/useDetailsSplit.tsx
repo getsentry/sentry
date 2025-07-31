@@ -1,8 +1,8 @@
 import type {RefObject} from 'react';
 import {useCallback} from 'react';
 
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface OnClickProps {
   dataIndex: number;
@@ -10,7 +10,7 @@ interface OnClickProps {
 }
 
 interface Props {
-  containerRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<HTMLDivElement | null>;
   frames: undefined | readonly unknown[];
   handleHeight: number;
   urlParamName: string;

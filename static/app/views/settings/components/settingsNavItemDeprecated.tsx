@@ -4,13 +4,14 @@ import {NavLink as RouterNavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 type Props = {
   label: React.ReactNode;
@@ -33,14 +34,16 @@ function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Prop
     renderedBadge = <FeatureBadge type="new" />;
   } else if (badge === 'beta') {
     renderedBadge = <FeatureBadge type="beta" />;
+  } else if (badge === 'alpha') {
+    renderedBadge = <FeatureBadge type="alpha" />;
   } else if (badge === 'warning') {
     renderedBadge = (
       <Tooltip title={t('This setting needs review')} position="right">
-        <StyledBadge text={badge} type="warning" />
+        <StyledBadge type="warning">{badge}</StyledBadge>
       </Tooltip>
     );
   } else if (typeof badge === 'string' || typeof badge === 'number') {
-    renderedBadge = <StyledBadge text={badge} />;
+    renderedBadge = <StyledBadge type="default">{badge}</StyledBadge>;
   } else {
     renderedBadge = badge;
   }
@@ -54,17 +57,21 @@ function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Prop
 }
 
 const StyledNavItem = styled(RouterNavLink)`
-  display: block;
-  color: ${p => p.theme.gray300};
+  display: flex;
+  gap: ${space(0.75)};
+  align-items: center;
+  color: ${p => p.theme.subText};
   font-size: 14px;
   line-height: 30px;
   position: relative;
 
   &.active {
-    color: ${p => p.theme.textColor};
+    color: ${p =>
+      isChonkTheme(p.theme) ? p.theme.tokens.content.accent : p.theme.textColor};
 
     &:before {
-      background: ${p => p.theme.active};
+      background: ${p =>
+        isChonkTheme(p.theme) ? p.theme.tokens.graphics.accent : p.theme.active};
     }
   }
 
@@ -101,10 +108,10 @@ const StyledNavItem = styled(RouterNavLink)`
 `;
 
 const StyledBadge = styled(Badge)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   height: auto;
   line-height: 1;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 3px ${space(0.75)};
   vertical-align: middle;
 `;

@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
@@ -78,7 +78,7 @@ export default function CustomIgnoreCountModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Ignore')}

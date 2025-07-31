@@ -10,9 +10,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const org = OrganizationFixture();
 function TestContext({children}: {children?: ReactNode}) {
-  return (
-    <OrganizationContext.Provider value={org}>{children}</OrganizationContext.Provider>
-  );
+  return <OrganizationContext value={org}>{children}</OrganizationContext>;
 }
 
 describe('useProjects', function () {

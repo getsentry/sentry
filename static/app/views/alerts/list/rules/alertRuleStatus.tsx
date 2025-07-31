@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {IconArrow, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -60,7 +61,7 @@ export default function AlertRuleStatus({rule}: Props) {
   const trigger =
     activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
       ? criticalTrigger
-      : warningTrigger ?? criticalTrigger;
+      : (warningTrigger ?? criticalTrigger);
 
   let iconColor: ColorOrAlias = 'successText';
   let iconDirection: 'up' | 'down' | undefined;
@@ -88,11 +89,13 @@ export default function AlertRuleStatus({rule}: Props) {
   }
 
   return (
-    <FlexCenter>
+    <Flex align="center">
       {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
         <IconArrow color={iconColor} direction={iconDirection} />
       )}
-      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC ? (
+      {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
+        <TriggerText>{statusLabel}</TriggerText>
+      ) : (
         <TriggerText>
           {`${thresholdTypeText} ${
             rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
@@ -106,10 +109,8 @@ export default function AlertRuleStatus({rule}: Props) {
               : AlertRuleComparisonType.COUNT
           )}
         </TriggerText>
-      ) : (
-        <TriggerText>{statusLabel}</TriggerText>
       )}
-    </FlexCenter>
+    </Flex>
   );
 }
 
@@ -124,10 +125,4 @@ const TriggerText = styled('div')`
   margin-left: ${space(1)};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-`;
-
-// TODO: explore utilizing the FlexContainer from app/components/container/flex.tsx
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
 `;

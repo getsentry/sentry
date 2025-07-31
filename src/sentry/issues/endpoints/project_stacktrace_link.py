@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.integrations.analytics import IntegrationStacktraceLinkEvent
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
@@ -153,9 +154,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         scope = Scope.get_isolation_scope()
 
         set_top_tags(scope, project, ctx, len(configs) > 0)
-        result = get_stacktrace_config(configs, ctx)
+        result = get_stacktrace_config(configs, ctx, project.organization)
         error = result["error"]
-
+        src_path = result["src_path"]
         # Post-processing before exiting scope context
         if result["current_config"]:
             # Use the provider key to split up stacktrace-link metrics by integration type
@@ -175,20 +176,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         if result["current_config"] and serialized_config:
             analytics.record(
-                "integration.stacktrace.linked",
-                provider=serialized_config["provider"]["key"],
-                config_id=serialized_config["id"],
-                project_id=project.id,
-                organization_id=project.organization_id,
-                filepath=filepath,
-                status=error or "success",
-                link_fetch_iterations=result["iteration_count"],
-                platform=ctx["platform"],
+                IntegrationStacktraceLinkEvent(
+                    provider=serialized_config["provider"]["key"],
+                    config_id=serialized_config["id"],
+                    project_id=project.id,
+                    organization_id=project.organization_id,
+                    filepath=filepath,
+                    status=error or "success",
+                    link_fetch_iterations=result["iteration_count"],
+                    platform=ctx["platform"],
+                )
             )
             return Response(
                 {
                     "error": error,
                     "config": serialized_config,
+                    "sourcePath": src_path,
                     "sourceUrl": result["source_url"],
                     "attemptedUrl": attempted_url,
                     "integrations": serialized_integrations,
@@ -199,6 +202,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             {
                 "error": error,
                 "config": serialized_config,
+                "sourcePath": src_path,
                 "sourceUrl": None,
                 "attemptedUrl": attempted_url,
                 "integrations": serialized_integrations,

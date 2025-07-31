@@ -7,8 +7,7 @@ const replayConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for replay issues'),
+        enabled: true,
       },
       deleteAndDiscard: {
         enabled: false,
@@ -23,10 +22,12 @@ const replayConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
+    defaultTimePeriod: {sinceFirstSeen: false},
     pages: {
       landingPage: Tab.DETAILS,
       events: {enabled: true},
       openPeriods: {enabled: false},
+      uptimeChecks: {enabled: false},
       checkIns: {enabled: false},
       attachments: {enabled: false},
       userFeedback: {enabled: true},

@@ -5,21 +5,21 @@ from typing import Any
 from django.db import router, transaction
 from django.utils.functional import cached_property
 
-from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
-    AlertRuleActionRequester,
-    AlertRuleActionResult,
+    SentryAppAlertRuleActionRequester,
+    SentryAppAlertRuleActionResult,
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 
 
 @dataclass
-class AlertRuleActionCreator:
+class SentryAppAlertRuleActionCreator:
     install: SentryAppInstallation
     fields: list[Mapping[str, Any]] = field(default_factory=list)
 
-    def run(self) -> AlertRuleActionResult:
+    def run(self) -> SentryAppAlertRuleActionResult:
         with transaction.atomic(router.db_for_write(SentryAppComponent)):
             uri = self._fetch_sentry_app_uri()
             response = self._make_external_request(uri)
@@ -34,8 +34,13 @@ class AlertRuleActionCreator:
 
     def _make_external_request(self, uri=None):
         if uri is None:
-            raise APIError("Sentry App request url not found")
-        response = AlertRuleActionRequester(
+            return SentryAppAlertRuleActionResult(
+                message="Request url for alert-rule-action not found, please check your integration schema",
+                success=False,
+                error_type=SentryAppErrorType.INTEGRATOR,
+                status_code=500,
+            )
+        response = SentryAppAlertRuleActionRequester(
             install=self.install,
             uri=uri,
             fields=self.fields,

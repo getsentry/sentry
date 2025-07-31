@@ -1,17 +1,16 @@
 import {useContext, useMemo} from 'react';
 
+import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
-
-import FormContext from '../formContext';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {SelectFieldProps} from './selectField';
 import SelectField from './selectField';
 
 // projects can be passed as a direct prop as well
-export interface RenderFieldProps extends SelectFieldProps<any> {
+interface RenderFieldProps extends SelectFieldProps<any> {
   avatarSize?: number;
   /**
    * Ensures the only selectable teams are members of the given project.

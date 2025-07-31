@@ -77,6 +77,11 @@ function renderDebugIdBundlesMockRequests({
     method: 'DELETE',
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/releases/`,
+    body: [],
+  });
+
   return {artifactBundlesFiles, artifactBundlesDeletion};
 }
 
@@ -87,7 +92,7 @@ describe('SourceMapsDetails', function () {
 
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, router, project, routerProps} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
         }),
@@ -118,7 +123,9 @@ describe('SourceMapsDetails', function () {
             bundleId: 'bea7335dfaebc0ca6e65a057',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       // Title
@@ -146,7 +153,7 @@ describe('SourceMapsDetails', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, routerProps, project, router} = initializeOrg({
+      const {organization, routerProps, project} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -171,7 +178,9 @@ describe('SourceMapsDetails', function () {
             bundleId: 'bea7335dfaebc0ca6e65a057',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       expect(
@@ -182,7 +191,7 @@ describe('SourceMapsDetails', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, routerProps, router} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
         }),
@@ -216,7 +225,9 @@ describe('SourceMapsDetails', function () {
             bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       // Title
@@ -231,15 +242,16 @@ describe('SourceMapsDetails', function () {
       // Release information
       expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
       expect(
-        await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
+        await screen.findByText(textWithMarkupMatcher('v2.0(Dist: none)'))
       ).toBeInTheDocument();
       expect(
         await screen.findByText(
           textWithMarkupMatcher(
-            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a (Dist: android, iOS)'
+            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a(Dist: android, iOS)'
           )
         )
       ).toBeInTheDocument();
+
       // Date Uploaded
       expect(await screen.findByText('Date Uploaded')).toBeInTheDocument();
       expect(await screen.findByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
@@ -283,7 +295,7 @@ describe('SourceMapsDetails', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, project, routerProps, router} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -311,7 +323,9 @@ describe('SourceMapsDetails', function () {
             bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
           }}
         />,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       expect(

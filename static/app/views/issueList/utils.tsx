@@ -1,15 +1,15 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 
+export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
-  // biome-ignore lint/style/useLiteralEnumMembers: Disable for maintenance cost.
   PRIORITIZED = DEFAULT_QUERY, // eslint-disable-line @typescript-eslint/prefer-literal-enum-member
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
@@ -163,7 +163,7 @@ export function isForReviewQuery(query: string | undefined) {
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
-export type QueryCount = {
+type QueryCount = {
   count: number;
   hasMore: boolean;
 };
@@ -188,7 +188,7 @@ export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: 
 export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
-      return t('First Seen');
+      return t('Age');
     case IssueSortOptions.TRENDS:
       return t('Trends');
     case IssueSortOptions.FREQ:
@@ -219,6 +219,9 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'issue.priority',
   'issue.category',
   'issue.type',
+  'issue.seer_actionability',
+  'issue.seer_last_run',
+  'detector',
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
@@ -226,42 +229,11 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
 
-export enum IssueGroup {
-  ALL = 'all',
-  ERROR_OUTAGE = 'error_outage',
-  TREND = 'trend',
-  CRAFTSMANSHIP = 'craftsmanship',
-  SECURITY = 'security',
-}
-
-const IssueGroupFilter: Record<IssueGroup, string> = {
-  [IssueGroup.ALL]: '',
-  [IssueGroup.ERROR_OUTAGE]: 'issue.category:[error,cron,uptime]',
-  [IssueGroup.TREND]:
-    'issue.type:[profile_function_regression,performance_p95_endpoint_regression,performance_n_plus_one_db_queries]',
-  [IssueGroup.CRAFTSMANSHIP]:
-    'issue.category:replay issue.type:[performance_n_plus_one_db_queries,performance_n_plus_one_api_calls,performance_consecutive_db_queries,performance_render_blocking_asset_span,performance_uncompressed_assets,profile_file_io_main_thread,profile_image_decode_main_thread,profile_json_decode_main_thread,profile_regex_main_thread]',
-  [IssueGroup.SECURITY]: 'event.type:[nel,csp]',
-};
-
-function getIssueGroupFilter(group: IssueGroup): string {
-  if (!Object.hasOwn(IssueGroupFilter, group)) {
-    throw new Error(`Unknown issue group "${group}"`);
-  }
-  return IssueGroupFilter[group];
-}
-
-/** Generate a properly encoded `?query=` string for a given issue group */
-export function getSearchForIssueGroup(group: IssueGroup): string {
-  return `?${new URLSearchParams(`query=is:unresolved+${getIssueGroupFilter(group)}`)}`;
-}
-
 export function createIssueLink({
   organization,
   data,
   eventId,
   referrer,
-  streamIndex,
   location,
   query,
 }: {
@@ -271,9 +243,8 @@ export function createIssueLink({
   eventId?: string;
   query?: string;
   referrer?: string;
-  streamIndex?: number;
 }): LocationDescriptorObject {
-  const {id} = data as Group;
+  const {id, project} = data as Group;
   const {eventID: latestEventId, groupID} = data as Event;
 
   // If we have passed in a custom event ID, use it; otherwise use default
@@ -285,18 +256,22 @@ export function createIssueLink({
     }/${finalEventId ? `events/${finalEventId}/` : ''}`,
     query: {
       referrer: referrer || 'event-or-group-header',
-      stream_index: streamIndex,
       query,
+      // Add environment to the query if it was selected
+      ...(location.query.environment === undefined
+        ? {}
+        : {environment: location.query.environment}),
       // This adds sort to the query if one was selected from the
       // issues list page
-      ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
+      ...(location.query.sort === undefined ? {} : {sort: location.query.sort}),
       // This appends _allp to the URL parameters if they have no
       // project selected ("all" projects included in results). This is
       // so that when we enter the issue details page and lock them to
       // a project, we can properly take them back to the issue list
       // page with no project selected (and not the locked project
       // selected)
-      ...(location.query.project !== undefined ? {} : {_allp: 1}),
+      ...(location.query.project === undefined ? {_allp: 1} : {}),
+      ...(project ? {project: project.id} : {}),
     },
   };
 }

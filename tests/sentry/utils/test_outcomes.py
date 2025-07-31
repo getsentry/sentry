@@ -1,11 +1,12 @@
 import types
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json, kafka_config, outcomes
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -60,7 +61,7 @@ def test_parse_outcome(name, outcome):
     assert Outcome.parse(name) == outcome
 
 
-def test_outcome_parse_invalid_name():
+def test_outcome_parse_invalid_name() -> None:
     """
     Tests that `Outcome.parse` raises a KeyError for invalid outcome names.
     """
@@ -173,7 +174,7 @@ def test_track_outcome_billing_cluster(settings, setup):
         assert outcomes.outcomes_publisher is None
 
 
-def test_outcome_api_name():
+def test_outcome_api_name() -> None:
     """
     Tests that the `api_name` method returns the lowercase name of the outcome.
     """
@@ -249,7 +250,7 @@ def test_track_outcome_with_category(setup, category):
     assert data["category"] == category.value
 
 
-def test_track_outcome_with_invalid_inputs():
+def test_track_outcome_with_invalid_inputs() -> None:
     """
     Tests that `track_outcome` raises AssertionError when invalid inputs are provided.
     """
@@ -299,6 +300,46 @@ def test_track_outcome_with_provided_timestamp(setup):
     (topic_name, payload), _ = setup.mock_publisher.return_value.publish.call_args
     data = json.loads(payload)
     assert data["timestamp"] == "2021-01-01T12:00:00.000000Z"
+
+
+def test_track_outcome_late(setup):
+    """
+    Tests that we emit metrics when an outcome is later than 1 day.
+    """
+    mock_date = datetime(2021, 1, 1, 12, 0, 0)
+    with freeze_time(mock_date), mock.patch("sentry.utils.metrics.incr") as mock_metrics_incr:
+        track_outcome(
+            org_id=1,
+            project_id=2,
+            key_id=3,
+            outcome=Outcome.ACCEPTED,
+            timestamp=mock_date - timedelta(days=1, microseconds=1),
+        )
+
+        mock_metrics_incr.assert_has_calls(
+            [
+                mock.call(
+                    "events.outcomes.late",
+                    skip_internal=True,
+                    tags={
+                        "outcome": "accepted",
+                        "reason": None,
+                        "category": "null",
+                        "topic": "outcomes-billing",
+                    },
+                ),
+                mock.call(
+                    "events.outcomes",
+                    skip_internal=True,
+                    tags={
+                        "outcome": "accepted",
+                        "reason": None,
+                        "category": "null",
+                        "topic": "outcomes-billing",
+                    },
+                ),
+            ],
+        )
 
 
 def test_track_outcome_with_none_key_id(setup):

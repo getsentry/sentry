@@ -1,24 +1,26 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
+  agentMonitoringOnboarding,
   crashReportOnboardingPython,
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 from pyramid.config import Configurator
@@ -40,13 +42,10 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
-      configurations: [
-        {
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -111,12 +110,11 @@ if __name__ == '__main__':
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getPythonProfilingOnboarding(),
+  agentMonitoringOnboarding,
 };
 
 export default docs;

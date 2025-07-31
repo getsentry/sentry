@@ -40,7 +40,7 @@ function OrganizationProjects() {
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(new Date().getTime());
+  const time = useRef(Date.now());
   const {
     data: projectList,
     getResponseHeader,

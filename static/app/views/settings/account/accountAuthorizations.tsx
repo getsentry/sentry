@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -49,7 +48,7 @@ function AccountAuthorizations() {
   const handleRevoke = async (authorization: Authorization) => {
     const oldData = data;
     setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
-      prevData.filter(a => a.id !== authorization.id)
+      prevData?.filter(a => a.id !== authorization.id)
     );
     try {
       await api.requestPromise('/api-authorizations/', {
@@ -139,7 +138,7 @@ const ApplicationDetails = styled('div')`
 `;
 
 const ApplicationName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;
 
@@ -153,6 +152,6 @@ const Url = styled('div')`
 `;
 
 const DetailRow = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

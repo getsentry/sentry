@@ -1,18 +1,22 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeProfilingOnboarding,
+  getSdkInitSnippet,
+} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -43,15 +47,6 @@ exports.helloEvents = Sentry.wrapCloudEventFunction(
 const getVerifySnippet = () => `
 exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   throw new Error("oh, hello there!");
-});`;
-
-const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Only needed for SDK versions < 8.0.0
-  // _experiments: {
-  //   metricsAggregator: true,
-  // },
 });`;
 
 const onboarding: OnboardingConfig = {
@@ -112,38 +107,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-};
+  nextSteps: (params: Params) => {
+    const steps = [];
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [code:8.0.0] of [code:@sentry/google-cloud-serverless]:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: '@sentry/google-cloud-serverless',
-      }),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'With the default snippet in place, there is no need for any further configuration.'
-      ),
-      configurations: [
-        {
-          code: getMetricsConfigureSnippet(params),
-          language: 'javascript',
-        },
-      ],
-    },
-  ],
-  verify: getJSServerMetricsOnboarding().verify,
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -163,8 +142,13 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding,
   crashReportOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/google-cloud-serverless',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'google-cloud-serverless',
+  }),
 };
 
 export default docs;

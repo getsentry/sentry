@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportGenericInstallStep,
@@ -19,8 +18,8 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getDotnetProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/dotnet';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
@@ -92,8 +91,9 @@ SentrySdk.Init(options =>
     // e.g. 0.2 means we want to profile 20 % of the captured transactions.
     // We recommend adjusting this value in production.
     options.ProfilesSampleRate = 1.0;${
-      platform !== DotNetPlatform.IOS_MACCATALYST
-        ? `
+      platform === DotNetPlatform.IOS_MACCATALYST
+        ? ''
+        : `
     // Requires NuGet package: Sentry.Profiling
     // Note: By default, the profiler is initialized asynchronously. This can
     // be tuned by passing a desired initialization timeout to the constructor.
@@ -103,7 +103,6 @@ SentrySdk.Init(options =>
         // prefer profiling to start asynchronously
         TimeSpan.FromMilliseconds(500)
     ));`
-        : ''
     }`
         : ''
     }
@@ -185,11 +184,11 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <AlertWithoutMarginBottom type="info">
+                  <Alert type="info" showIcon={false}>
                     {t(
                       'Profiling for .NET Framework and .NET on Android are not supported.'
                     )}
-                  </AlertWithoutMarginBottom>
+                  </Alert>
                 ),
               },
             ]
@@ -370,15 +369,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getDotnetProfilingOnboarding({
+  getInstallSnippetPackageManager,
+  getInstallSnippetCoreCli,
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

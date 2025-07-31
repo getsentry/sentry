@@ -1,8 +1,7 @@
 import type {ComponentProps, CSSProperties} from 'react';
-import {forwardRef} from 'react';
 
+import type {Tooltip} from 'sentry/components/core/tooltip';
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
-import type {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
@@ -12,6 +11,7 @@ type Props = {
   index: number;
   sortConfig: SortConfig;
   style: CSSProperties;
+  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const COLUMNS: Array<{
@@ -27,21 +27,19 @@ const COLUMNS: Array<{
 
 export const COLUMN_COUNT = COLUMNS.length;
 
-const ErrorHeaderCell = forwardRef<HTMLButtonElement, Props>(
-  ({handleSort, index, sortConfig, style}: Props, ref) => {
-    const {field, label, tooltipTitle} = COLUMNS[index]!;
-    return (
-      <HeaderCell
-        ref={ref}
-        handleSort={handleSort}
-        field={field}
-        label={label}
-        tooltipTitle={tooltipTitle}
-        sortConfig={sortConfig}
-        style={style}
-      />
-    );
-  }
-);
+function ErrorHeaderCell({handleSort, index, sortConfig, style, ref}: Props) {
+  const {field, label, tooltipTitle} = COLUMNS[index]!;
+  return (
+    <HeaderCell
+      ref={ref}
+      handleSort={handleSort}
+      field={field}
+      label={label}
+      tooltipTitle={tooltipTitle}
+      sortConfig={sortConfig}
+      style={style}
+    />
+  );
+}
 
 export default ErrorHeaderCell;

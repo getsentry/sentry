@@ -16,6 +16,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
@@ -476,6 +477,12 @@ class Quota(Service):
                 categories=[DataCategory.SPAN_INDEXED],
                 scope=QuotaScope.PROJECT,
             ),
+            AbuseQuota(
+                id="pal",
+                option="project-abuse-quota.log-limit",
+                categories=[DataCategory.LOG_ITEM],
+                scope=QuotaScope.PROJECT,
+            ),
         ]
 
         abuse_quotas.extend(build_metric_abuse_quotas())
@@ -682,7 +689,12 @@ class Quota(Service):
 
     def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
         """
-        Removes an object from it's assigned seat.
+        Disables an assigned seat.
+        """
+
+    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Removes an assigned seat.
         """
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
@@ -703,5 +715,50 @@ class Quota(Service):
     ) -> bool:
         """
         Determines if the profile duration outcome should be emitted.
+        """
+        return True
+
+    def on_role_change(
+        self,
+        organization: Organization,
+        organization_member: OrganizationMember,
+        previous_role: str,
+        new_role: str,
+    ) -> None:
+        """
+        Called when an organization member's role is changed.
+        This is used to run any Subscription logic that needs to happen when a role is changed.
+
+        Args:
+            organization: The organization the member belongs to
+            organization_member: The member whose role is being changed
+            previous_role: The member's role before the change
+            new_role: The member's new role after the change
+        """
+        pass
+
+    def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has enough reserved budget for the given data category operation.
+        """
+        return True
+
+    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+        """
+        Records a seer run for an organization.
+        """
+        return
+
+    def has_profile_duration_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has quota available for the given data category.
+
+        Args:
+            org_id: The ID of the organization to check
+            data_category: The data category to check quota for.
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+                  Always False if data category is not a profile duration category.
         """
         return True

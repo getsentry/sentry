@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,10 +15,11 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{orgId: string}>;
 
 function OrganizationRestore(_props: Props) {
   const params = useParams<{orgId: string}>();
@@ -46,7 +47,11 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   }
   if (isError) {
     return (
-      <Alert type="error">{t('There was an error loading your organization.')}</Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon={false}>
+          {t('There was an error loading your organization.')}
+        </Alert>
+      </Alert.Container>
     );
   }
   if (data.status.id === 'active') {
@@ -81,7 +86,7 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
           addSuccessMessage(t('Organization Restored'));
 
           // Use window.location to ensure page reloads
-          window.location.assign(
+          testableWindowLocation.assign(
             normalizeUrl(`/organizations/${organization.slug}/issues/`)
           );
         }}

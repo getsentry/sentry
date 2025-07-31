@@ -14,9 +14,7 @@ type Props = {
 function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
   return (
     <Fragment>
-      {!dashboard ? (
-        t('Dashboards')
-      ) : (
+      {dashboard ? (
         <EditableText
           isDisabled={!isEditingDashboard}
           value={dashboard.title}
@@ -24,6 +22,8 @@ function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
           errorMessage={t('Please set a title for this dashboard')}
           autoSelect
         />
+      ) : (
+        t('Dashboards')
       )}
     </Fragment>
   );

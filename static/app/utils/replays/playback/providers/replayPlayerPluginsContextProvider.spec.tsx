@@ -13,11 +13,11 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 function makeWrapper(organization: Organization) {
   return function ({children}: {children?: ReactNode}) {
     return (
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <ReplayPlayerPluginsContextProvider>
           {children}
         </ReplayPlayerPluginsContextProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
   };
 }
@@ -43,26 +43,16 @@ describe('replayPlayerPluginsContext', () => {
 
     const {result} = renderHook(useReplayPlayerPlugins, {
       wrapper: ({children}: {children?: ReactNode}) => (
-        <OrganizationContext.Provider value={mockOrganization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={mockOrganization}>{children}</OrganizationContext>
       ),
     });
 
     expect(result.current(mockEvents)).toStrictEqual([]);
   });
 
-  it('should include the canvas plugin if the org has the canvas-replayer flag enabled', () => {
-    const mockOrganizationNoCanvas = OrganizationFixture();
-    const mockOrganizationWithCanvas = OrganizationFixture({
-      features: ['session-replay-enable-canvas-replayer'],
-    });
+  it('should include the canvas plugin', () => {
+    const mockOrganizationWithCanvas = OrganizationFixture();
     const mockEvents: any[] = [];
-
-    const {result: noCanvasResult} = renderHook(useReplayPlayerPlugins, {
-      wrapper: makeWrapper(mockOrganizationNoCanvas),
-    });
-    expect(noCanvasResult.current(mockEvents)).toStrictEqual([]);
 
     const {result: withCanvasResult} = renderHook(useReplayPlayerPlugins, {
       wrapper: makeWrapper(mockOrganizationWithCanvas),

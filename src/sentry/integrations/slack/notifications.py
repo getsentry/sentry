@@ -5,16 +5,9 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 import sentry_sdk
-from slack_sdk.errors import SlackApiError
 
-from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
-from sentry.integrations.slack.metrics import (
-    SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.service import SlackService
-from sentry.integrations.slack.utils.errors import CHANNEL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -23,24 +16,6 @@ from sentry.users.models.user import User
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")
-
-
-class SlackNotifyBasicMixin(NotifyBasicMixin):
-    def send_message(self, channel_id: str, message: str) -> None:
-        client = self.get_client()
-
-        try:
-            client.chat_postMessage(channel=channel_id, text=message)
-            metrics.incr(SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
-        except SlackApiError as e:
-            metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
-
-            # TODO: remove this
-            if unpack_slack_api_error(e) != CHANNEL_NOT_FOUND:
-                logger.exception(
-                    "slack.slash-response.error",
-                    extra={"error": str(e)},
-                )
 
 
 @register_notification_provider(ExternalProviders.SLACK)

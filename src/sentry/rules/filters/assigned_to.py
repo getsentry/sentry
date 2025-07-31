@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 class AssignedToFilter(EventFilter):
     id = "sentry.rules.filters.assigned_to.AssignedToFilter"
-    form_cls = AssignedToForm
     label = "The issue is assigned to {targetType}"
     prompt = "The issue is assigned to {no one/team/member}"
 
@@ -53,8 +52,7 @@ class AssignedToFilter(EventFilter):
             return False
 
     def get_form_instance(self) -> forms.Form:
-        form: forms.Form = self.form_cls(self.project, self.data)
-        return form
+        return AssignedToForm(self.project, self.data)
 
     def render_label(self) -> str:
         target_type = AssigneeTargetType(self.get_option("targetType"))

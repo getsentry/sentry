@@ -19,6 +19,7 @@ from sentry.api.exceptions import BadRequest
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -36,7 +37,7 @@ PROVIDER_NAME = "integrations:bitbucket_server"
 class BitbucketServerWebhook(SCMWebhook, ABC):
     @property
     def provider(self):
-        return "bitbucket_server"
+        return IntegrationProviderSlug.BITBUCKET_SERVER.value
 
     def update_repo_data(self, repo, event):
         """

@@ -1,5 +1,5 @@
 import functools
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
@@ -18,7 +18,7 @@ from sentry.utils.email.faker import create_fake_email
 
 
 class MessageBuilderTest(TestCase):
-    def test_raw_content(self):
+    def test_raw_content(self) -> None:
         msg = MessageBuilder(
             subject="Test",
             body="hello world",
@@ -41,7 +41,7 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
-    def test_inline_css(self):
+    def test_inline_css(self) -> None:
         msg = MessageBuilder(
             subject="Test",
             body="hello world",
@@ -64,7 +64,7 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
-    def test_explicit_reply_to(self):
+    def test_explicit_reply_to(self) -> None:
         msg = MessageBuilder(
             subject="Test",
             body="hello world",
@@ -87,7 +87,7 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
-    def test_with_users(self):
+    def test_with_users(self) -> None:
         project = self.project
 
         assert len(mail.outbox) == 0
@@ -117,7 +117,7 @@ class MessageBuilderTest(TestCase):
             "foo@example.com",
         ]
 
-    def test_fake_dont_send(self):
+    def test_fake_dont_send(self) -> None:
         project = self.project
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -141,7 +141,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 0
 
     @patch("sentry.utils.email.message_builder.make_msgid")
-    def test_message_id(self, make_msgid):
+    def test_message_id(self, make_msgid: MagicMock) -> None:
         make_msgid.return_value = "abc123"
 
         msg = MessageBuilder(
@@ -166,7 +166,7 @@ class MessageBuilderTest(TestCase):
         )
 
     @patch("sentry.utils.email.message_builder.make_msgid")
-    def test_add_groupemailthread(self, make_msgid):
+    def test_add_groupemailthread(self, make_msgid: MagicMock) -> None:
         make_msgid.return_value = "abc123"
 
         msg = MessageBuilder(
@@ -198,7 +198,7 @@ class MessageBuilderTest(TestCase):
         assert thread.group == self.group
 
     @patch("sentry.utils.email.message_builder.make_msgid")
-    def test_reply_reference(self, make_msgid):
+    def test_reply_reference(self, make_msgid: MagicMock) -> None:
         make_msgid.return_value = "abc123"
 
         msg = MessageBuilder(
@@ -256,7 +256,7 @@ class MessageBuilderTest(TestCase):
         assert GroupEmailThread.objects.count() == 1, "Should not have added a new row"
         assert GroupEmailThread.objects.all()[0].msgid == "abc123", "msgid should not have changed"
 
-    def test_get_built_messages(self):
+    def test_get_built_messages(self) -> None:
         msg = MessageBuilder(
             subject="Test",
             body="hello world",
@@ -265,8 +265,23 @@ class MessageBuilderTest(TestCase):
         )
         results = msg.get_built_messages(["foo@example.com"])
         assert len(results) == 1
+        assert results[0].message()["Reply-To"] is None
 
-    def test_bcc_on_send(self):
+    def test_get_built_messages_reply_to(self) -> None:
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            reference=self.activity,
+        )
+        results = msg.get_built_messages(
+            to=["foo@example.com", "bar@example.com"], reply_to=["abc123@sentry.io"]
+        )
+        assert len(results) == 2
+        assert results[0].message()["Reply-To"] == "abc123@sentry.io"
+        assert results[1].message()["Reply-To"] == "abc123@sentry.io"
+
+    def test_bcc_on_send(self) -> None:
         msg = MessageBuilder(subject="Test", body="hello world")
         msg.send(["foo@example.com"], bcc=["bar@example.com"])
 
@@ -276,7 +291,7 @@ class MessageBuilderTest(TestCase):
         assert out.to == ["foo@example.com"]
         assert out.bcc == ["bar@example.com"]
 
-    def test_generates_list_ids_for_registered_types(self):
+    def test_generates_list_ids_for_registered_types(self) -> None:
         build_message = functools.partial(
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
@@ -291,7 +306,7 @@ class MessageBuilderTest(TestCase):
             (message,) = build_message(reference=reference).get_built_messages(["foo@example.com"])
             assert message.message()["List-Id"] == expected
 
-    def test_does_not_generates_list_ids_for_unregistered_types(self):
+    def test_does_not_generates_list_ids_for_unregistered_types(self) -> None:
         message = (
             MessageBuilder(
                 subject="Test",
@@ -305,7 +320,7 @@ class MessageBuilderTest(TestCase):
 
         assert "List-Id" not in message
 
-    def test_stripped_newline(self):
+    def test_stripped_newline(self) -> None:
         msg = MessageBuilder(
             subject="Foo\r\nBar", body="hello world", html_body="<b>hello world</b"
         )
@@ -314,7 +329,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
         assert mail.outbox[0].subject == "Foo"
 
-    def test_adds_type_to_headers(self):
+    def test_adds_type_to_headers(self) -> None:
         msg = MessageBuilder(
             subject="Test",
             body="hello world",
@@ -333,3 +348,19 @@ class MessageBuilderTest(TestCase):
 
         json_xsmtpapi_data = json.loads(out.extra_headers["X-SMTPAPI"])
         assert json_xsmtpapi_data["category"] == "test_email.type"
+
+    def test_send_async_reply_to(self) -> None:
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            from_email="from@sentry.io",
+        )
+        with self.tasks():
+            msg.send_async(["foo@example.com", "bar@example.com"], reply_to=["reply@sentry.io"])
+
+        outbox = mail.outbox
+        assert len(outbox) == 2
+        for email in outbox:
+            assert email.message()["Reply-To"] == "reply@sentry.io"
+            assert email.from_email == "from@sentry.io"

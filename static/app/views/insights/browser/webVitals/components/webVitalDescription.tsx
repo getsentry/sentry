@@ -1,31 +1,16 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import ExternalLink from 'sentry/components/links/externalLink';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types/group';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {Dot} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
-import type {
-  ProjectScore,
-  WebVitals,
-} from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
-import {
-  scoreToStatus,
-  STATUS_TEXT,
-} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
-
-import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
 type Props = {
   webVital: WebVitals;
@@ -33,7 +18,7 @@ type Props = {
   value?: string;
 };
 
-const WEB_VITAL_FULL_NAME_MAP = {
+export const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
   inp: t('Interaction to Next Paint'),
@@ -59,7 +44,7 @@ export const VITAL_DESCRIPTIONS: Partial<
         openInNewTab
         href="https://blog.sentry.io/how-to-make-your-web-page-faster-before-it-even-loads/"
       >
-        How can I fix my FCP?
+        How do I fix my FCP?
       </ExternalLink>
     ),
   },
@@ -75,7 +60,7 @@ export const VITAL_DESCRIPTIONS: Partial<
         openInNewTab
         href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/"
       >
-        How can I fix my CLS?
+        How do I fix my CLS score?
       </ExternalLink>
     ),
   },
@@ -91,7 +76,7 @@ export const VITAL_DESCRIPTIONS: Partial<
         openInNewTab
         href="https://blog.sentry.io/from-lcp-to-cls-improve-your-core-web-vitals-with-image-loading-best/"
       >
-        How can I fix my LCP?
+        How do I fix my LCP score?
       </ExternalLink>
     ),
   },
@@ -107,7 +92,7 @@ export const VITAL_DESCRIPTIONS: Partial<
         openInNewTab
         href="https://blog.sentry.io/how-i-fixed-my-brutal-ttfb/"
       >
-        How can I fix my TTFB?
+        How do I fix my TTFB score?
       </ExternalLink>
     ),
   },
@@ -120,86 +105,23 @@ export const VITAL_DESCRIPTIONS: Partial<
     ),
     link: (
       <ExternalLink openInNewTab href="https://blog.sentry.io/what-is-inp/">
-        How can I fix my INP?
+        How do I fix my INP score?
       </ExternalLink>
     ),
   },
 };
 
-type WebVitalDetailHeaderProps = {
-  isProjectScoreCalculated: boolean;
-  projectScore: ProjectScore;
-  tag: Tag;
-  value: React.ReactNode;
-};
-
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
-  const theme = useTheme();
-  const colors = theme.charts.getColorPalette(3) ?? [];
-  const dotColor = colors[ORDER.indexOf(webVital)]!;
-  const status = score !== undefined ? scoreToStatus(score) : undefined;
+  const status = score === undefined ? undefined : scoreToStatus(score);
 
   return (
-    <Header>
-      <span>
-        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
-        <Value>
-          <Dot color={dotColor} />
-          {value ?? ' \u2014 '}
-        </Value>
-      </span>
-      {status && score && (
-        <ScoreBadge status={status}>
-          <StatusText>{STATUS_TEXT[status]}</StatusText>
-          <StatusScore>{score}</StatusScore>
-        </ScoreBadge>
-      )}
-    </Header>
-  );
-}
-
-export function WebVitalTagsDetailHeader({
-  projectScore,
-  value,
-  tag,
-  isProjectScoreCalculated,
-}: WebVitalDetailHeaderProps) {
-  const theme = useTheme();
-  const ringSegmentColors = theme.charts.getColorPalette(3) ?? [];
-  const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-  const title =
-    tag.key === 'geo.country_code' ? COUNTRY_CODE_TO_NAME_MAP[tag.name] : tag.name;
-  return (
-    <Header>
-      <span>
-        <TitleWrapper>
-          <WebVitalName>{title}</WebVitalName>
-          <StyledCopyToClipboardButton
-            borderless
-            text={`${tag.key}:${tag.name}`}
-            size="sm"
-            iconSize="sm"
-          />
-        </TitleWrapper>
-        <Value>{value}</Value>
-      </span>
-      {isProjectScoreCalculated && projectScore ? (
-        <PerformanceScoreRingWithTooltips
-          hideWebVitalLabels
-          projectScore={projectScore}
-          text={projectScore.totalScore}
-          width={100}
-          height={100}
-          ringBackgroundColors={ringBackgroundColors}
-          ringSegmentColors={ringSegmentColors}
-          size={100}
-          x={0}
-          y={0}
-        />
-      ) : (
-        <StyledLoadingIndicator size={50} />
-      )}
-    </Header>
+    <div>
+      <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+      <WebVitalScore>
+        <Value>{value ?? ' \u2014 '}</Value>
+        {status && score && <PerformanceBadge score={score} />}
+      </WebVitalScore>
+    </div>
   );
 }
 
@@ -212,17 +134,10 @@ export function WebVitalDescription({score, value, webVital}: Props) {
       <WebVitalDetailHeader score={score} value={value} webVital={webVital} />
       <DescriptionWrapper>
         {longDescription}
-        {link}
+        {tct(` [webVital] is available for the following browsers:`, {
+          webVital: webVital.toUpperCase(),
+        })}
       </DescriptionWrapper>
-
-      <p>
-        <b>
-          {tct(
-            `At the moment, there is support for [webVital] in the following browsers:`,
-            {webVital: webVital.toUpperCase()}
-          )}
-        </b>
-      </p>
       <SupportedBrowsers>
         {Object.values(Browser).map(browser => (
           <BrowserItem key={browser}>
@@ -237,6 +152,7 @@ export function WebVitalDescription({score, value, webVital}: Props) {
           </BrowserItem>
         ))}
       </SupportedBrowsers>
+      <ReferenceLink>{link}</ReferenceLink>
     </div>
   );
 }
@@ -244,7 +160,11 @@ export function WebVitalDescription({score, value, webVital}: Props) {
 const SupportedBrowsers = styled('div')`
   display: inline-flex;
   gap: ${space(2)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+`;
+
+const ReferenceLink = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const BrowserItem = styled('div')`
@@ -253,65 +173,25 @@ const BrowserItem = styled('div')`
   gap: ${space(1)};
 `;
 
-const Header = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(3)};
-`;
-
 const DescriptionWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const Value = styled('h2')`
-  display: flex;
-  align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
-  margin-bottom: ${space(1)};
+  margin-bottom: 0;
 `;
 
-const WebVitalName = styled('h4')`
-  margin-bottom: ${space(1)};
-  max-width: 400px;
+const WebVitalName = styled('h6')`
+  margin-bottom: 0;
   ${p => p.theme.overflowEllipsis}
 `;
 
-const TitleWrapper = styled('div')`
+const WebVitalScore = styled('div')`
   display: flex;
-  align-items: baseline;
-`;
-
-const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  padding-left: ${space(0.5)};
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 20px 65px;
-`;
-
-const ScoreBadge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  padding: ${space(0.5)};
-  text-align: center;
-  height: 60px;
-  width: 60px;
-  border-radius: 60px;
-`;
-
-const StatusText = styled('span')`
-  padding-top: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const StatusScore = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  align-items: anchor-center;
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
+  gap: ${space(1)};
 `;

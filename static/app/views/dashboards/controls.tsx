@@ -4,24 +4,25 @@ import styled from '@emotion/styled';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Tooltip} from 'sentry/components/tooltip';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -34,11 +35,7 @@ type Props = {
   dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
-  onAddWidget: (dataset: DataSet) => void;
-  onAddWidgetFromNewWidgetBuilder: (
-    dataset: DataSet,
-    openWidgetTemplates: boolean
-  ) => void;
+  onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -46,6 +43,7 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
@@ -61,10 +59,10 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
-  onAddWidgetFromNewWidgetBuilder,
+  isSaving,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
-
+  const queryClient = useQueryClient();
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
@@ -86,7 +84,7 @@ function Controls({
   const api = useApi();
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
-      <StyledButtonBar gap={1} key="edit-controls">
+      <StyledButtonBar key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -115,7 +113,7 @@ function Controls({
 
   if (dashboardState === DashboardState.CREATE) {
     return (
-      <StyledButtonBar gap={1} key="create-controls">
+      <StyledButtonBar key="create-controls">
         {renderCancelButton()}
         <Button
           data-test-id="dashboard-commit"
@@ -134,7 +132,7 @@ function Controls({
 
   if (dashboardState === DashboardState.PREVIEW) {
     return (
-      <StyledButtonBar gap={1} key="preview-controls">
+      <StyledButtonBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
         <Button
           data-test-id="dashboard-commit"
@@ -151,11 +149,7 @@ function Controls({
     );
   }
 
-  const defaultDataset = organization.features.includes(
-    'performance-discover-dataset-selector'
-  )
-    ? DataSet.ERRORS
-    : DataSet.EVENTS;
+  const defaultDataset = DataSet.ERRORS;
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -167,19 +161,26 @@ function Controls({
 
   const addWidgetDropdownItems: MenuItemProps[] = [
     {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
-    },
-    {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
+      onAction: () => onAddWidget(defaultDataset, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidget(defaultDataset, true),
     },
   ];
 
+  const tooltipMessage = hasEditAccess
+    ? widgetLimitReached
+      ? tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+          maxWidgets: MAX_WIDGETS,
+        })
+      : null
+    : t('You do not have permission to edit this dashboard');
   return (
-    <StyledButtonBar gap={1} key="controls">
+    <StyledButtonBar key="controls">
       <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (
@@ -199,39 +200,38 @@ function Controls({
               </Button>
             </Feature>
             {dashboard.id !== 'default-overview' && (
-              <Feature features="dashboards-favourite">
-                <Button
-                  size="sm"
-                  aria-label={'dashboards-favourite'}
-                  icon={
-                    <IconStar
-                      color={isFavorited ? 'yellow300' : 'gray300'}
-                      isSolid={isFavorited}
-                      aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                    />
+              <Button
+                size="sm"
+                aria-label={'dashboards-favourite'}
+                icon={
+                  <IconStar
+                    color={isFavorited ? 'yellow300' : 'gray300'}
+                    isSolid={isFavorited}
+                    aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                  />
+                }
+                onClick={async () => {
+                  try {
+                    setIsFavorited(!isFavorited);
+                    await updateDashboardFavorite(
+                      api,
+                      queryClient,
+                      organization,
+                      dashboard.id,
+                      !isFavorited
+                    );
+                    trackAnalytics('dashboards_manage.toggle_favorite', {
+                      organization,
+                      dashboard_id: dashboard.id,
+                      favorited: !isFavorited,
+                    });
+                  } catch (error) {
+                    // If the api call fails, revert the state
+                    setIsFavorited(isFavorited);
                   }
-                  onClick={async () => {
-                    try {
-                      setIsFavorited(!isFavorited);
-                      await updateDashboardFavorite(
-                        api,
-                        organization.slug,
-                        dashboard.id,
-                        !isFavorited
-                      );
-                      trackAnalytics('dashboards_manage.toggle_favorite', {
-                        organization,
-                        dashboard_id: dashboard.id,
-                        favorited: !isFavorited,
-                      });
-                    } catch (error) {
-                      // If the api call fails, revert the state
-                      setIsFavorited(isFavorited);
-                    }
-                  }}
-                />
-              </Feature>
+                }}
+              />
             )}
             {dashboard.id !== 'default-overview' && (
               <EditAccessSelector
@@ -245,12 +245,14 @@ function Controls({
                 e.preventDefault();
                 onEdit();
               }}
-              icon={<IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
+              icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
               title={
-                !hasEditAccess
-                  ? t('You do not have permission to edit this dashboard')
-                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                isSaving
+                  ? DASHBOARD_SAVING_MESSAGE
+                  : hasEditAccess
+                    ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                    : t('You do not have permission to edit this dashboard')
               }
               priority="default"
               size="sm"
@@ -259,56 +261,22 @@ function Controls({
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                  maxWidgets: MAX_WIDGETS,
-                })}
-                disabled={!widgetLimitReached}
+                title={tooltipMessage}
+                disabled={!widgetLimitReached && hasEditAccess}
               >
-                {hasCustomMetrics(organization) ? (
-                  <AddWidgetButton
-                    onAddWidget={onAddWidget}
-                    aria-label={t('Add Widget')}
-                    priority="primary"
-                    data-test-id="add-widget-library"
-                    disabled={widgetLimitReached}
-                  />
-                ) : organization.features.includes(
-                    'dashboards-widget-builder-redesign'
-                  ) ? (
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd isCircled size="sm" />,
-                      priority: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                ) : (
-                  <Button
-                    data-test-id="add-widget-library"
-                    priority="primary"
-                    size="sm"
-                    disabled={widgetLimitReached || !hasEditAccess}
-                    icon={<IconAdd isCircled />}
-                    onClick={() => {
-                      trackAnalytics('dashboards_views.widget_library.opened', {
-                        organization,
-                      });
-                      onAddWidget(defaultDataset);
-                    }}
-                    title={
-                      !hasEditAccess &&
-                      t('You do not have permission to edit this dashboard')
-                    }
-                  >
-                    {t('Add Widget')}
-                  </Button>
-                )}
+                <DropdownMenu
+                  items={addWidgetDropdownItems}
+                  isDisabled={widgetLimitReached || !hasEditAccess}
+                  triggerLabel={t('Add Widget')}
+                  triggerProps={{
+                    'aria-label': t('Add Widget'),
+                    size: 'sm',
+                    showChevron: true,
+                    icon: <IconAdd isCircled size="sm" />,
+                    priority: 'primary',
+                  }}
+                  position="bottom-end"
+                />
               </Tooltip>
             ) : null}
           </Fragment>
@@ -349,7 +317,7 @@ function DashboardEditFeature({
 }
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
     width: 100%;

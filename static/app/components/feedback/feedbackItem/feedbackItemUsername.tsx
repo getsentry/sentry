@@ -1,12 +1,11 @@
 import {type CSSProperties, Fragment, useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import {Flex} from 'sentry/components/container/flex';
-import {Tooltip} from 'sentry/components/tooltip';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -55,13 +54,13 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   )}`;
 
   return (
-    <Flex align="center" gap={space(1)} className={className} style={style}>
+    <Flex align="center" gap="md" className={className} style={style}>
       <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
         <Flex
           id={userNodeId}
           align="center"
           wrap="wrap"
-          gap={space(0.5)}
+          gap="xs"
           onClick={() => {
             handleSelectText();
             handleCopyToClipboard();

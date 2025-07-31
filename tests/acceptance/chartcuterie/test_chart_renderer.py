@@ -12,6 +12,8 @@ class TestChartRenderer(AcceptanceTestCase):
         with self.options(options):
             self.browser.get("debug/chart-renderer/")
 
+        self.wait_for_loading()
+
         images = self.browser.elements(selector="img")
         assert len(images) > 0
 

@@ -14,7 +14,7 @@ export function Value({subjectIcon, meta, raw, isContextData, value = null}: Val
   if (isContextData) {
     return (
       <StructuredEventData
-        data={!raw ? value : JSON.stringify(value)}
+        data={raw ? JSON.stringify(value) : value}
         meta={meta}
         withAnnotatedText
       >

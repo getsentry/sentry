@@ -5,13 +5,14 @@ from unittest.mock import MagicMock, patch
 
 import sentry_sdk.scope
 from django.conf import settings
+from django.db import OperationalError
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import Factories
+from sentry.utils import sdk
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,
     bind_organization_context,
@@ -36,7 +37,7 @@ def patch_isolation_scope():
 
 
 class SDKUtilsTest(TestCase):
-    def test_context_scope_merge_no_existing_context(self):
+    def test_context_scope_merge_no_existing_context(self) -> None:
         scope = Scope()
         new_context_data = {"maisey": "silly", "charlie": "goofy"}
 
@@ -47,7 +48,7 @@ class SDKUtilsTest(TestCase):
         assert "dogs" in scope._contexts
         assert scope._contexts["dogs"] == new_context_data
 
-    def test_context_scope_merge_with_existing_context(self):
+    def test_context_scope_merge_with_existing_context(self) -> None:
         scope = Scope()
         existing_context_data = {"cory": "nudgy", "bodhi": "floppy"}
         new_context_data = {"maisey": "silly", "charlie": "goofy"}
@@ -132,7 +133,7 @@ class CheckTagForScopeBleedTest(TestCase):
         )
 
     def test_getting_more_specific_doesnt_count_as_mismatch(self, mock_logger_warning: MagicMock):
-        orgs = [self.create_organization() for _ in [None] * 3]
+        orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
             mock_scope.set_tag("organization.slug", "[multiple orgs]")
@@ -150,7 +151,7 @@ class CheckTagForScopeBleedTest(TestCase):
     def test_overwriting_list_with_non_member_single_org_counts_as_mismatch(
         self, mock_logger_warning: MagicMock
     ):
-        orgs = [self.create_organization() for _ in [None] * 3]
+        orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
             mock_scope.set_tag("organization.slug", "[multiple orgs]")
@@ -216,7 +217,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/dogs/{name}/"
 
-        with patch("sentry.utils.sdk.sentry_sdk.Scope.get_current_scope", return_value=mock_scope):
+        with patch("sentry.utils.sdk.sentry_sdk.get_current_scope", return_value=mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch is None
 
@@ -225,7 +226,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/tricks/{trick_name}/"
 
-        with patch("sentry.utils.sdk.sentry_sdk.Scope.get_current_scope", return_value=mock_scope):
+        with patch("sentry.utils.sdk.sentry_sdk.get_current_scope", return_value=mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch == {
                 "scope_transaction": "/tricks/{trick_name}/",
@@ -364,10 +365,10 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
 
 class BindOrganizationContextTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with patch_isolation_scope() as mock_scope:
             bind_organization_context(self.org)
 
@@ -382,7 +383,7 @@ class BindOrganizationContextTest(TestCase):
                 }
             }
 
-    def test_adds_values_from_context_helper(self):
+    def test_adds_values_from_context_helper(self) -> None:
         mock_context_helper = MagicMock(
             wraps=lambda scope, organization: scope.set_tag("organization.name", organization.name)
         )
@@ -398,7 +399,7 @@ class BindOrganizationContextTest(TestCase):
                     "organization.name": self.org.name,
                 }
 
-    def test_handles_context_helper_error(self):
+    def test_handles_context_helper_error(self) -> None:
         mock_context_helper = MagicMock(side_effect=Exception)
 
         with patch_isolation_scope() as mock_scope:
@@ -413,15 +414,11 @@ class BindOrganizationContextTest(TestCase):
 
 
 class BindAmbiguousOrgContextTest(TestCase):
-    orgs: list[Organization]
+    def _make_orgs(self, n: int) -> list[Organization]:
+        return [self.create_organization() for _ in range(n)]
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.orgs = [Factories.create_organization() for _ in [None] * 52]
-
-    def test_simple(self):
-        orgs = self.orgs[:3]
+    def test_simple(self) -> None:
+        orgs = self._make_orgs(3)
 
         with patch_isolation_scope() as mock_scope:
             bind_ambiguous_org_context(orgs, "integration id=1231")
@@ -437,8 +434,8 @@ class BindAmbiguousOrgContextTest(TestCase):
                 },
             }
 
-    def test_doesnt_overwrite_org_in_list(self):
-        orgs = self.orgs[:3]
+    def test_doesnt_overwrite_org_in_list(self) -> None:
+        orgs = self._make_orgs(3)
         single_org = orgs[2]
         expected_tags = {
             "organization": single_org.id,
@@ -464,9 +461,8 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert mock_scope._tags == expected_tags
             assert mock_scope._contexts == expected_contexts
 
-    def test_does_overwrite_org_not_in_list(self):
-        orgs = self.orgs[:3]
-        other_org = self.create_organization()
+    def test_does_overwrite_org_not_in_list(self) -> None:
+        other_org, *orgs = self._make_orgs(4)
         assert other_org.slug not in [org.slug for org in orgs]
 
         with patch_isolation_scope() as mock_scope:
@@ -498,12 +494,26 @@ class BindAmbiguousOrgContextTest(TestCase):
                 },
             }
 
-    def test_truncates_list_at_50_entries(self):
-        orgs = self.orgs
+    def test_truncates_list(self) -> None:
+        orgs = self._make_orgs(5)
 
-        with patch_isolation_scope() as mock_scope:
+        with patch.object(sdk, "_AMBIGUOUS_ORG_CUTOFF", 3), patch_isolation_scope() as mock_scope:
             bind_ambiguous_org_context(orgs, "integration id=1231")
 
             slug_list_in_org_context = mock_scope._contexts["organization"]["multiple possible"]
-            assert len(slug_list_in_org_context) == 50
+            assert len(slug_list_in_org_context) == 3
             assert slug_list_in_org_context[-1] == "... (3 more)"
+
+
+def test_before_send_error_level() -> None:
+    event = {
+        "tags": {
+            "silo_mode": "REGION",
+            "sentry_region": "testregion456576",
+        },
+        "level": "error",
+    }
+    hint = {"exc_info": (OperationalError, OperationalError("test"), None)}
+    event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
+    assert event_with_before_send
+    assert event_with_before_send["level"] == "warning"

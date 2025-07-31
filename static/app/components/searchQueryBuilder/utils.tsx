@@ -28,6 +28,7 @@ function getSearchConfigFromKeys(
     dateKeys: new Set<string>(),
     durationKeys: new Set<string>(),
     percentageKeys: new Set<string>(),
+    sizeKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
@@ -55,6 +56,9 @@ function getSearchConfigFromKeys(
       case FieldValueType.DURATION:
         config.durationKeys.add(key);
         break;
+      case FieldValueType.SIZE:
+        config.sizeKeys.add(key);
+        break;
       default:
         break;
     }
@@ -72,6 +76,7 @@ export function parseQueryBuilderValue(
     disallowLogicalOperators?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    filterKeyAliases?: TagCollection;
     getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidMessages?: SearchConfig['invalidMessages'];
   }
@@ -89,7 +94,10 @@ export function parseQueryBuilderValue(
       disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
       invalidMessages: options?.invalidMessages,
-      supportedTags: options?.filterKeys,
+      supportedTags: {
+        ...(options?.filterKeys ? options.filterKeys : {}),
+        ...(options?.filterKeyAliases ? options.filterKeyAliases : {}),
+      },
     })
   );
 }
@@ -204,6 +212,8 @@ export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
       return 'sessions';
     case SavedSearchType.SPAN:
       return 'spans';
+    case SavedSearchType.LOG:
+      return 'logs';
     default:
       return 'none';
   }

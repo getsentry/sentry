@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 type RouteParams = {
@@ -17,7 +18,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function UnsubscribeProject({location}: Props) {
   const signature = decodeScalar(location.query._);
@@ -61,9 +62,11 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   }
   if (isError) {
     return (
-      <Alert type="error">
-        {t('There was an error loading unsubscribe data. Your link may have expired.')}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon={false}>
+          {t('There was an error loading unsubscribe data. Your link may have expired.')}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -90,11 +93,11 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         cancelLabel={t('Cancel')}
         onCancel={() => {
           // Use window.location as we're going to an HTML view
-          window.location.assign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         onSubmitSuccess={() => {
           // Use window.location as we're going to an HTML view
-          window.location.assign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         initialData={{cancel: 1}}
       >

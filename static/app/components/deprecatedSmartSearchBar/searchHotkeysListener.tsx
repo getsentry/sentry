@@ -9,17 +9,15 @@ function SearchHotkeysListener({
   runShortcut: (shortcut: Shortcut) => void;
   visibleShortcuts: Shortcut[];
 }) {
-  useHotkeys(
-    visibleShortcuts
-      .filter(shortcut => typeof shortcut.hotkeys !== 'undefined')
-      .map(shortcut => ({
-        match: shortcut.hotkeys?.actual ?? [],
-        includeInputs: true,
-        callback: () => runShortcut(shortcut),
-      })),
-    [visibleShortcuts]
-  );
+  const hotkeys = visibleShortcuts
+    .filter(shortcut => typeof shortcut.hotkeys !== 'undefined')
+    .map(shortcut => ({
+      match: shortcut.hotkeys?.actual ?? [],
+      includeInputs: true,
+      callback: () => runShortcut(shortcut),
+    }));
 
+  useHotkeys(hotkeys);
   return null;
 }
 

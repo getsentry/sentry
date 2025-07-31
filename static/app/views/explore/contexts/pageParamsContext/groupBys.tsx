@@ -6,7 +6,7 @@ import {decodeList} from 'sentry/utils/queryString';
 export const UNGROUPED = '';
 
 export function defaultGroupBys(): string[] {
-  return ['span.op'];
+  return [''];
 }
 
 export function getGroupBysFromLocation(location: Location): string[] {
@@ -24,15 +24,4 @@ export function getGroupBysFromLocation(location: Location): string[] {
   }
 
   return defaultGroupBys();
-}
-
-export function updateLocationWithGroupBys(
-  location: Location,
-  groupBys: string[] | null | undefined
-) {
-  if (defined(groupBys)) {
-    location.query.groupBy = groupBys;
-  } else if (groupBys === null) {
-    delete location.query.groupBy;
-  }
 }

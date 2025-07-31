@@ -9,12 +9,17 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {Overlay} from 'sentry/components/overlay';
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_MOBILE_HEIGHT,
+} from 'sentry/components/sidebar/constants';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -41,7 +46,7 @@ function SidebarAccordion({
   const {expandedItemId, setExpandedItemId, shouldAccordionFloat} =
     useContext(ExpandedContext);
   const theme = useTheme();
-  const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const navigate = useNavigate();
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
@@ -66,7 +71,7 @@ function SidebarAccordion({
 
   const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
-      return isItemActive(child.props);
+      return isItemActive(child.props as SidebarItemProps);
     }
 
     return false;
@@ -139,7 +144,11 @@ function SidebarAccordion({
                 aria-label={expanded ? t('Collapse') : t('Expand')}
                 sidebarCollapsed={sidebarCollapsed}
               >
-                <Chevron direction={expanded ? 'up' : 'down'} role="presentation" />
+                <IconChevron
+                  direction={expanded ? 'up' : 'down'}
+                  role="presentation"
+                  size="sm"
+                />
               </SidebarAccordionExpandButton>
             }
           />
@@ -213,8 +222,8 @@ function findChildElementsInTree(
       return;
     }
 
-    if (child?.props?.children) {
-      findChildElementsInTree(child.props.children, componentName, found);
+    if ((child?.props as any)?.children) {
+      findChildElementsInTree((child.props as any).children, componentName, found);
       return;
     }
 
@@ -225,7 +234,7 @@ function findChildElementsInTree(
 }
 
 const StyledOverlay = styled(Overlay)<{
-  accordionRef: React.RefObject<HTMLDivElement>;
+  accordionRef: React.RefObject<HTMLDivElement | null>;
   horizontal: boolean;
 }>`
   position: absolute;
@@ -233,10 +242,9 @@ const StyledOverlay = styled(Overlay)<{
   padding: ${space(0.5)};
   top: ${p =>
     p.horizontal
-      ? p.theme.sidebar.mobileHeight
+      ? SIDEBAR_MOBILE_HEIGHT
       : p.accordionRef.current?.getBoundingClientRect().top};
-  left: ${p =>
-    p.horizontal ? 0 : `calc(${p.theme.sidebar.collapsedWidth} + ${space(1)})`};
+  left: ${p => (p.horizontal ? 0 : `calc(${SIDEBAR_COLLAPSED_WIDTH} + ${space(1)})`)};
 `;
 
 const SidebarAccordionWrapper = styled('div')`
@@ -244,7 +252,7 @@ const SidebarAccordionWrapper = styled('div')`
   flex-direction: column;
   gap: 1px;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row;
   }
 `;
@@ -268,11 +276,11 @@ const SidebarAccordionExpandButton = styled(Button)<{sidebarCollapsed?: boolean}
   &:hover,
   a:hover &,
   a[active] & {
-    color: ${p => p.theme.white};
+    color: ${p => (isChonkTheme(p.theme) ? p.theme.colors.blue400 : p.theme.white)};
   }
 
   ${p => p.sidebarCollapsed && `display: none;`}
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;

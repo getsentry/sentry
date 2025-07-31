@@ -1,3 +1,5 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import startCase from 'lodash/startCase';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
@@ -9,9 +11,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
@@ -19,53 +19,32 @@ type Props = {
   project: Project;
 };
 
-const STAT_OPS = {
-  'browser-extensions': theme.gray200,
-  cors: theme.yellow300,
-  'error-message': theme.purple300,
-  'discarded-hash': theme.gray200,
-  'invalid-csp': theme.blue300,
-  'ip-address': theme.red200,
-  'legacy-browsers': theme.gray200,
-  localhost: theme.blue300,
-  'release-version': theme.purple200,
-  'web-crawlers': theme.red300,
-  'filtered-transaction': theme.yellow400,
-  'react-hydration-errors': theme.outcome.filtered,
-  'chunk-load-error': theme.outcome.filtered,
-};
-
-function formatData(rawData: UsageSeries | undefined) {
-  if (!rawData || !rawData.groups?.length) {
+function formatData(rawData: UsageSeries | undefined, theme: Theme) {
+  if (!rawData?.groups?.length) {
     return [];
   }
 
-  const formattedData = rawData.groups
-    .map(group => {
-      const reason = group.by.reason;
+  const fallbackColor = theme.gray200;
+  const statOpsColors = theme.chart.getColorPalette(rawData.groups.length);
 
-      if (!defined(reason)) {
-        return undefined;
-      }
-
-      return {
-        seriesName: startCase(String(reason)),
-        color: STAT_OPS[reason as keyof typeof STAT_OPS] ?? theme.gray200,
-        data: rawData.intervals
-          .map((interval, index) => ({
-            name: interval,
-            value: group.series['sum(quantity)']![index]!,
-          }))
-          .filter(dataPoint => !!dataPoint.value),
-      };
-    })
-    .filter(defined);
+  const formattedData = rawData.groups.map((group, index) => {
+    const reason = String(group.by.reason!);
+    return {
+      seriesName: startCase(reason),
+      color: statOpsColors[index] ?? fallbackColor,
+      data: rawData.intervals.map((interval, i) => ({
+        name: interval,
+        value: group.series['sum(quantity)']![i]!,
+      })),
+    };
+  });
 
   return formattedData;
 }
 
 export function ProjectFiltersChart({project}: Props) {
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
     [
@@ -87,7 +66,7 @@ export function ProjectFiltersChart({project}: Props) {
     }
   );
 
-  const formattedData = formatData(data);
+  const formattedData = formatData(data, theme);
   const hasLoaded = !isPending && !isError;
   const colors = formattedData.map(series => series.color);
   const blankStats = !formattedData.length;
@@ -107,6 +86,8 @@ export function ProjectFiltersChart({project}: Props) {
             isGroupedByDate
             stacked
             labelYAxisExtents
+            hideZeros
+            showXAxisLine
           />
         )}
         {hasLoaded && blankStats && (
@@ -121,5 +102,3 @@ export function ProjectFiltersChart({project}: Props) {
     </Panel>
   );
 }
-
-export default ProjectFiltersChart;

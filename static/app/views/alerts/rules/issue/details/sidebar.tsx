@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import PanelBody from 'sentry/components/panels/panelBody';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -31,7 +30,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
   );
 
   return (
-    <PanelBody>
+    <ConditionsContainer>
       <Step>
         <StepContainer>
           <ChevronContainer>
@@ -103,7 +102,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
           </div>
         </StepContainer>
       </Step>
-    </PanelBody>
+    </ConditionsContainer>
   );
 }
 
@@ -114,84 +113,66 @@ function Sidebar({rule, teams, projectSlug}: Props) {
   return (
     <Fragment>
       <StatusContainer>
-        <HeaderItem>
-          <Heading noMargin>{t('Last Triggered')}</Heading>
-          <Status>
-            {rule.lastTriggered ? (
-              <TimeSince date={rule.lastTriggered} />
-            ) : (
-              t('No alerts triggered')
-            )}
-          </Status>
-        </HeaderItem>
+        <SectionHeading>{t('Last Triggered')}</SectionHeading>
+        <Status>
+          {rule.lastTriggered ? (
+            <TimeSince date={rule.lastTriggered} />
+          ) : (
+            t('No alerts triggered')
+          )}
+        </Status>
       </StatusContainer>
-      <SidebarGroup>
-        <Heading noMargin>{t('Alert Conditions')}</Heading>
-        <Conditions rule={rule} teams={teams} projectSlug={projectSlug} />
-      </SidebarGroup>
-      <SidebarGroup>
-        <Heading>{t('Alert Rule Details')}</Heading>
-        <KeyValueTable>
+      <SectionHeading>{t('Alert Conditions')}</SectionHeading>
+      <Conditions rule={rule} teams={teams} projectSlug={projectSlug} />
+      <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
+      <KeyValueTable>
+        <KeyValueTableRow
+          keyName={t('Environment')}
+          value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
+        />
+        {rule.dateCreated && (
           <KeyValueTableRow
-            keyName={t('Environment')}
-            value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
+            keyName={t('Date created')}
+            value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
           />
-          {rule.dateCreated && (
-            <KeyValueTableRow
-              keyName={t('Date created')}
-              value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
-            />
-          )}
-          {rule.createdBy && (
-            <KeyValueTableRow
-              keyName={t('Created by')}
-              value={
-                <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
-              }
-            />
-          )}
+        )}
+        {rule.createdBy && (
           <KeyValueTableRow
-            keyName={t('Team')}
-            value={
-              teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
-            }
+            keyName={t('Created by')}
+            value={<OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>}
           />
-        </KeyValueTable>
-      </SidebarGroup>
+        )}
+        <KeyValueTableRow
+          keyName={t('Team')}
+          value={
+            teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
+          }
+        />
+      </KeyValueTable>
     </Fragment>
   );
 }
 
 export default Sidebar;
 
-const SidebarGroup = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
-const HeaderItem = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-
-  > *:nth-child(2) {
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-`;
-
 const Status = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto auto auto;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const StatusContainer = styled('div')`
-  height: 60px;
-  display: flex;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${space(2)};
+
+  h4 {
+    margin-top: 0;
+  }
+`;
+
+const ConditionsContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const Step = styled('div')`
@@ -222,8 +203,8 @@ const StepContent = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const ChevronContainer = styled('div')`
@@ -240,8 +221,8 @@ const Badge = styled('span')`
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: 1.5;
 `;
 
@@ -251,15 +232,10 @@ const ConditionsBadge = styled('span')`
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(1)};
   width: fit-content;
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;
-
-const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
-  margin-top: ${p => (p.noMargin ? 0 : space(2))};
-  margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const OverflowTableValue = styled('div')`

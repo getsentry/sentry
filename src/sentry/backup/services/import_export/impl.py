@@ -3,15 +3,19 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+import ast
 import logging
 import traceback
 
 import sentry_sdk
+from django.apps import apps
+from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
 from django.db import DatabaseError, IntegrityError, connections, models, router, transaction
 from django.db.models import Q
+from django.db.models.fields.json import JSONField
 from django.forms import model_to_dict
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
@@ -51,6 +55,7 @@ from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRoleUser
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +91,49 @@ def get_existing_import_chunk(
         min_inserted_pk=found_data["min_inserted_pk"],
         max_inserted_pk=found_data["max_inserted_pk"],
     )
+
+
+def fixup_array_fields[T: (str, str | bytes)](json_data: T) -> T:
+    # preserve for 3 versions as per https://docs.sentry.io/concepts/migration/#version-support-window
+    # so probably 2025.09 this can go away?
+    try:
+        contents = json.loads(json_data)
+    except Exception:  # let the actual import/export produce a better message
+        return json_data
+
+    for dct in contents:
+        model = apps.get_model(dct["model"])
+        for k, v in dct["fields"].items():
+            if isinstance(model._meta.get_field(k), ArrayField) and isinstance(v, str):
+                try:
+                    json.loads(v)
+                except Exception:
+                    # old ArrayField: value was not properly encoded as json
+                    dct["fields"][k] = json.dumps(ast.literal_eval(v))
+                else:
+                    pass
+    return json.dumps(contents)
+
+
+def fixup_json_fields[T: (str, str | bytes)](json_data: T) -> T:
+    # preserve for 3 versions as per https://docs.sentry.io/concepts/migration/#version-support-window
+    # so probably 2025.11 this can go away?
+    try:
+        contents = json.loads(json_data)
+    except Exception:  # let the actual import/export produce a better message
+        return json_data
+
+    for dct in contents:
+        model = apps.get_model(dct["model"])
+        for k, v in dct["fields"].items():
+            if isinstance(model._meta.get_field(k), JSONField) and isinstance(v, str):
+                try:
+                    # old PickledObjectField / JSONField is serialized to a string
+                    dct["fields"][k] = json.loads(v)
+                except ValueError:
+                    pass  # new JSONField already represents data directly rather than encoding
+
+    return json.dumps(contents)
 
 
 class UniversalImportExportService(ImportExportService):
@@ -208,7 +256,13 @@ class UniversalImportExportService(ImportExportService):
                 min_inserted_pk: int | None = None
                 max_inserted_pk: int | None = None
                 last_seen_ordinal = min_ordinal - 1
-                for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
+
+                json_data = fixup_array_fields(json_data)
+                json_data = fixup_json_fields(json_data)
+
+                for deserialized_object in deserialize(
+                    "json", json_data, use_natural_keys=False, ignorenonexistent=True
+                ):
                     model_instance = deserialized_object.object
                     inst_model_name = get_model_name(model_instance)
 
@@ -365,12 +419,16 @@ class UniversalImportExportService(ImportExportService):
                     max_inserted_pk=max_inserted_pk,
                 )
 
-        except DeserializationError:
+        except DeserializationError as err:
             sentry_sdk.capture_exception()
+            reason = str(err) or "No additional information"
+            if err.__cause__:
+                reason += f", {err.__cause__}"
+
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
                 on=InstanceID(import_model_name),
-                reason="The submitted JSON could not be deserialized into Django model instances",
+                reason=f"The submitted JSON could not be deserialized into Django model instances. {reason}",
             )
 
         except DatabaseError as e:

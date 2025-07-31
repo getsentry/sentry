@@ -1,8 +1,8 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -26,23 +26,20 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {
-  useMetrics,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
+import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
-const {CACHE_ITEM_SIZE} = SpanMetricsField;
+const {CACHE_ITEM_SIZE} = SpanFields;
 
 const SDK_UPDATE_ALERT = (
   <Fragment>
@@ -63,7 +60,7 @@ export function CacheLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   useSamplesDrawer({
@@ -72,11 +69,7 @@ export function CacheLandingPage() {
     requiredParams: ['transaction'],
   });
 
-  const {
-    isPending: isCacheMissRateLoading,
-    data: cacheMissRateData,
-    error: cacheMissRateError,
-  } = useSpanMetricsSeries(
+  const {error: cacheMissRateError} = useSpanSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
@@ -86,35 +79,21 @@ export function CacheLandingPage() {
   );
 
   const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      yAxis: ['spm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_THROUGHPUT_CHART
-  );
-
-  const {
     isFetching: isTransactionsListFetching,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
       fields: [
         'project',
         'project.id',
         'transaction',
-        'spm()',
+        'epm()',
         `${CACHE_MISS_RATE}()`,
         'sum(span.self_time)',
-        'time_spent_percentage()',
         `avg(${CACHE_ITEM_SIZE})`,
       ],
       sorts: [sort],
@@ -124,15 +103,17 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_LIST
   );
 
+  const search = `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}] AND is_transaction:true`;
+
   const {
     data: transactionDurationData,
     error: transactionDurationError,
     meta: transactionDurationMeta,
     isFetching: isTransactionDurationFetching,
-  } = useMetrics(
+  } = useSpans(
     {
-      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`,
-      fields: [`avg(transaction.duration)`, 'transaction'],
+      search,
+      fields: ['avg(span.duration)', 'transaction'],
       enabled: !isTransactionsListFetching && transactionsList.length > 0,
       noPagination: true,
     },
@@ -143,6 +124,7 @@ export function CacheLandingPage() {
   const hasData = useHasFirstSpan(ModuleName.CACHE);
 
   useEffect(() => {
+    // TODO: EAP does not use an indexer, so these metrics indexer errors are not possible. When EAP is fully rolled out, remove this check.
     const hasMissingDataError =
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
@@ -170,12 +152,11 @@ export function CacheLandingPage() {
   const transactionsListWithDuration =
     transactionsList?.map(transaction => ({
       ...transaction,
-      'avg(transaction.duration)':
-        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)']!,
+      'avg(span.duration)':
+        transactionDurationsMap[transaction.transaction]?.['avg(span.duration)']!,
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
-
   addCustomMeta(meta);
 
   return (
@@ -192,20 +173,10 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={DataTitles[`cache_miss_rate()`]}
-                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
-                    isLoading={isCacheMissRateLoading}
-                    error={cacheMissRateError}
-                  />
+                  <CacheMissRateChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('cache.get_item')}
-                    series={[throughputData['spm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <CacheThroughputChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <TransactionsTable
@@ -240,35 +211,21 @@ function PageWithProviders() {
 
 export default PageWithProviders;
 
-const combineMeta = (
-  meta1?: EventsMetaType,
-  meta2?: EventsMetaType
-): EventsMetaType | undefined => {
-  if (!meta1 && !meta2) {
-    return undefined;
-  }
-  if (!meta1) {
-    return meta2;
-  }
-  if (!meta2) {
-    return meta1;
-  }
-  return {
-    fields: {...meta1.fields, ...meta2.fields},
-    units: {...meta1.units, ...meta2.units},
-  };
-};
-
-// TODO - this should come from the backend
+// TODO - this won't be needed once we migrate to EAP
 const addCustomMeta = (meta?: EventsMetaType) => {
   if (meta?.fields) {
     meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
+    meta.fields[`avg(span.duration)`] = 'duration';
     meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
+  }
+
+  if (meta?.units) {
+    meta.units[`avg(span.duration)`] = 'millisecond';
   }
 };
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 

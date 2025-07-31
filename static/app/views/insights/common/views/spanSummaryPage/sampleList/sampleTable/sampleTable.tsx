@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -11,19 +11,21 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
 import type {
   ModuleName,
-  SpanMetricsQueryFilters,
+  SpanQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
 const SpanSamplesTableContainer = styled('div')``;
 
@@ -31,7 +33,7 @@ type Props = {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: NonDefaultSpanSampleFields[];
   additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
@@ -59,7 +61,7 @@ function SampleTable({
   additionalFilters,
   subregions,
 }: Props) {
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
   };
@@ -74,10 +76,10 @@ function SampleTable({
 
   if (subregions) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+    filters[SpanFields.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
+  const {data, isFetching: isFetchingSpanMetrics} = useSpans(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
@@ -95,9 +97,9 @@ function SampleTable({
   const {setPageError} = usePageAlert();
 
   const {
-    data: spans,
+    data: spanSamplesData,
     isFetching: isFetchingSamples,
-    isEnabled: isSamplesEnabled,
+    isPending: isPendingSamples,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -110,14 +112,26 @@ function SampleTable({
     additionalFields,
   });
 
+  const spans = spanSamplesData?.data ?? [];
+
+  const transactionIdField = 'transaction.span_id';
+  const transactionIds = spans.map(span => span[transactionIdField]);
+
+  const isTransactionsEnabled = Boolean(transactionIds.length);
+
+  const search = `${SpanFields.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`;
+
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
-    isEnabled: isTransactionsEnabled,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useTransactions(
-    spans.map(span => span['transaction.id']),
+  } = useSpans(
+    {
+      search,
+      enabled: isTransactionsEnabled,
+      fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
+    },
     'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
@@ -151,7 +165,7 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
-    !isSamplesEnabled ||
+    isPendingSamples ||
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
@@ -176,7 +190,7 @@ function SampleTable({
               ...sample,
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               op: spanMetrics[SPAN_OP]!,
-              transaction: transactionsById[sample['transaction.id']]!,
+              transaction: transactionsById[sample['transaction.span_id']]!,
             };
           })}
           isLoading={isLoading}

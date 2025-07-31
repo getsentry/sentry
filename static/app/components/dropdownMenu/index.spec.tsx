@@ -1,7 +1,12 @@
 import {Fragment} from 'react';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
@@ -133,6 +138,7 @@ describe('DropdownMenu', function () {
 
   it('renders submenus', async function () {
     const onAction = jest.fn();
+    const onOpenChange = jest.fn();
 
     render(
       <DropdownMenu
@@ -155,10 +161,12 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
+        onOpenChange={onOpenChange}
       />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
 
     // Sub item won't be visible until we hover over its parent
     expect(
@@ -191,6 +199,7 @@ describe('DropdownMenu', function () {
     expect(onAction).toHaveBeenCalled();
 
     // Entire menu system is closed
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -198,9 +207,11 @@ describe('DropdownMenu', function () {
 
     // Pressing Esc closes the entire menu system
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    expect(onOpenChange).toHaveBeenCalledTimes(3);
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
     await userEvent.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenCalledTimes(4);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -208,9 +219,11 @@ describe('DropdownMenu', function () {
 
     // Clicking outside closes the entire menu system
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    expect(onOpenChange).toHaveBeenCalledTimes(5);
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
     await userEvent.click(document.body);
+    expect(onOpenChange).toHaveBeenCalledTimes(6);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -266,34 +279,42 @@ describe('DropdownMenu', function () {
     });
   });
 
+  it('closes after clicking external link', async function () {
+    render(
+      <DropdownMenu
+        items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    await waitForElementToBeRemoved(screen.queryByRole('menuitemradio'));
+  });
+
   it('navigates to link on enter', async function () {
     const onAction = jest.fn();
-    const router = RouterFixture();
-    render(
+    const {router} = render(
       <DropdownMenu
         items={[
           {key: 'item1', label: 'Item One', to: '/test'},
           {key: 'item2', label: 'Item Two', to: '/test2', onAction},
         ]}
         triggerLabel="Menu"
-      />,
-      {router}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{Enter}');
     await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({pathname: '/test2'})
-      );
+      expect(router.location.pathname).toBe('/test2');
     });
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
   it('navigates to link on meta key', async function () {
     const onAction = jest.fn();
-    const router = RouterFixture();
     const user = userEvent.setup();
 
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -305,8 +326,7 @@ describe('DropdownMenu', function () {
           {key: 'item2', label: 'Item Two', to: '/test2', onAction},
         ]}
         triggerLabel="Menu"
-      />,
-      {router}
+      />
     );
 
     await user.click(screen.getByRole('button', {name: 'Menu'}));
@@ -320,5 +340,59 @@ describe('DropdownMenu', function () {
     expect(errorSpy).toHaveBeenCalledTimes(1);
 
     errorSpy.mockRestore();
+  });
+
+  it('navigates to external link enter', async function () {
+    const onAction = jest.fn();
+    const user = userEvent.setup();
+
+    render(
+      <DropdownMenu
+        items={[
+          {key: 'item1', label: 'Item One', externalHref: 'https://example.com/foo'},
+          {
+            key: 'item2',
+            label: 'Item Two',
+            externalHref: 'https://example.com/bar',
+            onAction,
+          },
+        ]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('{Enter}');
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('should allow opening of a nearby menu', async function () {
+    // render two menus
+    render(
+      <Fragment>
+        <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
+        <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
+      </Fragment>
+    );
+
+    // Open menu A
+    await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
+
+    // Open menu B
+    await userEvent.click(screen.getByRole('button', {name: 'Menu B'}));
+
+    // Menu B should be open
+    const menuB = await screen.findByRole('menuitemradio', {name: 'Item Two'});
+    expect(menuB).toBeInTheDocument();
+    await waitFor(() => {
+      expect(menuB).toHaveFocus();
+    });
+
+    // Menu A should be closed
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Item One'})
+    ).not.toBeInTheDocument();
   });
 });

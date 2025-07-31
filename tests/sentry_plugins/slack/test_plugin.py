@@ -5,7 +5,7 @@ import orjson
 import pytest
 import responses
 
-from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.shared_integrations.exceptions import ApiError
@@ -13,16 +13,14 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.slack.plugin import SlackPlugin
 
 
+def test_conf_key() -> None:
+    assert SlackPlugin().conf_key == "slack"
+
+
 class SlackPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SlackPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "slack"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("slack", self.plugin)
 
     @responses.activate
     def test_simple_notification(self):

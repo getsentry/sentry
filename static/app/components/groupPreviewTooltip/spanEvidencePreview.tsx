@@ -51,7 +51,7 @@ function SpanEvidencePreviewBody({
   if (isPending) {
     return (
       <EmptyWrapper>
-        <LoadingIndicator hideMessage size={32} />
+        <LoadingIndicator size={32} />
       </EmptyWrapper>
     );
   }
@@ -104,7 +104,7 @@ export function SpanEvidencePreview({
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.subText};
   padding: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   align-items: center;
   justify-content: center;

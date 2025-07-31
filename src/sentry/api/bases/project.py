@@ -4,9 +4,11 @@ import http
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -41,7 +43,7 @@ class ProjectPermission(OrganizationPermission):
         "DELETE": ["project:admin"],
     }
 
-    def has_object_permission(self, request: Request, view, project):
+    def has_object_permission(self, request: Request, view: APIView, project: Project) -> bool:  # type: ignore[override]  # XXX: inheritance-for-convenience
         has_org_scope = super().has_object_permission(request, view, project.organization)
 
         # If allow_joinleave is False, some org-roles will not have project:read for all projects
@@ -182,7 +184,7 @@ class ProjectEndpoint(Endpoint):
 
         self.check_object_permissions(request, project)
 
-        Scope.get_isolation_scope().set_tag("project", project.id)
+        sentry_sdk.get_isolation_scope().set_tag("project", project.id)
 
         bind_organization_context(project.organization)
 

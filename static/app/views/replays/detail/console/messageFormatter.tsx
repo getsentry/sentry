@@ -54,9 +54,7 @@ export default function MessageFormatter({frame, expandPaths, onExpand}: Props) 
     // creating a new Error instance, otherwise the type will repeat.
     const errorMessageSplit = errorMessagePiece.split('Error: ');
     // Restitch together in case there were other `Error: ` strings in the message
-    const errorMessage = errorMessageSplit
-      .splice(errorMessageSplit.length - 1)
-      .join('Error: ');
+    const errorMessage = errorMessageSplit.splice(-1).join('Error: ');
     const fakeError = new Error(errorMessage);
 
     try {

@@ -49,10 +49,14 @@ export class RangeMap<T> {
     this.ranges = sortedRanges;
   }
 
-  get(value: number) {
+  getRange(value: number): Range<T> | undefined {
     return this.ranges.find(r => {
       return value >= r.min && value < r.max;
-    })?.value;
+    });
+  }
+
+  get(value: number): T | undefined {
+    return this.getRange(value)?.value;
   }
 
   get min() {

@@ -1,10 +1,18 @@
+from __future__ import annotations
+
 import abc
 import logging
+from typing import TYPE_CHECKING, Any
 
-from sentry.pipeline import PipelineProvider
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.pipeline.provider import PipelineProvider
+from sentry.users.models.identity import Identity
+
+if TYPE_CHECKING:
+    from sentry.identity.pipeline import IdentityPipeline  # noqa: F401
 
 
-class Provider(PipelineProvider, abc.ABC):
+class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     """
     A provider indicates how identity authenticate should happen for a given service.
     """
@@ -50,7 +58,7 @@ class Provider(PipelineProvider, abc.ABC):
         """
         return new_data
 
-    def refresh_identity(self, auth_identity, *args, **kwargs):
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         """
         Updates the AuthIdentity with any changes from upstream. The primary
         example of a change would be signalling this identity is no longer

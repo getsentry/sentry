@@ -28,3 +28,50 @@ export interface UptimeRule {
   uptimeStatus: UptimeMonitorStatus;
   url: string;
 }
+
+export interface UptimeCheck {
+  checkStatus: CheckStatus;
+  checkStatusReason: CheckStatusReason | null;
+  durationMs: number;
+  environment: string;
+  httpStatusCode: number | null;
+  projectUptimeSubscriptionId: number;
+  region: string;
+  regionName: string;
+  scheduledCheckTime: string;
+  timestamp: string;
+  traceId: string;
+  uptimeCheckId: string;
+}
+
+export interface UptimeSummary {
+  downtimeChecks: number;
+  failedChecks: number;
+  missedWindowChecks: number;
+  totalChecks: number;
+}
+
+export enum CheckStatusReason {
+  FAILURE = 'failure',
+  TIMEOUT = 'timeout',
+  DNS_ERROR = 'dns_error',
+  TLS_ERROR = 'tls_error',
+  CONNECTION_ERROR = 'connection_error',
+  REDIRECT_ERROR = 'redirect_error',
+}
+
+export enum CheckStatus {
+  SUCCESS = 'success',
+  FAILURE = 'failure',
+  FAILURE_INCIDENT = 'failure_incident',
+  MISSED_WINDOW = 'missed_window',
+}
+
+type StatsBucket = {
+  [CheckStatus.SUCCESS]: number;
+  [CheckStatus.FAILURE]: number;
+  [CheckStatus.FAILURE_INCIDENT]: number;
+  [CheckStatus.MISSED_WINDOW]: number;
+};
+
+export type CheckStatusBucket = [timestamp: number, stats: StatsBucket];

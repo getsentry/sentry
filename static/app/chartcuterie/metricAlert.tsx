@@ -1,35 +1,19 @@
+import type {Theme} from '@emotion/react';
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricChartData} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 import {
   getMetricAlertChartOption,
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
-
-const metricAlertXaxis = XAxis({
-  theme,
-  splitNumber: 3,
-  isGroupedByDate: true,
-  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
-});
-const metricAlertYaxis: YAXisComponentOption = {
-  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
-  splitLine: {
-    lineStyle: {
-      color: theme.chartLineColor,
-      opacity: 0.3,
-    },
-  },
-};
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   return series.map(({seriesName, data, ...otherSeriesProps}) => {
@@ -58,61 +42,85 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   });
 }
 
-export const metricAlertCharts: Array<RenderDescriptor<ChartType>> = [];
+export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<ChartType>> {
+  const slackChartDefaults = makeSlackChartDefaults(theme);
+  const metricAlertCharts: Array<RenderDescriptor<ChartType>> = [];
 
-metricAlertCharts.push({
-  key: ChartType.SLACK_METRIC_ALERT_EVENTS,
-  getOption: (data: MetricChartData) => {
-    const {chartOption} = getMetricAlertChartOption(data);
-
-    return {
-      ...chartOption,
-      backgroundColor: theme.background,
-      series: transformAreaSeries(chartOption.series),
-      xAxis: metricAlertXaxis,
-      yAxis: {
-        ...chartOption.yAxis,
-        ...metricAlertYaxis,
-        axisLabel: {
-          ...chartOption.yAxis!.axisLabel,
-          ...metricAlertYaxis.axisLabel,
-        },
+  const metricAlertXaxis = XAxis({
+    theme,
+    splitNumber: 3,
+    isGroupedByDate: true,
+    axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+  });
+  const metricAlertYaxis: YAXisComponentOption = {
+    axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+    splitLine: {
+      lineStyle: {
+        color: theme.chartLineColor,
+        opacity: 0.3,
       },
-      grid: slackChartDefaults.grid,
-    };
-  },
-  ...slackChartSize,
-});
+    },
+  };
 
-interface MetricAlertSessionData extends Omit<MetricChartData, 'timeseriesData'> {
-  sessionResponse: SessionApiResponse;
+  metricAlertCharts.push({
+    key: ChartType.SLACK_METRIC_ALERT_EVENTS,
+    getOption: (data: MetricChartData) => {
+      const {chartOption} = getMetricAlertChartOption(data, theme);
+
+      return {
+        ...chartOption,
+        backgroundColor: theme.background,
+        series: transformAreaSeries(chartOption.series),
+        xAxis: metricAlertXaxis,
+        yAxis: {
+          ...chartOption.yAxis,
+          ...metricAlertYaxis,
+          axisLabel: {
+            ...chartOption.yAxis!.axisLabel,
+            ...metricAlertYaxis.axisLabel,
+          },
+        },
+        grid: slackChartDefaults.grid,
+      };
+    },
+    ...slackChartSize,
+  });
+
+  interface MetricAlertSessionData extends Omit<MetricChartData, 'timeseriesData'> {
+    sessionResponse: SessionApiResponse;
+  }
+
+  metricAlertCharts.push({
+    key: ChartType.SLACK_METRIC_ALERT_SESSIONS,
+    getOption: (data: MetricAlertSessionData) => {
+      const {sessionResponse, rule, ...rest} = data;
+      const {chartOption} = getMetricAlertChartOption(
+        {
+          ...rest,
+          rule,
+          timeseriesData: transformSessionResponseToSeries(sessionResponse, rule),
+        },
+        theme
+      );
+
+      return {
+        ...chartOption,
+        backgroundColor: theme.background,
+        series: transformAreaSeries(chartOption.series),
+        xAxis: metricAlertXaxis,
+        yAxis: {
+          ...chartOption.yAxis,
+          ...metricAlertYaxis,
+          axisLabel: {
+            ...chartOption.yAxis!.axisLabel,
+            ...metricAlertYaxis.axisLabel,
+          },
+        },
+        grid: slackChartDefaults.grid,
+      };
+    },
+    ...slackChartSize,
+  });
+
+  return metricAlertCharts;
 }
-
-metricAlertCharts.push({
-  key: ChartType.SLACK_METRIC_ALERT_SESSIONS,
-  getOption: (data: MetricAlertSessionData) => {
-    const {sessionResponse, rule, ...rest} = data;
-    const {chartOption} = getMetricAlertChartOption({
-      ...rest,
-      rule,
-      timeseriesData: transformSessionResponseToSeries(sessionResponse, rule),
-    });
-
-    return {
-      ...chartOption,
-      backgroundColor: theme.background,
-      series: transformAreaSeries(chartOption.series),
-      xAxis: metricAlertXaxis,
-      yAxis: {
-        ...chartOption.yAxis,
-        ...metricAlertYaxis,
-        axisLabel: {
-          ...chartOption.yAxis!.axisLabel,
-          ...metricAlertYaxis.axisLabel,
-        },
-      },
-      grid: slackChartDefaults.grid,
-    };
-  },
-  ...slackChartSize,
-});

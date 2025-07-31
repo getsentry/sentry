@@ -68,8 +68,8 @@ class GroupMergedView extends Component<Props, State> {
       this.setState({
         mergedItems,
         mergedLinks,
-        loading: typeof loading !== 'undefined' ? loading : false,
-        error: typeof error !== 'undefined' ? error : false,
+        loading: typeof loading === 'undefined' ? false : loading,
+        error: typeof error === 'undefined' ? false : error,
       });
     }
   };
@@ -174,7 +174,7 @@ class GroupMergedView extends Component<Props, State> {
 export default withOrganization(GroupMergedView);
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(0.75)};
 `;
 

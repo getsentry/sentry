@@ -40,7 +40,7 @@ function datetimeHasSameValue(
   return true;
 }
 
-interface PageFiltersState {
+export interface PageFiltersState {
   /**
    * The set of page filters which have been pinned but do not match the current
    * URL state.

@@ -18,7 +18,7 @@ pytestmark = requires_snuba
 
 
 class GroupAssigneeTestCase(TestCase):
-    def test_constraints(self):
+    def test_constraints(self) -> None:
         # Can't both be assigned
         with pytest.raises(AssertionError):
             GroupAssignee.objects.create(
@@ -31,7 +31,7 @@ class GroupAssigneeTestCase(TestCase):
                 group=self.group, project=self.group.project, user_id=None, team=None
             )
 
-    def test_assign_user(self):
+    def test_assign_user(self) -> None:
         GroupAssignee.objects.assign(self.group, self.user)
 
         assert GroupAssignee.objects.filter(
@@ -44,9 +44,10 @@ class GroupAssigneeTestCase(TestCase):
 
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
-    def test_assign_team(self):
+    def test_assign_team(self) -> None:
         GroupAssignee.objects.assign(self.group, self.team)
 
         assert GroupAssignee.objects.filter(
@@ -59,9 +60,10 @@ class GroupAssigneeTestCase(TestCase):
 
         assert activity.data["assignee"] == str(self.team.id)
         assert activity.data["assigneeEmail"] is None
+        assert activity.data["assigneeName"] == self.team.name
         assert activity.data["assigneeType"] == "team"
 
-    def test_create_only(self):
+    def test_create_only(self) -> None:
         result = GroupAssignee.objects.assign(self.group, self.user)
         assert result == {"new_assignment": True, "updated_assignment": False}
 
@@ -73,6 +75,7 @@ class GroupAssigneeTestCase(TestCase):
         )
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
         other_user = self.create_user()
@@ -88,9 +91,10 @@ class GroupAssigneeTestCase(TestCase):
         )
         assert activity.data["assignee"] == str(self.user.id)
         assert activity.data["assigneeEmail"] == self.user.email
+        assert activity.data["assigneeName"] == self.user.name
         assert activity.data["assigneeType"] == "user"
 
-    def test_reassign_user_to_team(self):
+    def test_reassign_user_to_team(self) -> None:
         GroupAssignee.objects.assign(self.group, self.user)
 
         assert GroupAssignee.objects.filter(
@@ -111,14 +115,18 @@ class GroupAssigneeTestCase(TestCase):
 
         assert activity[0].data["assignee"] == str(self.user.id)
         assert activity[0].data["assigneeEmail"] == self.user.email
+        assert activity[0].data["assigneeName"] == self.user.name
         assert activity[0].data["assigneeType"] == "user"
 
         assert activity[1].data["assignee"] == str(self.team.id)
         assert activity[1].data["assigneeEmail"] is None
+        assert activity[1].data["assigneeName"] == self.team.name
         assert activity[1].data["assigneeType"] == "team"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
-    def test_assignee_sync_outbound_assign(self, mock_sync_assignee_outbound):
+    def test_assignee_sync_outbound_assign(
+        self, mock_sync_assignee_outbound: mock.MagicMock
+    ) -> None:
         group = self.group
         integration = self.create_integration(
             organization=group.organization,
@@ -174,6 +182,7 @@ class GroupAssigneeTestCase(TestCase):
 
                 assert activity.data["assignee"] == str(self.user.id)
                 assert activity.data["assigneeEmail"] == self.user.email
+                assert activity.data["assigneeName"] == self.user.name
                 assert activity.data["assigneeType"] == "user"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -233,10 +242,13 @@ class GroupAssigneeTestCase(TestCase):
 
                 assert activity.data["assignee"] == str(self.user.id)
                 assert activity.data["assigneeEmail"] == self.user.email
+                assert activity.data["assigneeName"] == self.user.name
                 assert activity.data["assigneeType"] == "user"
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
-    def test_assignee_sync_outbound_unassign(self, mock_sync_assignee_outbound):
+    def test_assignee_sync_outbound_unassign(
+        self, mock_sync_assignee_outbound: mock.MagicMock
+    ) -> None:
         group = self.group
 
         integration = self.create_integration(
@@ -286,7 +298,7 @@ class GroupAssigneeTestCase(TestCase):
                     project=self.group.project, group=self.group, type=ActivityType.UNASSIGNED.value
                 ).exists()
 
-    def test_assignee_sync_inbound_assign(self):
+    def test_assignee_sync_inbound_assign(self) -> None:
         group = self.group
         user_no_access = self.create_user()
         user_w_access = self.user
@@ -346,7 +358,7 @@ class GroupAssigneeTestCase(TestCase):
                 project=group.project, group=group, user_id=user_w_access.id, team__isnull=True
             ).exists()
 
-    def test_assignee_sync_inbound_deassign(self):
+    def test_assignee_sync_inbound_deassign(self) -> None:
         group = self.group
         integration = self.create_integration(
             organization=group.organization,

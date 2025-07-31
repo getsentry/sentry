@@ -202,11 +202,11 @@ x: Request
 reveal_type(x.auth)
 """
     expected_no_plugins = """\
-<string>:3: note: Revealed type is "Union[rest_framework.authtoken.models.Token, Any]"
+<string>:3: note: Revealed type is "rest_framework.authtoken.models.Token | Any"
 Success: no issues found in 1 source file
 """
     expected_plugins = """\
-<string>:3: note: Revealed type is "Union[sentry.auth.services.auth.model.AuthenticatedToken, None]"
+<string>:3: note: Revealed type is "sentry.auth.services.auth.model.AuthenticatedToken | None"
 Success: no issues found in 1 source file
 """
     ret, out = call_mypy(src, plugins=[])
@@ -216,6 +216,25 @@ Success: no issues found in 1 source file
     ret, out = call_mypy(src)
     assert ret == 0
     assert out == expected_plugins
+
+
+def test_csp_response_attribute() -> None:
+    # technically undocumented -- django-csp's decorators usually do this
+    src = """\
+from django.http import HttpResponse
+x: HttpResponse
+x._csp_replace = {"inline-src": ["self"]}
+"""
+    expected = """\
+<string>:3: error: "HttpResponse" has no attribute "_csp_replace"  [attr-defined]
+Found 1 error in 1 file (checked 1 source file)
+"""
+    ret, out = call_mypy(src, plugins=[])
+    assert ret == 1
+    assert out == expected
+
+    ret, out = call_mypy(src)
+    assert ret == 0, (ret, out)
 
 
 def test_lazy_service_wrapper() -> None:

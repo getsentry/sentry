@@ -7,8 +7,8 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -38,10 +38,16 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import type {WebVital} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDatasetFromLocationOrDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -49,9 +55,6 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import type {WebVital} from '../fields';
-import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 
@@ -65,6 +68,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
@@ -144,7 +148,7 @@ export function isFieldSortable(
 
 const decodeFields = (location: Location): Field[] => {
   const {query} = location;
-  if (!query || !query.field) {
+  if (!query?.field) {
     return [];
   }
 
@@ -154,7 +158,7 @@ const decodeFields = (location: Location): Field[] => {
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     const w = Number(widths[i]);
-    const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
+    const width = isNaN(w) ? COL_WIDTH_UNDEFINED : w;
 
     parsed.push({field, width});
   });
@@ -218,7 +222,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
 };
 
 export const decodeQuery = (location: Location): string => {
-  if (!location.query || !location.query.query) {
+  if (!location.query?.query) {
     return '';
   }
 
@@ -235,7 +239,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
 };
 
 const decodeTeams = (location: Location): Array<'myteams' | number> => {
-  if (!location.query || !location.query.team) {
+  if (!location.query?.team) {
     return [];
   }
   const value = location.query.team;
@@ -245,7 +249,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
 };
 
 export const decodeProjects = (location: Location): number[] => {
-  if (!location.query || !location.query.project) {
+  if (!location.query?.project) {
     return [];
   }
 
@@ -283,6 +287,7 @@ export type EventViewOptions = {
   dataset?: DiscoverDatasets;
   expired?: boolean;
   interval?: string;
+  multiSort?: boolean;
   utc?: string | boolean | undefined;
   yAxis?: string | string[] | undefined;
 };
@@ -308,6 +313,7 @@ class EventView {
   createdBy: User | undefined;
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
+  multiSort?: boolean;
 
   constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -333,8 +339,12 @@ class EventView {
       }
     });
 
-    const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
-    sorts = sort ? [sort] : [];
+    if (props.multiSort) {
+      sorts = sorts.filter(currentSort => sortKeys.includes(currentSort.field));
+    } else {
+      const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
+      sorts = sort ? [sort] : [];
+    }
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
@@ -474,7 +484,10 @@ class EventView {
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
-      dataset: saved.dataset,
+      dataset:
+        saved.dataset ||
+        getDatasetFromLocationOrSavedQueryDataset(undefined, saved.queryDataset),
+      multiSort: saved.multiSort,
     });
   }
 
@@ -778,7 +791,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): Array<TableColumn<React.ReactText>> {
+  getColumns(): Array<TableColumn<string>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -812,6 +825,7 @@ class EventView {
       expired: this.expired,
       createdBy: this.createdBy,
       additionalConditions: this.additionalConditions.copy(),
+      multiSort: this.multiSort,
     });
   }
 
@@ -1075,7 +1089,7 @@ class EventView {
     return newEventView;
   }
 
-  getSorts(): Array<TableColumnSort<React.ReactText>> {
+  getSorts(): Array<TableColumnSort<string | number>> {
     return this.sorts.map(
       sort =>
         ({
@@ -1208,16 +1222,9 @@ class EventView {
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
         dataset:
-          this.dataset === DiscoverDatasets.SPANS_EAP_RPC
-            ? DiscoverDatasets.SPANS_EAP
-            : this.dataset,
-        useRpc: this.dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
+          this.dataset === DiscoverDatasets.SPANS ? DiscoverDatasets.SPANS : this.dataset,
       }
     ) as EventQuery & LocationQuery;
-
-    if (eventQuery.useRpc !== '1') {
-      delete eventQuery.useRpc;
-    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
@@ -1231,8 +1238,8 @@ class EventView {
   }
 
   getResultsViewUrlTarget(
-    slug: string,
-    isHomepage: boolean = false,
+    organization: Organization,
+    isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
     const target = isHomepage ? 'homepage' : 'results';
@@ -1241,12 +1248,18 @@ class EventView {
       query.queryDataset = queryDataset;
     }
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
+      pathname: makeDiscoverPathname({
+        path: `/${target}/`,
+        organization,
+      }),
       query,
     };
   }
 
-  getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewShortUrlTarget(organization: Organization): {
+    pathname: string;
+    query: Query;
+  } {
     const output: any = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1259,7 +1272,10 @@ class EventView {
     stringifyQueryParams(output);
 
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/discover/results/`),
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
       query: cloneDeep(output),
     };
   }

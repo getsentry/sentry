@@ -11,7 +11,7 @@ type Props = ModalRenderProps & {
   appName: string;
   config: SchemaFormConfig;
   onSubmitSuccess: React.ComponentProps<typeof SentryAppExternalForm>['onSubmitSuccess'];
-  resetValues: {[key: string]: any};
+  resetValues: Record<string, any>;
   sentryAppInstallationUuid: string;
 };
 
@@ -37,7 +37,7 @@ function SentryAppRuleModal({
           config={resetValues?.formFields || config}
           element="alert-rule-action"
           action="create"
-          onSubmitSuccess={(...params: any[]) => {
+          onSubmitSuccess={(...params) => {
             onSubmitSuccess(...params);
             closeModal();
           }}

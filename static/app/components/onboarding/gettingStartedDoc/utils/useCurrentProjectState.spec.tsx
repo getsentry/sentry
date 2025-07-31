@@ -6,8 +6,6 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {
-  customMetricOnboardingPlatforms,
-  customMetricPlatforms,
   feedbackOnboardingPlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
@@ -89,9 +87,9 @@ describe('useCurrentProjectState', () => {
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
         currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-        targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        onboardingPlatforms: customMetricOnboardingPlatforms,
-        allPlatforms: customMetricPlatforms,
+        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayOnboardingPlatforms,
       },
       wrapper: createWrapper(angular.id),
     });
@@ -103,10 +101,10 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        onboardingPlatforms: customMetricOnboardingPlatforms,
-        allPlatforms: customMetricPlatforms,
+        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayOnboardingPlatforms,
       },
       wrapper: createWrapper(),
     });
@@ -118,10 +116,10 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([javascript, angular]);
     const {result} = renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
-        onboardingPlatforms: customMetricOnboardingPlatforms,
-        allPlatforms: customMetricPlatforms,
+        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayOnboardingPlatforms,
       },
       wrapper: createWrapper(javascript.id),
     });
@@ -173,7 +171,7 @@ describe('useCurrentProjectState', () => {
     expect(result.current.currentProject).toBe(javascript);
   });
 
-  it('should return undefined if no selection and no projects have onboarding', () => {
+  it('should return the first project if no selection and no projects have onboarding', () => {
     ProjectsStore.loadInitialData([rust_1, rust_2]);
     mockPageFilterStore([]);
     const {result} = renderHook(useCurrentProjectState, {
@@ -185,7 +183,7 @@ describe('useCurrentProjectState', () => {
       },
       wrapper: createWrapper(),
     });
-    expect(result.current.currentProject).toBeUndefined();
+    expect(result.current.currentProject).toBe(rust_1);
   });
 
   it('should override current project if setCurrentProjects is called', () => {
@@ -203,5 +201,26 @@ describe('useCurrentProjectState', () => {
     expect(result.current.currentProject).toBe(javascript);
     act(() => result.current.setCurrentProject(angular));
     expect(result.current.currentProject).toBe(angular);
+  });
+
+  it('should update when the page filters store changes', () => {
+    ProjectsStore.loadInitialData([javascript, angular]);
+    mockPageFilterStore([angular]);
+    const {result} = renderHook(useCurrentProjectState, {
+      initialProps: {
+        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+        onboardingPlatforms: feedbackOnboardingPlatforms,
+        allPlatforms: feedbackOnboardingPlatforms,
+      },
+      wrapper: createWrapper(),
+    });
+
+    // Starts with angular
+    expect(result.current.currentProject).toBe(angular);
+
+    // Changes to javascript when page filters change
+    act(() => mockPageFilterStore([javascript]));
+    expect(result.current.currentProject).toBe(javascript);
   });
 });

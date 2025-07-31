@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
-import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const LabelContainer = styled('div')`
   display: flex;
@@ -77,7 +77,7 @@ export default function BrowserTypeSelector() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const value = decodeList(location.query[SpanIndexedField.BROWSER_NAME]);
+  const value = decodeList(location.query[SpanFields.BROWSER_NAME]);
 
   return (
     <CompactSelect
@@ -98,7 +98,7 @@ export default function BrowserTypeSelector() {
           ...location,
           query: {
             ...location.query,
-            [SpanIndexedField.BROWSER_NAME]: selectedOptions.map(option => option.value),
+            [SpanFields.BROWSER_NAME]: selectedOptions.map(option => option.value),
           },
         });
       }}

@@ -20,16 +20,14 @@ SUCCESS = """{
 }"""
 
 
+def test_conf_key() -> None:
+    assert PagerDutyPlugin().conf_key == "pagerduty"
+
+
 class PagerDutyPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return PagerDutyPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "pagerduty"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("pagerduty", self.plugin)
 
     def test_is_configured(self):
         assert self.plugin.is_configured(self.project) is False

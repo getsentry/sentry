@@ -32,7 +32,7 @@ class SpanChart {
     children: [],
   };
   spanTrees: SpanTree[];
-  depth: number = 0;
+  depth = 0;
   minSpanDuration: number = Number.POSITIVE_INFINITY;
   configSpace: Rect;
 
@@ -206,8 +206,8 @@ class SpanChart {
       nodes.push(node);
     };
 
-    for (let i = 0; i < this.spanTrees.length; i++) {
-      depth += this.forEachSpanOfTree(this.spanTrees[i]!, depth, visit);
+    for (const tree of this.spanTrees) {
+      depth += this.forEachSpanOfTree(tree, depth, visit);
     }
 
     return nodes;

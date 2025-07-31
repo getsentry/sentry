@@ -1,17 +1,16 @@
-from copy import deepcopy
 from enum import Enum
 
 from django.db import IntegrityError
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
 from sentry.models.assistant import AssistantActivity
 
@@ -62,18 +61,22 @@ class AssistantEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
-        guide_map = deepcopy(manager.all())
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         seen_ids = set(
             AssistantActivity.objects.filter(user_id=request.user.id).values_list(
                 "guide_id", flat=True
             )
         )
 
-        return Response([{"guide": key, "seen": id in seen_ids} for key, id in guide_map.items()])
+        return Response(
+            [{"guide": key, "seen": id in seen_ids} for key, id in manager.all().items()]
+        )
 
     def put(self, request: Request):
         """Mark a guide as viewed or dismissed.
@@ -85,6 +88,9 @@ class AssistantEndpoint(Endpoint):
             'useful' (optional): true / false,
         }
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         serializer = AssistantSerializer(data=request.data)
 
         if not serializer.is_valid():

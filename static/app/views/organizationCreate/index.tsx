@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {ExternalLink} from 'sentry/components/core/link';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -15,6 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 
@@ -97,7 +99,7 @@ function OrganizationCreate() {
             }
             // redirect to project creation *(BYPASS REACT ROUTER AND FORCE PAGE REFRESH TO GRAB CSRF TOKEN)*
             // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
-            window.location.assign(nextUrl);
+            testableWindowLocation.assign(nextUrl);
           }}
           onSubmitError={error => {
             addErrorMessage(
@@ -110,6 +112,7 @@ function OrganizationCreate() {
             id="organization-name"
             name="name"
             label={t('Organization Name')}
+            autoComplete="organization"
             placeholder={t('e.g. My Company')}
             inline={false}
             flexibleControlStateSize
@@ -137,8 +140,8 @@ function OrganizationCreate() {
                 label={tct(
                   'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
                   {
-                    termsLink: <a href={termsUrl} />,
-                    privacyLink: <a href={privacyUrl} />,
+                    termsLink: <ExternalLink href={termsUrl} />,
+                    privacyLink: <ExternalLink href={privacyUrl} />,
                   }
                 )}
                 inline={false}

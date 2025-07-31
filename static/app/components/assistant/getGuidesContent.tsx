@@ -1,16 +1,14 @@
 import type {GuidesContent} from 'sentry/components/assistant/types';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
-import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 
 export default function getGuidesContent(
   organization: Organization | null
 ): GuidesContent {
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     return getDemoModeGuides();
   }
   return [
@@ -67,7 +65,7 @@ export default function getGuidesContent(
           ),
         },
         {
-          title: t('Quick Setup'),
+          title: t('Onboarding'),
           target: 'onboarding_sidebar',
           description: t(
             'Walk through this guide to get the most out of Sentry right away.'
@@ -187,71 +185,6 @@ export default function getGuidesContent(
           target: 'project_transaction_threshold_override',
           description: t(
             'Use this menu to adjust each transaction’s satisfactory response time threshold, which can vary across transactions. These thresholds are used to calculate Apdex and User Misery, metrics that indicate how satisfied and miserable users are, respectively.'
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'metrics_onboarding',
-      requiredTargets: ['metrics_onboarding'],
-      steps: [
-        {
-          title: t('Metrics Selector'),
-          target: 'metrics_selector',
-          description: t('Your metrics are available here.'),
-        },
-        {
-          title: t('Aggregate Metrics'),
-          target: 'metrics_aggregate',
-          description: t('See different facets of your metric through aggregations.'),
-        },
-        ...(organization && hasMetricsNewInputs(organization)
-          ? [
-              {
-                title: t('Grouping'),
-                target: 'metrics_groupby',
-                description: t('Segment your data by the tags you’ve attached.'),
-              },
-              {
-                title: t('Filtering'),
-                target: 'metrics_filterby',
-                description: t('Filter your data by the tags you’ve attached.'),
-              },
-            ]
-          : [
-              {
-                title: t('Grouping & Filtering'),
-                target: 'metrics_groupby',
-                description: t(
-                  'Segment or filter your data by the tags you’ve attached.'
-                ),
-              },
-            ]),
-        {
-          title: t('Multiple Metrics'),
-          target: 'add_metric_query',
-          description: t('Plot a second metric to see correlations.'),
-        },
-        {
-          title: t('Visualization'),
-          target: 'metrics_chart',
-          description: t(
-            'View plotted metrics, dots on the chart represent associated sample spans.'
-          ),
-        },
-        {
-          title: t('Span Samples'),
-          target: 'metrics_table',
-          description: tct(
-            'See sample spans summarized in a table format. [openInTraces]',
-            {
-              openInTraces:
-                organization?.features.includes(
-                  'performance-trace-explorer-with-metrics'
-                ) && organization?.features.includes('performance-trace-explorer')
-                  ? t('To filter by tags found only on spans, click "Open in Traces".')
-                  : '',
-            }
           ),
         },
       ],

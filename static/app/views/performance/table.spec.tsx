@@ -8,15 +8,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
@@ -33,18 +28,18 @@ const initializeData = (settings = {}, features: string[] = []) => {
 
 function WrappedComponent({data, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <Table
           organization={data.organization}
-          location={data.router.location}
+          location={LocationFixture({...data.initialRouterConfig.location})}
           setError={jest.fn()}
           summaryConditions=""
           {...data}
           {...rest}
         />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -108,9 +103,6 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
 describe('Performance > Table', function () {
   let eventsMock: jest.Mock;
   beforeEach(function () {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
-    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -201,7 +193,7 @@ describe('Performance > Table', function () {
 
       ProjectsStore.loadInitialData(data.projects);
 
-      render(
+      const {router} = render(
         <WrappedComponent
           data={data}
           eventView={mockEventView(data)}
@@ -209,8 +201,11 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {router: data.router}
+        {
+          initialRouterConfig: data.initialRouterConfig,
+        }
       );
+      const initialLocation = router.location;
 
       const rows = await screen.findAllByTestId('grid-body-row');
       const transactionCells = within(rows[0]!).getAllByTestId('grid-body-cell');
@@ -218,7 +213,7 @@ describe('Performance > Table', function () {
       const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
       expect(link).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+        '/organizations/org-slug/insights/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
@@ -240,16 +235,15 @@ describe('Performance > Table', function () {
       expect(transactionCellTrigger).toBeInTheDocument();
       await userEvent.click(transactionCellTrigger);
 
-      expect(data.router.push).toHaveBeenCalledTimes(0);
+      expect(router.location).toEqual(initialLocation);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-      expect(data.router.push).toHaveBeenCalledTimes(1);
-      expect(data.router.push).toHaveBeenNthCalledWith(1, {
-        pathname: undefined,
-        query: expect.objectContaining({
+      expect(router.location).not.toEqual(initialLocation);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           query: 'transaction:/apple/cart',
-        }),
-      });
+        })
+      );
     });
 
     it('hides cell actions when withStaticFilters is true', async function () {
@@ -307,7 +301,7 @@ describe('Performance > Table', function () {
         ProjectFixture({
           id: '3',
           slug: '3',
-          firstEvent: new Date(+new Date() - 25920e5).toISOString(),
+          firstEvent: new Date(Date.now() - 25920e5).toISOString(),
         }),
       ];
       const data = initializeData({
@@ -324,7 +318,10 @@ describe('Performance > Table', function () {
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();

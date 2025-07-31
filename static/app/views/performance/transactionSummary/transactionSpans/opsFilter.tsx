@@ -1,7 +1,8 @@
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,7 +21,7 @@ type Props = {
   transactionName: string;
 };
 
-function getMenuOptions({spanOps, isLoading, error}: any) {
+function getMenuOptions({spanOps, isLoading, error}: any, theme: Theme) {
   if (isLoading) {
     return [{value: 'isLoading', disabled: true, label: t('Loading…')}];
   }
@@ -39,13 +40,13 @@ function getMenuOptions({spanOps, isLoading, error}: any) {
   return spanOps.map((spanOp: any) => ({
     value: spanOp.op,
     label: spanOp.op,
-    leadingItems: <OperationDot backgroundColor={pickBarColor(spanOp.op)} />,
+    leadingItems: <OperationDot backgroundColor={pickBarColor(spanOp.op, theme)} />,
   }));
 }
 
 export default function OpsFilter(props: Props) {
+  const theme = useTheme();
   const {location, eventView, organization, handleOpChange, transactionName} = props;
-
   // clear out the query string from the event view
   // as we want to restrict queries to the op names
   const conditions = new MutableSearch('');
@@ -71,7 +72,7 @@ export default function OpsFilter(props: Props) {
           maxMenuWidth="24rem"
           disallowEmptySelection={false}
           menuTitle={t('Filter by operation')}
-          options={getMenuOptions(results)}
+          options={getMenuOptions(results, theme)}
           onChange={opt => handleOpChange(opt?.value)}
           value={currentOp}
           triggerLabel={currentOp ?? t('Filter')}

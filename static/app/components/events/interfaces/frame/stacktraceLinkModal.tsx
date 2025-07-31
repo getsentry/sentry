@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import TextField from 'sentry/components/forms/fields/textField';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -36,6 +35,9 @@ interface StacktraceLinkModalProps extends ModalRenderProps {
   onSubmit: () => void;
   organization: Organization;
   project: Project;
+  absPath?: string;
+  module?: string;
+  platform?: string;
 }
 
 function StacktraceLinkModal({
@@ -44,6 +46,9 @@ function StacktraceLinkModal({
   organization,
   integrations,
   filename,
+  absPath,
+  module,
+  platform,
   project,
   Header,
   Body,
@@ -53,13 +58,16 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
+  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {
         query: {
           projectId: project.id,
           stacktraceFilename: filename,
+          module,
+          absPath,
+          platform,
         },
       },
     ],
@@ -72,9 +80,11 @@ function StacktraceLinkModal({
   );
 
   const suggestions = uniq(
-    suggestedCodeMappings?.map(suggestion => {
-      return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
-    })
+    Array.isArray(suggestedCodeMappings)
+      ? suggestedCodeMappings.map(suggestion => {
+          return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+        })
+      : []
   ).slice(0, 2);
 
   const onHandleChange = (input: string) => {
@@ -119,6 +129,9 @@ function StacktraceLinkModal({
         data: {
           sourceUrl: sourceCodeInput,
           stackPath: filename,
+          module,
+          absPath,
+          platform,
         },
       });
 
@@ -160,7 +173,7 @@ function StacktraceLinkModal({
       <Body>
         <ModalContainer>
           {error && (
-            <StyledAlert type="error" showIcon>
+            <Alert type="error">
               {error === 'Could not find repo'
                 ? tct(
                     'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
@@ -181,7 +194,7 @@ function StacktraceLinkModal({
                 : error.includes('blank')
                   ? t('URL is required.')
                   : error}
-            </StyledAlert>
+            </Alert>
           )}
           <div>
             {tct(
@@ -256,7 +269,7 @@ function StacktraceLinkModal({
         </ModalContainer>
       </Body>
       <Footer>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Save')}
@@ -306,10 +319,6 @@ const ModalContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledCode = styled('code')`

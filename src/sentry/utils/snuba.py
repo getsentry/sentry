@@ -23,9 +23,14 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import DeleteQuery, MetricsQuery, Request
+from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
+from snuba_sdk.query import SelectableExpression
 
+from sentry.api.helpers.error_upsampling import (
+    UPSAMPLED_ERROR_AGGREGATION,
+    are_any_projects_error_upsampled,
+)
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -50,7 +55,7 @@ ROUND_DOWN = object()
 
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
-MAX_FIELDS = 20
+MAX_FIELDS = 50
 
 SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -170,6 +175,8 @@ SPAN_COLUMN_MAP = {
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
     "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "messaging.operation.name": "sentry_tags[messaging.operation.name]",
+    "messaging.operation.type": "sentry_tags[messaging.operation.type]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
     "user.geo.subregion": "sentry_tags[user.geo.subregion]",
@@ -502,21 +509,40 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
-        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
-            raise error.with_traceback(_stacktrace)
+        with sentry_sdk.start_span(op="snuba_pool.retry.increment") as span:
+            # This next block is all debugging to try to track down a bug where we're seeing duplicate snuba requests
+            # Wrapping the entire thing in a try/except to be safe cause none of it actually needs to run
+            try:
+                if error:
+                    error_class = error.__class__
+                    module = error_class.__module__
+                    name = error_class.__name__
+                    span.set_tag("snuba_pool.retry.error", f"{module}.{name}")
+                else:
+                    span.set_tag("snuba_pool.retry.error", "None")
+                span.set_tag("snuba_pool.retry.total", self.total)
+                span.set_tag("snuba_pool.response.status", "unknown")
+                if response:
+                    if response.status:
+                        span.set_tag("snuba_pool.response.status", response.status)
+            except Exception:
+                pass
 
-        metrics.incr(
-            "snuba.client.retry",
-            tags={"method": method, "path": urlparse(url).path if url else None},
-        )
-        return super().increment(
-            method=method,
-            url=url,
-            response=response,
-            error=error,
-            _pool=_pool,
-            _stacktrace=_stacktrace,
-        )
+            if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+                raise error.with_traceback(_stacktrace)
+
+            metrics.incr(
+                "snuba.client.retry",
+                tags={"method": method, "path": urlparse(url).path if url else None},
+            )
+            return super().increment(
+                method=method,
+                url=url,
+                response=response,
+                error=error,
+                _pool=_pool,
+                _stacktrace=_stacktrace,
+            )
 
 
 _snuba_pool = connection_from_url(
@@ -532,7 +558,6 @@ _snuba_pool = connection_from_url(
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
 )
-_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
@@ -564,6 +589,15 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
+
+    if name.startswith("flags["):
+        # Flags queries are valid for the events dataset only. For other datasets we
+        # query the tags expecting to find nothing. We can't return `None` or otherwise
+        # short-circuit a query or filter that wouldn't be valid in its context.
+        if dataset == Dataset.Events:
+            return name
+        else:
+            return f"tags[{name.replace("[", "").replace("]", "").replace('"', "")}]"
 
     measurement_name = get_measurement_name(name)
     span_op_breakdown_name = get_span_op_breakdown_name(name)
@@ -1061,7 +1095,7 @@ def _apply_cache_and_build_results(
     use_cache: bool | None = False,
 ) -> ResultSet:
     parent_api: str = "<missing>"
-    scope = sentry_sdk.Scope.get_current_scope()
+    scope = sentry_sdk.get_current_scope()
     if scope.transaction:
         parent_api = scope.transaction.name
 
@@ -1126,26 +1160,30 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
-            query_results = list(
-                _query_thread_pool.map(
-                    _snuba_query,
-                    [
-                        (
-                            sentry_sdk.Scope.get_isolation_scope(),
-                            sentry_sdk.Scope.get_current_scope(),
-                            snuba_request,
-                        )
-                        for snuba_request in snuba_requests_list
-                    ],
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=10,
+            ) as query_thread_pool:
+                query_results = list(
+                    query_thread_pool.map(
+                        _snuba_query,
+                        [
+                            (
+                                sentry_sdk.get_isolation_scope(),
+                                sentry_sdk.get_current_scope(),
+                                snuba_request,
+                            )
+                            for snuba_request in snuba_requests_list
+                        ],
+                    )
                 )
-            )
         else:
             # No need to submit to the thread pool if we're just performing a single query
             query_results = [
                 _snuba_query(
                     (
-                        sentry_sdk.Scope.get_isolation_scope(),
-                        sentry_sdk.Scope.get_current_scope(),
+                        sentry_sdk.get_isolation_scope(),
+                        sentry_sdk.get_current_scope(),
                         snuba_requests_list[0],
                     )
                 )
@@ -1176,6 +1214,9 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
+            bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
+            if bytes_scanned is not None:
+                span.set_data(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
@@ -1370,6 +1411,13 @@ def query(
     selected_columns = selected_columns or []
     groupby = groupby or []
 
+    if dataset == Dataset.Events and filter_keys.get("project_id"):
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
+
     try:
         body = raw_query(
             dataset=dataset,
@@ -1484,6 +1532,16 @@ def resolve_column(dataset) -> Callable:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
         if dataset == Dataset.EventsAnalyticsPlatform:
             return f"attr_str[{col}]"
+
+        if col.startswith("flags["):
+            # Flags queries are valid for the events dataset only. For other datasets we
+            # query the tags expecting to find nothing. We can't return `None` or otherwise
+            # short-circuit a query or filter that wouldn't be valid in its context.
+            if dataset == Dataset.Events:
+                return col
+            else:
+                return f"tags[{col.replace("[", "").replace("]", "").replace('"', "")}]"
+
         return f"tags[{col}]"
 
     return _resolve_column
@@ -1622,8 +1680,26 @@ def aliased_query_params(
         selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
+        new_aggs = []
         for aggregation in aggregations:
             derived_columns.append(aggregation[2])
+
+            if aggregation[0] == UPSAMPLED_ERROR_AGGREGATION:
+                # Special-case: upsampled_count aggregation - this aggregation type
+                # requires special handling to convert it into a selected column
+                # with the appropriate SNQL function structure
+                if selected_columns is None:
+                    selected_columns = []
+                selected_columns.append(
+                    get_upsampled_count_snql_with_alias(
+                        aggregation[2]
+                        if len(aggregation) > 2 and aggregation[2] is not None
+                        else UPSAMPLED_ERROR_AGGREGATION
+                    )
+                )
+            else:
+                new_aggs.append(aggregation)
+        aggregations = new_aggs
 
     if conditions:
         if condition_resolver:
@@ -1940,6 +2016,8 @@ def is_duration_measurement(key):
         "measurements.time_to_initial_display",
         "measurements.inp",
         "measurements.messaging.message.receive.latency",
+        "measurements.stall_longest_time",
+        "measurements.stall_total_time",
     ]
 
 
@@ -2014,3 +2092,47 @@ def process_value(value: None | str | int | float | list[str] | list[int] | list
         return value
 
     return value
+
+
+def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression]:
+    return Function(
+        function="toInt64",
+        parameters=[
+            Function(
+                function="sum",
+                parameters=[
+                    Function(
+                        function="ifNull",
+                        parameters=[Column(name="sample_weight"), 1],
+                        alias=None,
+                    )
+                ],
+                alias=None,
+            )
+        ],
+        alias=alias,
+    )
+
+
+def _convert_count_aggregations_for_error_upsampling(
+    aggregations: list[list[Any]], project_ids: Sequence[int]
+) -> None:
+    """
+    Converts count() aggregations to upsampled_count() for error upsampled projects.
+
+    This function modifies the aggregations list in-place, swapping any "count()"
+    or "count" aggregation functions to "upsampled_count" when any of the projects
+    are configured for error upsampling.
+
+    Args:
+        aggregations: List of aggregation specifications in format [function, column, alias]
+        project_ids: List of project IDs being queried
+    """
+    if not are_any_projects_error_upsampled(project_ids):
+        return
+
+    for aggregation in aggregations:
+        if len(aggregation) >= 1:
+            # Handle both "count()" and "count" formats
+            if aggregation[0] in ("count()", "count"):
+                aggregation[0] = "toInt64(sum(ifNull(sample_weight, 1)))"

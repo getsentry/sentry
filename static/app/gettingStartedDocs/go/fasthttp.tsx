@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
@@ -41,6 +40,12 @@ if err := sentry.Init(sentry.ClientOptions{
   // of transactions for tracing.
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable structured logs to Sentry
+  EnableLogs: true,`
       : ''
   }
 }); err != nil {
@@ -118,7 +123,7 @@ if err := fasthttp.ListenAndServe(":3000", sentryHandler.Handle(fastHTTPHandler)
   panic(err)
 }`;
 
-const getBeforeSendSnippet = (params: any) => `
+const getBeforeSendSnippet = (params: Params) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
@@ -191,12 +196,12 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <AlertWithoutMarginBottom>
+          <Alert type="info" showIcon={false}>
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryfasthttp]!",
               {code: <code />}
             )}
-          </AlertWithoutMarginBottom>
+          </Alert>
         </Fragment>
       ),
       configurations: [
@@ -219,6 +224,22 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/go/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -244,7 +265,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

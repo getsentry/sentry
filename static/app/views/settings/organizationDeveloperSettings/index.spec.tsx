@@ -38,7 +38,9 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
@@ -49,14 +51,35 @@ describe('Organization Developer Settings', function () {
 
   describe('with unpublished apps', () => {
     beforeEach(() => {
+      const sentryAppWithAvatars = SentryAppFixture({
+        avatars: [
+          {
+            avatarType: 'upload',
+            avatarUuid: '1234561234561234561234567',
+            avatarUrl: 'https://example.com/avatar/1234561234561234561234567/',
+            color: true,
+            photoType: 'logo',
+          },
+        ],
+        scopes: [
+          'team:read',
+          'project:releases',
+          'event:read',
+          'event:write',
+          'org:read',
+          'org:write',
+        ],
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
-        body: [sentryApp],
+        body: [sentryAppWithAvatars],
       });
     });
 
     it('internal integrations list is empty', async () => {
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       expect(
         await screen.findByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
@@ -68,6 +91,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('Sample App')).toBeInTheDocument();
       expect(screen.getByText('unpublished')).toBeInTheDocument();
@@ -84,10 +108,11 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
 
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+      expect(deleteButton).toBeEnabled();
 
       await userEvent.click(deleteButton);
       renderGlobalModal();
@@ -114,11 +139,12 @@ describe('Organization Developer Settings', function () {
 
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
 
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
 
-      expect(publishButton).toHaveAttribute('aria-disabled', 'false');
+      expect(publishButton).toBeEnabled();
       await userEvent.click(publishButton);
 
       renderGlobalModal();
@@ -126,20 +152,37 @@ describe('Organization Developer Settings', function () {
       expect(dialog).toBeInTheDocument();
       const questionnaire = [
         {
-          answer: 'Answer 0',
-          question: 'What does your integration do? Please be as detailed as possible.',
-        },
-        {answer: 'Answer 1', question: 'What value does it offer customers?'},
-        {
-          answer: 'Answer 2',
-          question: 'Do you operate the web service your integration communicates with?',
-        },
-        {
-          answer: 'Answer 3',
+          answer: 'yep',
           question:
-            'Please justify why you are requesting each of the following permissions: Team Read, Release Admin, Event Write, Organization Write.',
+            'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+        },
+        {
+          answer: 'the coolest integration ever',
+          question:
+            'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations .',
+        },
+        {
+          answer: 'https://example.com',
+          question: 'Link to your documentation page.',
+        },
+        {
+          answer: 'https://example.com',
+          question:
+            'Link to a video showing installation, setup and user flow for your submission.',
+        },
+        {
+          answer: 'example@example.com',
+          question: 'Email address for user support.',
         },
       ];
+      await userEvent.click(
+        screen.getByRole('textbox', {
+          name: 'Select what category best describes your integration. Documentation for reference.',
+        })
+      );
+
+      expect(screen.getByText('Deployment')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('Deployment'));
 
       for (const {question, answer} of questionnaire) {
         const element = within(dialog).getByRole('textbox', {name: question});
@@ -148,16 +191,45 @@ describe('Organization Developer Settings', function () {
 
       const requestPublishButton =
         await within(dialog).findByLabelText('Request Publication');
-      expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
+      expect(requestPublishButton).toBeEnabled();
 
       await userEvent.click(requestPublishButton);
 
-      expect(mock).toHaveBeenCalledWith(
-        `/sentry-apps/${sentryApp.slug}/publish-request/`,
-        expect.objectContaining({
-          data: {questionnaire},
-        })
-      );
+      expect(mock).toHaveBeenCalledTimes(1);
+      const [url, {method, data}] = mock.mock.calls[0];
+      expect(url).toBe(`/sentry-apps/${sentryApp.slug}/publish-request/`);
+      expect(method).toBe('POST');
+      expect(data).toEqual({
+        questionnaire: expect.arrayContaining([
+          {
+            question:
+              'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+            answer: 'yep',
+          },
+          {
+            question:
+              'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
+            answer: 'the coolest integration ever',
+          },
+          {
+            question: 'Select what category best describes your integration.',
+            answer: 'deployment',
+          },
+          {
+            question: 'Link to your documentation page.',
+            answer: 'https://example.com',
+          },
+          {
+            question: 'Email address for user support.',
+            answer: 'example@example.com',
+          },
+          {
+            question:
+              'Link to a video showing installation, setup and user flow for your submission.',
+            answer: 'https://example.com',
+          },
+        ]),
+      });
     });
   });
 
@@ -175,6 +247,7 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('published')).toBeInTheDocument();
     });
@@ -185,9 +258,10 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+      expect(deleteButton).toBeDisabled();
     });
 
     it('publish button is disabled', async () => {
@@ -196,9 +270,10 @@ describe('Organization Developer Settings', function () {
       });
       render(<OrganizationDeveloperSettings />, {
         router,
+        deprecatedRouterMocks: true,
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
-      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+      expect(publishButton).toBeDisabled();
     });
   });
 
@@ -213,13 +288,17 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows deleting', async () => {
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+      expect(deleteButton).toBeEnabled();
     });
 
     it('publish button does not exist', () => {
-      render(<OrganizationDeveloperSettings />);
+      render(<OrganizationDeveloperSettings />, {
+        deprecatedRouterMocks: true,
+      });
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
@@ -239,9 +318,10 @@ describe('Organization Developer Settings', function () {
       render(<OrganizationDeveloperSettings />, {
         router,
         organization: newOrg,
+        deprecatedRouterMocks: true,
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+      expect(deleteButton).toBeDisabled();
     });
 
     it('publish button is disabled', async () => {
@@ -251,9 +331,10 @@ describe('Organization Developer Settings', function () {
       render(<OrganizationDeveloperSettings />, {
         organization: newOrg,
         router,
+        deprecatedRouterMocks: true,
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
-      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+      expect(publishButton).toBeDisabled();
     });
   });
 });

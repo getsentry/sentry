@@ -9,15 +9,15 @@ from sentry.utils import json
 class OrganizationMonitorProcessingErrorsIndexEndpointTest(MonitorTestCase, APITestCase):
     endpoint = "sentry-api-0-organization-monitor-processing-errors-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         resp = self.get_success_response(self.organization.slug)
         assert resp.data == []
 
-    def test(self):
+    def test(self) -> None:
         monitor = self.create_monitor()
         project_2 = self.create_project()
 

@@ -2,9 +2,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.issues.grouptype import MetricIssuePOC, ProfileFileIOGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus, get_open_periods_for_group
+from sentry.models.group import GroupStatus
+from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
@@ -17,7 +19,7 @@ class GroupOpenPeriodsTest(APITestCase):
         self.login_as(user=self.user)
         self.group = self.create_group()
         # test a new group has an open period
-        self.group.type = MetricIssuePOC.type_id
+        self.group.type = MetricIssue.type_id
         self.group.save()
 
         self.alert_rule = self.create_alert_rule(
@@ -96,7 +98,7 @@ class GroupOpenPeriodsTest(APITestCase):
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=unresolved_time,
         )
 
@@ -147,7 +149,7 @@ class GroupOpenPeriodsTest(APITestCase):
         Activity.objects.create(
             group=self.group,
             project=self.group.project,
-            type=ActivityType.SET_UNRESOLVED.value,
+            type=ActivityType.SET_REGRESSION.value,
             datetime=unresolved_time,
         )
 

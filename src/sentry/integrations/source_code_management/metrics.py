@@ -38,6 +38,7 @@ class SCMIntegrationInteractionType(StrEnum):
     CREATE_COMMENT = "create_comment"
     UPDATE_COMMENT = "update_comment"
     QUEUE_COMMENT_TASK = "queue_comment_task"
+    GET_PR_DIFFS = "get_pr_diffs"  # open PR comments
 
     # Tasks
     LINK_ALL_REPOS = "link_all_repos"
@@ -45,6 +46,13 @@ class SCMIntegrationInteractionType(StrEnum):
     # GitHub only
     DERIVE_CODEMAPPINGS = "derive_codemappings"
     STUDENT_PACK = "student_pack"
+
+    # External Issue Comment Sync
+    SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
+    SYNC_EXTERNAL_ISSUE_COMMENT_UPDATE = "sync_external_issue_comment_update"
+
+    # Releases
+    COMPARE_COMMITS = "compare_commits"
 
 
 @dataclass
@@ -101,8 +109,6 @@ class CommitContextIntegrationInteractionEvent(SCMIntegrationInteractionEvent):
 class CommitContextHaltReason(StrEnum):
     """Common reasons why a commit context integration may halt without success/failure."""
 
-    PR_BOT_DISABLED = "pr_bot_disabled"
-    INCORRECT_REPO_CONFIG = "incorrect_repo_config"
     COMMIT_NOT_IN_DEFAULT_BRANCH = "commit_not_in_default_branch"
     MISSING_PR = "missing_pr"
     ALREADY_QUEUED = "already_queued"

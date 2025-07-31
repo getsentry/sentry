@@ -11,7 +11,7 @@ type Props = {
 };
 
 const Category = memo(function Category({category, searchTerm}: Props) {
-  const title = !defined(category) ? t('generic') : category;
+  const title = defined(category) ? category : t('generic');
   return (
     <Wrapper title={title}>
       <Highlight text={searchTerm}>{title}</Highlight>
@@ -23,6 +23,6 @@ export default Category;
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

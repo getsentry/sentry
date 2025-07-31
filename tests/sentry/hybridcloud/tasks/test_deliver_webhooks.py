@@ -144,6 +144,116 @@ class ScheduleWebhooksTest(TestCase):
         schedule_webhook_delivery()
         assert mock_deliver.delay.call_count == 1
 
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @patch(
+        "sentry.hybridcloud.tasks.deliver_webhooks.PROVIDER_PRIORITY",
+        {"stripe": 1, "github": 2, "slack": 3},
+    )
+    def test_schedule_prioritizes_by_provider(self, mock_deliver: MagicMock) -> None:
+        """Test that webhooks are prioritized based on provider priority."""
+        # Create webhooks with different providers (intentionally in non-priority order)
+        slack_webhook = self.create_webhook_payload(
+            mailbox_name="slack:123",
+            provider="slack",
+            region_name="us",
+        )
+        github_webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            provider="github",
+            region_name="us",
+        )
+        stripe_webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            provider="stripe",
+            region_name="us",
+        )
+
+        # Run the scheduler
+        schedule_webhook_delivery()
+
+        # Verify webhooks were processed in priority order (stripe first, then github, then slack)
+        assert mock_deliver.delay.call_count == 3
+        # Check the order of calls
+        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+
+        # Stripe (priority 1) should be first
+        assert call_args_list[0] == stripe_webhook.id
+        # GitHub (priority 2) should be second
+        assert call_args_list[1] == github_webhook.id
+        # Slack (priority 3) should be last
+        assert call_args_list[2] == slack_webhook.id
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @patch(
+        "sentry.hybridcloud.tasks.deliver_webhooks.PROVIDER_PRIORITY", {"stripe": 1, "github": 2}
+    )
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.DEFAULT_PROVIDER_PRIORITY", 10)
+    def test_schedule_handles_unknown_providers(self, mock_deliver: MagicMock) -> None:
+        """Test that webhooks with unknown providers use the default priority."""
+        # Create webhooks with known and unknown providers
+        unknown_webhook = self.create_webhook_payload(
+            mailbox_name="unknown:123",
+            provider="unknown",
+            region_name="us",
+        )
+        stripe_webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            provider="stripe",
+            region_name="us",
+        )
+
+        # Run the scheduler
+        schedule_webhook_delivery()
+
+        # Verify webhooks were processed in priority order (stripe first, then unknown)
+        assert mock_deliver.delay.call_count == 2
+        # Check the order of calls
+        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+
+        # Stripe (priority 1) should be first
+        assert call_args_list[0] == stripe_webhook.id
+        # Unknown (default priority 10) should be last
+        assert call_args_list[1] == unknown_webhook.id
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @patch(
+        "sentry.hybridcloud.tasks.deliver_webhooks.PROVIDER_PRIORITY", {"stripe": 1, "github": 2}
+    )
+    def test_schedule_handles_null_provider(self, mock_deliver: MagicMock) -> None:
+        """Test that webhooks with null provider field use the default priority."""
+        # Create webhooks - one with a provider field, one with null provider
+
+        # Create webhook with null provider
+        null_provider_webhook = WebhookPayload.objects.create(
+            mailbox_name="github:456",
+            provider=None,
+            region_name="us",
+            request_method="POST",
+            request_path="/webhook/",
+            request_headers="{}",
+            request_body="{}",
+        )
+
+        # Create webhook with stripe provider
+        stripe_webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            provider="stripe",
+            region_name="us",
+        )
+
+        # Run the scheduler
+        schedule_webhook_delivery()
+
+        # Verify webhooks were processed in priority order (stripe first, then null provider)
+        assert mock_deliver.delay.call_count == 2
+        # Check the order of calls
+        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+
+        # Stripe (priority 1) should be first
+        assert call_args_list[0] == stripe_webhook.id
+        # Null provider (default priority) should be last
+        assert call_args_list[1] == null_provider_webhook.id
+
 
 def create_payloads(num: int, mailbox: str) -> list[WebhookPayload]:
     created = []

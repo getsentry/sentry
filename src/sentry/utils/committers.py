@@ -12,8 +12,8 @@ from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
-from sentry.api.serializers.models.release import Author
-from sentry.eventstore.models import BaseEvent, Event, GroupEvent
+from sentry.api.serializers.models.release import Author, NonMappableUser
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
@@ -233,7 +233,7 @@ def get_event_file_committers(
     project: Project,
     group_id: int,
     event_frames: Sequence[Mapping[str, Any]],
-    event_platform: str,
+    event_platform: str | None,
     frame_limit: int = 25,
     sdk_name: str | None = None,
 ) -> Sequence[AuthorCommits]:
@@ -293,8 +293,10 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: BaseEvent, frame_limit: int = 25
+    project: Project, event: Event | GroupEvent, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
+    if event.group_id is None:
+        return []
 
     group_owners = GroupOwner.objects.filter(
         group_id=event.group_id,
@@ -314,7 +316,7 @@ def get_serialized_event_file_committers(
         if not commit_author:
             return []
 
-        author = {"email": commit_author.email, "name": commit_author.name}
+        author: NonMappableUser = {"email": commit_author.email, "name": commit_author.name}
         if owner.user_id is not None:
             serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
             # No guarantee that just because the user_id is set that the value exists, so we still have to check

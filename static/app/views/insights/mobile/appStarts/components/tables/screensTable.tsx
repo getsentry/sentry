@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/insights/colors';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -20,7 +20,7 @@ import Breakdown from 'sentry/views/insights/mobile/appStarts/components/breakdo
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
 import {TOP_SCREENS} from 'sentry/views/insights/mobile/constants';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
   data: TableData | undefined;
@@ -35,7 +35,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const columnNameMap = {
     transaction: t('Screen'),

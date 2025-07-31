@@ -212,3 +212,57 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert response.status_code == 200
         assert len(response.data) == 2
+
+    def test_simple_flags(self):
+        group_a = self.store_event(
+            data={
+                "timestamp": before_now(seconds=500).isoformat(),
+                "fingerprint": ["group-a"],
+                "contexts": {"flags": {"values": [{"flag": "flag", "result": True}]}},
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-a"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(query="is:unresolved flags[flag]:true", groups=[group_a.id])
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
+
+        assert response.status_code == 200
+        assert len(response_data) == 1
+        assert int(response_data[0]["id"]) == group_a.id
+        assert response_data[0]["count"] == "2"
+        assert response_data[0]["filtered"]["count"] == "1"
+        assert response_data[0]["lifetime"]["count"] == "1"
+
+    def test_error_upsampling_with_allowlisted_project(self):
+        """Test that count is upsampled for allowlisted projects in group index stats."""
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            project = self.project
+            event_data = {
+                "timestamp": before_now(seconds=30).isoformat(),
+                "message": "Error event for upsampling",
+                "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+            }
+            event = self.store_event(
+                data=event_data,
+                project_id=project.id,
+            )
+
+            group = event.group
+            self.login_as(user=self.user)
+
+            response = self.get_response(groups=[group.id])
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            # Expect the count to be upsampled (1 / 0.1 = 10) - count is a string
+            assert response.data[0]["count"] == "10"
+            # Also check that lifetime stats are upsampled
+            assert response.data[0]["lifetime"]["count"] == "10"
+            # Also check that stats are upsampled, latest time bucket should contain upsampled event
+            assert any(
+                bucket[1] == 10 for bucket in response.data[0]["stats"]["24h"]
+            ), "could not find upsampled bucket in stats"

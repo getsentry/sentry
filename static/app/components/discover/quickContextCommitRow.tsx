@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useUser} from 'sentry/utils/useUser';
@@ -36,7 +36,7 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
           data-test-id="quick-context-commit-row-commit-link"
         >
           {tct('View commit [commitLink] by [author]', {
-            author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
+            author: isUser ? t('You') : (commit.author?.name ?? t('Unknown author')),
             commitLink: (
               <CommitLink
                 inline
@@ -71,12 +71,12 @@ const CommitLinks = styled('div')`
 `;
 
 const LinkToPullRequest = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.2;
 `;
 
 const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
-  font-size: ${p => (p.hasPrTitle ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  font-size: ${p => (p.hasPrTitle ? p.theme.fontSize.sm : p.theme.fontSize.lg)};
   color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.textColor)};
   line-height: 1.5;
   margin: 0;

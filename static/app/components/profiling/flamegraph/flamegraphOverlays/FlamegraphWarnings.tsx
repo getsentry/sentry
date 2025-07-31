@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t, tct} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
@@ -50,12 +50,10 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
         <p>{t('This flamegraph has no data.')}</p>
         <div>
           <ExportProfileButton
-            variant="default"
             eventId={params.eventId}
             orgId={orgSlug}
             size="sm"
             projectId={params.projectId}
-            title={undefined}
             disabled={params.eventId === undefined || params.projectId === undefined}
           >
             {t('Export Raw Profile')}

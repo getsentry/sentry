@@ -9,8 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-
-import type {TagValueLoader} from '../issueList/types';
+import type {TagValueLoader} from 'sentry/views/issueList/types';
 
 type Props = {
   onSearch: (q: string) => void;
@@ -49,7 +48,6 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
         filterKeys={SUPPORTED_TAGS}
         onSearch={onSearch}
         getTagValues={getTagValues}
-        showUnsubmittedIndicator
       />
     </FiltersWrapper>
   );
@@ -60,7 +58,7 @@ const FiltersWrapper = styled('div')`
   grid-template-columns: minmax(0, max-content) 1fr;
   gap: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

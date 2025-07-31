@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import layout from 'sentry/components/events/interfaces/debugMeta/layout';
+import {
+  getFileName,
+  getImageAddress,
+} from 'sentry/components/events/interfaces/debugMeta/utils';
 import NotAvailable from 'sentry/components/notAvailable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
-
-import layout from '../layout';
-import {getFileName, getImageAddress} from '../utils';
 
 import Processings from './processings';
 import Status from './status';
@@ -16,10 +18,11 @@ import Status from './status';
 type Props = {
   image: ImageWithCombinedStatus;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: React.CSSProperties;
 };
 
-function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
+function DebugImage({ref, image, onOpenImageDetailsModal, style}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
 
   const codeFilename = getFileName(code_file);
@@ -27,7 +30,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
   const imageAddress = getImageAddress(image);
 
   return (
-    <Wrapper style={style}>
+    <Wrapper ref={ref} style={style}>
       <StatusColumn>
         <Status status={status} />
       </StatusColumn>
@@ -85,7 +88,7 @@ const StatusColumn = styled(Column)`
 const FileName = styled('span')`
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(0.5)};
   white-space: pre-wrap;
   word-break: break-all;
@@ -97,8 +100,8 @@ const CodeFilename = styled('span')`
 
 const ImageColumn = styled(Column)`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
   overflow: hidden;
   flex-direction: column;
   align-items: flex-start;

@@ -6,23 +6,18 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useLocation} from 'sentry/utils/useLocation';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
-
 function WrappedComponent({data}: {data: ReturnType<typeof initializeData>}) {
   return (
     <MEPSettingProvider>
       <TransactionEvents
         organization={data.organization}
-        location={data.router.location}
+        location={LocationFixture({...data.initialRouterConfig.location})}
       />
     </MEPSettingProvider>
   );
@@ -139,12 +134,6 @@ const setupMockApiResponeses = () => {
   });
 };
 
-const setupMocks = () => {
-  mockUseLocation.mockReturnValue(
-    LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
-  );
-};
-
 const initializeData = (settings?: InitializeDataSettings) => {
   settings = {
     features: ['performance-view'],
@@ -159,7 +148,6 @@ const initializeData = (settings?: InitializeDataSettings) => {
 describe('Performance > Transaction Summary > Transaction Events > Index', () => {
   beforeEach(() => {
     setupMockApiResponeses();
-    setupMocks();
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -169,7 +157,9 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should contain all transaction events', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {router: data.router});
+    render(<WrappedComponent data={data} />, {
+      initialRouterConfig: data.initialRouterConfig,
+    });
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(await screen.findByText('moreuhoh@example.com')).toBeInTheDocument();
   });
@@ -179,7 +169,9 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       query: {project: '1', transaction: 'transaction', showTransactions: 'p50'},
     });
 
-    render(<WrappedComponent data={data} />, {router: data.router});
+    render(<WrappedComponent data={data} />, {
+      initialRouterConfig: data.initialRouterConfig,
+    });
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(screen.queryByText('moreuhoh@example.com')).not.toBeInTheDocument();
   });
@@ -187,7 +179,9 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should update transaction percentile query if selected', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {router: data.router});
+    const {router} = render(<WrappedComponent data={data} />, {
+      initialRouterConfig: data.initialRouterConfig,
+    });
     const percentileButton = await screen.findByRole('button', {
       name: /percentile p100/i,
     });
@@ -199,8 +193,8 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
 
     await userEvent.click(p50);
 
-    expect(data.router.push).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({showTransactions: 'p50'})})
+    expect(router.location.query).toEqual(
+      expect.objectContaining({showTransactions: 'p50'})
     );
   });
 });

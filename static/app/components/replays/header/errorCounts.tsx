@@ -1,23 +1,23 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Badge from 'sentry/components/badge/badge';
-import Link from 'sentry/components/links/link';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Badge} from 'sentry/components/core/badge';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord, ReplayError} from 'sentry/views/replays/types';
 
 type Props = {
   replayErrors: ReplayError[];
-  replayRecord: ReplayRecord;
+  replayRecord: HydratedReplayRecord;
 };
 
 export default function ErrorCounts({replayErrors, replayRecord}: Props) {
@@ -89,7 +89,9 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
               <IconFire />
             );
           })}
-          <Badge aria-label={t('hidden projects')}>+{extraProjectCount}</Badge>
+          <Badge aria-label={t('hidden projects')} type="default">
+            +{extraProjectCount}
+          </Badge>
         </StackedProjectBadges>
         <ErrorCount aria-label={t('total errors')}>{totalErrors}</ErrorCount>
       </StyledLink>
@@ -102,7 +104,7 @@ const Count = styled('span')`
 `;
 
 const ErrorCount = styled(Count)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const ColumnTooltipContent = styled(CountTooltipContent)`

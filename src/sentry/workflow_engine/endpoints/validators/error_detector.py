@@ -6,11 +6,11 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
 
 
-class ErrorDetectorValidator(BaseGroupTypeDetectorValidator):
+class ErrorDetectorValidator(BaseDetectorTypeValidator):
     fingerprinting_rules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     resolve_age = EmptyIntegerField(
         required=False,
@@ -18,12 +18,19 @@ class ErrorDetectorValidator(BaseGroupTypeDetectorValidator):
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
 
-    def validate_group_type(self, value: str):
-        detector_type = super().validate_group_type(value)
-        if detector_type.slug != "error":
-            raise serializers.ValidationError("Group type must be error")
+    def validate_type(self, value: str):
+        type = super().validate_type(value)
+        if type.slug != "error":
+            raise serializers.ValidationError("Detector type must be error")
 
-        return detector_type
+        return type
+
+    def validate_condition_group(self, value):
+        if value is not None:
+            raise serializers.ValidationError(
+                "Condition group is not supported for error detectors"
+            )
+        return value
 
     def validate_fingerprinting_rules(self, value):
         if not value:
@@ -48,13 +55,11 @@ class ErrorDetectorValidator(BaseGroupTypeDetectorValidator):
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
                 # no workflow_condition_group
-                type=validated_data["group_type"].slug,
+                type=validated_data["type"].slug,
                 config={},
             )
 
-            project: Project | None = detector.project
-            if not project:
-                raise serializers.ValidationError("Error detector must have a project")
+            project: Project = detector.project
 
             # update configs, which are project options. continue using them
             for config in validated_data:
@@ -67,7 +72,7 @@ class ErrorDetectorValidator(BaseGroupTypeDetectorValidator):
                 request=self.context["request"],
                 organization=self.context["organization"],
                 target_object=detector.id,
-                event=audit_log.get_event_id("WORKFLOW_ENGINE_DETECTOR_ADD"),
+                event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
         return detector
