@@ -126,7 +126,7 @@ def schedule_organizations(
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
 
     with WeeklyReportSLO(
-        operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT
+        operation_type=WeeklyReportOperationType.SCHEDULE_ORGANIZATION_REPORTS
     ).capture() as lifecycle:
         batch_id = str(uuid.uuid4())
 

@@ -7,26 +7,20 @@ from sentry.integrations.utils.metrics import EventLifecycleMetric
 
 
 class WeeklyReportFailureType(StrEnum):
-    """The type of failure that occurred when preparing a weekly report"""
-
-    # The task was cancelled
-    CANCELLED = "cancelled"
-
-    # The task timed out
     TIMEOUT = "timeout"
 
 
 class WeeklyReportOperationType(StrEnum):
-    """The type of operation that occurred when preparing a weekly report"""
+    """
+    Represents a single step in the weekly reporting pipeline.
+    """
 
-    PREPARE_ORGANIZATION_REPORT = "prepare_organization_report"
-    SEND_ORGANIZATION_REPORT = "send_organization_report"
+    SCHEDULE_ORGANIZATION_REPORTS = "schedule_organization_reports"
+    PREPARE_ORGANIZATION_REPORTS = "prepare_organization_reports"
 
 
 @dataclass
 class WeeklyReportSLO(EventLifecycleMetric):
-    """An event under the Weekly Report umbrella"""
-
     operation_type: WeeklyReportOperationType
 
     def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
