@@ -15,19 +15,6 @@ describe('utils/tokenizeSearch', function () {
     });
   });
 
-  // Test case for the reported issue
-  describe('quoted bracket expressions', function () {
-    it('should preserve quotes around bracket expressions when parsing and formatting', function () {
-      const search = new MutableSearch('message:"[Filtered]"');
-      expect(search.formatString()).toBe('message:"[Filtered]"');
-    });
-
-    it('should not add quotes to unquoted bracket expressions', function () {
-      const search = new MutableSearch('message:[test]');
-      expect(search.formatString()).toBe('message:[test]');
-    });
-  });
-
   describe('new MutableSearch()', function () {
     const cases = [
       {
@@ -540,6 +527,16 @@ describe('utils/tokenizeSearch', function () {
         name: 'should not enclose the entire query in quotes if there are spaces in quoted args',
         object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
         string: 'transaction:["this has a space",thisdoesnot]',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[Filtered]"']),
+        string: 'message:"[Filtered]"',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test]']),
+        string: 'message:[test]',
       },
     ];
 
