@@ -14,6 +14,23 @@ const AI_RUN_OPS = [
   'ai.pipeline.stream_object',
 ];
 
+// AI Generations - equivalent to OTEL Inference span
+// https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#inference
+export const AI_GENERATION_OPS = [
+  'ai.run.doGenerate',
+  'gen_ai.chat',
+  'gen_ai.generate_content',
+  'gen_ai.generate_text',
+  'gen_ai.generate_object',
+  'gen_ai.stream_text',
+  'gen_ai.stream_object',
+  'gen_ai.embed', // AI SDK
+  'gen_ai.embed_many', // AI SDK
+  'gen_ai.embeddings', // Python OpenAI
+  'gen_ai.text_completion',
+  'gen_ai.responses',
+];
+
 // AI Tool Calls - equivalent to OTEL Execute tool span
 // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/gen-ai-spans.md#execute-tool-span
 export const AI_TOOL_CALL_OPS = ['gen_ai.execute_tool'];
@@ -60,7 +77,7 @@ export function extendWithLegacyAttributeKeys(attributeKeys: string[]) {
 }
 
 export function getIsAiSpan({op = 'default'}: {op?: string}) {
-  return op.startsWith('gen_ai.') || getIsAiRunSpan({op});
+  return op.startsWith('gen_ai.');
 }
 
 export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
