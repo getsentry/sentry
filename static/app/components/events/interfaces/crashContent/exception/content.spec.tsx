@@ -347,6 +347,24 @@ describe('Exception Content', function () {
       expect(within(exceptions[0]!).getByText('Related Exceptions')).toBeInTheDocument();
     });
 
+    it('displays exception group tree in first frame when there is no other context', async function () {
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
+
+      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
+      for (const button of viewSectionButtons) {
+        await userEvent.click(button); // just expand all of them so we can see the exception group tree
+      }
+
+      const exceptions = screen.getAllByTestId('exception-value');
+
+      const exceptionGroupWithNoContext = exceptions[2]!;
+      expect(
+        within(exceptionGroupWithNoContext).getByText('Related Exceptions')
+      ).toBeInTheDocument();
+    });
+
     it('hides sub-groups by default', async function () {
       render(<Content {...defaultProps} />, {
         deprecatedRouterMocks: true,
