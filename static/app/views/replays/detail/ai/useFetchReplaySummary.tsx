@@ -79,6 +79,9 @@ export function useFetchReplaySummary(
         `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
         {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           data: {
             num_segments: segmentCount,
           },
