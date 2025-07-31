@@ -1,23 +1,3 @@
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-
-/**
- * Safely formats savings amounts with proper sign handling
- */
-export function formatSavingsAmount(savings: number): string {
-  if (!isFinite(savings) || isNaN(savings)) {
-    return '0 B';
-  }
-
-  if (savings === 0) {
-    return '0 B';
-  }
-
-  const sign = savings < 0 ? '−' : '';
-  const absoluteSavings = Math.abs(savings);
-
-  return `${sign}${formatBytesBase10(absoluteSavings)}`;
-}
-
 /**
  * Safely formats percentages with proper precision and Unicode minus sign
  */

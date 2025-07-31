@@ -2,17 +2,19 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Container} from 'sentry/components/core/layout/container';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Heading} from 'sentry/components/core/text/heading';
+import {Text as SentryText} from 'sentry/components/core/text/text';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import {formatBytesBase10SavingsAmount} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   AppleInsightResults,
   OptimizableImageFile,
 } from 'sentry/views/preprod/types/appSizeTypes';
-import {
-  formatPercentage,
-  formatSavingsAmount,
-} from 'sentry/views/preprod/utils/formatters';
+import {formatPercentage} from 'sentry/views/preprod/utils/formatters';
 import {
   type ProcessedInsightFile,
   processInsights,
@@ -51,12 +53,27 @@ function FileRow({file, fileIndex}: FileRowProps) {
   // Default display for all other file types
   return (
     <FileItem isAlternating={isAlternating}>
-      <FilePath>{file.path}</FilePath>
+      <SentryText
+        variant="accent"
+        size="sm"
+        bold
+        ellipsis
+        style={{flex: 1, marginRight: '16px', cursor: 'pointer'}}
+      >
+        {file.path}
+      </SentryText>
       <FileSavings>
-        <FileSavingsAmount>{formatSavingsAmount(-file.savings)}</FileSavingsAmount>
-        <FileSavingsPercentage>
+        <SentryText variant="primary" size="sm" tabular>
+          {formatBytesBase10SavingsAmount(-file.savings)}
+        </SentryText>
+        <SentryText
+          variant="muted"
+          size="sm"
+          tabular
+          style={{width: '64px', textAlign: 'right'}}
+        >
           ({formatPercentage(-file.percentage)})
-        </FileSavingsPercentage>
+        </SentryText>
       </FileSavings>
     </FileItem>
   );
@@ -77,12 +94,27 @@ function OptimizableImageFileRow({
 }) {
   return (
     <FileItem isAlternating={isAlternating}>
-      <FilePath>{file.path}</FilePath>
+      <SentryText
+        variant="accent"
+        size="sm"
+        bold
+        ellipsis
+        style={{flex: 1, marginRight: '16px', cursor: 'pointer'}}
+      >
+        {file.path}
+      </SentryText>
       <FileSavings>
-        <FileSavingsAmount>{formatSavingsAmount(-file.savings)}</FileSavingsAmount>
-        <FileSavingsPercentage>
+        <SentryText variant="primary" size="sm" tabular>
+          {formatBytesBase10SavingsAmount(-file.savings)}
+        </SentryText>
+        <SentryText
+          variant="muted"
+          size="sm"
+          tabular
+          style={{width: '64px', textAlign: 'right'}}
+        >
           ({formatPercentage(-file.percentage)})
-        </FileSavingsPercentage>
+        </SentryText>
       </FileSavings>
     </FileItem>
   );
@@ -118,143 +150,130 @@ export function AppSizeInsightsSidebar({
         panelWidth="502px"
         ariaLabel="App size insights details"
       >
-        <SidebarContainer>
-          <Header>
-            <Title>Insights</Title>
+        <Container
+          height="100%"
+          display="flex"
+          style={{flexDirection: 'column'}}
+          background="primary"
+        >
+          <Container
+            display="flex"
+            padding="lg lg md lg"
+            style={{
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid #F0ECF3',
+            }}
+          >
+            <Heading as="h2" size="xl">
+              Insights
+            </Heading>
             <CloseButton
               size="sm"
               icon={<IconClose />}
               aria-label="Close sidebar"
               onClick={onClose}
             />
-          </Header>
+          </Container>
 
-          <InsightsContent>
-            {processedInsights.map(insight => {
-              const isExpanded = expandedInsights.has(insight.name);
-              return (
-                <InsightCard key={insight.name}>
-                  <InsightHeader>
-                    <InsightTitle>{insight.name}</InsightTitle>
-                    <SavingsInfo>
-                      <SavingsText>
-                        Potential savings {formatSavingsAmount(insight.totalSavings)}
-                      </SavingsText>
-                      <SavingsPercentage>
-                        {formatPercentage(-insight.percentage)}
-                      </SavingsPercentage>
-                    </SavingsInfo>
-                  </InsightHeader>
+          <Container
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+            }}
+            padding="lg"
+            display="flex"
+          >
+            <Container
+              display="flex"
+              style={{
+                flexDirection: 'column',
+                gap: '20px',
+                width: '100%',
+              }}
+            >
+              {processedInsights.map(insight => {
+                const isExpanded = expandedInsights.has(insight.name);
+                return (
+                  <Flex
+                    key={insight.name}
+                    background="primary"
+                    style={{
+                      border: '1px solid #F0ECF3',
+                    }}
+                    radius="md"
+                    padding="md"
+                    direction="column"
+                    gap="lg"
+                  >
+                    <Flex align="start" justify="between">
+                      <SentryText variant="primary" size="md" bold>
+                        {insight.name}
+                      </SentryText>
+                      <Container
+                        display="flex"
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: '8px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <SentryText size="sm" tabular>
+                          Potential savings{' '}
+                          {formatBytesBase10SavingsAmount(insight.totalSavings)}
+                        </SentryText>
+                        <SavingsPercentage>
+                          {formatPercentage(-insight.percentage)}
+                        </SavingsPercentage>
+                      </Container>
+                    </Flex>
 
-                  <InsightDescription>{insight.description}</InsightDescription>
+                    <SentryText variant="muted" size="sm" as="p">
+                      {insight.description}
+                    </SentryText>
 
-                  <FilesSection>
-                    <FilesToggle
-                      isExpanded={isExpanded}
-                      onClick={() => toggleExpanded(insight.name)}
-                    >
-                      <ToggleIcon isExpanded={isExpanded} />
-                      <FilesCount>{insight.files.length} files</FilesCount>
-                    </FilesToggle>
+                    <Container>
+                      <FilesToggle
+                        isExpanded={isExpanded}
+                        onClick={() => toggleExpanded(insight.name)}
+                      >
+                        <ToggleIcon isExpanded={isExpanded} />
+                        <SentryText variant="primary" size="md" bold>
+                          {insight.files.length} files
+                        </SentryText>
+                      </FilesToggle>
 
-                    {isExpanded && (
-                      <FilesList>
-                        {insight.files.map((file, fileIndex) => (
-                          <FileRow
-                            key={`${file.path}-${fileIndex}`}
-                            file={file}
-                            fileIndex={fileIndex}
-                          />
-                        ))}
-                      </FilesList>
-                    )}
-                  </FilesSection>
-                </InsightCard>
-              );
-            })}
-          </InsightsContent>
-        </SidebarContainer>
+                      {isExpanded && (
+                        <Container
+                          display="flex"
+                          style={{
+                            flexDirection: 'column',
+                            gap: 0,
+                          }}
+                        >
+                          {insight.files.map((file, fileIndex) => (
+                            <FileRow
+                              key={`${file.path}-${fileIndex}`}
+                              file={file}
+                              fileIndex={fileIndex}
+                            />
+                          ))}
+                        </Container>
+                      )}
+                    </Container>
+                  </Flex>
+                );
+              })}
+            </Container>
+          </Container>
+        </Container>
       </SlideOverPanel>
     </Fragment>
   );
 }
 
-const SidebarContainer = styled('div')`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: ${p => p.theme.background};
-`;
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${space(3)} ${space(3)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const Title = styled('h2')`
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
-  color: ${p => p.theme.textColor};
-`;
-
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.subText};
-`;
-
-const InsightsContent = styled('div')`
-  flex: 1;
-  overflow-y: auto;
-  padding: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(3)};
-`;
-
-const InsightCard = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 8px;
-  padding: ${space(2)};
-`;
-
-const InsightHeader = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
-
-const InsightTitle = styled('h3')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 1.4;
-  letter-spacing: 0;
-  vertical-align: middle;
-  font-variant-numeric: lining-nums tabular-nums;
-  margin: 0;
-  color: ${p => p.theme.textColor};
-`;
-
-const SavingsInfo = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
-  flex-shrink: 0;
-`;
-
-const SavingsText = styled('div')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 0;
-  font-variant-numeric: lining-nums tabular-nums;
   color: ${p => p.theme.subText};
 `;
 
@@ -277,19 +296,6 @@ const SavingsPercentage = styled('div')`
   white-space: nowrap;
   flex-shrink: 0;
 `;
-
-const InsightDescription = styled('p')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 0;
-  font-variant-numeric: lining-nums tabular-nums;
-  color: ${p => p.theme.subText};
-  margin-bottom: 12px;
-`;
-
-const FilesSection = styled('div')``;
 
 const FilesToggle = styled('button')<{isExpanded: boolean}>`
   display: flex;
@@ -314,16 +320,6 @@ const ToggleIcon = styled(IconChevron)<{isExpanded: boolean}>`
   color: inherit;
 `;
 
-const FilesCount = styled('span')`
-  font-weight: 500;
-`;
-
-const FilesList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-`;
-
 const FileItem = styled('div')<{isAlternating: boolean}>`
   display: flex;
   align-items: center;
@@ -336,72 +332,10 @@ const FileItem = styled('div')<{isAlternating: boolean}>`
   min-width: 0;
 `;
 
-const FilePath = styled('span')`
-  font-family: ${p => p.theme.text.family};
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 1;
-  letter-spacing: 0;
-  text-align: left;
-  font-variant-numeric: lining-nums tabular-nums;
-  color: ${p => p.theme.purple400};
-  flex: 1;
-  margin-right: ${space(2)};
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-// const ImageFileInfo = styled('div')`
-//   display: flex;
-//   flex-direction: column;
-//   flex: 1;
-//   min-width: 0;
-//   margin-right: ${space(2)};
-// `;
-
-// const OptimizationType = styled('span')`
-//   font-family: 'Rubik', sans-serif;
-//   font-weight: 400;
-//   font-size: 10px;
-//   line-height: 1;
-//   letter-spacing: 0;
-//   color: ${p => p.theme.subText};
-//   margin-top: 2px;
-// `;
-
 const FileSavings = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const FileSavingsAmount = styled('span')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 0;
-  font-variant-numeric: lining-nums tabular-nums;
-  color: ${p => p.theme.textColor};
-`;
-
-const FileSavingsPercentage = styled('span')`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 0;
-  text-align: right;
-  width: 64px;
-  font-variant-numeric: lining-nums tabular-nums;
-  color: ${p => p.theme.subText};
 `;
 
 const Backdrop = styled('div')`

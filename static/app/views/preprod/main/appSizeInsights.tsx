@@ -2,14 +2,14 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Container} from 'sentry/components/core/layout/container';
+import {Heading} from 'sentry/components/core/text/heading';
+import {Text as SentryText} from 'sentry/components/core/text/text';
 import {IconSettings} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {formatBytesBase10SavingsAmount} from 'sentry/utils/bytes/formatBytesBase10';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/appSizeInsightsSidebar';
 import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
-import {
-  formatPercentage,
-  formatSavingsAmount,
-} from 'sentry/views/preprod/utils/formatters';
+import {formatPercentage} from 'sentry/views/preprod/utils/formatters';
 import {
   type ProcessedInsight,
   processInsights,
@@ -37,26 +37,64 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
   }
 
   return (
-    <InsightsContainer>
-      <Header>
-        <Title>Top insights</Title>
+    <Container
+      background="primary"
+      radius="md"
+      padding="md"
+      style={{
+        marginTop: '20px',
+        border: '1px solid #F0ECF3',
+      }}
+    >
+      <Container
+        display="flex"
+        style={{
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
+        }}
+      >
+        <Heading as="h2" size="lg">
+          Top insights
+        </Heading>
         <Button size="sm" icon={<IconSettings />} onClick={() => setIsSidebarOpen(true)}>
           View all insights
         </Button>
-      </Header>
-      <InsightsList>
+      </Container>
+      <Container
+        display="flex"
+        style={{
+          flexDirection: 'column',
+          gap: '4px',
+        }}
+      >
         {topInsights.map((insight, index) => (
           <InsightRow key={insight.name} isAlternating={index % 2 === 0}>
-            <InsightName>{insight.name}</InsightName>
-            <SavingsContainer>
-              <SavingsAmount>{formatSavingsAmount(-insight.totalSavings)}</SavingsAmount>
-              <SavingsPercentage width="64px">
+            <SentryText variant="primary" size="sm" bold>
+              {insight.name}
+            </SentryText>
+            <Container
+              display="flex"
+              style={{
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <SentryText variant="muted" size="sm" tabular>
+                {formatBytesBase10SavingsAmount(-insight.totalSavings)}
+              </SentryText>
+              <SentryText
+                variant="muted"
+                size="sm"
+                tabular
+                style={{width: '64px', textAlign: 'right'}}
+              >
                 ({formatPercentage(-insight.percentage)})
-              </SavingsPercentage>
-            </SavingsContainer>
+              </SentryText>
+            </Container>
           </InsightRow>
         ))}
-      </InsightsList>
+      </Container>
 
       <AppSizeInsightsSidebar
         insights={insights}
@@ -64,37 +102,9 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
-    </InsightsContainer>
+    </Container>
   );
 }
-
-const InsightsContainer = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
-  margin-top: ${space(3)};
-`;
-
-const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-`;
-
-const Title = styled('h3')`
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: ${p => p.theme.textColor};
-`;
-
-const InsightsList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
 
 const InsightRow = styled('div')<{isAlternating: boolean}>`
   display: flex;
@@ -104,39 +114,4 @@ const InsightRow = styled('div')<{isAlternating: boolean}>`
   padding: 4px 6px;
   background: ${p => (p.isAlternating ? '#F7F6F9' : 'transparent')};
   border-radius: ${p => (p.isAlternating ? '4px' : '0')};
-`;
-
-const InsightName = styled('span')`
-  color: ${p => p.theme.purple300};
-  font-family: 'Rubik', sans-serif;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 0;
-  font-variant-numeric: lining-nums tabular-nums;
-`;
-
-const SavingsContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const SavingsText = styled('span')<{width?: string}>`
-  font-family: 'Rubik', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  line-height: 1.2;
-  letter-spacing: 0;
-  text-align: right;
-  font-variant-numeric: lining-nums tabular-nums;
-  width: ${p => p.width || 'auto'};
-`;
-
-const SavingsAmount = styled(SavingsText)`
-  color: ${p => p.theme.gray400};
-`;
-
-const SavingsPercentage = styled(SavingsText)`
-  color: ${p => p.theme.gray400};
 `;
