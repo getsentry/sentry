@@ -895,7 +895,7 @@ register(
 # Enable sequential deletion of events from nodestore
 register(
     "deletions.nodestore.parallelization-task-enabled",
-    default=False,
+    default=True,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
