@@ -2,18 +2,18 @@ import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {UptimePercentile} from './percentile';
+import {UptimePercent} from './percent';
 
-describe('UptimePercentile', () => {
+describe('UptimePercent', () => {
   const mockSummary = UptimeSummaryFixture();
 
   it('calculates and displays uptime percentage correctly', () => {
-    // Known checks = totalChecks - missedWindowChecks = 100 - 2 = 98
-    // Uptime calculation = (knownChecks - downtimeChecks) / knownChecks = (98 - 5) / 98 = 93/98 = 0.9489...
-    // Uptime = 94.897% which rounds down to 94.897%
-    render(<UptimePercentile summary={mockSummary} />);
+    // Known checks = totalChecks - missedWindowChecks - failedChecks = 100 - 2 - 3 = 95
+    // Success checks = knownChecks - downtimeChecks = 95 - 5 = 90
+    // Uptime = (90 / 95) * 100 = 94.736...
+    render(<UptimePercent summary={mockSummary} />);
 
-    expect(screen.getByText('94.897%')).toBeInTheDocument();
+    expect(screen.getByText('94.736%')).toBeInTheDocument();
   });
 
   it('displays 100% uptime when all checks are successful', () => {
@@ -23,7 +23,7 @@ describe('UptimePercentile', () => {
       missedWindowChecks: 0,
     });
 
-    render(<UptimePercentile summary={perfectSummary} />);
+    render(<UptimePercent summary={perfectSummary} />);
 
     expect(screen.getByText('100%')).toBeInTheDocument();
   });
@@ -35,7 +35,7 @@ describe('UptimePercentile', () => {
       missedWindowChecks: 100,
     });
 
-    render(<UptimePercentile summary={noKnownChecksSummary} />);
+    render(<UptimePercent summary={noKnownChecksSummary} />);
 
     expect(screen.getByText('0.0%')).toBeInTheDocument();
   });
@@ -46,11 +46,13 @@ describe('UptimePercentile', () => {
       failedChecks: 48,
       missedWindowChecks: 2,
     });
-    // knownChecks = 100 - 2 = 98, uptime = (98 - 50) / 98 = 48/98 = 0.48979... = 48.979%
+    // knownChecks = 100 - 2 - 48 = 50
+    // successChecks = 50 - 50 = 0
+    // uptime = (0 / 50) * 100 = 0%
 
-    render(<UptimePercentile summary={allFailedSummary} />);
+    render(<UptimePercent summary={allFailedSummary} />);
 
-    expect(screen.getByText('48.979%')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
   });
 
   it('handles zero total checks', () => {
@@ -61,7 +63,7 @@ describe('UptimePercentile', () => {
       missedWindowChecks: 0,
     });
 
-    render(<UptimePercentile summary={zeroChecksSummary} />);
+    render(<UptimePercent summary={zeroChecksSummary} />);
 
     expect(screen.getByText('0.0%')).toBeInTheDocument();
   });
@@ -73,22 +75,22 @@ describe('UptimePercentile', () => {
       missedWindowChecks: 0,
       totalChecks: 7,
     });
-    // Uptime = 6/7 = 0.857142... which should round down to 85.714%
+    // knownChecks = 7 - 0 - 0 = 7, successChecks = 7 - 1 = 6
+    // Uptime = (6 / 7) * 100 = 85.714...
 
-    render(<UptimePercentile summary={preciseSummary} />);
+    render(<UptimePercent summary={preciseSummary} />);
 
     expect(screen.getByText('85.714%')).toBeInTheDocument();
   });
 
   it('shows tooltip with detailed breakdown on hover', async () => {
-    render(<UptimePercentile summary={mockSummary} />);
+    render(<UptimePercent summary={mockSummary} note="This is a test" />);
 
-    const percentageText = screen.getByText('94.897%');
+    const percentageText = screen.getByText('94.736%');
     await userEvent.hover(percentageText);
 
-    expect(await screen.findByText(/uptime/i)).toBeInTheDocument();
+    expect(await screen.findByText('This is a test')).toBeInTheDocument();
     expect(screen.getByText('Up Checks')).toBeInTheDocument();
-    expect(screen.getByText('Failed Checks')).toBeInTheDocument();
     expect(screen.getByText('Down Checks')).toBeInTheDocument();
   });
 });

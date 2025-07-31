@@ -30,7 +30,6 @@ import {
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
-  useLogsIsTableFrozen,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -81,6 +80,7 @@ type LogsRowProps = {
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
   canDeferRenderElements?: boolean;
+  embedded?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
   onExpand?: (logItemId: string) => void;
@@ -110,6 +110,7 @@ function isInsideButton(element: Element | null): boolean {
 
 export const LogRowContent = memo(function LogRowContent({
   dataRow,
+  embedded = false,
   highlightTerms,
   meta,
   sharedHoverTimeoutRef,
@@ -125,7 +126,6 @@ export const LogRowContent = memo(function LogRowContent({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
-  const isTableFrozen = useLogsIsTableFrozen();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
@@ -340,7 +340,7 @@ export const LogRowContent = memo(function LogRowContent({
                     }
                   }}
                   allowActions={
-                    field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
+                    field === OurLogKnownFieldKey.TIMESTAMP || embedded
                       ? []
                       : ALLOWED_CELL_ACTIONS
                   }
@@ -359,6 +359,7 @@ export const LogRowContent = memo(function LogRowContent({
         <LogRowDetails
           dataRow={dataRow}
           highlightTerms={highlightTerms}
+          embedded={embedded}
           meta={meta}
           ref={measureRef}
         />
@@ -369,11 +370,13 @@ export const LogRowContent = memo(function LogRowContent({
 
 function LogRowDetails({
   dataRow,
+  embedded,
   highlightTerms,
   meta,
   ref,
 }: {
   dataRow: OurLogsResponseItem;
+  embedded: boolean;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   ref: React.RefObject<HTMLTableRowElement | null>;
@@ -385,7 +388,7 @@ function LogRowDetails({
   });
   const projectSlug = project?.slug ?? '';
   const fields = useLogsFields();
-  const getActions = useLogAttributesTreeActions();
+  const getActions = useLogAttributesTreeActions({embedded});
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 

@@ -7,11 +7,11 @@ from django.db.models import Count, Q
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -25,23 +25,29 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
+    can_edit_detector,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
@@ -85,6 +91,11 @@ SORT_ATTRS = {
     "connectedWorkflows": "connected_workflows",
 }
 
+DETECTOR_TYPE_ALIASES = {
+    "metric": MetricIssue.slug,
+    "uptime": UptimeDomainCheckFailure.slug,
+}
+
 
 def get_detector_validator(
     request: Request, project: Project, detector_type_slug: str, instance=None
@@ -115,12 +126,77 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
     permission_classes = (OrganizationAlertRulePermission,)
+
+    def filter_detectors(self, request: Request, organization) -> QuerySet[Detector]:
+        """
+        Filter detectors based on the request parameters.
+        """
+        projects = self.get_projects(request, organization)
+        queryset: QuerySet[Detector] = Detector.objects.filter(
+            project_id__in=projects,
+        )
+
+        if not request.user.is_authenticated:
+            return queryset
+
+        if raw_idlist := request.GET.getlist("id"):
+            try:
+                ids = [int(id) for id in raw_idlist]
+            except ValueError:
+                raise ValidationError({"id": ["Invalid ID format"]})
+            queryset = queryset.filter(id__in=ids)
+
+            # If specific IDs are provided, skip other filtering
+            return queryset
+
+        if raw_query := request.GET.get("query"):
+            for filter in parse_detector_query(raw_query):
+                assert isinstance(filter, SearchFilter)
+                match filter:
+                    case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
+                        queryset = apply_filter(queryset, filter, "name")
+                    case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        values = [DETECTOR_TYPE_ALIASES.get(value, value) for value in values]
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(type__in=values)
+                        else:
+                            queryset = queryset.filter(type__in=values)
+                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                        # Filter values can be emails, team slugs, "me", "my_teams", "none"
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        assignee_q = convert_assignee_values(values, projects, request.user)
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(assignee_q)
+                        else:
+                            queryset = queryset.filter(assignee_q)
+                    case SearchFilter(key=SearchKey("query"), operator="="):
+                        # 'query' is our free text key; all free text gets returned here
+                        # as '=', and we search any relevant fields for it.
+                        queryset = queryset.filter(
+                            Q(description__icontains=filter.value.value)
+                            | Q(name__icontains=filter.value.value)
+                            | Q(type__icontains=filter.value.value)
+                        ).distinct()
+
+        return queryset
 
     @extend_schema(
         operation_id="Fetch a Project's Detectors",
@@ -148,47 +224,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
-        projects = self.get_projects(request, organization)
-        queryset: QuerySet[Detector] = Detector.objects.filter(
-            project_id__in=projects,
-        )
-
-        if raw_idlist := request.GET.getlist("id"):
-            try:
-                ids = [int(id) for id in raw_idlist]
-            except ValueError:
-                raise ValidationError({"id": ["Invalid ID format"]})
-            queryset = queryset.filter(id__in=ids)
-
-        if raw_query := request.GET.get("query"):
-            for filter in parse_detector_query(raw_query):
-                assert isinstance(filter, SearchFilter)
-                match filter:
-                    case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
-                        queryset = apply_filter(queryset, filter, "name")
-                    case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
-                        queryset = apply_filter(queryset, filter, "type")
-                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
-                        # Filter values can be emails, team slugs, "me", "my_teams", "none"
-                        values = (
-                            filter.value.value
-                            if isinstance(filter.value.value, list)
-                            else [filter.value.value]
-                        )
-                        assignee_q = convert_assignee_values(values, projects, request.user)
-
-                        if filter.operator == "!=":
-                            queryset = queryset.exclude(assignee_q)
-                        else:
-                            queryset = queryset.filter(assignee_q)
-                    case SearchFilter(key=SearchKey("query"), operator="="):
-                        # 'query' is our free text key; all free text gets returned here
-                        # as '=', and we search any relevant fields for it.
-                        queryset = queryset.filter(
-                            Q(description__icontains=filter.value.value)
-                            | Q(name__icontains=filter.value.value)
-                            | Q(type__icontains=filter.value.value)
-                        ).distinct()
+        queryset = self.filter_detectors(request, organization)
 
         sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_ATTRS)
         if sort_by.db_field_name == "connected_workflows":
@@ -291,3 +327,63 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 bulk_validator.save()
 
         return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        operation_id="Delete an Organization's Detectors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            DetectorParams.QUERY,
+            DetectorParams.SORT,
+            DetectorParams.ID,
+        ],
+        responses={
+            201: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(self, request: Request, organization: Organization) -> Response:
+        """
+        Delete an Organization's Detectors
+        """
+        if not request.user.is_authenticated:
+            return self.respond(status=status.HTTP_401_UNAUTHORIZED)
+
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = self.filter_detectors(request, organization)
+
+        detectors_to_delete = list(queryset)
+
+        # Check permissions for all detectors first
+        for detector in detectors_to_delete:
+            if not can_edit_detector(detector, request):
+                raise PermissionDenied
+
+        with transaction.atomic(router.db_for_write(Detector)):
+            for detector in detectors_to_delete:
+                RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+                create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=detector.id,
+                    event=audit_log.get_event_id("DETECTOR_REMOVE"),
+                    data=detector.get_audit_log_data(),
+                )
+                detector.update(status=ObjectStatus.PENDING_DELETION)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
