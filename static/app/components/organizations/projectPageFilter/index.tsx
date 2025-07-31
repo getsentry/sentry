@@ -433,7 +433,6 @@ export function ProjectPageFilter({
             nonMemberProjects={nonMemberProjects}
             ready={projectsLoaded && pageFilterIsReady}
             desynced={desynced}
-            {...triggerProps}
           />
         ))
       }
