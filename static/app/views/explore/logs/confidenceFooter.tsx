@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
@@ -22,6 +24,7 @@ export function ConfidenceFooter({
   return (
     <Container>
       <ConfidenceMessage
+        isLoading={isLoading}
         confidence={chartInfo.confidence}
         dataScanned={chartInfo.dataScanned}
         isSampled={chartInfo.isSampled}
@@ -33,6 +36,7 @@ export function ConfidenceFooter({
 }
 
 interface ConfidenceMessageProps {
+  isLoading: boolean;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
@@ -45,14 +49,13 @@ function ConfidenceMessage({
   dataScanned,
   confidence,
   topEvents,
+  isLoading,
   isSampled,
 }: ConfidenceMessageProps) {
   const isTopN = defined(topEvents) && topEvents > 1;
 
-  if (!defined(sampleCount)) {
-    return isTopN
-      ? t('* Top %s groups extrapolated based on \u2026', topEvents)
-      : t('* Extrapolated based on \u2026');
+  if (!defined(sampleCount) || isLoading) {
+    return <Placeholder />;
   }
 
   const noSampling = defined(isSampled) && !isSampled;
@@ -62,13 +65,13 @@ function ConfidenceMessage({
     // For logs, if the full data was scanned, we can assume that no
     // extrapolation happened and we should remove mentions of extrapolation.
     if (isTopN) {
-      return tct('Top [topEvents] groups based on [sampleCountComponent] logs', {
+      return tct('Log count for top [topEvents] groups: [sampleCountComponent]', {
         topEvents,
         sampleCountComponent,
       });
     }
 
-    return tct('Based on [sampleCountComponent] logs', {
+    return tct('Log count: [sampleCountComponent]', {
       sampleCountComponent,
     });
   }
@@ -142,3 +145,10 @@ function LowAccuracyFullTooltip({
     </Tooltip>
   );
 }
+
+const Placeholder = styled('div')`
+  width: 180px;
+  height: ${p => p.theme.fontSize.md};
+  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.backgroundTertiary};
+`;
