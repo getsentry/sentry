@@ -39,7 +39,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_spans_table_loads_all_events(self, mock_now):
+    def test_trace_view_waterfall_loads(self, mock_now):
         mock_now.return_value = self.start
 
         assert (
@@ -54,7 +54,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
                 spans=[
                     {
                         "same_process_as_parent": True,
-                        "op": "http.{i}",
+                        "op": "http.server",
                         "description": f"GET gen1-{root_span_id}",
                         "span_id": root_span_id,
                         "trace_id": self.trace_id,
@@ -67,13 +67,16 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
                 is_eap=True,
             )
 
+            # Visit the trace view and wait till waterfall loads
             self.page.visit_trace_view(self.organization.slug, self.trace_id)
+
+            # Check root span row exists and has the correct text
             root_span_row = self.page.get_trace_span_row("http.server", "root")
             assert root_span_row is not None
-
             normalized_text = self.page.normalize_span_row_text(root_span_row.text)
             assert normalized_text == f"{len(self.root_span_ids)} http.server - root"
 
+            # Check child span rows exist and have the correct text
             for span_id in self.root_span_ids:
                 span_row = self.page.get_trace_span_row("http.server", f"GET gen1-{span_id}")
                 assert span_row is not None
