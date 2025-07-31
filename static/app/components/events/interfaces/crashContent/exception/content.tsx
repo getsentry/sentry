@@ -388,6 +388,7 @@ const ShowRelatedExceptionsButton = styled(Button)`
 
 const StyledFoldSection = styled(FoldSection)`
   margin-bottom: 0;
+  margin-left: -${p => p.theme.space.sm};
 
   & ~ hr {
     margin-left: ${p => p.theme.space.xl};
