@@ -37,10 +37,6 @@ from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.endpoints.validators.bulk_workflow import (
-    BulkWorkflowMutationValidator,
-    BulkWorkflowUpdateValidator,
-)
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
 )
@@ -268,13 +264,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Mutates workflows for a given org
         """
-        validator = BulkWorkflowUpdateValidator(
-            context={"organization": organization, "request": request}
-        )
-        validator.is_valid(raise_exception=True)
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        # Extract validated enabled value
-        enabled = validator.validated_data["enabled"]
+        enabled = request.data.get("enabled")
+        if enabled is None:
+            return Response(
+                {"enabled": "This field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         queryset = self.filter_workflows(request, organization)
 
@@ -310,10 +318,18 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Deletes workflows for a given org
         """
-        validator = BulkWorkflowMutationValidator(
-            context={"organization": organization, "request": request}
-        )
-        validator.is_valid(raise_exception=True)
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         queryset = self.filter_workflows(request, organization)
 

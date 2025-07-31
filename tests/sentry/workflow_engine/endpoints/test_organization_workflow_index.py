@@ -964,7 +964,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             status_code=400,
         )
 
-        assert "A valid integer is required." in str(response.data["id"])
+        assert "Invalid ID format" in str(response.data["id"])
 
     def test_delete_workflows_filtering_ignored_with_ids(self):
         # Link workflow to project via detector
