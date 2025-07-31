@@ -1,7 +1,8 @@
 import {useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Text} from 'sentry/components/core/text';
 import {space} from 'sentry/styles/space';
 
 type Entry = {
@@ -84,13 +85,9 @@ function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
       }
     );
 
-    entries.forEach(entry => {
-      observer.observe(entry.ref);
-    });
+    entries.forEach(entry => observer.observe(entry.ref));
 
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [entries]);
 
   return [activeId, setActiveId];
@@ -161,18 +158,16 @@ export function StoryTableOfContents() {
   return (
     <StoryIndexContainer>
       <StoryIndexTitle>On this page</StoryIndexTitle>
-      <StoryIndexListContainer>
-        <StoryIndexList>
-          {nestedEntries.map(entry => (
-            <StoryContentsList
-              key={entry.entry.ref.id}
-              entry={entry}
-              activeId={activeId}
-              setActiveId={setActiveId}
-            />
-          ))}
-        </StoryIndexList>
-      </StoryIndexListContainer>
+      <StoryIndexList>
+        {nestedEntries.map(entry => (
+          <StoryContentsList
+            key={entry.entry.ref.id}
+            entry={entry}
+            activeId={activeId}
+            setActiveId={setActiveId}
+          />
+        ))}
+      </StoryIndexList>
     </StoryIndexContainer>
   );
 }
@@ -200,15 +195,17 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <li>
-      <LinkComponent
-        href={`#${entry.entry.ref.id}`}
-        isActive={isActive}
-        hasActiveChild={hasActiveChild}
-        onClick={() => setActiveId(entry.entry.ref.id)}
-      >
-        <TextOverflow>{entry.entry.title}</TextOverflow>
-      </LinkComponent>
+    <Flex as="li" direction="column" overflow="hidden">
+      <Text ellipsis>
+        <LinkComponent
+          href={`#${entry.entry.ref.id}`}
+          isActive={isActive}
+          hasActiveChild={hasActiveChild}
+          onClick={() => setActiveId(entry.entry.ref.id)}
+        >
+          {entry.entry.title}
+        </LinkComponent>
+      </Text>
       {entry.children.length > 0 && (
         <StoryIndexList>
           {entry.children.map(child => (
@@ -222,7 +219,7 @@ function StoryContentsList({
           ))}
         </StoryIndexList>
       )}
-    </li>
+    </Flex>
   );
 }
 
@@ -233,13 +230,12 @@ const StoryIndexContainer = styled('div')`
   margin-inline: 0 ${space(2)};
   height: fit-content;
   padding: ${space(2)};
+  min-width: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
 `;
-
-const StoryIndexListContainer = styled('div')``;
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;
@@ -254,10 +250,10 @@ const StoryIndexTitle = styled('div')`
 const StoryIndexList = styled('ul')`
   list-style: none;
   padding-left: ${space(1)};
+  padding-right: ${space(1)};
   border-left: 1px solid ${p => p.theme.tokens.border.muted};
   margin: 0;
   margin-left: -${space(2)};
-  min-width: 200px;
   display: flex;
   flex-direction: column;
 

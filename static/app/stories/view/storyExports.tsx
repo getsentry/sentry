@@ -1,9 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {Heading} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
@@ -13,7 +15,11 @@ import {storyMdxComponents} from './storyMdxComponent';
 import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
 import {StoryTableOfContents} from './storyTableOfContents';
-import {isMDXStory, type StoryDescriptor} from './useStoriesLoader';
+import {
+  isMDXStory,
+  type MDXStoryDescriptor,
+  type StoryDescriptor,
+} from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
 
@@ -26,9 +32,10 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 }
 
 function StoryLayout() {
+  const {story} = useStory();
   return (
     <Tabs>
-      <StoryTitlebar />
+      {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
           <StoryContent>
@@ -45,22 +52,29 @@ function StoryLayout() {
   );
 }
 
-function StoryTitlebar() {
-  const {story} = useStory();
+export function makeStorybookDocumentTitle(title: string | undefined): string {
+  return title ? `${title} — Sentry UI` : 'Sentry UI';
+}
 
-  if (!isMDXStory(story)) return null;
+function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
+  const title = props.story.exports.frontmatter?.title;
+  const description = props.story.exports.frontmatter?.description;
 
-  const title = story.exports.frontmatter?.title;
-  const description = story.exports.frontmatter?.description;
+  useEffect(() => {
+    document.title = makeStorybookDocumentTitle(title);
+  }, [title]);
 
   return (
     <StoryHeader>
       <StoryGrid>
         <StoryContainer style={{gap: space(1)}}>
-          <h1>{title}</h1>
-          {description && <p>{description}</p>}
-
-          <StoryTabList />
+          <Flex direction="column" gap="md">
+            <Heading as="h1">{title}</Heading>
+            {description && <p>{description}</p>}
+          </Flex>
+          {props.story.exports.frontmatter?.layout === 'document' ? null : (
+            <StoryTabList />
+          )}
         </StoryContainer>
       </StoryGrid>
     </StoryHeader>
@@ -201,7 +215,6 @@ const StoryGrid = styled('div')`
 
 const StoryContainer = styled('div')`
   max-width: 820px;
-  width: calc(100vw - 32px);
   margin-inline: auto;
   display: flex;
   flex-direction: column;
