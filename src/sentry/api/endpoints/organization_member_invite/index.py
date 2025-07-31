@@ -184,7 +184,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         async_send_notification(InviteRequestNotification, omi, request.user)
         return Response(serialize(omi), status=201)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List all organization member invites.
         """

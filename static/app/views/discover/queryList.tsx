@@ -47,6 +47,7 @@ type Props = {
   location: Location;
   organization: Organization;
   pageLinks: string;
+  refetchSavedQueries: () => void;
   renderPrebuilt: boolean;
   router: InjectedRouter;
   savedQueries: SavedQuery[];
@@ -63,9 +64,10 @@ class QueryList extends Component<Props> {
   }
 
   handleDeleteQuery = (eventView: EventView) => {
-    const {api, organization, location, savedQueries} = this.props;
+    const {api, organization, location, savedQueries, refetchSavedQueries} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
+      refetchSavedQueries();
       if (savedQueries.length === 1 && location.query.cursor) {
         browserHistory.push({
           pathname: location.pathname,
@@ -76,12 +78,13 @@ class QueryList extends Component<Props> {
   };
 
   handleDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    const {api, location, organization} = this.props;
+    const {api, location, organization, refetchSavedQueries} = this.props;
 
     eventView = eventView.clone();
     eventView.name = `${eventView.name} copy`;
 
     handleCreateQuery(api, organization, eventView, yAxis).then(() => {
+      refetchSavedQueries();
       browserHistory.push({
         pathname: location.pathname,
         query: {},

@@ -35,7 +35,11 @@ describe('TeamInsightsContainer', () => {
   it('shows message for users with no teams', () => {
     ProjectsStore.loadInitialData([]);
     const organization = OrganizationFixture({features: ['team-insights']});
-    render(<TeamInsightsContainer organization={organization} />);
+    render(
+      <TeamInsightsContainer organization={organization}>
+        <div>test</div>
+      </TeamInsightsContainer>
+    );
 
     expect(
       screen.getByText('You need at least one project to use this view')

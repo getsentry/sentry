@@ -74,7 +74,7 @@ function DashboardGrid({
     await updateDashboardFavorite(
       api,
       queryClient,
-      organization.slug,
+      organization,
       dashboard.id,
       isFavorited
     );

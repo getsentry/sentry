@@ -184,7 +184,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable higher limit for workflows
     manager.add("organizations:more-workflows", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable AI Agents specific insights
     manager.add("organizations:agents-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -337,6 +336,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable Seer Explorer panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable search query builder match key suggestions
+    manager.add("organizations:search-query-builder-match-key-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder raw search replacement
     manager.add("organizations:search-query-builder-raw-search-replacement", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new search query builder wildcard operators
@@ -379,12 +380,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make insights modules restrict queries to 14 days
     manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Make LLM monitoring module use eap instead of metrics
-    manager.add("organizations:insights-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Make Insights modules (except llm) use EAP instead of metrics
+    # Make Insights overview pages use EAP instead of transactions (because eap is not on AM1)
     manager.add("organizations:insights-modules-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Make insights overview module use EAP instead of metrics
-    manager.add("organizations:insights-overview-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new frontend overview ui (DAIN-154)
+    manager.add("organizations:insights-frontend-overview-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable open in explore and create alert actions inside insight charts
     manager.add("organizations:insights-chart-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
@@ -526,8 +525,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable calculated byte counts on ingested logs.
-    manager.add("organizations:ourlogs-calculated-byte-count", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable extraction of meta attributes for logs.
     manager.add("organizations:ourlogs-meta-attributes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable our logs stats to be displayed in the UI.

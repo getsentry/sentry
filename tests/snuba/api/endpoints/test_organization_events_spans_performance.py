@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -536,7 +536,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_sum(self, mock_raw_snql_query):
+    def test_sort_sum(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -588,7 +588,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_count(self, mock_raw_snql_query):
+    def test_sort_count(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -641,7 +641,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_avg_occurrence(self, mock_raw_snql_query):
+    def test_sort_avg_occurrence(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -706,7 +706,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_sort_percentiles(self, mock_raw_snql_query):
+    def test_sort_percentiles(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         for i, sort in enumerate(
@@ -768,7 +768,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_op_filter(self, mock_raw_snql_query):
+    def test_op_filter(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -804,7 +804,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         )
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_exclude_op_filter(self, mock_raw_snql_query):
+    def test_exclude_op_filter(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -864,7 +864,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         }
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_group_filter(self, mock_raw_snql_query):
+    def test_group_filter(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -989,7 +989,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.data == expected_result
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_pagination_first_page(self, mock_raw_snql_query):
+    def test_pagination_first_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1022,7 +1022,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert info["results"] == "true" if info["rel"] == "next" else "false"
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_pagination_middle_page(self, mock_raw_snql_query):
+    def test_pagination_middle_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1056,7 +1056,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert info["results"] == "true"
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_pagination_last_page(self, mock_raw_snql_query):
+    def test_pagination_last_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1084,7 +1084,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert info["results"] == ("true" if info["rel"] == "previous" else "false")
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_span_group_prefixed_with_zeros(self, mock_raw_snql_query):
+    def test_span_group_prefixed_with_zeros(self, mock_raw_snql_query: MagicMock) -> None:
         trace_context = {
             "op": "http.server",
             "hash": "00" + "ab" * 7,
@@ -1332,7 +1332,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.data == [{"op": test_op, "group": test_hash, "examples": []}]
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_one_span(self, mock_raw_snql_query):
+    def test_one_span(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1505,7 +1505,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         self.assert_span_examples(response.data, expected_result)
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_per_page(self, mock_raw_snql_query):
+    def test_per_page(self, mock_raw_snql_query: MagicMock) -> None:
         event = self.create_event()
 
         mock_raw_snql_query.side_effect = [
@@ -1809,7 +1809,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         }
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
-    def test_one_span(self, mock_raw_snql_query):
+    def test_one_span(self, mock_raw_snql_query: MagicMock) -> None:
         mock_raw_snql_query.side_effect = [{"data": []}]
 
         with self.feature(self.FEATURES):

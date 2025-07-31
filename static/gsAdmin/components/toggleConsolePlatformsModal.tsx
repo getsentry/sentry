@@ -104,7 +104,7 @@ function ToggleConsolePlatformsModal({
               name: 'nintendo-switch',
               type: 'boolean',
               label: 'Nintendo Switch',
-              help: 'Toggle the Nintendo Switch console platform for this organization.',
+              help: 'Toggle Nintendo Switch console platform for this organization.',
             }}
             flexibleControlStateSize
             inline

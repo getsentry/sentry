@@ -1,5 +1,5 @@
 import platform
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import brotli
 import pytest
@@ -13,7 +13,7 @@ from sentry.testutils.helpers import override_blocklist
 
 @responses.activate
 @patch("socket.getaddrinfo")
-def test_simple(mock_getaddrinfo):
+def test_simple(mock_getaddrinfo: MagicMock) -> None:
     mock_getaddrinfo.return_value = [(2, 1, 6, "", ("81.0.0.1", 0))]
     responses.add(responses.GET, "http://example.com", body="foo bar")
 
@@ -49,7 +49,7 @@ def test_ip_blacklist_ipv6() -> None:
 @pytest.mark.skipif(HAS_IPV6, reason="stub for non-ipv6 systems")
 @override_blocklist("::1")
 @patch("socket.getaddrinfo")
-def test_ip_blacklist_ipv6_fallback(mock_getaddrinfo):
+def test_ip_blacklist_ipv6_fallback(mock_getaddrinfo: MagicMock) -> None:
     mock_getaddrinfo.return_value = [(10, 1, 6, "", ("::1", 0, 0, 0))]
     with pytest.raises(SuspiciousOperation):
         http.safe_urlopen("http://[::1]")

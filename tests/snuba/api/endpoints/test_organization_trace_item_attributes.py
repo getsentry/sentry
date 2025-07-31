@@ -1237,7 +1237,7 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         "sentry.api.endpoints.organization_trace_item_attributes.TraceItemAttributeValuesAutocompletionExecutor.execute",
         side_effect=InvalidSearchQuery,
     )
-    def test_invalid_query(self, mock_executor_2):
+    def test_invalid_query(self, mock_executor_2: mock.MagicMock) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         self.store_segment(
             self.project.id,

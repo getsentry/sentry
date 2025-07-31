@@ -114,7 +114,7 @@ export function AutorefreshToggle({
               if (newChecked) {
                 setAutorefresh('enabled');
               } else {
-                setAutorefresh('idle');
+                setAutorefresh('paused');
               }
             }}
           />

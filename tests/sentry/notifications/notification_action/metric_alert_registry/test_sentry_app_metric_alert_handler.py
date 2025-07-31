@@ -49,7 +49,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.handlers.sentry_app_metric_alert_handler.send_incident_alert_notification"
     )
     @freeze_time("2021-01-01 00:00:00")
-    def test_send_alert(self, mock_send_incident_alert_notification):
+    def test_send_alert(self, mock_send_incident_alert_notification: mock.MagicMock) -> None:
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
@@ -88,7 +88,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.SentryAppMetricAlertHandler.send_alert"
     )
     @freeze_time("2021-01-01 00:00:00")
-    def test_invoke_legacy_registry(self, mock_send_alert):
+    def test_invoke_legacy_registry(self, mock_send_alert: mock.MagicMock) -> None:
         self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
         assert mock_send_alert.call_count == 1
         (

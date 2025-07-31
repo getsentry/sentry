@@ -4,7 +4,11 @@ import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  type TreemapElement,
+  type TreemapResults,
+  TreemapType,
+} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeTreemapProps {
   treemapData: TreemapResults;
@@ -63,15 +67,14 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     [TreemapType.UNMAPPED]: COLORS.purple,
   };
 
-  function convertToEChartsData(element: any, sizeMode: 'install' | 'download'): any {
-    const size = sizeMode === 'install' ? element.install_size : element.download_size;
+  function convertToEChartsData(element: TreemapElement): any {
     const color = element.element_type
       ? TYPE_COLORS[element.element_type]
       : TYPE_COLORS[TreemapType.OTHER];
 
     const data: any = {
       name: element.name,
-      value: size,
+      value: element.size,
       path: element.path,
       category: element.element_type,
       itemStyle: {
@@ -107,17 +110,16 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     };
 
     if (element.children && element.children.length > 0) {
-      data.children = element.children.map((child: any) =>
-        convertToEChartsData(child, sizeMode)
+      data.children = element.children.map((child: TreemapElement) =>
+        convertToEChartsData(child)
       );
     }
 
     return data;
   }
 
-  // TODO: Add download size toggling
-  const chartData = convertToEChartsData(treemapData.root, 'install');
-  const totalSize = treemapData.total_install_size;
+  const chartData = convertToEChartsData(treemapData.root);
+  const totalSize = treemapData.root.size;
 
   const series: TreemapSeriesOption[] = [
     {
@@ -218,6 +220,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);
+      const pathElement = params.data?.path
+        ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
+        : null;
+
       return `
             <div style="font-family: Rubik;">
               <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${space(1)}; gap: ${space(1)}">
@@ -226,11 +232,11 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${space(0.5)}">
                 <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
-                <p style="font-size: 12px; margin-bottom: -4px;">${params.data?.path}</p>
+                ${pathElement || ''}
                 <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
               </div>
             </div>
-          `;
+          `.trim();
     },
   };
 
