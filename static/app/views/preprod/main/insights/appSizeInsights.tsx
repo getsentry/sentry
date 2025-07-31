@@ -8,7 +8,7 @@ import {Heading} from 'sentry/components/core/text/heading';
 import {Text as SentryText} from 'sentry/components/core/text/text';
 import {IconSettings} from 'sentry/icons';
 import {formatBytesBase10SavingsAmount} from 'sentry/utils/bytes/formatBytesBase10';
-import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/appSizeInsightsSidebar';
+import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
 import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
 import {formatPercentage} from 'sentry/views/preprod/utils/formatters';
 import {
