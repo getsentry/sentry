@@ -43,8 +43,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self.event_id = self.event.event_id
         self.node_id = Event.generate_node_id(self.project.id, self.event_id)
         group = self.event.group
-        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id).event_id
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
+        self.event2 = self.store_event(data=group1_data, project_id=self.project.id)
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event2.event_id)
 
         # Group 2 event
         self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
@@ -116,7 +116,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
     def test_simple_multiple_groups_parallel(self) -> None:
         with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
-            group_ids = [self.event.group.id, self.event_id2.group.id]
+            group_ids = [self.event.group.id, self.event2.group.id]
             with self.tasks():
                 delete_groups_for_project.apply_async(
                     kwargs={
