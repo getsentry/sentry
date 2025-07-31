@@ -538,6 +538,11 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['message:[test]']),
         string: 'message:[test]',
       },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test,[test2]]']),
+        string: 'message:[test,test2]',
+      },
     ];
 
     for (const {name, string, object} of cases) {
