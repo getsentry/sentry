@@ -105,10 +105,12 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             referrer="api.organization-issue-replay-count",
         )["data"]
 
+        issue_platform_results
+
         # print("\n\n\n\nQ2 RESULTS", issue_platform_results, "\n\n\n\n")
 
         # This works. but we can switch to using the custom Snuba query if we don't want to do this.
-        labels = [result["tags_value"] for result in issue_platform_results]
+        labels = [result["tags_value"] for result in top_10_labels]
 
         return labels
 
@@ -204,7 +206,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             total_chars += sum(len(label) for label in feedback["labels"])
             if total_chars > MAX_FEEDBACKS_CONTEXT_CHARS:
                 break
-            context_feedbacks.append(feedback["feedback"])
+            context_feedbacks.append(LabelGroupFeedbacksContext(**feedback))
 
         snuba_params = self.get_snuba_params(
             request,
@@ -222,17 +224,32 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         )
 
         try:
-            # Key is primary label, value is list of associated labels
-            label_groups: dict[str, list[str]] = json.loads(
+            # Structure: [{"primary_label": str, "associated_labels": list[str]}]
+            label_groups: list[dict[str, str | list[str]]] = json.loads(
                 make_seer_request(seer_request).decode("utf-8")
             )["data"]
         except Exception:
             logger.exception("Error generating categories of user feedbacks")
             return Response({"detail": "Error generating categories"}, status=500)
 
+        if len(label_groups) == 0:
+            logger.error("LLM returned no label groups")
+            return Response({"detail": "No label groups generated"}, status=500)
+
+        # If the LLM just forgets or hallucinates primary labels, we still generate categories but log it
+        if len(label_groups) != len(top_10_labels):
+            logger.error(
+                "Number of label groups does not match number of primary labels passed in Seer",
+                extra={
+                    "label_groups": label_groups,
+                    "top_10_labels": top_10_labels,
+                },
+            )
+
         # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
         label_groups_list_of_lists: list[list[str]] = [
-            [key] + group for key, group in label_groups.items()
+            [label_group["primary_label"]] + label_group["associated_labels"]
+            for label_group in label_groups
         ]
 
         # This gives us one row: the number of feedbacks in each label group, in order of the label groups
@@ -248,7 +265,6 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
         categories = []
         for i, label_group in enumerate(label_groups_list_of_lists):
-            # Guaranteed to be the first element due to the way we construct the list of lists
             primary_label = label_group[0]
             associated_labels = label_group[1:]
 
@@ -264,6 +280,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             )
 
         categories.sort(key=lambda x: x["feedback_count"], reverse=True)
+        # XXX: maybe we should do something like figure out where the biggest drop of feedback count is and then stop there? Instead of just hardcoding getting top 4 groups
         categories = categories[:4]  # Get at most 4 categories
 
         cache.set(
@@ -282,7 +299,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
 
 def make_seer_request(request: LabelGroupsRequest) -> bytes:
-    return b'{"data": {"User Interface": ["User Interface", "UI"], "Performance": ["Performance", "Performance Issue"]}}'
+    # print("\n\n\n\n THIS IS THE REQUEST", request, "\n\n\n\n")
 
     serialized_request = json.dumps(request)
 
