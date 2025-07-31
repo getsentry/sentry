@@ -139,8 +139,7 @@ const isPolling = (
   isStartSummaryRequestPending: boolean
 ) => {
   if (!summaryData) {
-    // No data yet - poll if we've started a run
-    return isStartSummaryRequestPending;
+    return true;
   }
 
   switch (summaryData.status) {
