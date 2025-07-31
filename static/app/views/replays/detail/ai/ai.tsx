@@ -129,6 +129,7 @@ export default function Ai() {
     );
   }
 
+  // checking this prevents initial flicker
   const summaryNotComplete =
     summaryData?.status &&
     [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
