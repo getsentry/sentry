@@ -250,93 +250,11 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  if (values?.length === 3) {
-    values.unshift({
-      type: 'ExceptionGroup 2',
-      value: 'child',
-      mechanism: {
-        handled: true,
-        type: '',
-        exception_id: 3,
-        is_exception_group: true,
-        parent_id: 0,
-        source: 'exceptions[0]',
-      },
-      stacktrace: {
-        framesOmitted: null,
-        hasSystemFrames: false,
-        registers: null,
-        frames: [
-          {
-            function: 'func3',
-            module: 'helpers',
-            filename: 'file3.py',
-            absPath: 'file3.py',
-            lineNo: 50,
-            colNo: null,
-            context: [],
-            inApp: true,
-            rawFunction: null,
-            package: null,
-            platform: null,
-            instructionAddr: null,
-            symbol: null,
-            symbolAddr: null,
-            trust: null,
-            vars: null,
-          },
-        ],
-      },
-      module: 'helpers',
-      rawStacktrace: null,
-      threadId: null,
-    });
-    values.unshift({
-      type: 'ValueError',
-      value: 'test',
-      mechanism: {
-        handled: true,
-        type: '',
-        exception_id: 4,
-        parent_id: 3,
-        source: 'exceptions[3]',
-      },
-      stacktrace: {
-        framesOmitted: null,
-        hasSystemFrames: false,
-        registers: null,
-        frames: [
-          {
-            function: 'func4',
-            module: 'helpers',
-            filename: 'file4.py',
-            absPath: 'file4.py',
-            lineNo: 50,
-            colNo: null,
-            context: [[50, 'raise ValueError("test")']],
-            inApp: true,
-            rawFunction: null,
-            package: null,
-            platform: null,
-            instructionAddr: null,
-            symbol: null,
-            symbolAddr: null,
-            trust: null,
-            vars: null,
-          },
-        ],
-      },
-      module: 'helpers',
-      threadId: null,
-      rawStacktrace: null,
-    });
-  }
-
+  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
   const isSampleError = useIsSampleEvent();
-  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
