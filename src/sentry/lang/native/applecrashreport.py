@@ -1,4 +1,3 @@
-import copy
 import posixpath
 from collections.abc import Mapping
 from timeit import default_timer as timer
@@ -24,12 +23,16 @@ class AppleCrashReport:
     def __init__(
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
     ):
+        """
+        Create an Apple crash report from the provided data.
+
+        This constructor can modify the passed structures in place.
+        """
         self.time_spent_parsing_addrs = 0.0
-        self.threads = copy.deepcopy(threads)
+        self.threads = threads
         self.context = context
-        self.debug_images = copy.deepcopy(debug_images)
         self.symbolicated = symbolicated
-        self.exceptions = copy.deepcopy(exceptions)
+        self.exceptions = exceptions
         self.image_addrs_to_vmaddrs = {}
 
         # Remove frames that don't have an `instruction_addr` and convert
