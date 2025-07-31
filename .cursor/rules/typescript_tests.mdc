@@ -30,6 +30,7 @@ import {
 
 - **User-centric testing**: Write tests that resemble how users interact with the app.
 - **Avoid implementation details**: Focus on behavior, not internal component structure.
+- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
 
 ## Query Priority (in order of preference)
 
@@ -97,6 +98,23 @@ PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({ projects: [1]}),
     new Set()
 )
+```
+
+### Use fixtures
+
+Sentry fixtures are located in tests/js/fixtures/ while GetSentry fixtures are located in tests/js/getsentry-test/fixtures/.
+
+```tsx
+
+// ❌ Don't import type and initialize it
+import type {Project} from 'sentry/types/project';
+const project: Project = {...}
+
+// ✅ Import a fixture instead
+import {ProjectFixture} from 'sentry-fixture/project';
+
+const project = ProjectFixture(partialProject)
+
 ```
 
 ### Use `screen` instead of destructuring
