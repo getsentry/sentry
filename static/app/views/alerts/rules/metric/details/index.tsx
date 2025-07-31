@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -7,10 +8,12 @@ import moment from 'moment-timezone';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -30,6 +33,8 @@ import {
   fetchIncident,
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
+import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import MetricDetailsBody from './body';
 import type {TimePeriodType} from './constants';
@@ -52,6 +57,7 @@ interface State {
   selectedIncident: Incident | null;
   incidents?: Incident[];
   rule?: MetricRule;
+  showTransactionsDeprecationAlert?: boolean;
   warning?: string;
 }
 
@@ -64,6 +70,7 @@ class MetricAlertDetails extends Component<Props, State> {
     fetchOrgMembers(api, organization.slug);
     this.fetchData();
     this.trackView();
+    this.setState({showTransactionsDeprecationAlert: true});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -254,7 +261,14 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   render() {
-    const {rule, incidents, hasError, selectedIncident, warning} = this.state;
+    const {
+      rule,
+      incidents,
+      hasError,
+      selectedIncident,
+      warning,
+      showTransactionsDeprecationAlert,
+    } = this.state;
     const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
@@ -264,6 +278,18 @@ class MetricAlertDetails extends Component<Props, State> {
 
     const project = projects.find(({slug}) => slug === rule?.projects[0]);
     const isGlobalSelectionReady = project !== undefined && !loadingProjects;
+
+    const ruleType =
+      rule &&
+      getAlertTypeFromAggregateDataset({
+        aggregate: rule.aggregate,
+        dataset: rule.dataset,
+        eventTypes: rule.eventTypes,
+        organization,
+      });
+
+    const deprecateTransactionsAlertsWarning =
+      ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
     return (
       <PageFiltersContainer
@@ -286,6 +312,29 @@ class MetricAlertDetails extends Component<Props, State> {
           project={project}
           onSnooze={this.onSnooze}
         />
+        {showTransactionsDeprecationAlert && deprecateTransactionsAlertsWarning && (
+          <Alert.Container>
+            <Alert
+              type="warning"
+              style={{marginBottom: 0}}
+              trailingItems={
+                <StyledCloseButton
+                  icon={<IconClose size="sm" />}
+                  aria-label={t('Close')}
+                  onClick={() => {
+                    this.setState({showTransactionsDeprecationAlert: false});
+                  }}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              {t(
+                'Transaction based alerts are going to be deprecated soon. Please use Span alerts instead.'
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
         <MetricDetailsBody
           rule={rule}
           project={project}
@@ -299,3 +348,14 @@ class MetricAlertDetails extends Component<Props, State> {
 }
 
 export default withApi(withProjects(MetricAlertDetails));
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
+`;

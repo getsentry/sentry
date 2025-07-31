@@ -551,8 +551,20 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
 
+    const deprecateTransactionsAlertsWarning =
+      DEPRECATED_TRANSACTION_ALERTS.includes(alertType);
+
     return (
       <Fragment>
+        {deprecateTransactionsAlertsWarning && (
+          <Alert.Container>
+            <Alert type="warning">
+              {t(
+                'Transaction based alerts are going to be deprecated soon. Please use Span alerts instead.'
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>

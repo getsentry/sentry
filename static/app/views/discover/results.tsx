@@ -107,6 +107,7 @@ type State = {
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
   showQueryIncompatibleWithDataset?: boolean;
+  showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
 };
@@ -190,6 +191,7 @@ export class Results extends Component<Props, State> {
         query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
       });
     }
+    this.setState({showTransactionsDeprecationAlert: true});
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
@@ -690,6 +692,43 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  renderTransactionsDatasetDeprecationBanner() {
+    const {savedQueryDataset} = this.state;
+    const {location} = this.props;
+    const dataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQueryDataset
+    );
+    if (
+      this.state.showTransactionsDeprecationAlert &&
+      dataset === DiscoverDatasets.TRANSACTIONS
+    ) {
+      return (
+        <Alert.Container>
+          <Alert
+            type="warning"
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showTransactionsDeprecationAlert: false});
+                }}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            {t(
+              'The transactions dataset is going to be deprecated soon. Please use Explore->Traces with the `is_transaction:true` filter instead.'
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+    return null;
+  }
+
   renderTips() {
     const {tips} = this.state;
     if (tips) {
@@ -802,6 +841,7 @@ export class Results extends Component<Props, State> {
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
                 {this.renderQueryIncompatibleWithDatasetBanner()}
+                {this.renderTransactionsDatasetDeprecationBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
