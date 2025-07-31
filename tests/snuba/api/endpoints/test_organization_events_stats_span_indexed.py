@@ -2477,7 +2477,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
         assert response.status_code == 200, response.content
         assert "debug_info" in response.data["meta"]
+
         assert (
             "FUNCTION_COUNT"
-            == response.data["meta"]["query"]["expressions"][0]["aggregation"]["aggregate"]
+            == response.data["meta"]["debug_info"]["query"]["expressions"][0]["aggregation"][
+                "aggregate"
+            ]
         )

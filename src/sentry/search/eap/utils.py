@@ -209,7 +209,7 @@ def set_debug_meta(
 
     events_meta["debug_info"] = {
         "query.storage_meta.tier": rpc_meta.downsampled_storage_meta.tier,
-        "rpc_query": rpc_query,
+        "query": rpc_query,
     }
 
 
