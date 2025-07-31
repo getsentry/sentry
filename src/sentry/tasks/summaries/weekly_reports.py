@@ -73,8 +73,8 @@ class WeeklyReportProgressTracker:
     """
 
     beginning_of_day_timestamp: float
-    _redis_connection: LocalClient
     duration: int
+    _redis_connection: LocalClient
 
     def __init__(self, timestamp: float | None = None, duration: int | None = None):
         if timestamp is None:
