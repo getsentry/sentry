@@ -2395,12 +2395,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         BuiltinSymbolSourcesEndpoint.as_view(),
         name="sentry-api-0-organization-builtin-symbol-sources",
     ),
-    # Grouping configs
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/grouping-configs/$",
-        GroupingConfigsEndpoint.as_view(),
-        name="sentry-api-0-organization-grouping-configs",
-    ),
     # Unsubscribe from organization notifications
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/unsubscribe/project/(?P<id>\d+)/$",
