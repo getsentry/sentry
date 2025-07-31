@@ -1,10 +1,15 @@
 import {useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import type {LineSeriesOption, MarkAreaComponentOption} from 'echarts';
+import type {
+  LineSeriesOption,
+  MarkAreaComponentOption,
+  TooltipComponentFormatterCallbackParams,
+} from 'echarts';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {
@@ -32,7 +37,12 @@ interface AnomalyPeriod {
   start: string;
 }
 
-function createAnomalyTooltip(timestamp: string): string {
+function anomalyTooltipFormatter(
+  params: TooltipComponentFormatterCallbackParams
+): string {
+  const param = Array.isArray(params) ? params[0]! : params;
+
+  const timestamp = param.value as string;
   const formattedTime = getFormattedDate(
     timestamp,
     getFormat({timeZone: true, year: true}),
@@ -40,7 +50,9 @@ function createAnomalyTooltip(timestamp: string): string {
   );
 
   return [
-    '<div class="tooltip-series">Anomaly Detected</div>',
+    '<div class="tooltip-series">',
+    `<span class="tooltip-label"><strong>${t('Anomaly Detected')}</strong></span>`,
+    '</div>',
     `<div class="tooltip-footer">${formattedTime}</div>`,
     '<div class="tooltip-arrow"></div>',
   ].join('');
@@ -83,7 +95,7 @@ function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
     }
   }
 
-  // Don't forget the last period if it ends with an anomaly
+  // Handle last period if it ends with an anomaly
   if (currentPeriod) {
     periods.push(currentPeriod);
   }
@@ -105,7 +117,7 @@ function getAnomalyMarkerSeries(anomalies: Anomaly[], theme: Theme): LineSeriesO
   const anomalyStartMarkers = anomalyPeriods.map(period => ({
     xAxis: period.start,
     tooltip: {
-      formatter: () => createAnomalyTooltip(period.start),
+      formatter: anomalyTooltipFormatter,
     },
   }));
 
@@ -134,10 +146,10 @@ function getAnomalyMarkerSeries(anomalies: Anomaly[], theme: Theme): LineSeriesO
         animation: false,
       }),
       markArea: MarkArea({
+        silent: true,
         itemStyle: {
           color: theme.red200,
         },
-        silent: true,
         data: markAreaData,
         animation: false,
       }),

@@ -76,8 +76,6 @@ export function useMetricDetectorAnomalies({
     (value, [timestamp]) => (value < timestamp ? value : timestamp),
     Infinity
   );
-
-  // Remove historical data that overlaps with current dataset to avoid duplication
   const filteredHistoricalData = historicalData.filter(
     ([timestamp]) => timestamp < startOfCurrentTimeframe
   );
