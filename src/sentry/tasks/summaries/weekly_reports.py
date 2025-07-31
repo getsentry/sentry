@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, cast
+from typing import Any, Final, cast
 
 import sentry_sdk
 from django.db.models import F
@@ -72,6 +72,8 @@ class WeeklyReportProgressTracker:
     watermark TTL, or it will assume beginning of day, with a 7 day TTL.
     """
 
+    REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
+
     beginning_of_day_timestamp: float
     duration: int
     _redis_connection: LocalClient
@@ -89,12 +91,12 @@ class WeeklyReportProgressTracker:
 
         self.duration = duration
         self._redis_connection = redis.clusters.get("default").get_local_client_for_key(
-            self.min_org_id_redis_key
+            self.REPORT_REDIS_CLIENT_KEY
         )
 
     @property
     def min_org_id_redis_key(self) -> str:
-        return f"weekly_reports_org_id_min:{self.beginning_of_day_timestamp}"
+        return f"{self.REPORT_REDIS_CLIENT_KEY}:{self.beginning_of_day_timestamp}"
 
     def get_last_processed_org_id(self) -> int | None:
         min_org_id_from_redis = self._redis_connection.get(self.min_org_id_redis_key)
