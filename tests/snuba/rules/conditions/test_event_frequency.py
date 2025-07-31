@@ -37,9 +37,14 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
     def _make_sessions(
-        self, num: int, environment_name: str | None = None, project: Project | None = None
+        self,
+        num: int,
+        environment_name: str | None = None,
+        project: Project | None = None,
+        received: float | None = None,
     ):
-        received = time.time()
+        if received is None:
+            received = time.time()
 
         def make_session(i):
             return dict(
