@@ -72,11 +72,11 @@ class WeeklyReportProgressTracker:
     watermark TTL, or it will assume beginning of day, with a 7 day TTL.
     """
 
-    REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
-
     beginning_of_day_timestamp: float
     duration: int
     _redis_connection: LocalClient
+
+    REPORT_REDIS_CLIENT_KEY: Final[str] = "weekly_reports_org_id_min"
 
     def __init__(self, timestamp: float | None = None, duration: int | None = None):
         if timestamp is None:
