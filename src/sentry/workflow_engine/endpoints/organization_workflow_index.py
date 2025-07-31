@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -22,10 +23,15 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.models.organization import Organization
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
@@ -76,32 +82,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
-    @extend_schema(
-        operation_id="Fetch Workflows",
-        parameters=[
-            GlobalParams.ORG_ID_OR_SLUG,
-            WorkflowParams.SORT_BY,
-            WorkflowParams.QUERY,
-            WorkflowParams.ID,
-            OrganizationParams.PROJECT,
-        ],
-        responses={
-            201: WorkflowSerializer,
-            400: RESPONSE_BAD_REQUEST,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-    )
-    def get(self, request, organization):
+    def filter_workflows(self, request: Request, organization: Organization) -> QuerySet[Workflow]:
         """
-        Returns a list of workflows for a given org
+        Helper function to filter workflows based on request parameters.
         """
-        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
-
         queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_idlist := request.GET.getlist("id"):
@@ -110,6 +98,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             except ValueError:
                 raise ValidationError({"id": ["Invalid ID format"]})
             queryset = queryset.filter(id__in=ids)
+
+            # If specific IDs are provided, skip query and project filtering
+            return queryset
 
         if raw_query := request.GET.get("query"):
             for filter in parse_workflow_query(raw_query):
@@ -143,6 +134,33 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 Q(detectorworkflow__detector__project__in=projects)
                 | Q(detectorworkflow__isnull=True)
             ).distinct()
+
+        return queryset
+
+    @extend_schema(
+        operation_id="Fetch Workflows",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.SORT_BY,
+            WorkflowParams.QUERY,
+            WorkflowParams.ID,
+            OrganizationParams.PROJECT,
+        ],
+        responses={
+            201: WorkflowSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request, organization):
+        """
+        Returns a list of workflows for a given org
+        """
+        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
+
+        queryset = self.filter_workflows(request, organization)
 
         # Add synthetic fields to the queryset if needed.
         match sort_by.db_field_name:
@@ -225,3 +243,49 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 bulk_validator.save()
 
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        operation_id="Delete an Organization's Workflows",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(self, request, organization):
+        """
+        Deletes workflows for a given org
+        """
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = self.filter_workflows(request, organization)
+
+        with transaction.atomic(router.db_for_write(Workflow)):
+            for workflow in queryset:
+                RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+                create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=workflow.id,
+                    event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+                    data=workflow.get_audit_log_data(),
+                )
+            queryset.update(status=ObjectStatus.PENDING_DELETION)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
