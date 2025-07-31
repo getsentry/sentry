@@ -30,7 +30,6 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
-from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppInteractionEvent,
@@ -961,6 +960,8 @@ def broadcast_webhooks_for_organization(
         installations = app_service.installations_for_organization(organization_id=organization_id)
 
         # Filter for installations that subscribe to the event category
+        from sentry.sentry_apps.logic import consolidate_events
+
         relevant_installations = [
             installation
             for installation in installations
