@@ -131,8 +131,14 @@ class QueryInjectionDetector(PerformanceDetector):
             return False
 
         description = span.get("description", None)
+
         if not description:
             return False
+
+        sql_keywords = ("SELECT", "UPDATE", "INSERT")
+        if any(description.upper().startswith(keyword) for keyword in sql_keywords):
+            return False
+
         return True
 
     def _fingerprint(self, description: str) -> str:

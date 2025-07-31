@@ -43,3 +43,7 @@ class QueryInjectionDetectorTest(TestCase):
         assert problem.evidence_data is not None
         assert problem.evidence_data["vulnerable_parameters"] == [("username", {"$ne": None})]
         assert problem.evidence_data["request_url"] == "http://localhost:3000/login"
+
+    def test_query_injection_detection_on_sql_query(self) -> None:
+        injection_event = get_event("query-injection/query-injection-sql-query")
+        assert len(self.find_problems(injection_event)) == 0
