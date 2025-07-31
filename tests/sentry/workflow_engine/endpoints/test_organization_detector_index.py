@@ -250,6 +250,32 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response3.data} == {detector2.name}
 
+    def test_query_by_type_alias(self) -> None:
+        """
+        Users can query by simplfied aliases like "metric", "uptime" instead of the full type names.
+        """
+        metric_detector = self.create_detector(
+            project_id=self.project.id, name="Metric Detector", type=MetricIssue.slug
+        )
+        uptime_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Uptime Detector",
+            type=UptimeDomainCheckFailure.slug,
+            config={
+                "mode": 1,
+                "environment": "production",
+            },
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": "type:metric"}
+        )
+        assert {d["name"] for d in response.data} == {metric_detector.name}
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": "type:uptime"}
+        )
+        assert {d["name"] for d in response.data} == {uptime_detector.name}
+
     def test_general_query(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id,

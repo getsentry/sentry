@@ -34,6 +34,7 @@ from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
@@ -83,6 +84,11 @@ SORT_ATTRS = {
     "id": "id",
     "type": "type",
     "connectedWorkflows": "connected_workflows",
+}
+
+DETECTOR_TYPE_ALIASES = {
+    "metric": MetricIssue.slug,
+    "uptime": UptimeDomainCheckFailure.slug,
 }
 
 
@@ -167,7 +173,17 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                     case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
                         queryset = apply_filter(queryset, filter, "name")
                     case SearchFilter(key=SearchKey("type"), operator=("=" | "IN" | "!=")):
-                        queryset = apply_filter(queryset, filter, "type")
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        values = [DETECTOR_TYPE_ALIASES.get(value, value) for value in values]
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(type__in=values)
+                        else:
+                            queryset = queryset.filter(type__in=values)
                     case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
                         # Filter values can be emails, team slugs, "me", "my_teams", "none"
                         values = (
