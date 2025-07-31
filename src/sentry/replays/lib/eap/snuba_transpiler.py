@@ -11,9 +11,14 @@ Do not use any of these functions. They are private and subject to change.
 This module contains a translation layer from Snuba SDK to the EAP protocol buffers format. You do
 not need to call any of the functions contained within this module to query EAP or use the
 translation layer.
+
+This module does not consider aliasing. If you have a query which contains aliases you must
+normalize it first.
 """
 
-from typing import Any, Literal, TypedDict
+from typing import Any
+from typing import Literal as TLiteral
+from typing import TypedDict
 
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -28,7 +33,9 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
 from sentry_protos.snuba.v1.formula_pb2 import Literal
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta as EAPRequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -158,6 +165,27 @@ EXTRAPOLATION_MODE_MAP = {
     "none": ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
 }
 
+TRACE_ITEM_TYPE_MAP = {
+    "span": TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    "error": TraceItemType.TRACE_ITEM_TYPE_ERROR,
+    "log": TraceItemType.TRACE_ITEM_TYPE_LOG,
+    "uptime_check": TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
+    "uptime_result": TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+    "replay": TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+}
+
+
+class RequestMeta(TypedDict):
+    cogs_category: str
+    debug: bool
+    end_datetime: datetime.datetime
+    organization_id: int
+    project_ids: list[int]
+    referrer: str
+    request_id: str
+    start_datetime: datetime.datetime
+    trace_item_type: TLiteral["span", "error", "log", "uptime_check", "uptime_result", "replay"]
+
 
 class Settings(TypedDict, totals=False):
     """Query settings which are not representable in Snuba SDK."""
@@ -165,10 +193,16 @@ class Settings(TypedDict, totals=False):
     attribute_types: dict[str, type[bool | float | int | str]]
     default_limit: int
     default_offset: int
-    extrapolation_mode: Literal["weighted", "none"]
+    extrapolation_mode: TLiteral["weighted", "none"]
 
 
-def query(query: Query, settings: Settings) -> TraceItemTableRequest:
+def query(query: Query, meta: RequestMeta, settings: Settings) -> TraceItemTableRequest:
+    start_timestamp = Timestamp()
+    start_timestamp.FromDatetime(meta["start_datetime"])
+
+    end_timestamp = Timestamp()
+    end_timestamp.FromDatetime(meta["end_datetime"])
+
     return TraceItemTableRequest(
         columns=select(query.select, settings),
         filter=where(query.where, settings),
@@ -180,7 +214,17 @@ def query(query: Query, settings: Settings) -> TraceItemTableRequest:
             offset=query.offset.offset if query.offset else settings.get("default_offset", 0)
         ),
         virtual_column_contexts=[],
-        meta=RequestMeta(...),
+        meta=EAPRequestMeta(
+            cogs_category=meta["cogs_category"],
+            debug=meta["debug"],
+            end_timestamp=end_timestamp,
+            organization_id=meta["organization_id"],
+            project_ids=meta["project_ids"],
+            referrer=meta["referrer"],
+            request_id=meta["request_id"],
+            start_timestamp=start_timestamp,
+            trace_item_type=TRACE_ITEM_TYPE_MAP[meta["trace_item_type"]],
+        ),
     )
 
 
