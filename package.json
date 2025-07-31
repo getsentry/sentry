@@ -235,9 +235,6 @@
       "core-js",
       "esbuild"
     ],
-    "ignoredBuiltDependencies": [
-      "unrs-resolver"
-    ]
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
