@@ -81,12 +81,12 @@ describe('UptimePercentile', () => {
   });
 
   it('shows tooltip with detailed breakdown on hover', async () => {
-    render(<UptimePercentile summary={mockSummary} />);
+    render(<UptimePercentile summary={mockSummary} note="This is a test" />);
 
     const percentageText = screen.getByText('94.897%');
     await userEvent.hover(percentageText);
 
-    expect(await screen.findByText(/uptime/i)).toBeInTheDocument();
+    expect(await screen.findByText('This is a test')).toBeInTheDocument();
     expect(screen.getByText('Up Checks')).toBeInTheDocument();
     expect(screen.getByText('Failed Checks')).toBeInTheDocument();
     expect(screen.getByText('Down Checks')).toBeInTheDocument();
