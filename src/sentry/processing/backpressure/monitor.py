@@ -92,7 +92,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                     reasons.append(memory)
 
                 if memory.host is not None and "@" in memory.host:
-                    passwordless_host = memory.host.split("@")[1]
+                    passwordless_host = memory.host.rsplit("@", 1)[1]
                 else:
                     passwordless_host = memory.host
 
