@@ -233,6 +233,14 @@ class SQLInjectionDetector(PerformanceDetector):
         ):
             return False
 
+        # If the description contains multiple occurrences of alias chaining, likely coming from an ORM
+        if len(re.findall(r"\w+(->\w+)+", description)) > 3:
+            return False
+
+        # If the description contains multiple deleted_at IS NULL clauses, likely coming from an ORM
+        if len(re.findall(r'"?deleted[_aA]+t"?\s+IS\s+NULL', description)) > 3:
+            return False
+
         # Laravel queries with this pattern can contain interpolated values
         if span.get("sentry_tags", {}).get("sdk.name") == "sentry.php.laravel" and re.search(
             r"IN\s*\(\s*(\d+\s*,\s*)*\d+\s*\)", description.upper()
