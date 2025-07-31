@@ -585,8 +585,8 @@ def test_massage_virtual_groupby_timeseries():
             "users_abnormal": 0,
             "users_crashed": 1,
             "users_errored": 1,
-            "users_unhandled": 0,
-            "users": 1,
+            "users_unhandled": 4,
+            "users": 5,
         }
     ]
     # snuba returns the datetimes as strings for now
@@ -614,8 +614,8 @@ def test_massage_virtual_groupby_timeseries():
             "users_abnormal": 0,
             "users_crashed": 0,
             "users_errored": 0,
-            "users_unhandled": 0,
-            "users": 1,
+            "users_unhandled": 1,
+            "users": 2,
         },
         {
             "bucketed_started": "2020-12-18T00:00:00+00:00",
@@ -627,8 +627,8 @@ def test_massage_virtual_groupby_timeseries():
             "users_abnormal": 0,
             "users_crashed": 0,
             "users_errored": 0,
-            "users_unhandled": 0,
-            "users": 1,
+            "users_unhandled": 3,
+            "users": 4,
         },
         {
             "bucketed_started": "2020-12-17T18:00:00+00:00",
@@ -680,6 +680,11 @@ def test_massage_virtual_groupby_timeseries():
                 # so in the *whole* time window, that one user is not counted as healthy,
                 # so the `0` here is expected, as that's an example of the `count_unique` behavior.
                 "totals": {"count_unique(user)": 0, "sum(session)": 16},
+            },
+            {
+                "by": {"session.status": "unhandled"},
+                "series": {"count_unique(user)": [0, 0, 3, 1, 0], "sum(session)": [0, 0, 0, 0, 0]},
+                "totals": {"count_unique(user)": 4, "sum(session)": 0},
             },
         ],
     }
@@ -751,6 +756,11 @@ def test_clamping_in_massage_sessions_results_with_groupby_timeseries():
             {
                 "by": {"session.status": "healthy"},
                 "series": {"count_unique(user)": [0, 0, 4], "sum(session)": [0, 0, 4]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 0},
+            },
+            {
+                "by": {"session.status": "unhandled"},
+                "series": {"count_unique(user)": [0, 0, 0], "sum(session)": [0, 0, 0]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 0},
             },
         ],

@@ -849,6 +849,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         select = [
             MetricField(metric_mri=SessionMRI.ALL_USER.value, alias="all_users", op=None),
             MetricField(metric_mri=SessionMRI.CRASHED_USER.value, alias="crashed_users", op=None),
+            MetricField(
+                metric_mri=SessionMRI.UNHANDLED_USER.value, alias="unhandled_users", op=None
+            ),
         ]
 
         groupby = [

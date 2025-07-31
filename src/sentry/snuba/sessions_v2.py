@@ -122,8 +122,7 @@ class SessionsField:
         if status is None:
             return row["sessions"]
         if status == "healthy":
-            # TODO(ryan953): Should we also subtract sessions_unhandled & sessions_crashed?
-            healthy_sessions = row["sessions"] - row["sessions_errored"]
+            healthy_sessions = row["sessions"] - row["sessions_errored"] - row["sessions_unhandled"]
             return max(healthy_sessions, 0)
         if status == "abnormal":
             return row["sessions_abnormal"]
@@ -155,8 +154,7 @@ class UsersField:
         if status is None:
             return row["users"]
         if status == "healthy":
-            # TODO(ryan953): Should we also subtract users_unhandled & users_crashed?
-            healthy_users = row["users"] - row["users_errored"]
+            healthy_users = row["users"] - row["users_errored"] - row["users_unhandled"]
             return max(healthy_users, 0)
         if status == "abnormal":
             return row["users_abnormal"]
@@ -252,7 +250,10 @@ class SessionStatusGroupBy:
         return []
 
     def get_keys_for_row(self, row):
-        return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
+        return [
+            ("session.status", key)
+            for key in ["healthy", "abnormal", "crashed", "errored", "unhandled"]
+        ]
 
 
 # NOTE: in the future we might add new `user_agent` and `os` fields
