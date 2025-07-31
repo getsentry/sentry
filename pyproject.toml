@@ -172,27 +172,6 @@ dev = [
     "types-setuptools==69.0.0.0",
     "types-simplejson==3.17.7.2",
     "types-unidiff==0.7.0.20240505",
-    ### transitive dependencies from uv migration start here
-    "build==0.8.0",
-    "cfgv==3.3.1",
-    "distlib==0.3.8",
-    "execnet==1.9.0",
-    "identify==2.6.1",
-    "iniconfig==1.1.1",
-    "MarkupSafe==2.1.2",
-    "more-itertools==8.13.0",
-    "outcome==1.2.0",
-    "platformdirs==4.2.0",
-    "pathspec==0.9.0",
-    "pep517==0.12.0",
-    "tomli==2.0.1",
-    "trio==0.25.0",
-    "trio-websocket==0.11.1",
-    "virtualenv==20.26.6",
-    "Werkzeug==3.0.6",
-    "wheel==0.38.4",
-    "wrapt==1.17.0",
-    "wsproto==1.1.0",
 ]
 
 [tool.uv]
