@@ -548,6 +548,11 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['message:["[test]",test,[test2]]']),
         string: 'message:["[test]",test,test2]',
       },
+      {
+        name: 'should correctly handle nested brackets with quoted brackets inside',
+        object: new MutableSearch(['message:[[test,"[nested]"],other]']),
+        string: 'message:[test,"[nested]",other]',
+      },
     ];
 
     for (const {name, string, object} of cases) {

@@ -588,16 +588,42 @@ function flattenNestedBrackets(value: string): string {
       let bracketDepth = 1;
       let j = i + 1;
       let bracketContent = '';
+      let inNestedQuotes = false;
+      let nestedQuoteChar = '';
 
       while (j < inner.length && bracketDepth > 0) {
-        if (inner[j] === '[') {
-          bracketDepth++;
-        } else if (inner[j] === ']') {
-          bracketDepth--;
+        const nestedChar = inner[j];
+
+        // Handle quote detection within bracket matching
+        if (!inNestedQuotes && (nestedChar === '"' || nestedChar === "'")) {
+          inNestedQuotes = true;
+          nestedQuoteChar = nestedChar;
+        } else if (inNestedQuotes && nestedChar === nestedQuoteChar) {
+          // Check if this quote is escaped
+          let isEscaped = false;
+          let backslashCount = 0;
+          for (let k = j - 1; k >= 0 && inner[k] === '\\'; k--) {
+            backslashCount++;
+          }
+          isEscaped = backslashCount % 2 === 1;
+
+          if (!isEscaped) {
+            inNestedQuotes = false;
+            nestedQuoteChar = '';
+          }
+        }
+
+        // Only count brackets that are outside of quotes
+        if (!inNestedQuotes) {
+          if (nestedChar === '[') {
+            bracketDepth++;
+          } else if (nestedChar === ']') {
+            bracketDepth--;
+          }
         }
 
         if (bracketDepth > 0) {
-          bracketContent += inner[j];
+          bracketContent += nestedChar;
         }
         j++;
       }
