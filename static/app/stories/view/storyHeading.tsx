@@ -88,5 +88,9 @@ function stringifyReactNode(child?: ReactNode): string {
 }
 
 function hasChildren(node: ReactNode): node is ReactElement<{children: ReactNode}> {
-  return isValidElement<{children?: ReactNode}>(node) && !!node.props.children;
+  return (
+    isValidElement<{children?: ReactNode}>(node) &&
+    node.props.children !== null &&
+    node.props.children !== undefined
+  );
 }
