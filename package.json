@@ -234,7 +234,7 @@
       "@sentry/cli",
       "core-js",
       "esbuild"
-    ],
+    ]
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
