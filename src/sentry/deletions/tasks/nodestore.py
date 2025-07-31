@@ -96,7 +96,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
 
     try:
         # Fetch events for deletion
-        events = fetch_events(
+        events = fetch_events_from_eventstore(
             project_id=project_id,
             group_ids=group_ids,
             dataset=Dataset(dataset_str),
@@ -133,7 +133,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
         raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
 
 
-def fetch_events(
+def fetch_events_from_eventstore(
     *,
     project_id: int,
     group_ids: Sequence[int],

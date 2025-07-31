@@ -2,10 +2,11 @@ from uuid import uuid4
 
 from sentry.deletions.tasks.nodestore import (
     delete_events_for_groups_from_nodestore_and_eventstore,
-    fetch_events,
+    fetch_events_from_eventstore,
 )
 from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
 
 
@@ -15,20 +16,19 @@ class NodestoreDeletionTaskTest(TestCase):
         events = []
         for _ in range(n_events):
             event = self.store_event(
-                data={"fingerprint": [uuid4().hex]},
-                project_id=self.project.id,
+                data={"fingerprint": [uuid4().hex]}, project_id=self.project.id
             )
             events.append(event)
         return events
 
-    def fetch_events(self, group_ids: list[int], dataset: Dataset) -> list[Event]:
-        return fetch_events(
-            group_ids=group_ids,
+    def fetch_events_from_eventstore(self, group_ids: list[int], dataset: Dataset) -> list[Event]:
+        return fetch_events_from_eventstore(
             project_id=self.project.id,
-            referrer="deletions.groups",
+            group_ids=group_ids,
             dataset=dataset,
+            referrer=Referrer.DELETIONS_GROUP.value,
             tenant_ids={
-                "referrer": "deletions.groups",
+                "referrer": Referrer.DELETIONS_GROUP.value,
                 "organization_id": self.project.organization_id,
             },
         )
@@ -39,7 +39,7 @@ class NodestoreDeletionTaskTest(TestCase):
         group_ids = [event.group_id for event in events if event.group_id is not None]
 
         # Verify events exist in both eventstore and nodestore before deletion
-        events = self.fetch_events(group_ids, dataset=Dataset.Events)
+        events = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
         assert len(events) == 5
 
         with self.tasks():
@@ -55,5 +55,5 @@ class NodestoreDeletionTaskTest(TestCase):
             )
 
         # Events should still exist in eventstore/snuba (that's handled by a different task)
-        events_after = self.fetch_events(group_ids, dataset=Dataset.Events)
-        assert len(events_after) == 5
+        events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
+        assert len(events_after) == 0
