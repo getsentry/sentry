@@ -154,6 +154,8 @@ dependencies = [
     "wcwidth==0.2.13",
     "xmlsec==1.3.14",
     "zstandard==0.18.0",
+    # transitive dependencies from uv migration start here
+    "filelock==3.13.1",
 ]
 
 [project.optional-dependencies]
@@ -227,7 +229,6 @@ dev = [
     "cfgv==3.3.1",
     "distlib==0.3.8",
     "execnet==1.9.0",
-    "filelock==3.13.1",
     "identify==2.6.1",
     "iniconfig==1.1.1",
     "MarkupSafe==2.1.2",
