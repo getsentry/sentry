@@ -1063,7 +1063,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 "total_sessions": total_sessions,
                 "total_users": total_users,
                 # Users where the error was `unhandled`; possibly resulting in a crash
-                "unhandled_users": (
+                "unhandled_user_rate": (
                     (users_unhandled + users_crashed) / total_users * 100 if total_users else None
                 ),
                 # Users where the error was not a crash (but may have been unhandled)
@@ -1076,8 +1076,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 # Sessions where the error was a crash
                 "sessions_crashed": sessions_crashed,
                 # Sessions where the error was `unhandled`; possibly resulting in a crash
-                "unhandled_sessions": (
-                    (sessions_unhandled + sessions_crashed) / float(total_sessions) * 100
+                "unhandled_session_rate": (
+                    (sessions_unhandled + sessions_crashed) / total_sessions * 100
                     if total_sessions
                     else None
                 ),
