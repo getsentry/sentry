@@ -235,9 +235,6 @@ describe('OnDemandBudgets', () => {
           replays: 0,
           monitorSeats: 0,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
     });
@@ -380,9 +377,6 @@ describe('OnDemandBudgets', () => {
             attachments: 3000,
             monitorSeats: 4000,
           },
-          errorSpendUsed: 100,
-          transactionSpendUsed: 200,
-          attachmentSpendUsed: 300,
           usedSpends: {
             errors: 100,
             transactions: 200,
@@ -616,9 +610,6 @@ describe('OnDemandBudgets', () => {
           attachments: 3000,
           monitorSeats: 4000,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
     });
