@@ -30,7 +30,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    # TODO(lforst): Make v10 loader default
+    # TODO(andreiborza): Make v10 loader default
     epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 9: "8.x", 13: "9.x"},
 )
 
