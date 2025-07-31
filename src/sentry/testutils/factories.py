@@ -1988,7 +1988,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
+    def create_webhook_payload(
+        mailbox_name: str, region_name: str | None, **kwargs
+    ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
             "request_path": "/extensions/github/webhook/",
