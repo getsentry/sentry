@@ -15,10 +15,12 @@ import {
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import type {TableColumn} from './types';
 
@@ -296,38 +298,26 @@ function makeCellActions({
   return actions;
 }
 
-enum CustomMenuFields {
-  ID = 'id',
-  TRACE = 'trace',
-  SPAN_DESCRIPTION = 'span.description',
-  PROJECT = 'project',
-  PROJECT_ID = 'project_id',
-  PROJECT_DOT_ID = 'project.id',
-  RELEASE = 'release',
-  REPLAY = 'replayId',
-  ISSUE = 'issue',
-}
-
 /**
  * Provides the correct text for the dropdown menu based on the field.
  * @param field column field name
  */
 function getCellActionText(field: string, to?: string): string {
   switch (field) {
-    case CustomMenuFields.ID:
-    case CustomMenuFields.TRACE:
+    case FieldKey.ID:
+    case FieldKey.TRACE:
       return t('Open trace');
-    case CustomMenuFields.PROJECT:
-    case CustomMenuFields.PROJECT_ID:
-    case CustomMenuFields.PROJECT_DOT_ID:
+    case FieldKey.PROJECT:
+    case 'project_id':
+    case 'project.id':
       return t('Open project');
-    case CustomMenuFields.RELEASE:
+    case FieldKey.RELEASE:
       return t('View details');
-    case CustomMenuFields.ISSUE:
+    case FieldKey.ISSUE:
       return t('Open issue');
-    case CustomMenuFields.REPLAY:
+    case FieldKey.REPLAY_ID:
       return t('Open replay');
-    case CustomMenuFields.SPAN_DESCRIPTION: {
+    case SpanFields.SPAN_DESCRIPTION: {
       // Some span description renderers have a project icon link instead
       if (to?.includes('/projects/')) {
         return t('Open project');
