@@ -2553,3 +2553,13 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
             Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
         } == actual_referrers
+
+    def test_invalid_filter_is_handled(self) -> None:
+        query = {
+            "project": [self.project.id],
+            "query": "project.id:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            "field": ["id", "parent_span", "span.duration"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
