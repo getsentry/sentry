@@ -24,13 +24,6 @@ import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDet
 import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 
 /**
- * Simple configuration for anomaly marker series
- */
-interface AnomalyMarkerConfig {
-  theme: Theme;
-}
-
-/**
  * Represents a continuous anomaly time period
  */
 interface AnomalyPeriod {
@@ -39,9 +32,6 @@ interface AnomalyPeriod {
   start: string;
 }
 
-/**
- * Creates a beautifully formatted tooltip for anomaly markers using Sentry's date utilities
- */
 function createAnomalyTooltip(timestamp: string): string {
   const formattedTime = getFormattedDate(
     timestamp,
@@ -101,10 +91,7 @@ function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
   return periods;
 }
 
-function getAnomalyMarkerSeries(
-  anomalies: Anomaly[],
-  config: AnomalyMarkerConfig
-): LineSeriesOption[] {
+function getAnomalyMarkerSeries(anomalies: Anomaly[], theme: Theme): LineSeriesOption[] {
   if (!Array.isArray(anomalies) || anomalies.length === 0) {
     return [];
   }
@@ -114,21 +101,20 @@ function getAnomalyMarkerSeries(
     return [];
   }
 
-  // Create marker line data for anomaly start points
-  const markLineData = anomalyPeriods.map(period => ({
+  // Create vertical line markers at the start of each anomaly period
+  const anomalyStartMarkers = anomalyPeriods.map(period => ({
     xAxis: period.start,
     tooltip: {
       formatter: () => createAnomalyTooltip(period.start),
     },
   }));
 
-  // Create area data for anomaly periods
+  // Create shaded areas spanning the full duration of each anomaly period
   const markAreaData: MarkAreaComponentOption['data'] = anomalyPeriods.map(period => [
     {xAxis: period.start},
     {xAxis: period.end},
   ]);
 
-  // Single combined series with both markers and areas
   return [
     {
       name: 'Anomaly Detection',
@@ -137,19 +123,19 @@ function getAnomalyMarkerSeries(
       markLine: MarkLine({
         silent: false,
         lineStyle: {
-          color: config.theme.pink300,
+          color: theme.pink300,
           type: 'dashed',
           width: 2,
         },
         label: {
           show: false,
         },
-        data: markLineData,
+        data: anomalyStartMarkers,
         animation: false,
       }),
       markArea: MarkArea({
         itemStyle: {
-          color: config.theme.red200,
+          color: theme.red200,
         },
         silent: true,
         data: markAreaData,
@@ -233,11 +219,7 @@ export function useMetricDetectorAnomalySeries({
     if (!anomalies || anomalies.length === 0 || isHistoricalLoading || isLoading) {
       return [];
     }
-
-    // Use our improved anomaly marker series generator
-    const markerSeries = getAnomalyMarkerSeries(anomalies, {theme});
-
-    return markerSeries;
+    return getAnomalyMarkerSeries(anomalies, theme);
   }, [anomalies, theme, isHistoricalLoading, isLoading]);
 
   return {

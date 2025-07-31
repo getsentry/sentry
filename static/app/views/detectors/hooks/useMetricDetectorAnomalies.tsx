@@ -42,10 +42,7 @@ interface UseMetricDetectorAnomaliesProps {
   enabled?: boolean;
 }
 
-type AnomalyResponse = Anomaly[];
-
 function transformSeriesToDataPoints(series: Series[]): Array<[number, {count: number}]> {
-  // Handle the case where there's only one series (which is typical)
   if (series.length === 0 || !series[0]?.data?.length) {
     return [];
   }
@@ -100,7 +97,7 @@ export function useMetricDetectorAnomalies({
     historical_data: filteredHistoricalData,
   };
 
-  const {data, isLoading, error, refetch} = useApiQuery<AnomalyResponse>(
+  const {data, isLoading, error, refetch} = useApiQuery<Anomaly[]>(
     [
       `/organizations/${organization.slug}/events/anomalies/`,
       {
