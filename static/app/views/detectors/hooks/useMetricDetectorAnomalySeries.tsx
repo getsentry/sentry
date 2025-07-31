@@ -1,15 +1,19 @@
 import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import type {LineSeriesOption, MarkAreaComponentOption} from 'echarts';
 
-import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import MarkArea from 'sentry/components/charts/components/markArea';
+import MarkLine from 'sentry/components/charts/components/markLine';
 import type {Series} from 'sentry/types/echarts';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
+import {AnomalyType} from 'sentry/views/alerts/types';
 import {
   HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS,
@@ -19,6 +23,142 @@ import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDet
 
 import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 
+/**
+ * Simple configuration for anomaly marker series
+ */
+interface AnomalyMarkerConfig {
+  theme: Theme;
+}
+
+/**
+ * Represents a continuous anomaly time period
+ */
+interface AnomalyPeriod {
+  confidence: AnomalyType;
+  end: string;
+  start: string;
+}
+
+/**
+ * Creates a beautifully formatted tooltip for anomaly markers using Sentry's date utilities
+ */
+function createAnomalyTooltip(timestamp: string): string {
+  const formattedTime = getFormattedDate(
+    timestamp,
+    getFormat({timeZone: true, year: true}),
+    {local: true}
+  );
+
+  return [
+    '<div class="tooltip-series">Anomaly Detected</div>',
+    `<div class="tooltip-footer">${formattedTime}</div>`,
+    '<div class="tooltip-arrow"></div>',
+  ].join('');
+}
+
+/**
+ * Groups consecutive anomalous data points into continuous periods
+ */
+function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
+  const periods: AnomalyPeriod[] = [];
+  let currentPeriod: AnomalyPeriod | null = null;
+
+  for (const anomaly of anomalies) {
+    const timestamp = new Date(anomaly.timestamp * 1000).toISOString();
+    const isAnomalous = [
+      AnomalyType.HIGH_CONFIDENCE,
+      AnomalyType.LOW_CONFIDENCE,
+    ].includes(anomaly.anomaly.anomaly_type);
+
+    if (isAnomalous) {
+      if (currentPeriod === null) {
+        // Start a new anomaly period
+        currentPeriod = {
+          confidence: anomaly.anomaly.anomaly_type,
+          end: timestamp,
+          start: timestamp,
+        };
+      } else {
+        // Extend the current period
+        currentPeriod.end = timestamp;
+        // Use higher confidence if available
+        if (anomaly.anomaly.anomaly_type === AnomalyType.HIGH_CONFIDENCE) {
+          currentPeriod.confidence = AnomalyType.HIGH_CONFIDENCE;
+        }
+      }
+    } else if (currentPeriod) {
+      // End the current period and add it to results
+      periods.push(currentPeriod);
+      currentPeriod = null;
+    }
+  }
+
+  // Don't forget the last period if it ends with an anomaly
+  if (currentPeriod) {
+    periods.push(currentPeriod);
+  }
+
+  return periods;
+}
+
+function getAnomalyMarkerSeries(
+  anomalies: Anomaly[],
+  config: AnomalyMarkerConfig
+): LineSeriesOption[] {
+  if (!Array.isArray(anomalies) || anomalies.length === 0) {
+    return [];
+  }
+
+  const anomalyPeriods = groupAnomaliesIntoPeriods(anomalies);
+  if (anomalyPeriods.length === 0) {
+    return [];
+  }
+
+  // Create marker line data for anomaly start points
+  const markLineData = anomalyPeriods.map(period => ({
+    xAxis: period.start,
+    tooltip: {
+      formatter: () => createAnomalyTooltip(period.start),
+    },
+  }));
+
+  // Create area data for anomaly periods
+  const markAreaData: MarkAreaComponentOption['data'] = anomalyPeriods.map(period => [
+    {xAxis: period.start},
+    {xAxis: period.end},
+  ]);
+
+  // Single combined series with both markers and areas
+  return [
+    {
+      name: 'Anomaly Detection',
+      type: 'line',
+      data: [],
+      markLine: MarkLine({
+        silent: false,
+        lineStyle: {
+          color: config.theme.pink300,
+          type: 'dashed',
+          width: 2,
+        },
+        label: {
+          show: false,
+        },
+        data: markLineData,
+        animation: false,
+      }),
+      markArea: MarkArea({
+        itemStyle: {
+          color: config.theme.red200,
+        },
+        silent: true,
+        data: markAreaData,
+        animation: false,
+      }),
+    },
+  ];
+}
+
 interface UseMetricDetectorAnomalySeriesProps {
   aggregate: string;
   dataset: DetectorDataset;
@@ -26,19 +166,17 @@ interface UseMetricDetectorAnomalySeriesProps {
   environment: string | undefined;
   projectId: string;
   query: string;
-  sensitivity: AlertRuleSensitivity;
+  sensitivity: AlertRuleSensitivity | undefined;
   series: Series[];
   statsPeriod: TimePeriod;
-  thresholdType: AlertRuleThresholdType;
+  thresholdType: AlertRuleThresholdType | undefined;
   timePeriod: number;
 }
 
-interface AnomalySeries {
-  anomalySeries: AreaChartSeries[];
+interface UseMetricDetectorAnomalySeriesResult {
+  anomalySeries: LineSeriesOption[];
   error: Error | null;
-  formattedAnomalies: Anomaly[];
   isLoading: boolean;
-  refetch: () => void;
 }
 
 export function useMetricDetectorAnomalySeries({
@@ -53,7 +191,7 @@ export function useMetricDetectorAnomalySeries({
   thresholdType,
   sensitivity,
   enabled,
-}: UseMetricDetectorAnomalySeriesProps): AnomalySeries {
+}: UseMetricDetectorAnomalySeriesProps): UseMetricDetectorAnomalySeriesResult {
   const theme = useTheme();
 
   // Fetch historical data with extended time period for anomaly detection baseline comparison
@@ -64,21 +202,24 @@ export function useMetricDetectorAnomalySeries({
       ]
     : HISTORICAL_TIME_PERIOD_MAP[statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP];
 
-  const {series: historicalSeries} = useMetricDetectorSeries({
-    dataset,
-    aggregate,
-    interval: timePeriod,
-    query,
-    environment,
-    projectId,
-    statsPeriod: historicalPeriod as TimePeriod,
-  });
+  const {series: historicalSeries, isLoading: isHistoricalLoading} =
+    useMetricDetectorSeries({
+      dataset,
+      aggregate,
+      interval: timePeriod,
+      query,
+      environment,
+      projectId,
+      statsPeriod: historicalPeriod as TimePeriod,
+      options: {
+        enabled,
+      },
+    });
 
   const {
     data: anomalies,
     isLoading,
     error,
-    refetch,
   } = useMetricDetectorAnomalies({
     series,
     historicalSeries,
@@ -88,35 +229,20 @@ export function useMetricDetectorAnomalySeries({
     timePeriod,
     enabled,
   });
-  const {anomalySeries, formattedAnomalies} = useMemo(() => {
-    if (!anomalies || anomalies.length === 0) {
-      return {
-        anomalySeries: [],
-        formattedAnomalies: [],
-      };
+  const anomalySeries = useMemo<LineSeriesOption[]>(() => {
+    if (!anomalies || anomalies.length === 0 || isHistoricalLoading || isLoading) {
+      return [];
     }
 
-    // Transform API response to Anomaly type format
-    const formatted: Anomaly[] = anomalies.map(item => ({
-      anomaly: item.anomaly,
-      timestamp: item.timestamp,
-      value: item.value,
-    }));
+    // Use our improved anomaly marker series generator
+    const markerSeries = getAnomalyMarkerSeries(anomalies, {theme});
 
-    // Use the proper anomaly marker series function that creates highlighted areas and marker lines
-    const markerSeries = getAnomalyMarkerSeries(formatted, {theme});
-
-    return {
-      anomalySeries: markerSeries,
-      formattedAnomalies: formatted,
-    };
-  }, [anomalies, theme]);
+    return markerSeries;
+  }, [anomalies, theme, isHistoricalLoading, isLoading]);
 
   return {
     anomalySeries,
-    formattedAnomalies,
-    isLoading,
+    isLoading: isHistoricalLoading || isLoading,
     error,
-    refetch,
   };
 }

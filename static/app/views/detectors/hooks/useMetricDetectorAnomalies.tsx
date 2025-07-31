@@ -5,7 +5,7 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {AnomalyType} from 'sentry/views/alerts/types';
+import type {Anomaly} from 'sentry/views/alerts/types';
 
 export const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
   [AlertRuleThresholdType.ABOVE]: 'up',
@@ -32,18 +32,14 @@ interface EventAnomalyPayload extends Record<string, unknown> {
 interface UseMetricDetectorAnomaliesProps {
   historicalSeries: Series[];
   projectId: string;
-  sensitivity: AlertRuleSensitivity;
+  sensitivity: AlertRuleSensitivity | undefined;
   series: Series[];
-  thresholdType: AlertRuleThresholdType;
+  thresholdType: AlertRuleThresholdType | undefined;
   timePeriod: number;
   enabled?: boolean;
 }
 
-type AnomalyResponse = Array<{
-  anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
-  timestamp: number;
-  value: number;
-}>;
+type AnomalyResponse = Anomaly[];
 
 function transformSeriesToDataPoints(series: Series[]): Array<[number, {count: number}]> {
   // Handle the case where there's only one series (which is typical)
@@ -90,9 +86,11 @@ export function useMetricDetectorAnomalies({
     organization_id: organization.id,
     project_id: projectId,
     config: {
-      direction: ANOMALY_DETECTION_THRESHOLD_TYPE_MAP[thresholdType],
+      direction: thresholdType
+        ? ANOMALY_DETECTION_THRESHOLD_TYPE_MAP[thresholdType]
+        : 'both',
       expected_seasonality: 'auto',
-      sensitivity,
+      sensitivity: sensitivity || 'medium',
       time_period: timePeriod / 60,
     },
     current_data: currentData,

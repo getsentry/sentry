@@ -46,6 +46,12 @@ export function MetricDetectorDetailsChart({
           detectionType={detectionType}
           statsPeriod={statsPeriod}
           comparisonDelta={comparisonDelta}
+          sensitivity={
+            'sensitivity' in detector.config ? detector.config.sensitivity : undefined
+          }
+          thresholdType={
+            'thresholdType' in detector.config ? detector.config.thresholdType : undefined
+          }
         />
       </ChartContainerBody>
     </ChartContainer>

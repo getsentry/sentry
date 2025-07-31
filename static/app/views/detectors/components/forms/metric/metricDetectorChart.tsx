@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {LineSeriesOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -58,7 +59,7 @@ interface MetricDetectorChartProps {
   /**
    * Used in anomaly detection
    */
-  sensitivity: AlertRuleSensitivity;
+  sensitivity: AlertRuleSensitivity | undefined;
   /**
    * The time period for the chart data (optional, defaults to 7d)
    */
@@ -66,7 +67,7 @@ interface MetricDetectorChartProps {
   /**
    * Used in anomaly detection
    */
-  thresholdType: AlertRuleThresholdType;
+  thresholdType: AlertRuleThresholdType | undefined;
 }
 
 export function MetricDetectorChart({
@@ -83,7 +84,7 @@ export function MetricDetectorChart({
   sensitivity,
   thresholdType,
 }: MetricDetectorChartProps) {
-  const {series, comparisonSeries, isPending, isError} = useMetricDetectorSeries({
+  const {series, comparisonSeries, isLoading, isError} = useMetricDetectorSeries({
     dataset,
     aggregate,
     interval,
@@ -94,7 +95,7 @@ export function MetricDetectorChart({
     comparisonDelta,
   });
 
-  const {maxValue: thresholdMaxValue, additionalSeries} =
+  const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
     useMetricDetectorThresholdSeries({
       conditions,
       detectionType,
@@ -103,7 +104,7 @@ export function MetricDetectorChart({
 
   const isAnomalyDetection = detectionType === 'dynamic';
   const shouldFetchAnomalies =
-    isAnomalyDetection && !isPending && !isError && series.length > 0;
+    isAnomalyDetection && !isLoading && !isError && series.length > 0;
 
   // Add anomaly detection when detection type is dynamic and series data is ready
   const anomalyResult = useMetricDetectorAnomalySeries({
@@ -120,7 +121,6 @@ export function MetricDetectorChart({
     enabled: shouldFetchAnomalies,
   });
 
-  const anomalySeries = shouldFetchAnomalies ? anomalyResult.anomalySeries : [];
   const anomalyLoading = shouldFetchAnomalies ? anomalyResult.isLoading : false;
   const anomalyError = shouldFetchAnomalies ? anomalyResult.error : null;
 
@@ -149,7 +149,14 @@ export function MetricDetectorChart({
     return roundedMax + padding;
   }, [series, thresholdMaxValue]);
 
-  if (isPending || anomalyLoading) {
+  const additionalSeries = useMemo<LineSeriesOption[]>(() => {
+    if (isAnomalyDetection) {
+      return [...thresholdAdditionalSeries, ...anomalyResult.anomalySeries];
+    }
+    return thresholdAdditionalSeries;
+  }, [isAnomalyDetection, thresholdAdditionalSeries, anomalyResult.anomalySeries]);
+
+  if (isLoading || anomalyLoading) {
     return (
       <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
         <Placeholder height={`${CHART_HEIGHT - 20}px`} />
@@ -174,7 +181,7 @@ export function MetricDetectorChart({
       showTimeInTooltip
       height={CHART_HEIGHT}
       stacked={false}
-      series={[...series, ...anomalySeries]}
+      series={series}
       additionalSeries={additionalSeries}
       yAxis={{
         max: maxValue > 0 ? maxValue : undefined,
