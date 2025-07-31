@@ -1,7 +1,5 @@
-import type {ComponentProps} from 'react';
-import {Fragment} from 'react';
-import {flushSync} from 'react-dom';
-import {createRoot} from 'react-dom/client';
+import type {ComponentProps, ReactElement, ReactNode} from 'react';
+import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -15,7 +13,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const {story} = useStory();
   const storyTitle = (story.exports.frontmatter as any)?.title;
-  const text = stringifyChildren(props.children);
+  const text = stringifyReactNode(props.children);
   const id = props.id ?? slugify(text);
   const {onClick} = useCopyToClipboard({
     text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
@@ -31,46 +29,69 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
   });
 
   return (
-    <HeadingContainer gap="md" align="center">
+    <Flex gap="md" align="center">
       <Heading {...props} id={id} />
-      <LinkButton priority="transparent" size="xs" href={`#${id}`} onClick={onClick}>
+      <StyledLinkButton
+        priority="transparent"
+        size="xs"
+        href={`#${id}`}
+        onClick={onClick}
+      >
         <IconLink />
-      </LinkButton>
-    </HeadingContainer>
+      </StyledLinkButton>
+    </Flex>
   );
 }
 
-const HeadingContainer = styled(Flex)`
-  > a {
-    opacity: 0;
-    color: ${p => p.theme.tokens.graphics.muted};
-  }
+const StyledLinkButton = styled(LinkButton)`
+  position: relative;
+  opacity: 0;
+  width: 32px;
+  height: 32px;
 
-  &:is(:hover, :focus-within) > a {
+  /* Show self on hover/focus and on sibling hover */
+  &:is(:hover, :focus),
+  *:is(:hover) ~ & {
     opacity: 1;
   }
 
-  a:is(:hover, :focus) {
-    color: ${p => p.theme.tokens.graphics.accent};
+  /* Extend hitbox by 8px on each side */
+  &::before {
+    position: absolute;
+    inset: -8px;
+    content: '';
+    display: block;
   }
 
+  /* Move to leading side of heading on xl screens */
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    flex-direction: row;
+    order: -1;
     margin-left: -40px;
-
-    > a {
-      width: 32px;
-      height: 32px;
-      order: -1;
-    }
   }
 `;
 
-function stringifyChildren(children: React.ReactNode) {
-  const container = document.createElement('div');
-  const root = createRoot(container);
-  flushSync(() => {
-    root.render(<Fragment>{children}</Fragment>);
-  });
-  return container.textContent ?? '';
+function stringifyReactNode(child?: ReactNode): string {
+  switch (true) {
+    case typeof child === 'string':
+      return child;
+    // 0 is a valid child that should be stringified
+    case typeof child === 'number':
+      return child.toString();
+    case !child:
+      return '';
+    case Array.isArray(child):
+      return child.map(c => stringifyReactNode(c)).join('');
+    case hasChildren(child):
+      return stringifyReactNode(child.props.children);
+    default:
+      return '';
+  }
+}
+
+function hasChildren(node: ReactNode): node is ReactElement<{children: ReactNode}> {
+  return (
+    isValidElement<{children?: ReactNode}>(node) &&
+    node.props.children !== null &&
+    node.props.children !== undefined
+  );
 }

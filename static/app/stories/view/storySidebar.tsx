@@ -9,11 +9,6 @@ import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
   const {foundations, typography, layout, core, shared} = useStoryBookFilesByCategory();
-  function scrollIntoView(node: HTMLElement | null) {
-    node
-      ?.querySelector('[aria-current="page"]')
-      ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
-  }
 
   return (
     <SidebarContainer key="sidebar" ref={scrollIntoView}>
@@ -41,6 +36,12 @@ export function StorySidebar() {
       </ul>
     </SidebarContainer>
   );
+}
+
+function scrollIntoView(node: HTMLElement | null) {
+  node
+    ?.querySelector('[aria-current="page"]')
+    ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
 }
 
 export function useStoryBookFilesByCategory(): Record<
