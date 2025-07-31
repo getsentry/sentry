@@ -27,7 +27,6 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
-import logoNintendo from 'sentry-logos/logo-nintendo.svg';
 import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
 import logoNintendoSwitch2 from 'sentry-logos/logo-nintendo-switch-2.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
@@ -66,7 +65,6 @@ const LOGO_MAPPING = {
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
-  'nintendo-os': logoNintendo,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
@@ -141,6 +139,10 @@ export function getLogoImage(name: string) {
 
   if (name.startsWith('nvidia-')) {
     return logoNvidia;
+  }
+
+  if (name.startsWith('nintendo-')) {
+    return logoNintendoSwitch;
   }
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
