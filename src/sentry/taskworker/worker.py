@@ -45,8 +45,7 @@ class TaskWorker:
 
     def __init__(
         self,
-        rpc_host: str,
-        num_brokers: int | None,
+        broker_hosts: list[str],
         max_child_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
@@ -61,7 +60,7 @@ class TaskWorker:
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
+        self.client = TaskworkerClient(broker_hosts, rebalance_after)
         if process_type == "fork":
             self.mp_context = multiprocessing.get_context("fork")
         elif process_type == "spawn":
