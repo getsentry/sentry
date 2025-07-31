@@ -75,7 +75,7 @@ export function useVirtualStreaming(
 
   // If we've received data, initialize the virtual timestamp to be refreshEvery seconds before the max ingest delay timestamp
   const initializeVirtualTimestamp = useCallback(() => {
-    if (!data?.pages?.length || virtualTimestamp !== undefined) {
+    if (!data?.pages?.length) {
       return;
     }
 
@@ -108,7 +108,7 @@ export function useVirtualStreaming(
         );
 
     setVirtualTimestamp(initialTimestamp);
-  }, [data, refreshInterval, virtualTimestamp]);
+  }, [data, refreshInterval]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -125,8 +125,8 @@ export function useVirtualStreaming(
       // Re-enabling autorefresh with existing virtual timestamp, and within continue window, do nothing.
       return;
     }
-    // Re-enabling autorefresh with existing virtual timestamp, but outside continue window, reset virtual timestamp.
     if (!isEqual(autoRefresh, previousAutoRefresh)) {
+      // Re-enabling autorefresh with existing virtual timestamp, but outside continue window, reset virtual timestamp.
       initializeVirtualTimestamp();
     }
   }, [
