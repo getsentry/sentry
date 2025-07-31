@@ -12,6 +12,11 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="environment",
+            internal_name="environment",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="guid",
             internal_name="guid",
             search_type="string",
