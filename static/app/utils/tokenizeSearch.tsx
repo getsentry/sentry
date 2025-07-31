@@ -549,17 +549,17 @@ function flattenNestedBrackets(value: string): string {
   if (!/^\[.*\]$/.test(value)) {
     return value;
   }
-  
+
   // Remove outer brackets to work with the inner content
   const inner = value.slice(1, -1);
-  
+
   // Find and flatten nested brackets
   let flattened = inner;
-  
+
   // Simple approach: replace [content] with just content within the array
   // This handles cases like [test,[test2]] -> [test,test2]
   flattened = flattened.replace(/\[([^\[\]]*)\]/g, '$1');
-  
+
   return `[${flattened}]`;
 }
 
@@ -571,19 +571,19 @@ function isValidBracketExpression(value: string): boolean {
   // First flatten any nested brackets for validation
   const flattenedValue = flattenNestedBrackets(value);
   const inner = flattenedValue.slice(1, -1);
-  
+
   // Empty brackets are valid
   if (inner.trim() === '') {
     return true;
   }
-  
+
   // Check if it contains commas - if so, treat as array syntax
   if (inner.includes(',')) {
     // Validate array syntax: comma-separated values, possibly quoted
     const arrayPattern = /^([^,"\s]+|"[^"]*")(\s*,\s*([^,"\s]+|"[^"]*"))*$/;
     return arrayPattern.test(inner);
   }
-  
+
   // For single values without commas, be very conservative
   // Only allow simple lowercase identifiers or numbers
   // This excludes things like "Filtered" which looks like processed text
