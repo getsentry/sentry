@@ -15,6 +15,19 @@ describe('utils/tokenizeSearch', function () {
     });
   });
 
+  // Test case for the reported issue
+  describe('quoted bracket expressions', function () {
+    it('should preserve quotes around bracket expressions when parsing and formatting', function () {
+      const search = new MutableSearch('message:"[Filtered]"');
+      expect(search.formatString()).toBe('message:"[Filtered]"');
+    });
+
+    it('should not add quotes to unquoted bracket expressions', function () {
+      const search = new MutableSearch('message:[test]');
+      expect(search.formatString()).toBe('message:[test]');
+    });
+  });
+
   describe('new MutableSearch()', function () {
     const cases = [
       {
