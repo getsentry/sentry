@@ -396,5 +396,30 @@ describe('DetectorEdit', () => {
       expect(screen.queryByText('Change')).not.toBeInTheDocument();
       expect(screen.queryByText('Dynamic')).not.toBeInTheDocument();
     });
+
+    it('resets 1 day interval to 15 minutes when switching to dynamic detection', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      // Set interval to 1 day
+      const intervalField = screen.getByLabelText('Interval');
+      await userEvent.click(intervalField);
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '1 day'}));
+
+      // Switch to dynamic detection
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      // Verify interval changed to 15 minutes
+      expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
   });
 });
