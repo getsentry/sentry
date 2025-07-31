@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
@@ -164,18 +164,35 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    def build_detector_evidence_data(
+        self,
+        evaluation_result: ProcessedDataConditionGroup,
+        data_packet: DataPacket[MetricUpdate],
+        priority: DetectorPriorityLevel,
+    ) -> dict[str, Any]:
+        evidence_data: dict[str, Any] = {}
+
+        try:
+            alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
+            evidence_data["alert_id"] = alert_rule_detector.alert_rule_id
+        except AlertRuleDetector.DoesNotExist:
+            logger.warning(
+                "No alert rule detector found for detector id %s",
+                self.detector.id,
+                extra={
+                    "detector_id": self.detector.id,
+                },
+            )
+            evidence_data["alert_id"] = None
+
+        return evidence_data
+
     def create_occurrence(
         self,
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
-        try:
-            alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
-            alert_id = alert_rule_detector.alert_rule_id
-        except AlertRuleDetector.DoesNotExist:
-            alert_id = None
-
         try:
             detector_trigger = DataCondition.objects.get(
                 condition_group=self.detector.workflow_condition_group, condition_result=priority
@@ -211,7 +228,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 issue_title=self.detector.name,
                 subtitle=self.construct_title(snuba_query, detector_trigger, priority),
                 evidence_data={
-                    "alert_id": alert_id,
+                    **self.build_detector_evidence_data(evaluation_result, data_packet, priority),
                 },
                 evidence_display=[],  # XXX: may need to pass more info here for the front end
                 type=MetricIssue,
