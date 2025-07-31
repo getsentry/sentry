@@ -8,7 +8,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "^1.5.3",
+    "@amplitude/analytics-browser": "^1.14.0",
     "@babel/core": "~7.28.0",
     "@babel/preset-env": "~7.28.0",
     "@babel/preset-react": "^7.27.1",
