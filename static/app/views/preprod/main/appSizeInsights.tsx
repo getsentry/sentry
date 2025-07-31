@@ -7,19 +7,17 @@ import {space} from 'sentry/styles/space';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/appSizeInsightsSidebar';
 import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
 import {
-  formatPercentageWithParens,
+  formatPercentage,
   formatSavingsAmount,
 } from 'sentry/views/preprod/utils/formatters';
+import {
+  type ProcessedInsight,
+  processInsights,
+} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsProps {
   insights: AppleInsightResults;
   totalSize: number;
-}
-
-interface InsightItem {
-  name: string;
-  percentage: number;
-  savings: number;
 }
 
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
@@ -29,47 +27,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
     return null;
   }
 
-  const insightConfigs = [
-    {key: 'image_optimization', name: 'Optimize images'},
-    {key: 'duplicate_files', name: 'Remove duplicate files'},
-    {key: 'strip_binary', name: 'Strip Binary Symbols'},
-    {key: 'main_binary_exported_symbols', name: 'Remove Symbol Metadata'},
-    {key: 'large_images', name: 'Compress large images'},
-    {key: 'large_videos', name: 'Compress large videos'},
-    {key: 'large_audio', name: 'Compress large audio files'},
-    {key: 'unnecessary_files', name: 'Remove unnecessary files'},
-    {key: 'localized_strings', name: 'Optimize localized strings'},
-    {key: 'localized_strings_minify', name: 'Minify localized strings'},
-    {key: 'small_files', name: 'Optimize small files'},
-    {key: 'loose_images', name: 'Move images to asset catalogs'},
-    {key: 'hermes_debug_info', name: 'Remove Hermes debug info'},
-    {key: 'audio_compression', name: 'Compress audio files'},
-    {key: 'video_compression', name: 'Compress video files'},
-  ] as const;
-
-  const insightItems: InsightItem[] = insightConfigs.flatMap(config => {
-    const insight = insights[config.key as keyof AppleInsightResults];
-    const savings = insight?.total_savings;
-
-    // Validate savings is a positive finite number
-    if (!savings || !isFinite(savings) || savings <= 0) return [];
-
-    const percentage = (savings / totalSize) * 100;
-
-    // Additional safety check for percentage calculation
-    if (!isFinite(percentage)) return [];
-
-    return [
-      {
-        name: config.name,
-        savings,
-        percentage,
-      },
-    ];
-  });
-
-  // Sort by savings amount (descending)
-  insightItems.sort((a, b) => b.savings - a.savings);
+  const insightItems: ProcessedInsight[] = processInsights(insights, totalSize);
 
   // Only show top 3 insights, show the rest in the sidebar
   const topInsights = insightItems.slice(0, 3);
@@ -91,9 +49,9 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
           <InsightRow key={insight.name} isAlternating={index % 2 === 0}>
             <InsightName>{insight.name}</InsightName>
             <SavingsContainer>
-              <SavingsAmount>−{formatSavingsAmount(insight.savings)}</SavingsAmount>
+              <SavingsAmount>−{formatSavingsAmount(insight.totalSavings)}</SavingsAmount>
               <SavingsPercentage width="64px">
-                {formatPercentageWithParens(-insight.percentage)}
+                ({formatPercentage(-insight.percentage)})
               </SavingsPercentage>
             </SavingsContainer>
           </InsightRow>

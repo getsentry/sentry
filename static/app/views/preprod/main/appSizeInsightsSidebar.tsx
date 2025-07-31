@@ -7,17 +7,16 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {
   AppleInsightResults,
-  FileSavingsResult,
-  FileSavingsResultGroup,
-  FilesInsightResult,
-  GroupsInsightResult,
   OptimizableImageFile,
-  StripBinaryFileInfo,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {
   formatPercentage,
   formatSavingsAmount,
 } from 'sentry/views/preprod/utils/formatters';
+import {
+  type ProcessedInsightFile,
+  processInsights,
+} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
   insights: AppleInsightResults;
@@ -26,16 +25,67 @@ interface AppSizeInsightsSidebarProps {
   totalSize: number;
 }
 
-interface ProcessedInsight {
-  description: string;
-  files: Array<{
-    path: string;
-    percentage: number;
-    savings: number;
-  }>;
-  name: string;
-  percentage: number;
-  totalSavings: number;
+interface FileRowProps {
+  file: ProcessedInsightFile;
+  fileIndex: number;
+}
+
+/**
+ * Flexible file row component that can handle different file types
+ * This allows for custom display logic based on file type in the future
+ */
+function FileRow({file, fileIndex}: FileRowProps) {
+  const isAlternating = fileIndex % 2 === 0;
+
+  // Custom display logic based on file type
+  if (file.fileType === 'optimizable_image' && file.originalFile) {
+    return (
+      <OptimizableImageFileRow
+        file={file}
+        originalFile={file.originalFile as OptimizableImageFile}
+        isAlternating={isAlternating}
+      />
+    );
+  }
+
+  // Default display for all other file types
+  return (
+    <FileItem isAlternating={isAlternating}>
+      <FilePath>{file.path}</FilePath>
+      <FileSavings>
+        <FileSavingsAmount>−{formatSavingsAmount(file.savings)}</FileSavingsAmount>
+        <FileSavingsPercentage>
+          (−{formatPercentage(file.percentage)})
+        </FileSavingsPercentage>
+      </FileSavings>
+    </FileItem>
+  );
+}
+
+/**
+ * Custom file row component for OptimizableImageFile
+ * Ready for future custom display enhancements
+ */
+function OptimizableImageFileRow({
+  file,
+  originalFile: _originalFile,
+  isAlternating,
+}: {
+  file: ProcessedInsightFile;
+  isAlternating: boolean;
+  originalFile: OptimizableImageFile;
+}) {
+  return (
+    <FileItem isAlternating={isAlternating}>
+      <FilePath>{file.path}</FilePath>
+      <FileSavings>
+        <FileSavingsAmount>−{formatSavingsAmount(file.savings)}</FileSavingsAmount>
+        <FileSavingsPercentage>
+          (−{formatPercentage(file.percentage)})
+        </FileSavingsPercentage>
+      </FileSavings>
+    </FileItem>
+  );
 }
 
 export function AppSizeInsightsSidebar({
@@ -46,122 +96,8 @@ export function AppSizeInsightsSidebar({
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
-  // Process insights into a standardized format
-  const processedInsights: ProcessedInsight[] = [];
-
-  // Image optimization insight
-  if (insights.image_optimization?.total_savings) {
-    const insight = insights.image_optimization;
-    processedInsights.push({
-      name: 'Optimize images',
-      description:
-        'We determine how much size could be saved if images were compressed. In some cases you can convert to WebP for better compression.',
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: insight.optimizable_files.map((file: OptimizableImageFile) => ({
-        path: file.file_path,
-        savings: file.potential_savings || 0,
-        percentage: ((file.potential_savings || 0) / totalSize) * 100,
-      })),
-    });
-  }
-
-  // Duplicate files insight
-  if (insights.duplicate_files?.total_savings) {
-    const insight = insights.duplicate_files as GroupsInsightResult;
-    processedInsights.push({
-      name: 'Remove duplicate files',
-      description:
-        'Multiple copies of the same file were found, expand each to see the duplicates. Move files to shared locations to save space.',
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: insight.groups.flatMap((group: FileSavingsResultGroup) =>
-        group.files.map((file: FileSavingsResult) => ({
-          path: file.file_path,
-          savings: file.total_savings,
-          percentage: (file.total_savings / totalSize) * 100,
-        }))
-      ),
-    });
-  }
-
-  // Strip binary insight
-  if (insights.strip_binary?.total_savings) {
-    const insight = insights.strip_binary;
-    processedInsights.push({
-      name: 'Strip Binary Symbols',
-      description:
-        'Debug symbols and symbol tables can be removed from binaries to reduce size.',
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: insight.files.map((file: StripBinaryFileInfo) => ({
-        path: file.file_path,
-        savings: file.total_savings,
-        percentage: (file.total_savings / totalSize) * 100,
-      })),
-    });
-  }
-
-  // Add other insights using similar pattern
-  const otherInsightTypes = [
-    {
-      key: 'main_binary_exported_symbols',
-      name: 'Remove Symbol Metadata',
-      description: 'Symbol metadata can be removed to reduce binary size.',
-    },
-    {
-      key: 'large_images',
-      name: 'Compress large images',
-      description: 'Large image files can be compressed to reduce size.',
-    },
-    {
-      key: 'large_videos',
-      name: 'Compress large videos',
-      description: 'Large video files can be compressed to reduce size.',
-    },
-    {
-      key: 'large_audio',
-      name: 'Compress large audio files',
-      description: 'Large audio files can be compressed to reduce size.',
-    },
-    {
-      key: 'unnecessary_files',
-      name: 'Remove unnecessary files',
-      description: 'Files that are not needed can be removed to save space.',
-    },
-    {
-      key: 'localized_strings',
-      name: 'Optimize localized strings',
-      description: 'Localized string files can be optimized to reduce size.',
-    },
-    {
-      key: 'small_files',
-      name: 'Optimize small files',
-      description: 'Small files can be optimized or bundled to reduce overhead.',
-    },
-  ] as const;
-
-  otherInsightTypes.forEach(({key, name, description}) => {
-    const insight = insights[key as keyof AppleInsightResults] as
-      | FilesInsightResult
-      | undefined;
-    if (insight?.total_savings) {
-      processedInsights.push({
-        name,
-        description,
-        totalSavings: insight.total_savings,
-        percentage: (insight.total_savings / totalSize) * 100,
-        files: insight.files.map((file: FileSavingsResult) => ({
-          path: file.file_path,
-          savings: file.total_savings,
-          percentage: (file.total_savings / totalSize) * 100,
-        })),
-      });
-    }
-  });
-
-  // Sort by total savings (descending)
-  processedInsights.sort((a, b) => b.totalSavings - a.totalSavings);
+  // Process insights using shared logic
+  const processedInsights = processInsights(insights, totalSize);
 
   const toggleExpanded = (insightName: string) => {
     const newExpanded = new Set(expandedInsights);
@@ -224,20 +160,11 @@ export function AppSizeInsightsSidebar({
                     {isExpanded && (
                       <FilesList>
                         {insight.files.map((file, fileIndex) => (
-                          <FileItem
+                          <FileRow
                             key={`${file.path}-${fileIndex}`}
-                            isAlternating={fileIndex % 2 === 0}
-                          >
-                            <FilePath>{file.path}</FilePath>
-                            <FileSavings>
-                              <FileSavingsAmount>
-                                −{formatSavingsAmount(file.savings)}
-                              </FileSavingsAmount>
-                              <FileSavingsPercentage>
-                                (−{formatPercentage(file.percentage)})
-                              </FileSavingsPercentage>
-                            </FileSavings>
-                          </FileItem>
+                            file={file}
+                            fileIndex={fileIndex}
+                          />
                         ))}
                       </FilesList>
                     )}
@@ -430,6 +357,24 @@ const FilePath = styled('span')`
     text-decoration: underline;
   }
 `;
+
+// const ImageFileInfo = styled('div')`
+//   display: flex;
+//   flex-direction: column;
+//   flex: 1;
+//   min-width: 0;
+//   margin-right: ${space(2)};
+// `;
+
+// const OptimizationType = styled('span')`
+//   font-family: 'Rubik', sans-serif;
+//   font-weight: 400;
+//   font-size: 10px;
+//   line-height: 1;
+//   letter-spacing: 0;
+//   color: ${p => p.theme.subText};
+//   margin-top: 2px;
+// `;
 
 const FileSavings = styled('div')`
   display: flex;
