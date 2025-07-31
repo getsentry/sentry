@@ -21,6 +21,13 @@ from sentry.utils.snuba import raw_snql_query
 
 
 def _get_ai_labels_from_tags(alias: str | None = None):
+    """
+    Gets all the AI label values as an array from the tags column.
+
+    This function is used to get the AI label values from the tags column.
+    It does this by zipping the keys and values together, filtering the tuples to only include those whose key starts with the correct AI label prefix, and then mapping the tuples to their values (second tuple element).
+    """
+
     return Function(
         "arrayMap",
         parameters=[

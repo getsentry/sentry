@@ -69,7 +69,7 @@ class FeedbackLabelGroup(TypedDict):
 @region_silo_endpoint
 class OrganizationFeedbackCategoryGenerationEndpoint(
     OrganizationEventsV2EndpointBase
-):  # XXX: is this inheritance ok? this is only done since this class has the get_snuba_params method.
+):  # XXX: is this inheritance ok? this is only done since this class has the get_snuba_params method
     owner = ApiOwner.FEEDBACK
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -96,8 +96,6 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
         top_10_labels
 
-        # print("\n\n\n\nQ1 RESULTS", top_10_labels, "\n\n\n\n")
-
         # Query for top tag values across all AI label keys with prefix matching
         # This seems to work, but to be very honest I don't know how it does
         # (nvm, https://github.com/getsentry/snuba/blob/7abc44933b261854a32afeeee3e1c3e033ea2bfb/snuba/query/parser/README.md?plain=1#L240 mentions the tags_key and tags_value virtual columns that are basically an ArrayJoin)
@@ -108,12 +106,10 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             snuba_params=snuba_params,
             orderby=["-count()"],
             limit=10,
-            referrer="api.organization-issue-replay-count",
+            referrer="api.organization-issue-replay-count",  # Change this
         )["data"]
 
         issue_platform_results
-
-        # print("\n\n\n\nQ2 RESULTS", issue_platform_results, "\n\n\n\n")
 
         # This works. but we can switch to using the custom Snuba query if we don't want to do this.
         labels = [result["tags_value"] for result in top_10_labels]
@@ -174,7 +170,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
         # Cache up to the day granularity
         # qq: what happens if a user sets a date range to be within a day? then maybe unexpected results, because say they choose like 18 hours all within a day, then got some categories, then change it to be like 2 hours and would still get the same categories... doesn't make sense
-        # let's change this to be the hour granularity or should we do some weird conditional stuff? if it is within a day, then make it up to the hour, but if it is more than a day, then make it up to the day. hmm
+        # let's change this to be the hour granularity or should we do some conditional stuff? if it is within a day, then make it up to the hour, but if it is more than a day, then make it up to the day. hmm
         categorization_cache_key = f"feedback_categorization:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         categories_cache = cache.get(categorization_cache_key)
         if categories_cache:
