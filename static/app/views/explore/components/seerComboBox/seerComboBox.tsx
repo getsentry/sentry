@@ -226,7 +226,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         organization,
         natural_language_query: searchQuery.trim(),
       });
-      askSeerNLQueryRef.current = searchQuery;
+      askSeerNLQueryRef.current = searchQuery.trim();
       applySeerSearchQuery(item);
       state.close();
     },
