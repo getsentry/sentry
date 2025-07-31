@@ -55,7 +55,7 @@ export function AppSizeInsightsSidebarRow({
         </Flex>
       </Flex>
 
-      <Text variant="muted" size="sm" as="p">
+      <Text variant="muted" size="sm">
         {insight.description}
       </Text>
 
@@ -68,7 +68,7 @@ export function AppSizeInsightsSidebarRow({
         </FilesToggleButton>
 
         {isExpanded && (
-          <Flex direction="column" gap="0">
+          <Flex direction="column">
             {insight.files.map((file, fileIndex) => (
               <FileRow
                 key={`${file.path}-${fileIndex}`}
