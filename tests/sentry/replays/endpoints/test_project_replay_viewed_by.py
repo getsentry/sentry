@@ -1,6 +1,6 @@
 import datetime
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import dateutil.parser
@@ -130,7 +130,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
         assert response.status_code == 404
 
     @patch("sentry.replays.endpoints.project_replay_viewed_by.publish_replay_event")
-    def test_post_replay_viewed_by(self, publish_replay_event):
+    def test_post_replay_viewed_by(self, publish_replay_event: MagicMock) -> None:
         with self.feature(REPLAYS_FEATURES):
             finished_at_dt = datetime.datetime.now() - datetime.timedelta(seconds=20)
             self.store_replays(mock_replay(finished_at_dt, self.project.id, self.replay_id))
@@ -154,7 +154,7 @@ class ProjectReplayViewedByTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 404
 
     @patch("sentry.replays.endpoints.project_replay_viewed_by.publish_replay_event")
-    def test_post_replay_viewed_by_not_in_org(self, publish_replay_event):
+    def test_post_replay_viewed_by_not_in_org(self, publish_replay_event: MagicMock) -> None:
         with self.feature(REPLAYS_FEATURES):
             finished_at_dt = datetime.datetime.now() - datetime.timedelta(seconds=20)
             self.store_replays(mock_replay(finished_at_dt, self.project.id, self.replay_id))

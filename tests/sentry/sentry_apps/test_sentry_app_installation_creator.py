@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -42,7 +42,7 @@ class TestCreator(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_creates_installation(self, mock_record):
+    def test_creates_installation(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
         assert install.pk
@@ -141,7 +141,7 @@ class TestCreator(TestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_records_analytics(self, record):
+    def test_records_analytics(self, record: MagicMock) -> None:
         SentryAppInstallationCreator(
             organization_id=self.org.id,
             slug="nulldb",

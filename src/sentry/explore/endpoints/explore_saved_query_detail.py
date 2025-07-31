@@ -24,6 +24,7 @@ from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
+from sentry.models.organization import Organization
 
 
 class ExploreSavedQueryBase(OrganizationEndpoint):
@@ -95,7 +96,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERY_GET_RESPONSE,
     )
-    def put(self, request: Request, organization, query) -> Response:
+    def put(self, request: Request, organization: Organization, query) -> Response:
         """
         Modify a saved query.
         """

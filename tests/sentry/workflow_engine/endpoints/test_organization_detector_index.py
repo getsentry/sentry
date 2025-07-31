@@ -17,7 +17,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
@@ -250,6 +250,32 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert {d["name"] for d in response3.data} == {detector2.name}
 
+    def test_query_by_type_alias(self) -> None:
+        """
+        Users can query by simplfied aliases like "metric", "uptime" instead of the full type names.
+        """
+        metric_detector = self.create_detector(
+            project_id=self.project.id, name="Metric Detector", type=MetricIssue.slug
+        )
+        uptime_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Uptime Detector",
+            type=UptimeDomainCheckFailure.slug,
+            config={
+                "mode": 1,
+                "environment": "production",
+            },
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": "type:metric"}
+        )
+        assert {d["name"] for d in response.data} == {metric_detector.name}
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id, "query": "type:uptime"}
+        )
+        assert {d["name"] for d in response.data} == {uptime_detector.name}
+
     def test_general_query(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id,
@@ -465,7 +491,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:incidents")
+@with_feature("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
@@ -581,7 +607,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_valid_creation(self, mock_audit):
+    def test_valid_creation(self, mock_audit: mock.MagicMock) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,

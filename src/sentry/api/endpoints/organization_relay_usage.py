@@ -13,6 +13,7 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.models.relay import RelayUsage
 
 
@@ -37,7 +38,7 @@ class OrganizationRelayUsage(OrganizationEndpoint):
         },
         examples=OrganizationExamples.LIST_RELAYS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return a list of trusted relays bound to an organization.
 

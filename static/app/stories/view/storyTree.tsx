@@ -499,15 +499,16 @@ function Folder(props: {node: StoryTreeNode}) {
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
   const {state, ...to} = props.node.location;
+  const active =
+    props.node.filesystemPath === (location.state?.storyPath ?? location.query.name);
 
   return (
     <li>
       <FolderLink
         to={to}
         state={state}
-        active={
-          props.node.filesystemPath === (location.state?.storyPath ?? location.query.name)
-        }
+        aria-current={active ? 'page' : undefined}
+        active={active}
       >
         {normalizeFilename(props.node.name)}
       </FolderLink>

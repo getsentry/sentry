@@ -13,7 +13,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     @mock.patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: mock.MagicMock) -> None:
         key, value = "foo", "bar"
 
         project = self.create_project()
@@ -190,7 +190,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
     @mock.patch("sentry.analytics.record")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self, mock_record) -> None:
+    def test_ratelimit(self, mock_record: mock.MagicMock) -> None:
         key, value = "foo", "bar"
 
         project = self.create_project()
@@ -206,7 +206,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         url = f"/api/0/issues/{group.id}/tags/{key}/values/"
 
         with freeze_time(datetime.datetime.now()):
-            for i in range(10):
+            for i in range(100):
                 response = self.client.get(url)
                 assert response.status_code == 200
             response = self.client.get(url)
