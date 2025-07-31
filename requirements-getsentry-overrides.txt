@@ -1,6 +1,6 @@
 # getsentry requirements overrides
 #
-# getsentry-specific dependencies now live in `sentry` in `requirements-getsentry.txt`
+# getsentry-specific dependencies now live in `sentry` in `pyproject.toml` under project.optional-dependencies
 #
 # this file is for listing in-development git archive overrides for sentry libraries
 #
