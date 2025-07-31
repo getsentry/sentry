@@ -213,7 +213,7 @@ function WidgetBuilderSlideout({
       <SlideoutBodyWrapper>
         {disableTransactionWidget && isEditing && (
           <Section>
-            <Alert type="warning" showIcon>
+            <Alert type="warning">
               {t(
                 'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
               )}
@@ -249,9 +249,11 @@ function WidgetBuilderSlideout({
           </Fragment>
         ) : (
           <Fragment>
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
+            <DisableTransactionWidget>
+              <Section>
+                <WidgetBuilderNameAndDescription error={error} setError={setError} />
+              </Section>
+            </DisableTransactionWidget>
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>

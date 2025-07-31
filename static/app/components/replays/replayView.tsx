@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
@@ -17,6 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconFatal} from 'sentry/icons/iconFatal';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
@@ -45,7 +46,8 @@ function FatalIconTooltip({error}: {error: Error | null}) {
 export default function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {isFetching, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
   const isVideoReplay = replay?.isVideoReplay();
   const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
     replays: replay ? [replay.getReplay()] : [],

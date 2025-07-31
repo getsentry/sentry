@@ -122,7 +122,7 @@ class CircuitBreakerTest(TestCase):
         self.breaker.redis_pipeline.flushall()
         self.breaker.redis_pipeline.execute()
 
-    def test_sets_default_values(self):
+    def test_sets_default_values(self) -> None:
         breaker = self.breaker
 
         assert breaker.__dict__ == {
@@ -225,7 +225,7 @@ class RecordErrorTest(TestCase):
         self.breaker.redis_pipeline.flushall()
         self.breaker.redis_pipeline.execute()
 
-    def test_increments_error_count(self):
+    def test_increments_error_count(self) -> None:
         config = self.config
         breaker = self.breaker
 
@@ -237,7 +237,7 @@ class RecordErrorTest(TestCase):
         # The error has been tallied
         assert breaker._get_remaining_error_quota() == config["error_limit"] - 1
 
-    def test_no_error_recorded_in_broken_state(self):
+    def test_no_error_recorded_in_broken_state(self) -> None:
         breaker = self.breaker
 
         breaker._set_breaker_state(CircuitBreakerState.BROKEN)
@@ -399,7 +399,7 @@ class ShouldAllowRequestTest(TestCase):
         self.breaker.redis_pipeline.flushall()
         self.breaker.redis_pipeline.execute()
 
-    def test_allows_request_in_non_broken_state_with_quota_remaining(self):
+    def test_allows_request_in_non_broken_state_with_quota_remaining(self) -> None:
         breaker = self.breaker
 
         for state, quota, limit in [

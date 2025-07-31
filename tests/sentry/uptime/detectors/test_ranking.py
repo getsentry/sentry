@@ -54,7 +54,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
             assert ttl == expiry
         return ttl
 
-    def test(self):
+    def test(self) -> None:
         project_2 = self.create_project()
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -86,7 +86,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
         project_2_url_expiry = self.assert_url_count(project_2, url_1, None, None)
         self.assert_url_count(project_2, url_2, 1, project_2_url_expiry)
 
-    def test_trim(self):
+    def test_trim(self) -> None:
         with (
             mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1),
             mock.patch("sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2),
@@ -109,7 +109,7 @@ class AddBaseUrlToRankTest(UptimeTestCase):
 
 
 class GetCandidateProjectsForOrgTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         assert get_candidate_projects_for_org(self.organization) == []
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -125,7 +125,7 @@ class GetCandidateProjectsForOrgTest(UptimeTestCase):
 
 
 class GetCandidateUrlsForProjectTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         assert get_candidate_urls_for_project(self.project) == []
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -135,7 +135,7 @@ class GetCandidateUrlsForProjectTest(UptimeTestCase):
         add_base_url_to_rank(self.project, url_2)
         assert get_candidate_urls_for_project(self.project) == [(url_2, 2), (url_1, 1)]
 
-    def test_limits(self):
+    def test_limits(self) -> None:
         with mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1):
             other_proj = self.create_project()
             url_1 = "https://sentry.io"
@@ -151,7 +151,7 @@ class GetCandidateUrlsForProjectTest(UptimeTestCase):
 
 
 class DeleteCandidateUrlsForProjectTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         delete_candidate_urls_for_project(self.project)
         url_1 = "https://sentry.io"
         add_base_url_to_rank(self.project, url_1)
@@ -161,7 +161,7 @@ class DeleteCandidateUrlsForProjectTest(UptimeTestCase):
 
 
 class GetOrganizationBucketTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         bucket = datetime(2024, 7, 18, 0, 47)
         assert get_organization_bucket(bucket) == set()
         dummy_org_id = 47
@@ -172,7 +172,7 @@ class GetOrganizationBucketTest(UptimeTestCase):
 
 
 class DeleteOrganizationBucketTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         bucket = datetime(2024, 7, 18, 0, 47)
         delete_organization_bucket(bucket)
         dummy_org_id = 1487
@@ -185,7 +185,7 @@ class DeleteOrganizationBucketTest(UptimeTestCase):
 
 
 class ShouldDetectForProjectTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         assert should_detect_for_project(self.project)
         self.project.update_option("sentry:uptime_autodetection", False)
         assert not should_detect_for_project(self.project)
@@ -194,14 +194,14 @@ class ShouldDetectForProjectTest(UptimeTestCase):
 
 
 class ShouldDetectForOrgTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         assert should_detect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", False)
         assert not should_detect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", True)
         assert should_detect_for_organization(self.organization)
 
-    def test_quota(self):
+    def test_quota(self) -> None:
         assert should_detect_for_organization(self.organization)
         uptime_monitor = self.create_project_uptime_subscription()
         assert not should_detect_for_organization(self.organization)

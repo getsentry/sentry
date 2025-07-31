@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.models.organization import Organization
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -47,7 +48,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
 
         return Response(data)
 
-    def put(self, request: Request, organization, incident) -> Response:
+    def put(self, request: Request, organization: Organization, incident) -> Response:
         serializer = IncidentSerializer(data=request.data)
         if serializer.is_valid():
             result = serializer.validated_data

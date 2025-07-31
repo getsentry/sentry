@@ -233,9 +233,9 @@ class RuleSerializer(Serializer):
                     rule_id = workflow_rule_lookup.get(wfh["workflow_id"])
                     if rule_id:
                         # Take the maximum date between RuleFireHistory and WorkflowFireHistory
-                        existing_date = last_triggered_lookup[rule_id]
+                        existing_date = last_triggered_lookup.get(rule_id)
                         new_date = wfh["date_added"]
-                        if new_date > existing_date:
+                        if (existing_date and new_date > existing_date) or not existing_date:
                             last_triggered_lookup[rule_id] = new_date
 
             # Set the results

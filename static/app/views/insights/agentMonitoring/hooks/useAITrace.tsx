@@ -51,6 +51,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
       AI_TOTAL_TOKENS_ATTRIBUTE,
       AI_COST_ATTRIBUTE,
       AI_TOOL_NAME_ATTRIBUTE,
+      'span.status',
     ],
   });
 

@@ -78,6 +78,9 @@ function Layout({children}: Props) {
             <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
             <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
             <NavLink to="/_admin/invoices/">Invoices</NavLink>
+            <NavLink to="/_admin/spike-projection-generation/">
+              Spike Projection Generation
+            </NavLink>
           </Navigation>
           <div>
             <ThemeToggle

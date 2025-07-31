@@ -147,7 +147,7 @@ class OpsgenieIntegration(IntegrationInstallation):
             integration_key=team["integration_key"],
         )
 
-    def get_client(self) -> Any:  # type: ignore[explicit-override]
+    def get_client(self) -> Any:
         raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self) -> Sequence[Any]:

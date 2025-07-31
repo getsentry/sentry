@@ -12,7 +12,7 @@ from sentry.testutils.outbox import outbox_runner
 class TeamDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-team-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -61,7 +61,7 @@ class TeamDetailsTestBase(APITestCase):
 
 
 class TeamDetailsTest(TeamDetailsTestBase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         team = self.team  # force creation
 
         response = self.get_success_response(team.organization.slug, team.slug)
@@ -74,7 +74,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         team = self.team  # force creation
 
         self.get_success_response(
@@ -85,11 +85,11 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "hello world"
         assert team.slug == "foobar"
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_member_without_team_role(self):
+    def test_member_without_team_role(self) -> None:
         user = self.create_user("foo@example.com")
         team = self.create_team()
         member = self.create_member(user=user, organization=self.organization, role="member")
@@ -100,7 +100,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         self.get_error_response(team.organization.slug, team.slug, slug="foobar", status_code=403)
 
     @with_feature("organizations:team-roles")
-    def test_member_with_team_role(self):
+    def test_member_with_team_role(self) -> None:
         user = self.create_user("foo@example.com")
         team = self.create_team()
         member = self.create_member(user=user, organization=self.organization, role="member")
@@ -114,7 +114,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    def test_admin_with_team_membership_with_id(self):
+    def test_admin_with_team_membership_with_id(self) -> None:
         """Admins can modify their teams"""
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -129,7 +129,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    def test_admin_with_team_membership(self):
+    def test_admin_with_team_membership(self) -> None:
         """Admins can modify their teams"""
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -144,7 +144,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    def test_admin_without_team_membership(self):
+    def test_admin_without_team_membership(self) -> None:
         """Admins can't modify teams of which they're not inside, unless
         open membership is on."""
 
@@ -172,7 +172,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    def test_manager_without_team_membership(self):
+    def test_manager_without_team_membership(self) -> None:
         org = self.create_organization()
         team = self.create_team(organization=org)
         user = self.create_user(email="foo@example.com", is_superuser=False)
@@ -186,7 +186,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    def test_owner_without_team_membership(self):
+    def test_owner_without_team_membership(self) -> None:
         org = self.create_organization()
         team = self.create_team(organization=org)
         user = self.create_user(email="foo@example.com", is_superuser=False)
@@ -200,7 +200,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    def test_cannot_modify_idp_provisioned_teams(self):
+    def test_cannot_modify_idp_provisioned_teams(self) -> None:
         org = self.create_organization(owner=self.user)
         idp_team = self.create_team(organization=org, idp_provisioned=True)
 
@@ -213,7 +213,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 
-    def test_rename_on_delete(self):
+    def test_rename_on_delete(self) -> None:
         """Admins can remove teams of which they're a part"""
         org = self.create_organization()
         team = self.create_team(organization=org, slug="something-moderately-long")
@@ -230,7 +230,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.assert_team_deleted(team.id)
         assert original_slug != team.slug, "Slug should be released on delete."
 
-    def test_member(self):
+    def test_member(self) -> None:
         """Members can't remove teams, even if they belong to them"""
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
@@ -244,7 +244,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
         self.assert_team_not_deleted(team.id)
 
     @with_feature("organizations:team-roles")
-    def test_member_with_team_role(self):
+    def test_member_with_team_role(self) -> None:
         user = self.create_user("foo@example.com")
         team = self.create_team()
         member = self.create_member(user=user, organization=self.organization, role="member")
@@ -256,7 +256,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
             self.get_success_response(team.organization.slug, team.slug, status_code=204)
         self.assert_team_deleted(team.id)
 
-    def test_admin_with_team_membership(self):
+    def test_admin_with_team_membership(self) -> None:
         """Admins can delete their teams"""
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -271,7 +271,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
 
-    def test_admin_with_team_membership_with_id(self):
+    def test_admin_with_team_membership_with_id(self) -> None:
         """Admins can delete their teams"""
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -286,7 +286,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
 
-    def test_admin_without_team_membership(self):
+    def test_admin_without_team_membership(self) -> None:
         """Admins can't delete teams of which they're not inside, unless
         open membership is on."""
 
@@ -311,7 +311,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
             self.get_success_response(team.organization.slug, team.slug, status_code=204)
         self.assert_team_deleted(team.id)
 
-    def test_manager_without_team_membership(self):
+    def test_manager_without_team_membership(self) -> None:
         """Admins can remove teams of which they're a part"""
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -326,7 +326,7 @@ class TeamDeleteTest(TeamDetailsTestBase):
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
 
-    def test_cannot_delete_idp_provisioned_teams(self):
+    def test_cannot_delete_idp_provisioned_teams(self) -> None:
         org = self.create_organization(owner=self.user)
         idp_team = self.create_team(organization=org, idp_provisioned=True)
 

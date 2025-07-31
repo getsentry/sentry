@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {space} from 'sentry/styles/space';
 
 const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
@@ -14,9 +13,7 @@ const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
  * Local z-index stacking context
  * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
  */
-// Parent context is Panel
-const Z_INDEX_PANEL = 1;
-const Z_INDEX_GRID = 5;
+const Z_INDEX_STICKY_HEADER = 1;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
@@ -25,7 +22,7 @@ export const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export const HeaderTitle = styled('h4')`
@@ -36,7 +33,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;
@@ -64,7 +61,6 @@ export const Body = styled(
 )`
   overflow-x: auto;
   overflow-y: ${({showVerticalScrollbar}) => (showVerticalScrollbar ? 'auto' : 'hidden')};
-  z-index: ${Z_INDEX_PANEL};
 `;
 
 /**
@@ -94,7 +90,6 @@ export const Grid = styled('table')<{
   border-collapse: collapse;
   margin: 0;
 
-  z-index: ${Z_INDEX_GRID};
   ${p =>
     p.scrollable &&
     css`
@@ -134,7 +129,7 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
 
-  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_GRID + 1}` : '')}
+  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_STICKY_HEADER}` : '')}
 `;
 
 export const GridHeadCell = styled('th')<{isFirst: boolean}>`
@@ -145,7 +140,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   display: flex;
   align-items: center;
   min-width: 24px;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
@@ -178,13 +173,14 @@ export const GridHeadCellStatic = styled('th')`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
 
   &:first-child {
-    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+    padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
+      ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -226,22 +222,21 @@ export const GridBodyCell = styled('td')`
      min-height is used to allow a cell to expand and this is used to display
      feedback during empty/error state */
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   display: flex;
   flex-direction: column;
   justify-content: center;
 
   font-size: ${p => p.theme.fontSize.md};
+`;
 
+export const GridBodyCellStatic = styled(GridBodyCell)`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: ${space(1)} 0 ${space(1)} ${space(3)};
-  }
-
-  &:last-child {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
+      ${p => p.theme.space['2xl']};
   }
 `;
 

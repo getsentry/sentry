@@ -55,11 +55,11 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 }
 
 export function RepoSelector() {
-  const {repository, integratedOrg, changeContextValue} = useCodecovContext();
+  const {repository, integratedOrgId, changeContextValue} = useCodecovContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const {data: repositories} = useInfiniteRepositories({term: searchValue});
 
-  const disabled = !integratedOrg;
+  const disabled = !integratedOrgId;
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
@@ -128,7 +128,7 @@ export function RepoSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex align="center" gap={space(0.75)}>
+              <Flex align="center" gap="sm">
                 <IconContainer>
                   <IconRepository />
                 </IconContainer>

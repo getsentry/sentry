@@ -51,8 +51,8 @@ import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTr
 import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
-import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -150,8 +150,17 @@ function McpOverviewPage() {
     [activeView, location, navigate, organization]
   );
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -162,9 +171,26 @@ function McpOverviewPage() {
       searchSource: 'mcp-monitoring',
       numberTags,
       stringTags,
-      replaceRawSearchKeys: ['span.description'],
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
     }),
-    [searchQuery, numberTags, stringTags, setSearchQuery]
+    [
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -182,7 +208,7 @@ function McpOverviewPage() {
         module={ModuleName.MCP}
         headerTitle={
           <Fragment>
-            {MODULE_TITLE}
+            {getAIModuleTitle(organization)}
             <FeatureBadge type="beta" />
           </Fragment>
         }

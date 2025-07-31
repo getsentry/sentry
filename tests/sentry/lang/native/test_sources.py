@@ -16,7 +16,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_validate_builtin_sources():
+def test_validate_builtin_sources() -> None:
     for source in settings.SENTRY_BUILTIN_SOURCES.values():
         jsonschema.validate(source, BUILTIN_SOURCE_SCHEMA)
 
@@ -176,7 +176,7 @@ class TestIgnoredSourcesFiltering:
 
     # Explicitly empty list of sources
     @django_db_all
-    def test_sources_included_and_ignored_empty(self):
+    def test_sources_included_and_ignored_empty(self) -> None:
         with override_options({"symbolicator.ignored_sources": []}):
             sources = filter_ignored_sources([])
 

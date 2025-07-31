@@ -284,7 +284,6 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       )
     );
 
-    // TODO(seer): Add seer analytics
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.upgrade', {
       organization,
       subscription,
@@ -294,8 +293,6 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       previous_attachments: 1,
       previous_replays: 50,
       previous_monitorSeats: 1,
-      previous_profileDuration: undefined,
-      previous_spans: undefined,
       previous_uptime: 1,
       plan: updatedData.plan,
       errors: updatedData.reserved.errors,
@@ -303,7 +300,6 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       attachments: updatedData.reserved.attachments,
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
-      spans: undefined,
       uptime: 1,
     });
 

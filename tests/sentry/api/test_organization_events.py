@@ -27,11 +27,11 @@ class OrganizationEventsEndpointTest(APITestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = self.ten_mins_ago.isoformat()
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def client_get(self, *args, **kwargs):
         return self.client.get(*args, **kwargs)
@@ -50,7 +50,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
-    def test_api_key_request(self):
+    def test_api_key_request(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -77,7 +77,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == self.project.slug
 
-    def test_multiple_projects_open_membership(self):
+    def test_multiple_projects_open_membership(self) -> None:
         assert bool(self.organization.flags.allow_joinleave)
         self.store_event(
             data={
@@ -116,7 +116,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         }
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_api_token_referrer(self, mock):
+    def test_api_token_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
@@ -143,7 +143,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_invalid_referrer(self, mock):
+    def test_invalid_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -156,7 +156,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_empty_referrer(self, mock):
+    def test_empty_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -168,7 +168,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
+    def test_handling_snuba_errors(self, mock_snql_query: mock.MagicMock) -> None:
         self.create_project()
 
         mock_snql_query.side_effect = RateLimitExceeded("test")
@@ -194,7 +194,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
     @mock.patch("sentry.snuba.discover.query")
-    def test_valid_referrer(self, mock):
+    def test_valid_referrer(self, mock: mock.MagicMock) -> None:
         mock.return_value = {}
 
         query = {
@@ -208,7 +208,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
     @pytest.mark.skip(reason="flaky: #95995")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_ratelimit(self):
+    def test_ratelimit(self) -> None:
         query = {
             "field": ["transaction"],
             "project": [self.project.id],
@@ -227,7 +227,7 @@ class OrganizationEventsEndpointTest(APITestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.content
 
-    def test_rate_limit_events_without_rollout(self):
+    def test_rate_limit_events_without_rollout(self) -> None:
         slug = self.organization.slug
         request = Request(HttpRequest())
 
@@ -236,7 +236,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         )
 
     @with_feature("organizations:api-organization_events-rate-limit-reduced-rollout")
-    def test_rate_limit_events_with_rollout(self):
+    def test_rate_limit_events_with_rollout(self) -> None:
         slug = self.organization.slug
         request = Request(HttpRequest())
 
@@ -257,7 +257,7 @@ class OrganizationEventsEndpointTest(APITestCase):
                 window=456,
             )
 
-    def test_rate_limit_events_increased(self):
+    def test_rate_limit_events_increased(self) -> None:
         slug = self.organization.slug
         request = Request(HttpRequest())
 
@@ -293,7 +293,7 @@ class OrganizationEventsEndpointTest(APITestCase):
                 window=456,
             )
 
-    def test_rate_limit_events_invalid_options(self):
+    def test_rate_limit_events_invalid_options(self) -> None:
         slug = self.organization.slug
         request = Request(HttpRequest())
 
@@ -340,7 +340,7 @@ class OrganizationEventsEndpointTest(APITestCase):
                 **DEFAULT_REDUCED_RATE_LIMIT
             )
 
-    def test_rate_limit_events_bad_slug(self):
+    def test_rate_limit_events_bad_slug(self) -> None:
         slug = "ucsc-banana-slugs-go-sammy"
         request = Request(HttpRequest())
 

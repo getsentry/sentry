@@ -40,12 +40,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
-import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
+import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
   useExploreFields,
   useExploreId,
@@ -65,6 +64,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -173,10 +173,21 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displaySeerResults, query} = useSearchQueryBuilder();
+  const {displaySeerResults, query, currentInputValue} = useSearchQueryBuilder();
+
+  const initialSeerQuery = (() => {
+    const committedQuery = query.trim();
+    const inputValue = currentInputValue.trim();
+
+    if (!inputValue) return committedQuery;
+
+    if (!committedQuery) return inputValue;
+
+    return `${committedQuery} ${inputValue}`;
+  })();
 
   return displaySeerResults ? (
-    <SeerSearch initialQuery={query} />
+    <SeerComboBox initialQuery={initialSeerQuery} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );
@@ -192,11 +203,26 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {
+    tags: numberTags,
+    isLoading: numberTagsLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemTags('number');
+  const {
+    tags: stringTags,
+    isLoading: stringTagsLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -232,9 +258,29 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
-      replaceRawSearchKeys: ['span.description'],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
     }),
-    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
+    [
+      fields,
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
+      mode,
+      numberSecondaryAliases,
+      numberTags,
+      oldSearch,
+      query,
+      setExplorePageParams,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -367,14 +413,11 @@ function SpanTabContentSection({
     enabled: isAllowedSelection && queryType === 'traces',
   });
 
-  const {
-    result: timeseriesResult,
-    canUsePreviousResults,
-    samplingMode: timeseriesSamplingMode,
-  } = useExploreTimeseries({
-    query,
-    enabled: isAllowedSelection,
-  });
+  const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
+    useExploreTimeseries({
+      query,
+      enabled: isAllowedSelection,
+    });
 
   const confidences = useMemo(
     () =>
@@ -443,9 +486,7 @@ function SpanTabContentSection({
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
       {defined(error) && (
         <Alert.Container>
-          <Alert type="error" showIcon>
-            {error.message}
-          </Alert>
+          <Alert type="error">{error.message}</Alert>
         </Alert.Container>
       )}
       <TourElement<ExploreSpansTour>
@@ -459,7 +500,6 @@ function SpanTabContentSection({
         margin={-8}
       >
         <ExploreCharts
-          canUsePreviousResults={canUsePreviousResults}
           confidences={confidences}
           query={query}
           timeseriesResult={timeseriesResult}

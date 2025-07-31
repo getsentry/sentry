@@ -1,6 +1,6 @@
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
@@ -30,7 +30,7 @@ function createAISummaryQueryKey(
 
 export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryResponse>) {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   return useApiQuery<SummaryResponse>(

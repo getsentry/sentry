@@ -122,6 +122,9 @@ class PreprodArtifact(DefaultFieldsModel):
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
 
+    # An identifier for the main binary
+    main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"

@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -17,16 +18,15 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsAggregate,
   useLogsAggregateCursor,
   useLogsAggregateSortBys,
-  useLogsAutoRefresh,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
   useLogsGroupBy,
-  useLogsIsFrozen,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -79,10 +79,12 @@ export function usePrefetchLogTableRowOnHover({
   traceId,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
+  timeout,
 }: {
   logId: string | number;
   projectId: string;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  timeout: number;
   traceId: string;
   hoverPrefetchDisabled?: boolean;
 }) {
@@ -93,6 +95,7 @@ export function usePrefetchLogTableRowOnHover({
     traceItemType: TraceItemDataset.LOGS,
     hoverPrefetchDisabled,
     sharedHoverTimeoutRef,
+    timeout,
     referrer: 'api.explore.log-item-details',
   });
 }
@@ -192,7 +195,6 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const cursor = useLogsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
-  const isFrozen = useLogsIsFrozen();
   const limitToTraceId = useLogsLimitToTraceId();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
@@ -224,7 +226,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   };
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${limitToTraceId && isFrozen ? 'trace-logs' : 'events'}/`,
+    `/organizations/${organization.slug}/${limitToTraceId ? 'trace-logs' : 'events'}/`,
     params,
   ];
 
@@ -318,8 +320,22 @@ function getPageParam(
       return pageParam;
     }
 
-    const firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-    const lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    let firstTimestamp: bigint;
+    let lastTimestamp: bigint;
+    try {
+      firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+      lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
+      logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+        logId: firstRow[OurLogKnownFieldKey.ID],
+        timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
+        timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+      });
+      firstTimestamp =
+        BigInt(new Date(firstRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+      lastTimestamp =
+        BigInt(new Date(lastRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+    }
 
     const logId = isGetPreviousPage
       ? firstRow[OurLogKnownFieldKey.ID]
@@ -373,7 +389,7 @@ function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPagePara
   const pageParamResult: LogPageParam = {
     // Use an empty logId since we don't have a specific log to exclude yet
     logId: '',
-    timestampPrecise: getMaxIngestDelayTimestamp(),
+    timestampPrecise: null,
     sortByDirection: sortBy.kind,
     indexFromInitialPage: 0,
     // No need to override query sort direction for initial page
@@ -384,13 +400,16 @@ function getInitialPageParam(autoRefresh: boolean, sortBys: Sort[]): LogPagePara
   return pageParamResult;
 }
 
-function getMaxIngestDelayTimestamp() {
+export function getMaxIngestDelayTimestamp() {
   return BigInt(Date.now() - MAX_LOG_INGEST_DELAY) * 1_000_000n;
 }
 
+export function getIngestDelayFilterValue(timestamp: bigint) {
+  return `<=${timestamp}`;
+}
+
 function getIngestDelayFilter() {
-  const maxIngestDelayTimestamp = getMaxIngestDelayTimestamp();
-  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=${maxIngestDelayTimestamp}`;
+  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${getIngestDelayFilterValue(getMaxIngestDelayTimestamp())}`;
 }
 
 function getParamBasedQuery(
@@ -403,7 +422,9 @@ function getParamBasedQuery(
   const comparison =
     (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
 
-  const filter = `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`;
+  const filter = pageParam.timestampPrecise
+    ? `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`
+    : '';
 
   const ingestDelayFilter = pageParam.autoRefresh ? getIngestDelayFilter() : '';
   // Only add the logId exclusion filter if we have a valid logId from the previous page.
@@ -431,7 +452,7 @@ interface PageParam {
   logId: string;
   // The original sort direction of the query.
   sortByDirection: Sort['kind'];
-  timestampPrecise: bigint;
+  timestampPrecise: bigint | null;
   // When scrolling is happening towards current time, or during auto refresh, we flip the sort direction passed to the query to get X more rows in the future starting from the last seen row.
   querySortDirection?: Sort;
 }
@@ -448,12 +469,13 @@ export function useInfiniteLogsQuery({
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
-  const autoRefresh = useLogsAutoRefresh();
+  const autoRefresh = useLogsAutoRefreshEnabled();
   const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
   });
   const queryClient = useQueryClient();
+
   const sortBys = useLogsSortBys();
 
   const getPreviousPageParam = useCallback(
@@ -514,8 +536,9 @@ export function useInfiniteLogsQuery({
     getNextPageParam,
     initialPageParam,
     enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
+    staleTime: autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView),
     maxPages: 30, // This number * the refresh interval must be more seconds than 2 * the smallest time interval in the chart for streaming to work.
+    refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 
   const {

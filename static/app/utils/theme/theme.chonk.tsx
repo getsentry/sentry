@@ -540,7 +540,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
 }
 
 const radius = {
-  none: '0px',
+  '0': '0px',
   '2xs': '2px',
   xs: '3px',
   sm: '4px',
@@ -950,6 +950,20 @@ const generateAliases = (
   bannerBackground: colors.gray500,
 });
 
+const fontSize = {
+  xs: '11px' as const,
+  sm: '12px' as const,
+  md: '14px' as const,
+  lg: '16px' as const,
+  xl: '20px' as const,
+  '2xl': '24px' as const,
+} satisfies Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl', string>;
+
+const chonkCommonTheme = {
+  ...commonTheme,
+  fontSize,
+};
+
 // Mapping of chonk theme to sentry theme
 const chonkLightColorMapping: ColorMapping = {
   black: lightColors.black,
@@ -1082,7 +1096,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
     border: ReturnType<typeof generateChonkTokens>['border'];
     content: ReturnType<typeof generateChonkTokens>['content'];
   };
-  focusRing: {
+  focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
     boxShadow: React.CSSProperties['boxShadow'];
     outline: React.CSSProperties['outline'];
   };
@@ -1098,7 +1112,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
   type: 'light',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkLightColorMapping,
   ...lightAliases,
@@ -1112,10 +1126,10 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     tokens: darkTokens,
   },
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${lightAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${lightAliases.background}, 0 0 0 2px ${lightAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${lightAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkLightColorMapping, lightAliases),
@@ -1166,7 +1180,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
   type: 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
-  ...commonTheme,
+  ...chonkCommonTheme,
   ...formTheme,
   ...chonkDarkColorMapping,
   ...darkAliases,
@@ -1180,10 +1194,10 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   radius,
-  focusRing: {
+  focusRing: (baseShadow = `0 0 0 0 ${darkAliases.background}`) => ({
     outline: 'none',
-    boxShadow: `0 0 0 0 ${darkAliases.background}, 0 0 0 2px ${darkAliases.focusBorder}`,
-  },
+    boxShadow: `${baseShadow}, 0 0 0 2px ${darkAliases.focusBorder}`,
+  }),
 
   // @TODO: these colors need to be ported
   ...generateThemeUtils(chonkDarkColorMapping, darkAliases),

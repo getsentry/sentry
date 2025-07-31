@@ -3,6 +3,8 @@ import {DataConditionGroupFixture} from 'sentry-fixture/dataConditions';
 import {UserFixture} from 'sentry-fixture/user';
 
 import type {
+  CronDetector,
+  CronSubscriptionDataSource,
   ErrorDetector,
   MetricDetector,
   SnubaQueryDataSource,
@@ -28,10 +30,11 @@ export function MetricDetectorFixture(
       thresholdPeriod: 1,
     },
     type: 'metric_issue',
-    disabled: false,
+    enabled: true,
     conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     dataSources: params.dataSources ?? [SnubaQueryDataSourceFixture()],
     owner: null,
+    alertRuleId: null,
     ...params,
   };
 }
@@ -42,7 +45,7 @@ export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): Error
     createdBy: null,
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
-    disabled: false,
+    enabled: true,
     id: '2',
     lastTriggered: '2025-01-01T00:00:00.000Z',
     owner: null,
@@ -61,7 +64,7 @@ export function UptimeDetectorFixture(
     createdBy: null,
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
-    disabled: false,
+    enabled: true,
     id: '3',
     lastTriggered: '2025-01-01T00:00:00.000Z',
     owner: null,
@@ -117,6 +120,48 @@ export function SnubaQueryDataSourceFixture(
         timeWindow: 60,
         eventTypes: [EventTypes.ERROR],
       },
+    },
+    ...params,
+  };
+}
+
+export function CronDetectorFixture(params: Partial<CronDetector> = {}): CronDetector {
+  return {
+    name: 'Cron Detector',
+    createdBy: null,
+    dateCreated: '2025-01-01T00:00:00.000Z',
+    dateUpdated: '2025-01-01T00:00:00.000Z',
+    enabled: true,
+    id: '3',
+    lastTriggered: '2025-01-01T00:00:00.000Z',
+    owner: null,
+    projectId: '1',
+    workflowIds: [AutomationFixture().id],
+    type: 'uptime_subscription',
+    config: {
+      environment: 'production',
+    },
+    dataSources: [CronSubscriptionDataSourceFixture()],
+    ...params,
+  };
+}
+
+function CronSubscriptionDataSourceFixture(
+  params: Partial<CronSubscriptionDataSource> = {}
+): CronSubscriptionDataSource {
+  return {
+    id: '1',
+    organizationId: '1',
+    sourceId: '1',
+    type: 'cron_subscription',
+    queryObj: {
+      checkinMargin: null,
+      failureIssueThreshold: 1,
+      recoveryThreshold: 2,
+      maxRuntime: null,
+      schedule: '0 0 * * *',
+      scheduleType: 'crontab',
+      timezone: 'UTC',
     },
     ...params,
   };

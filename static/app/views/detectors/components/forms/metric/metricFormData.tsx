@@ -154,6 +154,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   dataset: DetectorDataset.SPANS,
   aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
+  query: '',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**
@@ -259,7 +260,7 @@ export const getDetectorDataset = (
 /**
  * Convert our form dataset to the backend dataset
  */
-const getBackendDataset = (dataset: DetectorDataset): string => {
+export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
   switch (dataset) {
     case DetectorDataset.ERRORS:
       return Dataset.ERRORS;

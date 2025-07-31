@@ -7,6 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_file_details import ReleaseFileDetailsMixin
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 
 
@@ -54,7 +55,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             check_permission_fn=lambda: request.access.has_scope("project:write"),
         )
 
-    def put(self, request: Request, organization, version, file_id) -> Response:
+    def put(self, request: Request, organization: Organization, version, file_id) -> Response:
         """
         Update an Organization Release's File
         `````````````````````````````````````

@@ -1111,6 +1111,7 @@ class DashboardDetail extends Component<Props, State> {
       seriesData,
       setData,
       newlyAddedWidget,
+      isCommittingChanges,
     } = this.state;
     const {dashboardId} = params;
 
@@ -1212,6 +1213,7 @@ class DashboardDetail extends Component<Props, State> {
                         onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
                         widgetLimitReached={widgetLimitReached}
+                        isSaving={isCommittingChanges}
                       />
                     </Layout.HeaderActions>
                   </Layout.Header>

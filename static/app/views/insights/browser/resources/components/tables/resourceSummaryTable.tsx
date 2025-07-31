@@ -30,7 +30,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -41,7 +41,7 @@ const {
 } = SpanFields;
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'

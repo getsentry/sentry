@@ -306,7 +306,9 @@ class ResultGrid extends Component<Props, State> {
     return (
       <tr>
         <td colSpan={this.props.columns!.length}>
-          <Alert type="error">Something bad happened :(</Alert>
+          <Alert type="error" showIcon={false}>
+            Something bad happened :(
+          </Alert>
         </td>
       </tr>
     );

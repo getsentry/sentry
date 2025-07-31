@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import datetime
 import time
 from collections.abc import Sequence
 from datetime import timedelta
 from functools import cached_property
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -475,7 +476,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_resolve_with_integration(self, mock_sync_status_outbound):
+    def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         self.login_as(user=self.user)
 
         org = self.organization
@@ -534,7 +535,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
-    def test_set_unresolved_with_integration(self, mock_sync_status_outbound):
+    def test_set_unresolved_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
         release = self.create_release(project=self.project, version="abc")
         group = self.create_group(status=GroupStatus.RESOLVED)
         org = self.organization
@@ -1316,14 +1317,19 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
+    def test_merge(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group2 = self.create_group(times_seen=50)
-        group3 = self.create_group(times_seen=2)
+
+        today = datetime.datetime.now(tz=datetime.UTC)
+        yesterday = today - datetime.timedelta(days=1)
+        group1 = self.create_group(first_seen=today, times_seen=1)
+        group2 = self.create_group(first_seen=yesterday, times_seen=50)
+        group3 = self.create_group(first_seen=today, times_seen=2)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -1350,7 +1356,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
     @patch("sentry.eventstream.backend")
-    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+    def test_merge_performance_issues(
+        self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
+    ) -> None:
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
@@ -1468,7 +1476,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         "sentry.models.OrganizationMember.get_scopes",
         return_value=frozenset(s for s in settings.SENTRY_SCOPES if s != "event:admin"),
     )
-    def test_discard_requires_events_admin(self, mock_get_scopes):
+    def test_discard_requires_events_admin(self, mock_get_scopes: MagicMock) -> None:
         group1 = self.create_group(is_public=True)
         user = self.user
 
@@ -1529,58 +1537,26 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert calls[i].kwargs["event"].actor_user_id == self.user.id
             assert calls[i].kwargs["event"].data["issue_id"] == group.id
 
-    @patch("sentry.eventstream.backend")
     @patch("sentry.utils.audit.log_service.record_audit_log")
-    def test_delete_by_id(self, mock_record_audit_log, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4().hex}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
-
-        groups = self.create_groups(
-            [
-                (GroupStatus.RESOLVED, self.project, None),
-                (GroupStatus.UNRESOLVED, self.project, None),
-                (GroupStatus.IGNORED, self.project, None),
-                (GroupStatus.UNRESOLVED, self.create_project(slug="foo"), None),
-            ],
-        )
-        group1, group2, group3, group4 = groups
+    def test_delete_by_id(self, mock_record_audit_log: MagicMock) -> None:
+        group1, group2 = self.create_n_groups_with_hashes(2, self.project)
+        groups_to_deleted = [group1, group2]
+        group3 = self.create_n_groups_with_hashes(1, project=self.create_project(slug="foo"))[0]
 
         self.login_as(user=self.user)
-        # Group 4 will not be deleted because it belongs to a different project
-        url = f"{self.path}?id={group1.id}&id={group2.id}&id={group4.id}"
-
-        response = self.client.delete(url, format="json")
-
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
-
-        assert response.status_code == 204
-
-        self.assert_groups_being_deleted([group1, group2])
-        # Group 4 is not deleted because it belongs to a different project
-        self.assert_groups_not_deleted([group3, group4])
+        # Group 3 will not be deleted because it belongs to a different project
+        url = f"{self.path}?id={group1.id}&id={group2.id}&id={group3.id}"
 
         with self.tasks():
             response = self.client.delete(url, format="json")
+            assert response.status_code == 204
 
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
-        ]
-
-        self.assert_audit_log_entry([group1, group2], mock_record_audit_log)
-
-        assert response.status_code == 204
-
-        self.assert_groups_are_gone([group1, group2])
-        self.assert_groups_not_deleted([group3, group4])
+        self.assert_audit_log_entry(groups_to_deleted, mock_record_audit_log)
+        self.assert_groups_are_gone(groups_to_deleted)
+        self.assert_groups_not_deleted([group3])
 
     @patch("sentry.eventstream.backend")
-    def test_delete_performance_issue_by_id(self, mock_eventstream):
+    def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
         eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 

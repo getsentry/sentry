@@ -1,8 +1,7 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {initializeLogsTest} from 'sentry-fixture/log';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -29,11 +28,7 @@ const datePageFilterProps: PickableDays = {
 };
 
 describe('LogsTabContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['ourlogs-enabled'],
-    },
-  });
+  const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
@@ -63,26 +58,12 @@ describe('LogsTabContent', function () {
     route: '/organizations/:orgId/explore/logs/',
   };
 
+  setupPageFilters();
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
 
-    ProjectsStore.loadInitialData([project]);
-
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
-
+    // Default API mocks
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -206,7 +187,8 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query: 'severity:error',
+          query:
+            'severity:error tags[sentry.timestamp_precise,number]:<=1508208040000000000',
         }),
       })
     );

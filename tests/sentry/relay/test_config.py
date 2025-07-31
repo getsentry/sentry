@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from sentry_relay.processing import normalize_project_config
@@ -213,7 +213,7 @@ def test_project_config_uses_filter_features(
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
-def test_project_config_exposed_features(default_project):
+def test_project_config_exposed_features(default_project: MagicMock) -> None:
     with Feature({"organizations:profiling": True}):
         project_cfg = get_project_config(default_project)
 
@@ -226,7 +226,7 @@ def test_project_config_exposed_features(default_project):
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
-def test_project_config_exposed_features_raise_exc(default_project):
+def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -> None:
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
             get_project_config(default_project)
@@ -1252,3 +1252,32 @@ def test_project_config_with_transaction_name_clustering_disabled(
         config = get_project_config(default_project).to_dict()
         _validate_project_config(config["config"])
         assert "txNameRules" not in config["config"]
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("feature_enabled", [True, False])
+@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
+def test_project_config_trusted_relay_settings(
+    default_project, feature_enabled, project_option_value
+):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", project_option_value
+    )
+
+    features_dict = {}
+    if feature_enabled:
+        features_dict["organizations:ingest-through-trusted-relays-only"] = True
+
+    with Feature(features_dict):
+        config = get_project_config(default_project).to_dict()
+
+        trusted_relay_settings = config["config"].get("trustedRelaySettings")
+
+        if feature_enabled:
+            # trustedRelaySettings should be present
+            assert trusted_relay_settings is not None
+            assert trusted_relay_settings["verifySignature"] == project_option_value
+        else:
+            # trustedRelaySettings should not be present
+            assert trusted_relay_settings is None

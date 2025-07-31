@@ -1,8 +1,9 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function BulkDeleteAlert({projectId}: Props) {
+  const analyticsArea = useAnalyticsArea();
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
@@ -18,7 +20,7 @@ export default function BulkDeleteAlert({projectId}: Props) {
 
   const {data} = useReplayBulkDeleteAuditLog({
     projectSlug: project?.slug ?? '',
-    query: {per_page: 10, offset: 0, referrer: 'replay-list'},
+    query: {per_page: 10, offset: 0, referrer: analyticsArea},
     enabled: project && (hasWriteAccess || hasAdminAccess),
   });
 
@@ -37,17 +39,17 @@ export default function BulkDeleteAlert({projectId}: Props) {
     return (
       <Alert
         type="info"
-        showIcon
-        expand={tct('Visit the [link: Job log] to see more details and track progress.', {
-          link: (
-            <Link
-              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`}
-            />
-          ),
-        })}
+        trailingItems={
+          <LinkButton
+            size="xs"
+            to={`/organizations/${organization.slug}/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`}
+          >
+            {t('Track Progress')}
+          </LinkButton>
+        }
       >
         {t(
-          'Replays are being deleted in the background. Items shown below may be stale.'
+          'Replays are being deleted in the background. The items shown below may be stale.'
         )}
       </Alert>
     );

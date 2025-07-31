@@ -17,6 +17,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.snuba import RateLimitExceeded
 
 
 class DummyEndpoint(Endpoint):
@@ -31,6 +32,20 @@ class DummyFailEndpoint(Endpoint):
 
     def get(self, request):
         raise Exception("this is bad yo")
+
+
+class SnubaRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        raise RateLimitExceeded(
+            "Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
+            policy="ConcurrentRateLimitAllocationPolicy",
+            quota_used=41,
+            rejection_threshold=40,
+            quota_unit="no_units",
+            storage_key="test_storage_key",
+        )
 
 
 class RateLimitedEndpoint(Endpoint):
@@ -83,6 +98,9 @@ urlpatterns = [
     re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
     re_path(r"^api/0/internal/test$", DummyEndpoint.as_view(), name="internal-dummy-endpoint"),
     re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
+    re_path(
+        r"^snubaratelimit$", SnubaRateLimitedEndpoint.as_view(), name="snuba-ratelimit-endpoint"
+    ),
     re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
     re_path(
         r"^/dummyratelimitconcurrent$",
@@ -129,6 +147,11 @@ access_log_fields = (
     "reset_time",
     "limit",
     "remaining",
+    "snuba_policy",
+    "snuba_quota_unit",
+    "snuba_storage_key",
+    "snuba_quota_used",
+    "snuba_rejection_threshold",
 )
 
 
@@ -155,11 +178,39 @@ class LogCaptureAPITestCase(APITestCase):
 
 
 @all_silo_test
+class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
+    endpoint = "snuba-ratelimit-endpoint"
+
+    def test_access_log_snuba_rate_limited(self):
+        """Test that Snuba rate limits are properly logged by access log middleware."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.get_error_response(status_code=429)
+        self.assert_access_log_recorded()
+
+        assert self.captured_logs[0].rate_limit_type == "RateLimitType.SNUBA"
+        assert self.captured_logs[0].rate_limited == "True"
+
+        # All the types from the standard rate limit metadata should not be set
+        assert self.captured_logs[0].remaining == "None"
+        assert self.captured_logs[0].concurrent_limit == "None"
+        assert self.captured_logs[0].concurrent_requests == "None"
+        assert self.captured_logs[0].limit == "None"
+        assert self.captured_logs[0].reset_time == "None"
+
+        # Snuba rate limit specific fields should be set
+        assert self.captured_logs[0].snuba_policy == "ConcurrentRateLimitAllocationPolicy"
+        assert self.captured_logs[0].snuba_quota_unit == "no_units"
+        assert self.captured_logs[0].snuba_storage_key == "test_storage_key"
+        assert self.captured_logs[0].snuba_quota_used == "41"
+        assert self.captured_logs[0].snuba_rejection_threshold == "40"
+
+
+@all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
     endpoint = "ratelimit-endpoint"
 
-    def test_access_log_rate_limited(self):
+    def test_access_log_rate_limited(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
@@ -175,7 +226,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
     endpoint = "concurrent-ratelimit-endpoint"
 
-    def test_concurrent_request_finishes(self):
+    def test_concurrent_request_finishes(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         for i in range(10):
             self.get_success_response()
@@ -199,7 +250,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 class TestAccessLogSuccess(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
-    def test_access_log_success(self):
+    def test_access_log_success(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
@@ -210,7 +261,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
 
-    def test_with_subdomain_redirect(self):
+    def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
         # meaning if a request is rejected between those then it will not have `auth`
         # set up properly
@@ -226,7 +277,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
-    def test_access_log_success(self):
+    def test_access_log_success(self) -> None:
         token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
@@ -239,7 +290,7 @@ class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
     endpoint = "internal-dummy-endpoint"
 
-    def test_access_log_skipped(self):
+    def test_access_log_skipped(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -253,7 +304,7 @@ class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
 class TestAccessLogFail(LogCaptureAPITestCase):
     endpoint = "dummy-fail-endpoint"
 
-    def test_access_log_fail(self):
+    def test_access_log_fail(self) -> None:
         self.get_error_response(status_code=500)
         self.assert_access_log_recorded()
 
@@ -261,10 +312,10 @@ class TestAccessLogFail(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
-    def test_org_id_populated(self):
+    def test_org_id_populated(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,
@@ -285,10 +336,10 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-members"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
-    def test_org_id_populated(self):
+    def test_org_id_populated(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,

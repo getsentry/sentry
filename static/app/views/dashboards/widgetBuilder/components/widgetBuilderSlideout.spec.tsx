@@ -32,7 +32,9 @@ describe('WidgetBuilderSlideout', () => {
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
@@ -588,7 +590,7 @@ describe('WidgetBuilderSlideout', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByTestId('transaction-widget-disabled-wrapper')).toBeInTheDocument();
+    expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
   });
 
   it('should not show deprecation alert when flag enabled', async () => {

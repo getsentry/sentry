@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   BasePlatformOptions,
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -275,27 +275,41 @@ Sentry.init({
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
-const getInstallConfig = () => [
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/browser',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/browser',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/browser',
+    },
+  ],
+};
+
+const verifySnippetBlock: ContentBlock[] = [
   {
-    language: 'bash',
-    code: [
+    type: 'text',
+    text: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
+  },
+  {
+    type: 'code',
+    tabs: [
       {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/browser',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/browser',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/browser',
+        label: 'Javascript',
+        language: 'javascript',
+        code: getVerifyJSSnippet(),
       },
     ],
   },
@@ -304,21 +318,7 @@ const getInstallConfig = () => [
 const getVerifyConfig = () => [
   {
     type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
-    configurations: [
-      {
-        code: [
-          {
-            label: 'Javascript',
-            value: 'javascript',
-            language: 'javascript',
-            code: getVerifyJSSnippet(),
-          },
-        ],
-      },
-    ],
+    content: verifySnippetBlock,
   },
 ];
 
@@ -465,14 +465,16 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add this script tag to the top of the page:'),
-      configurations: [
+      content: [
         {
-          language: 'html',
-          code: [
+          type: 'text',
+          text: t('Add this script tag to the top of the page:'),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'HTML',
-              value: 'html',
               language: 'html',
               code: `
 <script
@@ -523,43 +525,45 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       title: t('Configure SDK (Optional)'),
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
       collapsible: true,
-      configurations: [
+      content: [
         {
-          language: 'html',
-          code: [
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'HTML',
-              value: 'html',
               language: 'html',
               code: `
-<script>
-  Sentry.onLoad(function() {
-    Sentry.init({${
-      params.isPerformanceSelected || params.isReplaySelected
-        ? ''
-        : `
-        // You can add any additional configuration here`
-    }${
-      params.isPerformanceSelected
-        ? `
-        // Tracing
-        tracesSampleRate: 1.0, // Capture 100% of the transactions`
-        : ''
-    }${
-      params.isReplaySelected
-        ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-        : ''
-    }
-      });
-  });
-</script>`,
+              <script>
+                Sentry.onLoad(function() {
+                  Sentry.init({${
+                    params.isPerformanceSelected || params.isReplaySelected
+                      ? ''
+                      : `
+                      // You can add any additional configuration here`
+                  }${
+                    params.isPerformanceSelected
+                      ? `
+                      // Tracing
+                      tracesSampleRate: 1.0, // Capture 100% of the transactions`
+                      : ''
+                  }${
+                    params.isReplaySelected
+                      ? `
+                      // Session Replay
+                      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+                      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+                      : ''
+                  }
+                    });
+                });
+              </script>`,
             },
           ],
         },
@@ -639,24 +643,32 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t(
-        "Sentry captures data by using an SDK within your application's runtime."
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            "Sentry captures data by using an SDK within your application's runtime."
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
@@ -757,13 +769,18 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the Session Replay to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.27.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the Session Replay to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.27.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -795,13 +812,18 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -860,11 +882,16 @@ const performanceOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install our JavaScript browser SDK using either [code:yarn] or [code:npm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Install our JavaScript browser SDK using either [code:yarn] or [code:npm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [
@@ -973,7 +1000,7 @@ Sentry.init({
 };
 
 const profilingOnboarding = getJavascriptProfilingOnboarding({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
 });
 

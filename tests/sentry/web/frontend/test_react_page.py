@@ -15,7 +15,7 @@ us = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 
 @control_silo_test
 class ReactPageViewTest(TestCase):
-    def test_redirects_unauthenticated_request(self):
+    def test_redirects_unauthenticated_request(self) -> None:
         owner = self.create_user("bar@example.com")
         org = self.create_organization(owner=owner)
 
@@ -25,7 +25,7 @@ class ReactPageViewTest(TestCase):
         self.assertRedirects(resp, reverse("sentry-auth-organization", args=[org.slug]))
         assert resp["X-Robots-Tag"] == "noindex, nofollow"
 
-    def test_superuser_can_load(self):
+    def test_superuser_can_load(self) -> None:
         org = self.create_organization(owner=self.user)
         path = reverse("sentry-organization-home", args=[org.slug])
 
@@ -37,7 +37,7 @@ class ReactPageViewTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
 
-    def test_redirects_user_to_auth_without_membership(self):
+    def test_redirects_user_to_auth_without_membership(self) -> None:
         owner = self.create_user("bar@example.com")
         org = self.create_organization(owner=owner)
         non_member = self.create_user("foo@example.com")
@@ -69,7 +69,7 @@ class ReactPageViewTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
 
-    def test_inactive_superuser_bypasses_server_auth(self):
+    def test_inactive_superuser_bypasses_server_auth(self) -> None:
         owner = self.create_user("bar@example.com")
         org = self.create_organization(owner=owner)
         non_member = self.create_user("foo@example.com", is_superuser=True)
@@ -84,7 +84,7 @@ class ReactPageViewTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
 
-    def test_org_subpages_capture_slug(self):
+    def test_org_subpages_capture_slug(self) -> None:
         owner = self.create_user("bar@example.com")
         org = self.create_organization(owner=owner)
         # User is *not* logged in. Check for redirect to org's auth login.
@@ -101,7 +101,7 @@ class ReactPageViewTest(TestCase):
             assert resp.status_code == 302
             assert resp.headers["Location"] == f"/auth/login/{org.slug}/"
 
-    def test_redirect_to_customer_domain(self):
+    def test_redirect_to_customer_domain(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
 
@@ -159,7 +159,7 @@ class ReactPageViewTest(TestCase):
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
     @override_regions((us,))
-    def test_redirect_to_customer_domain_from_region_domain(self):
+    def test_redirect_to_customer_domain_from_region_domain(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
 
@@ -176,7 +176,7 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 302
             assert response["Location"] == f"http://{org.slug}.testserver/issues/"
 
-    def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self):
+    def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
         self.login_as(user)
@@ -211,7 +211,7 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert response.redirect_chain == []
 
-    def test_non_customer_domain_url_names(self):
+    def test_non_customer_domain_url_names(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
         self.login_as(user)
@@ -251,7 +251,7 @@ class ReactPageViewTest(TestCase):
                 assert response.status_code == 302
                 assert response["Location"] == f"http://testserver{path}"
 
-    def test_handles_unknown_url_name(self):
+    def test_handles_unknown_url_name(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
         self.login_as(user)
@@ -260,7 +260,7 @@ class ReactPageViewTest(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
-    def test_customer_domain_non_member(self):
+    def test_customer_domain_non_member(self) -> None:
         self.create_organization(owner=self.user)
         other_org = self.create_organization()
 
@@ -311,18 +311,18 @@ class ReactPageViewTest(TestCase):
         assert response.status_code == 200
         assert response.redirect_chain == []
 
-    def test_customer_domain_non_member_org_superuser(self):
+    def test_customer_domain_non_member_org_superuser(self) -> None:
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
 
     @override_options({"staff.ga-rollout": True})
-    def test_customer_domain_non_member_org_staff(self):
+    def test_customer_domain_non_member_org_staff(self) -> None:
         self._run_customer_domain_elevated_privileges(is_superuser=False, is_staff=True)
 
     @override_options({"staff.ga-rollout": True})
-    def test_customer_domain_non_member_org_superuser_and_staff(self):
+    def test_customer_domain_non_member_org_superuser_and_staff(self) -> None:
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=True)
 
-    def test_customer_domain_superuser(self):
+    def test_customer_domain_superuser(self) -> None:
         org = self.create_organization(owner=self.user)
         other_org = self.create_organization(slug="albertos-apples")
 
@@ -346,7 +346,7 @@ class ReactPageViewTest(TestCase):
                 (f"http://{other_org.slug}.testserver/issues/", 302),
             ]
 
-    def test_customer_domain_loads(self):
+    def test_customer_domain_loads(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.ACTIVE)
 
         self.login_as(self.user)
@@ -361,7 +361,7 @@ class ReactPageViewTest(TestCase):
             assert response.context["request"]
             assert self.client.session["activeorg"] == org.slug
 
-    def test_customer_domain_org_pending_deletion(self):
+    def test_customer_domain_org_pending_deletion(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
 
         self.login_as(self.user)
@@ -378,7 +378,7 @@ class ReactPageViewTest(TestCase):
             ]
             assert "activeorg" in self.client.session
 
-    def test_customer_domain_org_deletion_in_progress(self):
+    def test_customer_domain_org_deletion_in_progress(self) -> None:
         org = self.create_organization(
             owner=self.user, status=OrganizationStatus.DELETION_IN_PROGRESS
         )
@@ -397,7 +397,7 @@ class ReactPageViewTest(TestCase):
             ]
             assert "activeorg" in self.client.session
 
-    def test_document_policy_header_when_flag_is_enabled(self):
+    def test_document_policy_header_when_flag_is_enabled(self) -> None:
         org = self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -411,7 +411,7 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert response.headers["Document-Policy"] == "js-profiling"
 
-    def test_document_policy_header_when_flag_is_disabled(self):
+    def test_document_policy_header_when_flag_is_disabled(self) -> None:
         org = self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -424,7 +424,7 @@ class ReactPageViewTest(TestCase):
         assert response.status_code == 200
         assert "Document-Policy" not in response.headers
 
-    def test_dns_prefetch(self):
+    def test_dns_prefetch(self) -> None:
         us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
         de_region = Region("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
         with override_regions(regions=[us_region, de_region]):
@@ -439,7 +439,7 @@ class ReactPageViewTest(TestCase):
                 "utf-8"
             )
 
-    def test_preconnect(self):
+    def test_preconnect(self) -> None:
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
         self.login_as(user)

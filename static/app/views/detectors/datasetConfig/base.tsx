@@ -6,6 +6,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
@@ -21,6 +22,10 @@ export interface DetectorSeriesQueryOptions {
    * The aggregate to use for the series query. eg: `count()`
    */
   aggregate: string;
+  /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
   dataset: DiscoverDatasets;
   environment: string;
   /**
@@ -33,6 +38,10 @@ export interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
+  /**
+   * The time period for the query. eg: `7d`
+   */
+  statsPeriod: TimePeriod;
 }
 
 /**
@@ -58,6 +67,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Transform comparison series data for % change alerts
+   */
+  transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

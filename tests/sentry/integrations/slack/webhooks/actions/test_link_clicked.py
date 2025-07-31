@@ -2,7 +2,7 @@ from tests.sentry.integrations.slack.webhooks.actions import BaseEventTest
 
 
 class LinkClickedActionTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.original_message = {
             "blocks": [
@@ -41,7 +41,7 @@ class LinkClickedActionTest(BaseEventTest):
             ]
         }
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         resp = self.post_webhook(
             action_data=[{"name": "some_action", "value": "link_clicked"}],
             original_message=self.original_message,

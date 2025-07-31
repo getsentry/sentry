@@ -12,7 +12,7 @@ from sentry.seer.math import (
 )
 
 
-def test_laplace_smooth():
+def test_laplace_smooth() -> None:
     assert laplace_smooth([0.5, 0.5]) == [0.5, 0.5]
     assert laplace_smooth([100, 100]) == [0.5, 0.5]
 
@@ -29,7 +29,7 @@ def test_laplace_smooth():
     assert result[1] < 1
 
 
-def test_kl_divergence():
+def test_kl_divergence() -> None:
     result = kl_divergence([0.5, 0.5], [0.8, 0.2])
     assert math.isclose(result, 0.2231, rel_tol=1e-3), result
 
@@ -37,7 +37,7 @@ def test_kl_divergence():
     assert math.isclose(result, 0.0871, rel_tol=1e-3), result
 
 
-def test_relative_entropy():
+def test_relative_entropy() -> None:
     a, b = [0.5, 0.5], [0.8, 0.2]
     rel_entr = relative_entropy(a, b)
     assert len(rel_entr) == 2, rel_entr
@@ -45,7 +45,7 @@ def test_relative_entropy():
     assert math.isclose(rel_entr[1], 0.458, rel_tol=1e-3)
 
 
-def test_entropy():
+def test_entropy() -> None:
     result = entropy([0.8, 0.2])
     assert math.isclose(result, 0.5004, rel_tol=1e-3), result
 
@@ -68,7 +68,7 @@ def test_entropy():
     assert entropy([1, -2]) == -math.inf
 
 
-def test_rrf_score():
+def test_rrf_score() -> None:
     rrf_scores = rrf_score(
         # Entropy of the selection set.
         entropy_scores=[
@@ -89,12 +89,12 @@ def test_rrf_score():
     assert math.isclose(rrf_scores[2], 0.01587, rel_tol=1e-3)  # Rank 3.
 
 
-def test_rank_min():
+def test_rank_min() -> None:
     assert rank_min(xs=[1, 2, 2, 2, 3], ascending=False) == [3, 2, 2, 2, 1]
     assert rank_min(xs=[1, 2, 2, 2, 3], ascending=True) == [1, 2, 2, 2, 3]
 
 
-def test_boxcox_transform():
+def test_boxcox_transform() -> None:
     # Test with lambda = 0 (log transformation)
     values = [1.0, 2.0, 4.0, 8.0]
     transformed, lambda_used = boxcox_transform(values, lambda_param=0.0)
@@ -128,7 +128,7 @@ def test_boxcox_transform():
     assert lambda_used == 0.0
 
 
-def test_calculate_z_scores():
+def test_calculate_z_scores() -> None:
     values = [1.0, 2.0, 3.0, 4.0, 5.0]
     z_scores = calculate_z_scores(values)
 

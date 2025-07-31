@@ -29,7 +29,7 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 export function useTestResultsAggregates() {
   const api = useApi();
   const organization = useOrganization();
-  const {integratedOrg, repository, codecovPeriod} = useCodecovContext();
+  const {integratedOrgId, repository, codecovPeriod} = useCodecovContext();
 
   const {data, ...rest} = useQuery<
     TestResultAggregate,
@@ -38,7 +38,7 @@ export function useTestResultsAggregates() {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repository/${repository}/test-results-aggregates/`,
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/test-results-aggregates/`,
       {query: {codecovPeriod}},
     ],
     queryFn: async ({queryKey: [url]}): Promise<TestResultAggregate> => {

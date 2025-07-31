@@ -24,7 +24,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 class DebugFilesTestCases(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -52,7 +52,7 @@ class DebugFilesTestCases(APITestCase):
 
 
 class DebugFilesTest(DebugFilesTestCases):
-    def test_simple_proguard_upload(self):
+    def test_simple_proguard_upload(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -63,7 +63,7 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.data[0]["cpuName"] == "any"
         assert response.data[0]["symbolType"] == "proguard"
 
-    def test_dsyms_search(self):
+    def test_dsyms_search(self) -> None:
         for i in range(25):
             last_uuid = str(uuid4())
             self._upload_proguard(self.url, last_uuid)
@@ -85,13 +85,13 @@ class DebugFilesTest(DebugFilesTestCases):
         dsyms = response.data
         assert len(dsyms) == 20
 
-    def test_dsyms_debugid_codeid_full_match(self):
+    def test_dsyms_debugid_codeid_full_match(self) -> None:
         self._do_test_dsyms_by_debugid_and_codeid(
             ("dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256"),
             [(True, "dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256")],
         )
 
-    def test_dsyms_debugid_codeid_full_match_and_partials(self):
+    def test_dsyms_debugid_codeid_full_match_and_partials(self) -> None:
         self._do_test_dsyms_by_debugid_and_codeid(
             ("dfb8e43a-f242-3d73-a453-aeb6a777ef75", "ae0459704fc7256"),
             [
@@ -101,7 +101,7 @@ class DebugFilesTest(DebugFilesTestCases):
             ],
         )
 
-    def test_dsyms_debugid_codeid_only_codeid(self):
+    def test_dsyms_debugid_codeid_only_codeid(self) -> None:
         self._do_test_dsyms_by_debugid_and_codeid(
             ("22222222-000000000-0000-000000000000", "ae0459704fc7256"),
             [
@@ -121,7 +121,7 @@ class DebugFilesTest(DebugFilesTestCases):
         actual = sorted((dsym["debugId"], dsym["codeId"]) for dsym in response.data)
         assert actual == sorted((debug_id, code_id) for (exp, debug_id, code_id) in files if exp)
 
-    def test_access_control(self):
+    def test_access_control(self) -> None:
         # create a debug files such as proguard:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
@@ -155,7 +155,7 @@ class DebugFilesTest(DebugFilesTestCases):
         response = self.client.get(f"{url}?id={download_id}")
         assert response.status_code == 404
 
-    def test_dsyms_requests(self):
+    def test_dsyms_requests(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -220,7 +220,7 @@ class DebugFilesTest(DebugFilesTestCases):
         assert response.status_code == 204, response.content
         assert ProjectDebugFile.objects.count() == 0
 
-    def test_dsyms_as_team_admin(self):
+    def test_dsyms_as_team_admin(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201
         assert len(response.data) == 1
@@ -285,7 +285,7 @@ class DebugFilesTest(DebugFilesTestCases):
 
 
 class AssociateDebugFilesTest(DebugFilesTestCases):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.associate_url = reverse(
             "sentry-api-0-associate-dsym-files",
@@ -295,7 +295,7 @@ class AssociateDebugFilesTest(DebugFilesTestCases):
             },
         )
 
-    def test_associate_proguard_dsym(self):
+    def test_associate_proguard_dsym(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -323,7 +323,7 @@ class AssociateDebugFilesTest(DebugFilesTestCases):
         assert "associatedDsymFiles" in response.data
         assert response.data["associatedDsymFiles"] == []
 
-    def test_associate_proguard_dsym_no_build(self):
+    def test_associate_proguard_dsym_no_build(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
@@ -352,7 +352,7 @@ class AssociateDebugFilesTest(DebugFilesTestCases):
 
 
 class SourceMapsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = reverse(
             "sentry-api-0-source-maps",
             kwargs={
@@ -362,7 +362,7 @@ class SourceMapsEndpointTest(APITestCase):
         )
         self.login_as(user=self.user)
 
-    def test_source_maps(self):
+    def test_source_maps(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="1")
         release2 = Release.objects.create(organization_id=self.project.organization_id, version="2")
         release3 = Release.objects.create(organization_id=self.project.organization_id, version="3")
@@ -404,7 +404,7 @@ class SourceMapsEndpointTest(APITestCase):
         assert response.data[2]["name"] == str(release.version)
         assert response.data[2]["fileCount"] == 2
 
-    def test_source_maps_sorting(self):
+    def test_source_maps_sorting(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="1")
         release2 = Release.objects.create(organization_id=self.project.organization_id, version="2")
         release.add_project(self.project)
@@ -437,7 +437,7 @@ class SourceMapsEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
 
-    def test_source_maps_delete_archive(self):
+    def test_source_maps_delete_archive(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="1", id=1
         )
@@ -454,7 +454,7 @@ class SourceMapsEndpointTest(APITestCase):
         assert response.status_code == 204
         assert not ReleaseFile.objects.filter(release_id=release.id).exists()
 
-    def test_source_maps_release_archive(self):
+    def test_source_maps_release_archive(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="1")
         release.add_project(self.project)
 

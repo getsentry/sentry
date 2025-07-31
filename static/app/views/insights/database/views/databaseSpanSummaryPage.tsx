@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -224,19 +223,17 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 </DescriptionContainer>
               )}
 
-              <Feature features="insights-related-issues-table">
-                {!areIndexedSpansByGroupIdLoading && (
-                  <ModuleLayout.Full>
-                    <InsightIssuesList
-                      issueTypes={[
-                        'performance_slow_db_query',
-                        'performance_n_plus_one_db_queries',
-                      ]}
-                      message={indexedSpansByGroupId[0]?.['span.description']}
-                    />
-                  </ModuleLayout.Full>
-                )}
-              </Feature>
+              {!areIndexedSpansByGroupIdLoading && (
+                <ModuleLayout.Full>
+                  <InsightIssuesList
+                    issueTypes={[
+                      'performance_slow_db_query',
+                      'performance_n_plus_one_db_queries',
+                    ]}
+                    message={indexedSpansByGroupId[0]?.['span.description']}
+                  />
+                </ModuleLayout.Full>
+              )}
 
               <ModuleLayout.Full>
                 <ChartContainer>
@@ -289,7 +286,7 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
   line-height: 1.2;
 `;
 
-function PageWithProviders(props: any) {
+function PageWithProviders(props: Props) {
   return (
     <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
       <DatabaseSpanSummaryPage {...props} />

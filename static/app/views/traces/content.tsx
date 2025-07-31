@@ -31,7 +31,7 @@ const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/'
 const DEFAULT_STATS_PERIOD = '24h';
 const DEFAULT_PER_PAGE = 50;
 
-export default function Wrapper(props: any) {
+export default function Wrapper() {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -39,10 +39,10 @@ export default function Wrapper(props: any) {
     location.query.view !== 'trace' &&
     organization.features.includes('visibility-explore-view')
   ) {
-    return <ExploreContent {...props} />;
+    return <ExploreContent />;
   }
 
-  return <Content {...props} />;
+  return <Content />;
 }
 
 function Content() {
@@ -135,9 +135,7 @@ function Content() {
                 <DatePageFilter defaultPeriod="2h" />
               </PageFilterBar>
               {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
-                <Alert type="error" showIcon>
-                  {tracesQuery.error?.responseJSON?.detail}
-                </Alert>
+                <Alert type="error">{tracesQuery.error?.responseJSON?.detail}</Alert>
               ) : null}
               <TracesSearchBar
                 queries={queries}

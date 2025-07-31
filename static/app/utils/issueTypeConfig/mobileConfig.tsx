@@ -8,8 +8,7 @@ const mobileConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for mobile issues'),
+        enabled: true,
       },
       deleteAndDiscard: {
         enabled: false,

@@ -22,7 +22,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
 
   return (
     <Container>
-      <Flex direction="column" gap={space(0.5)}>
+      <Flex direction="column" gap="xs">
         <Heading>{t('Query:')}</Heading>
         <Query>
           <Label>{t('visualize:')}</Label>
@@ -35,7 +35,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
           )}
         </Query>
       </Flex>
-      <Flex gap={space(0.5)} align="center">
+      <Flex gap="xs" align="center">
         <Heading>{t('Threshold:')}</Heading>
         <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow, true)}</Value>
       </Flex>

@@ -1,84 +1,62 @@
-import {useCallback, useEffect, useState} from 'react';
-
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BuildDetailsHeaderContent} from 'sentry/views/preprod/header/buildDetailsHeaderContent';
 
-import {
-  BuildDetailsSidebarContent,
-  type BuildDetailsSidebarContentProps,
-} from './sidebar/buildDetailsSidebarContent';
-import type {BuildDetailsApiResponse} from './types';
+import {BuildDetailsMainContent} from './main/buildDetailsMainContent';
+import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
+import type {AppSizeApiResponse} from './types/appSizeTypes';
+import type {BuildDetailsApiResponse} from './types/buildDetailsTypes';
 
 export default function BuildDetails() {
-  const api = useApi();
   const organization = useOrganization();
   const params = useParams<{artifactId: string; projectId: string}>();
   const artifactId = params.artifactId;
   const projectId = params.projectId;
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [buildDetailsData, setBuildDetailsData] =
-    useState<BuildDetailsApiResponse | null>(null);
 
-  const fetchBuildDetailsData = useCallback(async () => {
-    if (!projectId || !artifactId) {
-      setError('All fields are required');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setBuildDetailsData(null);
-    try {
-      const response = await api.requestPromise(
+  const buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError> =
+    useApiQuery<BuildDetailsApiResponse>(
+      [
         `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/build-details/`,
-        {
-          method: 'GET',
-        }
-      );
-      setBuildDetailsData(response);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch build details data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [api, organization.slug, projectId, artifactId]);
+      ],
+      {
+        staleTime: 0,
+        enabled: !!projectId && !!artifactId,
+      }
+    );
 
-  useEffect(() => {
-    fetchBuildDetailsData();
-  }, [fetchBuildDetailsData]);
-
-  let sidebarContentProps: BuildDetailsSidebarContentProps;
-  if (error) {
-    sidebarContentProps = {status: 'error', error};
-  } else if (isLoading) {
-    sidebarContentProps = {status: 'loading'};
-  } else if (buildDetailsData) {
-    sidebarContentProps = {status: 'success', buildDetails: buildDetailsData};
-  } else {
-    throw new Error('No build details data');
-  }
+  const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
+    useApiQuery<AppSizeApiResponse>(
+      [
+        `/projects/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/size-analysis/`,
+      ],
+      {
+        staleTime: 0,
+        enabled: !!projectId && !!artifactId,
+      }
+    );
 
   return (
     <SentryDocumentTitle title="Build details">
       <Layout.Page>
         <Layout.Header>
-          {/* TODO: Breadcrumbs once release connection is implemented */}
-          {/* <Breadcrumbs crumbs={breadcrumbs} linkLastItem /> */}
-          <Layout.Title title="Build Details" />
+          <BuildDetailsHeaderContent buildDetailsQuery={buildDetailsQuery} />
         </Layout.Header>
 
         <Layout.Body>
           <Layout.Main>
-            {/* TODO: Main content */}
-            <div>Main</div>
+            <BuildDetailsMainContent appSizeQuery={appSizeQuery} />
           </Layout.Main>
 
           <Layout.Side>
-            <BuildDetailsSidebarContent {...sidebarContentProps} />
+            <BuildDetailsSidebarContent
+              buildDetailsQuery={buildDetailsQuery}
+              artifactId={artifactId}
+              projectId={projectId}
+            />
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>

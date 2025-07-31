@@ -21,7 +21,9 @@ describe('QueryFilterBuilder', () => {
       features: [],
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
-    jest.mocked(useTraceItemTags).mockReturnValue({tags: {}, isLoading: false});
+    jest
+      .mocked(useTraceItemTags)
+      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
 
     MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
   });

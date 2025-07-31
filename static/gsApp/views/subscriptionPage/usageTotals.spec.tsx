@@ -1494,17 +1494,10 @@ describe('Subscription > CombinedUsageTotals', function () {
       plan: 'am2_business',
       onDemandBudgets: {
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        attachmentsBudget: 0,
-        errorsBudget: 0,
-        replaysBudget: 0,
-        transactionsBudget: 0,
         budgets: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {
           [DataCategory.SEER_AUTOFIX]: 4,
           [DataCategory.SEER_SCANNER]: 5,

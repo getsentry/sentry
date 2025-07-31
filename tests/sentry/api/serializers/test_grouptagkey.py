@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GroupTagKeySerializerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         user = self.create_user()
         grouptagkey = GroupTagKey(group_id=0, key="key", values_seen=1)
 

@@ -16,7 +16,10 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
+  numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
+  stringSecondaryAliases: TagCollection;
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -52,7 +55,9 @@ function getTraceItemFieldDefinitionFunction(
 export function useSearchQueryBuilderProps({
   itemType,
   numberAttributes,
+  numberSecondaryAliases,
   stringAttributes,
+  stringSecondaryAliases,
   initialQuery,
   searchSource,
   getFilterTokenWarning,
@@ -63,6 +68,7 @@ export function useSearchQueryBuilderProps({
   projects,
   supportedAggregates = [],
   replaceRawSearchKeys,
+  matchKeySuggestions,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -98,6 +104,8 @@ export function useSearchQueryBuilderProps({
     showUnsubmittedIndicator: true,
     portalTarget,
     replaceRawSearchKeys,
+    matchKeySuggestions,
+    filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
   };
 }
 
@@ -108,7 +116,9 @@ export function useSearchQueryBuilderProps({
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
+  numberSecondaryAliases,
   numberAttributes,
+  stringSecondaryAliases,
   searchSource,
   stringAttributes,
   itemType,
@@ -125,6 +135,8 @@ export function TraceItemSearchQueryBuilder({
     itemType,
     numberAttributes,
     stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
     initialQuery,
     searchSource,
     getFilterTokenWarning,

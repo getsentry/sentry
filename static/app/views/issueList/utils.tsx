@@ -1,6 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
@@ -221,6 +221,7 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'issue.type',
   'issue.seer_actionability',
   'issue.seer_last_run',
+  'detector',
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];

@@ -3,11 +3,11 @@ import {useMemo} from 'react';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 const PER_PAGE = 10;
 
-export function useSpanTableData<Fields extends EAPSpanProperty>({
+export function useSpanTableData<Fields extends SpanProperty>({
   fields,
   referrer,
   query,
@@ -39,7 +39,7 @@ export function useSpanTableData<Fields extends EAPSpanProperty>({
   );
 }
 
-export function useTableDataWithController<Fields extends EAPSpanProperty>({
+export function useTableDataWithController<Fields extends SpanProperty>({
   fields,
   referrer,
   cursorParamName,

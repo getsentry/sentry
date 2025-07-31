@@ -14,16 +14,16 @@ export function ServiceField() {
 
   return (
     <AutomationBuilderSelect
-      name={`${actionId}.config.target_identifier`}
+      name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Service')}
-      value={action.config.target_identifier}
+      value={action.config.targetIdentifier}
       options={integration.services?.map(service => ({
         label: service.name,
         value: service.id,
       }))}
       onChange={(option: SelectValue<string>) => {
         onUpdate({
-          config: {...action.config, target_identifier: option.value},
+          config: {...action.config, targetIdentifier: option.value},
         });
       }}
     />

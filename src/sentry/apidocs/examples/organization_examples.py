@@ -367,7 +367,6 @@ class OrganizationExamples:
                         "hasAccess": True,
                         "dateCreated": "2019-06-17T18:56:25.777769Z",
                         "environments": [],
-                        "eventProcessing": {"symbolicationDegraded": False},
                         "features": ["releases"],
                         "firstEvent": None,
                         "firstTransactionEvent": False,
@@ -390,6 +389,7 @@ class OrganizationExamples:
                         "hasInsightsLlmMonitoring": False,
                         "hasInsightsAgentMonitoring": False,
                         "hasInsightsMCP": False,
+                        "hasLogs": False,
                         "platform": "node",
                         "platforms": [],
                         "latestRelease": None,
@@ -432,7 +432,6 @@ class OrganizationExamples:
                         }
                     ],
                     "environments": ["local"],
-                    "eventProcessing": {"symbolicationDegraded": False},
                     "features": ["releases"],
                     "firstTransactionEvent": True,
                     "hasSessions": True,
@@ -455,6 +454,7 @@ class OrganizationExamples:
                     "hasInsightsLlmMonitoring": False,
                     "hasInsightsAgentMonitoring": False,
                     "hasInsightsMCP": False,
+                    "hasLogs": False,
                     "latestRelease": None,
                 }
             ],

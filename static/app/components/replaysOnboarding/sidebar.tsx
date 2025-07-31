@@ -323,7 +323,7 @@ function OnboardingContent({
         />
       ) : (
         !mobilePlatform &&
-        docs?.platformOptions &&
+        (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {

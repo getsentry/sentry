@@ -10,7 +10,7 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = True
     view = "sentry-api-0-organization-spans-fields-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -58,35 +58,35 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
             is_eap=self.is_eap,
         )
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == {"attributeDistributions": []}
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         response = self.do_request(features=[])
         assert response.status_code == 404, response.data
 
-    def test_invalid_params(self):
+    def test_invalid_params(self) -> None:
         self._generate_one_span()
         response = self.do_request(query={"max_buckets": "invalid", "max_attributes": "invalid"})
         assert response.status_code == 400, response.data
         assert "A valid integer is required" in str(response.data)
 
-    def test_valid_max_params(self):
+    def test_valid_max_params(self) -> None:
         self._generate_one_span()
         response = self.do_request(query={"max_buckets": "50", "max_attributes": "100"})
         assert response.status_code == 200, response.data
         assert "attributeDistributions" in str(response.data)
 
-    def test_invalid_max_buckets(self):
+    def test_invalid_max_buckets(self) -> None:
         self._generate_one_span()
         # max_buckets is more than 100
         response = self.do_request(query={"max_buckets": "200", "max_attributes": "100"})
         assert response.status_code == 400, response.data
         assert "Ensure this value is less than or equal to 100" in str(response.data)
 
-    def test_invalid_date_params(self):
+    def test_invalid_date_params(self) -> None:
         self._generate_one_span()
         response = self.do_request(
             query={
@@ -119,18 +119,18 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query={"max_buckets": max_buckets - 1})
 
         assert response.status_code == 200, response.data
-        distributions = response.data["results"][0]["attributeDistributions"]["attributes"][0][
-            "buckets"
-        ]
-        assert len(distributions) == max_buckets - 1
+        distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
+        attribute = next(a for a in distributions if a["attributeName"] == "test_tag")
+        assert attribute
+        assert len(attribute["buckets"]) == max_buckets - 1
 
-    def test_distribution_values(self):
+    def test_distribution_values(self) -> None:
         tags = [
-            {"broswer": "chrome", "device": "desktop"},
-            {"broswer": "chrome", "device": "mobile"},
-            {"broswer": "chrome", "device": "desktop"},
-            {"broswer": "safari", "device": "mobile"},
-            {"broswer": "chrome", "device": "desktop"},
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "chrome", "device": "mobile"},
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "safari", "device": "mobile"},
+            {"browser": "chrome", "device": "desktop"},
         ]
 
         for tag in tags:
@@ -139,18 +139,20 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         response = self.do_request(query={"dataset": "spans"})
         assert response.status_code == 200, response.data
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
-        assert distributions[0]["attributeName"] == "broswer"
-        assert distributions[0]["buckets"] == [
+        attribute = next(a for a in distributions if a["attributeName"] == "browser")
+        assert attribute
+        assert attribute["buckets"] == [
             {"label": "chrome", "value": 4.0},
             {"label": "safari", "value": 1.0},
         ]
-        assert distributions[1]["attributeName"] == "device"
-        assert distributions[1]["buckets"] == [
+        attribute = next(a for a in distributions if a["attributeName"] == "device")
+        assert attribute
+        assert attribute["buckets"] == [
             {"label": "desktop", "value": 3.0},
             {"label": "mobile", "value": 2.0},
         ]
 
-    def test_filter_query(self):
+    def test_filter_query(self) -> None:
         tags = [
             {"browser": "chrome", "device": "desktop"},
             {"browser": "chrome", "device": "mobile"},

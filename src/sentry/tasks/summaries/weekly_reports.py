@@ -16,6 +16,7 @@ from rb.clients import LocalClient
 from sentry_sdk import set_tag
 
 from sentry import analytics
+from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -50,6 +51,7 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import parse_snuba_datetime
+from sentry.workflow_engine.tasks.utils import retry_timeouts
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -66,9 +68,10 @@ logger = logging.getLogger(__name__)
     taskworker_config=TaskworkerConfig(
         namespace=reports_tasks,
         retry=Retry(times=5),
-        processing_deadline_duration=timedelta(minutes=10),
+        processing_deadline_duration=timedelta(minutes=15),
     ),
 )
+@retry_timeouts
 @retry
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
@@ -338,13 +341,17 @@ class OrganizationReportBatch:
         if self.email_override:
             message.send(to=(self.email_override,))
         else:
-            analytics.record(
-                "weekly_report.sent",
-                user_id=user_id,
-                organization_id=self.ctx.organization.id,
-                notification_uuid=template_ctx["notification_uuid"],
-                user_project_count=template_ctx["user_project_count"],
-            )
+            try:
+                analytics.record(
+                    WeeklyReportSent(
+                        user_id=user_id,
+                        organization_id=self.ctx.organization.id,
+                        notification_uuid=template_ctx["notification_uuid"],
+                        user_project_count=template_ctx["user_project_count"],
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
             # TODO: see if we can use the UUID to track if the email was sent or not
             logger.info(

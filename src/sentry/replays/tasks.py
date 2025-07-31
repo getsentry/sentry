@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import concurrent.futures as cf
+import logging
 from typing import Any
 
 from google.cloud.exceptions import NotFound
@@ -24,6 +25,8 @@ from sentry.taskworker.namespaces import replays_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher
+
+logger = logging.getLogger()
 
 
 @instrumented_task(
@@ -211,6 +214,8 @@ def run_bulk_replay_delete_job(replay_delete_job_id: int, offset: int, limit: in
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
     except Exception:
+        logger.exception("Bulk delete replays failed.")
+
         job.status = DeletionJobStatus.FAILED
         job.save()
         raise

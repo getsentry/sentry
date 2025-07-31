@@ -13,9 +13,9 @@ import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
@@ -30,6 +30,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
@@ -424,14 +425,17 @@ export function CreateProject() {
       }
 
       if (
-        value.type === 'console' &&
-        !organization.enabledConsolePlatforms?.includes(value.id)
+        isDisabledGamingPlatform({
+          platform: value,
+          enabledConsolePlatforms: organization.enabledConsolePlatforms,
+        })
       ) {
         // By selecting a console platform, we don't want to jump to another category when its closed
         updateFormData('platform', {
           category: formData.platform?.category,
         });
         openConsoleModal({
+          organization,
           selectedPlatform: {
             key: value.id,
             name: value.name,
@@ -460,7 +464,7 @@ export function CreateProject() {
       formData.projectName,
       formData.platform?.key,
       formData.platform?.category,
-      organization.enabledConsolePlatforms,
+      organization,
     ]
   );
 
@@ -481,6 +485,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
+            key={formData.platform?.category}
             platform={formData.platform?.key}
             defaultCategory={formData.platform?.category}
             setPlatform={handlePlatformChange}
@@ -558,7 +563,7 @@ export function CreateProject() {
           </FormFieldGroup>
           {createProjectAndRules.isError && createProjectAndRules.error.responseJSON && (
             <Alert.Container>
-              <Alert type="error">
+              <Alert type="error" showIcon={false}>
                 {Object.keys(createProjectAndRules.error.responseJSON).map(key => (
                   <div key={key}>
                     <strong>{keyToErrorText[key] ?? startCase(key)}</strong>:{' '}

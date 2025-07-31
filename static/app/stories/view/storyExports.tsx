@@ -6,12 +6,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import {StoryFooter} from 'sentry/stories/view/storyFooter';
-import {StoryTableOfContents} from 'sentry/stories/view/storyTableOfContents';
 import {space} from 'sentry/styles/space';
 
+import {StoryFooter} from './storyFooter';
+import {storyMdxComponents} from './storyMdxComponent';
 import {StoryResources} from './storyResources';
 import {StorySourceLinks} from './storySourceLinks';
+import {StoryTableOfContents} from './storyTableOfContents';
 import {isMDXStory, type StoryDescriptor} from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
@@ -117,12 +118,12 @@ function StoryUsage() {
         <Storybook.Section>
           <ErrorBoundary
             fallback={
-              <Alert type="error">
+              <Alert type="error" showIcon={false}>
                 Problem loading <code>{filename}</code>
               </Alert>
             }
           >
-            <Story />
+            <Story components={storyMdxComponents} />
           </ErrorBoundary>
         </Storybook.Section>
       )}

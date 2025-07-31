@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren} from 'react';
+import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -38,6 +38,7 @@ function StoriesLanding() {
 
 function StoryDetail() {
   useStoryRedirect();
+  useScrollToHash();
   const location = useLocation<{name: string; query?: string}>();
   const files = [location.state?.storyPath ?? location.query.name];
   const story = useStoriesLoader({files});
@@ -51,7 +52,7 @@ function StoryDetail() {
       ) : story.isError ? (
         <VerticalScroll>
           <Alert.Container>
-            <Alert type="error" showIcon>
+            <Alert type="error">
               <strong>{story.error.name}:</strong> {story.error.message}
             </Alert>
           </Alert.Container>
@@ -74,7 +75,7 @@ function StoryDetail() {
 function StoriesLayout(props: PropsWithChildren) {
   return (
     <Fragment>
-      <GlobalStoryStyles />
+      <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
         <OrganizationContainer>
           <Layout>
@@ -90,6 +91,62 @@ function StoriesLayout(props: PropsWithChildren) {
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
+}
+
+function scrollToHash() {
+  if (window.location.hash) {
+    const hash = window.location.hash.replace(/^#/, '');
+
+    try {
+      const element = document.querySelector(`#${hash}`);
+      if (element) {
+        element.scrollIntoView({behavior: 'instant', block: 'start'});
+        return true; // Successfully scrolled
+      }
+      return false; // Element not found
+    } catch {
+      // hash might be an invalid querySelector and lead to a DOMException
+      return false;
+    }
+  }
+  return true; // No hash to scroll to
+}
+
+function useScrollToHash() {
+  useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
+    let attempts = 0;
+    const maxAttempts = 20; // Maximum number of attempts
+    const baseDelay = 50; // Base delay in ms
+    const maxDelay = 2000; // Maximum delay in ms
+
+    const tryScroll = () => {
+      if (scrollToHash()) {
+        return; // Successfully scrolled or no hash
+      }
+
+      attempts++;
+      if (attempts >= maxAttempts) {
+        return; // Give up after max attempts
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(baseDelay * Math.pow(1.5, attempts), maxDelay);
+      const jitter = Math.random() * 0.1 * delay; // Add up to 10% jitter
+
+      timers.push(setTimeout(tryScroll, delay + jitter));
+    };
+
+    // Start with a small initial delay to allow initial render
+    requestAnimationFrame(() => {
+      timers.push(setTimeout(tryScroll, 100));
+    });
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
 }
 
 function GlobalStoryStyles() {
@@ -124,7 +181,7 @@ function GlobalStoryStyles() {
       background: ${theme.tokens.background.primary};
     }
   `;
-  return <Global key="stories" styles={styles} />;
+  return <Global styles={styles} />;
 }
 
 const Layout = styled('div')`
@@ -175,7 +232,7 @@ const StoryMainContainer = styled('div')`
   h4,
   h5,
   h6 {
-    scroll-margin-top: 64px;
+    scroll-margin-top: 80px;
     margin: 0;
   }
 

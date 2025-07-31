@@ -108,9 +108,6 @@ describe('edit on-demand budget', () => {
       body: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
         budgets: {errors: 1000, transactions: 2000, attachments: 3000},
       },
     });
@@ -142,18 +139,12 @@ describe('edit on-demand budget', () => {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 1000,
-          transactionsBudget: 2000,
-          attachmentsBudget: 3000,
           budgets: {
             errors: 1000,
             transactions: 2000,
             attachments: 3000,
             monitorSeats: 4000,
           },
-          errorSpendUsed: 100,
-          transactionSpendUsed: 200,
-          attachmentSpendUsed: 300,
           usedSpends: {
             errors: 100,
             transactions: 200,
@@ -233,9 +224,6 @@ describe('edit on-demand budget', () => {
       body: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 100,
-        transactionsBudget: 0,
-        attachmentsBudget: 3000,
         budgets: {
           errors: 100,
           transactions: 0,
@@ -273,9 +261,6 @@ describe('edit on-demand budget', () => {
         onDemandBudgets: {
           enabled: true,
           budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-          errorsBudget: 100,
-          transactionsBudget: 0,
-          attachmentsBudget: 3000,
           budgets: {
             errors: 100,
             transactions: 0,
@@ -283,9 +268,6 @@ describe('edit on-demand budget', () => {
             replays: 300,
             monitorSeats: 200,
           },
-          errorSpendUsed: 76,
-          transactionSpendUsed: 0,
-          attachmentSpendUsed: 0,
           usedSpends: {
             errors: 76,
             transactions: 0,
@@ -370,10 +352,6 @@ describe('edit on-demand budget', () => {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
-        replaysBudget: 0,
         budgets: {
           errors: 1000,
           transactions: 2000,
@@ -381,9 +359,6 @@ describe('edit on-demand budget', () => {
           replays: 0,
           monitorSeats: 5000,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
     });
@@ -571,10 +546,6 @@ describe('edit on-demand budget', () => {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
-        replaysBudget: 0,
         budgets: {
           errors: 1000,
           transactions: 2000,
@@ -582,9 +553,6 @@ describe('edit on-demand budget', () => {
           replays: 0,
           monitorSeats: 5000,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
     });

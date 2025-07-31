@@ -219,7 +219,7 @@ def test_split_func_tokens(input, output):
     assert split_func_tokens(input) == output
 
 
-def test_trim_function_name_cocoa():
+def test_trim_function_name_cocoa() -> None:
     assert trim_function_name("+[foo:(bar)]", "objc") == "+[foo:(bar)]"
     assert trim_function_name("[foo:(bar)]", "objc") == "[foo:(bar)]"
     assert trim_function_name("-[foo:(bar)]", "objc") == "-[foo:(bar)]"

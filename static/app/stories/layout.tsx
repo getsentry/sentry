@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {space} from 'sentry/styles/space';
 
-export const SideBySide = styled('div')`
+export const SideBySide = styled('div')<{vertical?: boolean}>`
   display: flex;
   gap: ${space(2)};
   flex-wrap: wrap;
   align-items: flex-start;
+  flex-direction: ${p => (p.vertical ? 'column' : 'row')};
 `;
 
 export const Grid = styled('div')<{columns?: number}>`

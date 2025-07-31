@@ -1,4 +1,4 @@
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from django.db.utils import OperationalError
@@ -22,7 +22,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class TestRefresher(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
@@ -36,19 +36,19 @@ class TestRefresher(TestCase):
             user=self.user,
         )
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         assert self.refresher.run()
 
-    def test_adds_token_to_installation(self):
+    def test_adds_token_to_installation(self) -> None:
         token = self.refresher.run()
         assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
-    def test_deletes_refreshed_token(self):
+    def test_deletes_refreshed_token(self) -> None:
         self.refresher.run()
         assert not ApiToken.objects.filter(id=self.token.id).exists()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_validates_token_belongs_to_sentry_app(self, mock_record):
+    def test_validates_token_belongs_to_sentry_app(self, mock_record: MagicMock) -> None:
         new_install = self.create_sentry_app_installation()
         refresh_token = new_install.api_token.refresh_token
 
@@ -81,7 +81,9 @@ class TestRefresher(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_validates_token_belongs_to_sentry_app_random_token(self, mock_record):
+    def test_validates_token_belongs_to_sentry_app_random_token(
+        self, mock_record: MagicMock
+    ) -> None:
         new_application = ApiApplication.objects.create(owner_id=self.create_user().id)
         refresh_token = ApiToken.objects.create(
             user=self.user,
@@ -117,7 +119,7 @@ class TestRefresher(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.models.ApiToken.objects.get", side_effect=ApiToken.DoesNotExist)
-    def test_token_must_exist(self, _, mock_record):
+    def test_token_must_exist(self, _: MagicMock, mock_record: MagicMock) -> None:
         with pytest.raises(SentryAppIntegratorError) as e:
             self.refresher.run()
 
@@ -144,7 +146,9 @@ class TestRefresher(TestCase):
     @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.objects.get", side_effect=ApiApplication.DoesNotExist)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_api_application_must_exist(self, mock_record, _, mock_validate):
+    def test_api_application_must_exist(
+        self, mock_record: MagicMock, _: MagicMock, mock_validate: MagicMock
+    ) -> None:
         with pytest.raises(SentryAppSentryError) as e:
             self.refresher.run()
 
@@ -174,7 +178,9 @@ class TestRefresher(TestCase):
     @patch("sentry.sentry_apps.token_exchange.refresher.Refresher._validate")
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_sentry_app_must_exist(self, mock_record, sentry_app, validate):
+    def test_sentry_app_must_exist(
+        self, mock_record: MagicMock, sentry_app: MagicMock, validate: MagicMock
+    ) -> None:
         sentry_app.side_effect = SentryApp.DoesNotExist()
         with pytest.raises(SentryAppSentryError) as e:
             self.refresher.run()
@@ -204,7 +210,7 @@ class TestRefresher(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_records_analytics(self, record):
+    def test_records_analytics(self, record: MagicMock) -> None:
         Refresher(
             install=self.install,
             client_id=self.client_id,
@@ -218,7 +224,7 @@ class TestRefresher(TestCase):
             exchange_type="refresh",
         )
 
-    def test_returns_token_on_outbox_error(self):
+    def test_returns_token_on_outbox_error(self) -> None:
         # Mock the transaction to raise OperationalError after token creation
         with patch("sentry.hybridcloud.models.outbox.OutboxBase.process_coalesced") as mock_process:
             mock_process.side_effect = OperationalError("Outbox issue")

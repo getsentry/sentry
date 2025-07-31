@@ -27,7 +27,7 @@ export function IssueCell({group, disabled = false, className}: IssueCellProps) 
         shortId={group.shortId}
         avatar={<ProjectAvatar project={group.project} />}
       />
-      <LastSeenWrapper gap={space(0.5)}>
+      <LastSeenWrapper gap="xs">
         {t('Last seen')}
         <TimeSince
           date={group.lastSeen}

@@ -1,11 +1,14 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
+import usePrevious from 'sentry/utils/usePrevious';
 import {
-  useLogsAutoRefresh,
+  useLogsAutoRefreshContinued,
+  useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   MAX_LOG_INGEST_DELAY,
   VIRTUAL_STREAMED_INTERVAL_MS,
@@ -15,6 +18,7 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
 
 /**
  * Virtual Streaming
@@ -49,14 +53,29 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 export function useVirtualStreaming(
   data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
 ) {
-  const autoRefresh = useLogsAutoRefresh();
+  const autoRefresh = useLogsAutoRefreshEnabled();
+  const previousAutoRefresh = usePrevious(autoRefresh);
+  const isAutoRefreshContinued = useLogsAutoRefreshContinued();
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
+  const logsQueryKey = useLogsQueryKeyWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+  });
+  const queryKeyString = JSON.stringify(logsQueryKey);
+  const previousQueryKeyString = usePrevious(queryKeyString);
+
+  useEffect(() => {
+    if (previousQueryKeyString !== queryKeyString) {
+      // We reset the virtual timestamp when the query key changes.
+      setVirtualTimestamp(undefined);
+    }
+  }, [queryKeyString, previousQueryKeyString]);
 
   // If we've received data, initialize the virtual timestamp to be refreshEvery seconds before the max ingest delay timestamp
   const initializeVirtualTimestamp = useCallback(() => {
-    if (!data?.pages?.length || virtualTimestamp !== undefined) {
+    if (!data?.pages?.length) {
       return;
     }
 
@@ -89,21 +108,34 @@ export function useVirtualStreaming(
         );
 
     setVirtualTimestamp(initialTimestamp);
-  }, [data, virtualTimestamp, refreshInterval]);
+  }, [data, refreshInterval]);
 
-  // Initialize when auto refresh is enabled and we have data
-  useEffect(() => {
-    if (autoRefresh && virtualTimestamp === undefined) {
-      initializeVirtualTimestamp();
-    }
-  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp]);
-
-  // Reset when auto refresh is disabled
   useEffect(() => {
     if (!autoRefresh) {
-      setVirtualTimestamp(undefined);
+      return;
     }
-  }, [autoRefresh]);
+
+    if (virtualTimestamp === undefined) {
+      // First time enabling autorefresh, initialize virtual timestamp.
+      initializeVirtualTimestamp();
+      return;
+    }
+
+    if (isAutoRefreshContinued) {
+      // Re-enabling autorefresh with existing virtual timestamp, and within continue window, do nothing.
+      return;
+    }
+    if (!isEqual(autoRefresh, previousAutoRefresh)) {
+      // Re-enabling autorefresh with existing virtual timestamp, but outside continue window, reset virtual timestamp.
+      initializeVirtualTimestamp();
+    }
+  }, [
+    autoRefresh,
+    initializeVirtualTimestamp,
+    virtualTimestamp,
+    isAutoRefreshContinued,
+    previousAutoRefresh,
+  ]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {
@@ -162,16 +194,8 @@ export function useVirtualStreaming(
     };
   }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval]);
 
-  const virtualStreamedTimestamp = useMemo(() => {
-    if (!autoRefresh || !virtualTimestamp) {
-      return undefined;
-    }
-
-    return virtualTimestamp;
-  }, [autoRefresh, virtualTimestamp]);
-
   return {
-    virtualStreamedTimestamp,
+    virtualStreamedTimestamp: virtualTimestamp,
   };
 }
 

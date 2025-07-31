@@ -34,7 +34,7 @@ Risk = int  # TODO: make enum or union of literals
 ContextValue = Any
 ContextDict = dict[str, ContextValue]
 
-DEFAULT_ENHANCEMENTS_BASE = "common:2019-03-23"
+DEFAULT_ENHANCEMENTS_BASE = "newstyle:2023-01-11"
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
 # TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
@@ -95,6 +95,30 @@ def strategy(
 
 
 class GroupingContext:
+    """
+    A key-value store used for passing state between strategy functions and other helpers used
+    during grouping.
+
+    Has a dictionary-like interface, along with a context manager which allows values to be
+    temporarily overwritten:
+
+        context = GroupingContext()
+        context["some_key"] = "original_value"
+
+        value_at_some_key = context["some_key"] # will be "original_value"
+        value_at_some_key = context.get("some_key") # will be "original_value"
+
+        value_at_another_key = context["another_key"] # will raise a KeyError
+        value_at_another_key = context.get("another_key") # will be None
+        value_at_another_key = context.get("another_key", "some_default") # will be "some_default"
+
+        with context:
+            context["some_key"] = "some_other_value"
+            value_at_some_key = context["some_key"] # will be "some_other_value"
+
+        value_at_some_key = context["some_key"] # will be "original_value"
+    """
+
     def __init__(self, strategy_config: StrategyConfiguration, event: Event):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
@@ -112,6 +136,12 @@ class GroupingContext:
             if key in d:
                 return d[key]
         raise KeyError(key)
+
+    def get(self, key: str, default: ContextValue | None = None) -> ContextValue | None:
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def __enter__(self) -> Self:
         self.push()

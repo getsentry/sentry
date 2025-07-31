@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.redis import clusters
 
 
-def test_is_rate_limited_script():
+def test_is_rate_limited_script() -> None:
     now = int(time.time())
 
     cluster = clusters.get("default")
@@ -70,13 +70,13 @@ class RedisQuotaTest(TestCase):
     def quota(self):
         return RedisQuota()
 
-    def test_redis_quota_serialize(self):
+    def test_redis_quota_serialize(self) -> None:
         assert QuotaScope.ORGANIZATION.api_name() == "organization"
         assert QuotaScope.PROJECT.api_name() == "project"
         assert QuotaScope.KEY.api_name() == "key"
         assert QuotaScope.GLOBAL.api_name() == "global"
 
-    def test_abuse_quotas(self):
+    def test_abuse_quotas(self) -> None:
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
@@ -267,7 +267,7 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].window == 20
         assert quotas[0].reason_code == "project_abuse_limit"
 
-    def test_legacy_transaction_quota(self):
+    def test_legacy_transaction_quota(self) -> None:
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
@@ -313,7 +313,7 @@ class RedisQuotaTest(TestCase):
         ) as self.get_monitor_quota:
             yield
 
-    def test_uses_defined_quotas(self):
+    def test_uses_defined_quotas(self) -> None:
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
         self.get_monitor_quota.return_value = (15, 60)
@@ -337,20 +337,22 @@ class RedisQuotaTest(TestCase):
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
-    def test_bails_immediately_without_any_quota(self, get_quotas, is_rate_limited):
+    def test_bails_immediately_without_any_quota(
+        self, get_quotas: mock.MagicMock, is_rate_limited: mock.MagicMock
+    ) -> None:
         result = self.quota.is_rate_limited(self.project)
         assert not is_rate_limited.called
         assert not result.is_limited
 
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
-    def test_is_not_limited_without_rejections(self, is_rate_limited):
+    def test_is_not_limited_without_rejections(self, is_rate_limited: mock.MagicMock) -> None:
         self.get_organization_quota.return_value = (100, 60)
         self.get_project_quota.return_value = (200, 60)
         self.get_monitor_quota.return_value = (15, 60)
         assert not self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, False))
-    def test_is_limited_on_rejections(self, is_rate_limited):
+    def test_is_limited_on_rejections(self, is_rate_limited: mock.MagicMock) -> None:
         self.get_organization_quota.return_value = (100, 60)
         self.get_project_quota.return_value = (200, 60)
         self.get_monitor_quota.return_value = (15, 60)
@@ -358,7 +360,9 @@ class RedisQuotaTest(TestCase):
 
     @mock.patch.object(RedisQuota, "get_quotas")
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
-    def test_not_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
+    def test_not_limited_with_unlimited_quota(
+        self, mock_is_rate_limited: mock.MagicMock, mock_get_quotas: mock.MagicMock
+    ) -> None:
         mock_get_quotas.return_value = (
             QuotaConfig(
                 id="p",
@@ -382,7 +386,9 @@ class RedisQuotaTest(TestCase):
 
     @mock.patch.object(RedisQuota, "get_quotas")
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, True))
-    def test_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
+    def test_limited_with_unlimited_quota(
+        self, mock_is_rate_limited: mock.MagicMock, mock_get_quotas: mock.MagicMock
+    ) -> None:
         mock_get_quotas.return_value = (
             QuotaConfig(
                 id="p",
@@ -404,7 +410,7 @@ class RedisQuotaTest(TestCase):
 
         assert self.quota.is_rate_limited(self.project).is_limited
 
-    def test_get_usage(self):
+    def test_get_usage(self) -> None:
         timestamp = time.time()
 
         self.get_project_quota.return_value = (200, 60)
@@ -432,7 +438,7 @@ class RedisQuotaTest(TestCase):
         ]
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    def test_refund_defaults(self, mock_get_quotas):
+    def test_refund_defaults(self, mock_get_quotas: mock.MagicMock) -> None:
         timestamp = time.time()
 
         mock_get_quotas.return_value = (
@@ -480,7 +486,7 @@ class RedisQuotaTest(TestCase):
         assert len(attachment_keys) == 0
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    def test_refund_categories(self, mock_get_quotas):
+    def test_refund_categories(self, mock_get_quotas: mock.MagicMock) -> None:
         timestamp = time.time()
 
         mock_get_quotas.return_value = (
@@ -529,7 +535,7 @@ class RedisQuotaTest(TestCase):
         for key in attachment_keys:
             assert client.get(key) == b"100"
 
-    def test_get_usage_uses_refund(self):
+    def test_get_usage_uses_refund(self) -> None:
         timestamp = time.time()
 
         self.get_project_quota.return_value = (200, 60)

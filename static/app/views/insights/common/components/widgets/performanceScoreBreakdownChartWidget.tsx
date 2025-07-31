@@ -56,6 +56,8 @@ export default function PerformanceScoreBreakdownChartWidget(
     error: vitalScoresError,
   } = useSpanSeries(
     {
+      samplingMode: 'HIGHEST_ACCURACY',
+      interval: '12h',
       search,
       yAxis: [
         'performance_score(measurements.score.lcp)',

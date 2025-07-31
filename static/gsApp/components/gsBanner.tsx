@@ -21,7 +21,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -118,9 +118,7 @@ function SuspensionModal({Header, Body, Footer, subscription}: SuspensionModalPr
       <Header>{'Action Required'}</Header>
       <Body>
         <Alert.Container>
-          <Alert type="warning" showIcon>
-            {t('Your account has been suspended')}
-          </Alert>
+          <Alert type="warning">{t('Your account has been suspended')}</Alert>
         </Alert.Container>
         <p>{t('Your account has been suspended with the following reason:')}</p>
         <ul>
@@ -278,9 +276,7 @@ function NoticeModal({
       </Header>
       <Body>
         <Alert.Container>
-          <Alert type={alertType} showIcon>
-            {title}
-          </Alert>
+          <Alert type={alertType}>{title}</Alert>
         </Alert.Container>
         <p>{body}</p>
         {subText && <p>{subText}</p>}
@@ -955,7 +951,6 @@ class GSBanner extends Component<Props, State> {
       <Alert
         system
         type={isWarning ? 'muted' : 'warning'}
-        showIcon
         data-test-id={'overage-banner-' + eventTypes.join('-')}
         trailingItems={
           <ButtonBar>

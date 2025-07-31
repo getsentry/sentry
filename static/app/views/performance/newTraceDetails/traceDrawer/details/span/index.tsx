@@ -62,6 +62,7 @@ import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider'
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
+import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
@@ -169,9 +170,9 @@ function LogDetails() {
       disableCollapsePersistence
     >
       {hasInfiniteFeature ? (
-        <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+        <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
       ) : (
-        <LogsTable showHeader={false} />
+        <LogsTable embedded />
       )}
     </FoldSection>
   );
@@ -406,6 +407,7 @@ function EAPSpanNodeDetails({
   }
 
   const attributes = traceItemData?.attributes;
+  const links = traceItemData?.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
   const profileMeta = eventTransaction ? getProfileMeta(eventTransaction) || '' : '';
   const profileId =
@@ -469,9 +471,22 @@ function EAPSpanNodeDetails({
                       project={project}
                     />
 
-                    {isTransaction ? <Contexts event={eventTransaction} /> : null}
+                    {isTransaction ? (
+                      <Contexts event={eventTransaction} project={project} />
+                    ) : null}
 
                     <LogDetails />
+
+                    {organization.features.includes('trace-view-span-links') &&
+                    links?.length ? (
+                      <TraceSpanLinks
+                        node={node}
+                        links={links}
+                        theme={theme}
+                        location={location}
+                        organization={organization}
+                      />
+                    ) : null}
 
                     {eventTransaction && organization.features.includes('profiling') ? (
                       <ProfileDetails
