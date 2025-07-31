@@ -186,7 +186,6 @@ export function initializeLogsTest({
     const eventsData: EventsLogsResult = {
       data: logFixtures,
       meta: LogFixtureMeta(logFixtures),
-      // meta: {fields: {}, units: {}},
     };
 
     return MockApiClient.addMockResponse({
