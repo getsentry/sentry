@@ -114,7 +114,7 @@ export const Container = styled(
   <T extends ContainerElement = 'div'>(props: ContainerProps<T>) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
-      return props.children?.({className: (props as any).className});
+      return props.children({className: (props as any).className});
     }
 
     const {as, ...rest} = props;
