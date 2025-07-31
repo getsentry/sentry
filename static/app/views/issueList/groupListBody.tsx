@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -32,6 +33,7 @@ type GroupListBodyProps = {
   error: string | null;
   groupIds: string[];
   groupStatsPeriod: string;
+  issuesSuccessfullyLoaded: boolean;
   loading: boolean;
   memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
@@ -62,17 +64,24 @@ function GroupListBody({
   selectedProjectIds,
   onActionTaken,
   pageSize,
+  issuesSuccessfullyLoaded,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
 
-  if (loading) {
+  // initial loading state
+  if (!issuesSuccessfullyLoaded && loading) {
     return (
       <LoadingSkeleton
         displayReprocessingLayout={displayReprocessingLayout}
         pageSize={pageSize}
       />
     );
+  }
+
+  // search loading state
+  if (loading) {
+    return <LoadingIndicator />;
   }
 
   if (error) {

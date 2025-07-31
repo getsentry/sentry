@@ -113,6 +113,7 @@ function IssueListTable({
                 query={query}
                 selectedProjectIds={selection.projects}
                 loading={issuesLoading}
+                issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
                 error={error}
                 refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}
