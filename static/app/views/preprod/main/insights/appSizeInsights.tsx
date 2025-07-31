@@ -1,16 +1,16 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Container} from 'sentry/components/core/layout/container';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading} from 'sentry/components/core/text/heading';
-import {Text as SentryText} from 'sentry/components/core/text/text';
+import {Text} from 'sentry/components/core/text/text';
 import {IconSettings} from 'sentry/icons';
-import {formatBytesBase10SavingsAmount} from 'sentry/utils/bytes/formatBytesBase10';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
 import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
-import {formatPercentage} from 'sentry/views/preprod/utils/formatters';
 import {
   type ProcessedInsight,
   processInsights,
@@ -23,6 +23,10 @@ interface AppSizeInsightsProps {
 
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleCloseSidebar = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, []);
 
   if (!totalSize || totalSize <= 0) {
     return null;
@@ -41,10 +45,10 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
     <Container
       background="primary"
       radius="md"
-      padding="md"
+      padding="lg"
+      border="muted"
       style={{
         marginTop: '20px',
-        border: '1px solid #F0ECF3',
       }}
     >
       <Flex
@@ -63,22 +67,29 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
       </Flex>
       <Flex direction="column" gap="2xs">
         {topInsights.map((insight, index) => (
-          <InsightRow key={insight.name} isAlternating={index % 2 === 0}>
-            <SentryText variant="primary" size="sm" bold>
+          <InsightRow
+            key={insight.name}
+            isAlternating={index % 2 === 0}
+            align="center"
+            justify="between"
+            radius="md"
+          >
+            <Text variant="primary" size="sm" bold>
               {insight.name}
-            </SentryText>
+            </Text>
             <Flex align="center" gap="sm">
-              <SentryText variant="muted" size="sm" tabular>
-                {formatBytesBase10SavingsAmount(-insight.totalSavings)}
-              </SentryText>
-              <SentryText
+              <Text variant="muted" size="sm" tabular>
+                {formatBytesBase10(insight.totalSavings)}
+              </Text>
+              <Text
                 variant="muted"
                 size="sm"
                 tabular
-                style={{width: '64px', textAlign: 'right'}}
+                align="right"
+                style={{width: '64px'}}
               >
-                ({formatPercentage(-insight.percentage)})
-              </SentryText>
+                ({formatPercentage(insight.percentage / 100, 1)})
+              </Text>
             </Flex>
           </InsightRow>
         ))}
@@ -88,18 +99,14 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         insights={insights}
         totalSize={totalSize}
         isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={handleCloseSidebar}
       />
     </Container>
   );
 }
 
-const InsightRow = styled('div')<{isAlternating: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+const InsightRow = styled(Flex)<{isAlternating: boolean}>`
   height: 22px;
   padding: 4px 6px;
-  background: ${p => (p.isAlternating ? '#F7F6F9' : 'transparent')};
-  border-radius: ${p => (p.isAlternating ? '4px' : '0')};
+  background: ${p => (p.isAlternating ? p.theme.surface200 : 'transparent')};
 `;

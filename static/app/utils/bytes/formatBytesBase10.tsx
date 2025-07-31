@@ -23,14 +23,3 @@ export function formatBytesBase10(bytes: number, u = 0) {
 
   return formatNumberWithDynamicDecimalPoints(bytes) + ' ' + units[u];
 }
-
-export function formatBytesBase10SavingsAmount(savingsBytes: number): string {
-  if ([0, Infinity, -Infinity, NaN].includes(savingsBytes)) {
-    return savingsBytes.toLocaleString();
-  }
-
-  const sign = savingsBytes < 0 ? '−' : '';
-  const absoluteSavingsBytes = Math.abs(savingsBytes);
-
-  return `${sign}${formatBytesBase10(absoluteSavingsBytes)}`;
-}
