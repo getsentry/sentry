@@ -37,6 +37,10 @@ from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.bulk_workflow import (
+    BulkWorkflowMutationValidator,
+    BulkWorkflowUpdateValidator,
+)
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
 )
@@ -245,6 +249,50 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
+        operation_id="Mutate an Organization's Workflows",
+        description=("Currently supports bulk enabling/disabling workflows."),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        responses={
+            201: WorkflowSerializer,
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request, organization):
+        """
+        Mutates workflows for a given org
+        """
+        validator = BulkWorkflowUpdateValidator(
+            context={"organization": organization, "request": request}
+        )
+        validator.is_valid(raise_exception=True)
+
+        # Extract validated enabled value
+        enabled = validator.validated_data["enabled"]
+
+        queryset = self.filter_workflows(request, organization)
+
+        if not queryset:
+            return Response(
+                {"detail": "No workflows found."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+
+        queryset.update(enabled=enabled)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+        )
+
+    @extend_schema(
         operation_id="Delete an Organization's Workflows",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
@@ -261,20 +309,18 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Deletes workflows for a given org
         """
-        if not (
-            request.GET.getlist("id")
-            or request.GET.get("query")
-            or request.GET.getlist("project")
-            or request.GET.getlist("projectSlug")
-        ):
-            return Response(
-                {
-                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        validator = BulkWorkflowMutationValidator(
+            context={"organization": organization, "request": request}
+        )
+        validator.is_valid(raise_exception=True)
 
         queryset = self.filter_workflows(request, organization)
+
+        if not queryset:
+            return Response(
+                {"detail": "No workflows found."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
 
         with transaction.atomic(router.db_for_write(Workflow)):
             for workflow in queryset:
