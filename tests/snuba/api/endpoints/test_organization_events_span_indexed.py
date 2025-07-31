@@ -2148,18 +2148,16 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
     def test_p75_if(self):
         self.store_spans(
             [
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=1000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=1000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=2000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=2000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
-                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=4000),
-                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
-                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
-                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
-                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span(
+                    {"is_segment": is_segment}, start_ts=self.ten_mins_ago, duration=duration
+                )
+                for is_segment, duration in [
+                    *[(True, 1000)] * 2,
+                    *[(True, 2000)] * 2,
+                    *[(True, 3000)] * 3,
+                    (True, 4000),
+                    *[(False, 5000)] * 4,
+                ]
             ],
             is_eap=self.is_eap,
         )
@@ -3167,7 +3165,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         response = self.do_request(
             {
                 "field": [
-                    "count_if(span.description, equals, queue.process)",
+                    "count_if(span.description, snequals, queue.process)",
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -3176,8 +3174,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         assert response.status_code == 400, response.content
         assert (
-            "Span.Description Is Invalid For Parameter 1 In Count_If."
-            == response.data["detail"].title()
+            "Invalid parameter snequals. Must be one of ['equals', 'notEquals']"
+            == response.data["detail"]
         )
 
     def test_ttif_ttfd_contribution_rate(self):
@@ -5922,6 +5920,44 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["dataset"] == self.dataset
         assert meta["units"] == {"description": None, "eps()": "1/second"}
         assert meta["fields"] == {"description": "string", "eps()": "rate"}
+
+    def test_count_if_span_status(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(span.status,equals,success)"],
+                "query": "",
+                "orderby": "count_if(span.status,equals,success)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(span.status,equals,success)": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
 
     def test_apdex_function(self):
         """Test the apdex function with span.duration and threshold."""

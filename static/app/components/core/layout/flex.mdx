@@ -27,6 +27,52 @@ To create a basic flex container, wrap elements in `<Flex>` and they will be lai
 </Flex>
 ```
 
+### Composition
+
+The `Flex` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
+
+<Storybook.Demo>
+  <Flex
+    border="primary"
+    radius="md"
+    padding="md"
+    justify="between"
+    background="primary"
+    width="80%"
+  >
+    {props => (
+      <p {...props}>
+        <span>Justify</span>
+        <span>Between</span>
+        <span>On</span>
+        <span>Paragraph</span>
+      </p>
+    )}
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Flex width="80%" justify="between">
+  {props => (
+    <p {...props}>
+      <span>Justify</span>
+      <span>Between</span>
+      <span>On</span>
+      <span>Paragraph</span>
+    </p>
+  )}
+</Flex>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Flex` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Flex as="section" padding="md" background="primary">
+  Basic flex content
+</Flex>
+```
+
 ### Flex Properties
 
 Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, `inline` that influence the layout of its children.

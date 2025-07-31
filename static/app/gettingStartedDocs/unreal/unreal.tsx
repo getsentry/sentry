@@ -66,37 +66,39 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              "We recommend downloading the latest plugin sources from the [releasesPage: GitHub Releases page], but we also support [installMethods: alternate installation methods]. To integrate Sentry into your Unreal Engine project using the GitHub package, select the artifact that matches your Unreal Engine version and includes `github` in its name. Place the extracted files in your project's 'Plugins' directory. On the next project launch, UE will prompt to build Sentry module.",
-              {
-                releasesPage: (
-                  <ExternalLink href="https://github.com/getsentry/sentry-unreal/releases" />
-                ),
-                installMethods: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/unreal/#install" />
-                ),
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              'After the successful build, in the editor navigate to the [strong:Project Settings > Plugins > Code Plugins] menu and check whether the Sentry plugin is enabled.',
-              {
-                strong: <strong />,
-              }
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
-          language: 'csharp',
-          description: t(
-            "To access the plugin API from within C++, add Sentry support to the build script (MyProject.build.cs):'"
+          type: 'text',
+          text: tct(
+            "We recommend downloading the latest plugin sources from the [releasesPage: GitHub Releases page], but we also support [installMethods: alternate installation methods]. To integrate Sentry into your Unreal Engine project using the GitHub package, select the artifact that matches your Unreal Engine version and includes `github` in its name. Place the extracted files in your project's 'Plugins' directory. On the next project launch, UE will prompt to build Sentry module.",
+            {
+              releasesPage: (
+                <ExternalLink href="https://github.com/getsentry/sentry-unreal/releases" />
+              ),
+              installMethods: (
+                <ExternalLink href="https://docs.sentry.io/platforms/unreal/#install" />
+              ),
+            }
           ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'After the successful build, in the editor navigate to the [strong:Project Settings > Plugins > Code Plugins] menu and check whether the Sentry plugin is enabled.',
+            {
+              strong: <strong />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'To access the plugin API from within C++, add Sentry support to the build script (MyProject.build.cs):'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'csharp',
           code: 'PublicDependencyModuleNames.AddRange(new string[] { ..., "Sentry" });',
         },
       ],
@@ -105,26 +107,28 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Access the Sentry configuration window by going to editor's menu: [strong:Project Settings > Plugins > Sentry] and enter the following DSN:",
-        {strong: <strong />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            "Access the Sentry configuration window by going to editor's menu: [strong:Project Settings > Plugins > Sentry] and enter the following DSN:",
+            {strong: <strong />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'url',
           code: params.dsn.public,
         },
         {
-          description: (
-            <p>
-              {tct(
-                "By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually",
-                {
-                  strong: <strong />,
-                }
-              )}
-            </p>
+          type: 'text',
+          text: tct(
+            "By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually",
+            {strong: <strong />}
           ),
+        },
+        {
+          type: 'code',
           language: 'cpp',
           code: getSettingsConfigureSnippet(params),
         },
@@ -134,11 +138,15 @@ const onboarding: OnboardingConfig = {
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Once everything is configured you can call the plugin API from both C++ and blueprints:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t(
+            'Once everything is configured you can call the plugin API from both C++ and blueprints:'
+          ),
+        },
+        {
+          type: 'code',
           language: 'cpp',
           code: getVerifySnippet(),
         },
@@ -146,17 +154,21 @@ const onboarding: OnboardingConfig = {
     },
     {
       title: t('Crash Reporter Client'),
-      description: tct(
-        'In Unreal Engine versions prior to UE 5.2 to automatically capture errors on desktop platforms [link:Crash Reporter Client] has to be configured.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/unreal/setup-crashreporter/" />
+          type: 'text',
+          text: tct(
+            'In Unreal Engine versions prior to UE 5.2 to automatically capture errors on desktop platforms [link:Crash Reporter Client] has to be configured.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/unreal/setup-crashreporter/" />
+              ),
+            }
           ),
-        }
-      ),
-      configurations: [
+        },
         {
-          description: (
+          type: 'custom',
+          content: (
             <Fragment>
               <h5>{t('Include the UE Crash Reporter')}</h5>
               <p>
@@ -175,7 +187,8 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
-          description: (
+          type: 'custom',
+          content: (
             <Fragment>
               <h5>{t('Configure the Crash Reporter Endpoint')}</h5>
               <p>
@@ -192,57 +205,59 @@ const onboarding: OnboardingConfig = {
               </Alert>
             </Fragment>
           ),
-          configurations: [
-            {
-              description: t('Add the configuration section:'),
-              language: 'ini',
-              code: getCrashReporterConfigSnippet(params),
-              additionalInfo: (
-                <p>
-                  {tct(
-                    'If a [code:CrashReportClient] section already exists, simply changing the value of [code:DataRouterUrl] is enough.',
-                    {code: <code />}
-                  )}
-                </p>
-              ),
-            },
-          ],
+        },
+        {
+          type: 'text',
+          text: t('Add the configuration section:'),
+        },
+        {
+          type: 'code',
+          language: 'ini',
+          code: getCrashReporterConfigSnippet(params),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If a [code:CrashReportClient] section already exists, simply changing the value of [code:DataRouterUrl] is enough.',
+            {code: <code />}
+          ),
         },
       ],
     },
     {
       title: t('Upload Debug Symbols'),
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [link:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
-                ),
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              "For all libraries where you'd like to receive symbolication, [strong:you need to provide debug information]. This includes dependencies and operating system libraries.",
-              {
-                strong: <strong />,
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              'In addition to debug information files, Sentry needs [italic:call frame information] (CFI) to extract accurate stack traces from minidumps of optimized release builds. CFI is usually part of the executables and not copied to debug symbols. Unless you are uploading Breakpad symbols, be sure to also include the binaries when uploading files to Sentry',
-              {italic: <i />}
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
-          description: (
+          type: 'text',
+          text: tct(
+            'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [link:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
+              ),
+              italic: <i />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            "For all libraries where you'd like to receive symbolication, [strong:you need to provide debug information]. This includes dependencies and operating system libraries.",
+            {
+              strong: <strong />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'In addition to debug information files, Sentry needs [italic:call frame information] (CFI) to extract accurate stack traces from minidumps of optimized release builds. CFI is usually part of the executables and not copied to debug symbols. Unless you are uploading Breakpad symbols, be sure to also include the binaries when uploading files to Sentry',
+            {italic: <i />}
+          ),
+        },
+        {
+          type: 'custom',
+          content: (
             <Fragment>
               <h5>{t('Automated Upload')}</h5>
               <p>
@@ -260,14 +275,21 @@ const onboarding: OnboardingConfig = {
               </p>
             </Fragment>
           ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `export SENTRY_UPLOAD_SYMBOLS_AUTOMATICALLY=True`,
-          additionalInfo: t(
+        },
+        {
+          type: 'text',
+          text: t(
             'This can be especially helpful in CI/CD environments where manual configuration is impractical.'
           ),
         },
         {
-          description: (
+          type: 'custom',
+          content: (
             <Fragment>
               <h5>{t('Manual Upload')}</h5>
               <p>
@@ -301,38 +323,49 @@ const onboarding: OnboardingConfig = {
               </p>
             </Fragment>
           ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `export SENTRY_ORG=${params.organization.slug}
 export SENTRY_PROJECT=${params.projectSlug}
 export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
         {
-          description: <p>{t('To upload debug symbols, run the following command:')}</p>,
+          type: 'text',
+          text: t('To upload debug symbols, run the following command:'),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `sentry-cli --auth-token ___ORG_AUTH_TOKEN___ debug-files upload --org ${params.organization.slug} --project ${params.projectSlug} PATH_TO_SYMBOLS`,
-          additionalInfo: (
-            <p>
-              {tct(
-                'For more information on uploading debug information and their supported formats, check out our [link:Debug Symbols Uploading documentation].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
-                  ),
-                }
-              )}
-            </p>
+        },
+        {
+          type: 'text',
+          text: tct(
+            'For more information on uploading debug information and their supported formats, check out our [link:Debug Symbols Uploading documentation].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
+              ),
+            }
           ),
         },
       ],
     },
     {
       title: t('Further Settings'),
-      description: (
-        <StoreCrashReportsConfig
-          organization={params.organization}
-          projectSlug={params.projectSlug}
-        />
-      ),
+      content: [
+        {
+          type: 'custom',
+          content: (
+            <StoreCrashReportsConfig
+              organization={params.organization}
+              projectSlug={params.projectSlug}
+            />
+          ),
+        },
+      ],
     },
   ],
 };
