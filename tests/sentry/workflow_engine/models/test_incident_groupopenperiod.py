@@ -7,11 +7,10 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrenceData
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
 class IncidentGroupOpenPeriodTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -60,6 +59,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         assert open_period.date_ended is None
         return occurrence, open_period
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_from_occurrence_with_existing_incident(self):
         """Test creating relationship when incident exists"""
         occurrence, open_period = self.save_issue_occurrence()
@@ -78,6 +78,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         assert result.incident_identifier == incident.identifier
         assert result.group_open_period == open_period
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_from_occurrence_without_incident(self):
         """Test creating placeholder when incident doesn't exist"""
         occurrence, open_period = self.save_issue_occurrence()
@@ -88,6 +89,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         open_period.refresh_from_db()
         assert open_period.data["pending_incident_alert_id"] == self.alert_rule.id
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_from_occurrence_no_alert_id(self):
         """Test handling when no alert_id in evidence_data"""
         with patch("sentry.issues.ingest.eventstream") as _:
@@ -102,6 +104,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
 
         assert result is None
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_relationship_new(self):
         """Test creating a new relationship"""
         occurrence, open_period = self.save_issue_occurrence()
@@ -120,6 +123,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         assert result.incident_identifier == incident.identifier
         assert result.group_open_period == open_period
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_relationship_existing(self):
         """Test updating an existing relationship"""
         occurrence, open_period = self.save_issue_occurrence()
@@ -150,6 +154,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         assert result.incident_identifier == incident2.identifier
         assert result.group_open_period == open_period
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_placeholder_relationship(self):
         """Test creating a placeholder relationship"""
         occurrence, open_period = self.save_issue_occurrence()
@@ -162,6 +167,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         open_period.refresh_from_db()
         assert open_period.data["pending_incident_alert_id"] == self.alert_rule.id
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_pending_relationships_for_incident(self):
         """Test creating relationships for pending open periods"""
         occurrence, open_period = self.save_issue_occurrence()
@@ -188,6 +194,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
         open_period.refresh_from_db()
         assert "pending_incident_alert_id" not in open_period.data
 
+    @with_feature("organizations:issue-open-periods")
     def test_create_pending_relationships_for_incident_no_pending(self):
         """Test creating relationships when no pending relationships exist"""
         incident = self.create_incident(
