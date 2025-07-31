@@ -8,7 +8,6 @@ import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconChevron, IconClose} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {formatBytesBase10SavingsAmount} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   AppleInsightResults,
@@ -16,6 +15,7 @@ import type {
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {formatPercentage} from 'sentry/views/preprod/utils/formatters';
 import {
+  type ProcessedInsight,
   type ProcessedInsightFile,
   processInsights,
 } from 'sentry/views/preprod/utils/insightProcessing';
@@ -52,7 +52,18 @@ function FileRow({file, fileIndex}: FileRowProps) {
 
   // Default display for all other file types
   return (
-    <FileItem isAlternating={isAlternating}>
+    <Flex
+      align="center"
+      justify="between"
+      style={{
+        height: '24px',
+        padding: '4px 6px',
+        borderRadius: '4px',
+        background: isAlternating ? '#F7F6F9' : 'transparent',
+        borderTop: '1px solid transparent',
+        minWidth: 0,
+      }}
+    >
       <Text
         variant="accent"
         size="sm"
@@ -62,7 +73,7 @@ function FileRow({file, fileIndex}: FileRowProps) {
       >
         {file.path}
       </Text>
-      <FileSavings>
+      <Flex align="center" gap="sm">
         <Text variant="primary" size="sm" tabular>
           {formatBytesBase10SavingsAmount(-file.savings)}
         </Text>
@@ -74,8 +85,8 @@ function FileRow({file, fileIndex}: FileRowProps) {
         >
           ({formatPercentage(-file.percentage)})
         </Text>
-      </FileSavings>
-    </FileItem>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -93,7 +104,18 @@ function OptimizableImageFileRow({
   originalFile: OptimizableImageFile;
 }) {
   return (
-    <FileItem isAlternating={isAlternating}>
+    <Flex
+      align="center"
+      justify="between"
+      style={{
+        height: '24px',
+        padding: '4px 6px',
+        borderRadius: '4px',
+        background: isAlternating ? '#F7F6F9' : 'transparent',
+        borderTop: '1px solid transparent',
+        minWidth: 0,
+      }}
+    >
       <Text
         variant="accent"
         size="sm"
@@ -103,7 +125,7 @@ function OptimizableImageFileRow({
       >
         {file.path}
       </Text>
-      <FileSavings>
+      <Flex align="center" gap="sm">
         <Text variant="primary" size="sm" tabular>
           {formatBytesBase10SavingsAmount(-file.savings)}
         </Text>
@@ -115,8 +137,8 @@ function OptimizableImageFileRow({
         >
           ({formatPercentage(-file.percentage)})
         </Text>
-      </FileSavings>
-    </FileItem>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -156,9 +178,10 @@ export function AppSizeInsightsSidebar({
           style={{flexDirection: 'column'}}
           background="primary"
         >
+          {/* Header */}
           <Container
             display="flex"
-            padding="lg lg md lg"
+            padding="xl"
             style={{
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -176,12 +199,13 @@ export function AppSizeInsightsSidebar({
             />
           </Container>
 
+          {/* Insights list */}
           <Container
             style={{
               flex: 1,
               overflowY: 'auto',
             }}
-            padding="lg"
+            padding="xl"
             display="flex"
           >
             <Container
@@ -192,84 +216,85 @@ export function AppSizeInsightsSidebar({
                 width: '100%',
               }}
             >
-              {processedInsights.map(insight => {
-                const isExpanded = expandedInsights.has(insight.name);
-                return (
-                  <Flex
-                    key={insight.name}
-                    background="primary"
-                    style={{
-                      border: '1px solid #F0ECF3',
-                    }}
-                    radius="md"
-                    padding="md"
-                    direction="column"
-                    gap="lg"
-                  >
-                    <Flex align="start" justify="between">
-                      <Text variant="primary" size="md" bold>
-                        {insight.name}
-                      </Text>
-                      <Container
-                        display="flex"
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: '8px',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Text size="sm" tabular>
-                          Potential savings{' '}
-                          {formatBytesBase10SavingsAmount(insight.totalSavings)}
-                        </Text>
-                        <SavingsPercentage>
-                          {formatPercentage(-insight.percentage)}
-                        </SavingsPercentage>
-                      </Container>
-                    </Flex>
-
-                    <Text variant="muted" size="sm" as="p">
-                      {insight.description}
-                    </Text>
-
-                    <Container>
-                      <FilesToggle
-                        isExpanded={isExpanded}
-                        onClick={() => toggleExpanded(insight.name)}
-                      >
-                        <ToggleIcon isExpanded={isExpanded} />
-                        <Text variant="primary" size="md" bold>
-                          {insight.files.length} files
-                        </Text>
-                      </FilesToggle>
-
-                      {isExpanded && (
-                        <Container
-                          display="flex"
-                          style={{
-                            flexDirection: 'column',
-                            gap: 0,
-                          }}
-                        >
-                          {insight.files.map((file, fileIndex) => (
-                            <FileRow
-                              key={`${file.path}-${fileIndex}`}
-                              file={file}
-                              fileIndex={fileIndex}
-                            />
-                          ))}
-                        </Container>
-                      )}
-                    </Container>
-                  </Flex>
-                );
-              })}
+              {processedInsights.map(insight => (
+                <InsightRow
+                  key={insight.name}
+                  insight={insight}
+                  isExpanded={expandedInsights.has(insight.name)}
+                  onToggleExpanded={() => toggleExpanded(insight.name)}
+                />
+              ))}
             </Container>
           </Container>
         </Container>
       </SlideOverPanel>
     </Fragment>
+  );
+}
+
+function InsightRow({
+  insight,
+  isExpanded,
+  onToggleExpanded,
+}: {
+  insight: ProcessedInsight;
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
+}) {
+  return (
+    <Flex
+      background="primary"
+      style={{
+        border: '1px solid #F0ECF3',
+      }}
+      radius="md"
+      padding="xl"
+      direction="column"
+      gap="lg"
+    >
+      <Flex align="start" justify="between">
+        <Text variant="primary" size="md" bold>
+          {insight.name}
+        </Text>
+        <Flex
+          align="center"
+          gap="sm"
+          style={{
+            flexShrink: 0,
+          }}
+        >
+          <Text size="sm" tabular>
+            Potential savings {formatBytesBase10SavingsAmount(insight.totalSavings)}
+          </Text>
+          <SavingsPercentage>{formatPercentage(-insight.percentage)}</SavingsPercentage>
+        </Flex>
+      </Flex>
+
+      <Text variant="muted" size="sm" as="p">
+        {insight.description}
+      </Text>
+
+      <Container>
+        <FilesToggle isExpanded={isExpanded} onClick={onToggleExpanded}>
+          <ToggleIcon isExpanded={isExpanded} />
+          <Text variant="primary" size="md" bold>
+            {insight.files.length} files
+          </Text>
+        </FilesToggle>
+
+        {isExpanded && (
+          <Flex direction="column" gap="0">
+            {insight.files.map((file, fileIndex) => (
+              <FileRow
+                key={`${file.path}-${fileIndex}`}
+                file={file}
+                fileIndex={fileIndex}
+              />
+            ))}
+          </Flex>
+        )}
+      </Container>
+    </Flex>
   );
 }
 
@@ -306,7 +331,7 @@ const FilesToggle = styled('button')<{isExpanded: boolean}>`
   cursor: pointer;
   font-size: 14px;
   color: ${p => p.theme.textColor};
-  margin-bottom: ${p => (p.isExpanded ? space(2) : '0')};
+  margin-bottom: ${p => (p.isExpanded ? p.theme.space.md : '0')};
 
   &:hover {
     color: ${p => p.theme.blue400};
@@ -314,28 +339,10 @@ const FilesToggle = styled('button')<{isExpanded: boolean}>`
 `;
 
 const ToggleIcon = styled(IconChevron)<{isExpanded: boolean}>`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.xs};
   transform: ${p => (p.isExpanded ? 'rotate(180deg)' : 'rotate(90deg)')};
   transition: transform 0.2s ease;
   color: inherit;
-`;
-
-const FileItem = styled('div')<{isAlternating: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 24px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  background: ${p => (p.isAlternating ? '#F7F6F9' : 'transparent')};
-  border-top: 1px solid transparent;
-  min-width: 0;
-`;
-
-const FileSavings = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const Backdrop = styled('div')`

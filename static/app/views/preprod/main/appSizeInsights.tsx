@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Container} from 'sentry/components/core/layout/container';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text as SentryText} from 'sentry/components/core/text/text';
 import {IconSettings} from 'sentry/icons';
@@ -46,11 +47,10 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         border: '1px solid #F0ECF3',
       }}
     >
-      <Container
-        display="flex"
+      <Flex
+        align="center"
+        justify="between"
         style={{
-          alignItems: 'center',
-          justifyContent: 'space-between',
           marginBottom: '16px',
         }}
       >
@@ -60,26 +60,14 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         <Button size="sm" icon={<IconSettings />} onClick={() => setIsSidebarOpen(true)}>
           View all insights
         </Button>
-      </Container>
-      <Container
-        display="flex"
-        style={{
-          flexDirection: 'column',
-          gap: '4px',
-        }}
-      >
+      </Flex>
+      <Flex direction="column" gap="2xs">
         {topInsights.map((insight, index) => (
           <InsightRow key={insight.name} isAlternating={index % 2 === 0}>
             <SentryText variant="primary" size="sm" bold>
               {insight.name}
             </SentryText>
-            <Container
-              display="flex"
-              style={{
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
+            <Flex align="center" gap="sm">
               <SentryText variant="muted" size="sm" tabular>
                 {formatBytesBase10SavingsAmount(-insight.totalSavings)}
               </SentryText>
@@ -91,10 +79,10 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
               >
                 ({formatPercentage(-insight.percentage)})
               </SentryText>
-            </Container>
+            </Flex>
           </InsightRow>
         ))}
-      </Container>
+      </Flex>
 
       <AppSizeInsightsSidebar
         insights={insights}
