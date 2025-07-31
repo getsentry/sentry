@@ -1,4 +1,7 @@
+import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -35,7 +38,8 @@ def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
                 action=action_target_values[0],
                 organization_id=int(action_target_values[1]),
             )
-    except ValueError:
+    except ValueError as e:
         # If we can't parse the IDs as integers, fail silently since this is just routing
+        logger.info("invalid_identifiers", extra={"action_id": encoded_action_id, "error": e})
         pass
     return SlackRoutingData(action=action_target_values[0])

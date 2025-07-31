@@ -15,20 +15,19 @@ class SlackRequestRoutingTest(TestCase):
             project_id=self.project.id,
         )
         assert (
-            action_id
-            == f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.slug}::{self.project.slug}"
+            action_id == f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.id}::{self.project.id}"
         )
 
     def test_decode_action_id_full(self):
         action_id = decode_action_id(
-            f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.slug}::{self.project.slug}"
+            f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.id}::{self.project.id}"
         )
         assert action_id.action == SlackAction.ARCHIVE_DIALOG
         assert action_id.organization_id == self.organization.id
         assert action_id.project_id == self.project.id
 
     def test_decode_action_id_non_project(self):
-        action_id = decode_action_id(f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.slug}")
+        action_id = decode_action_id(f"{SlackAction.ARCHIVE_DIALOG}::{self.organization.id}")
         assert action_id.action == SlackAction.ARCHIVE_DIALOG
         assert action_id.organization_id == self.organization.id
         assert action_id.project_id is None
