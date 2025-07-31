@@ -222,7 +222,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         )
 
         try:
-            # label_groups is dict[str, list[str]] where the key is the primary label and the value is the list of associated labels
+            # Key is primary label, value is list of associated labels
             label_groups: dict[str, list[str]] = json.loads(
                 make_seer_request(seer_request).decode("utf-8")
             )["data"]
@@ -235,8 +235,7 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
             [key] + group for key, group in label_groups.items()
         ]
 
-        # Based on the 10 groups, we need to find the top 3-4 groups that have the most feedbacks
-        # This gives us the number of feedbacks in each label group, in order of the label groups
+        # This gives us one row: the number of feedbacks in each label group, in order of the label groups
         feedback_counts_by_label_list = query_given_labels_by_feedback_count(
             organization_id=organization.id,
             project_ids=[project.id for project in projects],
@@ -249,15 +248,13 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
 
         categories = []
         for i, label_group in enumerate(label_groups_list_of_lists):
-            primary_label = label_group[
-                0
-            ]  # Guaranteed to be the first element due to the way we construct the list of lists
+            # Guaranteed to be the first element due to the way we construct the list of lists
+            primary_label = label_group[0]
             associated_labels = label_group[1:]
 
             # Query gives us one row with the countIf results
             feedback_count_in_group = feedback_counts_by_label_list[0][f"count_if_{i}"]
 
-            # Number of feedbacks in the label group - index is guaranteed to be in the same order as the list of lists
             categories.append(
                 {
                     "primary_label": primary_label,

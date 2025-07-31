@@ -20,6 +20,55 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
 
 
+def _get_ai_labels_from_tags(alias: str | None = None):
+    return Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["tup"],
+                Function(
+                    "tupleElement",
+                    parameters=[
+                        Identifier("tup"),
+                        2,  # Gets the second tuple element (tag's value)
+                    ],
+                ),
+            ),
+            Function(
+                "arrayFilter",
+                parameters=[
+                    Lambda(
+                        ["tup"],
+                        Function(
+                            "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
+                            parameters=[
+                                Function(
+                                    "tupleElement",
+                                    parameters=[
+                                        Identifier("tup"),
+                                        1,
+                                    ],  # Returns the first tuple element (tag's key)
+                                ),
+                                AI_LABEL_TAG_PREFIX,
+                            ],
+                        ),
+                    ),
+                    Function(
+                        "arrayZip",
+                        parameters=[
+                            Column("tags.key"),
+                            Column("tags.value"),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        **(
+            {"alias": alias} if alias is not None else {}
+        ),  # If alias is not None, set the alias of the function
+    )
+
+
 # TODO: abstract out the reusable parts of this query into helpers (e.g., getting first tuple element, etc.)
 # And do we need to add a filter so its only feedback types that are counted? how to do...
 # This seems to work (at least locally), with real ingested feedbacks, but changing the dataset to events doesn't work. Why? It worked in testing when I ran factory's store_event and queried the event dataset.
@@ -50,49 +99,7 @@ def query_top_ai_labels_by_feedback_count(
                 Function(
                     "arrayJoin",
                     parameters=[
-                        Function(
-                            "arrayMap",
-                            parameters=[
-                                Lambda(
-                                    ["tup"],
-                                    Function(
-                                        "tupleElement",
-                                        parameters=[
-                                            Identifier("tup"),
-                                            2,
-                                        ],
-                                    ),
-                                ),
-                                Function(
-                                    "arrayFilter",
-                                    parameters=[
-                                        Lambda(
-                                            ["tup"],
-                                            Function(
-                                                "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
-                                                parameters=[
-                                                    Function(
-                                                        "tupleElement",
-                                                        parameters=[
-                                                            Identifier("tup"),
-                                                            1,
-                                                        ],  # Returns the first tuple element (tag's key)
-                                                    ),
-                                                    AI_LABEL_TAG_PREFIX,
-                                                ],
-                                            ),
-                                        ),
-                                        Function(
-                                            "arrayZip",
-                                            parameters=[
-                                                Column("tags.key"),
-                                                Column("tags.value"),
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        )
+                        _get_ai_labels_from_tags(),
                     ],
                     alias="tags_value",
                 ),
@@ -142,51 +149,7 @@ def query_recent_feedbacks_with_ai_labels(
             select=[
                 # XXX: Should we include the event_id?
                 # This function is completely copied from the above query, so we should abstract it out (it gets all tag values whose key starts with the correct AI label prefix, so all the AI labels)
-                # Edit: abstracting it out doesn't work? It does some conversion to a tuple instead of keeping it an array, and the arrayJoin doesn't work with tuples (at least that's the error message I'm getting)
-                Function(
-                    "arrayMap",
-                    parameters=[
-                        Lambda(
-                            ["tup"],
-                            Function(
-                                "tupleElement",
-                                parameters=[
-                                    Identifier("tup"),
-                                    2,  # Gets the second tuple element (tag's value)
-                                ],
-                            ),
-                        ),
-                        Function(
-                            "arrayFilter",
-                            parameters=[
-                                Lambda(
-                                    ["tup"],
-                                    Function(
-                                        "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
-                                        parameters=[
-                                            Function(
-                                                "tupleElement",
-                                                parameters=[
-                                                    Identifier("tup"),
-                                                    1,
-                                                ],  # Returns the first tuple element (tag's key)
-                                            ),
-                                            AI_LABEL_TAG_PREFIX,
-                                        ],
-                                    ),
-                                ),
-                                Function(
-                                    "arrayZip",
-                                    parameters=[
-                                        Column("tags.key"),
-                                        Column("tags.value"),
-                                    ],
-                                ),
-                            ],
-                        ),
-                    ],
-                    alias="labels",
-                ),
+                _get_ai_labels_from_tags(alias="labels"),
                 Function(
                     "tupleElement",
                     parameters=[
@@ -296,50 +259,7 @@ def query_given_labels_by_feedback_count(
                                     ],
                                 ),
                             ),
-                            Function(
-                                "arrayMap",
-                                parameters=[
-                                    Lambda(
-                                        ["tup"],
-                                        Function(
-                                            "tupleElement",
-                                            parameters=[
-                                                Identifier("tup"),
-                                                2,  # Gets the second tuple element (tag's value)
-                                            ],
-                                        ),
-                                    ),
-                                    Function(
-                                        "arrayFilter",
-                                        parameters=[
-                                            Lambda(
-                                                ["tup"],
-                                                Function(
-                                                    "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
-                                                    parameters=[
-                                                        Function(
-                                                            "tupleElement",
-                                                            parameters=[
-                                                                Identifier("tup"),
-                                                                1,
-                                                            ],  # Returns the first tuple element (tag's key)
-                                                        ),
-                                                        AI_LABEL_TAG_PREFIX,
-                                                    ],
-                                                ),
-                                            ),
-                                            Function(
-                                                "arrayZip",
-                                                parameters=[
-                                                    Column("tags.key"),
-                                                    Column("tags.value"),
-                                                ],
-                                            ),
-                                        ],
-                                    ),
-                                ],
-                                alias="labels",
-                            ),
+                            _get_ai_labels_from_tags(alias="labels"),
                         ],
                     )
                 ],
