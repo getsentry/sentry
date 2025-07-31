@@ -205,6 +205,7 @@ def set_debug_meta(
     rpc_meta: ResponseMeta,
     rpc_request: TraceItemTableRequest | TimeSeriesRequest,
 ) -> None:
+    """Only done when debug is passed to the events endpoint"""
     rpc_query = json.loads(MessageToJson(rpc_request))
 
     events_meta["debug_info"] = {
