@@ -662,9 +662,8 @@ function isValidBracketExpression(value: string): boolean {
 
   // Check if it contains commas - if so, treat as array syntax
   if (inner.includes(',')) {
-    // Validate array syntax: comma-separated values, possibly quoted
-    const arrayPattern = /^([^,"\s]+|"[^"]*")(\s*,\s*([^,"\s]+|"[^"]*"))*$/;
-    return arrayPattern.test(inner);
+    // Parse array syntax manually to handle escaped quotes properly
+    return parseArraySyntax(inner);
   }
 
   // For single values without commas, be very conservative
@@ -672,6 +671,100 @@ function isValidBracketExpression(value: string): boolean {
   // This excludes things like "Filtered" which looks like processed text
   const singleValuePattern = /^[a-z0-9_.-]+$/;
   return singleValuePattern.test(inner);
+}
+
+/**
+ * Parses array syntax to validate comma-separated values, handling escaped quotes properly.
+ * Returns true if the string represents valid array syntax.
+ */
+function parseArraySyntax(inner: string): boolean {
+  const trimmed = inner.trim();
+  if (trimmed === '') {
+    return true;
+  }
+
+  let i = 0;
+  let inQuotes = false;
+  let quoteChar = '';
+  let currentValue = '';
+  const values: string[] = [];
+
+  while (i < trimmed.length) {
+    const char = trimmed[i];
+
+    // Handle quote detection
+    if (!inQuotes && (char === '"' || char === "'")) {
+      inQuotes = true;
+      quoteChar = char;
+      currentValue += char;
+    } else if (inQuotes && char === quoteChar) {
+      // Check if this quote is escaped
+      let isEscaped = false;
+      let backslashCount = 0;
+      for (let j = i - 1; j >= 0 && trimmed[j] === '\\'; j--) {
+        backslashCount++;
+      }
+      isEscaped = backslashCount % 2 === 1;
+
+      if (!isEscaped) {
+        inQuotes = false;
+        quoteChar = '';
+      }
+      currentValue += char;
+    } else if (!inQuotes && char === ',') {
+      // End of current value
+      values.push(currentValue.trim());
+      currentValue = '';
+    } else {
+      currentValue += char;
+    }
+
+    i++;
+  }
+
+  // Add the last value
+  if (currentValue.trim() !== '') {
+    values.push(currentValue.trim());
+  }
+
+  // Validate each value
+  for (const value of values) {
+    if (value === '') {
+      continue; // Empty values are allowed
+    }
+
+    // Check if it's a quoted string
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      // Quoted string - validate that quotes are properly balanced
+      const quoteType = value[0];
+      let quoteCount = 0;
+      let escaped = false;
+
+      for (const c of value) {
+        if (c === '\\') {
+          escaped = !escaped;
+        } else if (c === quoteType && !escaped) {
+          quoteCount++;
+        } else {
+          escaped = false;
+        }
+      }
+
+      if (quoteCount % 2 !== 0) {
+        return false; // Unbalanced quotes
+      }
+    } else {
+      // Unquoted value - should not contain spaces or special characters
+      if (/[\s\(\)\\"]/.test(value)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 /**

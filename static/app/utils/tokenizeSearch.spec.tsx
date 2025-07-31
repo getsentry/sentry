@@ -553,6 +553,11 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['message:[[test,"[nested]"],other]']),
         string: 'message:[test,"[nested]",other]',
       },
+      {
+        name: 'should handle escaped quotes in array syntax correctly',
+        object: new MutableSearch(['message:["value with \\" escaped quote",other]']),
+        string: 'message:["value with \\" escaped quote",other]',
+      },
     ];
 
     for (const {name, string, object} of cases) {
