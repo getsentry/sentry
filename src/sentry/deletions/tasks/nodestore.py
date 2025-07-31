@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
+from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
@@ -15,13 +16,17 @@ from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+from sentry.utils.snuba import bulk_snuba_queries
 
 EVENT_CHUNK_SIZE = 10000
+# https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
+ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 
 
 class RetryTask(Exception):
@@ -123,7 +128,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             # The fetch request for the nodestore uses the eventstore to determine what IDs to delete
             # from the nodestore. This is why we only delete from the eventstore once we've deleted
             # from the nodestore.
-            delete_events_from_eventstore(project_id, groups)
+            delete_events_from_eventstore(organization_id, project_id, groups, Dataset(dataset_str))
 
     # XXX: Once we find errors that should be retried add a new section and raise a RetryTask
     except Exception:
@@ -185,10 +190,60 @@ def delete_events_from_nodestore(events: Sequence[Event], dataset: Dataset) -> N
     nodestore.backend.delete_multi(node_ids)
 
 
-def delete_events_from_eventstore(project_id: int, groups: Sequence[Group]) -> None:
-    group_ids = [group.id for group in groups]
-    eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
-    eventstream.backend.end_delete_groups(eventstream_state)
+def delete_events_from_eventstore(
+    organization_id: int, project_id: int, groups: Sequence[Group], dataset: Dataset
+) -> None:
+    if dataset == Dataset.IssuePlatform:
+        delete_events_from_eventstore_issue_platform(organization_id, project_id, list(groups))
+    else:
+        group_ids = [group.id for group in groups]
+        eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
+        eventstream.backend.end_delete_groups(eventstream_state)
+
+
+def delete_events_from_eventstore_issue_platform(
+    organization_id: int, project_id: int, groups: list[Group]
+) -> None:
+    requests = []
+    # Split group_ids into batches where the sum of times_seen is less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
+    current_batch: list[int] = []
+    current_batch_rows = 0
+
+    # Deterministic sort for sanity, and for very large deletions we'll
+    # delete the "smaller" groups first
+    groups.sort(key=lambda g: (g.times_seen, g.id))
+
+    for group in groups:
+        times_seen = group.times_seen
+
+        # If adding this group would exceed the limit, create a request with the current batch
+        if current_batch_rows + times_seen > ISSUE_PLATFORM_MAX_ROWS_TO_DELETE:
+            requests.append(delete_request(organization_id, project_id, current_batch))
+            # We now start a new batch
+            current_batch = [group.id]
+            current_batch_rows = times_seen
+        else:
+            current_batch.append(group.id)
+            current_batch_rows += times_seen
+
+    # Add the final batch if it's not empty
+    if current_batch:
+        requests.append(delete_request(organization_id, project_id, current_batch))
+
+    bulk_snuba_queries(requests)
+
+
+def delete_request(organization_id: int, project_id: int, group_ids: Sequence[int]) -> Request:
+    query = DeleteQuery(
+        Dataset.IssuePlatform.value,
+        column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
+    )
+    return Request(
+        dataset=Dataset.IssuePlatform.value,
+        app_id=Referrer.DELETIONS_GROUP.value,
+        query=query,
+        tenant_ids=tenant_ids(organization_id),
+    )
 
 
 def delete_dangling_attachments_and_user_reports(
@@ -202,3 +257,7 @@ def delete_dangling_attachments_and_user_reports(
     event_ids = [event.event_id for event in events]
     EventAttachment.objects.filter(event_id__in=event_ids, project_id__in=project_ids).delete()
     UserReport.objects.filter(event_id__in=event_ids, project_id__in=project_ids).delete()
+
+
+def tenant_ids(organization_id: int) -> Mapping[str, Any]:
+    return {"referrer": Referrer.DELETIONS_GROUP.value, "organization_id": organization_id}
