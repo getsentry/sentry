@@ -127,7 +127,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 )
 
             assert not Group.objects.filter(id__in=group_ids).exists()
-            assert not nodestore.backend.get_multi([self.event_node_id, self.node_id2])
+            assert not nodestore.backend.get_multi([self.node_id, self.node_id2])
 
             assert Group.objects.filter(id=self.keep_event.group_id).exists()
             assert nodestore.backend.get(self.keep_node_id)
