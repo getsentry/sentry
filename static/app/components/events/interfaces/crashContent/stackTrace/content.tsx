@@ -64,10 +64,6 @@ function Content({
   const {frames = [], registers} = data;
 
   function frameIsVisible(frame: Frame, nextFrame: Frame) {
-    if (!includeSystemFrames) {
-      return false;
-    }
-
     return (
       includeSystemFrames ||
       frame.inApp ||
