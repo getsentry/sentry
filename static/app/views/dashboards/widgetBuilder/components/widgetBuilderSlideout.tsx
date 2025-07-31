@@ -23,6 +23,7 @@ import {
   type DashboardFilters,
   DisplayType,
   type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
@@ -86,6 +87,9 @@ function WidgetBuilderSlideout({
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
   const disableTransactionWidget = useDisableTransactionWidget();
+  const isTransactionsWidget = state.dataset === WidgetType.TRANSACTIONS;
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(true);
   const validatedWidgetResponse = useValidateWidgetQuery(
     convertBuilderStateToWidget(state)
   );
@@ -211,12 +215,29 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {disableTransactionWidget && isEditing && (
+        {isTransactionsWidget && showTransactionsDeprecationAlert && (
           <Section>
-            <Alert type="warning">
-              {t(
-                'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
-              )}
+            <Alert
+              type="warning"
+              trailingItems={
+                <StyledCloseButton
+                  icon={<IconClose size="sm" />}
+                  aria-label={t('Close')}
+                  onClick={() => {
+                    setShowTransactionsDeprecationAlert(false);
+                  }}
+                  size="zero"
+                  borderless
+                />
+              }
+            >
+              {disableTransactionWidget && isEditing
+                ? t(
+                    'You may have limited functionality due to the ongoing migration of transactions to spans. To expedite and re-enable edit functionality, switch to the spans dataset below.'
+                  )
+                : t(
+                    'The transactions dataset is going to be deprecated soon. Please use the Spans dataset with the `is_transaction:true` filter instead.'
+                  )}
             </Alert>
           </Section>
         )}
@@ -389,4 +410,15 @@ const SlideoutBodyWrapper = styled('div')`
 
 const SectionWrapper = styled('div')`
   margin-bottom: 24px;
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;
