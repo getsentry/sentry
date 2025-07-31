@@ -158,7 +158,12 @@ export default Storybook.story('CheckInTimeline', story => {
 
         <ExampleContainer>
           <GridLineLabels timeWindowConfig={timeWindowConfig} />
-          <GridLineOverlay showCursor allowZoom timeWindowConfig={timeWindowConfig} />
+          <GridLineOverlay
+            showCursor
+            allowZoom
+            cursorOverlayAnchorOffset={10}
+            timeWindowConfig={timeWindowConfig}
+          />
           <TimelineContainer ref={elementRef}>
             <CheckInTimeline
               bucketedData={data}
