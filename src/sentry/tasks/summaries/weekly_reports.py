@@ -26,6 +26,7 @@ from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.summaries.metrics import WeeklyReportOperationType, WeeklyReportSLO
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
@@ -58,6 +59,49 @@ date_format = partial(dateformat.format, format_string="F jS, Y")
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class WeeklyReportProgressTracker:
+    """
+    This class manages the "watermark", or last processed org ID for a given
+    weekly report. It can either configured with an explicit start time and
+    watermark TTL, or it will assume beginning of day, with a 7 day TTL.
+    """
+
+    beginning_of_day_timestamp: float
+    _redis_connection: LocalClient
+    duration: int
+
+    def __init__(self, timestamp: float | None = None, duration: int | None = None):
+        if timestamp is None:
+            # The time that the report was generated
+            timestamp = floor_to_utc_day(timezone.now()).timestamp()
+
+        self.beginning_of_day_timestamp = timestamp
+
+        if duration is None:
+            # The total timespan that the task covers
+            duration = ONE_DAY * 7
+
+        self.duration = duration
+        self._redis_connection = redis.clusters.get("default").get_local_client_for_key(
+            self.min_org_id_redis_key
+        )
+
+    @property
+    def min_org_id_redis_key(self) -> str:
+        return f"weekly_reports_org_id_min:{self.beginning_of_day_timestamp}"
+
+    def get_last_processed_org_id(self) -> int | None:
+        min_org_id_from_redis = self._redis_connection.get(self.min_org_id_redis_key)
+        return int(min_org_id_from_redis) if min_org_id_from_redis else None
+
+    def set_last_processed_org_id(self, org_id: int) -> None:
+        self._redis_connection.set(self.min_org_id_redis_key, org_id)
+
+    def delete_min_org_id(self) -> None:
+        self._redis_connection.delete(self.min_org_id_redis_key)
+
+
 # The entry point. This task is scheduled to run every week.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.schedule_organizations",
@@ -76,49 +120,48 @@ logger = logging.getLogger(__name__)
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
 ) -> None:
-    if timestamp is None:
-        # The time that the report was generated
-        timestamp = floor_to_utc_day(timezone.now()).timestamp()
-
-    if duration is None:
-        # The total timespan that the task covers
-        duration = ONE_DAY * 7
-
-    batch_id = str(uuid.uuid4())
-
-    def min_org_id_redis_key(timestamp: float) -> str:
-        return f"weekly_reports_org_id_min:{timestamp}"
-
-    redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-        "weekly_reports_org_id_min"
-    )
-
-    min_org_id_from_redis = redis_cluster.get(min_org_id_redis_key(timestamp))
-    minimum_organization_id = int(min_org_id_from_redis) if min_org_id_from_redis else None
+    batching = WeeklyReportProgressTracker(timestamp, duration)
+    minimum_organization_id = batching.get_last_processed_org_id()
 
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
 
-    for organization in RangeQuerySetWrapper(
-        organizations,
-        step=10000,
-        result_value_getter=lambda item: item.id,
-        min_id=minimum_organization_id,
-    ):
-        # Create a celery task per organization
-        logger.info(
-            "weekly_reports.schedule_organizations",
-            extra={
-                "batch_id": str(batch_id),
-                "organization": organization.id,
-                "minimum_organization_id": minimum_organization_id,
-            },
-        )
-        prepare_organization_report.delay(
-            timestamp, duration, organization.id, batch_id, dry_run=dry_run
-        )
-        redis_cluster.set(min_org_id_redis_key(timestamp), organization.id)
+    with WeeklyReportSLO(
+        operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT
+    ).capture() as lifecycle:
+        batch_id = str(uuid.uuid4())
 
-    redis_cluster.delete(min_org_id_redis_key(timestamp))
+        lifecycle.add_extras(
+            {
+                "batch_id": batch_id,
+                "organization_starting_batch_id": minimum_organization_id,
+                "report_timestamp": batching.beginning_of_day_timestamp,
+            }
+        )
+        for organization in RangeQuerySetWrapper(
+            organizations,
+            step=10000,
+            result_value_getter=lambda item: item.id,
+            min_id=minimum_organization_id,
+        ):
+            # Create a celery task per organization
+            logger.info(
+                "weekly_reports.schedule_organizations",
+                extra={
+                    "batch_id": str(batch_id),
+                    "organization": organization.id,
+                    "minimum_organization_id": minimum_organization_id,
+                },
+            )
+            prepare_organization_report.delay(
+                batching.beginning_of_day_timestamp,
+                batching.duration,
+                organization.id,
+                batch_id,
+                dry_run=dry_run,
+            )
+            batching.set_last_processed_org_id(organization.id)
+
+        batching.delete_min_org_id()
 
 
 # This task is launched per-organization.
