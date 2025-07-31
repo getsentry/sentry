@@ -12,6 +12,11 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="environment",
+            internal_name="environment",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="guid",
             internal_name="guid",
             search_type="string",
@@ -171,6 +176,11 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="receive_response_duration_us",
             internal_name="receive_response_duration_us",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="incident_status",
+            internal_name="incident_status",
             search_type="integer",
         ),
     ]
