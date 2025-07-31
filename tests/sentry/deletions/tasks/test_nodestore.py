@@ -1,6 +1,9 @@
 from uuid import uuid4
 
-from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore, fetch_events
+from sentry.deletions.tasks.nodestore import (
+    delete_events_for_groups_from_nodestore_and_eventstore,
+    fetch_events,
+)
 from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
@@ -40,7 +43,7 @@ class NodestoreDeletionTaskTest(TestCase):
         assert len(events) == 5
 
         with self.tasks():
-            delete_events_for_groups_from_nodestore.apply_async(
+            delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
                 kwargs={
                     "organization_id": self.project.organization_id,
                     "project_id": self.project.id,

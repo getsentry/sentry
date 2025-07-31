@@ -5,11 +5,12 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import eventstore, nodestore
+from sentry import eventstore, eventstream, nodestore
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
@@ -28,7 +29,7 @@ class RetryTask(Exception):
 
 
 @instrumented_task(
-    name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore",
+    name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore_and_eventstore",
     queue="cleanup",
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES,
@@ -46,7 +47,7 @@ class RetryTask(Exception):
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation
-def delete_events_for_groups_from_nodestore(
+def delete_events_for_groups_from_nodestore_and_eventstore(
     organization_id: int,
     project_id: int,
     group_ids: Sequence[int],
@@ -109,7 +110,7 @@ def delete_events_for_groups_from_nodestore(
             last_event = events[-1]
             delete_events_from_nodestore(events=events, dataset=Dataset(dataset_str))
             delete_dangling_attachments_and_user_reports(events, [project_id])
-            delete_events_for_groups_from_nodestore.apply_async(
+            delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
                 kwargs={
                     **kwargs_to_schedule_next_task,
                     "last_event_id": last_event.event_id,
@@ -118,6 +119,11 @@ def delete_events_for_groups_from_nodestore(
             )
         else:
             logger.info(f"{prefix}.completed", extra=extra)
+            groups = Group.objects.filter(id__in=group_ids)
+            # The fetch request for the nodestore uses the eventstore to determine what IDs to delete
+            # from the nodestore. This is why we only delete from the eventstore once we've deleted
+            # from the nodestore.
+            delete_events_from_eventstore(project_id, groups)
 
     # XXX: Once we find errors that should be retried add a new section and raise a RetryTask
     except Exception:
@@ -177,6 +183,12 @@ def delete_events_from_nodestore(events: Sequence[Event], dataset: Dataset) -> N
         for event in events
     ]
     nodestore.backend.delete_multi(node_ids)
+
+
+def delete_events_from_eventstore(project_id: int, groups: Sequence[Group]) -> None:
+    group_ids = [group.id for group in groups]
+    eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
+    eventstream.backend.end_delete_groups(eventstream_state)
 
 
 def delete_dangling_attachments_and_user_reports(

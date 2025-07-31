@@ -10,7 +10,7 @@ from sentry_sdk import set_tag
 from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, models, nodestore, options
-from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore
+from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -146,8 +146,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
                 self.delete_events_from_snuba()
                 return False
         else:
-            self.delete_events_from_nodestore()
-            self.delete_events_from_snuba()
+            self.delete_events_from_nodestore_and_eventstore()
             return False
 
     # XXX: To be removed
@@ -167,14 +166,16 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         nodestore.backend.delete_multi(node_ids)
         self.post_delete_events_from_nodestore(events)
 
+    # XXX: To be removed
     def post_delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
         pass
 
+    # XXX: To be removed
     def delete_events_from_snuba(self) -> None:
         raise NotImplementedError
 
-    def delete_events_from_nodestore(self) -> None:
-        """Schedule asynchronous deletion of events from the nodestore for all groups."""
+    def delete_events_from_nodestore_and_eventstore(self) -> None:
+        """Schedule asynchronous deletion of events from the nodestore and eventstore for all groups."""
         if not self.group_ids:
             return
 
@@ -184,7 +185,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
             group_ids = [group.id for group in groups]
-            delete_events_for_groups_from_nodestore.apply_async(
+            delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
                 kwargs={
                     "organization_id": organization_id,
                     "project_id": project_id,
@@ -222,6 +223,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
             event_id__in=event_ids, project_id__in=self.project_ids
         ).delete()
 
+    # XXX: To be removed
     def delete_events_from_snuba(self) -> None:
         # Remove all group events now that their node data has been removed.
         for project_id, groups in self.project_groups.items():
