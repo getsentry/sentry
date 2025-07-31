@@ -9,11 +9,15 @@ resources:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
 ---
 
+import {useState} from 'react';
+
 import {Badge} from 'sentry/components/core/badge';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -146,4 +150,57 @@ The `Tag` component is a generic primitive. Depending on the `type` prop, it can
 <Tag type="warning">Warning</Tag>
 <Tag type="info">Info</Tag>
 <Tag type="promotion">Promotion</Tag>
+```
+
+## Icons
+
+The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
+
+<Storybook.Demo>
+  <Tag icon={<IconCheckmark />} type="success">
+    Success
+  </Tag>
+  <Tag icon={<IconWarning />} type="warning">
+    Warning
+  </Tag>
+  <Tag icon={<IconCircle />} type="promotion">
+    Promotion
+  </Tag>
+</Storybook.Demo>
+```jsx
+<Tag icon={<IconCheckmark />} type="success">
+  Success
+</Tag>
+<Tag icon={<IconWarning />} type="warning">
+  Warning
+</Tag>
+<Tag icon={<IconCircle />} type="promotion">
+  Promotion
+</Tag>
+```
+
+## Dismiss
+
+Pass a custom `onDismiss` callback to create a dismissable tag with a trailing close icon.
+
+export function DismissableTag() {
+  const [dismissed, setDismissed] = useState(false);
+
+if (dismissed) {
+return <Tag icon={<IconRefresh />} type="default" onClick={() => setDismissed(false)}>Reset Tag</Tag>
+}
+
+return <Tag type="info" onDismiss={() => setDismissed(true)}>
+Dismiss Tag
+
+  </Tag>
+}
+
+<Storybook.Demo>
+  <DismissableTag />
+</Storybook.Demo>
+```jsx
+<Tag type="info" onDismiss={() => setDismissed(true)}>
+  Dismiss Tag
+</Tag>
 ```
