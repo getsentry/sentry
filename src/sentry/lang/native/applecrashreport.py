@@ -67,6 +67,7 @@ class AppleCrashReport:
                 key: value for key, value in i.items() if key not in ["image_addr", "image_vmaddr"]
             }
             image_addr = self._parse_addr(i["image_addr"])
+            image_vmaddr = None
             new_image["image_addr"] = image_addr
             if i.get("image_vmaddr", None) is not None:
                 image_vmaddr = self._parse_addr(i["image_vmaddr"])
