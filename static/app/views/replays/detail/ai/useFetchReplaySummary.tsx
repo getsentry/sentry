@@ -59,6 +59,8 @@ export function useFetchReplaySummary(
   const api = useApi();
   const queryClient = useQueryClient();
 
+  const segmentCount = replayRecord?.count_segments ?? 0;
+
   const {
     mutate: startSummaryRequestMutate,
     isError: isStartSummaryRequestError,
@@ -69,6 +71,9 @@ export function useFetchReplaySummary(
         `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
         {
           method: 'POST',
+          data: {
+            num_segments: segmentCount,
+          },
         }
       ),
     onSuccess: () => {
@@ -94,7 +99,7 @@ export function useFetchReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (isPolling(query.state.data?.[0] || undefined, isStartSummaryRequestPending)) {
+        if (isPolling(query.state.data?.[0], isStartSummaryRequestPending)) {
           return POLL_INTERVAL_MS;
         }
         return false;

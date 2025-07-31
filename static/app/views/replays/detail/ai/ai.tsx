@@ -36,7 +36,7 @@ export default function Ai() {
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
-  // const segmentCount = replayRecord?.count_segments ?? 0;
+  const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const {
@@ -45,7 +45,6 @@ export default function Ai() {
     isPolling,
     isError,
     startSummaryRequest,
-    // isStartSummaryRequestPending,
   } = useFetchReplaySummary({
     staleTime: 0,
     enabled: Boolean(
@@ -57,18 +56,23 @@ export default function Ai() {
     ),
   });
 
-  // const segmentsIncreased =
-  //   summaryData?.num_segments !== null &&
-  //   summaryData?.num_segments !== undefined &&
-  //   segmentCount > summaryData.num_segments;
+  const segmentsIncreased =
+    summaryData?.num_segments !== null &&
+    summaryData?.num_segments !== undefined &&
+    segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
   useEffect(() => {
-    if (needsInitialGeneration && !isSummaryPending && !isPolling && !isError) {
+    if (
+      (segmentsIncreased || needsInitialGeneration) &&
+      !isSummaryPending &&
+      !isPolling &&
+      !isError
+    ) {
       startSummaryRequest();
     }
   }, [
-    // segmentsIncreased,
+    segmentsIncreased,
     needsInitialGeneration,
     isSummaryPending,
     isPolling,
