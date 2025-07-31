@@ -236,7 +236,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
   constructor(props: any) {
     super(props);
     const queryParams = this.props.location?.query ?? {};
-    const {cursor, query, sortBy} = queryParams;
+    const {cursor, query, sortBy, regionUrl} = queryParams;
 
     this.state = {
       rows: [],
@@ -245,7 +245,11 @@ class ResultGrid extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: this.props.isRegional ? ConfigStore.get('regions')[0] : undefined,
+      region: this.props.isRegional
+        ? regionUrl
+          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
+          : ConfigStore.get('regions')[0]
+        : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
     };
@@ -253,6 +257,14 @@ class ResultGrid extends Component<ResultGridProps, State> {
 
   componentDidMount() {
     this.fetchData();
+
+    // Remove regionalUrl after setting state
+    if (this.props.isRegional && this.props.location?.query?.regionUrl) {
+      browserHistory.replace({
+        pathname: this.props.location.pathname,
+        query: {...this.props.location.query, regionUrl: undefined},
+      });
+    }
   }
 
   componentDidUpdate(prevProps: ResultGridProps) {
