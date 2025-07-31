@@ -1,6 +1,3 @@
-from collections.abc import Sequence
-from typing import Any, TypeVar
-
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
@@ -11,8 +8,6 @@ from .actions import EnhancementAction, FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
 from .matchers import CalleeMatch, CallerMatch, EnhancementMatch, FrameMatch
 from .rules import EnhancementRule
-
-T = TypeVar("T")
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -75,7 +70,7 @@ class EnhancementsVisitor(NodeVisitor[list[EnhancementRule]]):
         return rules
 
     def visit_line(
-        self, node: Node, children: tuple[Any, list[EnhancementRule | None], Any]
+        self, node: Node, children: tuple[object, list[EnhancementRule | None], object]
     ) -> EnhancementRule | None:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
@@ -84,7 +79,7 @@ class EnhancementsVisitor(NodeVisitor[list[EnhancementRule]]):
         return None
 
     def visit_rule(
-        self, node: Node, children: tuple[Any, list[EnhancementMatch], list[EnhancementAction]]
+        self, node: Node, children: tuple[object, list[EnhancementMatch], list[EnhancementAction]]
     ) -> EnhancementRule:
         _, matcher, actions = children
         return EnhancementRule(matcher, actions)
@@ -96,27 +91,31 @@ class EnhancementsVisitor(NodeVisitor[list[EnhancementRule]]):
         return [*caller_matcher, *frame_matchers, *callee_matcher]
 
     def visit_caller_matcher(
-        self, node: Node, children: tuple[Any, Any, Any, FrameMatch, Any, Any, Any, Any]
+        self,
+        node: Node,
+        children: tuple[object, object, object, FrameMatch, object, object, object, object],
     ) -> CallerMatch:
         _, _, _, inner, _, _, _, _ = children
         return CallerMatch(inner)
 
     def visit_callee_matcher(
-        self, node: Node, children: tuple[Any, Any, Any, Any, Any, FrameMatch, Any, Any]
+        self,
+        node: Node,
+        children: tuple[object, object, object, object, object, FrameMatch, object, object],
     ) -> CalleeMatch:
         _, _, _, _, _, inner, _, _ = children
         return CalleeMatch(inner)
 
     def visit_frame_matcher(
-        self, node: Node, children: tuple[Any, bool, str, Any, str]
+        self, node: Node, children: tuple[object, bool, str, object, str]
     ) -> FrameMatch:
         _, negation, ty, _, argument = children
         return FrameMatch.from_key(ty, argument, bool(negation))
 
-    def visit_matcher_type(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_matcher_type(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_argument(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_argument(self, node: Node, children: list[str]) -> str:
         return children[0]
 
     def visit_action(
@@ -125,44 +124,44 @@ class EnhancementsVisitor(NodeVisitor[list[EnhancementRule]]):
         return children[0]
 
     def visit_flag_action(
-        self, node: Node, children: tuple[Any, list[str] | None, bool, str]
+        self, node: Node, children: tuple[object, list[str] | None, bool, str]
     ) -> FlagAction:
         _, rng, flag, action_name = children
         return FlagAction(action_name, flag, rng[0] if rng else None)
 
-    def visit_flag_action_name(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_flag_action_name(self, node: Node, children: object) -> str:
         return node.text
 
     def visit_var_action(
-        self, node: Node, children: tuple[Any, str, Any, Any, Any, str]
+        self, node: Node, children: tuple[object, str, object, object, object, str]
     ) -> VarAction:
         _, var_name, _, _, _, arg = children
         return VarAction(var_name, arg)
 
-    def visit_var_name(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_var_name(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_flag(self, node: Node, children: Sequence[Any]) -> bool:
+    def visit_flag(self, node: Node, children: object) -> bool:
         return node.text == "+"
 
-    def visit_range(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_range(self, node: Node, children: object) -> str:
         if node.text == "^":
             return "up"
         return "down"
 
-    def visit_quoted(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_quoted(self, node: Node, children: object) -> str:
         return unescape_string(node.text[1:-1])
 
-    def visit_unquoted(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_unquoted(self, node: Node, children: object) -> str:
         return node.text
 
     def generic_visit[T](self, node: Node, children: T) -> T:
         return children
 
-    def visit_ident(self, node: Node, children: Sequence[Any]) -> str:
+    def visit_ident(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_quoted_ident(self, node: RegexNode, children: Sequence[Any]) -> str:
+    def visit_quoted_ident(self, node: RegexNode, children: object) -> str:
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
 
