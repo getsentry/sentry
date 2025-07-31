@@ -1,7 +1,7 @@
 import time
 from copy import deepcopy
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -28,7 +28,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -37,9 +37,14 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
     def _make_sessions(
-        self, num: int, environment_name: str | None = None, project: Project | None = None
+        self,
+        num: int,
+        environment_name: str | None = None,
+        project: Project | None = None,
+        received: float | None = None,
     ):
-        received = time.time()
+        if received is None:
+            received = time.time()
 
         def make_session(i):
             return dict(
@@ -540,7 +545,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         self.assertDoesNotPass(rule, event, is_new=False)
 
     @patch("sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.get_rate")
-    def test_is_new_issue_skips_snuba(self, mock_get_rate):
+    def test_is_new_issue_skips_snuba(self, mock_get_rate: MagicMock) -> None:
         # Looking for more than 1 event
         data = {"interval": "1m", "value": 6}
         minutes = 1
@@ -601,7 +606,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-@apply_feature_flag_on_cls("organizations:event-unique-user-frequency-condition-with-conditions")
+@with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
 class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTestBase):
     __test__ = Abstract(__module__, __qualname__)
 

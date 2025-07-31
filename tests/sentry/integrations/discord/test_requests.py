@@ -48,7 +48,9 @@ class DiscordRequestTest(TestCase):
         }
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
-    def test_collects_logging_data_with_integration_id(self, mock_get_integration):
+    def test_collects_logging_data_with_integration_id(
+        self, mock_get_integration: mock.MagicMock
+    ) -> None:
         discord_request = self.mock_request()
         mock_get_integration.return_value = RpcIntegration(
             id=1,
@@ -67,7 +69,7 @@ class DiscordRequestTest(TestCase):
         }
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
-    def test_validate_integration(self, mock_get_integration):
+    def test_validate_integration(self, mock_get_integration: mock.MagicMock) -> None:
         discord_request = self.mock_request()
         mock_get_integration.return_value = RpcIntegration(
             id=1,
@@ -82,7 +84,9 @@ class DiscordRequestTest(TestCase):
         assert discord_request.integration is not None
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
-    def test_validate_integration_no_integration(self, mock_get_integration):
+    def test_validate_integration_no_integration(
+        self, mock_get_integration: mock.MagicMock
+    ) -> None:
         discord_request = self.mock_request()
         mock_get_integration.return_value = None
         discord_request.validate_integration()

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.test import RequestFactory
@@ -120,7 +120,7 @@ class AsyncSlackResponseTest(TestCase):
     @responses.activate
     @override_regions(region_config)
     @patch("sentry.middleware.integrations.tasks.logger.info")
-    def test_empty_request_bdoy(self, mock_logger_info):
+    def test_empty_request_bdoy(self, mock_logger_info: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",

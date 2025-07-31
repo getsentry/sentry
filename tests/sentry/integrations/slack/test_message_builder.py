@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import orjson
 from django.urls import reverse
@@ -34,6 +34,8 @@ from sentry.integrations.slack.message_builder.issues import (
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.message_builder.routing import encode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -186,13 +188,21 @@ def build_test_message_blocks(
         "elements": [
             {
                 "type": "button",
-                "action_id": "resolve_dialog",
+                "action_id": encode_action_id(
+                    action=SlackAction.RESOLVE_DIALOG,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
                 "text": {"type": "plain_text", "text": "Resolve"},
                 "value": "resolve_dialog",
             },
             {
                 "type": "button",
-                "action_id": "archive_dialog",
+                "action_id": encode_action_id(
+                    action=SlackAction.ARCHIVE_DIALOG,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
                 "text": {"type": "plain_text", "text": "Archive"},
                 "value": "archive_dialog",
             },
@@ -203,7 +213,11 @@ def build_test_message_blocks(
                     "text": "Select Assignee...",
                     "emoji": True,
                 },
-                "action_id": "assign",
+                "action_id": encode_action_id(
+                    action=SlackAction.ASSIGN,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
             },
         ],
     }
@@ -506,7 +520,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
         wraps=get_option_groups,
     )
-    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups):
+    def test_build_group_block_prune_duplicate_assignees(
+        self, mock_get_option_groups: MagicMock
+    ) -> None:
         user2 = self.create_user()
         self.create_member(user=user2, organization=self.organization)
         team2 = self.create_team(organization=self.organization, members=[self.user, user2])
@@ -1246,7 +1262,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
 class BuildGroupAttachmentReplaysTest(TestCase):
     @patch("sentry.models.group.Group.has_replays")
-    def test_build_replay_issue(self, has_replays):
+    def test_build_replay_issue(self, has_replays: MagicMock) -> None:
         replay1_id = "46eb3948be25448abd53fe36b5891ff2"
         self.project.flags.has_replays = True
         self.project.save()
@@ -1404,7 +1420,7 @@ class BuildIncidentAttachmentTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_metric_alert_with_anomaly_detection(self, mock_seer_request):
+    def test_metric_alert_with_anomaly_detection(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(
@@ -1620,7 +1636,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_metric_alert_with_anomaly_detection(self, mock_seer_request):
+    def test_metric_alert_with_anomaly_detection(self, mock_seer_request: MagicMock) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(
@@ -1834,7 +1850,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
     @freeze_time("2024-02-23")
     @patch("sentry.models.Group.get_recommended_event_for_environments")
-    def test_get_context(self, mock_event):
+    def test_get_context(self, mock_event: MagicMock) -> None:
         event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
         group_event = event.for_group(event.groups[0])
         occurrence = self.build_occurrence(level="info", evidence_data={"breakpoint": 1709161200})

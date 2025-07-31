@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.models.groupassignee import GroupAssignee
@@ -414,7 +414,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.user_id == self.user.id
 
     @patch("sentry.models.GroupAssignee.objects.assign")
-    def test_handle_skip_auto_assignment_same_assignee(self, mock_assign):
+    def test_handle_skip_auto_assignment_same_assignee(self, mock_assign: MagicMock) -> None:
         """Test that if an issue has already been assigned, we skip the assignment
         on a future event with auto-assignment if the assignee won't change.
         """

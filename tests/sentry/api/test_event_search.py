@@ -1,7 +1,7 @@
 import datetime
 import os
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import SimpleTestCase
@@ -267,7 +267,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(
-                children=[  # type: ignore[arg-type]  # python/mypy#19483
+                children=[
                     SearchFilter(
                         key=SearchKey(name="x"), operator="=", value=SearchValue(raw_value="1")
                     ),
@@ -320,7 +320,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_size_filter(self, mock_type):
+    def test_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
 
@@ -345,7 +345,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_ibyte_size_filter(self, mock_type):
+    def test_ibyte_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
 
@@ -365,7 +365,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_size_filter(self, mock_type):
+    def test_aggregate_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
 
@@ -392,7 +392,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_ibyte_size_filter(self, mock_type):
+    def test_aggregate_ibyte_size_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
 
@@ -412,7 +412,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_duration_measurement_filter(self, mock_type):
+    def test_duration_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "second"
 
@@ -436,7 +436,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_duration_measurement_filter(self, mock_type):
+    def test_aggregate_duration_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "minute"
 
@@ -462,7 +462,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_numeric_measurement_filter(self, mock_type):
+    def test_numeric_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "number"
 
@@ -480,7 +480,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
-    def test_aggregate_numeric_measurement_filter(self, mock_type):
+    def test_aggregate_numeric_measurement_filter(self, mock_type: MagicMock) -> None:
         config = SearchConfig()
         mock_type.return_value = "number"
 

@@ -336,6 +336,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/stories/view/index')),
       withOrgPath: true,
     },
+    {
+      path: '/debug/notifications/',
+      component: make(() => import('sentry/debug/notifications/views/index')),
+      withOrgPath: true,
+    },
   ];
   const rootRoutes: SentryRouteObject = {
     component: errorHandler(AppBodyContent),
@@ -680,13 +685,13 @@ function buildRoutes(): RouteObject[] {
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'toolbar/',
       name: t('Developer Toolbar'),
       component: make(() => import('sentry/views/settings/project/projectToolbar')),
-      deprecatedRouteProps: true,
+      deprecatedRouteProps: true, // Should be false except for ProjectContext passed via `outletContext`
     },
     {
       path: 'source-maps/',
@@ -959,12 +964,6 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
-    },
-    {
-      path: 'rate-limits/',
-      name: t('Rate Limits'),
-      component: make(() => import('sentry/views/settings/organizationRateLimits')),
-      deprecatedRouteProps: true,
     },
     {
       path: 'relay/',
@@ -1734,7 +1733,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
-      deprecatedRouteProps: true,
     },
   ];
   const replayRoutes: SentryRouteObject = {
@@ -1742,7 +1740,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
-    deprecatedRouteProps: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -1992,6 +1989,7 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
           ),
+          deprecatedRouteProps: true,
         },
       ],
     },
@@ -2658,7 +2656,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
-      deprecatedRouteProps: true,
       children: [
         ...issueTabs,
         {
