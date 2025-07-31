@@ -19,23 +19,29 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        "To get started, download the latest release of sentry Godot GDExtension from [releasesLink: GitHub Releases page] and place the Sentry SDK addon in [code: addons/sentry] in your project's directory.",
+      content: [
         {
-          releasesLink: (
-            <ExternalLink href="https://github.com/getsentry/sentry-godot/releases" />
+          type: 'text',
+          text: tct(
+            "To get started, download the latest release of sentry Godot GDExtension from [releasesLink: GitHub Releases page] and place the Sentry SDK addon in [code: addons/sentry] in your project's directory.",
+            {
+              releasesLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-godot/releases" />
+              ),
+              code: <code />,
+            }
           ),
-          code: <code />,
-        }
-      ),
+        },
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: (
-        <p>
-          {tct(
+      content: [
+        {
+          type: 'text',
+          text: tct(
             'Sentry can be configured via Project Settings or with a [link: Configuration Script]. To access project settings in Godot Engine, navigate to [code:Project > Project Settings > Sentry] section, and enter the DSN for the [code:Dsn] option.',
             {
               code: <code />,
@@ -43,30 +49,46 @@ const onboarding: OnboardingConfig = {
                 <ExternalLink href="https://docs.sentry.io/platforms/godot/configuration/options/" />
               ),
             }
-          )}
-        </p>
-      ),
-      configurations: [{language: 'url', code: params.dsn.public}],
+          ),
+        },
+        {
+          type: 'code',
+          language: 'url',
+          code: params.dsn.public,
+        },
+      ],
     },
   ],
   verify: params => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Once the SDK is configured with the DSN you can add a [code:Node] to your test scene and attach a script with the following content',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [{language: 'gdscript', code: getVerifySnippet()}],
-      additionalInfo: tct(
-        'Check the [godotSDKDocumentationLink:Godot SDK Documentation] for more details.',
-        {
-          godotSDKDocumentationLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/godot/" />
+          type: 'text',
+          text: tct(
+            'Once the SDK is configured with the DSN you can add a [code:Node] to your test scene and attach a script with the following content',
+            {
+              code: <code />,
+            }
           ),
-        }
-      ),
+        },
+        {
+          type: 'code',
+          language: 'gdscript',
+          code: getVerifySnippet(),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Check the [godotSDKDocumentationLink:Godot SDK Documentation] for more details.',
+            {
+              godotSDKDocumentationLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/godot/" />
+              ),
+            }
+          ),
+        },
+      ],
     },
     {
       title: t('Further Settings'),
