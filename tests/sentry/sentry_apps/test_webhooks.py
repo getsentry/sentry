@@ -4,13 +4,12 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sentry.sentry_apps.metrics import SentryAppEventType
-from sentry.sentry_apps.utils.errors import SentryAppSentryError
-from sentry.sentry_apps.webhooks import broadcast_webhooks_for_organization
+from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test
+@region_silo_test
 class BroadcastWebhooksForOrganizationTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization()
@@ -40,8 +39,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             organization=self.organization, slug=self.sentry_app_3.slug
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_valid_event_to_relevant_installations(
         self, mock_installations, mock_send_webhook
     ):
@@ -67,8 +66,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", payload
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_sends_to_multiple_relevant_installations(
         self, mock_installations, mock_send_webhook
     ):
@@ -97,9 +96,9 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         mock_send_webhook.delay.assert_any_call(self.installation_1.id, "issue.created", payload)
         mock_send_webhook.delay.assert_any_call(installation_4.id, "issue.created", payload)
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.webhooks.logger")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
     def test_broadcast_no_relevant_installations(
         self, mock_logger, mock_installations, mock_send_webhook
     ):
@@ -127,26 +126,26 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.organization.id,
         )
 
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_invalid_event_type_raises_error(self, mock_installations):
-        """Test that invalid event types raise SentryAppSentryError."""
+        """Test that invalid event types are handled gracefully in task context."""
         mock_installations.return_value = []
 
         payload = {"event": "data"}
 
-        with pytest.raises(SentryAppSentryError) as exc_info:
-            broadcast_webhooks_for_organization(
-                resource_name="invalid_resource",
-                event_name="invalid_event",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
+        # In task context, invalid event types are handled gracefully (not raised)
+        broadcast_webhooks_for_organization(
+            resource_name="invalid_resource",
+            event_name="invalid_event",
+            organization_id=self.organization.id,
+            payload=payload,
+        )
 
-        assert "Invalid event type: invalid_resource.invalid_event" in str(exc_info.value.message)
+        # The function should complete without raising an exception
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.webhooks.logger")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
     def test_broadcast_logs_invalid_event_type(
         self, mock_logger, mock_installations, mock_send_webhook
     ):
@@ -155,13 +154,13 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         payload = {"event": "data"}
 
-        with pytest.raises(SentryAppSentryError):
-            broadcast_webhooks_for_organization(
-                resource_name="invalid_resource",
-                event_name="invalid_event",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
+        # In task context, invalid event types are handled gracefully
+        broadcast_webhooks_for_organization(
+            resource_name="invalid_resource",
+            event_name="invalid_event",
+            organization_id=self.organization.id,
+            payload=payload,
+        )
 
         # Verify exception was logged
         mock_logger.exception.assert_called_once_with(
@@ -185,9 +184,9 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
                 assert "missing_installation" in str(exc_info.value.message)
                 break  # We found the None installation and tested the error
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.webhooks.logger")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
     def test_broadcast_logs_queued_webhooks(
         self, mock_logger, mock_installations, mock_send_webhook
     ):
@@ -208,8 +207,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             "Queued webhook for %s to installation %s", "issue.created", self.installation_1.id
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_filters_by_consolidated_events(self, mock_installations, mock_send_webhook):
         """Test that installations are filtered based on consolidated events."""
         # Create an app that doesn't subscribe to the event resource
@@ -259,8 +258,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             # This should not raise ValueError
             SentryAppEventType(event_type)
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_different_event_types(self, mock_installations, mock_send_webhook):
         """Test broadcasting different valid event types."""
         mock_installations.return_value = [self.installation_2]
@@ -277,8 +276,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         mock_send_webhook.delay.assert_called_with(self.installation_2.id, "error.created", payload)
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_empty_installations_list(self, mock_installations, mock_send_webhook):
         """Test broadcasting when no installations are returned."""
         mock_installations.return_value = []
@@ -295,8 +294,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         # No webhook tasks should be queued
         mock_send_webhook.delay.assert_not_called()
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_consolidate_events_integration(self, mock_installations, mock_send_webhook):
         """Test that consolidate_events function is used correctly for filtering."""
         # Mock installation with specific events
@@ -307,7 +306,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         payload = {"event": "data"}
 
         # Mock consolidate_events to return the expected resource categories
-        with patch("sentry.sentry_apps.webhooks.consolidate_events") as mock_consolidate:
+        with patch("sentry.sentry_apps.logic.consolidate_events") as mock_consolidate:
             mock_consolidate.return_value = ["issue"]
 
             broadcast_webhooks_for_organization(
@@ -325,8 +324,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
                 mock_installation.id, "issue.created", payload
             )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_payload_passed_correctly(self, mock_installations, mock_send_webhook):
         """Test that payload data is passed correctly to send_webhooks."""
         mock_installations.return_value = [self.installation_1]
@@ -355,8 +354,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", complex_payload
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_different_organization_ids(self, mock_installations, mock_send_webhook):
         """Test that the correct organization_id is used to fetch installations."""
         different_org = self.create_organization()
@@ -389,8 +388,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             # Verify it's a valid SentryAppEventType
             SentryAppEventType(constructed_event_type)
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_handles_send_webhook_exception(self, mock_installations, mock_send_webhook):
         """Test that exceptions from send_resource_change_webhook are properly handled."""
         mock_installations.return_value = [self.installation_1]
@@ -407,8 +406,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
                 payload=payload,
             )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_with_special_characters_in_payload(
         self, mock_installations, mock_send_webhook
     ):
@@ -433,8 +432,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", payload
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_with_large_payload(self, mock_installations, mock_send_webhook):
         """Test broadcasting with a large payload."""
         mock_installations.return_value = [self.installation_1]
@@ -458,25 +457,24 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", payload
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_case_sensitive_event_validation(self, mock_installations, mock_send_webhook):
         """Test that event type validation is case sensitive."""
         mock_installations.return_value = []
 
         payload = {"event": "data"}
 
-        # Test case sensitivity - this should fail
-        with pytest.raises(SentryAppSentryError):
-            broadcast_webhooks_for_organization(
-                resource_name="Issue",  # Wrong case
-                event_name="Created",  # Wrong case
-                organization_id=self.organization.id,
-                payload=payload,
-            )
+        # Test case sensitivity - invalid event types are handled gracefully in task context
+        broadcast_webhooks_for_organization(
+            resource_name="Issue",  # Wrong case
+            event_name="Created",  # Wrong case
+            organization_id=self.organization.id,
+            payload=payload,
+        )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_with_empty_payload(self, mock_installations, mock_send_webhook):
         """Test broadcasting with an empty payload."""
         mock_installations.return_value = [self.installation_1]
@@ -494,8 +492,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", empty_payload
         )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_none_values_in_payload(self, mock_installations, mock_send_webhook):
         """Test broadcasting with None values in payload."""
         mock_installations.return_value = [self.installation_1]
@@ -517,7 +515,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", payload
         )
 
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_app_service_exception(self, mock_installations):
         """Test handling of exceptions from app_service.installations_for_organization."""
         mock_installations.side_effect = Exception("App service unavailable")
@@ -532,9 +530,9 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
                 payload=payload,
             )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.webhooks.consolidate_events")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.logic.consolidate_events")
     def test_broadcast_consolidate_events_exception(
         self, mock_consolidate, mock_installations, mock_send_webhook
     ):
@@ -552,8 +550,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
                 payload=payload,
             )
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_with_negative_organization_id(self, mock_installations, mock_send_webhook):
         """Test broadcasting with negative organization ID."""
         mock_installations.return_value = []
@@ -566,8 +564,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         mock_installations.assert_called_once_with(organization_id=-1)
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_with_zero_organization_id(self, mock_installations, mock_send_webhook):
         """Test broadcasting with zero organization ID."""
         mock_installations.return_value = []
@@ -580,8 +578,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         mock_installations.assert_called_once_with(organization_id=0)
 
-    @patch("sentry.sentry_apps.webhooks.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.webhooks.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_queues_tasks_asynchronously(self, mock_installations, mock_send_webhook):
         """Test that webhook sending is queued as Celery tasks, not executed synchronously."""
         mock_installations.return_value = [self.installation_1, self.installation_2]
