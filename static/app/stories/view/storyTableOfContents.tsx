@@ -62,19 +62,6 @@ function useStoryIndex(): Entry[] {
       observer.observe(document.body, {childList: true, subtree: true});
     }
 
-    // Fire this immediately to ensure entries are set on pageload
-    window.requestAnimationFrame(() => {
-      const newEntries = getContentEntries(document.querySelector('main')!);
-      if (hash) {
-        const entry = newEntries.find(e => e.ref.id === hash);
-        if (entry) {
-          entry.ref.scrollIntoView();
-        }
-        setEntries(newEntries);
-      }
-      setEntries(newEntries);
-    });
-
     return () => observer.disconnect();
   }, [hash]);
 
