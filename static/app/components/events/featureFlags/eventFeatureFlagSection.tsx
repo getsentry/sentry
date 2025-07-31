@@ -186,7 +186,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           value: (
             <ValueWrapper>
               {f.result.toString()}
-              {!suspectFlagNames.has(f.flag) && (
+              {suspectFlagNames.has(f.flag) && (
                 <SuspectLabel>{t('Suspect')}</SuspectLabel>
               )}
               <FlagActionDropdown
