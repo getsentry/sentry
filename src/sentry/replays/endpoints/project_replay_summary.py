@@ -156,7 +156,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # While the replay is live, the FE and BE may have different counts.
         num_segments = request.data.get("num_segments", 0)
 
-        if len(num_segments) >= MAX_SEGMENTS_TO_SUMMARIZE:
+        if num_segments >= MAX_SEGMENTS_TO_SUMMARIZE:
             logger.warning(
                 "Replay Summary: hit max segment limit.",
                 extra={
