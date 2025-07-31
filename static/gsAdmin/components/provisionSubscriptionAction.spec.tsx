@@ -729,6 +729,7 @@ describe('provisionSubscriptionAction', function () {
     typeNumForField('Reserved Issue Scans', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
     typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForField('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -750,6 +751,7 @@ describe('provisionSubscriptionAction', function () {
             customPrice: 0,
             customPriceAttachments: 0,
             customPriceErrors: 0,
+            customPriceLogBytes: 0,
             customPriceMonitorSeats: 0,
             customPricePcss: 0,
             customPriceProfileDuration: 0,
@@ -763,6 +765,7 @@ describe('provisionSubscriptionAction', function () {
             onDemandInvoicedManual: 'SHARED',
             paygCpeAttachments: 10000000,
             paygCpeErrors: 10000000,
+            paygCpeLogBytes: 10000000,
             paygCpeMonitorSeats: 10000000,
             paygCpeProfileDuration: 10000000,
             paygCpeProfileDurationUI: 10000000,
@@ -775,6 +778,7 @@ describe('provisionSubscriptionAction', function () {
             reservedAttachments: 1,
             reservedBudgets: [],
             reservedErrors: 5000,
+            reservedLogBytes: 0,
             reservedMonitorSeats: 1,
             reservedProfileDuration: 0,
             reservedProfileDurationUI: 0,
@@ -786,6 +790,7 @@ describe('provisionSubscriptionAction', function () {
             retainOnDemandBudget: true,
             softCapTypeAttachments: null,
             softCapTypeErrors: null,
+            softCapTypeLogBytes: null,
             softCapTypeMonitorSeats: null,
             softCapTypeProfileDuration: null,
             softCapTypeProfileDurationUI: null,
@@ -805,6 +810,7 @@ describe('provisionSubscriptionAction', function () {
               seerScanner: false,
               transactions: false,
               uptime: false,
+              logBytes: false,
             },
             type: 'invoiced',
           },
@@ -876,6 +882,7 @@ describe('provisionSubscriptionAction', function () {
     typeNumForField('Reserved Issue Scans', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
     typeNumForMatchingFields('Price for', '0', false);
+    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForField('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -896,6 +903,7 @@ describe('provisionSubscriptionAction', function () {
           customPrice: 0,
           customPriceAttachments: 0,
           customPriceErrors: 0,
+          customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 0,
           customPriceProfileDuration: 0,
@@ -909,6 +917,7 @@ describe('provisionSubscriptionAction', function () {
           onDemandInvoicedManual: 'PER_CATEGORY',
           paygCpeAttachments: 10000000,
           paygCpeErrors: 10000000,
+          paygCpeLogBytes: 10000000,
           paygCpeMonitorSeats: 10000000,
           paygCpeProfileDuration: 10000000,
           paygCpeProfileDurationUI: 10000000,
@@ -921,6 +930,7 @@ describe('provisionSubscriptionAction', function () {
           reservedAttachments: 1,
           reservedBudgets: [],
           reservedErrors: 5000,
+          reservedLogBytes: 0,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
@@ -932,6 +942,7 @@ describe('provisionSubscriptionAction', function () {
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
+          softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: null,
           softCapTypeProfileDuration: null,
           softCapTypeProfileDurationUI: null,
@@ -951,6 +962,7 @@ describe('provisionSubscriptionAction', function () {
             seerScanner: false,
             transactions: false,
             uptime: false,
+            logBytes: false,
           },
           type: 'invoiced',
         },
@@ -1008,6 +1020,7 @@ describe('provisionSubscriptionAction', function () {
     typeNumForMatchingFields('Price for', '0', false);
     typeNumForField('Price for Errors', '3000');
     typeNumForField('Price for Uptime Monitors', '1000');
+    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForField('Annual Contract Value', '4000');
 
     const updateMock = MockApiClient.addMockResponse({
@@ -1028,6 +1041,7 @@ describe('provisionSubscriptionAction', function () {
           customPrice: 400000,
           customPriceAttachments: 0,
           customPriceErrors: 300000,
+          customPriceLogBytes: 0,
           customPriceMonitorSeats: 0,
           customPricePcss: 0,
           customPriceProfileDuration: 0,
@@ -1043,6 +1057,7 @@ describe('provisionSubscriptionAction', function () {
           reservedAttachments: 1,
           reservedBudgets: [],
           reservedErrors: 5000,
+          reservedLogBytes: 0,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
@@ -1054,6 +1069,7 @@ describe('provisionSubscriptionAction', function () {
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: 'TRUE_FORWARD',
+          softCapTypeLogBytes: null,
           softCapTypeMonitorSeats: 'ON_DEMAND',
           softCapTypeProfileDuration: null,
           softCapTypeProfileDurationUI: null,
@@ -1073,6 +1089,7 @@ describe('provisionSubscriptionAction', function () {
             seerScanner: false,
             transactions: false,
             uptime: true,
+            logBytes: false,
           },
           type: 'invoiced',
         },
@@ -1597,6 +1614,8 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await clickCheckbox('Apply Changes To Current Subscription');
+    typeNumForField('Reserved Performance Units', '10000');
+    typeNumForField('Reserved Logs (in GB)', '0');
     typeNumForMatchingFields('Price for', '0', false);
     typeNumForField('Annual Contract Value', '0');
     typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.0001', false);
@@ -1624,6 +1643,7 @@ describe('provisionSubscriptionAction', function () {
             customPrice: 0,
             customPriceAttachments: 0,
             customPriceErrors: 0,
+            customPriceLogBytes: 0,
             customPriceMonitorSeats: 0,
             customPricePcss: 0,
             customPriceProfileDuration: 0,
@@ -1637,6 +1657,7 @@ describe('provisionSubscriptionAction', function () {
             onDemandInvoicedManual: 'SHARED',
             paygCpeAttachments: 10000,
             paygCpeErrors: 50000000,
+            paygCpeLogBytes: 10000,
             paygCpeMonitorSeats: 10000,
             paygCpeProfileDuration: 10000,
             paygCpeProfileDurationUI: 10000,
@@ -1649,6 +1670,7 @@ describe('provisionSubscriptionAction', function () {
             reservedAttachments: 1,
             reservedBudgets: [],
             reservedErrors: 5000,
+            reservedLogBytes: 0,
             reservedMonitorSeats: 1,
             reservedProfileDuration: 0,
             reservedProfileDurationUI: 0,
@@ -1660,6 +1682,7 @@ describe('provisionSubscriptionAction', function () {
             retainOnDemandBudget: false,
             softCapTypeAttachments: null,
             softCapTypeErrors: null,
+            softCapTypeLogBytes: null,
             softCapTypeMonitorSeats: null,
             softCapTypeProfileDuration: null,
             softCapTypeProfileDurationUI: null,
@@ -1671,6 +1694,7 @@ describe('provisionSubscriptionAction', function () {
             trueForward: {
               attachments: false,
               errors: false,
+              logBytes: false,
               monitorSeats: false,
               profileDuration: false,
               profileDurationUI: false,

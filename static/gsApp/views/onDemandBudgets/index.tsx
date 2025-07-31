@@ -10,6 +10,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import {openEditCreditCard} from 'getsentry/actionCreators/modal';
@@ -144,14 +145,16 @@ class OnDemandBudgets extends Component<Props> {
           {getOnDemandCategories({
             plan: subscription.planDetails,
             budgetMode: onDemandBudgets.budgetMode,
-          }).map(category => (
-            <Category key={category}>
-              <DetailTitle>
-                {getPlanCategoryName({plan: subscription.planDetails, category})}
-              </DetailTitle>
-              <Amount>{formatCurrency(onDemandBudgets.budgets[category] ?? 0)}</Amount>
-            </Category>
-          ))}
+          })
+            .filter(category => category !== DataCategory.LOG_BYTE)
+            .map(category => (
+              <Category key={category}>
+                <DetailTitle>
+                  {getPlanCategoryName({plan: subscription.planDetails, category})}
+                </DetailTitle>
+                <Amount>{formatCurrency(onDemandBudgets.budgets[category] ?? 0)}</Amount>
+              </Category>
+            ))}
         </PerCategoryBudgetContainer>
       );
     }
@@ -210,7 +213,7 @@ class OnDemandBudgets extends Component<Props> {
       categories: getOnDemandCategories({
         plan: subscription.planDetails,
         budgetMode: onDemandBudgets.budgetMode,
-      }),
+      }).filter(category => category !== DataCategory.LOG_BYTE),
     });
     let description = t('Applies to %s.', oxfordCategories);
 
