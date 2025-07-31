@@ -74,7 +74,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - uses: getsentry/action-build-and-push-images@f8339c04467126bb9cb188483de4c582a50f1db3
+      - uses: getsentry/action-build-and-push-images@fce78c005f99fa7b6fed58d37187394a30d2118c
         with:
           image_name: 'sentry'
           platforms: ${{ matrix.platform }}
@@ -82,7 +82,7 @@ jobs:
           ghcr: true
           outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
 
-      - name: Upload artifacts
+      - name: Upload Image
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: sentry-${{ matrix.platform }}
