@@ -64,8 +64,20 @@ export function NativeContent({
 }: Props) {
   const frames = data.frames ?? [];
 
+  const isAsyncSuspensionFrame = useCallback((frame: Frame): boolean => {
+    return (
+      frame.function === '<asynchronous suspension>' ||
+      frame.filename === '<asynchronous suspension>' ||
+      frame.absPath === '<asynchronous suspension>'
+    );
+  }, []);
+
   const frameIsVisible = useCallback(
     (frame: Frame, nextFrame: Frame) => {
+      if (!includeSystemFrames && isAsyncSuspensionFrame(frame)) {
+        return false;
+      }
+
       return (
         includeSystemFrames ||
         frame.inApp ||
@@ -75,7 +87,7 @@ export function NativeContent({
         isFrameUsedForGrouping(frame, groupingCurrentLevel)
       );
     },
-    [includeSystemFrames, groupingCurrentLevel]
+    [includeSystemFrames, groupingCurrentLevel, isAsyncSuspensionFrame]
   );
 
   function setInitialFrameMap(): Record<number, boolean> {
