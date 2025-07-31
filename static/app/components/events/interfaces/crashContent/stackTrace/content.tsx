@@ -63,16 +63,8 @@ function Content({
 
   const {frames = [], registers} = data;
 
-  // These Dart frames are currently not marked as system frames, so we need to handle them separately
-  function isDartAsyncSuspensionFrame(frame: Frame): boolean {
-    return (
-      frame.filename === '<asynchronous suspension>' ||
-      frame.absPath === '<asynchronous suspension>'
-    );
-  }
-
   function frameIsVisible(frame: Frame, nextFrame: Frame) {
-    if (!includeSystemFrames && isDartAsyncSuspensionFrame(frame)) {
+    if (!includeSystemFrames) {
       return false;
     }
 
