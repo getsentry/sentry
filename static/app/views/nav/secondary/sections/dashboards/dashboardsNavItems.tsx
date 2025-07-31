@@ -123,7 +123,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
                   <ProjectIcon
                     projectPlatforms={dashboardProjectPlatforms}
                     allProjects={
-                      dashboard.projects.length === 1 || dashboard.projects[0] === -1
+                      dashboard.projects.length === 1 && dashboard.projects[0] === -1
                     }
                   />
                 </LeadingItemsWrapper>
