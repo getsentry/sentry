@@ -215,6 +215,7 @@ module = [
     "sentry.flags.migrations.*",
     "sentry.grouping.api",
     "sentry.grouping.component",
+    "sentry.grouping.enhancer.parser",
     "sentry.grouping.fingerprinting",
     "sentry.grouping.fingerprinting.*",
     "sentry.grouping.grouping_info",

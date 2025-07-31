@@ -515,6 +515,22 @@ class SubscriptionProcessor:
                                 is_anomalous, trigger, aggregation_value, fired_incident_triggers
                             )
                     else:
+                        # ABOVE_AND_BELOW threshold type is only valid for dynamic detection with anomaly detection enabled
+                        if (
+                            self.alert_rule.threshold_type
+                            == AlertRuleThresholdType.ABOVE_AND_BELOW.value
+                        ):
+                            logger.info(
+                                "Skipping processing for ABOVE_AND_BELOW alert rule - anomaly detection likely disabled",
+                                extra={
+                                    "rule_id": self.alert_rule.id,
+                                    "detection_type": self.alert_rule.detection_type,
+                                    "subscription_id": self.subscription.id,
+                                    "organization_id": organization.id,
+                                },
+                            )
+                            return
+
                         # OVER/UNDER value trigger
                         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
                             AlertRuleThresholdType(self.alert_rule.threshold_type)
