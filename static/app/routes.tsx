@@ -336,6 +336,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/stories/view/index')),
       withOrgPath: true,
     },
+    {
+      path: '/debug/notifications/',
+      component: make(() => import('sentry/debug/notifications/views/index')),
+      withOrgPath: true,
+    },
   ];
   const rootRoutes: SentryRouteObject = {
     component: errorHandler(AppBodyContent),
