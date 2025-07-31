@@ -267,14 +267,85 @@ def query_given_labels_by_feedback_count(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    labels: list[str],
+    # Order matters here, the columns will be based on the order of the label groups
+    labels_groups: list[list[str]],
 ):
     """
-    Query how many feedbacks have each of the given `labels`.
+    Query how many feedbacks are in each of the given `labels_groups`.
 
-    Very similar to the query that finds the top labels, but we do a check to ensure that the label is in the list of labels that we want.
-    If the label is not in the list of labels that we want, it is not included in the result (so no entries are returned with count 0)
+    We can't count feedbacks in each label individually then group in the application layer, because feedbacks can have multiple labels.
     """
+
+    # Creates a countIf for each label group
+    count_ifs = []
+    for i, label_group in enumerate(labels_groups):
+        count_ifs.append(
+            Function(
+                "countIf",
+                parameters=[
+                    Function(
+                        "arrayExists",  # Checks that some label is in the label group, and if it is, counts the current feedback
+                        parameters=[
+                            Lambda(
+                                ["val"],
+                                Function(
+                                    "in",
+                                    parameters=[
+                                        Identifier("val"),
+                                        label_group,
+                                    ],
+                                ),
+                            ),
+                            Function(
+                                "arrayMap",
+                                parameters=[
+                                    Lambda(
+                                        ["tup"],
+                                        Function(
+                                            "tupleElement",
+                                            parameters=[
+                                                Identifier("tup"),
+                                                2,  # Gets the second tuple element (tag's value)
+                                            ],
+                                        ),
+                                    ),
+                                    Function(
+                                        "arrayFilter",
+                                        parameters=[
+                                            Lambda(
+                                                ["tup"],
+                                                Function(
+                                                    "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
+                                                    parameters=[
+                                                        Function(
+                                                            "tupleElement",
+                                                            parameters=[
+                                                                Identifier("tup"),
+                                                                1,
+                                                            ],  # Returns the first tuple element (tag's key)
+                                                        ),
+                                                        AI_LABEL_TAG_PREFIX,
+                                                    ],
+                                                ),
+                                            ),
+                                            Function(
+                                                "arrayZip",
+                                                parameters=[
+                                                    Column("tags.key"),
+                                                    Column("tags.value"),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                                alias="labels",
+                            ),
+                        ],
+                    )
+                ],
+                alias=f"count_if_{i}",
+            )
+        )
 
     dataset = Dataset.IssuePlatform
 
@@ -285,82 +356,13 @@ def query_given_labels_by_feedback_count(
         query=Query(
             match=Entity(dataset.value),
             select=[
-                Function("count", [], "count"),
-                Function(
-                    "arrayJoin",
-                    parameters=[
-                        Function(
-                            "arrayMap",
-                            parameters=[
-                                Lambda(
-                                    ["tup"],
-                                    Function(
-                                        "tupleElement",
-                                        parameters=[
-                                            Identifier("tup"),
-                                            2,
-                                        ],
-                                    ),
-                                ),
-                                Function(
-                                    "arrayFilter",
-                                    parameters=[
-                                        Lambda(
-                                            ["tup"],
-                                            Function(
-                                                "and",
-                                                parameters=[
-                                                    Function(
-                                                        "startsWith",  # Checks if the tag's key starts with the correct AI label prefix
-                                                        parameters=[
-                                                            Function(
-                                                                "tupleElement",
-                                                                parameters=[
-                                                                    Identifier("tup"),
-                                                                    1,
-                                                                ],  # Returns the first tuple element (tag's key)
-                                                            ),
-                                                            AI_LABEL_TAG_PREFIX,
-                                                        ],
-                                                    ),
-                                                    Function(  # Checks that the value (label) is in the list of labels that we want
-                                                        "in",
-                                                        parameters=[
-                                                            Function(
-                                                                "tupleElement",
-                                                                parameters=[
-                                                                    Identifier("tup"),
-                                                                    2,  # Gets the value
-                                                                ],
-                                                            ),
-                                                            labels,
-                                                        ],
-                                                    ),
-                                                ],
-                                            ),
-                                        ),
-                                        Function(
-                                            "arrayZip",
-                                            parameters=[
-                                                Column("tags.key"),
-                                                Column("tags.value"),
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        )
-                    ],
-                    alias="tags_value",
-                ),
+                # Counts the number of feedbacks in each label group
+                *count_ifs,
             ],
             where=[
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("project_id"), Op.IN, project_ids),
-            ],
-            groupby=[  # XXX: Grouped by an alias defined in select, is this ok?
-                Column("tags_value"),
             ],
         ),
     )

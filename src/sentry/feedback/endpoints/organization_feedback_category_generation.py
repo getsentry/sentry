@@ -222,45 +222,50 @@ class OrganizationFeedbackCategoryGenerationEndpoint(
         )
 
         try:
-            label_groups = json.loads(make_seer_request(seer_request).decode("utf-8"))
-            # categories is dict[str, list[str]] where the key is the primary label and the value is the list of associated labels
-            label_groups = label_groups["data"]
+            # label_groups is dict[str, list[str]] where the key is the primary label and the value is the list of associated labels
+            label_groups: dict[str, list[str]] = json.loads(
+                make_seer_request(seer_request).decode("utf-8")
+            )["data"]
         except Exception:
             logger.exception("Error generating categories of user feedbacks")
             return Response({"detail": "Error generating categories"}, status=500)
 
-        # Gets all labels (primary and associated) that are in categories
-        all_labels = []
-        for key, group in label_groups.items():
-            all_labels.extend([key] + group)
+        # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
+        label_groups_list_of_lists: list[list[str]] = [
+            [key] + group for key, group in label_groups.items()
+        ]
 
         # Based on the 10 groups, we need to find the top 3-4 groups that have the most feedbacks
+        # This gives us the number of feedbacks in each label group, in order of the label groups
         feedback_counts_by_label_list = query_given_labels_by_feedback_count(
             organization_id=organization.id,
             project_ids=[project.id for project in projects],
             start=start,
             end=end,
-            labels=all_labels,
+            labels_groups=label_groups_list_of_lists,
         )["data"]
 
-        # Convert feedback_counts_by_label_list to a dict[str, int] where the key is the label and the value is the number of feedbacks
-        feedback_counts_by_label = {
-            val["tags_value"]: val["count"] for val in feedback_counts_by_label_list
-        }
+        # print("\n\n\n\\QUERY RESULTS", feedback_counts_by_label_list, "\n\n\n\n")
 
         categories = []
-        for key, group in label_groups.items():
-            primary_feedback_count = feedback_counts_by_label.get(key, 0)
-            associated_feedback_count = sum(
-                feedback_counts_by_label.get(label, 0) for label in group
-            )
+        for i, label_group in enumerate(label_groups_list_of_lists):
+            primary_label = label_group[
+                0
+            ]  # Guaranteed to be the first element due to the way we construct the list of lists
+            associated_labels = label_group[1:]
+
+            # Query gives us one row with the countIf results
+            feedback_count_in_group = feedback_counts_by_label_list[0][f"count_if_{i}"]
+
+            # Number of feedbacks in the label group - index is guaranteed to be in the same order as the list of lists
             categories.append(
                 {
-                    "primary_label": key,
-                    "associated_labels": group,
-                    "feedback_count": primary_feedback_count + associated_feedback_count,
+                    "primary_label": primary_label,
+                    "associated_labels": associated_labels,
+                    "feedback_count": feedback_count_in_group,
                 }
             )
+
         categories.sort(key=lambda x: x["feedback_count"], reverse=True)
         categories = categories[:4]  # Get at most 4 categories
 
