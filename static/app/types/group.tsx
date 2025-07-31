@@ -212,6 +212,12 @@ export enum IssueTitle {
   // Metric Issues
   METRIC_ISSUE = 'Issue Detected by Metric Monitor',
 
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'Crons Monitor Failure',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'Uptime Domain Monitor Failure',
+
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
 
@@ -245,6 +251,9 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 
   metric_issue: IssueTitle.METRIC_ISSUE,
+
+  monitor_check_in_failure: IssueTitle.MONITOR_CHECK_IN_FAILURE,
+  uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
