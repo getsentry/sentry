@@ -75,12 +75,12 @@ import {
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
-  embedded: boolean;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
   canDeferRenderElements?: boolean;
+  embedded?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
   onExpand?: (logItemId: string) => void;

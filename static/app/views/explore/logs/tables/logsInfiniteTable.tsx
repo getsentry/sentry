@@ -243,7 +243,7 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        <LogTableBody showHeader={embedded} ref={tableBodyRef}>
+        <LogTableBody showHeader={!embedded} ref={tableBodyRef}>
           {paddingTop > 0 && (
             <TableRow>
               {fields.map(field => (
