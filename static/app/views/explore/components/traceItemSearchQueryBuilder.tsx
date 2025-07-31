@@ -19,6 +19,7 @@ type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -67,6 +68,7 @@ export function useSearchQueryBuilderProps({
   projects,
   supportedAggregates = [],
   replaceRawSearchKeys,
+  matchKeySuggestions,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -102,6 +104,7 @@ export function useSearchQueryBuilderProps({
     showUnsubmittedIndicator: true,
     portalTarget,
     replaceRawSearchKeys,
+    matchKeySuggestions,
     filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
   };
 }
