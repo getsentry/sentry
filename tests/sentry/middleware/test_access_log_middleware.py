@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
 from sentry.api.permissions import SentryIsAuthenticated
@@ -89,6 +90,11 @@ class MyOrganizationEndpoint(OrganizationEndpoint):
         return Response({"ok": True})
 
 
+class MyGroupEndpoint(GroupEndpoint):
+    def get(self, request, group, key):
+        return Response({"ok": True})
+
+
 class MyControlOrganizationEndpoint(ControlSiloOrganizationEndpoint):
     def get(self, request, organization_context, organization):
         return Response({"ok": True})
@@ -116,6 +122,11 @@ urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/members/$",
         MyControlOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-members",
+    ),
+    re_path(
+        r"^(?P<issue_id>[^/]+)/tags/(?P<key>[^/]+)/values/$",
+        MyGroupEndpoint.as_view(),
+        name="sentry-api-0-group-tag-key-values",
     ),
     # Need to retain RPC endpoint for cross-silo calls
     re_path(
@@ -261,6 +272,9 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
 
+        # This fails because dummy-endpoint doesn't populate the organization_id
+        assert tested_log.organization_id == str(self.organization.id)
+
     def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
         # meaning if a request is rejected between those then it will not have `auth`
@@ -270,6 +284,34 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         assert resp.status_code == 302
         records = [record for record in self._caplog.records if record.levelno == logging.ERROR]
         assert not records  # no errors should occur
+
+
+@all_silo_test
+class TestOrganizationIdPresentForGroupEndpoint(LogCaptureAPITestCase):
+    endpoint = "sentry-api-0-group-tag-key-values"
+
+    def test_access_log_success(self) -> None:
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        # self.login_as(user=self.create_user())
+
+        # response = self.get_success_response(
+        self.get_success_response(
+            self.group.id,
+            "tag_key",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        # print(response.data)
+        self.assert_access_log_recorded()
+        tested_log = self.get_tested_log(args=[self.group.id, "tag_key"])
+        # print(tested_log)
+        assert tested_log.token_type == "api_token"
+        assert tested_log.token_last_characters == token.token_last_characters
+
+        # however this succeeds because GroupEndpoint does populate the organization_id
+        assert tested_log.organization_id == str(self.organization.id)
 
 
 @all_silo_test

@@ -102,6 +102,15 @@ def _create_api_access_log(
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
+        """
+        # Organization can be set on request._request.organization by endpoint base classes
+        org = getattr(request, "organization", None) or getattr(getattr(request, "_request", None), "organization", None)
+        org_id = getattr(org, "id", None)
+
+        # If no organization found via request context, try to get it from the authenticated token
+        if org_id is None and request_auth and hasattr(request_auth, "organization_id"):
+            org_id = getattr(request_auth, "organization_id", None)
+        """
         org_id = getattr(getattr(request, "organization", None), "id", None)
         auth_id = getattr(request_auth, "id", None)
         status_code = getattr(response, "status_code", 500)
