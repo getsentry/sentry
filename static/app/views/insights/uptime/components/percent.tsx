@@ -39,11 +39,6 @@ export function UptimePercent({summary, note, size}: UptimePercentProps) {
         <span>{t('Up Checks')}</span>
         <span>{formatAbbreviatedNumber(successChecks)}</span>
         <span>
-          <CheckIndicator status={CheckStatus.FAILURE} width={8} />
-        </span>
-        <span>{t('Failed Checks')}</span>
-        <span>{formatAbbreviatedNumber(summary.failedChecks)}</span>
-        <span>
           <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} width={8} />
         </span>
         <span>{t('Down Checks')}</span>
