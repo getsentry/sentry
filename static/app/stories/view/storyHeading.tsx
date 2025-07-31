@@ -1,7 +1,5 @@
-import type {ComponentProps} from 'react';
-import {Fragment} from 'react';
-import {flushSync} from 'react-dom';
-import {createRoot} from 'react-dom/client';
+import type {ComponentProps, ReactElement, ReactNode} from 'react';
+import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -15,7 +13,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const {story} = useStory();
   const storyTitle = (story.exports.frontmatter as any)?.title;
-  const text = stringifyChildren(props.children);
+  const text = stringifyReactNode(props.children);
   const id = props.id ?? slugify(text);
   const {onClick} = useCopyToClipboard({
     text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
@@ -72,11 +70,23 @@ const StyledLinkButton = styled(LinkButton)`
   }
 `;
 
-function stringifyChildren(children: React.ReactNode) {
-  const container = document.createElement('div');
-  const root = createRoot(container);
-  flushSync(() => {
-    root.render(<Fragment>{children}</Fragment>);
-  });
-  return container.textContent ?? '';
+function stringifyReactNode(child?: ReactNode): string {
+  switch (true) {
+    case !child:
+      return '';
+    case typeof child === 'string':
+      return child;
+    case typeof child === 'number':
+      return child.toString();
+    case Array.isArray(child):
+      return child.map(c => stringifyReactNode(c)).join('');
+    case hasChildren(child):
+      return stringifyReactNode(child.props.children);
+    default:
+      return '';
+  }
+}
+
+function hasChildren(node: ReactNode): node is ReactElement<{children: ReactNode}> {
+  return isValidElement<{children?: ReactNode}>(node) && !!node.props.children;
 }
