@@ -234,6 +234,9 @@
       "@sentry/cli",
       "core-js",
       "esbuild"
+    ],
+    "ignoredBuiltDependencies": [
+      "unrs-resolver"
     ]
   },
   "optionalDependencies": {
