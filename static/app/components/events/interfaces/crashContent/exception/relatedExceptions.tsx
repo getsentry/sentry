@@ -62,7 +62,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
         // Schedule the scroll event for next render because it may not be visible until expanded
         setTimeout(() => {
           const linkedElement = document.getElementById(`exception-${exceptionId}`);
-          linkedElement?.scrollIntoView?.({behavior: 'smooth'});
+          linkedElement?.scrollIntoView?.({behavior: 'smooth', block: 'center'});
         }, 0);
       }}
     >

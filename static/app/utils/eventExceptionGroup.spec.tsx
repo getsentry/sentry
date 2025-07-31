@@ -1,4 +1,4 @@
-import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryChainedException';
 import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 
 import {EntryType} from 'sentry/types/event';
