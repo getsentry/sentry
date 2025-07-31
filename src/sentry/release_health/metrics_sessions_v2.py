@@ -73,6 +73,7 @@ class SessionStatus(Enum):
     CRASHED = "crashed"
     ERRORED = "errored"
     HEALTHY = "healthy"
+    UNHANDLED = "unhandled"
 
 
 ALL_STATUSES = frozenset(iter(SessionStatus))
