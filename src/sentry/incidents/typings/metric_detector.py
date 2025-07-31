@@ -20,6 +20,7 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
     from sentry.incidents.grouptype import MetricIssueEvidenceData
+    from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
 CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
     Condition.GREATER_OR_EQUAL: AlertRuleThresholdType.ABOVE,
@@ -29,7 +30,9 @@ CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
 }
 
 
-def fetch_threshold_type(condition: dict[str, Any]) -> AlertRuleThresholdType:
+def fetch_threshold_type(
+    condition: dict[str, Any],
+) -> AlertRuleThresholdType | AnomalyDetectionThresholdType:
     condition_type = condition["type"]
     if condition_type == Condition.ANOMALY_DETECTION:
         return condition["comparison"]["threshold_type"]
@@ -72,7 +75,7 @@ def fetch_sensitivity(condition: dict[str, Any]) -> str | None:
 class AlertContext:
     name: str
     action_identifier_id: int
-    threshold_type: AlertRuleThresholdType | None
+    threshold_type: AlertRuleThresholdType | None | AnomalyDetectionThresholdType
     detection_type: AlertRuleDetectionType
     comparison_delta: int | None
     sensitivity: str | None

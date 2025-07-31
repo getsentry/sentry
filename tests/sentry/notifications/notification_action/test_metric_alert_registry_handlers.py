@@ -232,10 +232,10 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         alert_context: AlertContext,
         name: str,
         action_identifier_id: int,
-        threshold_type: AlertRuleThresholdType | None = None,
+        threshold_type: AlertRuleThresholdType | AnomalyDetectionThresholdType | None = None,
         detection_type: AlertRuleDetectionType | None = None,
         comparison_delta: int | None = None,
-        sensitivity: AlertRuleSensitivity | None = None,
+        sensitivity: AlertRuleSensitivity | AnomalyDetectionSensitivity | None = None,
         resolve_threshold: float | None = None,
         alert_threshold: float | None = None,
     ):
