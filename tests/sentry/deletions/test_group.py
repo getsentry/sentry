@@ -41,16 +41,14 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data=group1_data | {"tags": {"foo": "bar"}}, project_id=self.project.id
         )
         self.event_id = self.event.event_id
-        self.event_node_id = Event.generate_node_id(self.project.id, self.event_id)
+        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
         group = self.event.group
-        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id)
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2.event_id)
+        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id).event_id
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
 
         # Group 2 event
         self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
         self.keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
-
-        assert nodestore.backend.get_multi([self.event_node_id, self.node_id2, self.keep_node_id])
 
         UserReport.objects.create(
             group_id=group.id, project_id=self.event.project_id, name="With group id"
@@ -72,7 +70,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
     def test_simple(self) -> None:
         ErrorEventsDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         group = self.event.group
-        assert nodestore.backend.get(self.event_node_id)
+        assert nodestore.backend.get(self.node_id)
         assert nodestore.backend.get(self.node_id2)
         assert nodestore.backend.get(self.keep_node_id)
 
@@ -88,27 +86,51 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.backend.get(self.event_node_id)
+        assert not nodestore.backend.get(self.node_id)
         assert not nodestore.backend.get(self.node_id2)
         assert nodestore.backend.get(self.keep_node_id), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
 
     def test_simple_multiple_groups(self) -> None:
-        group_ids = [self.event.group.id, self.event_id2.group.id]
+        other_event = self.store_event(
+            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
+            project_id=self.project.id,
+        )
+        other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
+
+        group = self.event.group
         with self.tasks():
-            delete_groups_for_project.apply_async(
-                kwargs={
-                    "object_ids": group_ids,
-                    "transaction_id": uuid4().hex,
-                    "project_id": self.project.id,
-                },
+            delete_groups_for_project(
+                object_ids=[group.id, other_event.group_id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
             )
 
-        assert not Group.objects.filter(id__in=group_ids).exists()
-        assert not nodestore.backend.get_multi([self.event_node_id, self.node_id2])
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert not nodestore.backend.get(self.node_id)
+        assert not nodestore.backend.get(other_node_id)
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
         assert nodestore.backend.get(self.keep_node_id)
+
+    def test_simple_multiple_groups_parallel(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            group_ids = [self.event.group.id, self.event_id2.group.id]
+            with self.tasks():
+                delete_groups_for_project.apply_async(
+                    kwargs={
+                        "object_ids": group_ids,
+                        "transaction_id": uuid4().hex,
+                        "project_id": self.project.id,
+                    },
+                )
+
+            assert not Group.objects.filter(id__in=group_ids).exists()
+            assert not nodestore.backend.get_multi([self.event_node_id, self.node_id2])
+
+            assert Group.objects.filter(id=self.keep_event.group_id).exists()
+            assert nodestore.backend.get(self.keep_node_id)
 
     def test_grouphistory_relation(self) -> None:
         other_event = self.store_event(
@@ -192,7 +214,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=group.id).exists()
         assert not Group.objects.filter(id=other_event.group_id).exists()
-        assert not nodestore.backend.get(self.event_node_id)
+        assert not nodestore.backend.get(self.node_id)
         assert not nodestore.backend.get(other_node_id)
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
@@ -254,11 +276,13 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
 
-    def create_occurrence(self, type_id: int) -> tuple[IssueOccurrence, Group]:
+    def create_occurrence(self, event: Event, type_id: int) -> tuple[IssueOccurrence, Group]:
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,
+            event_id=event.event_id,
             type=type_id,
-            event_data={"level": "info"},
+            # XXX: Is event.data correct?
+            event_data=dict(event.data),
         )
         assert group_info is not None
         return occurrence, group_info.group
@@ -308,7 +332,9 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # Create initial error event and occurrence related to it; two different groups will exist
         event = self.store_event(data={}, project_id=self.project.id)
         # XXX: We need a different way of creating occurrences which will insert into the nodestore
-        occurrence_event, issue_platform_group = self.create_occurrence(FeedbackGroup.type_id)
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            event, type_id=FeedbackGroup.type_id
+        )
 
         # Assertions after creation
         assert occurrence_event.id != event.event_id
