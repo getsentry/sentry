@@ -544,18 +544,17 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(cls, slack_request: SlackActionRequest) -> list[BlockKitMessageAction]:
         action_data = slack_request.data.get("actions")
-        if (
-            not action_data
-            or not isinstance(action_data, list)
-            or not action_data[0].get("action_id")
-        ):
+        if not action_data or not isinstance(action_data, list):
             return []
 
         action_list = []
         for action_data in action_data:
-
-            routing_data = decode_action_id(action_data["action_id"])
+            routing_data = decode_action_id(action_data.get("action_id", ""))
             action_name = routing_data.action
+
+            if not action_name:
+                continue
+
             if action_data.get("type") in ("static_select", "external_select"):
                 action = BlockKitMessageAction(
                     name=action_name,

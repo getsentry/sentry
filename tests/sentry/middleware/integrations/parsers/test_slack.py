@@ -296,8 +296,8 @@ class SlackRequestParserTest(TestCase):
         project = self.create_project(organization=other_organization)
         encoded_action = encode_action_id(
             action=SlackAction.RESOLVE_DIALOG,
-            organization_slug=other_organization.slug,
-            project_slug=project.slug,
+            organization_id=other_organization.id,
+            project_id=project.id,
         )
         data = urlencode(
             {
@@ -325,8 +325,8 @@ class SlackRequestParserTest(TestCase):
         project = self.create_project(organization=irrelevant_organization)
         encoded_action = encode_action_id(
             action=SlackAction.RESOLVE_DIALOG,
-            organization_slug=irrelevant_organization.slug,
-            project_slug=project.slug,
+            organization_id=irrelevant_organization.id,
+            project_id=project.id,
         )
         data = urlencode(
             {

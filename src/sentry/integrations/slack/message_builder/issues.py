@@ -383,8 +383,8 @@ def build_actions(
                 value="unresolved:ongoing",
                 action_id=encode_action_id(
                     action=SlackAction.UNRESOLVED_ONGOING,
-                    organization_slug=group.organization.slug,
-                    project_slug=group.project.slug,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
                 ),
             )
 
@@ -394,8 +394,8 @@ def build_actions(
             value="archive_dialog",
             action_id=encode_action_id(
                 action=SlackAction.ARCHIVE_DIALOG,
-                organization_slug=group.organization.slug,
-                project_slug=group.project.slug,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
             ),
         )
 
@@ -407,8 +407,8 @@ def build_actions(
                 value="unresolved:ongoing",
                 action_id=encode_action_id(
                     action=SlackAction.UNRESOLVED_ONGOING,
-                    organization_slug=group.organization.slug,
-                    project_slug=group.project.slug,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
                 ),
             )
         if not project.flags.has_releases:
@@ -418,8 +418,8 @@ def build_actions(
                 value="resolved",
                 action_id=encode_action_id(
                     action=SlackAction.STATUS,
-                    organization_slug=group.organization.slug,
-                    project_slug=group.project.slug,
+                    organization_id=group.organization.id,
+                    project_id=group.project.id,
                 ),
             )
 
@@ -429,8 +429,8 @@ def build_actions(
             value="resolve_dialog",
             action_id=encode_action_id(
                 action=SlackAction.RESOLVE_DIALOG,
-                organization_slug=group.organization.slug,
-                project_slug=group.project.slug,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
             ),
         )
 
@@ -443,8 +443,8 @@ def build_actions(
             selected_options=format_actor_options_slack([assignee]) if assignee else [],
             action_id=encode_action_id(
                 action=SlackAction.ASSIGN,
-                organization_slug=group.organization.slug,
-                project_slug=group.project.slug,
+                organization_id=group.organization.id,
+                project_id=group.project.id,
             ),
         )
         return assign_button

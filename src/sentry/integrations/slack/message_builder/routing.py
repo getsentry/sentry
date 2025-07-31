@@ -11,28 +11,31 @@ class SlackRoutingData:
     """
 
     action: str  # Should be a member of SlackAction, but we don't care about the value for routing
-    organization_slug: str | None = None
-    project_slug: str | None = None
+    organization_id: int | None = None
+    project_id: int | None = None
 
 
-def encode_action_id(*, action: str, organization_slug: str, project_slug: str) -> str:
+def encode_action_id(*, action: str, organization_id: int, project_id: int) -> str:
     """Used to encode routing data into the outbound action_id for a Slack block."""
-    return f"{action}::{organization_slug}::{project_slug}"
+    return f"{action}::{organization_id}::{project_id}"
 
 
 def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
     """Used to decode the routing data from the inbound action_id on a Slack block."""
     action_target_values = encoded_action_id.split("::")
-
-    if len(action_target_values) == 3:
-        return SlackRoutingData(
-            action=action_target_values[0],
-            organization_slug=action_target_values[1],
-            project_slug=action_target_values[2],
-        )
-    elif len(action_target_values) == 2:
-        return SlackRoutingData(
-            action=action_target_values[0],
-            organization_slug=action_target_values[1],
-        )
+    try:
+        if len(action_target_values) == 3:
+            return SlackRoutingData(
+                action=action_target_values[0],
+                organization_id=int(action_target_values[1]),
+                project_id=int(action_target_values[2]),
+            )
+        elif len(action_target_values) == 2:
+            return SlackRoutingData(
+                action=action_target_values[0],
+                organization_id=int(action_target_values[1]),
+            )
+    except ValueError:
+        # If we can't parse the IDs as integers, fail silently since this is just routing
+        pass
     return SlackRoutingData(action=action_target_values[0])

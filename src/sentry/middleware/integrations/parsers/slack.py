@@ -255,17 +255,28 @@ class SlackRequestParser(BaseRequestParser):
             slack_request = self.view_class.slack_request_class(drf_request)
             actions = slack_request.data.get("actions", [])
             action_ids: list[str] = [
-                action["action_id"] for action in actions if action["action_id"]
+                action["action_id"] for action in actions if action.get("action_id")
             ]
             decoded_actions: list[SlackRoutingData] = [
                 decode_action_id(action_id) for action_id in action_ids
             ]
-            decoded_organization_slugs = [
-                action.organization_slug for action in decoded_actions if action.organization_slug
-            ]
+            decoded_organization_ids = {
+                action.organization_id for action in decoded_actions if action.organization_id
+            }
+            if len(decoded_organization_ids) > 1:
+                # We shouldn't be encoding multiple organizations into the actions within a single
+                # message, but if we do -- log it so we can look into it.
+                logger.info(
+                    "slack.control.multiple_organizations",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "organization_ids": list(decoded_organization_ids),
+                        "action_ids": action_ids,
+                    },
+                )
 
             action_organization = next(
-                (org for org in organizations if org.slug in decoded_organization_slugs), None
+                (org for org in organizations if org.id in decoded_organization_ids), None
             )
             if action_organization:
                 return [action_organization]

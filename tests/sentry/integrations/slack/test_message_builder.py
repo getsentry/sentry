@@ -190,8 +190,8 @@ def build_test_message_blocks(
                 "type": "button",
                 "action_id": encode_action_id(
                     action=SlackAction.RESOLVE_DIALOG,
-                    organization_slug=project.organization.slug,
-                    project_slug=project.slug,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
                 ),
                 "text": {"type": "plain_text", "text": "Resolve"},
                 "value": "resolve_dialog",
@@ -200,8 +200,8 @@ def build_test_message_blocks(
                 "type": "button",
                 "action_id": encode_action_id(
                     action=SlackAction.ARCHIVE_DIALOG,
-                    organization_slug=project.organization.slug,
-                    project_slug=project.slug,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
                 ),
                 "text": {"type": "plain_text", "text": "Archive"},
                 "value": "archive_dialog",
@@ -215,8 +215,8 @@ def build_test_message_blocks(
                 },
                 "action_id": encode_action_id(
                     action=SlackAction.ASSIGN,
-                    organization_slug=project.organization.slug,
-                    project_slug=project.slug,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
                 ),
             },
         ],
