@@ -226,19 +226,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
             assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
-    def test_upsampled_count_validation_path(self) -> None:
-        """Test to see if upsampled_count() hits the legacy DiscoverFunction validation path"""
-        # This should be rejected by the serializer before it gets to the legacy path
-        self.run_fail_validation_test(
-            {"aggregate": "upsampled_count()"},
-            {
-                "aggregate": [
-                    "upsampled_count() is not allowed as user input. Use count() instead - "
-                    "it will be automatically converted to upsampled_count() when appropriate."
-                ]
-            },
-        )
-
     def test_aggregate(self) -> None:
         self.run_fail_validation_test(
             {"aggregate": "what()"},

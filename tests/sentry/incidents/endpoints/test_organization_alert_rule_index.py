@@ -228,6 +228,35 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_list_shows_count_when_stored_as_upsampled_count(
+        self, mock_are_any_projects_error_upsampled
+    ) -> None:
+        """Test LIST returns count() to user even when stored as upsampled_count() internally
+
+        This test should FAIL because LIST doesn't convert upsampled_count() back to count() for the user.
+        """
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create rule and manually set it to upsampled_count() (simulating what happens after conversion)
+        alert_rule = self.create_alert_rule()
+        alert_rule.snuba_query.aggregate = "upsampled_count()"
+        alert_rule.snuba_query.save()
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        # Find our rule in the response (should be the second one, first is self.alert_rule)
+        rule = next(rule for rule in resp.data if rule["id"] == str(alert_rule.id))
+
+        assert (
+            rule["aggregate"] == "count()"
+        ), "LIST should return count() to user, hiding internal upsampled_count() storage"
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
