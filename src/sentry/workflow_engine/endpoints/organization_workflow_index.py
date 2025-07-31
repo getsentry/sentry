@@ -239,7 +239,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        operation_id="Bulk Delete an Organization's Workflows",
+        operation_id="Delete an Organization's Workflows",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
