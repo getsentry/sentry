@@ -80,8 +80,6 @@ class AppleCrashReport:
             # `_get_slide_value`.
             if image_vmaddr is not None:
                 self.image_addrs_to_vmaddrs[image_addr] = image_vmaddr
-        if not self.debug_images:
-            self.debug_images = None
 
     @sentry_sdk.trace
     def __str__(self):
@@ -309,7 +307,7 @@ class AppleCrashReport:
     @sentry_sdk.trace
     def get_binary_images_apple_string(self):
         # We don't need binary images on symbolicated crashreport
-        if self.symbolicated or self.debug_images is None:
+        if self.symbolicated or not self.debug_images:
             return ""
         binary_images = map(
             lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
