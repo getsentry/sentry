@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -319,8 +320,18 @@ function getPageParam(
       return pageParam;
     }
 
-    const firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-    const lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    let firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    let lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+
+    if (!firstTimestamp || !lastTimestamp) {
+      logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+        logId: firstRow[OurLogKnownFieldKey.ID],
+        timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
+        timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+      });
+      firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP]) * 1_000_000n;
+      lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP]) * 1_000_000n;
+    }
 
     const logId = isGetPreviousPage
       ? firstRow[OurLogKnownFieldKey.ID]
