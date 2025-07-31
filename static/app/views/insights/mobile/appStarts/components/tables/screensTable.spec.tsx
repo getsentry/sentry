@@ -76,8 +76,8 @@ describe('AppStartScreens', () => {
             {
               id: '1',
               transaction: 'Screen 1',
-              'avg_if(measurements.app_start_cold,release,com.example.vu.android@2.10.5)': 100,
-              'avg_if(measurements.app_start_cold,release,com.example.vu.android@2.10.3+42)': 200,
+              'avg_if(measurements.app_start_cold,release,equals,com.example.vu.android@2.10.5)': 100,
+              'avg_if(measurements.app_start_cold,release,equals,com.example.vu.android@2.10.3+42)': 200,
               'avg_compare(measurements.app_start_cold,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)': 50,
               app_start_breakdown: 'breakdown',
               'count_starts(measurements.app_start_cold)': 10,

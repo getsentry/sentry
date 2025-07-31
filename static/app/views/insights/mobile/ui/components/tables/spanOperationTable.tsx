@@ -75,12 +75,12 @@ export function SpanOperationTable({
       SPAN_OP,
       SPAN_GROUP,
       SPAN_DESCRIPTION,
-      `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
-      `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
-      `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
-      `avg_if(mobile.frames_delay,release,${primaryRelease})`,
-      `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,equals,release,${primaryRelease})`,
+      `division_if(mobile.slow_frames,mobile.total_frames,equals,release,${secondaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,equals,release,${primaryRelease})`,
+      `division_if(mobile.frozen_frames,mobile.total_frames,equals,release,${secondaryRelease})`,
+      `avg_if(mobile.frames_delay,release,equals,${primaryRelease})`,
+      `avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`,
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
     ],
     query: queryStringPrimary,
@@ -103,12 +103,12 @@ export function SpanOperationTable({
         SPAN_OP,
         SPAN_GROUP,
         SPAN_DESCRIPTION,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${primaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,equals,release,${primaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,equals,release,${secondaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,equals,release,${primaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,equals,release,${secondaryRelease})`,
+        `avg_if(mobile.frames_delay,release,equals,${primaryRelease})`,
+        `avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`,
         `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
       ],
     },
@@ -118,21 +118,19 @@ export function SpanOperationTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
-      'Slow (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
+    [`division_if(mobile.slow_frames,mobile.total_frames,equals,release,${primaryRelease})`]:
+      t('Slow (%s)', PRIMARY_RELEASE_ALIAS),
+    [`division_if(mobile.slow_frames,mobile.total_frames,equals,release,${secondaryRelease})`]:
       t('Slow (%s)', SECONDARY_RELEASE_ALIAS),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
+    [`division_if(mobile.frozen_frames,mobile.total_frames,equals,release,${primaryRelease})`]:
       t('Frozen (%s)', PRIMARY_RELEASE_ALIAS),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
+    [`division_if(mobile.frozen_frames,mobile.total_frames,equals,release,${secondaryRelease})`]:
       t('Frozen (%s)', SECONDARY_RELEASE_ALIAS),
-    [`avg_if(mobile.frames_delay,release,${primaryRelease})`]: t(
+    [`avg_if(mobile.frames_delay,release,equals,${primaryRelease})`]: t(
       'Delay (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(mobile.frames_delay,release,${secondaryRelease})`]: t(
+    [`avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`]: t(
       'Delay (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
@@ -141,21 +139,19 @@ export function SpanOperationTable({
   };
 
   const columnTooltipMap = {
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
-      'The number of slow frames divided by total frames (%s)',
-      PRIMARY_RELEASE_ALIAS
-    ),
-    [`division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`]:
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`]:
+      t('The number of slow frames divided by total frames (%s)', PRIMARY_RELEASE_ALIAS),
+    [`division_if(mobile.slow_frames,mobile.total_frames,release,equals,${secondaryRelease})`]:
       t(
         'The number of slow frames divided by total frames (%s)',
         SECONDARY_RELEASE_ALIAS
       ),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`]:
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${primaryRelease})`]:
       t(
         'The number of frozen frames divided by total frames (%s)',
         PRIMARY_RELEASE_ALIAS
       ),
-    [`division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`]:
+    [`division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${secondaryRelease})`]:
       t(
         'The number of frozen frames divided by total frames (%s)',
         SECONDARY_RELEASE_ALIAS
@@ -211,12 +207,12 @@ export function SpanOperationTable({
       columnOrder={[
         String(SPAN_OP),
         String(SPAN_DESCRIPTION),
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
-        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${primaryRelease})`,
-        `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${primaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,equals,${secondaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${primaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,equals,${secondaryRelease})`,
+        `avg_if(mobile.frames_delay,release,equals,${primaryRelease})`,
+        `avg_if(mobile.frames_delay,release,equals,${secondaryRelease})`,
         `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
       ]}
       defaultSort={[
