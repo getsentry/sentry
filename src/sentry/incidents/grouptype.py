@@ -170,11 +170,10 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
-        evidence_data: dict[str, Any] = {}
 
         try:
             alert_rule_detector = AlertRuleDetector.objects.get(detector=self.detector)
-            evidence_data["alert_id"] = alert_rule_detector.alert_rule_id
+            return {"alert_id": alert_rule_detector.alert_rule_id}
         except AlertRuleDetector.DoesNotExist:
             logger.warning(
                 "No alert rule detector found for detector id %s",
@@ -183,9 +182,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                     "detector_id": self.detector.id,
                 },
             )
-            evidence_data["alert_id"] = None
-
-        return evidence_data
+            return {"alert_id": None}
 
     def create_occurrence(
         self,
