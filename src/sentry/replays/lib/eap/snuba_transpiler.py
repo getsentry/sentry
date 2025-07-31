@@ -16,10 +16,11 @@ This module does not consider aliasing. If you have a query which contains alias
 normalize it first.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 from typing import Literal as TLiteral
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -41,10 +42,11 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    DoubleArray,
     ExtrapolationMode,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import IntArray, StrArray, VirtualColumnContext
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -54,6 +56,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 from snuba_sdk import (
+    AliasedExpression,
     BooleanCondition,
     BooleanOp,
     Column,
@@ -190,7 +193,7 @@ class RequestMeta(TypedDict):
     ]
 
 
-class Settings(TypedDict, totals=False):
+class Settings(TypedDict, total=False):
     """Query settings which are not representable in Snuba SDK."""
 
     attribute_types: dict[str, type[bool | float | int | str]]
@@ -223,7 +226,7 @@ def query(
         columns=select(query.select, settings),
         filter=where(query.where, settings),
         aggregation_filter=having(query.having, settings),
-        group_by=groupby(query.groupby),
+        group_by=groupby(query.groupby, settings),
         order_by=orderby(query.orderby, settings),
         limit=query.limit.limit if query.limit else settings.get("default_limit", 25),
         page_token=PageToken(
@@ -252,36 +255,67 @@ def query(
     )
 
 
-def select(exprs: list[Column | Function], settings: Settings) -> list[EAPColumn]:
+def select(
+    exprs: list[AliasedExpression | Column | CurriedFunction | Function] | None,
+    settings: Settings,
+) -> list[EAPColumn] | None:
+    if exprs is None:
+        return None
+
     return [expression(expr, settings) for expr in exprs]
 
 
-def where(conditions: list[BooleanCondition | Condition], settings: Settings) -> TraceItemFilter:
+def where(
+    conditions: list[BooleanCondition | Condition] | None,
+    settings: Settings,
+) -> TraceItemFilter | None:
+    if not conditions:
+        return None
+
     return TraceItemFilter(
         and_filter=AndFilter(filters=[condition(c, settings) for c in conditions])
     )
 
 
-def having(conditions: list[BooleanCondition | Condition], settings: Settings) -> AggregationFilter:
+def having(
+    conditions: list[BooleanCondition | Condition] | None,
+    settings: Settings,
+) -> AggregationFilter | None:
+    if not conditions:
+        return None
+
     return AggregationFilter(
         and_filter=AggregationAndFilter(filters=[agg_condition(c, settings) for c in conditions])
     )
 
 
-def orderby(orderby: OrderBy, settings: Settings) -> TraceItemTableRequest.OrderBy:
-    return TraceItemTableRequest.OrderBy(
-        column=expression(orderby.exp, settings),
-        descending=orderby.direction == Direction.DESC,
-    )
+def orderby(
+    orderby: Sequence[OrderBy] | None,
+    settings: Settings,
+) -> list[TraceItemTableRequest.OrderBy] | None:
+    if not orderby:
+        return None
+
+    return [
+        TraceItemTableRequest.OrderBy(
+            column=expression(o.exp, settings), descending=o.direction == Direction.DESC
+        )
+        for o in orderby
+    ]
 
 
-def groupby(columns: list[Column], settings: Settings) -> list[AttributeKey]:
+def groupby(
+    columns: list[AliasedExpression | Column | CurriedFunction | Function], settings: Settings
+) -> list[AttributeKey]:
+    if not all(isinstance(c, Column) for c in columns):
+        raise TypeError("Only column types are permitted in the group by clause")
+
     return [key(column, settings) for column in columns]
 
 
 def condition(expr: BooleanCondition | Condition, settings: Settings) -> TraceItemFilter:
     if isinstance(expr, BooleanCondition):
-        filters = [condition(c) for c in expr.conditions]
+        filters = [condition(c, settings) for c in expr.conditions]
         if expr.op == BooleanOp.AND:
             return TraceItemFilter(and_filter=AndFilter(filters=filters))
         else:
@@ -290,13 +324,13 @@ def condition(expr: BooleanCondition | Condition, settings: Settings) -> TraceIt
     if isinstance(expr.lhs, (CurriedFunction, Function)):
         assert expr.op == Op.EQ, "Dropped operator must be equals"
         assert expr.rhs == 1, "Dropped right hand expression must be one"
-        return function_to_filter(expr.lhs)
+        return function_to_filter(expr.lhs, settings)
     else:
         return TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=key(expr.lhs, settings).key,
+                key=key(expr.lhs, settings),
                 op=operator(expr.op),
-                value=literal(expr.rhs, settings),
+                value=literal(expr.rhs),
             )
         )
 
@@ -313,7 +347,7 @@ def function_to_filter(expr: Any, settings: Settings) -> TraceItemFilter:
         return TraceItemFilter(or_filter=OrFilter(filters=filters))
     elif expr.function == "exists":
         assert len(expr.parameters) == 1, "Expected single parameter to exists function"
-        return TraceItemFilter(exists_filter=ExistsFilter(key=key(expr.parameters[0])))
+        return TraceItemFilter(exists_filter=ExistsFilter(key=key(expr.parameters[0], settings)))
     elif expr.function == "not":
         filters = [function_to_filter(p, settings) for p in expr.parameters]
         return TraceItemFilter(
@@ -323,9 +357,9 @@ def function_to_filter(expr: Any, settings: Settings) -> TraceItemFilter:
         assert len(expr.parameters) == 2, "Invalid number of parameters for binary expression"
         return TraceItemFilter(
             comparison_filter=ComparisonFilter(
-                key=key(expr.parameters[0], settings).key,
+                key=key(expr.parameters[0], settings),
                 op=FUNCTION_OPERATOR_MAP[expr.function],
-                value=literal(expr.parameters[1], settings),
+                value=literal(expr.parameters[1]),
             )
         )
     else:
@@ -334,7 +368,7 @@ def function_to_filter(expr: Any, settings: Settings) -> TraceItemFilter:
 
 def agg_condition(expr: BooleanCondition | Condition, settings: Settings) -> AggregationFilter:
     if isinstance(expr, BooleanCondition):
-        filters = [agg_condition(c) for c in expr.conditions]
+        filters = [agg_condition(c, settings) for c in expr.conditions]
         if expr.op == BooleanOp.AND:
             return AggregationFilter(and_filter=AggregationAndFilter(filters=filters))
         else:
@@ -412,7 +446,7 @@ def agg_function_to_filter(expr: Any, settings: Settings) -> AggregationFilter:
 
 def expression(expr: Column | CurriedFunction | Function, settings: Settings) -> EAPColumn:
     if isinstance(expr, Column):
-        return EAPColumn(key=key(expr), label=expr.name)
+        return EAPColumn(key=key(expr, settings), label=expr.name)
     elif isinstance(expr, Function):
         if expr.function in ARITHMETIC_FUNCTION_MAP:
             return EAPColumn(
@@ -426,7 +460,7 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
             return EAPColumn(
                 aggregation=AttributeAggregation(
                     aggregate=FUNCTION_MAP[expr.function],
-                    key=expression(expr.parameters[0], settings),
+                    key=key(expr.parameters[0], settings),
                     extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
                 )
             )
@@ -434,7 +468,7 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
             return EAPColumn(
                 conditional_aggregation=AttributeConditionalAggregation(
                     aggregate=CONDITIONAL_FUNCTION_MAP[expr.function],
-                    key=expression(expr.parameters[0], settings),
+                    key=key(expr.parameters[0], settings),
                     extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
                     filter=condition(expr.parameters[1], settings),
                 )
@@ -473,12 +507,12 @@ def literal(value: Any) -> AttributeValue:
             if not all(isinstance(item, typ_) for item in value):
                 raise ValueError("Heterogenous list specified", value)
 
-            if isinstance(value, float):
-                return AttributeValue(val_double_array=value)
-            elif isinstance(value, int):
-                return AttributeValue(val_int_array=value)
+            if isinstance(value[0], float):
+                return AttributeValue(val_double_array=DoubleArray(values=cast(list[float], value)))
+            elif isinstance(value[0], int):
+                return AttributeValue(val_int_array=IntArray(values=cast(list[int], value)))
             else:
-                return AttributeValue(val_str_array=value)
+                return AttributeValue(val_str_array=StrArray(values=cast(list[str], value)))
         case _:
             raise TypeError("Invalid literal specified", value)
 
@@ -499,5 +533,4 @@ def aggregate_operator(op: Op) -> AggregationComparisonFilter.Op.ValueType:
     try:
         return AGGREGATION_OPERATOR_MAP[op]
     except KeyError:
-        raise ValueError("Invalid aggregate operator specified", op)
         raise ValueError("Invalid aggregate operator specified", op)
