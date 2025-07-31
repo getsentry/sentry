@@ -101,10 +101,11 @@ class ProjectReplaySummaryTestCase(
             assert response.json() == {"hello": "world"}
 
         assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_POLL_STATE_URL
-        assert request.method == "POST"
-        assert request.body == json.dumps({"replay_id": self.replay_id})
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_POLL_STATE_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert seer_request.body == json.dumps({"replay_id": self.replay_id})
 
     @responses.activate
     def test_post_simple(self):
@@ -132,17 +133,19 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(1, json.dumps([]).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url)
+            response = self.client.post(
+                self.url, data={"num_segments": 2}, content_type="application/json"
+            )
 
         assert response.status_code == 200
         assert response.json() == {"hello": "world"}
 
         assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_START_TASK_URL
-        assert request.method == "POST"
-        assert request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(request.body) == {
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_START_TASK_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert json.loads(seer_request.body) == {
             "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
             "num_segments": 2,
             "replay_id": self.replay_id,
@@ -225,9 +228,10 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(0, json.dumps(data).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url)
+            response = self.client.post(
+                self.url, data={"num_segments": 1}, content_type="application/json"
+            )
             assert response.status_code == 200
-            assert response.get("Content-Type") == "application/json"
             assert response.json() == {"hello": "world"}
 
         assert mock_requests.post.call_count == 1
@@ -290,10 +294,11 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(0, json.dumps(data).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url)
+            response = self.client.post(
+                self.url, data={"num_segments": 1}, content_type="application/json"
+            )
 
         assert response.status_code == 200
-        assert response.get("Content-Type") == "application/json"
         assert response.json() == {"feedback": "Feedback was submitted"}
 
         assert mock_requests.post.call_count == 1
@@ -303,6 +308,54 @@ class ProjectReplaySummaryTestCase(
         assert any("User submitted feedback" in log for log in logs)
 
     @responses.activate
+    @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
+    def test_post_max_segments_exceeded(self):
+        mock_seer_response("POST", status=200, json={"hello": "world"})
+
+        data1 = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        data2 = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "world"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data1).encode())
+        self.save_recording_segment(1, json.dumps(data2).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url, data={"num_segments": 2}, content_type="application/json"
+            )
+
+        assert response.status_code == 200
+
+        assert len(responses.calls) == 1
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_START_TASK_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert json.loads(seer_request.body) == {
+            "logs": ["Logged: hello at 0.0"],  # only 1 log from the first segment.
+            "num_segments": 1,  # capped to 1.
+            "replay_id": self.replay_id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+        }
+
+    @responses.activate
     def test_seer_timeout(self):
         for method in ["GET", "POST"]:
             mock_seer_response(method, body=requests.exceptions.Timeout("Request timed out"))
@@ -310,7 +363,11 @@ class ProjectReplaySummaryTestCase(
 
             with self.feature(self.features):
                 response = (
-                    self.client.get(self.url) if method == "GET" else self.client.post(self.url)
+                    self.client.get(self.url)
+                    if method == "GET"
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
                 )
 
             assert response.status_code == 504, method
@@ -323,7 +380,11 @@ class ProjectReplaySummaryTestCase(
 
             with self.feature(self.features):
                 response = (
-                    self.client.get(self.url) if method == "GET" else self.client.post(self.url)
+                    self.client.get(self.url)
+                    if method == "GET"
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
                 )
 
             assert response.status_code == 502, method
@@ -338,7 +399,11 @@ class ProjectReplaySummaryTestCase(
 
             with self.feature(self.features):
                 response = (
-                    self.client.get(self.url) if method == "GET" else self.client.post(self.url)
+                    self.client.get(self.url)
+                    if method == "GET"
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
                 )
 
             assert response.status_code == 502, method
@@ -352,7 +417,11 @@ class ProjectReplaySummaryTestCase(
 
                 with self.feature(self.features):
                     response = (
-                        self.client.get(self.url) if method == "GET" else self.client.post(self.url)
+                        self.client.get(self.url)
+                        if method == "GET"
+                        else self.client.post(
+                            self.url, data={"num_segments": 1}, content_type="application/json"
+                        )
                     )
 
                 assert response.status_code == status, method
