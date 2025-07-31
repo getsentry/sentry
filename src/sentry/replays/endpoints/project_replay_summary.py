@@ -11,7 +11,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
 from sentry.replays.lib.storage import storage
 from sentry.replays.lib.summarize import (
@@ -47,6 +47,15 @@ def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str
     }
 
 
+class ReplaySummaryPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
+        "PUT": [],
+        "DELETE": [],
+    }
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummaryEndpoint(ProjectEndpoint):
@@ -55,6 +64,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (ReplaySummaryPermission,)
 
     def __init__(self, **options) -> None:
         storage.initialize_client()
@@ -133,7 +143,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         )
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Start a replay summary task in Seer."""
+        """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
         if not all(
             features.has(feature, project.organization, actor=request.user)
             for feature in self.features
@@ -141,6 +151,22 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         filter_params = self.get_filter_params(request, project)
+
+        # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
+        # While the replay is live, the FE and BE may have different counts.
+        num_segments = request.data.get("num_segments", 0)
+
+        if len(num_segments) >= MAX_SEGMENTS_TO_SUMMARIZE:
+            logger.warning(
+                "Replay Summary: hit max segment limit.",
+                extra={
+                    "replay_id": replay_id,
+                    "project_id": project.id,
+                    "organization_id": project.organization.id,
+                    "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
+                },
+            )
+            num_segments = MAX_SEGMENTS_TO_SUMMARIZE
 
         # Fetch the replay's error and trace IDs from the replay_id.
         snuba_response = query_replay_instance(
@@ -170,18 +196,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Download segment data.
         # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
-        segment_md = fetch_segments_metadata(project.id, replay_id, 0, MAX_SEGMENTS_TO_SUMMARIZE)
-        if len(segment_md) >= MAX_SEGMENTS_TO_SUMMARIZE:
-            logger.warning(
-                "Replay Summary: hit max segment limit.",
-                extra={
-                    "replay_id": replay_id,
-                    "project_id": project.id,
-                    "organization_id": project.organization.id,
-                    "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
-                },
-            )
-
+        segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
         segment_data = iter_segment_data(segment_md)
 
         # Combine replay and error data and parse into logs.
@@ -194,7 +209,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             SEER_START_TASK_URL,
             {
                 "logs": logs,
-                "num_segments": len(segment_md),
+                "num_segments": num_segments,
                 "replay_id": replay_id,
                 "organization_id": project.organization.id,
                 "project_id": project.id,
