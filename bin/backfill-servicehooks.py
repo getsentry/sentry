@@ -16,9 +16,7 @@ def backfill_servicehooks_for_all_sentry_apps():
     """
     sentry_apps = SentryApp.objects.all()
 
-    for sentry_app in RangeQuerySetWrapper(
-        queryset=sentry_apps, step=1, result_value_getter=lambda item: item.id
-    ):
+    for sentry_app in RangeQuerySetWrapper(queryset=sentry_apps):
         click.echo(f"\nAttempting to backfill servicehooks for {sentry_app.slug}")
 
         create_or_update_service_hooks_for_sentry_app.delay(
