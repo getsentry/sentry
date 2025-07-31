@@ -6,6 +6,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry import eventstore, nodestore
+from sentry.deletions.defaults.group import EVENT_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
@@ -20,9 +21,6 @@ from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
-# Chunk size for fetching events
-EVENT_CHUNK_SIZE = 10000
-
 
 @instrumented_task(
     name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore",
@@ -33,6 +31,7 @@ EVENT_CHUNK_SIZE = 10000
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=deletion_tasks,
+        processing_deadline_duration=60 * 20,
         retry=Retry(
             times=MAX_RETRIES,
             delay=60 * 5,
@@ -173,6 +172,7 @@ def _fetch_events(
     last_event_id: str | None = None,
     last_event_timestamp: str | None = None,
 ) -> list[Event]:
+    logger.info("Fetching %s events for deletion.", EVENT_CHUNK_SIZE)
     conditions = []
     if last_event_id and last_event_timestamp:
         conditions.extend(
