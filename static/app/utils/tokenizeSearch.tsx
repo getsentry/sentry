@@ -165,12 +165,14 @@ export class MutableSearch {
             formattedTokens.push(`${token.key}:${token.value}`);
           } else if (
             // Don't quote bracket expressions that look like valid array syntax
-            /^\[.*\]$/.test(token.value) && isValidBracketExpression(token.value)
+            /^\[.*\]$/.test(token.value) &&
+            isValidBracketExpression(token.value)
           ) {
             formattedTokens.push(`${token.key}:${token.value}`);
           } else if (
             // Quote if contains spaces, parens, quotes, or if it's a bracket expression that doesn't look like array syntax
-            /[\s\(\)\\"]/g.test(token.value) || /^\[.*\]$/.test(token.value)
+            /[\s\(\)\\"]/g.test(token.value) ||
+            /^\[.*\]$/.test(token.value)
           ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
@@ -545,19 +547,19 @@ function formatQuery(query: string) {
 function isValidBracketExpression(value: string): boolean {
   // Remove outer brackets
   const inner = value.slice(1, -1);
-  
+
   // Empty brackets are valid
   if (inner.trim() === '') {
     return true;
   }
-  
+
   // Check if it contains commas - if so, treat as array syntax
   if (inner.includes(',')) {
     // Validate array syntax: comma-separated values, possibly quoted
     const arrayPattern = /^([^,"\s]+|"[^"]*")(\s*,\s*([^,"\s]+|"[^"]*"))*$/;
     return arrayPattern.test(inner);
   }
-  
+
   // For single values without commas, be very conservative
   // Only allow simple lowercase identifiers or numbers
   // This excludes things like "Filtered" which looks like processed text
