@@ -213,7 +213,7 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <Flex as="li" direction="column">
+    <Flex as="li" direction="column" aria-role="listitem">
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
         isActive={entry.entry.ref.id === activeId}
