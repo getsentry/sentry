@@ -16,10 +16,12 @@ This module does not consider aliasing. If you have a query which contains alias
 normalize it first.
 """
 
+from datetime import datetime
 from typing import Any
 from typing import Literal as TLiteral
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -29,7 +31,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationFilter,
     AggregationOrFilter,
 )
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
 from sentry_protos.snuba.v1.formula_pb2 import Literal
@@ -39,9 +40,11 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
+    AttributeValue,
     ExtrapolationMode,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunction
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -61,8 +64,6 @@ from snuba_sdk import (
     Query,
 )
 from snuba_sdk.orderby import Direction, OrderBy
-
-from sentry.snuba.rpc_dataset_common import AttributeKey, AttributeValue
 
 ARITHMETIC_FUNCTION_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
     "divide": Column.BinaryFormula.OP_DIVIDE,
@@ -178,13 +179,15 @@ TRACE_ITEM_TYPE_MAP = {
 class RequestMeta(TypedDict):
     cogs_category: str
     debug: bool
-    end_datetime: datetime.datetime
+    end_datetime: datetime
     organization_id: int
     project_ids: list[int]
     referrer: str
     request_id: str
-    start_datetime: datetime.datetime
-    trace_item_type: TLiteral["span", "error", "log", "uptime_check", "uptime_result", "replay"]
+    start_datetime: datetime
+    trace_item_type: TLiteral[
+        "span", "error", "log", "uptime_check", "uptime_result", "replay"  # noqa
+    ]
 
 
 class Settings(TypedDict, totals=False):
@@ -193,10 +196,23 @@ class Settings(TypedDict, totals=False):
     attribute_types: dict[str, type[bool | float | int | str]]
     default_limit: int
     default_offset: int
-    extrapolation_mode: TLiteral["weighted", "none"]
+    extrapolation_mode: TLiteral["weighted", "none"]  # noqa
 
 
-def query(query: Query, meta: RequestMeta, settings: Settings) -> TraceItemTableRequest:
+VirtualColumn = TypedDict(
+    "VirtualColumn",
+    {
+        "from": str,
+        "to": str,
+        "value_map": dict[str, str],
+        "default_value": NotRequired[str],
+    },
+)
+
+
+def query(
+    query: Query, meta: RequestMeta, settings: Settings, virtual_columns: list[VirtualColumn]
+) -> TraceItemTableRequest:
     start_timestamp = Timestamp()
     start_timestamp.FromDatetime(meta["start_datetime"])
 
@@ -213,7 +229,15 @@ def query(query: Query, meta: RequestMeta, settings: Settings) -> TraceItemTable
         page_token=PageToken(
             offset=query.offset.offset if query.offset else settings.get("default_offset", 0)
         ),
-        virtual_column_contexts=[],
+        virtual_column_contexts=[
+            VirtualColumnContext(
+                from_column_name=vc["from"],
+                to_column_name=vc["to"],
+                value_map=vc["value_map"],
+                default_value=vc.get("default_value", ""),
+            )
+            for vc in virtual_columns
+        ],
         meta=EAPRequestMeta(
             cogs_category=meta["cogs_category"],
             debug=meta["debug"],
@@ -422,7 +446,7 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
     elif isinstance(expr, CurriedFunction):
         raise NotImplementedError
     else:
-        raise TypeError("Invalid expression type specified", expr, attr_map)
+        raise TypeError("Invalid expression type specified", expr)
 
 
 def literal(value: Any) -> AttributeValue:
@@ -446,7 +470,7 @@ def literal(value: Any) -> AttributeValue:
                 raise ValueError("Invalid type specified in value array", value)
 
             typ_ = type(value[0])
-            if not all(type(item) == typ_ for item in value):
+            if not all(isinstance(item, typ_) for item in value):
                 raise ValueError("Heterogenous list specified", value)
 
             if isinstance(value, float):
@@ -475,4 +499,5 @@ def aggregate_operator(op: Op) -> AggregationComparisonFilter.Op.ValueType:
     try:
         return AGGREGATION_OPERATOR_MAP[op]
     except KeyError:
+        raise ValueError("Invalid aggregate operator specified", op)
         raise ValueError("Invalid aggregate operator specified", op)
