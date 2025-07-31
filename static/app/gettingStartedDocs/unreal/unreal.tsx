@@ -1,21 +1,25 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
+  type OnboardingStep,
+  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -61,6 +65,66 @@ const getCrashReporterConfigSnippet = (params: Params) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
 DataRouterUrl="${params.dsn.unreal}"`;
+
+const getPlayStationCallout = (params: Params): OnboardingStep => ({
+  title: t('PlayStation'),
+  content: [
+    {
+      type: 'text',
+      text: tct(
+        'Sentry provides PlayStation support for Unreal Engine through a [privateRepoLink:private extension] that extends the main Unreal SDK with PlayStation-specific functionality.',
+        {
+          privateRepoLink: (
+            <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
+          ),
+        }
+      ),
+    },
+    {
+      type: 'alert',
+      alertType: 'warning',
+      icon: <IconLock size="sm" locked />,
+      text: tct(
+        '[strong:Access Restricted]. The PlayStation extension is distributed through a [privateRepositoryLink:private repository] under NDA.',
+        {
+          strong: <strong />,
+          privateRepositoryLink: (
+            <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
+          ),
+        }
+      ),
+      showIcon: true,
+      trailingItems: (
+        <Button
+          size="sm"
+          priority="primary"
+          onClick={() => {
+            openPrivateGamingSdkAccessModal({
+              organization: params.organization,
+              projectSlug: params.projectSlug,
+              projectId: params.projectId,
+              sdkName: 'PlayStation',
+              gamingPlatform: 'playstation',
+            });
+          }}
+        >
+          {t('Request Access')}
+        </Button>
+      ),
+    },
+    {
+      type: 'text',
+      text: tct(
+        'Once access is granted, the [privateRepositoryLink:private repository] contains instructions for building the extension with Unreal Engine.',
+        {
+          privateRepositoryLink: (
+            <ExternalLink href="https://github.com/getsentry/sentry-playstation" />
+          ),
+        }
+      ),
+    },
+  ],
+});
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -353,6 +417,9 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
       ],
     },
+    ...(params.organization.enabledConsolePlatforms?.includes('playstation')
+      ? [getPlayStationCallout(params)]
+      : []),
     {
       title: t('Further Settings'),
       content: [
