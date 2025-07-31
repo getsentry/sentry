@@ -267,7 +267,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(
-                children=[  # type: ignore[arg-type]  # python/mypy#19483
+                children=[
                     SearchFilter(
                         key=SearchKey(name="x"), operator="=", value=SearchValue(raw_value="1")
                     ),
