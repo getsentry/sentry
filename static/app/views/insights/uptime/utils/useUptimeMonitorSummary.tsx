@@ -1,4 +1,3 @@
-import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
@@ -10,21 +9,27 @@ interface Options {
    */
   ruleIds: string[];
   /**
-   * The window configuration object
+   * Optional end time for calculating the summary
    */
-  timeWindowConfig: TimeWindowConfig;
+  end?: Date;
+  /**
+   * Optional start time for calculating the summary
+   */
+  start?: Date;
 }
 
 /**
  * Fetches Uptime Monitor summaries
  */
-export function useUptimeMonitorSummaries({ruleIds, timeWindowConfig}: Options) {
-  const {start, end} = timeWindowConfig;
+export function useUptimeMonitorSummaries({ruleIds, start, end}: Options) {
+  const selectionQuery: Record<string, any> = {};
 
-  const selectionQuery = {
-    start: Math.floor(start.getTime() / 1000),
-    end: Math.floor(end.getTime() / 1000),
-  };
+  if (start) {
+    selectionQuery.start = Math.floor(start.getTime() / 1000);
+  }
+  if (end) {
+    selectionQuery.end = Math.floor(end.getTime() / 1000);
+  }
 
   const organization = useOrganization();
   const monitorStatsQueryKey = `/organizations/${organization.slug}/uptime-summary/`;
