@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useRef} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -58,6 +58,14 @@ export function useFetchReplaySummary(
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const api = useApi();
   const queryClient = useQueryClient();
+  // Use this to track when the start summary request was made to compare to when the last time
+  // the summary data query was made. this hook will be considered in a pending state if the summary
+  // data query was made before the start summary request.
+
+  // Otherwise, when start request query is finished, in the same render loop, we 1) invalidate the
+  // summary data query and 2) we have the stale version of the summary data. The consuming
+  // component will briefly show a completed state before the summary data query updates.
+  const startSummaryRequestTime = useRef<number>(0);
 
   const segmentCount = replayRecord?.count_segments ?? 0;
 
@@ -86,6 +94,7 @@ export function useFetchReplaySummary(
           replayRecord?.id ?? ''
         ),
       });
+      startSummaryRequestTime.current = Date.now();
     },
   });
 
@@ -93,6 +102,7 @@ export function useFetchReplaySummary(
     data: summaryData,
     isPending,
     isError,
+    dataUpdatedAt,
   } = useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
     {
@@ -122,6 +132,7 @@ export function useFetchReplaySummary(
     summaryData,
     isPolling: isPolling(summaryData, isStartSummaryRequestPending),
     isPending:
+      dataUpdatedAt < startSummaryRequestTime.current ||
       isPending ||
       summaryData?.status === ReplaySummaryStatus.PROCESSING ||
       isStartSummaryRequestPending,
