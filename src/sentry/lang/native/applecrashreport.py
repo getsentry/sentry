@@ -47,9 +47,7 @@ class AppleCrashReport:
                         if frame.get("instruction_addr", None) is None:
                             continue
                         new_frame = {
-                            key: self._parse_addr(frame[key])
-                            if key in frame_keys
-                            else value
+                            key: self._parse_addr(frame[key]) if key in frame_keys else value
                             for key, value in frame.items()
                         }
                         new_frames.append(new_frame)
