@@ -173,5 +173,10 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
             internal_name="receive_response_duration_us",
             search_type="integer",
         ),
+        ResolvedAttribute(
+            public_alias="incident_status",
+            internal_name="incident_status",
+            search_type="integer",
+        ),
     ]
 }
