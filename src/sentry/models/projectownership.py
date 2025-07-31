@@ -9,7 +9,9 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry import options  # noqa
+from sentry.analytics.events.codeowners_assignment import CodeOwnersAssignment
+from sentry.analytics.events.issueowners_assignment import IssueOwnersAssignment
+from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssignment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
@@ -345,23 +347,42 @@ class ProjectOwnership(Model):
             )
 
             if assignment["new_assignment"] or assignment["updated_assignment"]:
-                analytics.record(
-                    (
-                        "codeowners.assignment"
-                        if activity_details.get("integration")
-                        == ActivityIntegration.CODEOWNERS.value
-                        else (
-                            "suspectcommit.assignment"
-                            if activity_details.get("integration")
-                            == ActivityIntegration.SUSPECT_COMMITTER.value
-                            else "issueowners.assignment"
+                try:
+                    if activity_details.get("integration") == ActivityIntegration.CODEOWNERS.value:
+                        analytics.record(
+                            CodeOwnersAssignment(
+                                organization_id=organization_id
+                                or ownership.project.organization_id,
+                                project_id=project_id,
+                                group_id=group.id,
+                                updated_assignment=assignment["updated_assignment"],
+                            )
                         )
-                    ),
-                    organization_id=organization_id or ownership.project.organization_id,
-                    project_id=project_id,
-                    group_id=group.id,
-                    updated_assignment=assignment["updated_assignment"],
-                )
+                    elif (
+                        activity_details.get("integration")
+                        == ActivityIntegration.SUSPECT_COMMITTER.value
+                    ):
+                        analytics.record(
+                            SuspectCommitAssignment(
+                                organization_id=organization_id
+                                or ownership.project.organization_id,
+                                project_id=project_id,
+                                group_id=group.id,
+                                updated_assignment=assignment["updated_assignment"],
+                            )
+                        )
+                    else:
+                        analytics.record(
+                            IssueOwnersAssignment(
+                                organization_id=organization_id
+                                or ownership.project.organization_id,
+                                project_id=project_id,
+                                group_id=group.id,
+                                updated_assignment=assignment["updated_assignment"],
+                            )
+                        )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
     @classmethod
     def _matching_ownership_rules(
