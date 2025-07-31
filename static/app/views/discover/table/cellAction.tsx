@@ -1,3 +1,4 @@
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -16,8 +17,8 @@ import {
 import getDuration from 'sentry/utils/duration/getDuration';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanFields} from 'sentry/views/insights/types';
 
 import type {TableColumn} from './types';
 
@@ -97,6 +98,7 @@ export function updateQuery(
       break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
+    case Actions.OPEN_INTERNAL_LINK:
       break;
     default:
       throw new Error(`Unknown action type. ${action}`);
@@ -184,7 +186,10 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   children?: React.ReactNode;
-  link?: string;
+  /**
+   * Any parsed out internal links that should be added to the menu as an option
+   */
+  to?: string;
 };
 
 function makeCellActions({
@@ -192,7 +197,7 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
-  link,
+  to,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -228,14 +233,16 @@ function makeCellActions({
         label: itemLabel,
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
+        to,
       });
     }
   }
 
-  if (isUrl(link))
-    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name));
-
-  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  if (isUrl(value)) {
+    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  } else if (to) {
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name, to));
+  }
 
   if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
@@ -289,27 +296,44 @@ function makeCellActions({
   return actions;
 }
 
+enum CustomMenuFields {
+  ID = 'id',
+  TRACE = 'trace',
+  SPAN_DESCRIPTION = 'span.description',
+  PROJECT = 'project',
+  PROJECT_ID = 'project_id',
+  PROJECT_DOT_ID = 'project.id',
+  RELEASE = 'release',
+  REPLAY = 'replayId',
+  ISSUE = 'issue',
+}
+
 /**
  * Provides the correct text for the dropdown menu based on the field.
  * @param field column field name
  */
-function getCellActionText(field: string): string {
+function getCellActionText(field: string, to?: string): string {
   switch (field) {
-    case SpanFields.ID:
-    case SpanFields.TRACE:
+    case CustomMenuFields.ID:
+    case CustomMenuFields.TRACE:
       return t('Open trace');
-    case 'project':
-    case 'project_id':
-    case 'project.id':
+    case CustomMenuFields.PROJECT:
+    case CustomMenuFields.PROJECT_ID:
+    case CustomMenuFields.PROJECT_DOT_ID:
       return t('Open project');
-    case 'release':
+    case CustomMenuFields.RELEASE:
       return t('View details');
-    case 'issue':
+    case CustomMenuFields.ISSUE:
       return t('Open issue');
-    case 'replay':
+    case CustomMenuFields.REPLAY:
       return t('Open replay');
-    case SpanFields.SPAN_DESCRIPTION:
+    case CustomMenuFields.SPAN_DESCRIPTION: {
+      // Some span description renderers add a project icon
+      if (to?.includes('project')) {
+        return t('Open project');
+      }
       return t('Open summary');
+    }
     default:
       break;
   }
@@ -325,7 +349,7 @@ export enum ActionTriggerType {
   BOLD_HOVER = 'bold_hover',
 }
 
-type Props = React.PropsWithoutRef<CellActionsOpts> & {
+type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   triggerType?: ActionTriggerType;
 };
 
@@ -336,15 +360,33 @@ function CellAction({
 }: Props) {
   const organization = useOrganization();
   const {children, column} = props;
+  const childRef = useRef<HTMLDivElement>(null);
+  const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   let filteredActions = allowActions;
-  if (!useCellActionsV2)
+  if (!useCellActionsV2) {
     filteredActions = filteredActions?.filter(
       action => action !== Actions.OPEN_EXTERNAL_LINK
     );
+  } else if (filteredActions) {
+    filteredActions.push(Actions.OPEN_INTERNAL_LINK);
+  }
 
-  const cellActions = makeCellActions({...props, allowActions: filteredActions});
+  // Extract any internal links to add them to the dropdown menu
+  useEffect(() => {
+    const linkElements = childRef.current?.getElementsByTagName('a');
+    if (linkElements?.[0]) {
+      const href = normalizeUrl(linkElements[0].href);
+      setTarget(href);
+    }
+  }, [column.key, props.dataRow]);
+
+  const cellActions = makeCellActions({
+    ...props,
+    allowActions: filteredActions,
+    to: target,
+  });
   const align = fieldAlignment(column.key as string, column.type);
 
   if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
@@ -384,10 +426,9 @@ function CellAction({
                   }
                 }}
               >
-                {children}
+                <div ref={childRef}> {children}</div>
               </ActionMenuTriggerV2>
             )}
-            // So the menu doesn't fill the entire row which can lead to extremely wide menus
             minMenuWidth={0}
           />
         ) : (
