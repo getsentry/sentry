@@ -6,7 +6,7 @@ import {SvgIcon} from './svgIcon';
 function IconMyProjects(props: SVGIconProps) {
   const theme = useTheme();
   return theme.isChonk ? (
-    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind="stroke">
       <rect
         x="5.02"
         y="5"
