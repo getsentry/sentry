@@ -73,7 +73,7 @@ class OrganizationEventsMetaEndpoint(
         )
 
         with self.feature(self.features):
-            response = self.client.get(self.url, format="json", data={"dataset": "ourlogs"})
+            response = self.client.get(self.url, format="json", data={"dataset": "logs"})
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 2

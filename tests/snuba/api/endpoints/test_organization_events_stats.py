@@ -3087,7 +3087,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
                 data={
                     "start": self.day_ago.isoformat(),
                     "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "dataset": "ourlogs",
+                    "dataset": "logs",
                     "interval": "1h",
                     "yAxis": "count()",
                     "orderby": ["-count()"],

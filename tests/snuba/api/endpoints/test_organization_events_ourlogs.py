@@ -9,7 +9,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 
 class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
-    dataset = "ourlogs"
+    dataset = "logs"
 
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
@@ -350,7 +350,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "cursor": "",
-                "dataset": "ourlogs",
+                "dataset": "logs",
                 "field": [
                     "sentry.item_id",
                     "project.id",
