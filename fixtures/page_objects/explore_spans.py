@@ -26,7 +26,7 @@ class ExploreSpansPage(BasePage):
         column_objects = self.get_spans_row_columns(row)
 
         for column in column_objects:
-            if column.text == span_id[:8]:
+            if column.text == span_id:
                 column.click()
                 return
 

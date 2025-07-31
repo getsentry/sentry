@@ -74,7 +74,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
             self.page.visit_explore_spans(self.organization.slug)
 
             # Click on the first span in the explore spans table
-            self.page.click_on_span_id(self.root_span_ids[0])
+            self.page.click_on_span_id(self.root_span_ids[0][:8])
 
             # Wait for the trace view to load and check that the spans are in the trace view waterfall
             self.trace_view_page.wait_until_loaded()
