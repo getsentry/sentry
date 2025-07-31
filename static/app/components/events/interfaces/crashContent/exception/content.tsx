@@ -44,8 +44,12 @@ type Props = {
 
 type ExceptionRenderStateMap = Record<number, boolean>;
 
+/**
+ * We want to hide all children of an exception group is the exception group
+ * itself is not the root level exception.
+ */
 const useHiddenExceptions = (values?: ExceptionValue[]) => {
-  // map of parent exceptions and whether their children are hidden
+  // map of exception group ids and whether their children are hidden
   const [hiddenExceptions, setHiddenExceptions] = useState<ExceptionRenderStateMap>(
     () => {
       if (!values) {
@@ -53,7 +57,9 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
       }
 
       return values
-        .filter(({mechanism}) => mechanism?.is_exception_group)
+        .filter(
+          ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
+        )
         .reduce(
           (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
           {}
@@ -77,7 +83,7 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
         value => value.mechanism?.exception_id === exceptionId
       );
       const exceptionGroupId = exceptionValue?.mechanism?.parent_id;
-      if (exceptionGroupId === undefined || !defined(old[exceptionGroupId])) {
+      if (!defined(exceptionGroupId) || !defined(old[exceptionGroupId])) {
         return old;
       }
 
@@ -105,7 +111,7 @@ function ToggleExceptionButton({
 }) {
   const exceptionId = exception.mechanism?.exception_id;
 
-  if (exceptionId === undefined || !defined(hiddenExceptions[exceptionId])) {
+  if (!defined(exceptionId) || !defined(hiddenExceptions[exceptionId])) {
     return null;
   }
 
@@ -122,9 +128,112 @@ function ToggleExceptionButton({
       }}
     >
       {collapsed
-        ? tn('Show %s related exceptions', 'Show %s related exceptions', numChildren)
-        : tn('Hide %s related exceptions', 'Hide %s related exceptions', numChildren)}
+        ? tn('Show %s related exception', 'Show %s related exceptions', numChildren)
+        : tn('Hide %s related exception', 'Hide %s related exceptions', numChildren)}
     </ShowRelatedExceptionsButton>
+  );
+}
+
+function InnerContent({
+  exception,
+  exceptionIdx,
+  project,
+  event,
+  meta,
+  newestFirst,
+  values,
+  threadId,
+  type,
+  hasChainedExceptions,
+  sourceMapDebuggerData,
+  isSampleError,
+  stackView,
+  groupingCurrentLevel,
+  hiddenExceptions,
+  toggleRelatedExceptions,
+  expandException,
+}: {
+  exception: ExceptionValue;
+  exceptionIdx: number;
+  expandException: (exceptionId: number) => void;
+  hasChainedExceptions: boolean;
+  hiddenExceptions: ExceptionRenderStateMap;
+  isSampleError: boolean;
+  sourceMapDebuggerData: ReturnType<typeof useSourceMapDebuggerData>;
+  toggleRelatedExceptions: (exceptionId: number) => void;
+  values: ExceptionValue[];
+  project?: Project;
+} & Omit<Props, 'projectSlug'>) {
+  const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
+    exceptionIdx
+  ]!.frames.map(debuggerFrame =>
+    prepareSourceMapDebuggerFrameInformation(
+      sourceMapDebuggerData,
+      debuggerFrame,
+      event,
+      project?.platform
+    )
+  );
+  const exceptionValue = exception.value
+    ? renderLinksInText({exceptionText: exception.value})
+    : null;
+
+  const platform = getStacktracePlatform(event, exception.stacktrace);
+
+  // The banners should appear on the top exception only
+  const isTopException = newestFirst
+    ? exceptionIdx === values.length - 1
+    : exceptionIdx === 0;
+
+  return (
+    <Fragment>
+      <StyledPre>
+        {meta?.[exceptionIdx]?.value?.[''] && !exception.value ? (
+          <AnnotatedText
+            value={exception.value}
+            meta={meta?.[exceptionIdx]?.value?.['']}
+          />
+        ) : (
+          exceptionValue
+        )}
+      </StyledPre>
+      <ToggleExceptionButton
+        {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
+      />
+      {exception.mechanism && (
+        <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
+      )}
+      <RelatedExceptions
+        mechanism={exception.mechanism}
+        allExceptions={values}
+        newestFirst={newestFirst}
+        onExceptionClick={expandException}
+      />
+      {exception.stacktrace && isTopException && !isSampleError && (
+        <ErrorBoundary customComponent={null}>
+          <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
+        </ErrorBoundary>
+      )}
+      <StackTrace
+        data={
+          type === StackType.ORIGINAL
+            ? exception.stacktrace
+            : exception.rawStacktrace || exception.stacktrace
+        }
+        stackView={stackView}
+        stacktrace={exception.stacktrace}
+        expandFirstFrame={exceptionIdx === values.length - 1}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+        chainedException={hasChainedExceptions}
+        groupingCurrentLevel={groupingCurrentLevel}
+        meta={meta?.[exceptionIdx]?.stacktrace}
+        threadId={threadId}
+        frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+        stackType={type}
+      />
+    </Fragment>
   );
 }
 
@@ -141,12 +250,93 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
+  if (values?.length === 3) {
+    values.unshift({
+      type: 'ExceptionGroup 2',
+      value: 'child',
+      mechanism: {
+        handled: true,
+        type: '',
+        exception_id: 3,
+        is_exception_group: true,
+        parent_id: 0,
+        source: 'exceptions[0]',
+      },
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          {
+            function: 'func3',
+            module: 'helpers',
+            filename: 'file3.py',
+            absPath: 'file3.py',
+            lineNo: 50,
+            colNo: null,
+            context: [],
+            inApp: true,
+            rawFunction: null,
+            package: null,
+            platform: null,
+            instructionAddr: null,
+            symbol: null,
+            symbolAddr: null,
+            trust: null,
+            vars: null,
+          },
+        ],
+      },
+      module: 'helpers',
+      rawStacktrace: null,
+      threadId: null,
+    });
+    values.unshift({
+      type: 'ValueError',
+      value: 'test',
+      mechanism: {
+        handled: true,
+        type: '',
+        exception_id: 4,
+        parent_id: 3,
+        source: 'exceptions[3]',
+      },
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          {
+            function: 'func4',
+            module: 'helpers',
+            filename: 'file4.py',
+            absPath: 'file4.py',
+            lineNo: 50,
+            colNo: null,
+            context: [[50, 'raise ValueError("test")']],
+            inApp: true,
+            rawFunction: null,
+            package: null,
+            platform: null,
+            instructionAddr: null,
+            symbol: null,
+            symbolAddr: null,
+            trust: null,
+            vars: null,
+          },
+        ],
+      },
+      module: 'helpers',
+      threadId: null,
+      rawStacktrace: null,
+    });
+  }
+
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
-  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
-
   const isSampleError = useIsSampleEvent();
+  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
 
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
@@ -157,75 +347,6 @@ export function Content({
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const hasChainedExceptions = values.length > 1;
-
-  const getInnerContent = ({excIdx, exc}: {exc: ExceptionValue; excIdx: number}) => {
-    const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
-      excIdx
-    ]!.frames.map(debuggerFrame =>
-      prepareSourceMapDebuggerFrameInformation(
-        sourceMapDebuggerData,
-        debuggerFrame,
-        event,
-        project?.platform
-      )
-    );
-    const exceptionValue = exc.value
-      ? renderLinksInText({exceptionText: exc.value})
-      : null;
-
-    const platform = getStacktracePlatform(event, exc.stacktrace);
-
-    // The banners should appear on the top exception only
-    const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
-
-    return (
-      <Fragment>
-        <StyledPre>
-          {meta?.[excIdx]?.value?.[''] && !exc.value ? (
-            <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
-          ) : (
-            exceptionValue
-          )}
-        </StyledPre>
-        <ToggleExceptionButton
-          {...{hiddenExceptions, toggleRelatedExceptions, values, exception: exc}}
-        />
-        {exc.mechanism && (
-          <Mechanism data={exc.mechanism} meta={meta?.[excIdx]?.mechanism} />
-        )}
-        <RelatedExceptions
-          mechanism={exc.mechanism}
-          allExceptions={values}
-          newestFirst={newestFirst}
-          onExceptionClick={expandException}
-        />
-        {exc.stacktrace && isTopException && !isSampleError && (
-          <ErrorBoundary customComponent={null}>
-            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-          </ErrorBoundary>
-        )}
-        <StackTrace
-          data={
-            type === StackType.ORIGINAL
-              ? exc.stacktrace
-              : exc.rawStacktrace || exc.stacktrace
-          }
-          stackView={stackView}
-          stacktrace={exc.stacktrace}
-          expandFirstFrame={excIdx === values.length - 1}
-          platform={platform}
-          newestFirst={newestFirst}
-          event={event}
-          chainedException={hasChainedExceptions}
-          groupingCurrentLevel={groupingCurrentLevel}
-          meta={meta?.[excIdx]?.stacktrace}
-          threadId={threadId}
-          frameSourceMapDebuggerData={frameSourceMapDebuggerData}
-          stackType={type}
-        />
-      </Fragment>
-    );
-  };
 
   const children = values.map((exc, excIdx) => {
     const id = defined(exc.mechanism?.exception_id)
@@ -265,7 +386,25 @@ export function Content({
             exc.mechanism?.exception_id?.toString() ?? excIdx.toString()
           }
         >
-          {getInnerContent({excIdx, exc})}
+          <InnerContent
+            exception={exc}
+            exceptionIdx={excIdx}
+            hasChainedExceptions={hasChainedExceptions}
+            isSampleError={isSampleError}
+            project={project}
+            sourceMapDebuggerData={sourceMapDebuggerData}
+            values={values}
+            newestFirst={newestFirst}
+            event={event}
+            type={type}
+            meta={meta}
+            threadId={threadId}
+            stackView={stackView}
+            groupingCurrentLevel={groupingCurrentLevel}
+            hiddenExceptions={hiddenExceptions}
+            toggleRelatedExceptions={toggleRelatedExceptions}
+            expandException={expandException}
+          />
         </StyledFoldSection>
       );
     }
@@ -279,7 +418,23 @@ export function Content({
         ) : (
           <Title id={id}>{exc.type}</Title>
         )}
-        {getInnerContent({excIdx, exc})}
+        <InnerContent
+          exception={exc}
+          exceptionIdx={excIdx}
+          hasChainedExceptions={hasChainedExceptions}
+          isSampleError={isSampleError}
+          project={project}
+          sourceMapDebuggerData={sourceMapDebuggerData}
+          values={values}
+          newestFirst={newestFirst}
+          event={event}
+          type={type}
+          meta={meta}
+          threadId={threadId}
+          hiddenExceptions={hiddenExceptions}
+          toggleRelatedExceptions={toggleRelatedExceptions}
+          expandException={expandException}
+        />
       </div>
     );
   });

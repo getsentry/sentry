@@ -18,8 +18,8 @@ export function EventEntryExceptionGroupFixture(): EntryException {
             handled: true,
             type: '',
             exception_id: 4,
-            parent_id: 3,
             is_exception_group: false,
+            parent_id: 3,
             source: 'exceptions[2]',
           },
           stacktrace: {

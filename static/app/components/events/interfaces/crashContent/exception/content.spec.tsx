@@ -352,26 +352,29 @@ describe('Exception Content', function () {
         deprecatedRouterMocks: true,
       });
 
-      // There are 4 values, but 3 should be hidden
-      // 2 of them are children of the visible exception group, 1 is a child of
-      // one of the children of the visible exception group
-      expect(screen.getAllByTestId('exception-value')).toHaveLength(1);
-      expect(screen.queryByRole('heading', {name: 'TypeError'})).not.toBeInTheDocument();
-
-      await userEvent.click(
-        screen.getByRole('button', {name: /show 2 related exceptions/i})
-      );
-
-      // After expanding, the outermost exception group's children should be visible, but not
-      // any further descendants
+      // There are 4 values, but 1 should be hidden
       expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
+      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
+      for (const button of viewSectionButtons) {
+        await userEvent.click(button); // just expand all of them so we know the child exception group is open
+      }
       await userEvent.click(
-        screen.getByRole('button', {name: /hide 2 related exceptions/i})
+        screen.getByRole('button', {name: /show 1 related exception/i})
       );
 
-      // After hiding, the outermost exception group's children should be hidden again
-      expect(screen.getAllByTestId('exception-value')).toHaveLength(1);
+      // After expanding, ValueError should be visible
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(4);
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /hide 1 related exception/i})
+      );
+
+      // After collapsing, ValueError should be gone again
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
     });
 
     it('auto-opens sub-groups when clicking link in tree', async function () {
@@ -379,16 +382,20 @@ describe('Exception Content', function () {
         deprecatedRouterMocks: true,
       });
 
-      expect(screen.queryByText('Hide 2 related exceptions')).not.toBeInTheDocument();
-      expect(screen.getByText('Show 2 related exceptions')).toBeInTheDocument();
-      expect(screen.queryByRole('heading', {name: 'TypeError'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /TypeError: nested/i}));
+      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
+      for (const button of viewSectionButtons) {
+        await userEvent.click(button); // just expand all of them so we know the child exception group is open
+      }
 
-      // After expanding, TypeError should be visible and toggle copy should change
-      expect(screen.getByText('Hide 2 related exceptions')).toBeInTheDocument();
-      expect(screen.queryByText('Show 2 related exceptions')).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: /show 1 related exception/i})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: /ValueError: test/i}));
+
+      // After expanding, ValueError should be visible
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
     });
   });
 
