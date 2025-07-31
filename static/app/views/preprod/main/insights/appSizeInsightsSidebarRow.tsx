@@ -97,7 +97,6 @@ function FileRow({file, fileIndex}: FileRowProps) {
       style={{
         padding: '4px 6px',
         background: isAlternating ? '#F7F6F9' : 'transparent',
-        borderTop: '1px solid transparent',
       }}
     >
       <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
@@ -134,13 +133,12 @@ function OptimizableImageFileRow({
       align="center"
       justify="between"
       gap="lg"
+      radius="md"
+      minWidth={0}
+      height="24px"
       style={{
-        height: '24px',
         padding: '4px 6px',
-        borderRadius: '4px',
         background: isAlternating ? '#F7F6F9' : 'transparent',
-        borderTop: '1px solid transparent',
-        minWidth: 0,
       }}
     >
       <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
