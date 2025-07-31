@@ -26,7 +26,7 @@ export const types = {Badge: BadgeAPIReference.Badge, Tag: TagAPIReference.Tag};
 
 Badges are a contextual highlighted text components that support specific use cases like `FeatureBadge`, `AlertBadge`, and `DeployBadge`.
 
-# FeatureBadge
+## FeatureBadge
 
 The `FeatureBadge` component should be used to annotate new features as they move through the various stages of rollout. Each badge includes a tooltip with a standard message describing the rollout stage.
 
@@ -59,7 +59,7 @@ Generally, the default tooltip should suffice, but if your special feature requi
 />
 ```
 
-# AlertBadge
+## AlertBadge
 
 The `AlertBadge` component displays an indicator for all Alert types that Sentry supports.
 
@@ -84,7 +84,7 @@ The `AlertBadge` component displays an indicator for all Alert types that Sentry
 <AlertBadge isDisabled />
 ```
 
-## Labels
+### Labels
 
 The `withText` prop displays a label for each status.
 
@@ -105,7 +105,7 @@ The `withText` prop displays a label for each status.
 <AlertBadge withText isDisabled />
 ```
 
-# DeployBadge
+## DeployBadge
 
 export const deploy = {
   name: '85fedddce5a61a58b160fa6b3d6a1a8451e94eb9 to prod',
@@ -129,7 +129,7 @@ The text of each badge is derived from the `environment` passed to the `deploy` 
 <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 ```
 
-# Tag
+## Tag
 
 The `Tag` component is a generic primitive. Depending on the `type` prop, it can be used as an error/warning/success indicator and for various other use cases.
 
@@ -150,7 +150,7 @@ The `Tag` component is a generic primitive. Depending on the `type` prop, it can
 <Tag type="promotion">Promotion</Tag>
 ```
 
-## Icons
+### Icons
 
 The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
 
@@ -177,7 +177,7 @@ The `icon` prop accepts an `<Icon />` component to render a custom leading icon.
 </Tag>
 ```
 
-## Dismiss
+### Dismiss
 
 Pass a custom `onDismiss` callback to create a dismissable tag with a trailing close icon.
 
