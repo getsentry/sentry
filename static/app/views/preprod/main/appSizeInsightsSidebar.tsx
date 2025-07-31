@@ -194,58 +194,55 @@ export function AppSizeInsightsSidebar({
           </Header>
 
           <InsightsContent>
-            {processedInsights.map((insight, index) => {
+            {processedInsights.map(insight => {
               const isExpanded = expandedInsights.has(insight.name);
               return (
-                <Fragment key={insight.name}>
-                  <InsightCard>
-                    <InsightHeader>
-                      <InsightTitle>{insight.name}</InsightTitle>
-                      <SavingsInfo>
-                        <SavingsText>
-                          Potential savings {formatSavingsAmount(insight.totalSavings)}
-                        </SavingsText>
-                        <SavingsPercentage>
-                          −{formatPercentage(insight.percentage)}
-                        </SavingsPercentage>
-                      </SavingsInfo>
-                    </InsightHeader>
+                <InsightCard key={insight.name}>
+                  <InsightHeader>
+                    <InsightTitle>{insight.name}</InsightTitle>
+                    <SavingsInfo>
+                      <SavingsText>
+                        Potential savings {formatSavingsAmount(insight.totalSavings)}
+                      </SavingsText>
+                      <SavingsPercentage>
+                        −{formatPercentage(insight.percentage)}
+                      </SavingsPercentage>
+                    </SavingsInfo>
+                  </InsightHeader>
 
-                    <InsightDescription>{insight.description}</InsightDescription>
+                  <InsightDescription>{insight.description}</InsightDescription>
 
-                    <FilesSection>
-                      <FilesToggle
-                        isExpanded={isExpanded}
-                        onClick={() => toggleExpanded(insight.name)}
-                      >
-                        <ToggleIcon isExpanded={isExpanded} />
-                        <FilesCount>{insight.files.length} files</FilesCount>
-                      </FilesToggle>
+                  <FilesSection>
+                    <FilesToggle
+                      isExpanded={isExpanded}
+                      onClick={() => toggleExpanded(insight.name)}
+                    >
+                      <ToggleIcon isExpanded={isExpanded} />
+                      <FilesCount>{insight.files.length} files</FilesCount>
+                    </FilesToggle>
 
-                      {isExpanded && (
-                        <FilesList>
-                          {insight.files.map((file, fileIndex) => (
-                            <FileItem
-                              key={`${file.path}-${fileIndex}`}
-                              isAlternating={fileIndex % 2 === 0}
-                            >
-                              <FilePath>{file.path}</FilePath>
-                              <FileSavings>
-                                <FileSavingsAmount>
-                                  −{formatSavingsAmount(file.savings)}
-                                </FileSavingsAmount>
-                                <FileSavingsPercentage>
-                                  (−{formatPercentage(file.percentage)})
-                                </FileSavingsPercentage>
-                              </FileSavings>
-                            </FileItem>
-                          ))}
-                        </FilesList>
-                      )}
-                    </FilesSection>
-                  </InsightCard>
-                  {index < processedInsights.length - 1 && <Separator />}
-                </Fragment>
+                    {isExpanded && (
+                      <FilesList>
+                        {insight.files.map((file, fileIndex) => (
+                          <FileItem
+                            key={`${file.path}-${fileIndex}`}
+                            isAlternating={fileIndex % 2 === 0}
+                          >
+                            <FilePath>{file.path}</FilePath>
+                            <FileSavings>
+                              <FileSavingsAmount>
+                                −{formatSavingsAmount(file.savings)}
+                              </FileSavingsAmount>
+                              <FileSavingsPercentage>
+                                (−{formatPercentage(file.percentage)})
+                              </FileSavingsPercentage>
+                            </FileSavings>
+                          </FileItem>
+                        ))}
+                      </FilesList>
+                    )}
+                  </FilesSection>
+                </InsightCard>
               );
             })}
           </InsightsContent>
@@ -285,6 +282,9 @@ const InsightsContent = styled('div')`
   flex: 1;
   overflow-y: auto;
   padding: ${space(3)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
 `;
 
 const InsightCard = styled('div')`
@@ -406,6 +406,7 @@ const FileItem = styled('div')<{isAlternating: boolean}>`
   border-radius: 4px;
   background: ${p => (p.isAlternating ? '#F7F6F9' : 'transparent')};
   border-top: 1px solid transparent;
+  min-width: 0;
 `;
 
 const FilePath = styled('span')`
@@ -420,6 +421,10 @@ const FilePath = styled('span')`
   flex: 1;
   margin-right: ${space(2)};
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 
   &:hover {
     text-decoration: underline;
@@ -452,12 +457,6 @@ const FileSavingsPercentage = styled('span')`
   width: 64px;
   font-variant-numeric: lining-nums tabular-nums;
   color: ${p => p.theme.subText};
-`;
-
-const Separator = styled('div')`
-  height: 1px;
-  background: ${p => p.theme.border};
-  margin: ${space(3)} 0;
 `;
 
 const Backdrop = styled('div')`
