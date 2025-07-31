@@ -351,13 +351,15 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
+        detectors_to_delete = list(queryset)
+
         # Check permissions for all detectors first
-        for detector in queryset:
+        for detector in detectors_to_delete:
             if not can_edit_detector(detector, request):
                 raise PermissionDenied
 
         with transaction.atomic(router.db_for_write(Detector)):
-            for detector in queryset:
+            for detector in detectors_to_delete:
                 RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
@@ -366,6 +368,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("DETECTOR_REMOVE"),
                     data=detector.get_audit_log_data(),
                 )
-            queryset.update(status=ObjectStatus.PENDING_DELETION)
+                detector.update(status=ObjectStatus.PENDING_DELETION)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
