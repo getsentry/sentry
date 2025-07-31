@@ -27,7 +27,7 @@ from sentry.utils.snuba import (
 
 
 class SnubaUtilsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.now = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
@@ -245,7 +245,7 @@ class PrepareQueryParamsTest(TestCase):
             get_query_params_to_update_for_projects(query_params)
 
     @mock.patch("sentry.models.Project.objects.get_from_cache", side_effect=Project.DoesNotExist)
-    def test_with_some_deleted_projects(self, mock_project):
+    def test_with_some_deleted_projects(self, mock_project: mock.MagicMock) -> None:
         other_project = self.create_project(organization=self.organization, slug="a" * 32)
         query_params = SnubaQueryParams(
             dataset=Dataset.Events, filter_keys={"project_id": [self.project.id, other_project.id]}
@@ -303,7 +303,7 @@ class PrepareQueryParamsTest(TestCase):
 
 
 class QuantizeTimeTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.now = timezone.now().replace(microsecond=0)
 
     def test_quantizes_with_duration(self) -> None:
@@ -421,7 +421,7 @@ class FakeConnectionPool(HTTPConnectionPool):
         return self.connection
 
 
-def test_retries():
+def test_retries() -> None:
     """
     Tests that, even if I set up 5 retries, there is only one request
     made since it times out.

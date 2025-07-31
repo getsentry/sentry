@@ -19,7 +19,7 @@ from sentry.seer.autofix.autofix import (
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -1166,10 +1166,10 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1270,10 +1270,10 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1310,10 +1310,10 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
@@ -1631,14 +1631,14 @@ class TestBuildSpansTree(TestCase):
 
 
 class TestGetLogsForEvent(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.trace_id = "1234567890abcdef1234567890abcdef"
         self.now = before_now(minutes=0)
 
-    @patch("sentry.snuba.ourlogs.run_table_query")
+    @patch("sentry.snuba.ourlogs.OurLogs.run_table_query")
     def test_merging_consecutive_logs(self, mock_query):
         # Simulate logs with identical message/severity in sequence
         dt = self.now

@@ -6,9 +6,10 @@ import pytest
 
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
-from sentry.snuba import errors, metrics_performance, spans_rpc
+from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -34,7 +35,7 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
 class AnomalyDetectionStoreDataTest(
     AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.now = datetime.now(UTC)
@@ -184,7 +185,7 @@ class AnomalyDetectionStoreDataTest(
             formatted_result = format_historical_data(
                 data=result,
                 query_columns=["count(span.duration)"],
-                dataset=spans_rpc,
+                dataset=Spans,
                 organization=self.organization,
             )
 

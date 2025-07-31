@@ -1,12 +1,10 @@
-import {openModal} from 'sentry/actionCreators/modal';
+import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-import PlayStationSdkAccessModal from './PlayStationSdkAccessModal';
 
 interface RequestSdkAccessButtonProps {
   organization: Organization;
@@ -24,13 +22,19 @@ export function RequestSdkAccessButton({
       data-test-id="request-sdk-access"
       icon={<IconCode />}
       onClick={() => {
-        openModal(deps => (
-          <PlayStationSdkAccessModal
-            {...deps}
-            organization={organization}
-            project={project}
-          />
-        ));
+        openPrivateGamingSdkAccessModal({
+          organization,
+          projectSlug: project.slug,
+          projectId: project.id,
+          sdkName: 'PlayStation',
+          gamingPlatform: 'playstation',
+          onSubmit: () => {
+            trackAnalytics('tempest.sdk_access_modal_submitted', {
+              organization,
+              project_slug: project.slug,
+            });
+          },
+        });
         trackAnalytics('tempest.sdk_access_modal_opened', {
           organization,
           project_slug: project.slug,

@@ -8,7 +8,7 @@ from sentry.utils.marketo_client import MarketoClient
 
 
 class EmailCaptureTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         # demo user
@@ -19,7 +19,7 @@ class EmailCaptureTest(APITestCase):
 
     @mock.patch.object(MarketoClient, "submit_form")
     @override_options({"demo-mode.enabled": True})
-    def test_capture_endpoint(self, mock_submit_form):
+    def test_capture_endpoint(self, mock_submit_form: mock.MagicMock) -> None:
         self.login_as(self.demo_user)
         url = reverse("sentry-demo-mode-email-capture")
         response = self.client.post(url, {"email": "test123@sentry.io"})

@@ -1,5 +1,5 @@
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 from django.urls import reverse
@@ -18,7 +18,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class OrganizationArtifactBundleAssembleTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
@@ -222,7 +222,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         self.assertEqual(response.status_code, 200)
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble_without_version_and_dist(self, mock_assemble_artifacts):
+    def test_assemble_without_version_and_dist(self, mock_assemble_artifacts: MagicMock) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -257,7 +257,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble_with_version_and_no_dist(self, mock_assemble_artifacts):
+    def test_assemble_with_version_and_no_dist(self, mock_assemble_artifacts: MagicMock) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -293,7 +293,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble_with_version_and_dist(self, mock_assemble_artifacts):
+    def test_assemble_with_version_and_dist(self, mock_assemble_artifacts: MagicMock) -> None:
         dist = "android"
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version

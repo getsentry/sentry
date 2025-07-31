@@ -1,40 +1,34 @@
-import styled from '@emotion/styled';
-
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Text} from 'sentry/components/core/text';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type RouteParams = {
-  projectId: string;
-};
-type Props = RouteComponentProps<RouteParams> & {
-  organization: Organization;
-  project: Project;
-};
+interface Props {
+  project: Project; // Passed in by the parent route
+}
 
-export default function ProjectToolbarSettings({
-  organization,
-  project,
-  params: {projectId},
-}: Props) {
-  const location = useLocation();
-  const domain = decodeScalar(location.query.domain);
+export default function ProjectToolbarSettings({project}: Props) {
+  const organization = useOrganization();
+  const {projectId} = useParams();
+  const {domain} = useLocationQuery({
+    fields: {domain: decodeScalar},
+  });
 
   const formGroups: JsonFormObject[] = [
     {
@@ -51,9 +45,9 @@ export default function ProjectToolbarSettings({
           label: t('Allowed Origins'),
           help: (
             <div>
-              <Important>
+              <Text bold size="sm" variant="danger">
                 {t('Only add trusted domains, that you control, to this list.')}
-              </Important>
+              </Text>
               <br />
               {t('Domains where the dev toolbar is allowed to access your data.')}
               <br />
@@ -126,7 +120,3 @@ export default function ProjectToolbarSettings({
     </SentryDocumentTitle>
   );
 }
-
-const Important = styled('strong')`
-  color: ${p => p.theme.red400};
-`;

@@ -11,7 +11,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class TestPreparerIssueLink(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.sentry_app = self.create_sentry_app(
@@ -92,7 +92,7 @@ class TestPreparerIssueLink(TestCase):
 
 @control_silo_test
 class TestPreparerStacktraceLink(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.sentry_app = self.create_sentry_app(
@@ -124,7 +124,7 @@ class TestPreparerStacktraceLink(TestCase):
 
 @control_silo_test
 class TestPreparerAlertRuleAction(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.sentry_app = self.create_sentry_app(

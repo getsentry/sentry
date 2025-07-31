@@ -21,7 +21,7 @@ def floor_to_10s_epoch(value):
 
 
 class SnubaTSDBTest(OutcomesSnubaTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.db = SnubaTSDB()
 

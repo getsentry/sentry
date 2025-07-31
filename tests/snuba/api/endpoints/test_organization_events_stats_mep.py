@@ -261,7 +261,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert item[1][0]["count"] == 222
 
     @mock.patch("sentry.snuba.metrics_enhanced_performance.timeseries_query", return_value={})
-    def test_multiple_yaxis_only_one_query(self, mock_query):
+    def test_multiple_yaxis_only_one_query(self, mock_query: mock.MagicMock) -> None:
         self.do_request(
             data={
                 "project": self.project.id,
@@ -889,7 +889,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert len(response.data) == 1
 
         # Results are grouped by the error type
-        assert response.data.get("test_error").get("meta").get(
+        assert response.data.get("[test_error]").get("meta").get(
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 

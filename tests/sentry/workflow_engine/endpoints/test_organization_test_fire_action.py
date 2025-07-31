@@ -30,7 +30,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-organization-test-fire-actions"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.project = self.create_project(organization=self.organization)
@@ -119,7 +119,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    def test_action_with_integration_form_error(self, mock_sdk_capture, mock_create_issue):
+    def test_action_with_integration_form_error(
+        self, mock_sdk_capture: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         """Test that integration form errors are returned correctly"""
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
@@ -154,7 +156,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    def test_action_with_unexpected_error(self, mock_sdk_capture, mock_create_issue):
+    def test_action_with_unexpected_error(
+        self, mock_sdk_capture: mock.MagicMock, mock_create_issue: mock.MagicMock
+    ) -> None:
         """Test that unexpected errors are handled correctly"""
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(

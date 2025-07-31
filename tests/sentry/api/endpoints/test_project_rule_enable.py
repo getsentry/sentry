@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from rest_framework import status
 
@@ -16,12 +16,12 @@ class ProjectRuleEnableTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-enable"
     method = "PUT"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.create_project_rule(project=self.project)
         self.login_as(user=self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, record_analytics):
+    def test_simple(self, record_analytics: MagicMock) -> None:
         self.rule.status = ObjectStatus.DISABLED
         self.rule.save()
         with outbox_runner():

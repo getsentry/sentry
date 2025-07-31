@@ -377,7 +377,7 @@ class OrganizationAuthTokenDeleteTest(APITestCase):
 class OrganizationAuthTokenDetailsPermissionTest(PermissionTestCase):
     putData = {"name": "token-1"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         token = OrgAuthToken.objects.create(

@@ -27,7 +27,7 @@ from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import ingest_errors_tasks
+from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -481,12 +481,12 @@ def should_update_escalating_metrics(event: Event) -> bool:
 
 
 @instrumented_task(
-    name="sentry.tasks.post_process.post_process_group",
+    name="sentry.issues.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_tasks,
+        namespace=ingest_errors_postprocess_tasks,
         processing_deadline_duration=120,
     ),
 )
@@ -958,6 +958,9 @@ def process_workflow_engine(job: PostProcessJob) -> None:
 
     if "event" not in job:
         logger.error("Missing event to schedule workflow task", extra={"job": job})
+        return
+
+    if not job["event"].group.is_unresolved():
         return
 
     try:

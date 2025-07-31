@@ -25,7 +25,7 @@ pytestmark = [requires_snuba]
 class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         integration, _, _, _ = self.create_identity_integration(
             user=self.user,
             organization=self.organization,

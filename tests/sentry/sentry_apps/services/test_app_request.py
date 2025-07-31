@@ -14,7 +14,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 @django_db_all(transaction=True)
 @control_silo_test(regions=create_test_regions("us"))
 class TestRegionApp(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = Factories.create_user()
         self.org = Factories.create_organization(owner=self.user, region="us")
         self.app = Factories.create_sentry_app(

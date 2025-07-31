@@ -14,7 +14,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class EmailMissingLinksControlTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
@@ -54,7 +54,7 @@ class EmailMissingLinksControlTest(TestCase):
 
 
 class EmailMissingLinksTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")
@@ -94,7 +94,7 @@ class EmailMissingLinksTest(TestCase):
 
 
 class EmailUnlinkNotificationsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
         self.organization = self.create_organization(name="Test")

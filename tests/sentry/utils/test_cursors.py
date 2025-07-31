@@ -10,7 +10,7 @@ class CursorKwargs(TypedDict):
     limit: int
 
 
-def test_build_cursor():
+def test_build_cursor() -> None:
     event1 = SimpleNamespace(id=1.1, message="one")
     event2 = SimpleNamespace(id=1.1, message="two")
     event3 = SimpleNamespace(id=2.1, message="three")

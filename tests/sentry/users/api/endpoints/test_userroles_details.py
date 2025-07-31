@@ -7,7 +7,7 @@ from sentry.users.models.userrole import UserRole
 class UserRolesDetailsTest(APITestCase):
     endpoint = "sentry-api-0-userroles-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_superuser=True)
         self.login_as(user=self.user, superuser=True)

@@ -28,7 +28,7 @@ from sentry.workflow_engine.types import (
 class OrganizationDetectorTypesAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-type-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

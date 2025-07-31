@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.hybridcloud.models.outbox import RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxScope
@@ -16,7 +16,7 @@ from sentry.utils.cursors import Cursor
 class ProjectReplayDeletionJobsIndexTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-deletion-jobs-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)
@@ -156,7 +156,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert response.data["data"][0]["query"] == "query 4"
 
     @patch("sentry.replays.tasks.run_bulk_replay_delete_job.delay")
-    def test_post_success(self, mock_task):
+    def test_post_success(self, mock_task: MagicMock) -> None:
         """Test successful POST creates job and schedules task"""
         data = {
             "data": {
@@ -347,7 +347,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
 class ProjectReplayDeletionJobDetailTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-deletion-job-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)

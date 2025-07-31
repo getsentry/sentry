@@ -12,7 +12,7 @@ from sentry.utils.circuit_breaker import (
 
 
 class TestCircuitBreaker(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.key = "test"
         self.error_limit = 5
         self.passthrough_data = CircuitBreakerPassthrough(limit=2, window=1)

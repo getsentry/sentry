@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
@@ -390,7 +390,7 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock):
+    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
         # self.organization is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
         # calls before resetting the mock
@@ -401,7 +401,7 @@ class ProjectTest(APITestCase, TestCase):
         assert mock_lock.call_count == 1
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_not_acquired_when_updating_project(self, mock_lock):
+    def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
         # calls before resetting the mock
@@ -452,7 +452,7 @@ class ProjectOptionsTests(TestCase):
     If a project has an option set, it will override the template option.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.option_key = "sentry:test_data"
         self.project = self.create_project()
@@ -501,7 +501,7 @@ class ProjectOptionsTests(TestCase):
 
 
 class CopyProjectSettingsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

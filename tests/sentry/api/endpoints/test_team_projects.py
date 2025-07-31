@@ -1,5 +1,5 @@
 from unittest import TestCase, mock
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
@@ -17,7 +17,7 @@ class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(members=[self.user])
         self.proj1 = self.create_project(teams=[self.team])
@@ -46,7 +46,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(members=[self.user])
         self.data = {"name": "foo", "slug": "bar", "platform": "python"}
@@ -438,7 +438,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert symbol_sources == ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"]
 
     @patch("sentry.api.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
-    def test_create_project_with_origin(self, create_audit_entry):
+    def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:
         signal_handler = Mock()
         project_created.connect(signal_handler)
 

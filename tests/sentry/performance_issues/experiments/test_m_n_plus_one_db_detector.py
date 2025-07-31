@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from typing import Any
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
@@ -33,7 +33,7 @@ class MNPlusOneDBDetectorTest(TestCase):
     fingerprint_type_id = PerformanceMNPlusOneDBQueriesExperimentalGroupType.type_id
     group_type = PerformanceNPlusOneExperimentalGroupType
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -292,7 +292,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert len(self.find_problems(event, settings)) == 1
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_event_below_duration_threshold(self, metrics_mock):
+    def test_ignores_event_below_duration_threshold(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         assert self.find_problems(event) == []
         metrics_mock.incr.assert_called_with(
@@ -300,7 +300,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         )
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_event_with_low_db_span_percentage(self, metrics_mock):
+    def test_ignores_event_with_low_db_span_percentage(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-db-spans-duration-suceeds")
         for index, span in enumerate(event["spans"]):
             # Modify spans so each takes 1s, but DB spans take 1ms
@@ -313,7 +313,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         )
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_event_with_no_common_parent_span(self, metrics_mock):
+    def test_ignores_event_with_no_common_parent_span(self, metrics_mock: MagicMock) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
         previous_parent_span_id = None
         for span in event["spans"]:
@@ -327,7 +327,9 @@ class MNPlusOneDBDetectorTest(TestCase):
         metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
 
     @patch("sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector.metrics")
-    def test_ignores_prisma_client_if_depth_config_is_too_small(self, metrics_mock):
+    def test_ignores_prisma_client_if_depth_config_is_too_small(
+        self, metrics_mock: MagicMock
+    ) -> None:
         settings = deepcopy(self._settings)
         settings[self.detector.settings_key]["max_allowable_depth"] = 1
 

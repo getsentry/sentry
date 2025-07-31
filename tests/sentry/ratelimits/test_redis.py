@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 class RedisRateLimiterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = RedisRateLimiter()
 
     def test_project_key(self) -> None:

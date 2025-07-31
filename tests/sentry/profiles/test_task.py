@@ -335,7 +335,7 @@ def test_normalize_android_profile(organization, android_profile):
     assert android_profile["device_classification"] == "low"
 
 
-def test_process_symbolicator_results_for_sample():
+def test_process_symbolicator_results_for_sample() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "rust",
@@ -426,7 +426,7 @@ def test_process_symbolicator_results_for_sample():
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
-def test_process_symbolicator_results_for_sample_js():
+def test_process_symbolicator_results_for_sample_js() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "javascript",
@@ -807,7 +807,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
 
 
-def test_set_frames_platform_sample():
+def test_set_frames_platform_sample() -> None:
     js_prof: Profile = {
         "version": "1",
         "platform": "javascript",
@@ -825,7 +825,7 @@ def test_set_frames_platform_sample():
     assert platforms == ["javascript", "cocoa", "javascript"]
 
 
-def test_set_frames_platform_android():
+def test_set_frames_platform_android() -> None:
     android_prof: Profile = {
         "platform": "android",
         "profile": {

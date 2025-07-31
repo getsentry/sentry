@@ -299,7 +299,7 @@ class TestDataConditionGroupSerializer(TestCase):
 
 
 class TestActionSerializer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             provider="slack",
@@ -450,12 +450,31 @@ class TestWorkflowSerializer(TestCase):
             detector=detector,
             workflow=workflow,
         )
+
         history = WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
-            date_added=workflow.date_added + timedelta(seconds=1),
+            is_single_written=True,
         )
+        # Too old, shouldn't be used.
+        WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=True,
+        )
+        history.date_added = workflow.date_added + timedelta(seconds=1)
+        history.save()
+        # Dual written, shouldn't be used.
+        dual_written_history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=False,
+        )
+        dual_written_history.date_added = workflow.date_added + timedelta(seconds=2)
+        dual_written_history.save()
 
         result = serialize(workflow)
 
@@ -526,7 +545,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowGroupsPaginatedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -755,7 +774,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
 @freeze_time()
 class WorkflowHourlyStatsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()

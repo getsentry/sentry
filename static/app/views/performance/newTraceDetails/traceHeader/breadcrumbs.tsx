@@ -451,7 +451,6 @@ function LeafBreadCrumbLabel({
         iconSize="xs"
         style={{
           transform: 'translateY(-1px) translateX(-3px)',
-          height: '18px',
         }}
       />
     </Wrapper>
@@ -462,6 +461,7 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
+  min-height: 24px;
 
   .trace-id-copy-button {
     display: none;

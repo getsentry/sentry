@@ -1,21 +1,21 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.seer.models import PageWebVitalsInsight, SummarizePageWebVitalsResponse
 from sentry.seer.page_web_vitals_summary import get_page_web_vitals_summary
 from sentry.snuba.trace import SerializedSpan
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:performance-web-vitals-seer-suggestions")
+@with_feature("organizations:performance-web-vitals-seer-suggestions")
 class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.login_as(self.user)
@@ -92,7 +92,9 @@ class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
         cache.delete("ai-page-web-vitals-summary:" + "-".join(sorted([self.trace_id])))
 
     @patch("sentry.features.has")
-    def test_get_page_web_vitals_summary_feature_flag_disabled(self, mock_has_feature):
+    def test_get_page_web_vitals_summary_feature_flag_disabled(
+        self, mock_has_feature: MagicMock
+    ) -> None:
         mock_has_feature.return_value = False
 
         summary_data, status_code = get_page_web_vitals_summary(
@@ -138,7 +140,7 @@ class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
         mock_cache_set.assert_called_once()
 
     @patch("sentry.seer.page_web_vitals_summary._call_seer")
-    def test_get_page_web_vitals_summary_cache_hit(self, mock_call_seer):
+    def test_get_page_web_vitals_summary_cache_hit(self, mock_call_seer: MagicMock) -> None:
         cached_summary = self.mock_summary_response.dict()
 
         cache.set(

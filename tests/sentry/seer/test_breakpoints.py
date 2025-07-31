@@ -9,7 +9,7 @@ from sentry.utils import json
 
 @pytest.mark.django_db
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
-def test_detect_breakpoints(mock_urlopen):
+def test_detect_breakpoints(mock_urlopen: mock.MagicMock) -> None:
     data = {
         "data": [
             {

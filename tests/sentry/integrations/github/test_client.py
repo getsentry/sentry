@@ -433,7 +433,7 @@ class GithubProxyClientTest(TestCase):
     jwt = "my_cool_jwt"
     access_token = "access_token"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -538,8 +538,24 @@ class GithubProxyClientTest(TestCase):
     def test_get_access_token(self, _):
         self.gh_client.integration.metadata["access_token"] = "access_token_1"
         self.gh_client.integration.metadata["expires_at"] = "3000-01-01T00:00:00Z"
+        self.gh_client.integration.metadata["permissions"] = {
+            "administration": "read",
+            "contents": "read",
+            "issues": "write",
+            "metadata": "read",
+            "pull_requests": "read",
+        }
 
-        assert self.gh_client.get_access_token() == "access_token_1"
+        assert self.gh_client.get_access_token() == {
+            "access_token": "access_token_1",
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+        }
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.GithubProxyClient._get_token", return_value=None)
@@ -757,7 +773,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     Tests that get_blame_for_files builds the correct GraphQL query
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -1131,7 +1147,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     Tests that get_blame_for_files handles the GraphQL response correctly
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.file1 = SourceLineInfo(
@@ -1553,7 +1569,7 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     Tests that rate limits are handled correctly
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.file = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
