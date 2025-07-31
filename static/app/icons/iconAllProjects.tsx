@@ -1,9 +1,26 @@
 import {useTheme} from '@emotion/react';
 
-export function IconAllProjects() {
-  const theme = useTheme();
+import type {SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
-  return (
+function IconAllProjects(props: SVGIconProps) {
+  const theme = useTheme();
+  return theme.isChonk ? (
+    <SvgIcon {...props} kind="stroke">
+      <rect
+        x="5"
+        y="5"
+        width="8.25"
+        height="8.25"
+        rx="1"
+        ry="1"
+        transform="translate(18.25 0) rotate(90)"
+      />
+      <path d="M2.75,9.5V3.75c0-.55.45-1,1-1h5.75" />
+      <line x1="7.75" y1="7.75" x2="10.5" y2="7.75" />
+      <line x1="7.75" y1="10.5" x2="10.5" y2="10.5" />
+    </SvgIcon>
+  ) : (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="18"
@@ -34,3 +51,7 @@ export function IconAllProjects() {
     </svg>
   );
 }
+
+IconAllProjects.displayName = 'IconAllProjects';
+
+export {IconAllProjects};
