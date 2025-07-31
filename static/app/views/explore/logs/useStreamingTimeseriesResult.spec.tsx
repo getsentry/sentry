@@ -455,6 +455,9 @@ describe('useStreamingTimeseriesResult', () => {
       rerender(
         createMockTableData([
           LogFixture({
+            [OurLogKnownFieldKey.ID]: '10',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
             [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(12000),
             [OurLogKnownFieldKey.SEVERITY]: 'yet_another_severity',
           }),
