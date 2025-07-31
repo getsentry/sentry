@@ -364,7 +364,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int,
         provider: str,
         grace_period_end: datetime,
-        status: int | None = ObjectStatus.ACTIVE,
+        status: int = ObjectStatus.ACTIVE,
         skip_oldest: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         filter_kwargs = {
