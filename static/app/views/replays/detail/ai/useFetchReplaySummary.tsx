@@ -32,6 +32,7 @@ export function useFetchReplaySummary(options?: UseApiQueryOptions<SummaryRespon
   const organization = useOrganization();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
+
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   return useApiQuery<SummaryResponse>(
     createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),

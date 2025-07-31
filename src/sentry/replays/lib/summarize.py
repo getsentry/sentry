@@ -33,6 +33,7 @@ class EventDict(TypedDict):
     category: str
 
 
+@sentry_sdk.trace
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict]:
     """Fetch error details given error IDs and return a list of EventDict objects."""
     try:
@@ -75,6 +76,7 @@ def parse_timestamp(timestamp_value: Any, unit: str) -> float:
     return 0.0
 
 
+@sentry_sdk.trace
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
@@ -100,8 +102,9 @@ def fetch_trace_connected_errors(
                 organization=project.organization,
             )
 
-            # Generate a query for each trace ID. This will be executed in bulk.
-            error_query = DiscoverQueryBuilder(
+            # Generate a query for each trace ID in both Events and IssuePlatform datasets
+            # Query Events dataset
+            error_query_events = DiscoverQueryBuilder(
                 Dataset.Events,
                 params={},
                 snuba_params=snuba_params,
@@ -112,6 +115,7 @@ def fetch_trace_connected_errors(
                     "timestamp",
                     "title",
                     "message",
+                    "category",
                 ],
                 orderby=["id"],
                 limit=100,
@@ -119,7 +123,29 @@ def fetch_trace_connected_errors(
                     auto_fields=False,
                 ),
             )
-            queries.append(error_query)
+            queries.append(error_query_events)
+
+            # Query IssuePlatform dataset
+            error_query_issue_platform = DiscoverQueryBuilder(
+                Dataset.IssuePlatform,
+                params={},
+                snuba_params=snuba_params,
+                query=f"trace:{trace_id}",
+                selected_columns=[
+                    "id",
+                    "timestamp_ms",
+                    "timestamp",
+                    "title",
+                    "message",
+                    "category",
+                ],
+                orderby=["id"],
+                limit=100,
+                config=QueryBuilderConfig(
+                    auto_fields=False,
+                ),
+            )
+            queries.append(error_query_issue_platform)
 
         if not queries:
             return []
@@ -139,8 +165,10 @@ def fetch_trace_connected_errors(
                 timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
                 timestamp_s = parse_timestamp(event.get("timestamp"), "s")
                 timestamp = timestamp_ms or timestamp_s * 1000
+                category = event.get("category", "")
 
-                if timestamp:
+                # filter out feedback events as we already process them separately
+                if timestamp and category != "feedback":
                     error_events.append(
                         EventDict(
                             category="error",
@@ -201,6 +229,7 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
     return f"User submitted feedback: '{message}' at {timestamp}"
 
 
+@sentry_sdk.trace
 def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
@@ -272,8 +301,9 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.NAVIGATION_SPAN:
+                timestamp_ms = timestamp * 1000
                 to = event["data"]["payload"]["description"]
-                return f"User navigated to: {to} at {timestamp}"
+                return f"User navigated to: {to} at {timestamp_ms}"
             case EventType.CONSOLE:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
