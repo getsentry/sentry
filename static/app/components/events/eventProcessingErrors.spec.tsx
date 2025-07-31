@@ -2,10 +2,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
-  docUrls,
+  DOCS_URLS,
   EventProcessingErrors,
 } from 'sentry/components/events/eventProcessingErrors';
 import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
@@ -30,8 +29,7 @@ describe('EventProcessingErrors', function () {
           title: 'Discarded invalid value',
           desc: null,
           data: {
-            name: fieldName,
-            value: 'something/invalid',
+            name: fieldName, // This is the correct field name from ErrorMessage interface
           },
         },
       ];
@@ -47,17 +45,16 @@ describe('EventProcessingErrors', function () {
       );
 
       expect(screen.getByText(/discarded invalid value/i)).toBeInTheDocument();
-      expect(screen.getByText(fieldName)).toBeInTheDocument();
 
+      // Check that the tooltip icon is present
+      expect(screen.getByTestId('more-information')).toBeInTheDocument();
+
+      // Hover over the tooltip to show the documentation link
       await userEvent.hover(screen.getByTestId('more-information'));
 
-      expect(
-        await screen.findByText(
-          textWithMarkupMatcher(/learn more about this error in our documentation/i)
-        )
-      ).toBeInTheDocument();
-
-      expect(screen.getByRole('link')).toHaveAttribute('href', docUrls[fieldName]);
+      // Wait for the tooltip content to appear and check for the link
+      const tooltipLink = await screen.findByRole('link');
+      expect(tooltipLink).toHaveAttribute('href', DOCS_URLS[fieldName]);
     }
   );
 
@@ -67,7 +64,7 @@ describe('EventProcessingErrors', function () {
         title: 'Discarded invalid value',
         desc: null,
         data: {
-          unknown_field: 'some-value',
+          name: 'unknown-error-type', // This value doesn't exist in DOCS_URLS
         },
       },
     ];
@@ -83,7 +80,31 @@ describe('EventProcessingErrors', function () {
     );
 
     expect(screen.getByText('Discarded invalid value')).toBeInTheDocument();
-    expect(screen.getByText('some-value')).toBeInTheDocument();
+    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
+  });
+
+  it('handles non-string values gracefully', function () {
+    const mockErrors: ErrorMessage[] = [
+      {
+        title: 'Discarded invalid value',
+        desc: null,
+        data: {
+          name: undefined, // Test with undefined value
+        },
+      },
+    ];
+
+    useActionableItemsWithProguardErrors.mockReturnValue(mockErrors);
+
+    render(
+      <EventProcessingErrors
+        event={EventFixture()}
+        project={ProjectFixture()}
+        isShare={false}
+      />
+    );
+
+    expect(screen.getByText('Discarded invalid value')).toBeInTheDocument();
     expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
   });
 });

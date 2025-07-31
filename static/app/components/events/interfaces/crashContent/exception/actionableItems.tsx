@@ -66,7 +66,6 @@ export function getErrorMessage(
 ): ErrorMessage[] {
   const errorData = error.data ?? {};
   const metaData = meta ?? {};
-
   switch (error.type) {
     // Event Errors
     case ProguardProcessingErrors.PROGUARD_MISSING_LINENO:

@@ -26,7 +26,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-export const docUrls: Record<string, string> = {
+export const DOCS_URLS: Record<string, string> = {
   release: 'https://docs.sentry.io/cli/releases/#creating-releases',
   environment:
     'https://docs.sentry.io/concepts/key-terms/environments/#environment-naming-requirements',
@@ -43,8 +43,13 @@ function EventErrorCard({
     return {item: datum};
   });
 
-  const dataWithDocs = data.find(d => docUrls[d.value.toLowerCase()]);
-  const docLink = dataWithDocs ? docUrls[dataWithDocs.value.toLowerCase()] : undefined;
+  // Find the first item that has a corresponding documentation URL
+  const docLink = data
+    .map(d => {
+      const value = String(d.value || '').toLowerCase();
+      return DOCS_URLS[value];
+    })
+    .find(Boolean);
 
   const titleElement = docLink ? (
     <Flex gap="md" align="center">
