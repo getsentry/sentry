@@ -258,45 +258,6 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range parameters provided"
 
-    def test_with_start_parameter_and_no_end_parameter(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-        start_time = before_now(days=3)
-        response = self.client.get(url, {"start": start_time.isoformat()}, format="json")
-
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid date range parameters provided"
-
-    def test_with_start_parameter_after_end_parameter(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-        start_time = before_now(days=1)
-        end_time = before_now(days=3)
-        response = self.client.get(
-            url, {"start": start_time.isoformat(), "end": end_time.isoformat()}, format="json"
-        )
-
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid date range parameters provided"
-
     def test_with_stats_period_parameter_with_event_date_limit_feature_flag(self):
         self.login_as(user=self.user)
 

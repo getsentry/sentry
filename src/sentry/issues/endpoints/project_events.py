@@ -3,6 +3,7 @@ from functools import partial
 
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -66,8 +67,6 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         """
         Return a list of events bound to a project.
         """
-        from rest_framework.exceptions import ParseError
-
         from sentry.api.paginator import GenericOffsetPaginator
 
         query = request.GET.get("query")
