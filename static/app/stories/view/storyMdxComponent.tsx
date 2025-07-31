@@ -4,6 +4,7 @@ type HeadingProps = {
   children: React.ReactNode;
 };
 
+// Heading levels shifted N+1 for proper semantics on /stories pages
 export const storyMdxComponents = {
   h1: (props: HeadingProps) => <StoryHeading as="h2" size="2xl" {...props} />,
   h2: (props: HeadingProps) => <StoryHeading as="h3" size="xl" {...props} />,
