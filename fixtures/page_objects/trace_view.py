@@ -15,10 +15,6 @@ class TraceViewWaterfallPage(BasePage):
         self.wait_until_loaded()
 
     def get_trace_span_row(self, op, description):
-        """
-        Find the <div> element with class 'TraceLeftColumnInner' that contains the text 'op - description'
-        from the trace view waterfall.
-        """
         return self.browser.find_element(
             by=By.XPATH,
             value=(
