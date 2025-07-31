@@ -29,8 +29,8 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
         enabled: newEnabled,
       },
       {
-        onSuccess: () => {
-          addSuccessMessage(newEnabled ? t('Monitor enabled') : t('Monitor disabled'));
+        onSuccess: data => {
+          addSuccessMessage(data.enabled ? t('Monitor enabled') : t('Monitor disabled'));
         },
       }
     );
@@ -82,19 +82,17 @@ export function EditDetectorAction({detector}: {detector: Detector}) {
 export function DeleteDetectorAction({detector}: {detector: Detector}) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {mutate: deleteDetector, isPending: isDeleting} = useDeleteDetectorMutation();
+  const {mutateAsync: deleteDetector, isPending: isDeleting} =
+    useDeleteDetectorMutation();
 
   const handleDelete = useCallback(() => {
     openConfirmModal({
       message: t('Are you sure you want to delete this monitor?'),
       confirmText: t('Delete'),
       priority: 'danger',
-      onConfirm: () => {
-        deleteDetector(detector.id, {
-          onSuccess: () => {
-            navigate(makeMonitorBasePathname(organization.slug));
-          },
-        });
+      onConfirm: async () => {
+        await deleteDetector(detector.id);
+        navigate(makeMonitorBasePathname(organization.slug));
       },
     });
   }, [deleteDetector, detector.id, navigate, organization.slug]);

@@ -131,7 +131,7 @@ export function CronDetectorFixture(params: Partial<CronDetector> = {}): CronDet
     createdBy: null,
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
-    disabled: false,
+    enabled: true,
     id: '3',
     lastTriggered: '2025-01-01T00:00:00.000Z',
     owner: null,

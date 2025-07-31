@@ -34,9 +34,9 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
         enabled: newEnabled,
       },
       {
-        onSuccess: () => {
+        onSuccess: data => {
           addSuccessMessage(
-            newEnabled ? t('Automation enabled') : t('Automation disabled')
+            data.enabled ? t('Automation enabled') : t('Automation disabled')
           );
         },
       }
