@@ -35,7 +35,10 @@ export function useStoryRedirect() {
       return;
     }
     const {state, ...to} = story.location;
-    navigate(to, {replace: true, state});
+    navigate(
+      {pathname: location.pathname, hash: location.hash, ...to},
+      {replace: true, state: {...location.state, ...state}}
+    );
   }, [location, params, navigate, stories]);
 }
 
