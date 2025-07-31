@@ -248,15 +248,23 @@ class SlackRequestParser(BaseRequestParser):
                 (org for org in organizations if org.slug == linking_organization_slug), None
             )
             if linking_organization:
+                logger.info(
+                    "slack.control.routed_to_organization",
+                    extra={"view_class": self.view_class},
+                )
                 return [linking_organization]
 
-        elif self.view_class == SlackActionEndpoint:
+        elif self.view_class in [SlackActionEndpoint, SlackOptionsLoadEndpoint]:
             drf_request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.view_class.slack_request_class(drf_request)
-            actions = slack_request.data.get("actions", [])
-            action_ids: list[str] = [
-                action["action_id"] for action in actions if action.get("action_id")
-            ]
+            if self.view_class == SlackActionEndpoint:
+                actions = slack_request.data.get("actions", [])
+                action_ids: list[str] = [
+                    action["action_id"] for action in actions if action.get("action_id")
+                ]
+            elif self.view_class == SlackOptionsLoadEndpoint:
+                action_ids = [slack_request.data.get("action_id", "")]
+
             decoded_actions: list[SlackRoutingData] = [
                 decode_action_id(action_id) for action_id in action_ids
             ]
@@ -279,8 +287,16 @@ class SlackRequestParser(BaseRequestParser):
                 (org for org in organizations if org.id in decoded_organization_ids), None
             )
             if action_organization:
+                logger.info(
+                    "slack.control.routed_to_organization",
+                    extra={"view_class": self.view_class},
+                )
                 return [action_organization]
 
+        logger.info(
+            "slack.control.could_not_route",
+            extra={"view_class": self.view_class},
+        )
         return organizations
 
     def get_response(self):
