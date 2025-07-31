@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.auth_v2.endpoints.base import AuthV2Endpoint
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
@@ -14,13 +15,13 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 
 
 class AuthMergeUserAccountsValidator(serializers.Serializer):
-    verificationCode = serializers.CharField(required=True)
-    idsToMerge = serializers.ListField(child=serializers.IntegerField(), required=True)
-    idsToDelete = serializers.ListField(child=serializers.IntegerField(), required=True)
+    verification_code = serializers.CharField(required=True)
+    ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
+    ids_to_delete = serializers.ListField(child=serializers.IntegerField(), required=True)
 
 
 @control_silo_endpoint
-class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
+class AuthMergeUserAccountsEndpoint(AuthV2Endpoint, CamelSnakeSerializer):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -62,14 +63,14 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         verification_code = UserMergeVerificationCode.objects.filter(
             user_id=primary_user.id
         ).first()
-        if verification_code is None or verification_code.token != result["verificationCode"]:
+        if verification_code is None or verification_code.token != result["verification_code"]:
             return Response(
                 status=403,
                 data={"error": "Incorrect verification code"},
             )
 
-        ids_to_merge = result["idsToMerge"]
-        ids_to_delete = result["idsToDelete"]
+        ids_to_merge = result["ids_to_merge"]
+        ids_to_delete = result["ids_to_delete"]
         if not set(ids_to_merge).isdisjoint(set(ids_to_delete)):
             return Response(
                 status=400,
