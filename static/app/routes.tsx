@@ -2481,7 +2481,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'ai/',
       children: [
-        // Render AI page with layout wrapper (this is the same as the coverage page)
+        // Render AI page with layout wrapper
         {
           component: make(() => import('sentry/views/codecov/ai/aiWrapper')),
           children: [
