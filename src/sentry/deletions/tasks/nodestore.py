@@ -19,8 +19,18 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+from sentry.utils.snuba import (
+    QueryExecutionError,
+    SchemaValidationError,
+    SnubaError,
+    UnexpectedResponseError,
+)
 
 EVENT_CHUNK_SIZE = 10000
+
+
+class RetryTask(Exception):
+    pass
 
 
 @instrumented_task(
@@ -34,6 +44,7 @@ EVENT_CHUNK_SIZE = 10000
         namespace=deletion_tasks,
         processing_deadline_duration=60 * 20,
         retry=Retry(
+            on=(RetryTask,),
             times=MAX_RETRIES,
             delay=60 * 5,
         ),
@@ -68,6 +79,7 @@ def delete_events_for_groups_from_nodestore(
         last_event_id:          Event ID of the last processed event (for pagination)
         last_event_timestamp:   Timestamp of the last processed event (for pagination)
     """
+    prefix = "deletions.nodestore"
     if not group_ids:
         raise DeleteAborted("delete_events_from_nodestore.empty_group_ids")
 
@@ -83,7 +95,7 @@ def delete_events_for_groups_from_nodestore(
     # These can be used for debugging
     extra = {"project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
-    logger.info("deletions.nodestore.started", extra=extra)
+    logger.info(f"{prefix}.started", extra=extra)
     project = Project.objects.get(id=project_id)
     assert project.organization_id == organization_id
 
@@ -101,7 +113,7 @@ def delete_events_for_groups_from_nodestore(
         )
         if len(events) > 0:
             last_event = events[-1]
-            delete_events_from_nodestore(events=events, extra=extra)
+            delete_events_from_nodestore(events=events, dataset=Dataset(dataset_str))
             delete_dangling_attachments_and_user_reports(events, [project_id])
             delete_events_for_groups_from_nodestore.apply_async(
                 kwargs={
@@ -111,12 +123,27 @@ def delete_events_for_groups_from_nodestore(
                 },
             )
         else:
-            logger.info("deletions.nodestore.completed", extra=extra)
+            logger.info(f"{prefix}.completed", extra=extra)
+
+    except (
+        AssertionError,
+        NameError,
+        SchemaValidationError,
+        QueryExecutionError,
+        SnubaError,
+        UnexpectedResponseError,
+    ):
+        metrics.incr(f"{prefix}.error", tags={"type": "non-retryable"}, sample_rate=1)
+        # Report to Sentry without blocking deployments
+        logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
+        # We raise it but we don't want to retry the task
+        raise
 
     except Exception:
-        metrics.incr("deletions.nodestore.delete_events_from_nodestore.error", 1, sample_rate=1)
-        logger.warning("deletions.nodestore.failed", extra=extra)
-        raise
+        metrics.incr(f"{prefix}.error", tags={"type": "retryable"}, sample_rate=1)
+        # Report to Sentry without blocking deployments
+        logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
+        raise RetryTask("Failed to delete events from nodestore. Retrying task.")
 
 
 def fetch_events(
@@ -156,17 +183,19 @@ def fetch_events(
     return events
 
 
-def delete_events_from_nodestore(events: Sequence[Event], extra: dict[str, Any]) -> None:
-    node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
-    prefix = "deletions.nodestore"
-    outcome = "success"
-    try:
-        nodestore.backend.delete_multi(node_ids)
-    except Exception:
-        outcome = "error"
-        logger.warning(f"{prefix}.error", extra=extra, exc_info=True)
-    logger.info(f"{prefix}.outcome", extra=extra)
-    metrics.incr(f"{prefix}.outcome", tags={"outcome": outcome}, sample_rate=1)
+def delete_events_from_nodestore(events: Sequence[Event], dataset: Dataset) -> None:
+    node_ids = [
+        Event.generate_node_id(
+            event.project_id,
+            (
+                event._snuba_data["occurrence_id"]
+                if dataset == Dataset.IssuePlatform
+                else event.event_id
+            ),
+        )
+        for event in events
+    ]
+    nodestore.backend.delete_multi(node_ids)
 
 
 def delete_dangling_attachments_and_user_reports(
