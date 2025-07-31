@@ -44,6 +44,8 @@ const AI_OPS = [
   ...AI_HANDOFF_OPS,
 ];
 
+const AI_KNOWN_OPS = [...AI_RUN_OPS, ...AI_TOOL_CALL_OPS, ...AI_HANDOFF_OPS];
+
 export const AI_MODEL_ID_ATTRIBUTE = SpanFields.GEN_AI_REQUEST_MODEL;
 export const AI_MODEL_NAME_FALLBACK_ATTRIBUTE = SpanFields.GEN_AI_RESPONSE_MODEL;
 export const AI_TOOL_NAME_ATTRIBUTE = SpanFields.GEN_AI_TOOL_NAME;
@@ -89,8 +91,9 @@ export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
   return AI_RUN_OPS.includes(op);
 }
 
+// All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
 export function getIsAiGenerationSpan({op = 'default'}: {op?: string}) {
-  return AI_GENERATION_OPS.includes(op);
+  return op.startsWith('gen_ai.') && !AI_KNOWN_OPS.includes(op);
 }
 
 export function getIsAiToolCallSpan({op = 'default'}: {op?: string}) {
@@ -109,8 +112,9 @@ export const getAgentRunsFilter = ({negated = false}: {negated?: boolean} = {}) 
   return `${negated ? '!' : ''}span.op:[${joinValues(AI_RUN_OPS)}]`;
 };
 
+// All of the gen_ai.* spans that are not agent invocations, handoffs, or tool calls are considered generation spans
 export const getAIGenerationsFilter = () => {
-  return `span.op:[${joinValues(AI_GENERATION_OPS)}]`;
+  return `span.op:gen_ai.* !span.op:[${joinValues(AI_KNOWN_OPS)}]`;
 };
 
 export const getAIToolCallsFilter = () => {
