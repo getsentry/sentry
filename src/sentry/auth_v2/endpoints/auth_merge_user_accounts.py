@@ -14,14 +14,14 @@ from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
 
 
-class AuthMergeUserAccountsValidator(serializers.Serializer):
+class AuthMergeUserAccountsValidator(CamelSnakeSerializer):
     verification_code = serializers.CharField(required=True)
     ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
     ids_to_delete = serializers.ListField(child=serializers.IntegerField(), required=True)
 
 
 @control_silo_endpoint
-class AuthMergeUserAccountsEndpoint(AuthV2Endpoint, CamelSnakeSerializer):
+class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
