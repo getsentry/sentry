@@ -320,10 +320,12 @@ function getPageParam(
       return pageParam;
     }
 
-    let firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-    let lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
-
-    if (!firstTimestamp || !lastTimestamp) {
+    let firstTimestamp: bigint;
+    let lastTimestamp: bigint;
+    try {
+      firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+      lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
+    } catch {
       logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
         logId: firstRow[OurLogKnownFieldKey.ID],
         timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
