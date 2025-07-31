@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Final, cast
+from typing import Any, Final
 
 import sentry_sdk
 from django.db.models import F
@@ -17,35 +17,22 @@ from sentry_sdk import set_tag
 
 from sentry import analytics
 from sentry.analytics.events.weekly_report import WeeklyReportSent
-from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.metrics import (
     WeeklyReportFailureType,
     WeeklyReportOperationType,
     WeeklyReportSLO,
 )
-from sentry.tasks.summaries.utils import (
-    ONE_DAY,
-    OrganizationReportContext,
-    ProjectContext,
-    check_if_ctx_is_empty,
-    fetch_key_error_groups,
-    fetch_key_performance_issue_groups,
-    organization_project_issue_substatus_summaries,
-    project_event_counts_for_organization,
-    project_key_errors,
-    project_key_performance_issues,
-    project_key_transactions_last_week,
-    project_key_transactions_this_week,
-    user_project_ownership,
+from sentry.tasks.summaries.organization_report_context_factory import (
+    OrganizationReportContextFactory,
 )
+from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
@@ -54,9 +41,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
-from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.snuba import parse_snuba_datetime
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -66,8 +51,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WeeklyReportProgressTracker:
     """
-    This class manages the "watermark", or last processed org ID for a given
-    weekly report. It can either configured with an explicit start time and
+    This class is used to track the last processed org ID for a given
+    weekly report. It can either be configured with an explicit start time and
     watermark TTL, or it will assume beginning of day, with a 7 day TTL.
     """
 
@@ -214,98 +199,12 @@ def prepare_organization_report(
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
-    ctx = OrganizationReportContext(timestamp, duration, organization)
-
-    # Run organization passes
-    with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
-        user_project_ownership(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
-        event_counts = project_event_counts_for_organization(
-            start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
-        )
-        for data in event_counts:
-            project_id = data["project_id"]
-            # Project no longer in organization, but events still exist
-            if project_id not in ctx.projects_context_map:
-                continue
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
-            total = data["total"]
-            timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
-            if data["category"] == DataCategory.TRANSACTION:
-                # Transaction outcome
-                if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
-                    project_ctx.dropped_transaction_count += total
-                else:
-                    project_ctx.accepted_transaction_count += total
-                    project_ctx.transaction_count_by_day[timestamp] = total
-            elif data["category"] == DataCategory.REPLAY:
-                # Replay outcome
-                if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
-                    project_ctx.dropped_replay_count += total
-                else:
-                    project_ctx.accepted_replay_count += total
-                    project_ctx.replay_count_by_day[timestamp] = total
-            else:
-                # Error outcome
-                if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
-                    project_ctx.dropped_error_count += total
-                else:
-                    project_ctx.accepted_error_count += total
-                    project_ctx.error_count_by_day[timestamp] = (
-                        project_ctx.error_count_by_day.get(timestamp, 0) + total
-                    )
-
-    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_substatus_summaries"):
-        organization_project_issue_substatus_summaries(ctx)
-
-    with sentry_sdk.start_span(op="weekly_reports.project_passes"):
-        # Run project passes
-        for project in organization.project_set.all():
-            key_errors = project_key_errors(
-                ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
-            )
-            if project.id not in ctx.projects_context_map:
-                continue
-
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
-            if key_errors:
-                project_ctx.key_errors_by_id = [
-                    (e["events.group_id"], e["count()"]) for e in key_errors
-                ]
-
-            key_transactions_this_week = project_key_transactions_this_week(ctx, project)
-            if key_transactions_this_week:
-                project_ctx.key_transactions = [
-                    (i["transaction_name"], i["count"], i["p95"])
-                    for i in key_transactions_this_week
-                ]
-                query_result = project_key_transactions_last_week(
-                    ctx, project, key_transactions_this_week
-                )
-                # Join this week with last week
-                last_week_data = {
-                    i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
-                }
-
-                project_ctx.key_transactions = [
-                    (i["transaction_name"], i["count"], i["p95"])
-                    + last_week_data.get(i["transaction_name"], (0, 0))
-                    for i in key_transactions_this_week
-                ]
-
-            key_performance_issues = project_key_performance_issues(
-                ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
-            )
-            if key_performance_issues:
-                ctx.projects_context_map[project.id].key_performance_issues = key_performance_issues
-
-    with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
-        fetch_key_error_groups(ctx)
-    with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
-        fetch_key_performance_issue_groups(ctx)
+    ctx = OrganizationReportContextFactory(
+        timestamp=timestamp, duration=duration, organization=organization
+    ).create_context()
 
     with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
-        report_is_available = not check_if_ctx_is_empty(ctx)
+        report_is_available = not ctx.is_empty()
     set_tag("report.available", report_is_available)
 
     if not report_is_available:
