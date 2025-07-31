@@ -32,31 +32,52 @@ class AppleCrashReport:
         self.exceptions = copy.deepcopy(exceptions)
         self.image_addrs_to_vmaddrs = {}
 
-        # Replace sundry addresses in frames and debug images by their
-        # parsed versions.
+        # Remove frames that don't have an `instruction_addr` and convert
+        # sundry addresses into numbers.
         ts = (self.exceptions or []) + (self.threads or [])
+        frame_keys = ["instruction_addr", "image_addr", "symbol_addr"]
         for t in ts:
-            frames = get_path(t, "stacktrace", "frames", filter=True) or []
+            stacktrace = t.get("stacktrace")
+            if not stacktrace:
+                continue
+            frames = stacktrace.pop("frames", [])
+            if not frames:
+                continue
+            new_frames = []
             for f in frames:
-                for key in ["instruction_addr", "image_addr", "symbol_addr"]:
+                if f.get("instruction_addr", None) is None:
+                    continue
+                new_frame = {key: value for key, value in f.items() if key not in frame_keys}
+                for key in frame_keys:
                     if f.get(key, None) is not None:
-                        f[key] = self._parse_addr(f[key])
+                        new_frame[key] = self._parse_addr(f[key])
+                new_frames.append(new_frame)
+            stacktrace["frames"] = new_frames
 
-        for i in self.debug_images or []:
-            image_addr = None
-            image_vmaddr = None
-            if i.get("image_addr", None) is not None:
-                image_addr = self._parse_addr(i["image_addr"])
-                i["image_addr"] = image_addr
+        # Remove debug images that don't have an `image_addr` and convert
+        # `image_addr` and `image_vmaddr` to numbers.
+        self.debug_images = []
+        for i in debug_images or []:
+            if i.get("image_addr", None) is None:
+                continue
+            new_image = {
+                key: value for key, value in i.items() if key not in ["image_addr", "image_vmaddr"]
+            }
+            image_addr = self._parse_addr(i["image_addr"])
+            new_image["image_addr"] = image_addr
             if i.get("image_vmaddr", None) is not None:
                 image_vmaddr = self._parse_addr(i["image_vmaddr"])
-                i["image_vmaddr"] = image_vmaddr
+                new_image["image_vmaddr"] = image_vmaddr
 
-            # If the image has both an `image_addr` and an `image_vmaddr`
-            # save the mapping between the two. This will be used in
+            self.debug_images.append(new_image)
+
+            # If the image has an `image_vmaddr`, save the mapping from
+            # `image_addr` to `image_vmaddr`. This will be used in
             # `_get_slide_value`.
-            if image_addr is not None and image_vmaddr is not None:
+            if image_vmaddr is not None:
                 self.image_addrs_to_vmaddrs[image_addr] = image_vmaddr
+        if not self.debug_images:
+            self.debug_images = None
 
     @sentry_sdk.trace
     def __str__(self):
@@ -248,8 +269,6 @@ class AppleCrashReport:
         return thread_string + "\n".join(rv)
 
     def _convert_frame_to_apple_string(self, frame, next=None, number=0):
-        if frame.get("instruction_addr", None) is None:
-            return None
         frame_instruction_addr = frame["instruction_addr"]
         frame_image_addr = frame.get("image_addr", 0)
         slide_value = self._get_slide_value(frame_image_addr)
@@ -291,7 +310,7 @@ class AppleCrashReport:
         binary_images = map(
             lambda i: self._convert_debug_meta_to_binary_image_row(debug_image=i),
             sorted(
-                filter(lambda i: "image_addr" in i, self.debug_images),
+                self.debug_images,
                 key=lambda i: i["image_addr"],
             ),
         )
