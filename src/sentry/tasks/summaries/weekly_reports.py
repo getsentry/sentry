@@ -26,7 +26,11 @@ from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
-from sentry.tasks.summaries.metrics import WeeklyReportOperationType, WeeklyReportSLO
+from sentry.tasks.summaries.metrics import (
+    WeeklyReportFailureType,
+    WeeklyReportOperationType,
+    WeeklyReportSLO,
+)
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
@@ -45,6 +49,7 @@ from sentry.tasks.summaries.utils import (
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
@@ -128,40 +133,44 @@ def schedule_organizations(
     with WeeklyReportSLO(
         operation_type=WeeklyReportOperationType.SCHEDULE_ORGANIZATION_REPORTS
     ).capture() as lifecycle:
-        batch_id = str(uuid.uuid4())
+        try:
+            batch_id = str(uuid.uuid4())
 
-        lifecycle.add_extras(
-            {
-                "batch_id": batch_id,
-                "organization_starting_batch_id": minimum_organization_id,
-                "report_timestamp": batching.beginning_of_day_timestamp,
-            }
-        )
-        for organization in RangeQuerySetWrapper(
-            organizations,
-            step=10000,
-            result_value_getter=lambda item: item.id,
-            min_id=minimum_organization_id,
-        ):
-            # Create a celery task per organization
-            logger.info(
-                "weekly_reports.schedule_organizations",
-                extra={
-                    "batch_id": str(batch_id),
-                    "organization": organization.id,
-                    "minimum_organization_id": minimum_organization_id,
-                },
+            lifecycle.add_extras(
+                {
+                    "batch_id": batch_id,
+                    "organization_starting_batch_id": minimum_organization_id,
+                    "report_timestamp": batching.beginning_of_day_timestamp,
+                }
             )
-            prepare_organization_report.delay(
-                batching.beginning_of_day_timestamp,
-                batching.duration,
-                organization.id,
-                batch_id,
-                dry_run=dry_run,
-            )
-            batching.set_last_processed_org_id(organization.id)
+            for organization in RangeQuerySetWrapper(
+                organizations,
+                step=10000,
+                result_value_getter=lambda item: item.id,
+                min_id=minimum_organization_id,
+            ):
+                # Create a celery task per organization
+                logger.info(
+                    "weekly_reports.schedule_organizations",
+                    extra={
+                        "batch_id": str(batch_id),
+                        "organization": organization.id,
+                        "minimum_organization_id": minimum_organization_id,
+                    },
+                )
+                prepare_organization_report.delay(
+                    batching.beginning_of_day_timestamp,
+                    batching.duration,
+                    organization.id,
+                    batch_id,
+                    dry_run=dry_run,
+                )
+                batching.set_last_processed_org_id(organization.id)
 
-        batching.delete_min_org_id()
+            batching.delete_min_org_id()
+        except ProcessingDeadlineExceeded:
+            lifecycle.record_failure(WeeklyReportFailureType.TIMEOUT)
+            raise
 
 
 # This task is launched per-organization.
