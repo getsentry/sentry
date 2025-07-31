@@ -94,7 +94,7 @@ def query(
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         if debug:
-            results["meta"]["query"] = str(metrics_query.get_snql_query().query)
+            results["meta"]["debug_info"] = {"query": str(metrics_query.get_snql_query().query)}
         sentry_sdk.set_tag("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results

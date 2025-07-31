@@ -102,7 +102,9 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_meta(
-        self, referrer: str, sampling_mode: SAMPLING_MODES | None = None
+        self,
+        referrer: str,
+        sampling_mode: SAMPLING_MODES | None = None,
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
