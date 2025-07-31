@@ -357,11 +357,6 @@ export function useLogsGroupBy() {
   return groupBy;
 }
 
-export function useLogsIsFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return !!isTableFrozen;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -380,11 +375,6 @@ export function useSetLogsCursor() {
     },
     [isTableFrozen, setCursorForFrozenPages, setPageParams]
   );
-}
-
-export function useLogsIsTableFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return !!isTableFrozen;
 }
 
 export function usePersistedLogsPageParams() {

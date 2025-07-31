@@ -124,6 +124,7 @@ function OurlogsSectionContent({
                 dataRow={row}
                 meta={tableData.meta}
                 highlightTerms={[]}
+                embedded
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}
                 blockRowExpanding

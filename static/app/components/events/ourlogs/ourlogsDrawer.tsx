@@ -90,9 +90,9 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
         <EventDrawerBody ref={containerRef}>
           <LogsTableContainer>
             {hasInfiniteFeature ? (
-              <LogsInfiniteTable showHeader={false} scrollContainer={containerRef} />
+              <LogsInfiniteTable embedded scrollContainer={containerRef} />
             ) : (
-              <LogsTable showHeader={false} allowPagination />
+              <LogsTable allowPagination embedded />
             )}
           </LogsTableContainer>
         </EventDrawerBody>
