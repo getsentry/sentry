@@ -183,8 +183,6 @@ function SpansSearchBar({
 
     if (!committedQuery) return inputValue;
 
-    if (committedQuery.includes(inputValue)) return committedQuery;
-
     return `${committedQuery} ${inputValue}`;
   })();
 
