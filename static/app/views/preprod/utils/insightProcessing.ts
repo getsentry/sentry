@@ -25,7 +25,7 @@ export interface ProcessedInsight {
   totalSavings: number;
 }
 
-export const INSIGHT_CONFIGS = [
+const INSIGHT_CONFIGS = [
   {
     key: 'image_optimization',
     name: 'Optimize images',
