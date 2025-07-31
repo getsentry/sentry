@@ -187,13 +187,7 @@ function eventHasSourceMaps(event: Event) {
  */
 function eventIsSymbolicated(event: Event) {
   const frames = getAllFrames(event, false);
-  const isAsyncSuspensionFrame = (frame: Frame) =>
-    frame.filename === '<asynchronous suspension>' ||
-    frame.absPath === '<asynchronous suspension>';
-
-  const fromSymbolicator = frames.some(
-    frame => defined(frame.symbolicatorStatus) || isAsyncSuspensionFrame(frame)
-  );
+  const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
 
   if (fromSymbolicator) {
     // if the event goes through symbolicator and have in-app frames, we say it's symbolicated if
@@ -207,9 +201,7 @@ function eventIsSymbolicated(event: Event) {
     // if there's no in-app frames, we say it's symbolicated if at least
     // one system frame is successfully symbolicated
     return frames.some(
-      frame =>
-        frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED ||
-        isAsyncSuspensionFrame(frame)
+      frame => frame.symbolicatorStatus === SymbolicatorStatus.SYMBOLICATED
     );
   }
 
