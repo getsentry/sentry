@@ -95,7 +95,11 @@ export function useUpdateDetector() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<Detector, void, {detectorId: string} & BaseDetectorUpdatePayload>({
+  return useMutation<
+    Detector,
+    void,
+    {detectorId: string} & Partial<BaseDetectorUpdatePayload>
+  >({
     mutationFn: data =>
       api.requestPromise(`/organizations/${org.slug}/detectors/${data.detectorId}/`, {
         method: 'PUT',

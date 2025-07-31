@@ -19,7 +19,7 @@ export function DetectorListRow({detector}: DetectorListRowProps) {
 
   return (
     <DetectorSimpleTableRow
-      variant={detector.disabled ? 'faded' : 'default'}
+      variant={detector.enabled ? 'default' : 'faded'}
       data-test-id="detector-list-row"
     >
       <SimpleTable.RowCell>

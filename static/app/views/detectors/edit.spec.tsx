@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -20,7 +21,7 @@ describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
     features: ['workflow-engine-ui', 'visibility-explore-view'],
   });
-  const project = ProjectFixture({organization, environments: ['production']});
+  const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/issues/monitors/:detectorId/edit/',
     location: {
@@ -34,6 +35,12 @@ describe('DetectorEdit', () => {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       body: [],
@@ -84,6 +91,88 @@ describe('DetectorEdit', () => {
       url: `/organizations/${organization.slug}/workflows/`,
       match: [MockApiClient.matchQuery({ids: ['100']})],
       body: [AutomationFixture({id: '100', name: 'Workflow foo'})],
+    });
+  });
+
+  describe('EditDetectorActions', () => {
+    const mockDetector = MetricDetectorFixture();
+
+    it('calls delete mutation when deletion is confirmed', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      const mockDeleteDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'DELETE',
+      });
+
+      const {router} = render(<DetectorEdit />, {organization, initialRouterConfig});
+      renderGlobalModal();
+
+      expect(
+        await screen.findByRole('link', {name: mockDetector.name})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+
+      // Confirm the deletion
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Delete'}));
+
+      expect(mockDeleteDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        expect.anything()
+      );
+
+      // Redirect to the monitors list
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/monitors/`
+      );
+    });
+
+    it('calls update mutation when enabling/disabling automation', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      const mockUpdateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        method: 'PUT',
+        body: {...mockDetector, enabled: !mockDetector.enabled},
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('link', {name: mockDetector.name})
+      ).toBeInTheDocument();
+
+      // Wait for the component to load and display automation actions
+      expect(await screen.findByRole('button', {name: 'Disable'})).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: {...mockDetector, enabled: !mockDetector.enabled},
+      });
+
+      // Click the toggle button to enable/disable the automation
+      await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
+
+      // Verify the mutation was called with correct data
+      await waitFor(() => {
+        expect(mockUpdateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          expect.objectContaining({
+            data: {detectorId: mockDetector.id, enabled: !mockDetector.enabled},
+          })
+        );
+      });
+
+      // Verify the button text has changed to "Enable"
+      expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
     });
   });
 
