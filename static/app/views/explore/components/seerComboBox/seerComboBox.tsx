@@ -466,7 +466,11 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
             </Fragment>
           ) : (
             <SeerContent>
-              <SeerSearchHeader title={t("Describe what you're looking for.")} />
+              <SeerSearchHeader
+                title={t(
+                  "Describe what you're looking for, or try one of these examples:"
+                )}
+              />
               <SeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
