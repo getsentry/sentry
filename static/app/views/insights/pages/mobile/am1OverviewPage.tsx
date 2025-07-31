@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -11,8 +10,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -32,23 +29,19 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
-  BACKEND_LANDING_TITLE,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/backend/settings';
-import {
-  FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
-} from 'sentry/views/insights/pages/frontend/settings';
-import {
+  MOBILE_LANDING_TITLE,
   MOBILE_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
+  OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
-  generateBackendPerformanceEventView,
+  generateGenericPerformanceEventView,
+  generateMobilePerformanceEventView,
   USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
+import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -62,31 +55,33 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const APDEX_TOOLTIP = tct(
-  'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#apdex" />
-    ),
-  }
-);
-
-const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
+const MOBILE_COLUMN_TITLES = [
   {title: 'transaction'},
   {title: 'operation'},
   {title: 'project'},
   {title: 'tpm'},
-  {title: 'p50()'},
-  {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
   {title: 'users'},
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-// TODO: remove Am2/am3 stuff and rename to `AM1BackendOverviewPage` when we remove `useInsightsEap`
-export function OldBackendOverviewPage() {
+const REACT_NATIVE_COLUMN_TITLES = [
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
+  {title: 'stall %'},
+  {title: 'users'},
+  {title: 'user misery'},
+];
+
+// Am1 customers do not have EAP, so we need to use the old frontend overview page for now
+export function Am1MobileOverviewPage() {
+  useOverviewPageTrackPageload();
+
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -99,39 +94,21 @@ export function OldBackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+
+  const eventView = generateMobilePerformanceEventView(
+    location,
+    projects,
+    generateGenericPerformanceEventView(location, withStaticFilters, organization),
+    withStaticFilters,
+    organization
+  );
   const searchBarEventView = eventView.clone();
 
-  const segmentOp = 'transaction.op';
+  let columnTitles = checkIsReactNative(eventView)
+    ? REACT_NATIVE_COLUMN_TITLES
+    : MOBILE_COLUMN_TITLES;
 
-  // TODO - this should come from MetricsField / EAP fields
-  eventView.fields = [
-    {field: 'team_key_transaction'},
-    {field: 'http.method'},
-    {field: 'transaction'},
-    {field: segmentOp},
-    {field: 'project'},
-    {field: 'tpm()'},
-    {field: 'p50()'},
-    {field: 'p95()'},
-    {field: 'failure_rate()'},
-    {field: 'apdex()'},
-    {field: 'count_unique(user)'},
-    {field: 'count_miserable(user)'},
-    {field: 'user_misery()'},
-  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
-
-  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried with the same tags/filters
-  const disallowedOps = [
-    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
-  ];
-
-  const selectedFrontendProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
-  );
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
   const selectedMobileProjects: Project[] = getSelectedProjectList(
     selection.projects,
@@ -141,32 +118,22 @@ export function OldBackendOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addOp('(');
-  existingQuery.addOp('(');
-  existingQuery.addFilterValues(`!${segmentOp}`, disallowedOps);
-
-  if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  if (selectedMobileProjects.length > 0) {
+    existingQuery.addOp('OR');
     existingQuery.addFilterValue(
-      '!project.id',
-      `[${[
-        ...selectedFrontendProjects.map(project => project.id),
-        ...selectedMobileProjects.map(project => project.id),
-      ]}]`
+      'project.id',
+      `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
     );
   }
-  existingQuery.addOp(')');
-  existingQuery.addOp('OR');
-  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
-  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_DB_OPS,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
+    PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+    PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -178,17 +145,35 @@ export function OldBackendOverviewPage() {
       PerformanceWidgetSetting.P95_DURATION_AREA,
       PerformanceWidgetSetting.P99_DURATION_AREA,
       PerformanceWidgetSetting.FAILURE_RATE_AREA,
-      PerformanceWidgetSetting.APDEX_AREA,
     ],
     mepSetting
   );
 
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(
-      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+  if (organization.features.includes('mobile-vitals')) {
+    columnTitles = [
+      ...columnTitles.slice(0, 5),
+      {title: 'ttid'},
+      ...columnTitles.slice(5, 0),
+    ];
+    tripleChartRowCharts.push(
+      ...[
+        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
+        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
+      ]
     );
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+  }
+  if (organization.features.includes('insights-initial-modules')) {
+    doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
+  }
+  if (organization.features.includes('starfish-mobile-appstart')) {
+    doubleChartRowCharts.push(
+      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
+    );
+  }
+
+  if (organization.features.includes('insights-initial-modules')) {
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
   }
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
@@ -208,7 +193,7 @@ export function OldBackendOverviewPage() {
   };
 
   function handleSearch(searchQuery: string) {
-    trackAnalytics('performance.domains.backend.search', {organization});
+    trackAnalytics('performance.domains.mobile.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -229,7 +214,7 @@ export function OldBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -261,7 +246,7 @@ export function OldBackendOverviewPage() {
                 />
               ) : (
                 <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.BACKEND}}
+                  value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
@@ -279,10 +264,10 @@ export function OldBackendOverviewPage() {
                       {...sharedProps}
                     />
                     <Table
-                      theme={theme}
                       projects={projects}
-                      columnTitles={BACKEND_COLUMN_TITLES}
+                      columnTitles={columnTitles}
                       setError={setPageError}
+                      theme={theme}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>
