@@ -13,7 +13,7 @@ const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
   [AlertRuleThresholdType.ABOVE_AND_BELOW]: 'both',
 } as const;
 
-interface EventAnomalyPayload extends Record<string, unknown> {
+interface EventAnomalyPayload {
   config: {
     direction: 'up' | 'down' | 'both';
     /**
