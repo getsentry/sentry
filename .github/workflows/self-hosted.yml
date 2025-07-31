@@ -77,7 +77,7 @@ jobs:
       - uses: getsentry/action-build-and-push-images@fce78c005f99fa7b6fed58d37187394a30d2118c
         with:
           image_name: 'sentry'
-          platforms: ${{ matrix.platform }}
+          platforms: linux/${{ matrix.platform }}
           dockerfile_path: 'self-hosted/Dockerfile'
           ghcr: true
           outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
