@@ -361,14 +361,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int,
         provider: str,
         grace_period_end: datetime,
-        status: int = ObjectStatus.ACTIVE,
-        skip_oldest: bool = True,
+        status: int | None = ObjectStatus.ACTIVE,
+        skip_oldest: bool = False,
     ) -> list[RpcOrganizationIntegration]:
-        current_org_ois = OrganizationIntegration.objects.filter(
-            organization_id=organization_id,
-            integration__provider=provider,
-            status=status,
-        )
+        filter_kwargs = {
+            "organization_id": organization_id,
+            "integration__provider": provider,
+        }
+        if status is not None:
+            filter_kwargs["status"] = status
+
+        current_org_ois = OrganizationIntegration.objects.filter(**filter_kwargs)
         ois_to_update = list(current_org_ois.values_list("id", flat=True))
 
         if skip_oldest:
@@ -379,23 +382,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
                     status=status,
                     integration__provider=provider,
                 )
-                .order_by("date_added")
+                .order_by("id")
                 .distinct()
             )
 
             # Create mapping of integration_id to list of OrganizationIntegrations
-            integration_to_ois = defaultdict(list)
+            integration_to_ois: dict[int, list[OrganizationIntegration]] = defaultdict(list)
             for oi in all_ois:
                 integration_to_ois[oi.integration_id].append(oi)
 
             # Sort the OrganizationIntegrations for each Integration
             for integration, ois in integration_to_ois.items():
-                integration_to_ois[integration] = sorted(
-                    ois, key=lambda oi: oi.date_added or oi.date_updated
-                )
-
-                # Check if the oldest OrganizationIntegration for this Integration belongs to THIS organization
-                # If not we want to start the grace period for this OrganizationIntegration
+                # Check if the oldest OrganizationIntegration for the Integration belongs to THIS organization
+                # If not we want to start the grace period for this org's OrganizationIntegration
                 if integration_to_ois[integration][0].organization_id == organization_id:
                     ois_to_update.remove(integration_to_ois[integration][0].id)
 

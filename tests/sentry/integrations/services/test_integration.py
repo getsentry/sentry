@@ -368,7 +368,7 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
         with assume_test_silo_mode(SiloMode.CONTROL):
 
             self.github_integration_1 = self.create_integration(
-                organization=self.org1,
+                organization=self.org2,
                 name="GitHub Integration 1",
                 provider="github",
                 external_id="github:repo1",
@@ -385,12 +385,12 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
 
             now = datetime.now(timezone.utc)
             # Add the same GitHub integrations to other orgs (multi-org scenario)
-            # Org2 uses github_integration_1 and is older than org1's
-            self.org2_github_oi_1 = self.create_organization_integration(
+            # Org2 uses github_integration_1 and is older than org1's so org1 should get the grace period
+            self.org1_github_oi_1 = self.create_organization_integration(
                 integration=self.github_integration_1,
-                organization_id=self.org2.id,
+                organization_id=self.org1.id,
                 status=ObjectStatus.ACTIVE,
-                date_added=now - timedelta(days=10),  # Older than org1
+                date_added=now,  # Older than org 2
             )
 
             # Org3 uses github_integration_2 and is newer than org1's
@@ -401,10 +401,11 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
                 date_added=now + timedelta(days=5),  # Newer than org1
             )
 
-            # Get org1's OrganizationIntegrations
-            self.org1_github_oi_1 = OrganizationIntegration.objects.get(
-                organization_id=self.org1.id, integration_id=self.github_integration_1.id
+            # Get org2's OrganizationIntegration for github_integration_1
+            self.org2_github_oi_1 = OrganizationIntegration.objects.get(
+                organization_id=self.org2.id, integration_id=self.github_integration_1.id
             )
+            # Get org1's OrganizationIntegration for github_integration_2
             self.org1_github_oi_2 = OrganizationIntegration.objects.get(
                 organization_id=self.org1.id, integration_id=self.github_integration_2.id
             )
@@ -418,11 +419,12 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
                 organization_id=self.org1.id,
                 provider="github",
                 grace_period_end=grace_period_end,
+                status=ObjectStatus.ACTIVE,
                 skip_oldest=True,
             )
 
         # Expected behavior with skip_oldest=True:
-        # - org1_github_oi_1 should get grace perioded (org2's OI is newer)
+        # - org1_github_oi_1 should get grace perioded since org 2's OI is older
         # - org1_github_oi_2 should not get grace perioded (since it's the oldest OI for this integration)
         # - org3_github_oi_2 should not get grace perioded (OIs that aren't from the downgrading org should be untouched)
 
@@ -432,10 +434,15 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
             self.org1_github_oi_1.refresh_from_db()
             self.org1_github_oi_2.refresh_from_db()
             self.org3_github_oi_2.refresh_from_db()
+            self.org2_github_oi_1.refresh_from_db()
 
+        # Assertions for github_integration_1
         assert self.org1_github_oi_1.id in lof_grace_perioded_ois
         assert self.org1_github_oi_1.grace_period_end == grace_period_end
+        assert self.org2_github_oi_1.grace_period_end is None
+        assert self.org2_github_oi_1.id not in lof_grace_perioded_ois
 
+        # Assertions for github_integration_2
         assert self.org1_github_oi_2.id not in lof_grace_perioded_ois
         assert self.org1_github_oi_2.grace_period_end is None
         assert self.org3_github_oi_2.id not in lof_grace_perioded_ois
@@ -451,6 +458,7 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
                 organization_id=self.org1.id,
                 provider="github",
                 grace_period_end=grace_period_end,
+                status=ObjectStatus.ACTIVE,
                 skip_oldest=False,
             )
 
