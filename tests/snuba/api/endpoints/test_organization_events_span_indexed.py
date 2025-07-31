@@ -1805,7 +1805,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             }
         )
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 504, response.content
         assert "Query timeout" in response.data["detail"]
 
     def test_extrapolation(self):

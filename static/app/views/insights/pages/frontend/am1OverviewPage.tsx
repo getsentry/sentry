@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -10,6 +11,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -29,19 +32,18 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
-  MOBILE_LANDING_TITLE,
-  MOBILE_PLATFORMS,
+  FRONTEND_LANDING_TITLE,
+  FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/mobile/settings';
+} from 'sentry/views/insights/pages/frontend/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
-  generateGenericPerformanceEventView,
-  generateMobilePerformanceEventView,
+  generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
-import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -55,33 +57,32 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const MOBILE_COLUMN_TITLES = [
+const DURATION_TOOLTIP = tct(
+  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
+    ),
+  }
+);
+
+const FRONTEND_COLUMN_TITLES = [
   {title: 'transaction'},
   {title: 'operation'},
   {title: 'project'},
   {title: 'tpm'},
-  {title: 'slow frame %'},
-  {title: 'frozen frame %'},
+  {title: 'p50()', tooltip: DURATION_TOOLTIP},
+  {title: 'p75()', tooltip: DURATION_TOOLTIP},
+  {title: 'p95()', tooltip: DURATION_TOOLTIP},
   {title: 'users'},
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-const REACT_NATIVE_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'slow frame %'},
-  {title: 'frozen frame %'},
-  {title: 'stall %'},
-  {title: 'users'},
-  {title: 'user misery'},
-];
-
-export function OldMobileOverviewPage() {
+// Am1 customers do not have EAP, so we need to use the old frontend overview page for now
+export function Am1FrontendOverviewPage() {
   useOverviewPageTrackPageload();
-
   const theme = useTheme();
+
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -93,46 +94,61 @@ export function OldMobileOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-
-  const eventView = generateMobilePerformanceEventView(
+  const eventView = generateFrontendOtherPerformanceEventView(
     location,
-    projects,
-    generateGenericPerformanceEventView(location, withStaticFilters, organization),
-    withStaticFilters,
-    organization
+    withStaticFilters
   );
   const searchBarEventView = eventView.clone();
 
-  let columnTitles = checkIsReactNative(eventView)
-    ? REACT_NATIVE_COLUMN_TITLES
-    : MOBILE_COLUMN_TITLES;
+  const sharedProps = {eventView, location, organization, withStaticFilters};
+
+  const segmentOp = 'transaction.op';
+
+  // TODO - this should come from MetricsField / EAP fields
+  eventView.fields = [
+    {field: 'team_key_transaction'},
+    {field: 'transaction'},
+    {field: segmentOp},
+    {field: 'project'},
+    {field: 'tpm()'},
+    {field: 'p50(transaction.duration)'},
+    {field: 'p75(transaction.duration)'},
+    {field: 'p95(transaction.duration)'},
+    {field: 'count_unique(user)'},
+    {field: 'count_miserable(user)'},
+    {field: 'user_misery()'},
+  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedMobileProjects: Project[] = getSelectedProjectList(
+  const selectedFrontendProjects: Project[] = getSelectedProjectList(
     selection.projects,
     projects
   ).filter((project): project is Project =>
-    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
+    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
   );
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
-  if (selectedMobileProjects.length > 0) {
+  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
+  existingQuery.addOp('(');
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
+  // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
+  if (selectedFrontendProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
       'project.id',
-      `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
+      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
     );
   }
-
+  existingQuery.addOp(')');
+  existingQuery.addFilterValues(`!${segmentOp}`, BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.MOST_SLOW_FRAMES,
-    PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+    PerformanceWidgetSetting.SLOW_HTTP_OPS,
+    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -148,34 +164,11 @@ export function OldMobileOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [
-      ...columnTitles.slice(0, 5),
-      {title: 'ttid'},
-      ...columnTitles.slice(5, 0),
-    ];
-    tripleChartRowCharts.push(
-      ...[
-        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
-        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
-      ]
-    );
-  }
   if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
   }
-  if (organization.features.includes('starfish-mobile-appstart')) {
-    doubleChartRowCharts.push(
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
-    );
-  }
-
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-  }
-
-  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -192,7 +185,7 @@ export function OldMobileOverviewPage() {
   };
 
   function handleSearch(searchQuery: string) {
-    trackAnalytics('performance.domains.mobile.search', {organization});
+    trackAnalytics('performance.domains.frontend.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -213,7 +206,7 @@ export function OldMobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
+      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -245,28 +238,25 @@ export function OldMobileOverviewPage() {
                 />
               ) : (
                 <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.MOBILE}}
+                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
                 >
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
+                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
                     teams={teams}
                     selectedTeams={['myteams']}
                     selectedProjects={eventView.project.map(String)}
                   >
-                    <DoubleChartRow
-                      allowedCharts={doubleChartRowCharts}
-                      {...sharedProps}
-                      eventView={doubleChartRowEventView}
-                    />
-                    <TripleChartRow
-                      allowedCharts={tripleChartRowCharts}
-                      {...sharedProps}
-                    />
                     <Table
-                      projects={projects}
-                      columnTitles={columnTitles}
-                      setError={setPageError}
                       theme={theme}
+                      projects={projects}
+                      columnTitles={FRONTEND_COLUMN_TITLES}
+                      setError={setPageError}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>

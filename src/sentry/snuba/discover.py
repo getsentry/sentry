@@ -258,7 +258,7 @@ def query(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
     if debug:
-        result["meta"]["query"] = str(builder.get_snql_query().query)
+        result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
