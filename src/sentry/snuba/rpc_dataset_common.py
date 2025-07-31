@@ -378,7 +378,6 @@ def run_table_query(
     """Run the query"""
     table_request = get_table_rpc_request(query)
     rpc_request = table_request.rpc_request
-    raise Exception(rpc_request)
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
     sentry_sdk.set_tag("query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier)
 
