@@ -31,38 +31,44 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
   });
 
   return (
-    <HeadingContainer gap="md" align="center">
+    <Flex gap="md" align="center">
       <Heading {...props} id={id} />
-      <LinkButton priority="transparent" size="xs" href={`#${id}`} onClick={onClick}>
+      <StyledLinkButton
+        priority="transparent"
+        size="xs"
+        href={`#${id}`}
+        onClick={onClick}
+      >
         <IconLink />
-      </LinkButton>
-    </HeadingContainer>
+      </StyledLinkButton>
+    </Flex>
   );
 }
 
-const HeadingContainer = styled(Flex)`
-  > a {
-    opacity: 0;
-    color: ${p => p.theme.tokens.graphics.muted};
-  }
+const StyledLinkButton = styled(LinkButton)`
+  position: relative;
+  opacity: 0;
+  width: 32px;
+  height: 32px;
 
-  &:is(:hover, :focus-within) > a {
+  /* Show self on hover/focus and on sibling hover */
+  &:is(:hover, :focus),
+  *:is(:hover) ~ & {
     opacity: 1;
   }
 
-  a:is(:hover, :focus) {
-    color: ${p => p.theme.tokens.graphics.accent};
+  /* Extend hitbox by 8px on each side */
+  &::before {
+    position: absolute;
+    inset: -8px;
+    content: '';
+    display: block;
   }
 
+  /* Move to leading side of heading on xl screens */
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    flex-direction: row;
+    order: -1;
     margin-left: -40px;
-
-    > a {
-      width: 32px;
-      height: 32px;
-      order: -1;
-    }
   }
 `;
 
