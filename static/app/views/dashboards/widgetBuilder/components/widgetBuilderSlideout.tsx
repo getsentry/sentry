@@ -249,9 +249,11 @@ function WidgetBuilderSlideout({
           </Fragment>
         ) : (
           <Fragment>
-            <Section>
-              <WidgetBuilderNameAndDescription error={error} setError={setError} />
-            </Section>
+            <DisableTransactionWidget>
+              <Section>
+                <WidgetBuilderNameAndDescription error={error} setError={setError} />
+              </Section>
+            </DisableTransactionWidget>
             <Section>
               <WidgetBuilderDatasetSelector />
             </Section>
