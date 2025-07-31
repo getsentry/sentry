@@ -6,7 +6,6 @@ from typing import Any
 import sentry_sdk
 
 from sentry import eventstore, nodestore
-from sentry.deletions.defaults.group import EVENT_CHUNK_SIZE
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
@@ -20,6 +19,8 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+
+EVENT_CHUNK_SIZE = 10000
 
 
 @instrumented_task(
