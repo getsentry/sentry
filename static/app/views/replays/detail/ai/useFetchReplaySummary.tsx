@@ -109,13 +109,7 @@ export function useFetchReplaySummary(
       staleTime: 0,
       retry: false,
       refetchInterval: query => {
-        if (
-          isPolling(
-            query.state.data?.[0],
-            isStartSummaryRequestPending,
-            Boolean(options?.enabled)
-          )
-        ) {
+        if (isPolling(query.state.data?.[0], isStartSummaryRequestPending)) {
           return POLL_INTERVAL_MS;
         }
         return false;
@@ -136,11 +130,7 @@ export function useFetchReplaySummary(
 
   return {
     summaryData,
-    isPolling: isPolling(
-      summaryData,
-      isStartSummaryRequestPending,
-      Boolean(options?.enabled)
-    ),
+    isPolling: isPolling(summaryData, isStartSummaryRequestPending),
     isPending:
       dataUpdatedAt < startSummaryRequestTime.current ||
       isPending ||
@@ -157,11 +147,11 @@ export function useFetchReplaySummary(
 
 const isPolling = (
   summaryData: SummaryResponse | undefined,
-  isStartSummaryRequestPending: boolean,
-  enabled: boolean
+  isStartSummaryRequestPending: boolean
 ) => {
   if (!summaryData) {
-    return enabled;
+    // No data yet - poll if we've started a request
+    return isStartSummaryRequestPending;
   }
 
   switch (summaryData.status) {
