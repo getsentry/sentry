@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {Container} from 'sentry/components/core/layout/container';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading} from 'sentry/components/core/text/heading';
-import {Text as SentryText} from 'sentry/components/core/text/text';
+import {Text} from 'sentry/components/core/text/text';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -53,7 +53,7 @@ function FileRow({file, fileIndex}: FileRowProps) {
   // Default display for all other file types
   return (
     <FileItem isAlternating={isAlternating}>
-      <SentryText
+      <Text
         variant="accent"
         size="sm"
         bold
@@ -61,19 +61,19 @@ function FileRow({file, fileIndex}: FileRowProps) {
         style={{flex: 1, marginRight: '16px', cursor: 'pointer'}}
       >
         {file.path}
-      </SentryText>
+      </Text>
       <FileSavings>
-        <SentryText variant="primary" size="sm" tabular>
+        <Text variant="primary" size="sm" tabular>
           {formatBytesBase10SavingsAmount(-file.savings)}
-        </SentryText>
-        <SentryText
+        </Text>
+        <Text
           variant="muted"
           size="sm"
           tabular
           style={{width: '64px', textAlign: 'right'}}
         >
           ({formatPercentage(-file.percentage)})
-        </SentryText>
+        </Text>
       </FileSavings>
     </FileItem>
   );
@@ -94,7 +94,7 @@ function OptimizableImageFileRow({
 }) {
   return (
     <FileItem isAlternating={isAlternating}>
-      <SentryText
+      <Text
         variant="accent"
         size="sm"
         bold
@@ -102,19 +102,19 @@ function OptimizableImageFileRow({
         style={{flex: 1, marginRight: '16px', cursor: 'pointer'}}
       >
         {file.path}
-      </SentryText>
+      </Text>
       <FileSavings>
-        <SentryText variant="primary" size="sm" tabular>
+        <Text variant="primary" size="sm" tabular>
           {formatBytesBase10SavingsAmount(-file.savings)}
-        </SentryText>
-        <SentryText
+        </Text>
+        <Text
           variant="muted"
           size="sm"
           tabular
           style={{width: '64px', textAlign: 'right'}}
         >
           ({formatPercentage(-file.percentage)})
-        </SentryText>
+        </Text>
       </FileSavings>
     </FileItem>
   );
@@ -207,9 +207,9 @@ export function AppSizeInsightsSidebar({
                     gap="lg"
                   >
                     <Flex align="start" justify="between">
-                      <SentryText variant="primary" size="md" bold>
+                      <Text variant="primary" size="md" bold>
                         {insight.name}
-                      </SentryText>
+                      </Text>
                       <Container
                         display="flex"
                         style={{
@@ -219,19 +219,19 @@ export function AppSizeInsightsSidebar({
                           flexShrink: 0,
                         }}
                       >
-                        <SentryText size="sm" tabular>
+                        <Text size="sm" tabular>
                           Potential savings{' '}
                           {formatBytesBase10SavingsAmount(insight.totalSavings)}
-                        </SentryText>
+                        </Text>
                         <SavingsPercentage>
                           {formatPercentage(-insight.percentage)}
                         </SavingsPercentage>
                       </Container>
                     </Flex>
 
-                    <SentryText variant="muted" size="sm" as="p">
+                    <Text variant="muted" size="sm" as="p">
                       {insight.description}
-                    </SentryText>
+                    </Text>
 
                     <Container>
                       <FilesToggle
@@ -239,9 +239,9 @@ export function AppSizeInsightsSidebar({
                         onClick={() => toggleExpanded(insight.name)}
                       >
                         <ToggleIcon isExpanded={isExpanded} />
-                        <SentryText variant="primary" size="md" bold>
+                        <Text variant="primary" size="md" bold>
                           {insight.files.length} files
-                        </SentryText>
+                        </Text>
                       </FilesToggle>
 
                       {isExpanded && (
