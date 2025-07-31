@@ -60,7 +60,7 @@ export function extendWithLegacyAttributeKeys(attributeKeys: string[]) {
 }
 
 export function getIsAiSpan({op = 'default'}: {op?: string}) {
-  return op.startsWith('gen_ai.');
+  return op.startsWith('gen_ai.') || getIsAiRunSpan({op});
 }
 
 export function getIsAiRunSpan({op = 'default'}: {op?: string}) {
