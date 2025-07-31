@@ -77,7 +77,7 @@ def _attempt_update(
     is_flag=True,
     help="Hide the actual value of the option on DB when detecting drift.",
 )
-@click.option("--timestamp", help="Timestamp to measure latency for the automator.")
+@click.option("--timestamp", type=str, help="Timestamp to measure latency for the automator.")
 @log_options()
 @click.pass_context
 @configuration
