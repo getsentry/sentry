@@ -53,6 +53,7 @@ from sentry.search.eap.columns import (
     ResolvedEquation,
     ResolvedFormula,
     ResolvedLiteral,
+    ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
@@ -938,8 +939,11 @@ class SearchResolver:
             # If there are missing arguments, and the argument definition has a default arg, use the default arg
             # this assumes the missing args are at the beginning or end of the arguments list
             if missing_args > 0 and argument_definition.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
-                parsed_args.append(parsed_argument)
+                if isinstance(argument_definition, ValueArgumentDefinition):
+                    parsed_args.append(argument_definition.default_arg)
+                else:
+                    parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                    parsed_args.append(parsed_argument)
                 missing_args -= 1
                 continue
 

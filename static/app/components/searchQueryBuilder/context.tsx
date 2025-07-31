@@ -53,6 +53,7 @@ interface SearchQueryBuilderContextData {
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   filterKeyAliases?: TagCollection;
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   placeholder?: string;
   /**
    * The element to render the combobox popovers into.
@@ -98,6 +99,7 @@ export function SearchQueryBuilderProvider({
   getFilterTokenWarning,
   portalTarget,
   replaceRawSearchKeys,
+  matchKeySuggestions,
   filterKeyAliases,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -192,6 +194,7 @@ export function SearchQueryBuilderProvider({
       displaySeerResults,
       setDisplaySeerResults,
       replaceRawSearchKeys,
+      matchKeySuggestions,
       filterKeyAliases,
       gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
     };
@@ -213,6 +216,7 @@ export function SearchQueryBuilderProvider({
     portalTarget,
     recentSearches,
     replaceRawSearchKeys,
+    matchKeySuggestions,
     searchSource,
     setupAcknowledgement.orgHasAcknowledged,
     size,

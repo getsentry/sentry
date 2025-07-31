@@ -7,12 +7,16 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {CheckStatus, type UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 
-type UptimePercentileProps = {
+type UptimePercentProps = {
   summary: UptimeSummary;
+  /**
+   * Text to display at the top of the uptime percent text tooltip
+   */
+  note?: React.ReactNode;
   size?: BaseTextProps['size'];
 };
 
-export function UptimePercentile({summary, size}: UptimePercentileProps) {
+export function UptimePercent({summary, note, size}: UptimePercentProps) {
   const knownChecks = summary.totalChecks - summary.missedWindowChecks;
 
   if (knownChecks === 0) {
@@ -27,7 +31,7 @@ export function UptimePercentile({summary, size}: UptimePercentileProps) {
 
   const tooltip = (
     <Flex direction="column" gap="md" style={{textAlign: 'left'}}>
-      {t('The percent uptime of this monitor in the selected time period.')}
+      {note}
       <Grid columns={'max-content max-content max-content'} gap="xs md">
         <span>
           <CheckIndicator status={CheckStatus.SUCCESS} width={8} />

@@ -162,7 +162,6 @@ GAMING = {
     "godot",
     "native",
     "nintendo-switch",
-    "nintendo-switch-2",
     "playstation",
     "unity",
     "unreal",

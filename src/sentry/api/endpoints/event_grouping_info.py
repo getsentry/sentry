@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 
 
@@ -29,8 +30,8 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        grouping_config_id = event.get_grouping_config()["id"]
-        _grouping_info = get_grouping_info(grouping_config_id, project, event)
+        grouping_config = load_grouping_config(event.get_grouping_config())
+        _grouping_info = get_grouping_info(grouping_config, project, event)
 
         # TODO: All of the below is a temporary hack to preserve compatibility between the BE and FE as
         # we transition from using dashes in the keys/variant types to using underscores. For now, until
