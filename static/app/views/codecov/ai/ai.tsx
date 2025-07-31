@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import preventAiIllustration from 'sentry-images/prevent-ai-illustration.svg';
+import preventAiIllustration from 'sentry-images/features/preventai.svg';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
@@ -13,7 +13,7 @@ export default function AIPage() {
     <OnboardingPanel>
       <Container>
         <ImageColumn>
-          <IllustrationImage src={preventAiIllustration} alt="PreventAI illustration" />
+          <IllustrationImage src={preventAiIllustration} alt="Prevent AI illustration" />
         </ImageColumn>
         <TextColumn>
           <Title>{t('Ship Code That Breaks Less With Code Reviews And Tests')}</Title>
