@@ -5,7 +5,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 13
+LATEST_EPOCH = 14
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -31,7 +31,7 @@ register(key="sentry:similarity_backfill_completed", default=None)
 register(
     key="sentry:default_loader_version",
     # TODO(andreiborza): Make v10 loader default
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 9: "8.x", 13: "9.x"},
+    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x"},
 )
 
 # Default symbol sources.  The ios source does not exist by default and
