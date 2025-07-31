@@ -2,6 +2,8 @@ from datetime import timedelta
 from functools import cached_property
 from unittest.mock import call, patch
 
+from django.utils import timezone
+
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor_base import (
@@ -98,7 +100,9 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     def comparison_detector_above(self):
         detector = self.metric_detector
         detector.config.update({"comparison_delta": 60 * 60})
+        detector.save()
         self.update_threshold(detector, DetectorPriorityLevel.HIGH, 150)
+        self.update_threshold(detector, DetectorPriorityLevel.OK, 150)
         snuba_query = self.get_snuba_query(detector)
         snuba_query.update(time_window=60 * 60)
         return detector
@@ -107,6 +111,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     def comparison_detector_below(self):
         detector = self.metric_detector
         detector.config.update({"comparison_delta": 60 * 60})
+        detector.save()
         DataCondition.objects.filter(condition_group=detector.workflow_condition_group).delete()
         self.set_up_data_conditions(detector, Condition.LESS, 50, None, 50)
         snuba_query = self.get_snuba_query(detector)
@@ -116,8 +121,8 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_comparison_alert_above(self, helper_metrics):
         detector = self.comparison_detector_above
-        # comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
-        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10), subscription=self.sub)
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
 
         # Shouldn't trigger, since there should be no data in the comparison period
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
@@ -131,3 +136,31 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        self.send_update(2, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(6, timedelta(minutes=-7))
+        # Shouldn't trigger: 6/4 == 150%, but we want > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(7, timedelta(minutes=-6))
+        # Should trigger: 7/4 == 175% > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(6, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
