@@ -1,12 +1,9 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {LogFixture} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,27 +27,14 @@ const mockUseLocation = jest.mocked(useLocation);
 describe('useVirtualStreaming', () => {
   let requestAnimationFrameSpy: jest.SpyInstance<number, [FrameRequestCallback]>;
   let cancelAnimationFrameSpy: jest.SpyInstance<void, [number]>;
-  const organization = OrganizationFixture();
-  const project = ProjectFixture();
+
+  const {organization, project, setupPageFilters} = initializeLogsTest();
+
+  setupPageFilters();
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockUseLocation.mockReturnValue(LocationFixture());
-
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
-      },
-      new Set()
-    );
 
     requestAnimationFrameSpy = jest
       .spyOn(window, 'requestAnimationFrame')
@@ -87,21 +71,29 @@ describe('useVirtualStreaming', () => {
       // Data should be sorted by timestamp, so the first one should be the latest
       LogFixture({
         [OurLogKnownFieldKey.ID]: '4',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 42 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 42000) * 1_000_000n),
       }),
       LogFixture({
         [OurLogKnownFieldKey.ID]: '3',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 45 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 44000) * 1_000_000n),
       }),
       LogFixture({
         [OurLogKnownFieldKey.ID]: '2',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 50 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 46000) * 1_000_000n),
       }),
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         // 55 seconds ago in nanoseconds
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(now - 55000) * 1_000_000n),
       }),
@@ -125,6 +117,8 @@ describe('useVirtualStreaming', () => {
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
       }),
     ]);
@@ -140,6 +134,8 @@ describe('useVirtualStreaming', () => {
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
       }),
     ]);
@@ -157,6 +153,8 @@ describe('useVirtualStreaming', () => {
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
         [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1000000000000000000',
       }),
     ]);
@@ -183,9 +181,13 @@ describe('useVirtualStreaming', () => {
 });
 
 describe('isRowVisibleInVirtualStream', () => {
+  const {organization: testOrg, project: testProject} = initializeLogsTest();
+
   it('should filter based on the milliseconds of the passed timestamp', () => {
     const row = LogFixture({
       [OurLogKnownFieldKey.ID]: '1',
+      [OurLogKnownFieldKey.PROJECT_ID]: testProject.id,
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(testOrg.id),
       [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '2000000000',
     });
 

@@ -12,9 +12,10 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
   };
   'logs.auto_refresh.toggled': {
-    enabled: boolean;
+    fromPaused: boolean;
     organization: Organization;
     page_source: LogsAnalyticsPageSource;
+    toggleState: 'enabled' | 'disabled';
   };
   'logs.doc_link.clicked': {
     organization: Organization;
