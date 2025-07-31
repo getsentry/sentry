@@ -110,7 +110,7 @@ function isInsideButton(element: Element | null): boolean {
 
 export const LogRowContent = memo(function LogRowContent({
   dataRow,
-  embedded,
+  embedded = false,
   highlightTerms,
   meta,
   sharedHoverTimeoutRef,
