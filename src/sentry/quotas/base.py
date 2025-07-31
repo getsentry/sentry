@@ -477,12 +477,6 @@ class Quota(Service):
                 categories=[DataCategory.SPAN_INDEXED],
                 scope=QuotaScope.PROJECT,
             ),
-            AbuseQuota(
-                id="pal",
-                option="project-abuse-quota.log-limit",
-                categories=[DataCategory.LOG_ITEM],
-                scope=QuotaScope.PROJECT,
-            ),
         ]
 
         abuse_quotas.extend(build_metric_abuse_quotas())
