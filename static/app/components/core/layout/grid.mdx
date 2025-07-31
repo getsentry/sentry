@@ -27,6 +27,93 @@ To create a basic grid container, wrap elements in `<Grid>` and define columns u
 </Grid>
 ```
 
+### Composition
+
+The `Grid` implements composition via <a href="/stories/layout/composition">render prop</a> pattern.
+
+<Storybook.Demo>
+  <Grid
+    areas={`
+      "header header"
+      "sidebar main"
+      "footer footer"`}
+    border="primary"
+    radius="md"
+    padding="md"
+  >
+    {props => (
+      <div {...props}>
+        <Container
+          border="primary"
+          background="primary"
+          radius="md"
+          padding="md"
+          area="header"
+        >
+          Header
+        </Container>
+        <Container
+          border="primary"
+          background="primary"
+          radius="md"
+          padding="md"
+          area="sidebar"
+        >
+          Sidebar
+        </Container>
+        <Container
+          border="primary"
+          background="primary"
+          radius="md"
+          padding="md"
+          area="main"
+        >
+          Main Content
+        </Container>
+        <Container
+          border="primary"
+          background="primary"
+          radius="md"
+          padding="md"
+          area="footer"
+        >
+          Footer
+        </Container>
+      </div>
+    )}
+  </Grid>
+</Storybook.Demo>
+```jsx
+<Grid
+  areas={`
+    "header header"
+    "sidebar main"
+    "footer footer"`}
+  border="primary"
+  radius="md"
+  padding="md"
+>
+  {props => (
+    <div {...props}>
+      <Container area="header">Header</Container>
+      <Container area="sidebar">Sidebar</Container>
+      <Container area="main">Main Content</Container>
+      <Container area="footer">Footer</Container>
+    </div>
+  )}
+</Grid>
+```
+
+### Specifying the DOM Node via `as` prop
+
+The `Grid` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
+
+```tsx
+<Grid as="section" padding="md" background="primary">
+  Basic grid content
+</Grid>
+```
+
 ### Grid Areas
 
 <Storybook.Demo>
