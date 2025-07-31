@@ -885,7 +885,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightPreset"] == preset
 
         # Set to custom
-        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        highlight_tags = ["bears", "beets", "battlestar_galactica", "blue bugs"]
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -912,26 +912,36 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightContext"] == preset["context"]
         assert resp.data["highlightPreset"] == preset
 
-        # Set to custom
-        highlight_context_type = "bird-words"
-        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
-        resp = self.get_success_response(
-            self.org_slug,
-            self.proj_slug,
-            highlightContext=highlight_context,
-        )
-        option_result = self.project.get_option("sentry:highlight_context")
-        resp_result = resp.data["highlightContext"]
-        for highlight_context_key in highlight_context[highlight_context_type]:
-            assert highlight_context_key in option_result[highlight_context_type]
-            assert highlight_context_key in resp_result[highlight_context_type]
+        # Set to custom with different separators
+        highlight_context_types = ["birdwords", "bird-words", "bird words"]
+        for highlight_context_type in highlight_context_types:
+            highlight_context_value = [
+                "red",
+                "robin",
+                "blue",
+                "jay",
+                "red",
+                "blue",
+                "canadian goose",
+            ]
+            highlight_context = {highlight_context_type: highlight_context_value}
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=highlight_context,
+            )
+            option_result = self.project.get_option("sentry:highlight_context")
+            resp_result = resp.data["highlightContext"]
+            for highlight_context_key in highlight_context[highlight_context_type]:
+                assert highlight_context_key in option_result[highlight_context_type]
+                assert highlight_context_key in resp_result[highlight_context_type]
 
-        # Filters duplicates
-        assert (
-            len(option_result[highlight_context_type])
-            == len(resp_result[highlight_context_type])
-            == 4
-        )
+            # Filters duplicates
+            assert (
+                len(option_result[highlight_context_type])
+                == len(resp_result[highlight_context_type])
+                == 5
+            )
 
         # Set to empty
         resp = self.get_success_response(
