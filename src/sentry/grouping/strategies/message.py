@@ -34,6 +34,24 @@ REGEX_PATTERN_KEYS = (
     "int",
     "quoted_str",
     "bool",
+)
+
+EXPERIMENTAL_REGEX_PATTERN_KEYS = (
+    "email",
+    "url",
+    "hostname",
+    "ip",
+    "traceparent",
+    "uuid",
+    "sha1",
+    "md5",
+    "date",
+    "duration",
+    "hex",
+    "float",
+    "int",
+    "quoted_str",
+    "bool",
     "windows_path",
 )
 
@@ -53,9 +71,12 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
     if trimmed != message:
         trimmed += "..."
 
+    is_experimental = in_rollout_group("grouping.experimental_parameterization", event.project_id)
+    pattern_keys = EXPERIMENTAL_REGEX_PATTERN_KEYS if is_experimental else REGEX_PATTERN_KEYS
+
     parameterizer = Parameterizer(
-        regex_pattern_keys=REGEX_PATTERN_KEYS,
-        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
+        regex_pattern_keys=pattern_keys,
+        experimental=is_experimental,
     )
 
     normalized = parameterizer.parameterize_all(trimmed)

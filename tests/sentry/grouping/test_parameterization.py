@@ -11,7 +11,26 @@ def parameterizer() -> Parameterizer:
 
 @pytest.fixture
 def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(regex_pattern_keys=REGEX_PATTERN_KEYS, experimental=True)
+    # Use experimental pattern keys that include windows_path
+    experimental_keys = (
+        "email",
+        "url",
+        "hostname",
+        "ip",
+        "traceparent",
+        "uuid",
+        "sha1",
+        "md5",
+        "date",
+        "duration",
+        "hex",
+        "float",
+        "int",
+        "quoted_str",
+        "bool",
+        "windows_path",
+    )
+    return Parameterizer(regex_pattern_keys=experimental_keys, experimental=True)
 
 
 standard_cases = [
@@ -101,14 +120,6 @@ standard_cases = [
     ("bool - missing equal", "true", "true"),
     ("bool - whitespace", "a = False", "a = False"),
     ("bool - whitespace", "a = true", "a = true"),
-    ("windows_path - simple file", "C:\\file.txt", "<windows_path>"),
-    ("windows_path - simple directory", "C:\\folder\\", "<windows_path>"),
-    ("windows_path - nested path", "C:\\Users\\username\\Documents\\file.txt", "<windows_path>"),
-    ("windows_path - with spaces", "C:\\Program Files\\My App\\config.ini", "<windows_path>"),
-    ("windows_path - case insensitive", "c:\\folder\\file.txt", "<windows_path>"),
-    ("windows_path - with dots", "C:\\folder.sub\\file.backup.txt", "<windows_path>"),
-    ("windows_path - no extension", "C:\\folder\\filename", "<windows_path>"),
-    ("windows_path - trailing slash", "C:\\folder\\subfolder\\", "<windows_path>"),
     ("None", "A quick brown fox", "A quick brown fox"),
     ("Multiple - ip:port", "0.0.0.0:80", "<ip>:<int>"),
 ]
@@ -120,6 +131,14 @@ experimental_cases = [
     ("date - JS minus without tz", "Mon Jan 02 2006 14:04:05 GMT-0800", "<date>"),
     ("date - JS utc without tz", "Mon Jan 02 2006 14:04:05 GMT+0000", "<date>"),
     ("date - JS plus without tz", "Mon Jan 02 2006 14:04:05 GMT+0800", "<date>"),
+    ("windows_path - simple file", "C:\\file.txt", "<windows_path>"),
+    ("windows_path - simple directory", "C:\\folder\\", "<windows_path>"),
+    ("windows_path - nested path", "C:\\Users\\username\\Documents\\file.txt", "<windows_path>"),
+    ("windows_path - with spaces", "C:\\Program Files\\My App\\config.ini", "<windows_path>"),
+    ("windows_path - case insensitive", "c:\\folder\\file.txt", "<windows_path>"),
+    ("windows_path - with dots", "C:\\folder.sub\\file.backup.txt", "<windows_path>"),
+    ("windows_path - no extension", "C:\\folder\\filename", "<windows_path>"),
+    ("windows_path - trailing slash", "C:\\folder\\subfolder\\", "<windows_path>"),
 ]
 
 
