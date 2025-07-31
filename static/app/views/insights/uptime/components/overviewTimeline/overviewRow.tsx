@@ -101,7 +101,13 @@ export function OverviewRow({
             ) : (
               <Flex gap="xs" align="center">
                 <IconStats color="subText" size="xs" />
-                <UptimePercentile size="xs" summary={summary} />
+                <UptimePercentile
+                  size="xs"
+                  summary={summary}
+                  note={t(
+                    'The percent uptime of this monitor in the selected time period.'
+                  )}
+                />
               </Flex>
             )}
           </Flex>
