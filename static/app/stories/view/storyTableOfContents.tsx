@@ -1,4 +1,5 @@
 import {useLayoutEffect, useMemo, useState} from 'react';
+import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout/flex';
@@ -36,12 +37,22 @@ function getContentEntries(main: HTMLElement): Entry[] {
 
 function useStoryIndex(): Entry[] {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const location = useLocation();
+
+  const hash = useMemo(() => location.hash.slice(1), [location.hash]);
 
   useLayoutEffect(() => {
     const observer = new MutationObserver(_mutations => {
       const main = document.querySelector('main');
       if (main) {
-        setEntries(getContentEntries(main));
+        const newEntries = getContentEntries(main);
+        if (hash) {
+          const entry = newEntries.find(e => e.ref.id === hash);
+          if (entry) {
+            entry.ref.scrollIntoView();
+          }
+        }
+        setEntries(newEntries);
       }
     });
 
@@ -53,11 +64,19 @@ function useStoryIndex(): Entry[] {
 
     // Fire this immediately to ensure entries are set on pageload
     window.requestAnimationFrame(() => {
-      setEntries(getContentEntries(document.querySelector('main')!));
+      const newEntries = getContentEntries(document.querySelector('main')!);
+      if (hash) {
+        const entry = newEntries.find(e => e.ref.id === hash);
+        if (entry) {
+          entry.ref.scrollIntoView();
+        }
+        setEntries(newEntries);
+      }
+      setEntries(newEntries);
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [hash]);
 
   return entries;
 }
@@ -155,6 +174,7 @@ export function StoryTableOfContents() {
   const [activeId, setActiveId] = useActiveSection(entries);
 
   if (nestedEntries.length === 0) return null;
+
   return (
     <StoryIndexContainer>
       <StoryIndexTitle>On this page</StoryIndexTitle>
@@ -183,8 +203,6 @@ function StoryContentsList({
   setActiveId: (id: string) => void;
   isChild?: boolean;
 }) {
-  const isActive = entry.entry.ref.id === activeId;
-
   // Check if any children are active
   const hasActiveChild = entry.children.some(
     child =>
@@ -195,17 +213,26 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <Flex as="li" direction="column" overflow="hidden">
-      <Text ellipsis>
-        <LinkComponent
-          href={`#${entry.entry.ref.id}`}
-          isActive={isActive}
-          hasActiveChild={hasActiveChild}
-          onClick={() => setActiveId(entry.entry.ref.id)}
+    <Flex as="li" direction="column">
+      <LinkComponent
+        href={`#${entry.entry.ref.id}`}
+        isActive={entry.entry.ref.id === activeId}
+        hasActiveChild={hasActiveChild}
+        onClick={() => setActiveId(entry.entry.ref.id)}
+      >
+        <Text
+          ellipsis
+          variant={
+            hasActiveChild
+              ? 'primary'
+              : entry.entry.ref.id === activeId
+                ? 'accent'
+                : 'muted'
+          }
         >
           {entry.entry.title}
-        </LinkComponent>
-      </Text>
+        </Text>
+      </LinkComponent>
       {entry.children.length > 0 && (
         <StoryIndexList>
           {entry.children.map(child => (
@@ -266,10 +293,7 @@ const StoryIndexList = styled('ul')`
 
 const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   display: block;
-  color: ${p => p.theme.tokens.content.muted};
   text-decoration: none;
-  line-height: 1;
-  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)};
   transition: color 80ms ease-out;
   border-radius: ${p => p.theme.borderRadius};
@@ -283,7 +307,6 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   ${p =>
     p.isActive &&
     `
-      color: ${p.theme.tokens.content.accent};
       &::before {
         content: '';
         display: block;
@@ -295,11 +318,6 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
         transform: translateX(-2px);
         background: ${p.theme.tokens.graphics.accent};
       }
-    `}
-  ${p =>
-    p.hasActiveChild &&
-    `
-      color: ${p.theme.tokens.content.primary};
     `}
 `;
 

@@ -1,11 +1,11 @@
-import {Fragment, useEffect} from 'react';
+import React, {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
-import {Heading} from 'sentry/components/core/text';
+import {Heading, Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
@@ -67,14 +67,25 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   return (
     <StoryHeader>
       <StoryGrid>
-        <StoryContainer style={{gap: space(1)}}>
-          <Flex direction="column" gap="md">
+        <StoryContainer style={{gap: space(3)}}>
+          <Flex
+            direction="column"
+            gap="xl"
+            padding={
+              props.story.exports.frontmatter?.layout === 'document'
+                ? '0 0 2xl 0'
+                : undefined
+            }
+          >
             <Heading as="h1">{title}</Heading>
-            {description && <p>{description}</p>}
+            {description && (
+              <Text as="p" density="comfortable">
+                {description}
+              </Text>
+            )}
           </Flex>
-          {props.story.exports.frontmatter?.layout === 'document' ? null : (
-            <StoryTabList />
-          )}
+
+          <StoryTabList />
         </StoryContainer>
       </StoryGrid>
     </StoryHeader>
@@ -83,7 +94,8 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
 
 function StoryTabList() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) return null;
+  if (!isMDXStory(story)) return null;
+  if (story.exports.frontmatter?.layout === 'document') return null;
 
   return (
     <TabList>
@@ -99,9 +111,15 @@ function StoryTabList() {
 
 function StoryTabPanels() {
   const {story} = useStory();
-  if (!story.filename.endsWith('.mdx')) {
+  if (!isMDXStory(story)) {
     return <StoryUsage />;
   }
+
+  // A document is just a single page
+  if (story.exports.frontmatter?.layout === 'document') {
+    return <StoryUsage />;
+  }
+
   return (
     <TabPanels>
       <TabPanels.Item key="usage">
@@ -196,25 +214,15 @@ const StoryHeader = styled('header')`
   padding: 32px 0 0 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   grid-area: story-head;
-  h1 {
-    font-size: 24px;
-    font-weight: ${p => p.theme.fontWeight.bold};
-  }
-  p {
-    margin-top: 8px;
-    margin-bottom: 16px;
-  }
 `;
 
-const StoryGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr minmax(auto, 360px);
-  flex: 1;
-  height: 100%;
-`;
+function StoryGrid(props: React.ComponentProps<typeof Grid>) {
+  return <Grid {...props} columns={'1fr minmax(auto, 360px)'} height="100%" />;
+}
 
 const StoryContainer = styled('div')`
   max-width: 820px;
+  width: calc(-32px + 100vw);
   margin-inline: auto;
   display: flex;
   flex-direction: column;
