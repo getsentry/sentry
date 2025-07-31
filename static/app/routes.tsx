@@ -1728,7 +1728,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
-      deprecatedRouteProps: true,
     },
   ];
   const replayRoutes: SentryRouteObject = {
@@ -1736,7 +1735,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
-    deprecatedRouteProps: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [

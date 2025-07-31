@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 MAX_SEGMENTS_TO_SUMMARIZE = 100
+SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer requests.
 
 SEER_START_TASK_URL = (
     f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start"
@@ -67,6 +68,18 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
     def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
         data = json.dumps(post_body)
+
+        if len(data) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
+            logger.warning(
+                "Replay Summary: large Seer request.",
+                extra={
+                    "num_chars": len(data),
+                    "threshold": SEER_REQUEST_SIZE_LOG_THRESHOLD,
+                    "replay_id": post_body.get("replay_id"),
+                    "organization_id": post_body.get("organization_id"),
+                    "project_id": post_body.get("project_id"),
+                },
+            )
 
         try:
             response = requests.post(
@@ -158,6 +171,17 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # Download segment data.
         # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
         segment_md = fetch_segments_metadata(project.id, replay_id, 0, MAX_SEGMENTS_TO_SUMMARIZE)
+        if len(segment_md) >= MAX_SEGMENTS_TO_SUMMARIZE:
+            logger.warning(
+                "Replay Summary: hit max segment limit.",
+                extra={
+                    "replay_id": replay_id,
+                    "project_id": project.id,
+                    "organization_id": project.organization.id,
+                    "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
+                },
+            )
+
         segment_data = iter_segment_data(segment_md)
 
         # Combine replay and error data and parse into logs.

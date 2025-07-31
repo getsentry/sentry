@@ -17,7 +17,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
@@ -465,7 +465,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:incidents")
+@with_feature("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
 
@@ -581,7 +581,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         }
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_valid_creation(self, mock_audit):
+    def test_valid_creation(self, mock_audit: mock.MagicMock) -> None:
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,

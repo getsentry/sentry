@@ -176,7 +176,7 @@ class TestProcessWorkflowActivity(TestCase):
         assert mock_eval_actions.call_count == 0
 
     @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
-    def test_process_workflow_activity(self, mock_filter_actions):
+    def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -207,7 +207,7 @@ class TestProcessWorkflowActivity(TestCase):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(self, mock_incr):
+    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -239,4 +239,5 @@ class TestProcessWorkflowActivity(TestCase):
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
                 tags={"activity_type": self.activity.type},
+                sample_rate=1.0,
             )

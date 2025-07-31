@@ -6,10 +6,13 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {IconTimer, IconUser} from 'sentry/icons';
+import Placeholder from 'sentry/components/placeholder';
+import {IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -17,7 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeRule, UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import {UptimePercentile} from 'sentry/views/insights/uptime/components/percentile';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -34,9 +38,15 @@ interface Props {
    * rule name.
    */
   singleRuleView?: boolean;
+  summary?: UptimeSummary | null;
 }
 
-export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Props) {
+export function OverviewRow({
+  summary,
+  uptimeRule,
+  timeWindowConfig,
+  singleRuleView,
+}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({
     organization,
@@ -65,26 +75,40 @@ export function OverviewRow({uptimeRule, timeWindowConfig, singleRuleView}: Prop
         <DetailsHeadline>
           <Name>{uptimeRule.name}</Name>
         </DetailsHeadline>
-        <DetailsContainer>
+        <Flex direction="column" gap="xs">
           <OwnershipDetails>
             {project && <ProjectBadge project={project} avatarSize={12} disableLink />}
             {uptimeRule.owner ? (
               <ActorBadge actor={uptimeRule.owner} avatarSize={12} />
             ) : (
-              <UnassignedLabel>
+              <Flex gap="xs" align="center">
                 <IconUser size="xs" />
                 {t('Unassigned')}
-              </UnassignedLabel>
+              </Flex>
             )}
           </OwnershipDetails>
-          <ScheduleDetails>
-            <IconTimer size="xs" />
-            {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
-          </ScheduleDetails>
+          <Flex gap="xs" align="center">
+            <Flex gap="xs" align="center">
+              <IconTimer color="subText" size="xs" />
+              <Text size="xs" variant="muted">
+                {t('Checked every %s', getDuration(uptimeRule.intervalSeconds))}
+              </Text>
+            </Flex>
+            {summary === undefined ? null : summary === null ? (
+              <Text size="xs">
+                <Placeholder width="60px" height="1lh" />
+              </Text>
+            ) : (
+              <Flex gap="xs" align="center">
+                <IconStats color="subText" size="xs" />
+                <UptimePercentile size="xs" summary={summary} />
+              </Flex>
+            )}
+          </Flex>
           <MonitorStatuses>
             {uptimeRule.status === 'disabled' && <Tag>{t('Disabled')}</Tag>}
           </MonitorStatuses>
-        </DetailsContainer>
+        </Flex>
       </DetailsLink>
     </DetailsArea>
   );
@@ -136,12 +160,6 @@ const DetailsHeadline = styled('div')`
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
-const DetailsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
 const OwnershipDetails = styled('div')`
   display: flex;
   flex-wrap: wrap;
@@ -151,24 +169,10 @@ const OwnershipDetails = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const UnassignedLabel = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
 const Name = styled('h3')`
   font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
-`;
-
-const ScheduleDetails = styled('small')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const MonitorStatuses = styled('div')`

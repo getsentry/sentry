@@ -275,7 +275,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 400
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_handling_snuba_errors(self, mock_snql_query):
+    def test_handling_snuba_errors(self, mock_snql_query: mock.MagicMock) -> None:
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
             response = self.client.get(self.url, format="json")
@@ -283,7 +283,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 400, response.content
 
     @mock.patch("sentry.utils.snuba.quantize_time")
-    def test_quantize_dates(self, mock_quantize):
+    def test_quantize_dates(self, mock_quantize: mock.MagicMock) -> None:
         mock_quantize.return_value = before_now(days=1)
         with self.feature(self.features):
             # Don't quantize short time periods
@@ -498,7 +498,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
     url_name = "sentry-api-0-organization-spans-samples"
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
+    def test_is_segment_properly_converted_in_filter(
+        self, mock_raw_snql_query: mock.MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})

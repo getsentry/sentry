@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Sequence
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -62,7 +62,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
-    def test_performance_event_not_detected(self, mock_sdk_crash_reporter):
+    def test_performance_event_not_detected(self, mock_sdk_crash_reporter: MagicMock) -> None:
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         event = store_transaction(
@@ -77,7 +77,9 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
         assert mock_sdk_crash_reporter.report.call_count == 0
 
     @patch("sentry.utils.metrics.incr")
-    def test_performance_event_increments_counter(self, incr, mock_sdk_crash_reporter):
+    def test_performance_event_increments_counter(
+        self, incr: MagicMock, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
         fingerprint = "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         event = store_transaction(
