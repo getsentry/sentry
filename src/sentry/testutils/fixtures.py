@@ -315,6 +315,11 @@ class Fixtures:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
+    def create_group_activity(self, group=None, *args, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_activity(group, *args, **kwargs)
+
     def create_n_groups_with_hashes(
         self, number_of_groups: int, project: Project, group_type: int | None = None
     ) -> list[Group]:
