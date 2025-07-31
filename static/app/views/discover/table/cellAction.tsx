@@ -506,7 +506,7 @@ const ActionMenuTrigger = styled(Button)`
   }
 `;
 
-const ActionMenuTriggerV2 = styled('div')<{hasNestedAnchors?: boolean}>`
+const ActionMenuTriggerV2 = styled('div')`
   :hover {
     cursor: pointer;
     font-weight: ${p => p.theme.fontWeight.bold};

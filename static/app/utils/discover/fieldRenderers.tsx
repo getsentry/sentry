@@ -396,7 +396,7 @@ const RightAlignedContainer = styled('span')`
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
-export const SPECIAL_FIELDS: Record<string, SpecialField> = {
+const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   'apdex()': {
