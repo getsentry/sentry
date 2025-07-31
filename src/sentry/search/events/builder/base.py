@@ -1308,7 +1308,11 @@ class BaseQueryBuilder:
                     )
                     filters.append(lhs)
                 if len(filters) > 1:
-                    return Or(filters)
+                    # Determine the correct logical operator based on the original search filter's operator
+                    if search_filter.operator == "NOT IN":
+                        return And(filters)
+                    else:
+                        return Or(filters)
                 else:
                     return filters[0]
 
