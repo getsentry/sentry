@@ -63,9 +63,9 @@ export function RepoSelector() {
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({repository: selectedOption.value});
+      changeContextValue({integratedOrgId, repository: selectedOption.value});
     },
-    [changeContextValue]
+    [changeContextValue, integratedOrgId]
   );
 
   const handleOnSearch = useMemo(
