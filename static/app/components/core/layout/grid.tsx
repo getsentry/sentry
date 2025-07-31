@@ -6,6 +6,7 @@ import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
 const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'align',
+  'alignContent',
   'as',
   'autoColumns',
   'autoRows',
@@ -13,6 +14,7 @@ const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'gap',
   'inline',
   'justify',
+  'justifyItems',
   'areas',
   'columns',
   'rows',
