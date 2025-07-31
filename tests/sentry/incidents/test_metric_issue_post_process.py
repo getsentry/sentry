@@ -185,7 +185,10 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 update_status(group, message)
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
                 sample_rate=1.0,
             )
 
@@ -214,6 +217,9 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 update_status(group, message)
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
                 sample_rate=1.0,
             )
