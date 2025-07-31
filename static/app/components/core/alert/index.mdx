@@ -13,8 +13,9 @@ resources:
 ---
 
 import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
-import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/alert/index';
@@ -242,6 +243,81 @@ Use `Alert.Container` to properly manage spacing between multiple alerts.
   <Alert type="warning">Second alert in a container</Alert>
   <Alert type="success">Third alert in a container</Alert>
 </Alert.Container>
+```
+
+## Alert Links
+
+The `AlertLink` component creates a clickable alert that can navigate to internal pages, external URLs, or triggers custom actions.
+
+### Link Types
+
+AlertLink supports three types of navigation: internal routing, external URLs, and custom click handlers.
+
+#### Internal Links
+
+Use the `to` prop for internal navigation within the application.
+
+<Storybook.Demo>
+  <AlertLink to="/settings">Go to Settings</AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Go to Settings</AlertLink>
+```
+
+#### External Links
+
+Use the `href` prop for external URLs. The `openInNewTab` prop controls whether the link opens in a new tab.
+
+<Storybook.Demo>
+  <AlertLink href="https://docs.sentry.io" openInNewTab>
+    Read the Documentation
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink href="https://docs.sentry.io" openInNewTab>
+  Read the Documentation
+</AlertLink>
+```
+
+#### Custom Click Handlers
+
+Use the `onClick` prop for custom actions that don't involve navigation.
+
+<Storybook.Demo>
+  {/* eslint-disable-next-line no-alert */}
+  <AlertLink onClick={() => alert('Custom action triggered!')}>
+    Trigger Custom Action
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink onClick={() => alert('Custom action triggered!')}>
+  Trigger Custom Action
+</AlertLink>
+```
+
+### Trailing Items
+
+By default, AlertLink includes a right-pointing chevron icon. You can customize this with the `trailingItems` prop.
+
+<Storybook.Demo>
+  <AlertLink.Container>
+    <AlertLink to="/settings">Default trailing chevron</AlertLink>
+    <AlertLink to="/settings" trailingItems={<IconMail />}>
+      Custom trailing icon
+    </AlertLink>
+    <AlertLink to="/settings" trailingItems={null}>
+      No trailing items
+    </AlertLink>
+  </AlertLink.Container>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Default trailing chevron</AlertLink>
+<AlertLink to="/settings" trailingItems={<IconMail />}>
+  Custom trailing icon
+</AlertLink>
+<AlertLink to="/settings" trailingItems={null}>
+  No trailing items
+</AlertLink>
 ```
 
 ## Accessibility
