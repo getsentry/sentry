@@ -242,6 +242,7 @@ class CountField(Field):
                 self.status_to_metric_field[SessionStatus.ABNORMAL],
                 self.status_to_metric_field[SessionStatus.CRASHED],
                 self.status_to_metric_field[SessionStatus.ERRORED],
+                self.status_to_metric_field[SessionStatus.UNHANDLED],
             ]
         return [self.get_all_field()]
 
@@ -265,6 +266,7 @@ class SumSessionField(CountField):
         SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL.value),
         SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED.value),
         SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED.value),
+        SessionStatus.UNHANDLED: MetricField(None, SessionMRI.UNHANDLED.value),
         None: MetricField(None, SessionMRI.ALL.value),
     }
 
@@ -298,6 +300,7 @@ class CountUniqueUser(CountField):
         SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL_USER.value),
         SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED_USER.value),
         SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED_USER.value),
+        SessionStatus.UNHANDLED: MetricField(None, SessionMRI.UNHANDLED_USER.value),
         None: MetricField(None, SessionMRI.ALL_USER.value),
     }
 
@@ -341,6 +344,8 @@ class SimpleForwardingField(Field):
         "crash_free_rate(user)": SessionMRI.CRASH_FREE_USER_RATE,
         "anr_rate()": SessionMRI.ANR_RATE,
         "foreground_anr_rate()": SessionMRI.FOREGROUND_ANR_RATE,
+        "unhandled_rate(session)": SessionMRI.UNHANDLED_RATE,
+        "unhandled_rate(user)": SessionMRI.UNHANDLED_USER_RATE,
     }
 
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
