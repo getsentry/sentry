@@ -5,14 +5,14 @@ from sentry.runner.commands.presenters.webhookpresenter import WebhookPresenter
 
 
 class PresenterDelegator:
-    def __init__(self, source: str, dry_run: bool) -> None:
+    def __init__(self, source: str, dry_run: bool, timestamp: str | None) -> None:
         from sentry.runner.commands.presenters.audit_log_presenter import AuditLogPresenter
 
         self._consolepresenter = ConsolePresenter()
 
         self._slackpresenter = None
         if WebhookPresenter.is_webhook_enabled():
-            self._slackpresenter = WebhookPresenter(source)
+            self._slackpresenter = WebhookPresenter(source, timestamp)
         if AuditLogPresenter.is_webhook_enabled():
             self._auditlogpresenter = AuditLogPresenter(source, dry_run)
 
