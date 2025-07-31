@@ -66,41 +66,4 @@ describe('EventGroupingInfo', function () {
     // Should not make grouping-info request
     expect(groupingInfoRequest).not.toHaveBeenCalled();
   });
-
-  it('can switch grouping configs', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/grouping-configs/`,
-      body: [
-        {id: 'default:XXXX', hidden: false},
-        {id: 'new:XXXX', hidden: false},
-      ],
-    });
-
-    render(<EventGroupingInfoSection {...defaultProps} showGroupingConfig />);
-
-    // Should show first hash
-    await screen.findByText('123');
-
-    expect(screen.getByText('default:XXXX')).toBeInTheDocument();
-
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/${event.id}/grouping-info/`,
-      query: {config: 'new:XXXX'},
-      body: {
-        app: {
-          description: 'variant description',
-          hash: '789',
-          hashMismatch: false,
-          key: 'key',
-          type: EventGroupVariantType.CHECKSUM,
-        },
-      },
-    });
-
-    await userEvent.click(screen.getAllByRole('button', {name: 'default:XXXX'})[0]!);
-    await userEvent.click(screen.getByRole('option', {name: 'new:XXXX'}));
-
-    // Should show new hash
-    expect(await screen.findByText('789')).toBeInTheDocument();
-  });
 });

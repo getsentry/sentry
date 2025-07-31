@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
@@ -12,31 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {GroupingConfigSelect} from './groupingConfigSelect';
 import GroupingVariant from './groupingVariant';
-
-function GroupConfigSelect({
-  event,
-  configOverride,
-  setConfigOverride,
-}: {
-  configOverride: string | null;
-  event: Event;
-  setConfigOverride: (value: string) => void;
-}) {
-  if (!event.groupingConfig) {
-    return null;
-  }
-
-  const configId = configOverride ?? event.groupingConfig?.id;
-
-  return (
-    <GroupingConfigSelect
-      configId={configId}
-      onSelect={selection => setConfigOverride(selection.value)}
-    />
-  );
-}
 
 interface GroupingSummaryProps {
   event: Event;
@@ -51,7 +27,6 @@ export default function GroupingInfo({
   showGroupingConfig,
   group,
 }: GroupingSummaryProps) {
-  const [configOverride, setConfigOverride] = useState<string | null>(null);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -59,7 +34,7 @@ export default function GroupingInfo({
       event,
       group,
       projectSlug,
-      query: configOverride ? {config: configOverride} : {},
+      query: {},
     });
 
   const variants = groupInfo
@@ -82,15 +57,6 @@ export default function GroupingInfo({
         <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
       )}
       <ConfigHeader>
-        <div>
-          {showGroupingConfig && (
-            <GroupConfigSelect
-              event={event}
-              configOverride={configOverride}
-              setConfigOverride={setConfigOverride}
-            />
-          )}
-        </div>
         <FeatureFeedback
           featureName="grouping"
           feedbackTypes={[
@@ -108,8 +74,8 @@ export default function GroupingInfo({
             <Fragment key={variant.key}>
               <GroupingVariant
                 event={event}
-                variant={variant}
                 showGroupingConfig={showGroupingConfig}
+                variant={variant}
               />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
@@ -122,7 +88,7 @@ export default function GroupingInfo({
 const ConfigHeader = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
