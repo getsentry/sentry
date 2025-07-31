@@ -414,6 +414,7 @@ class Dashboard extends Component<Props, State> {
 
     const key = constructGridItemKey(widget);
 
+    // trigger a diff
     return (
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
