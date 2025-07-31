@@ -362,6 +362,28 @@ export function Content({
       return null;
     }
 
+    const innerContent = (
+      <InnerContent
+        exception={exc}
+        exceptionIdx={excIdx}
+        hasChainedExceptions={hasChainedExceptions}
+        isSampleError={isSampleError}
+        project={project}
+        sourceMapDebuggerData={sourceMapDebuggerData}
+        values={values}
+        newestFirst={newestFirst}
+        event={event}
+        type={type}
+        meta={meta}
+        threadId={threadId}
+        stackView={stackView}
+        groupingCurrentLevel={groupingCurrentLevel}
+        hiddenExceptions={hiddenExceptions}
+        toggleRelatedExceptions={toggleRelatedExceptions}
+        expandException={expandException}
+      />
+    );
+
     if (hasChainedExceptions) {
       return (
         <StyledFoldSection
@@ -386,25 +408,7 @@ export function Content({
             exc.mechanism?.exception_id?.toString() ?? excIdx.toString()
           }
         >
-          <InnerContent
-            exception={exc}
-            exceptionIdx={excIdx}
-            hasChainedExceptions={hasChainedExceptions}
-            isSampleError={isSampleError}
-            project={project}
-            sourceMapDebuggerData={sourceMapDebuggerData}
-            values={values}
-            newestFirst={newestFirst}
-            event={event}
-            type={type}
-            meta={meta}
-            threadId={threadId}
-            stackView={stackView}
-            groupingCurrentLevel={groupingCurrentLevel}
-            hiddenExceptions={hiddenExceptions}
-            toggleRelatedExceptions={toggleRelatedExceptions}
-            expandException={expandException}
-          />
+          {innerContent}
         </StyledFoldSection>
       );
     }
@@ -418,23 +422,7 @@ export function Content({
         ) : (
           <Title id={id}>{exc.type}</Title>
         )}
-        <InnerContent
-          exception={exc}
-          exceptionIdx={excIdx}
-          hasChainedExceptions={hasChainedExceptions}
-          isSampleError={isSampleError}
-          project={project}
-          sourceMapDebuggerData={sourceMapDebuggerData}
-          values={values}
-          newestFirst={newestFirst}
-          event={event}
-          type={type}
-          meta={meta}
-          threadId={threadId}
-          hiddenExceptions={hiddenExceptions}
-          toggleRelatedExceptions={toggleRelatedExceptions}
-          expandException={expandException}
-        />
+        {innerContent}
       </div>
     );
   });
