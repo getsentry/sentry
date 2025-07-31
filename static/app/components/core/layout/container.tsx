@@ -42,6 +42,10 @@ interface ContainerLayoutProps {
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
   border?: Responsive<Border>;
+  borderRight?: Responsive<Border>;
+  borderLeft?: Responsive<Border>;
+  borderTop?: Responsive<Border>;
+  borderBottom?: Responsive<Border>;
 
   area?: Responsive<React.CSSProperties['gridArea']>;
   order?: Responsive<React.CSSProperties['order']>;
@@ -155,6 +159,10 @@ export const Container = styled(
   ${p => rc('order', p.order, p.theme)};
 
   ${p => rc('border', p.border, p.theme, getBorder)};
+  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
+  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
+  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
