@@ -1,12 +1,10 @@
+import styled from '@emotion/styled';
+
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {formatBytesBase10SavingsAmount} from 'sentry/utils/bytes/formatBytesBase10';
-import {
-  type FileRowProps,
-  FilesToggle,
-  SavingsPercentage,
-  ToggleIcon,
-} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
+import {type FileRowProps} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
 import {formatPercentage} from 'sentry/views/preprod/utils/formatters';
 import type {
@@ -24,16 +22,7 @@ export function AppSizeInsightsSidebarRow({
   onToggleExpanded: () => void;
 }) {
   return (
-    <Flex
-      background="primary"
-      style={{
-        border: '1px solid #F0ECF3',
-      }}
-      radius="md"
-      padding="xl"
-      direction="column"
-      gap="lg"
-    >
+    <Flex border="muted" radius="md" padding="xl" direction="column" gap="lg">
       <Flex align="start" justify="between">
         <Text variant="primary" size="md" bold>
           {insight.name}
@@ -48,7 +37,11 @@ export function AppSizeInsightsSidebarRow({
           <Text size="sm" tabular>
             Potential savings {formatBytesBase10SavingsAmount(insight.totalSavings)}
           </Text>
-          <SavingsPercentage>{formatPercentage(-insight.percentage)}</SavingsPercentage>
+          <SavingsPercentage align="center" justify="center">
+            <Text size="xs" variant="success" tabular>
+              {formatPercentage(-insight.percentage)}
+            </Text>
+          </SavingsPercentage>
         </Flex>
       </Flex>
 
@@ -97,22 +90,17 @@ function FileRow({file, fileIndex}: FileRowProps) {
     <Flex
       align="center"
       justify="between"
+      radius="md"
+      height="24px"
+      minWidth={0}
+      gap="lg"
       style={{
-        height: '24px',
         padding: '4px 6px',
-        borderRadius: '4px',
         background: isAlternating ? '#F7F6F9' : 'transparent',
         borderTop: '1px solid transparent',
-        minWidth: 0,
       }}
     >
-      <Text
-        variant="accent"
-        size="sm"
-        bold
-        ellipsis
-        style={{flex: 1, marginRight: '16px', cursor: 'pointer'}}
-      >
+      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
@@ -145,6 +133,7 @@ function OptimizableImageFileRow({
     <Flex
       align="center"
       justify="between"
+      gap="lg"
       style={{
         height: '24px',
         padding: '4px 6px',
@@ -154,13 +143,7 @@ function OptimizableImageFileRow({
         minWidth: 0,
       }}
     >
-      <Text
-        variant="accent"
-        size="sm"
-        bold
-        ellipsis
-        style={{flex: 1, marginRight: '16px', cursor: 'pointer'}}
-      >
+      <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
       <Flex align="center" gap="sm">
@@ -179,3 +162,35 @@ function OptimizableImageFileRow({
     </Flex>
   );
 }
+
+const SavingsPercentage = styled(Flex)`
+  min-width: 56px;
+  height: 20px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: ${p => p.theme.green100};
+  flex-shrink: 0;
+`;
+
+const FilesToggle = styled('button')<{isExpanded: boolean}>`
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: ${p => p.theme.textColor};
+  margin-bottom: ${p => (p.isExpanded ? p.theme.space.md : '0')};
+
+  &:hover {
+    color: ${p => p.theme.blue400};
+  }
+`;
+
+const ToggleIcon = styled(IconChevron)<{isExpanded: boolean}>`
+  margin-right: ${p => p.theme.space.xs};
+  transform: ${p => (p.isExpanded ? 'rotate(180deg)' : 'rotate(90deg)')};
+  transition: transform 0.2s ease;
+  color: inherit;
+`;
