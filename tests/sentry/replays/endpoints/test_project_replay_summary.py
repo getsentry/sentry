@@ -312,7 +312,7 @@ class ProjectReplaySummaryTestCase(
     def test_post_max_segments_exceeded(self):
         mock_seer_response("POST", status=200, json={"hello": "world"})
 
-        data = [
+        data1 = [
             {
                 "type": 5,
                 "timestamp": 0.0,
@@ -320,7 +320,9 @@ class ProjectReplaySummaryTestCase(
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
                 },
-            },
+            }
+        ]
+        data2 = [
             {
                 "type": 5,
                 "timestamp": 0.0,
@@ -330,8 +332,8 @@ class ProjectReplaySummaryTestCase(
                 },
             },
         ]
-        self.save_recording_segment(0, json.dumps(data).encode())
-        self.save_recording_segment(1, json.dumps([]).encode())
+        self.save_recording_segment(0, json.dumps(data1).encode())
+        self.save_recording_segment(1, json.dumps(data2).encode())
 
         with self.feature(self.features):
             response = self.client.post(
