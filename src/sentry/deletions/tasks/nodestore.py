@@ -119,7 +119,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             )
         else:
             logger.info(f"{prefix}.completed", extra=extra)
-            groups = Group.objects.filter(id__in=group_ids)
+            groups = list(Group.objects.filter(id__in=group_ids))
             # The fetch request for the nodestore uses the eventstore to determine what IDs to delete
             # from the nodestore. This is why we only delete from the eventstore once we've deleted
             # from the nodestore.
