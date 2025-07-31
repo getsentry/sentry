@@ -249,6 +249,15 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
         lookbehind="=",
     ),
+    ParameterizationRegex(
+        name="windows_path",
+        raw_pattern=r"""
+            # Strict Windows C: drive paths
+            # Matches C:\ (case-insensitive) followed by path segments
+            # Refuses Windows forbidden chars: \/:*?"<>| but allows spaces
+            [Cc]:\\[^\\\/:*?"<>|\r\n]+(?:\\[^\\\/:*?"<>|\r\n]+)*(?:\\[^\\\/:*?"<>|\r\n]*)?
+        """,
+    ),
 ]
 
 

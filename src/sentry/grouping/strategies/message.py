@@ -34,6 +34,7 @@ REGEX_PATTERN_KEYS = (
     "int",
     "quoted_str",
     "bool",
+    "windows_path",
 )
 
 

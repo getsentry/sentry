@@ -101,6 +101,14 @@ standard_cases = [
     ("bool - missing equal", "true", "true"),
     ("bool - whitespace", "a = False", "a = False"),
     ("bool - whitespace", "a = true", "a = true"),
+    ("windows_path - simple file", "C:\\file.txt", "<windows_path>"),
+    ("windows_path - simple directory", "C:\\folder\\", "<windows_path>"),
+    ("windows_path - nested path", "C:\\Users\\username\\Documents\\file.txt", "<windows_path>"),
+    ("windows_path - with spaces", "C:\\Program Files\\My App\\config.ini", "<windows_path>"),
+    ("windows_path - case insensitive", "c:\\folder\\file.txt", "<windows_path>"),
+    ("windows_path - with dots", "C:\\folder.sub\\file.backup.txt", "<windows_path>"),
+    ("windows_path - no extension", "C:\\folder\\filename", "<windows_path>"),
+    ("windows_path - trailing slash", "C:\\folder\\subfolder\\", "<windows_path>"),
     ("None", "A quick brown fox", "A quick brown fox"),
     ("Multiple - ip:port", "0.0.0.0:80", "<ip>:<int>"),
 ]
@@ -170,6 +178,12 @@ def test_fail_parameterize(
     ("name", "input", "expected"),
     [
         ("Not an Int", "Encoding: utf-8", "Encoding: utf-8"),  # produces "Encoding: utf<int>"
+        ("Not a Windows path - D drive", "D:\\file.txt", "D:\\file.txt"),
+        ("Not a Windows path - relative path", ".\\file.txt", ".\\file.txt"),
+        ("Not a Windows path - forward slashes", "C:/file.txt", "C:/file.txt"),
+        ("Not a Windows path - invalid chars", "C:\\file<>.txt", "C:\\file<>.txt"),
+        ("Not a Windows path - no drive letter", "\\file.txt", "\\file.txt"),
+        ("Not a Windows path - just drive", "C:\\", "C:\\"),
     ],
 )
 def test_too_aggressive_parameterize(
