@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -23,7 +22,7 @@ export function AppSizeInsightsSidebarRow({
   onToggleExpanded: () => void;
 }) {
   return (
-    <Flex border="muted" radius="md" padding="xl" direction="column" gap="lg">
+    <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
       <Flex align="start" justify="between">
         <Text variant="primary" size="md" bold>
           {insight.name}
@@ -61,18 +60,12 @@ export function AppSizeInsightsSidebarRow({
       </Text>
 
       <Container>
-        <FilesToggle
-          priority="link"
-          borderless
-          size="md"
-          icon={<ToggleIcon isExpanded={isExpanded} />}
-          onClick={onToggleExpanded}
-          style={{marginBottom: isExpanded ? '16px' : '0'}}
-        >
+        <FilesToggleButton onClick={onToggleExpanded} isExpanded={isExpanded}>
+          <ToggleIcon isExpanded={isExpanded} />
           <Text variant="primary" size="md" bold>
             {insight.files.length} files
           </Text>
-        </FilesToggle>
+        </FilesToggleButton>
 
         {isExpanded && (
           <Flex direction="column" gap="0">
@@ -174,9 +167,21 @@ const SavingsPercentage = styled(Flex)`
   background: ${p => p.theme.green100};
 `;
 
-const FilesToggle = styled(Button)`
+const FilesToggleButton = styled('button')<{isExpanded: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  background: none;
+  border: none;
   padding: 0;
-  font-weight: ${p => p.theme.fontWeight.normal};
+  cursor: pointer;
+  color: ${p => p.theme.textColor};
+  margin-bottom: ${p => (p.isExpanded ? p.theme.space.md : '0')};
+  line-height: 1;
+
+  &:hover {
+    color: ${p => p.theme.blue400};
+  }
 `;
 
 const ToggleIcon = styled(IconChevron)<{isExpanded: boolean}>`
