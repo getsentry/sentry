@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import time
 from collections.abc import Sequence
 from datetime import timedelta
@@ -1323,9 +1324,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group2 = self.create_group(times_seen=50)
-        group3 = self.create_group(times_seen=2)
+
+        today = datetime.datetime.now(tz=datetime.UTC)
+        yesterday = today - datetime.timedelta(days=1)
+        group1 = self.create_group(first_seen=today, times_seen=1)
+        group2 = self.create_group(first_seen=yesterday, times_seen=50)
+        group3 = self.create_group(first_seen=today, times_seen=2)
         self.create_group()
 
         self.login_as(user=self.user)
