@@ -19,7 +19,7 @@ import {
   type UptimeRule,
   type UptimeSummary,
 } from 'sentry/views/alerts/rules/uptime/types';
-import {UptimePercentile} from 'sentry/views/insights/uptime/components/percentile';
+import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 
 interface UptimeDetailsSidebarProps {
@@ -125,7 +125,7 @@ export function UptimeDetailsSidebar({
           <SectionHeading>{t('Monitor Uptime')}</SectionHeading>
           <UptimeContainer>
             {summary ? (
-              <UptimePercentile
+              <UptimePercent
                 size="xl"
                 summary={summary}
                 note={t(

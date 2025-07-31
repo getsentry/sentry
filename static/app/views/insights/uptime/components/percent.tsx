@@ -7,16 +7,16 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {CheckStatus, type UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 
-type UptimePercentileProps = {
+type UptimePercentProps = {
   summary: UptimeSummary;
   /**
-   * Text to display at the top of the uptime percentile text tooltip
+   * Text to display at the top of the uptime percent text tooltip
    */
   note?: React.ReactNode;
   size?: BaseTextProps['size'];
 };
 
-export function UptimePercentile({summary, note, size}: UptimePercentileProps) {
+export function UptimePercent({summary, note, size}: UptimePercentProps) {
   const knownChecks = summary.totalChecks - summary.missedWindowChecks;
 
   if (knownChecks === 0) {

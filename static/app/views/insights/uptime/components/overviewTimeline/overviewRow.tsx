@@ -21,7 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule, UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
-import {UptimePercentile} from 'sentry/views/insights/uptime/components/percentile';
+import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -101,7 +101,7 @@ export function OverviewRow({
             ) : (
               <Flex gap="xs" align="center">
                 <IconStats color="subText" size="xs" />
-                <UptimePercentile
+                <UptimePercent
                   size="xs"
                   summary={summary}
                   note={t(
