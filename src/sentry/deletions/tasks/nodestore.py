@@ -118,6 +118,8 @@ def delete_events_for_groups_from_nodestore(
 
 
 class NodestoreDeletionTask:
+    DEFAULT_CHUNK_SIZE = EVENT_CHUNK_SIZE
+
     def __init__(
         self,
         organization_id: int,
@@ -158,21 +160,24 @@ class NodestoreDeletionTask:
             referrer=self.referrer,
             dataset=self.dataset,
             tenant_ids=self.tenant_ids,
+            limit=self.DEFAULT_CHUNK_SIZE,
             last_event_id=last_event_id,
             last_event_timestamp=last_event_timestamp,
         )
 
 
 def _fetch_events(
+    *,
     group_ids: Sequence[int],
     project_id: int,
     referrer: str,
     dataset: Dataset,
     tenant_ids: Mapping[str, Any],
+    limit: int = EVENT_CHUNK_SIZE,
     last_event_id: str | None = None,
     last_event_timestamp: str | None = None,
 ) -> list[Event]:
-    logger.info("Fetching %s events for deletion.", EVENT_CHUNK_SIZE)
+    logger.info("Fetching %s events for deletion.", limit)
     conditions = []
     if last_event_id and last_event_timestamp:
         conditions.extend(
@@ -188,7 +193,7 @@ def _fetch_events(
             project_ids=[project_id],
             group_ids=group_ids,
         ),
-        limit=EVENT_CHUNK_SIZE,
+        limit=limit,
         referrer=referrer,
         orderby=["-timestamp", "-event_id"],
         tenant_ids=tenant_ids,
