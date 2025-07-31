@@ -77,9 +77,6 @@ function stringifyReactNode(child?: ReactNode): string {
     // 0 is a valid child that should be stringified
     case typeof child === 'number':
       return child.toString();
-    // true is a valid child that should be stringified, false is not
-    case typeof child === 'boolean':
-      return child ? 'true' : '';
     case !child:
       return '';
     case Array.isArray(child):
