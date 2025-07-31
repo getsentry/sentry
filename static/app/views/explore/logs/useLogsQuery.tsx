@@ -331,8 +331,10 @@ function getPageParam(
         timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
         timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
       });
-      firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP]) * 1_000_000n;
-      lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP]) * 1_000_000n;
+      firstTimestamp =
+        BigInt(new Date(firstRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
+      lastTimestamp =
+        BigInt(new Date(lastRow[OurLogKnownFieldKey.TIMESTAMP]).getTime()) * 1_000_000n;
     }
 
     const logId = isGetPreviousPage
