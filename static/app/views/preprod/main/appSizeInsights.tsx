@@ -49,7 +49,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
           <InsightRow key={insight.name} isAlternating={index % 2 === 0}>
             <InsightName>{insight.name}</InsightName>
             <SavingsContainer>
-              <SavingsAmount>−{formatSavingsAmount(insight.totalSavings)}</SavingsAmount>
+              <SavingsAmount>{formatSavingsAmount(-insight.totalSavings)}</SavingsAmount>
               <SavingsPercentage width="64px">
                 ({formatPercentage(-insight.percentage)})
               </SavingsPercentage>

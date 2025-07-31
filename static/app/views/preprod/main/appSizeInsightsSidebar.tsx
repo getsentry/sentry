@@ -53,9 +53,9 @@ function FileRow({file, fileIndex}: FileRowProps) {
     <FileItem isAlternating={isAlternating}>
       <FilePath>{file.path}</FilePath>
       <FileSavings>
-        <FileSavingsAmount>−{formatSavingsAmount(file.savings)}</FileSavingsAmount>
+        <FileSavingsAmount>{formatSavingsAmount(-file.savings)}</FileSavingsAmount>
         <FileSavingsPercentage>
-          (−{formatPercentage(file.percentage)})
+          ({formatPercentage(-file.percentage)})
         </FileSavingsPercentage>
       </FileSavings>
     </FileItem>
@@ -79,9 +79,9 @@ function OptimizableImageFileRow({
     <FileItem isAlternating={isAlternating}>
       <FilePath>{file.path}</FilePath>
       <FileSavings>
-        <FileSavingsAmount>−{formatSavingsAmount(file.savings)}</FileSavingsAmount>
+        <FileSavingsAmount>{formatSavingsAmount(-file.savings)}</FileSavingsAmount>
         <FileSavingsPercentage>
-          (−{formatPercentage(file.percentage)})
+          ({formatPercentage(-file.percentage)})
         </FileSavingsPercentage>
       </FileSavings>
     </FileItem>
@@ -141,7 +141,7 @@ export function AppSizeInsightsSidebar({
                         Potential savings {formatSavingsAmount(insight.totalSavings)}
                       </SavingsText>
                       <SavingsPercentage>
-                        −{formatPercentage(insight.percentage)}
+                        {formatPercentage(-insight.percentage)}
                       </SavingsPercentage>
                     </SavingsInfo>
                   </InsightHeader>
