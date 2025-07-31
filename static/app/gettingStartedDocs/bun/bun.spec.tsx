@@ -2,6 +2,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './bun';
 
 describe('bun onboarding docs', function () {
@@ -28,5 +30,41 @@ describe('bun onboarding docs', function () {
     expect(
       screen.queryByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
     ).not.toBeInTheDocument();
+  });
+
+  it('enables logs by setting enableLogs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('does not enable logs when not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('displays logs integration next step when logs are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not display logs integration next step when logs are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 });
