@@ -76,7 +76,7 @@ def delete_events_for_groups_from_nodestore(
         "project_id": project_id,
         "group_ids": group_ids,
         "transaction_id": transaction_id,
-        "dataset": Dataset(dataset_str),
+        "dataset_str": dataset_str,
         "referrer": referrer,
     }
 
@@ -90,7 +90,10 @@ def delete_events_for_groups_from_nodestore(
     try:
         # Fetch events for deletion
         events = fetch_events(
-            **kwargs_to_schedule_next_task,
+            project_id=project_id,
+            group_ids=group_ids,
+            dataset=Dataset(dataset_str),
+            referrer=referrer,
             tenant_ids={"referrer": referrer, "organization_id": organization_id},
             limit=EVENT_CHUNK_SIZE,
             last_event_id=last_event_id,
