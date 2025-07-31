@@ -29,7 +29,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -337,6 +337,23 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
         return final_blob
 
 
+def convert_priority_to_detector_priority_level(
+    priority_level: int | None,
+) -> DetectorPriorityLevel:
+    """
+    Convert an integer priority level to DetectorPriorityLevel.
+    This handles the case where DetectorPriorityLevel.OK (0) doesn't have a corresponding PriorityLevel.
+    """
+    if priority_level is None:
+        raise ValueError("Priority level is required for metric issues")
+
+    # Direct mapping from int to DetectorPriorityLevel
+    try:
+        return DetectorPriorityLevel(priority_level)
+    except ValueError:
+        raise ValueError(f"Invalid priority level: {priority_level}")
+
+
 class BaseMetricAlertHandler(ABC):
     ACTIVITIES_TO_INVOKE_ON = [ActivityType.SET_RESOLVED.value]
 
@@ -350,17 +367,20 @@ class BaseMetricAlertHandler(ABC):
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
         group_status: GroupStatus,
-        priority_level: int | None,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
         return AlertContext.from_workflow_engine_models(
-            detector, evidence_data, group_status, priority_level
+            detector, evidence_data, group_status, detector_priority_level
         )
 
     @classmethod
     def build_metric_issue_context(
-        cls, group: Group, evidence_data: MetricIssueEvidenceData, priority_level: int | None
+        cls,
+        group: Group,
+        evidence_data: MetricIssueEvidenceData,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> MetricIssueContext:
-        return MetricIssueContext.from_group_event(group, evidence_data, priority_level)
+        return MetricIssueContext.from_group_event(group, evidence_data, detector_priority_level)
 
     @classmethod
     def build_open_period_context(cls, group: Group) -> OpenPeriodContext:
@@ -403,24 +423,29 @@ class BaseMetricAlertHandler(ABC):
             evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
             priority = event.occurrence.priority
         elif isinstance(event, Activity):
+            if event.type != ActivityType.SET_RESOLVED.value:
+                raise ValueError(
+                    "Activity type must be SET_RESOLVED to invoke metric alert legacy registry"
+                )
             if event.data is None or not event.data:
                 raise ValueError("Activity data is required for alert context")
-            # Extract priority from data and remove it before creating MetricIssueEvidenceData
             evidence_data_dict = dict(event.data)
-            priority = evidence_data_dict.pop("priority", None)
+            priority = 0  # This is the OK priority level
             evidence_data = MetricIssueEvidenceData(**evidence_data_dict)
         else:
             raise ValueError(
                 "WorkflowEventData.event must be a GroupEvent or Activity to invoke metric alert legacy registry"
             )
 
+        detector_priority_level = convert_priority_to_detector_priority_level(priority)
+
         notification_context = cls.build_notification_context(action)
         alert_context = cls.build_alert_context(
-            detector, evidence_data, event_data.group.status, priority
+            detector, evidence_data, event_data.group.status, detector_priority_level
         )
 
         metric_issue_context = cls.build_metric_issue_context(
-            event_data.group, evidence_data, priority
+            event_data.group, evidence_data, detector_priority_level
         )
         open_period_context = cls.build_open_period_context(event_data.group)
 

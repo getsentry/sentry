@@ -32,6 +32,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
@@ -121,6 +126,32 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                     "type": Condition.GREATER_OR_EQUAL,
                     "comparison": 100,
                     "condition_result": DetectorPriorityLevel.MEDIUM.value,
+                },
+                {
+                    "id": 3,
+                    "type": Condition.LESS,
+                    "comparison": 100,
+                    "condition_result": DetectorPriorityLevel.OK.value,
+                },
+            ],
+            alert_id=self.alert_rule.id,
+        )
+
+        self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
+            value=123.45,
+            detector_id=self.detector.id,
+            data_packet_source_id=int(self.data_source.source_id),
+            conditions=[
+                {
+                    "id": 1,
+                    "type": Condition.ANOMALY_DETECTION,
+                    "comparison": {
+                        "sensitivity": AnomalyDetectionSensitivity.MEDIUM.value,
+                        "seasonality": AnomalyDetectionSeasonality.AUTO.value,
+                        "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW.value,
+                    },
+                    # This is the placeholder for the anomaly detection condition
+                    "condition_result": DetectorPriorityLevel.HIGH.value,
                 },
             ],
             alert_id=self.alert_rule.id,
@@ -306,7 +337,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert group_event.occurrence.priority is not None
         assert (
             MetricIssueContext._get_new_status(
-                group, PriorityLevel(group_event.occurrence.priority)
+                group, DetectorPriorityLevel(group_event.occurrence.priority)
             )
             == IncidentStatus.CRITICAL
         )
@@ -323,7 +354,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert group_event.occurrence.priority is not None
         assert (
             MetricIssueContext._get_new_status(
-                group, PriorityLevel(group_event.occurrence.priority)
+                group, DetectorPriorityLevel(group_event.occurrence.priority)
             )
             == IncidentStatus.WARNING
         )
@@ -342,7 +373,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         group.status = GroupStatus.RESOLVED
         assert (
             MetricIssueContext._get_new_status(
-                group, PriorityLevel(group_event.occurrence.priority)
+                group, DetectorPriorityLevel(group_event.occurrence.priority)
             )
             == IncidentStatus.CLOSED
         )
@@ -356,11 +387,12 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     def test_build_alert_context(self) -> None:
         assert self.group_event.occurrence is not None
+        assert self.group_event.occurrence.priority is not None
         alert_context = self.handler.build_alert_context(
             self.detector,
             self.evidence_data,
             self.group_event.group.status,
-            self.group_event.occurrence.priority,
+            DetectorPriorityLevel(self.group_event.occurrence.priority),
         )
         assert isinstance(alert_context, AlertContext)
         assert alert_context.name == self.detector.name
@@ -368,11 +400,28 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert alert_context.threshold_type == AlertRuleThresholdType.ABOVE
         assert alert_context.comparison_delta is None
 
+    def test_build_alert_context_anomaly_detection(self) -> None:
+        assert self.group_event.occurrence is not None
+        assert self.group_event.occurrence.priority is not None
+        alert_context = self.handler.build_alert_context(
+            self.detector,
+            self.anomaly_detection_evidence_data,
+            self.group_event.group.status,
+            DetectorPriorityLevel(self.group_event.occurrence.priority),
+        )
+        assert isinstance(alert_context, AlertContext)
+        assert alert_context.name == self.detector.name
+        assert alert_context.action_identifier_id == self.detector.id
+        assert alert_context.threshold_type == AnomalyDetectionThresholdType.ABOVE_AND_BELOW
+        assert alert_context.comparison_delta is None
+        assert alert_context.alert_threshold == 0
+        assert alert_context.resolve_threshold == 0
+
     def test_get_new_status(self) -> None:
         assert self.group_event.occurrence is not None
         assert self.group_event.occurrence.priority is not None
         status = MetricIssueContext._get_new_status(
-            self.group_event.group, PriorityLevel(self.group_event.occurrence.priority)
+            self.group_event.group, DetectorPriorityLevel(self.group_event.occurrence.priority)
         )
         assert status == IncidentStatus.CRITICAL
 
@@ -387,7 +436,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert group_event.occurrence is not None
         assert group_event.occurrence.priority is not None
         status = MetricIssueContext._get_new_status(
-            group_event.group, PriorityLevel(group_event.occurrence.priority)
+            group_event.group, DetectorPriorityLevel(group_event.occurrence.priority)
         )
         assert status == IncidentStatus.WARNING
 
@@ -454,8 +503,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
         # Create an Activity instance with evidence data and priority
         activity_data = asdict(self.evidence_data)
-        activity_data.pop("alert_id")
-        activity_data["priority"] = PriorityLevel.HIGH.value  # Add priority to data
 
         activity = Activity(
             project=self.project,
@@ -497,19 +544,86 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             alert_context,
             name=self.detector.name,
             action_identifier_id=self.detector.id,
-            threshold_type=AlertRuleThresholdType.ABOVE,
+            threshold_type=AlertRuleThresholdType.BELOW,
             detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
             sensitivity=None,
             resolve_threshold=None,
-            alert_threshold=self.evidence_data.conditions[0]["comparison"],
+            alert_threshold=self.evidence_data.conditions[2]["comparison"],
         )
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
+            new_status=IncidentStatus.CLOSED,
             metric_value=self.evidence_data.value,
+            title=self.group.title,
+            group=self.group,
+            subscription=self.subscription,
+        )
+        assert organization == self.detector.project.organization
+        assert isinstance(notification_uuid, str)
+
+    @mock.patch.object(TestHandler, "send_alert")
+    def test_invoke_legacy_registry_with_activity_anomaly_detection(
+        self, mock_send_alert: mock.MagicMock
+    ) -> None:
+        # Create an Activity instance with evidence data and priority
+        activity_data = asdict(self.anomaly_detection_evidence_data)
+
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=1,  # ActivityType value
+            data=activity_data,
+        )
+        activity.save()
+
+        # Create event data with Activity instead of GroupEvent
+        event_data_with_activity = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
+
+        assert mock_send_alert.call_count == 1
+
+        _, kwargs = mock_send_alert.call_args
+
+        notification_context = kwargs["notification_context"]
+        alert_context = kwargs["alert_context"]
+        metric_issue_context = kwargs["metric_issue_context"]
+        organization = kwargs["organization"]
+        notification_uuid = kwargs["notification_uuid"]
+
+        # Verify that the same data is extracted from Activity.data as from GroupEvent.occurrence.evidence_data
+        self.assert_notification_context(
+            notification_context,
+            integration_id=self.action.integration_id,
+            target_identifier=self.action.config["target_identifier"],
+            target_display=None,
+            sentry_app_config=None,
+            sentry_app_id=None,
+        )
+        self.assert_alert_context(
+            alert_context,
+            name=self.detector.name,
+            action_identifier_id=self.detector.id,
+            threshold_type=AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+            detection_type=AlertRuleDetectionType.STATIC,
+            comparison_delta=None,
+            sensitivity=AnomalyDetectionSensitivity.MEDIUM,
+            resolve_threshold=0,
+            alert_threshold=0,
+        )
+        self.assert_metric_issue_context(
+            metric_issue_context,
+            open_period_identifier=self.open_period.id,
+            snuba_query=self.snuba_query,
+            new_status=IncidentStatus.CLOSED,
+            metric_value=self.anomaly_detection_evidence_data.value,
             title=self.group.title,
             group=self.group,
             subscription=self.subscription,

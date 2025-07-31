@@ -16,9 +16,8 @@ from sentry.notifications.notification_action.metric_alert_registry import (
     PagerDutyMetricAlertHandler,
 )
 from sentry.testutils.helpers.features import with_feature
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -41,14 +40,17 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
     def test_send_alert(self, mock_send_incident_alert_notification: mock.MagicMock) -> None:
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
+        assert self.group_event.occurrence.priority is not None
         alert_context = AlertContext.from_workflow_engine_models(
             self.detector,
             self.evidence_data,
             self.group_event.group.status,
-            self.group_event.occurrence.priority,
+            DetectorPriorityLevel(self.group_event.occurrence.priority),
         )
         metric_issue_context = MetricIssueContext.from_group_event(
-            self.group, self.evidence_data, self.group_event.occurrence.priority
+            self.group,
+            self.evidence_data,
+            DetectorPriorityLevel(self.group_event.occurrence.priority),
         )
         open_period_context = OpenPeriodContext.from_group(self.group)
         notification_uuid = str(uuid.uuid4())
@@ -137,7 +139,6 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
         # Create an Activity instance with evidence data and priority
         activity_data = asdict(self.evidence_data)
-        activity_data["priority"] = PriorityLevel.HIGH.value  # Add priority to data
 
         activity = Activity(
             project=self.project,
@@ -180,17 +181,17 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             alert_context,
             name=self.detector.name,
             action_identifier_id=self.detector.id,
-            threshold_type=AlertRuleThresholdType.ABOVE,
+            threshold_type=AlertRuleThresholdType.BELOW,
             detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
-            alert_threshold=self.evidence_data.conditions[0]["comparison"],
+            alert_threshold=self.evidence_data.conditions[2]["comparison"],
         )
 
         self.assert_metric_issue_context(
             metric_issue_context,
             open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
+            new_status=IncidentStatus.CLOSED,
             metric_value=123.45,
             group=self.group,
             title=self.group.title,
