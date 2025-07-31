@@ -180,6 +180,88 @@ function GroupFirstSeen({group}: {group: Group}) {
   );
 }
 
+export function LoadingStreamGroup({
+  displayReprocessingLayout,
+  withChart = true,
+  withColumns = ['graph', 'event', 'users', 'priority', 'assignee', 'lastTriggered'],
+  showLastTriggered = false,
+}: Pick<
+  Props,
+  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+>) {
+  return (
+    <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
+      <GroupSummary canSelect={false}>
+        <Placeholder height="58px" />
+      </GroupSummary>
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <Placeholder height="18px" width="70px" />
+        </LastSeenWrapper>
+      )}
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <Placeholder height="18px" width="30px" />
+        </FirstSeenWrapper>
+      )}
+      {withChart && !displayReprocessingLayout && (
+        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          <GroupStatusChart
+            hideZeros
+            loading
+            stats={[]}
+            secondaryStats={[]}
+            showSecondaryPoints={false}
+            groupStatus={'Loading'}
+            showMarkLine
+          />
+        </ChartWrapper>
+      )}
+      {displayReprocessingLayout ? (
+        <Fragment>
+          <StartedColumn>
+            <Placeholder height="17px" />
+          </StartedColumn>
+          <EventsReprocessedColumn>
+            <Placeholder height="17px" />
+          </EventsReprocessedColumn>
+          <ProgressColumn>
+            <Placeholder height="17px" />
+          </ProgressColumn>
+        </Fragment>
+      ) : (
+        <Fragment>
+          {showLastTriggered && (
+            <LastTriggeredWrapper>
+              <Placeholder height="18px" />
+            </LastTriggeredWrapper>
+          )}
+          {withColumns.includes('event') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('users') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('priority') && (
+            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+              <Placeholder height="24px" />
+            </PriorityWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+              <Placeholder height="24px" />
+            </AssigneeWrapper>
+          )}
+        </Fragment>
+      )}
+    </Wrapper>
+  );
+}
+
 function StreamGroup({
   id,
   customStatsPeriod,

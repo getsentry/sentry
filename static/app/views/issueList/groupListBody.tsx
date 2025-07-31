@@ -3,9 +3,8 @@ import {useTheme} from '@emotion/react';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
-import StreamGroup from 'sentry/components/stream/group';
+import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
@@ -17,6 +16,17 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import NoGroupsHandler from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
 
+const COLUMNS: GroupListColumn[] = [
+  'graph',
+  'firstSeen',
+  'lastSeen',
+  'event',
+  'users',
+  'priority',
+  'assignee',
+  'lastTriggered',
+];
+
 type GroupListBodyProps = {
   displayReprocessingLayout: boolean;
   error: string | null;
@@ -25,6 +35,7 @@ type GroupListBodyProps = {
   loading: boolean;
   memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  pageSize: number;
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
@@ -50,12 +61,18 @@ function GroupListBody({
   refetchGroups,
   selectedProjectIds,
   onActionTaken,
+  pageSize,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator />;
+    return (
+      <LoadingSkeleton
+        displayReprocessingLayout={displayReprocessingLayout}
+        pageSize={pageSize}
+      />
+    );
   }
 
   if (error) {
@@ -86,6 +103,26 @@ function GroupListBody({
   );
 }
 
+function LoadingSkeleton({
+  pageSize,
+  displayReprocessingLayout,
+}: {
+  displayReprocessingLayout: boolean;
+  pageSize: number;
+}) {
+  return (
+    <PanelBody>
+      {Array.from({length: pageSize}).map((_, index) => (
+        <LoadingStreamGroup
+          key={index}
+          displayReprocessingLayout={displayReprocessingLayout}
+          withColumns={COLUMNS}
+        />
+      ))}
+    </PanelBody>
+  );
+}
+
 function GroupList({
   groupIds,
   memberList,
@@ -103,17 +140,6 @@ function GroupList({
   const canSelect = !useMedia(
     `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
-
-  const columns: GroupListColumn[] = [
-    'graph',
-    'firstSeen',
-    'lastSeen',
-    'event',
-    'users',
-    'priority',
-    'assignee',
-    'lastTriggered',
-  ];
 
   return (
     <PanelBody>
@@ -133,7 +159,7 @@ function GroupList({
             useFilteredStats
             canSelect={canSelect}
             onPriorityChange={priority => onActionTaken([id], {priority})}
-            withColumns={columns}
+            withColumns={COLUMNS}
           />
         );
       })}

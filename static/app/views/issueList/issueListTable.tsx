@@ -29,6 +29,7 @@ interface IssueListTableProps {
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   pageLinks: string;
+  pageSize: number;
   paginationAnalyticsEvent: (direction: string) => void;
   paginationCaption: React.ReactNode;
   query: string;
@@ -59,6 +60,7 @@ function IssueListTable({
   onCursor,
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
+  pageSize,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -83,7 +85,7 @@ function IssueListTable({
         disabled={issuesLoading}
       >
         <ContainerPanel>
-          {groupIds.length !== 0 && (
+          {(groupIds.length !== 0 || issuesLoading) && (
             <IssueListActions
               selection={selection}
               query={query}
@@ -114,6 +116,7 @@ function IssueListTable({
                 error={error}
                 refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}
+                pageSize={pageSize}
               />
             </VisuallyCompleteWithData>
           </PanelBody>
