@@ -58,16 +58,15 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
   return (
     <div>
       <ButtonBar>
-        <Button priority="default" size="sm" onClick={toggleDisabled} busy={isUpdating}>
+        <Button
+          priority="default"
+          size="sm"
+          onClick={toggleDisabled}
+          disabled={isUpdating}
+        >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
-        <Button
-          priority="danger"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          busy={isDeleting}
-          size="sm"
-        >
+        <Button priority="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
           {t('Delete')}
         </Button>
         <Button type="submit" priority="primary" size="sm">

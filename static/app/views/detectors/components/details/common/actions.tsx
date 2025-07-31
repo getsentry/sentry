@@ -46,7 +46,7 @@ export function DisableDetectorAction({detector}: {detector: Detector}) {
   }
 
   return (
-    <Button size="sm" onClick={toggleDisabled} busy={isUpdating}>
+    <Button size="sm" onClick={toggleDisabled} disabled={isUpdating}>
       {detector.enabled ? t('Disable') : t('Enable')}
     </Button>
   );
@@ -107,13 +107,7 @@ export function DeleteDetectorAction({detector}: {detector: Detector}) {
   }
 
   return (
-    <Button
-      priority="danger"
-      onClick={handleDelete}
-      disabled={isDeleting}
-      busy={isDeleting}
-      size="sm"
-    >
+    <Button priority="danger" onClick={handleDelete} disabled={isDeleting} size="sm">
       {t('Delete')}
     </Button>
   );
