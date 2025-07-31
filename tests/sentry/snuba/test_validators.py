@@ -74,3 +74,142 @@ class SnubaQueryValidatorTest(TestCase):
                     code="invalid",
                 )
             ]
+
+    def test_valid_group_by(self) -> None:
+        """Test that valid group_by data is accepted."""
+        self.valid_data["group_by"] = ["project", "environment"]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.validated_data["group_by"] == ["project", "environment"]
+
+    def test_empty_group_by(self) -> None:
+        """Test that empty group_by list is rejected."""
+        self.valid_data["group_by"] = []
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        # The serializer catches this before our custom validation
+        assert "groupBy" in validator.errors
+
+    def test_none_group_by(self) -> None:
+        """Test that None group_by is handled correctly."""
+        self.valid_data["group_by"] = None
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        # The serializer doesn't accept None for ListField, so this should fail
+        assert not validator.is_valid()
+        assert "groupBy" in validator.errors
+
+    def test_missing_group_by(self) -> None:
+        """Test that missing group_by field is handled correctly."""
+        # Remove group_by from valid_data to simulate it not being provided
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        # group_by should not be in validated_data when not provided
+        assert "group_by" not in validator.validated_data
+
+    def test_invalid_group_by_not_list(self) -> None:
+        """Test that non-list group_by raises validation error."""
+        self.valid_data["group_by"] = "not_a_list"
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        # The serializer catches this before our custom validation
+        assert "groupBy" in validator.errors
+
+    def test_group_by_too_many_items(self) -> None:
+        """Test that group_by with more than 100 items raises validation error."""
+        self.valid_data["group_by"] = [f"field_{i}" for i in range(101)]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("nonFieldErrors") == [
+            ErrorDetail(string="Group by must be less than 100 items", code="invalid")
+        ]
+
+    def test_group_by_duplicate_items(self) -> None:
+        """Test that group_by with duplicate items raises validation error."""
+        self.valid_data["group_by"] = ["project", "environment", "project"]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("nonFieldErrors") == [
+            ErrorDetail(string="Group by must be a unique list of strings", code="invalid")
+        ]
+
+    def test_group_by_mixed_types(self) -> None:
+        """Test that group_by with non-string items is converted to strings."""
+        self.valid_data["group_by"] = ["project", 123, "environment"]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        # The serializer converts non-string items to strings
+        assert validator.is_valid()
+        assert validator.validated_data["group_by"] == ["project", "123", "environment"]
+
+    def test_group_by_with_valid_fields(self) -> None:
+        """Test that common valid group_by fields are accepted."""
+        valid_group_by_fields = [
+            "project",
+            "environment",
+            "release",
+            "user",
+            "transaction",
+            "message",
+            "level",
+            "type",
+            "mechanism",
+            "handled",
+            "unhandled",
+            "culprit",
+            "title",
+            "location",
+            "function",
+            "package",
+            "sdk_name",
+            "sdk_version",
+            "device_name",
+            "device_family",
+            "device_model",
+            "os_name",
+            "os_version",
+            "browser_name",
+            "browser_version",
+            "geo_country_code",
+            "geo_region",
+            "geo_city",
+        ]
+
+        for field in valid_group_by_fields:
+            self.valid_data["group_by"] = [field]
+            validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+            assert validator.is_valid(), f"Failed for field: {field}"
+            assert validator.validated_data["group_by"] == [field]
+
+    def test_group_by_multiple_valid_fields(self) -> None:
+        """Test that multiple valid group_by fields are accepted."""
+        self.valid_data["group_by"] = ["project", "environment", "release", "user"]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.validated_data["group_by"] == ["project", "environment", "release", "user"]
+
+    def test_group_by_edge_cases(self) -> None:
+        """Test edge cases for group_by validation."""
+        # Test with exactly 100 items (should be valid)
+        self.valid_data["group_by"] = [f"field_{i}" for i in range(100)]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert len(validator.validated_data["group_by"]) == 100
+
+        # Test with single item
+        self.valid_data["group_by"] = ["project"]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.validated_data["group_by"] == ["project"]
+
+    def test_group_by_with_performance_dataset(self) -> None:
+        """Test group_by with performance dataset."""
+        self.valid_data.update(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.Transactions.value,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                "group_by": ["transaction", "project", "environment"],
+            }
+        )
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.validated_data["group_by"] == ["transaction", "project", "environment"]
