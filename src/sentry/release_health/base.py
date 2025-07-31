@@ -185,8 +185,8 @@ class ReleaseHealthOverview(TypedDict, total=False):
     duration_p90: float | None
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
     sessions_unhandled: int
-    unhandled_session_rate: int | None
-    unhandled_user_rate: int | None
+    unhandled_session_rate: float | None
+    unhandled_user_rate: float | None
 
 
 class CrashFreeBreakdown(TypedDict):
