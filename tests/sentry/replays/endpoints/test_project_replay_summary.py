@@ -8,6 +8,7 @@ import responses
 from django.conf import settings
 from django.urls import reverse
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
@@ -94,61 +95,63 @@ class ProjectReplaySummaryTestCase(
 
     @responses.activate
     def test_get_simple(self):
-        mock_seer_response("GET", status=200, json={"hello": "world"})
-        with self.feature(self.features):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-            assert response.json() == {"hello": "world"}
+        with outbox_context(flush=False):
+            mock_seer_response("GET", status=200, json={"hello": "world"})
+            with self.feature(self.features):
+                response = self.client.get(self.url)
+                assert response.status_code == 200
+                assert response.json() == {"hello": "world"}
 
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_POLL_STATE_URL
-        assert request.method == "POST"
-        assert request.body == json.dumps({"replay_id": self.replay_id})
+            assert len(responses.calls) == 1
+            request = responses.calls[0].request
+            assert request.url == SEER_POLL_STATE_URL
+            assert request.method == "POST"
+            assert request.body == json.dumps({"replay_id": self.replay_id})
 
     @responses.activate
     def test_post_simple(self):
-        mock_seer_response("POST", status=200, json={"hello": "world"})
+        with outbox_context(flush=False):
+            mock_seer_response("POST", status=200, json={"hello": "world"})
 
-        data = [
-            {
-                "type": 5,
-                "timestamp": 0.0,
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "hello"},
+            data = [
+                {
+                    "type": 5,
+                    "timestamp": 0.0,
+                    "data": {
+                        "tag": "breadcrumb",
+                        "payload": {"category": "console", "message": "hello"},
+                    },
                 },
-            },
-            {
-                "type": 5,
-                "timestamp": 0.0,
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "world"},
+                {
+                    "type": 5,
+                    "timestamp": 0.0,
+                    "data": {
+                        "tag": "breadcrumb",
+                        "payload": {"category": "console", "message": "world"},
+                    },
                 },
-            },
-        ]
-        self.save_recording_segment(0, json.dumps(data).encode())
-        self.save_recording_segment(1, json.dumps([]).encode())
+            ]
+            self.save_recording_segment(0, json.dumps(data).encode())
+            self.save_recording_segment(1, json.dumps([]).encode())
 
-        with self.feature(self.features):
-            response = self.client.post(self.url)
+            with self.feature(self.features):
+                response = self.client.post(self.url)
 
-        assert response.status_code == 200
-        assert response.json() == {"hello": "world"}
+            assert response.status_code == 200
+            assert response.json() == {"hello": "world"}
 
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_START_TASK_URL
-        assert request.method == "POST"
-        assert request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(request.body) == {
-            "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
-            "num_segments": 2,
-            "replay_id": self.replay_id,
-            "organization_id": self.organization.id,
-            "project_id": self.project.id,
-        }
+            assert len(responses.calls) == 1
+            request = responses.calls[0].request
+            assert request.url == SEER_START_TASK_URL
+            assert request.method == "POST"
+            assert request.headers["content-type"] == "application/json;charset=utf-8"
+            assert json.loads(request.body) == {
+                "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
+                "num_segments": 2,
+                "replay_id": self.replay_id,
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+            }
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests):
@@ -301,6 +304,129 @@ class ProjectReplaySummaryTestCase(
         logs = json.loads(data)["logs"]
         assert any("Great website!" in log for log in logs)
         assert any("User submitted feedback" in log for log in logs)
+
+    @patch("sentry.replays.endpoints.project_replay_summary.requests")
+    def test_post_with_discover_query_and_feedback_filtering(self, mock_requests):
+        """Test that discover query works correctly and properly filters out feedback events"""
+        mock_requests.post.return_value = Mock(
+            status_code=200, json=lambda: {"summary": "Test summary with filtered events"}
+        )
+
+        now = datetime.now(UTC)
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+        project_3 = self.create_project()
+
+        # Create regular error events (should be included)
+        event_id_1 = uuid.uuid4().hex
+        trace_id_1 = uuid.uuid4().hex
+        timestamp_1 = now.timestamp() - 2
+        self.store_event(
+            data={
+                "event_id": event_id_1,
+                "timestamp": timestamp_1,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "Invalid input",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id_1,
+                        "span_id": "1" + uuid.uuid4().hex[:15],
+                    }
+                },
+            },
+            project_id=project_1.id,
+        )
+
+        # Create another regular error event (should be included)
+        event_id_2 = uuid.uuid4().hex
+        trace_id_2 = uuid.uuid4().hex
+        timestamp_2 = now.timestamp()
+        self.store_event(
+            data={
+                "event_id": event_id_2,
+                "timestamp": timestamp_2,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeError",
+                            "value": "Issue platform error",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id_2,
+                        "span_id": "2" + uuid.uuid4().hex[:15],
+                    }
+                },
+            },
+            project_id=project_2.id,
+        )
+
+        # Create a feedback event (should be filtered out)
+        feedback_event_id = uuid.uuid4().hex
+        feedback_trace_id = uuid.uuid4().hex
+        feedback_timestamp = now.timestamp() - 1
+        self.store_event(
+            data={
+                "event_id": feedback_event_id,
+                "timestamp": feedback_timestamp,
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "test@example.com",
+                        "name": "Test User",
+                        "message": "This should be filtered out",
+                        "replay_id": self.replay_id,
+                    },
+                },
+            },
+            project_id=project_3.id,
+        )
+
+        # Store the replay with all trace IDs
+        self.store_replay(trace_ids=[trace_id_1, trace_id_2, feedback_trace_id])
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "test message"},
+                    # no feedback crumb included here so we should not see it in the log
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(self.url)
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.json() == {"summary": "Test summary with filtered events"}
+
+        assert mock_requests.post.call_count == 1
+        data = mock_requests.post.call_args.kwargs["data"]
+        logs = json.loads(data)["logs"]
+
+        # Verify that regular error events are included
+        assert any("ValueError" in log for log in logs)
+        assert any("Invalid input" in log for log in logs)
+        assert any("RuntimeError" in log for log in logs)
+        assert any("Issue platform error" in log for log in logs)
+
+        # Verify that feedback events are filtered out
+        assert not any("This should be filtered out" in log for log in logs)
+        assert not any("User submitted feedback" in log for log in logs)
 
     @responses.activate
     def test_seer_timeout(self):
