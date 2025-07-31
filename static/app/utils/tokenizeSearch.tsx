@@ -558,9 +558,8 @@ function flattenNestedBrackets(value: string): string {
   let result = '';
   let inQuotes = false;
   let quoteChar = '';
-  let i = 0;
 
-  while (i < inner.length) {
+  for (let i = 0; i < inner.length; i++) {
     const char = inner[i];
 
     // Handle quote detection
@@ -591,7 +590,7 @@ function flattenNestedBrackets(value: string): string {
       let inNestedQuotes = false;
       let nestedQuoteChar = '';
 
-      while (j < inner.length && bracketDepth > 0) {
+      for (; j < inner.length && bracketDepth > 0; j++) {
         const nestedChar = inner[j];
 
         // Handle quote detection within bracket matching
@@ -625,7 +624,6 @@ function flattenNestedBrackets(value: string): string {
         if (bracketDepth > 0) {
           bracketContent += nestedChar;
         }
-        j++;
       }
 
       // If we found a complete bracket pair, add just the content
@@ -639,8 +637,6 @@ function flattenNestedBrackets(value: string): string {
     } else {
       result += char;
     }
-
-    i++;
   }
 
   return `[${result}]`;
@@ -683,13 +679,12 @@ function parseArraySyntax(inner: string): boolean {
     return true;
   }
 
-  let i = 0;
   let inQuotes = false;
   let quoteChar = '';
   let currentValue = '';
   const values: string[] = [];
 
-  while (i < trimmed.length) {
+  for (let i = 0; i < trimmed.length; i++) {
     const char = trimmed[i];
 
     // Handle quote detection
@@ -704,12 +699,13 @@ function parseArraySyntax(inner: string): boolean {
       for (let j = i - 1; j >= 0 && trimmed[j] === '\\'; j--) {
         backslashCount++;
       }
-      isEscaped = backslashCount % 2 === 1;
 
+      isEscaped = backslashCount % 2 === 1;
       if (!isEscaped) {
         inQuotes = false;
         quoteChar = '';
       }
+
       currentValue += char;
     } else if (!inQuotes && char === ',') {
       // End of current value
@@ -718,8 +714,6 @@ function parseArraySyntax(inner: string): boolean {
     } else {
       currentValue += char;
     }
-
-    i++;
   }
 
   // Add the last value
