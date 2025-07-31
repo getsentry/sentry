@@ -114,7 +114,7 @@ function LoadingSkeleton({
     <PanelBody>
       {Array.from({length: pageSize}).map((_, index) => (
         <LoadingStreamGroup
-          key={index}
+          key={`loading-group-${index}`}
           displayReprocessingLayout={displayReprocessingLayout}
           withColumns={COLUMNS}
         />
