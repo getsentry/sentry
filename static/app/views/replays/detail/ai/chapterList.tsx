@@ -160,9 +160,9 @@ function ChapterRow({
           )}
         </ChapterIconWrapper>
         <ChapterTitle>
-          <span>{title}</span>
+          <span style={{gridArea: 'title'}}>{title}</span>
 
-          <ReplayTimestamp>
+          <ReplayTimestamp style={{gridArea: 'timestamp'}}>
             <TimestampButton
               startTimestampMs={replay?.getStartTimestampMs() ?? 0}
               timestampMs={start}
@@ -356,11 +356,12 @@ const Chapter = styled('summary')`
 `;
 
 const ChapterTitle = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 4fr 2fr;
+  gap: ${space(1)};
+  grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  gap: ${space(1)};
-  justify-content: space-between;
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} 0;
 
@@ -376,13 +377,13 @@ const ChapterTitle = styled('div')`
   }
 `;
 
-// Copied from breadcrumbItem
 const ReplayTimestamp = styled('span')`
   display: flex;
   gap: ${space(0.5)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
+  justify-content: flex-end;
 `;
 
 const EmptyContainer = styled('div')`

@@ -61,7 +61,7 @@ export function useFetchReplaySummary(
 
   const {
     mutate: startSummaryRequestMutate,
-    isError: startSummaryRequestError,
+    isError: isStartSummaryRequestError,
     isPending: isStartSummaryRequestPending,
   } = useMutation({
     mutationFn: () =>
@@ -116,11 +116,14 @@ export function useFetchReplaySummary(
   return {
     summaryData,
     isPolling: isPolling(summaryData, isStartSummaryRequestPending),
-    isPending: isPending || summaryData?.status === ReplaySummaryStatus.PROCESSING,
+    isPending:
+      isPending ||
+      summaryData?.status === ReplaySummaryStatus.PROCESSING ||
+      isStartSummaryRequestPending,
     isError:
       isError ||
       summaryData?.status === ReplaySummaryStatus.ERROR ||
-      startSummaryRequestError,
+      isStartSummaryRequestError,
     startSummaryRequest,
     isStartSummaryRequestPending,
   };
