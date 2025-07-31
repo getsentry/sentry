@@ -185,7 +185,6 @@ class ReleaseHealthOverview(TypedDict, total=False):
     duration_p90: float | None
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
     sessions_unhandled: int
-    handled_sessions: float | None
     unhandled_sessions: float | None
     unhandled_users: float | None
 
