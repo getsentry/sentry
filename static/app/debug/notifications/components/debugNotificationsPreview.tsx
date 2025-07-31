@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Heading} from 'sentry/components/core/text/text';
+import {Heading} from 'sentry/components/core/text';
 
 export function DebugNotificationsPreview({
   title,

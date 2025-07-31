@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Heading} from 'sentry/components/core/text/text';
+import {Heading} from 'sentry/components/core/text';
 import {notificationCategories} from 'sentry/debug/notifications/data';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -87,7 +87,7 @@ const NotificationLinkButton = styled(LinkButton, {
   min-height: auto;
   > span {
     justify-content: flex-start;
-    white-space: wrap;
+    white-space: normal;
   }
   /* Dark notch beside active sources */
   &:after {
