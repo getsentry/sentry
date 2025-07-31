@@ -1,5 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 import {AppSizeInsightsSidebarRow} from './appSizeInsightsSidebarRow';
@@ -15,27 +16,29 @@ describe('AppSizeInsightsSidebarRow', () => {
         path: 'src/components/Button.js',
         savings: 512000,
         percentage: 7.5,
-        fileType: 'regular',
+        fileType: 'regular' as const,
       },
       {
         path: 'src/components/Icon.js',
         savings: 256000,
         percentage: 4.0,
-        fileType: 'regular',
+        fileType: 'regular' as const,
       },
       {
         path: 'src/assets/logo.png',
         savings: 256000,
         percentage: 4.0,
-        fileType: 'optimizable_image',
+        fileType: 'optimizable_image' as const,
         originalFile: {
-          path: 'src/assets/logo.png',
-          type: 'optimizable_image',
-          details: {
-            recommendedFormat: 'webp',
-            recommendedSize: 128000,
-          },
-        },
+          best_optimization_type: 'convert_to_heic',
+          conversion_savings: 128000,
+          current_size: 256000,
+          file_path: 'src/assets/logo.png',
+          heic_size: 128000,
+          minified_size: null,
+          minify_savings: 0,
+          potential_savings: 128000,
+        } as OptimizableImageFile,
       },
     ],
   };
@@ -57,7 +60,7 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(
       screen.getByText('You have files that are duplicated across your app')
     ).toBeInTheDocument();
-    expect(screen.getByText('Potential savings 1 MB')).toBeInTheDocument();
+    expect(screen.getByText('Potential savings 1.02 MB')).toBeInTheDocument();
     expect(screen.getByText('15.5%')).toBeInTheDocument();
   });
 
@@ -82,36 +85,26 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(screen.getByText('src/assets/logo.png')).toBeInTheDocument();
 
     // Check file savings are displayed with negative values
-    expect(screen.getByText('-512 KB')).toBeInTheDocument();
-    expect(screen.getByText('-256 KB')).toBeInTheDocument();
+    expect(screen.getByText(/-\s*512\s*KB/i)).toBeInTheDocument();
+    // Two files have 256 KB savings, so we expect 2 matches
+    expect(screen.getAllByText(/-\s*256\s*KB/i)).toHaveLength(2);
     expect(screen.getByText('(-7.5%)')).toBeInTheDocument();
-    expect(screen.getByText('(-4%)')).toBeInTheDocument();
+    // Two files have (-4%) savings, so we expect 2 matches
+    expect(screen.getAllByText('(-4%)')).toHaveLength(2);
   });
 
   it('calls onToggleExpanded when clicking the toggle button', async () => {
     const user = userEvent.setup();
     render(<AppSizeInsightsSidebarRow {...defaultProps} />);
 
-    const toggleButton = screen.getByText('3 files');
+    const toggleButton = screen.getByRole('button', {name: /3 files/i});
     await user.click(toggleButton);
 
     expect(defaultProps.onToggleExpanded).toHaveBeenCalledTimes(1);
   });
 
-  it('applies alternating background to file rows', () => {
-    render(<AppSizeInsightsSidebarRow {...defaultProps} isExpanded />);
-
-    // The component uses internal logic for alternating, so we just check that files are rendered
-    // In a more complete test, we could check the computed styles
-    const files = screen.getAllByText(/^src\//);
-    expect(files).toHaveLength(3);
-  });
-
   it('handles optimizable image files', () => {
     render(<AppSizeInsightsSidebarRow {...defaultProps} isExpanded />);
-
-    // Check that the optimizable image file is rendered
-    // Note: The component currently renders it the same as regular files
     expect(screen.getByText('src/assets/logo.png')).toBeInTheDocument();
   });
 
@@ -130,7 +123,6 @@ describe('AppSizeInsightsSidebarRow', () => {
     );
 
     expect(screen.getByText('0 files')).toBeInTheDocument();
-    // Should not find any file paths
     expect(screen.queryByText(/^src\//)).not.toBeInTheDocument();
   });
 
@@ -143,7 +135,7 @@ describe('AppSizeInsightsSidebarRow', () => {
           path: 'large-file.js',
           savings: 2147483648, // 2 GB
           percentage: 40,
-          fileType: 'regular',
+          fileType: 'regular' as const,
         },
       ],
     };
@@ -157,6 +149,6 @@ describe('AppSizeInsightsSidebarRow', () => {
     );
 
     expect(screen.getByText('Potential savings 5.24 GB')).toBeInTheDocument();
-    expect(screen.getByText('-2.15 GB')).toBeInTheDocument();
+    expect(screen.getByText(/-2\.15\s*GB/i)).toBeInTheDocument();
   });
 });
