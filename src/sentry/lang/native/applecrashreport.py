@@ -29,10 +29,10 @@ class AppleCrashReport:
         This constructor can modify the passed structures in place.
         """
         self.time_spent_parsing_addrs = 0.0
-        self.threads = threads
+        self.threads = threads if threads else []
         self.context = context
         self.symbolicated = symbolicated
-        self.exceptions = exceptions
+        self.exceptions = exceptions if exceptions else []
         self.image_addrs_to_vmaddrs = {}
 
         # Remove frames that don't have an `instruction_addr` and convert
