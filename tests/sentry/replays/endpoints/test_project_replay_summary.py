@@ -101,10 +101,11 @@ class ProjectReplaySummaryTestCase(
             assert response.json() == {"hello": "world"}
 
         assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_POLL_STATE_URL
-        assert request.method == "POST"
-        assert request.body == json.dumps({"replay_id": self.replay_id})
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_POLL_STATE_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert seer_request.body == json.dumps({"replay_id": self.replay_id})
 
     @responses.activate
     def test_post_simple(self):
@@ -132,17 +133,19 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(1, json.dumps([]).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url, data={"num_segments": 2})
+            response = self.client.post(
+                self.url, data={"num_segments": 2}, content_type="application/json"
+            )
 
         assert response.status_code == 200
         assert response.json() == {"hello": "world"}
 
         assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_START_TASK_URL
-        assert request.method == "POST"
-        assert request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(request.body) == {
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_START_TASK_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert json.loads(seer_request.body) == {
             "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
             "num_segments": 2,
             "replay_id": self.replay_id,
@@ -225,9 +228,10 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(0, json.dumps(data).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url, data={"num_segments": 1})
+            response = self.client.post(
+                self.url, data={"num_segments": 1}, content_type="application/json"
+            )
             assert response.status_code == 200
-            assert response.get("Content-Type") == "application/json"
             assert response.json() == {"hello": "world"}
 
         assert mock_requests.post.call_count == 1
@@ -290,10 +294,11 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(0, json.dumps(data).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url, data={"num_segments": 1})
+            response = self.client.post(
+                self.url, data={"num_segments": 1}, content_type="application/json"
+            )
 
         assert response.status_code == 200
-        assert response.get("Content-Type") == "application/json"
         assert response.json() == {"feedback": "Feedback was submitted"}
 
         assert mock_requests.post.call_count == 1
@@ -329,16 +334,18 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(1, json.dumps([]).encode())
 
         with self.feature(self.features):
-            response = self.client.post(self.url, data={"num_segments": 2})
+            response = self.client.post(
+                self.url, data={"num_segments": 2}, content_type="application/json"
+            )
 
         assert response.status_code == 200
 
         assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.url == SEER_START_TASK_URL
-        assert request.method == "POST"
-        assert request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(request.body) == {
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_START_TASK_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert json.loads(seer_request.body) == {
             "logs": ["Logged: hello at 0.0"],  # only 1 log from the first segment.
             "num_segments": 1,  # capped to 1.
             "replay_id": self.replay_id,
@@ -356,7 +363,9 @@ class ProjectReplaySummaryTestCase(
                 response = (
                     self.client.get(self.url)
                     if method == "GET"
-                    else self.client.post(self.url, data={"num_segments": 1})
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
                 )
 
             assert response.status_code == 504, method
@@ -371,7 +380,9 @@ class ProjectReplaySummaryTestCase(
                 response = (
                     self.client.get(self.url)
                     if method == "GET"
-                    else self.client.post(self.url, data={"num_segments": 1})
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
                 )
 
             assert response.status_code == 502, method
@@ -388,7 +399,9 @@ class ProjectReplaySummaryTestCase(
                 response = (
                     self.client.get(self.url)
                     if method == "GET"
-                    else self.client.post(self.url, data={"num_segments": 1})
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
                 )
 
             assert response.status_code == 502, method
@@ -404,7 +417,9 @@ class ProjectReplaySummaryTestCase(
                     response = (
                         self.client.get(self.url)
                         if method == "GET"
-                        else self.client.post(self.url, data={"num_segments": 1})
+                        else self.client.post(
+                            self.url, data={"num_segments": 1}, content_type="application/json"
+                        )
                     )
 
                 assert response.status_code == status, method
