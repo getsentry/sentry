@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import {DebugNotificationsHeader} from 'sentry/debug/notifications/components/debugNotificationsHeader';
 import {DebugNotificationsLanding} from 'sentry/debug/notifications/components/debugNotificationsLanding';
@@ -27,16 +27,25 @@ export default function DebugNotificationsIndex() {
   return (
     <RouteAnalyticsContextProvider>
       <OrganizationContainer>
-        <Layout>
+        <Grid
+          rows="52px 1fr"
+          columns="256px minmax(auto, 1fr)"
+          minHeight="100dvh"
+          areas={`
+            "header header"
+            "sidebar body"
+          `}
+          background="primary"
+        >
           <HeaderContainer>
             <DebugNotificationsHeader />
           </HeaderContainer>
           <SidebarContainer>
             <DebugNotificationsSidebar />
           </SidebarContainer>
-          <BodyContainer>
+          <Flex direction="column" area="body">
             {selectedSource ? (
-              <SourceContainer>
+              <Flex direction="column" gap="xl" padding="2xl">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedSource.label}
@@ -47,27 +56,16 @@ export default function DebugNotificationsIndex() {
                 <SlackPreview />
                 <DiscordPreview />
                 <TeamsPreview />
-              </SourceContainer>
+              </Flex>
             ) : (
               <DebugNotificationsLanding />
             )}
-          </BodyContainer>
-        </Layout>
+          </Flex>
+        </Grid>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>
   );
 }
-
-const Layout = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  display: grid;
-  grid-template-rows: 52px 1fr;
-  grid-template-columns: 256px minmax(auto, 1fr);
-  grid-template-areas:
-    'header header'
-    'sidebar body';
-  min-height: 100dvh;
-`;
 
 const HeaderContainer = styled('header')`
   grid-area: header;
@@ -88,17 +86,4 @@ const SidebarContainer = styled('nav')`
   scrollbar-color: ${p => p.theme.tokens.border.primary} ${p => p.theme.background};
   display: flex;
   flex-direction: column;
-`;
-
-const BodyContainer = styled('div')`
-  grid-area: body;
-  display: flex;
-  flex-direction: column;
-`;
-
-const SourceContainer = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 `;

@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import {notificationCategories} from 'sentry/debug/notifications/data';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -9,17 +10,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 export function DebugNotificationsSidebar() {
   const location = useLocation();
   return (
-    <CategoryContainer>
+    <Flex direction="column" gap="xl" padding="xl 0">
       {notificationCategories.map((category, i) => (
         <Fragment key={category.value}>
           {i !== 0 && <CategoryDivider />}
-          <CategoryItem>
-            <CategoryHeading as="h3" size="md">
-              {category.label}
-            </CategoryHeading>
+          <Container padding="md">
+            <Container padding="md">
+              <Heading as="h3" size="md">
+                {category.label}
+              </Heading>
+            </Container>
             <SourceList>
               {category.sources.map(source => (
-                <SourceItem key={source.value}>
+                <Container key={source.value} as="li">
                   <NotificationLinkButton
                     borderless
                     active={location.query.source === source.value}
@@ -31,22 +34,15 @@ export function DebugNotificationsSidebar() {
                   >
                     {source.label}
                   </NotificationLinkButton>
-                </SourceItem>
+                </Container>
               ))}
             </SourceList>
-          </CategoryItem>
+          </Container>
         </Fragment>
       ))}
-    </CategoryContainer>
+    </Flex>
   );
 }
-
-const CategoryContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl} 0;
-`;
 
 const CategoryDivider = styled('hr')`
   margin: 0 auto;
@@ -54,22 +50,10 @@ const CategoryDivider = styled('hr')`
   width: calc(100% - ${p => p.theme.space.xl});
 `;
 
-const CategoryItem = styled('div')`
-  padding: 0 ${p => p.theme.space.md};
-`;
-
-const CategoryHeading = styled(Heading)`
-  padding: ${p => p.theme.space.md};
-`;
-
 const SourceList = styled('ul')`
   list-style: none;
   padding: 0;
   margin: 0;
-`;
-
-const SourceItem = styled('li')`
-  display: block;
 `;
 
 const NotificationLinkButton = styled(LinkButton, {

@@ -1,5 +1,4 @@
-import styled from '@emotion/styled';
-
+import {Container} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 
 export function DebugNotificationsPreview({
@@ -10,13 +9,9 @@ export function DebugNotificationsPreview({
   title: string;
 }) {
   return (
-    <div>
-      <SectionHeading as="h2">{title}</SectionHeading>
+    <Container>
+      <Heading as="h2">{title}</Heading>
       {children}
-    </div>
+    </Container>
   );
 }
-
-const SectionHeading = styled(Heading)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
