@@ -8,7 +8,6 @@ import responses
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
@@ -95,63 +94,61 @@ class ProjectReplaySummaryTestCase(
 
     @responses.activate
     def test_get_simple(self):
-        with outbox_context(flush=False):
-            mock_seer_response("GET", status=200, json={"hello": "world"})
-            with self.feature(self.features):
-                response = self.client.get(self.url)
-                assert response.status_code == 200
-                assert response.json() == {"hello": "world"}
-
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert request.url == SEER_POLL_STATE_URL
-            assert request.method == "POST"
-            assert request.body == json.dumps({"replay_id": self.replay_id})
-
-    @responses.activate
-    def test_post_simple(self):
-        with outbox_context(flush=False):
-            mock_seer_response("POST", status=200, json={"hello": "world"})
-
-            data = [
-                {
-                    "type": 5,
-                    "timestamp": 0.0,
-                    "data": {
-                        "tag": "breadcrumb",
-                        "payload": {"category": "console", "message": "hello"},
-                    },
-                },
-                {
-                    "type": 5,
-                    "timestamp": 0.0,
-                    "data": {
-                        "tag": "breadcrumb",
-                        "payload": {"category": "console", "message": "world"},
-                    },
-                },
-            ]
-            self.save_recording_segment(0, json.dumps(data).encode())
-            self.save_recording_segment(1, json.dumps([]).encode())
-
-            with self.feature(self.features):
-                response = self.client.post(self.url)
-
+        mock_seer_response("GET", status=200, json={"hello": "world"})
+        with self.feature(self.features):
+            response = self.client.get(self.url)
             assert response.status_code == 200
             assert response.json() == {"hello": "world"}
 
-            assert len(responses.calls) == 1
-            request = responses.calls[0].request
-            assert request.url == SEER_START_TASK_URL
-            assert request.method == "POST"
-            assert request.headers["content-type"] == "application/json;charset=utf-8"
-            assert json.loads(request.body) == {
-                "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
-                "num_segments": 2,
-                "replay_id": self.replay_id,
-                "organization_id": self.organization.id,
-                "project_id": self.project.id,
-            }
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == SEER_POLL_STATE_URL
+        assert request.method == "POST"
+        assert request.body == json.dumps({"replay_id": self.replay_id})
+
+    @responses.activate
+    def test_post_simple(self):
+        mock_seer_response("POST", status=200, json={"hello": "world"})
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "world"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+        self.save_recording_segment(1, json.dumps([]).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(self.url)
+
+        assert response.status_code == 200
+        assert response.json() == {"hello": "world"}
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == SEER_START_TASK_URL
+        assert request.method == "POST"
+        assert request.headers["content-type"] == "application/json;charset=utf-8"
+        assert json.loads(request.body) == {
+            "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
+            "num_segments": 2,
+            "replay_id": self.replay_id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+        }
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests):
