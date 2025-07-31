@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {IconSettings} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/appSizeInsightsSidebar';
 import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  formatPercentageWithParens,
+  formatSavingsAmount,
+} from 'sentry/views/preprod/utils/formatters';
 
 interface AppSizeInsightsProps {
   insights: AppleInsightResults;
@@ -17,30 +20,6 @@ interface InsightItem {
   name: string;
   percentage: number;
   savings: number;
-}
-
-// Safely formats percentages, always showing at least 1 decimal place
-function formatPercentage(percentage: number): string {
-  if (!isFinite(percentage) || isNaN(percentage)) {
-    return '(0.0%)';
-  }
-
-  const absPercentage = Math.abs(percentage);
-  const sign = percentage < 0 ? '−' : '';
-
-  if (absPercentage >= 0.1) {
-    return `(${sign}${absPercentage.toFixed(1)}%)`;
-  }
-  return `(${sign}${absPercentage.toFixed(2)}%)`;
-}
-
-// Safely format savings amounts
-function formatSavingsAmount(savings: number): string {
-  if (!isFinite(savings) || isNaN(savings) || savings <= 0) {
-    return '0 B';
-  }
-
-  return formatBytesBase10(savings);
 }
 
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
@@ -114,7 +93,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
             <SavingsContainer>
               <SavingsAmount>−{formatSavingsAmount(insight.savings)}</SavingsAmount>
               <SavingsPercentage width="64px">
-                {formatPercentage(-insight.percentage)}
+                {formatPercentageWithParens(-insight.percentage)}
               </SavingsPercentage>
             </SavingsContainer>
           </InsightRow>

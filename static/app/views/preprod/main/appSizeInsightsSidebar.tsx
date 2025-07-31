@@ -5,7 +5,6 @@ import {Button} from 'sentry/components/core/button';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   AppleInsightResults,
   FileSavingsResult,
@@ -15,6 +14,10 @@ import type {
   OptimizableImageFile,
   StripBinaryFileInfo,
 } from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  formatPercentage,
+  formatSavingsAmount,
+} from 'sentry/views/preprod/utils/formatters';
 
 interface AppSizeInsightsSidebarProps {
   insights: AppleInsightResults;
@@ -33,27 +36,6 @@ interface ProcessedInsight {
   name: string;
   percentage: number;
   totalSavings: number;
-}
-
-// Safely format savings amounts
-function formatSavingsAmount(savings: number): string {
-  if (!isFinite(savings) || isNaN(savings) || savings <= 0) {
-    return '0 B';
-  }
-  return formatBytesBase10(savings);
-}
-
-// Safely format percentages
-function formatPercentage(percentage: number): string {
-  if (!isFinite(percentage) || isNaN(percentage)) {
-    return '0.0%';
-  }
-
-  const absPercentage = Math.abs(percentage);
-  if (absPercentage >= 0.1) {
-    return `${absPercentage.toFixed(1)}%`;
-  }
-  return `${absPercentage.toFixed(2)}%`;
 }
 
 export function AppSizeInsightsSidebar({
@@ -232,7 +214,10 @@ export function AppSizeInsightsSidebar({
                     <InsightDescription>{insight.description}</InsightDescription>
 
                     <FilesSection>
-                      <FilesToggle onClick={() => toggleExpanded(insight.name)}>
+                      <FilesToggle
+                        isExpanded={isExpanded}
+                        onClick={() => toggleExpanded(insight.name)}
+                      >
                         <ToggleIcon isExpanded={isExpanded} />
                         <FilesCount>{insight.files.length} files</FilesCount>
                       </FilesToggle>
@@ -306,8 +291,7 @@ const InsightCard = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: 8px;
-  padding: ${space(3)};
-  margin-bottom: ${space(2)};
+  padding: ${space(2)};
 `;
 
 const InsightHeader = styled('div')`
@@ -375,12 +359,12 @@ const InsightDescription = styled('p')`
   letter-spacing: 0;
   font-variant-numeric: lining-nums tabular-nums;
   color: ${p => p.theme.subText};
-  margin: 0 0 ${space(3)} 0;
+  margin-bottom: 12px;
 `;
 
 const FilesSection = styled('div')``;
 
-const FilesToggle = styled('button')`
+const FilesToggle = styled('button')<{isExpanded: boolean}>`
   display: flex;
   align-items: center;
   background: none;
@@ -389,7 +373,7 @@ const FilesToggle = styled('button')`
   cursor: pointer;
   font-size: 14px;
   color: ${p => p.theme.textColor};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => (p.isExpanded ? space(2) : '0')};
 
   &:hover {
     color: ${p => p.theme.blue400};
