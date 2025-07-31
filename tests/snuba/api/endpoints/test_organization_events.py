@@ -6035,9 +6035,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             },
         )
         assert response.status_code == 200, response.content
-        assert "query" in response.data["meta"]
+        assert "debug_info" in response.data["meta"]
         # We should get the snql query back in the query key
-        assert "MATCH" in response.data["meta"]["query"]
+        assert "MATCH" in response.data["meta"]["debug_info"]["query"]
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
