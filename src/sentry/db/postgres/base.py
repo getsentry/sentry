@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, Concatenate, Protocol
 
 import psycopg2
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 from django.db.backends.postgresql.operations import DatabaseOperations
+from django.db.backends.utils import CursorWrapper
+from django.db.utils import DatabaseError, InterfaceError
 
 from sentry.utils.strings import strip_lone_surrogates
 
-from .decorators import auto_reconnect_connection, auto_reconnect_cursor
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
@@ -73,56 +75,83 @@ def _execute__include_sql_in_error(
         raise
 
 
-class CursorWrapper:
-    """
-    A wrapper around the postgresql_psycopg2 backend which handles various events
-    from cursors, such as auto reconnects and lazy time zone evaluation.
-    """
+def can_reconnect(exc: Exception) -> bool:
+    if isinstance(exc, (psycopg2.InterfaceError, InterfaceError)):
+        return True
+    # elif isinstance(exc, psycopg2.OperationalError):
+    #     exc_msg = str(exc)
+    #     if "can't fetch default_isolation_level" in exc_msg:
+    #         return True
+    #     elif "can't set datestyle to ISO" in exc_msg:
+    #         return True
+    #     return True
+    elif isinstance(exc, DatabaseError):
+        exc_msg = str(exc)
+        if "server closed the connection unexpectedly" in exc_msg:
+            return True
+        elif "client_idle_timeout" in exc_msg:
+            return True
+    return False
 
-    def __init__(self, db, cursor):
-        self.db = db
-        self.cursor = cursor
 
-    def __getattr__(self, attr):
-        return getattr(self.cursor, attr)
+class _Reconnectable(Protocol):
+    def _reconnect(self) -> None: ...
 
-    def __iter__(self):
-        return iter(self.cursor)
 
-    @auto_reconnect_cursor
-    def execute(self, sql, params=None):
-        if params is not None:
-            return self.cursor.execute(sql, params)
-        return self.cursor.execute(sql)
+def _auto_reconnect[
+    T: _Reconnectable, R, **P
+](func: Callable[Concatenate[T, P], R]) -> Callable[Concatenate[T, P], R]:
+    @functools.wraps(func)
+    def _auto_reconnect_impl(self: T, *args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as e:
+            if not can_reconnect(e):
+                raise
+            else:
+                self._reconnect()
+                return func(self, *args, **kwargs)
 
-    @auto_reconnect_cursor
-    def executemany(self, sql, paramlist=()):
-        return self.cursor.executemany(sql, paramlist)
+    return _auto_reconnect_impl
+
+
+class SentryCursorWrapper(CursorWrapper):
+    """A wrapper around the postgresql_psycopg2 backend which handles auto reconnects"""
+
+    def _reconnect(self) -> None:
+        self.db.close(reconnect=True)
+        # important: unwrap the cursor or we'll double wrap!
+        self.cursor = self.db.cursor().cursor
+
+    @_auto_reconnect
+    def execute(self, *args: Any, **kwargs: Any) -> Any:
+        return super().execute(*args, **kwargs)
+
+    @_auto_reconnect
+    def executemany(self, *args: Any, **kwargs: Any) -> Any:
+        return super().executemany(*args, **kwargs)
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    SchemaEditorClass = DatabaseSchemaEditorProxy
+    SchemaEditorClass = DatabaseSchemaEditorProxy  # type: ignore[assignment]  # a proxy class isn't exactly the original type
     queries_limit = 15000
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
 
-    @auto_reconnect_connection
-    def _cursor(self, *args, **kwargs):
-        return super()._cursor()
+    def _reconnect(self) -> None:
+        self.close(reconnect=True)
 
-    # We're overriding this internal method that's present in Django 1.11+, because
-    # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
-    # with our CursorWrapper. We need to be passing our wrapped cursor to their wrapped cursor,
-    # not the other way around since then we'll lose things like __enter__ due to the way this
-    # wrapper is working (getattr on self.cursor).
-    def _prepare_cursor(self, cursor):
-        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
-        return cursor
+    @_auto_reconnect
+    def cursor(self) -> CursorWrapper:
+        return super().cursor()
 
-    def close(self, reconnect=False):
+    def make_cursor(self, cursor: CursorWrapper) -> CursorWrapper:
+        return SentryCursorWrapper(cursor, self)
+
+    def close(self, reconnect: bool = False) -> None:
         """
         This ensures we don't error if the connection has already been closed.
         """
