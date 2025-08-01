@@ -838,6 +838,49 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             assert alert_rule.snuba_query.query == "has:measurements.score.total"
             assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
 
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_count_aggregate_gets_converted_to_upsampled_count_for_upsampled_projects(
+        self, mock_are_any_projects_error_upsampled
+    ):
+        """Test that count() aggregate gets automatically converted to upsampled_count()
+        when creating alerts for projects with error upsampling enabled"""
+        mock_are_any_projects_error_upsampled.return_value = True
+
+        params = self.valid_params.copy()
+        params["aggregate"] = "count()"  # Start with regular count()
+
+        serializer = AlertRuleSerializer(context=self.context, data=params)
+        assert serializer.is_valid(), serializer.errors
+
+        alert_rule = serializer.save()
+
+        # Verify the aggregate was converted to upsampled_count()
+        assert alert_rule.snuba_query.aggregate == "upsampled_count()"
+
+        # Verify the mock was called with correct project IDs
+        mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
+    @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
+    def test_count_aggregate_not_converted_for_non_upsampled_projects(
+        self, mock_are_any_projects_error_upsampled
+    ):
+        """Test that count() aggregate is NOT converted when projects don't have error upsampling"""
+        mock_are_any_projects_error_upsampled.return_value = False
+
+        params = self.valid_params.copy()
+        params["aggregate"] = "count()"
+
+        serializer = AlertRuleSerializer(context=self.context, data=params)
+        assert serializer.is_valid(), serializer.errors
+
+        alert_rule = serializer.save()
+
+        # Verify the aggregate remained as count()
+        assert alert_rule.snuba_query.aggregate == "count()"
+
+        # Verify the mock was called with correct project IDs
+        mock_are_any_projects_error_upsampled.assert_called_once_with([self.project.id])
+
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
