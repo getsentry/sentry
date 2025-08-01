@@ -31,7 +31,7 @@ To create a basic alert link, wrap content in an `<AlertLink>` and provide navig
 <AlertLink to="/settings">Go to Settings</AlertLink>
 ```
 
-### Alert Types
+## Alert Types
 
 AlertLink supports all alert types: `info` (default), `success`, `warning`, `error`, and `muted`.
 
@@ -72,11 +72,11 @@ AlertLink supports all alert types: `info` (default), `success`, `warning`, `err
 </AlertLink>
 ```
 
-### Link Types
+## Link Types
 
 AlertLink supports three types of navigation: internal routing, external URLs, and custom click handlers.
 
-#### Internal Links
+### Internal Links
 
 Use the `to` prop for internal navigation within the application.
 
@@ -87,7 +87,7 @@ Use the `to` prop for internal navigation within the application.
 <AlertLink to="/settings">Go to Settings</AlertLink>
 ```
 
-#### External Links
+### External Links
 
 Use the `href` prop for external URLs. The `openInNewTab` prop controls whether the link opens in a new tab.
 
@@ -102,7 +102,7 @@ Use the `href` prop for external URLs. The `openInNewTab` prop controls whether 
 </AlertLink>
 ```
 
-#### Custom Click Handlers
+### Custom Click Handlers
 
 Use the `onClick` prop for custom actions that don't involve navigation.
 
@@ -118,7 +118,7 @@ Use the `onClick` prop for custom actions that don't involve navigation.
 </AlertLink>
 ```
 
-### Trailing Items
+## Trailing Items
 
 By default, AlertLink includes a right-pointing chevron icon. You can customize this with the `trailingItems` prop.
 
@@ -143,7 +143,7 @@ By default, AlertLink includes a right-pointing chevron icon. You can customize 
 </AlertLink>
 ```
 
-### Container
+## Container
 
 When displaying multiple AlertLinks, use `AlertLink.Container` to manage consistent spacing.
 
@@ -175,7 +175,7 @@ When displaying multiple AlertLinks, use `AlertLink.Container` to manage consist
 </AlertLink.Container>
 ```
 
-### Accessibility
+## Accessibility
 
 To meet WCAG 2.2 AA compliance, `<AlertLink>` automatically meets the [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard) and [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible) success criteria.
 
