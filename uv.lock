@@ -79,7 +79,7 @@ wheels = [
 
 [[package]]
 name = "black"
-version = "24.10.0"
+version = "25.1.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "click", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -89,7 +89,10 @@ dependencies = [
     { name = "platformdirs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/black-24.10.0-py3-none-any.whl", hash = "sha256:3bb2b7a1f7b685f85b11fed1ef10f8a9148bceb49853e47a294a3dd963c1dd7d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/black-25.1.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:8f0b18a02996a836cc9c9c78e5babec10930862827b1b724ddfe98ccf2f2fe4f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/black-25.1.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:afebb7098bfbc70037a053b91ae8437c3857482d3a690fefc03e9ff7aa9a5fd3" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/black-25.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:030b9759066a4ee5e5aca28c3c77f9c64789cdd4de8ac1df642c40b708be6171" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/black-25.1.0-py3-none-any.whl", hash = "sha256:95e8176dae143ba9097f351d174fdaf0ccd29efb414b362ae3fd72bf0f710717" },
 ]
 
 [[package]]
@@ -1124,7 +1127,7 @@ wheels = [
 
 [[package]]
 name = "mypy"
-version = "1.17.0"
+version = "1.17.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "mypy-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1132,10 +1135,10 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:2c41aa59211e49d717d92b3bb1238c06d387c9325d3122085113c79118bebb06" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0e69db1fb65b3114f98c753e3930a00514f5b68794ba80590eb02090d54a5d4a" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:03ba330b76710f83d6ac500053f7727270b6b8553b0423348ffb3af6f2f7b889" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:037bc0f0b124ce46bfde955c647f3e395c6174476a968c0f22c95a8d2f589bba" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:93378d3203a5c0800c6b6d850ad2f19f7a3cdf1a3701d3416dbf128805c6a6a7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:15d54056f7fe7a826d897789f53dd6377ec2ea8ba6f776dc83c2902b899fee81" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:209a58fed9987eccc20f2ca94afe7257a8f46eb5df1fb69958650973230f91e6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/mypy-1.17.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:099b9a5da47de9e2cb5165e581f158e854d9e19d2e96b6698c0d64de911dd849" },
 ]
 
 [[package]]
@@ -2197,7 +2200,7 @@ provides-extras = ["getsentry"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "black", specifier = "==24.10.0" },
+    { name = "black", specifier = "==25.1.0" },
     { name = "covdefaults", specifier = "==2.3.0" },
     { name = "devservices", specifier = "==1.2.1" },
     { name = "docker", specifier = "==7.1.0" },
@@ -2209,7 +2212,7 @@ dev = [
     { name = "isort", specifier = "==5.10.1" },
     { name = "lxml-stubs", specifier = "==0.4.0" },
     { name = "msgpack-types", specifier = "==0.2.0" },
-    { name = "mypy", specifier = "==1.17.0" },
+    { name = "mypy", specifier = "==1.17.1" },
     { name = "mypy-extensions", specifier = "==1.0.0" },
     { name = "openapi-core", specifier = "==0.18.2" },
     { name = "openapi-pydantic", specifier = "==0.4.0" },

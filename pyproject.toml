@@ -131,7 +131,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "black==24.10.0",
+    "black==25.1.0",
     "covdefaults==2.3.0",
     "devservices==1.2.1",
     "docker==7.1.0",
@@ -143,7 +143,7 @@ dev = [
     "isort==5.10.1",
     "lxml-stubs==0.4.0",
     "msgpack-types==0.2.0",
-    "mypy==1.17.0",
+    "mypy==1.17.1",
     "mypy-extensions==1.0.0",
     "openapi-core==0.18.2",
     "openapi-pydantic==0.4.0",
