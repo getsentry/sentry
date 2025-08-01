@@ -171,7 +171,7 @@ function StoryAPI() {
   return (
     <Fragment>
       <Component>
-        <h1>API Reference</h1>
+        <h1>Story Exports</h1>
       </Component>
       {Object.entries(story.exports.types).map(([key, value]) => {
         return <Storybook.APIReference key={key} types={value} />;
