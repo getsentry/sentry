@@ -631,6 +631,15 @@ function FileDiff({
           />
         </FileHeader>
       )}
+      {integratedStyle && (
+        <FileHeader>
+          <FileAddedRemoved>
+            <FileAdded>+{file.added}</FileAdded>
+            <FileRemoved>-{file.removed}</FileRemoved>
+          </FileAddedRemoved>
+          <FileName title={file.path}>{file.path}</FileName>
+        </FileHeader>
+      )}
       {isExpanded && (
         <DiffContainer ref={containerRef} integratedStyle={integratedStyle}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
