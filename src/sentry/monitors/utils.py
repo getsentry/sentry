@@ -21,6 +21,7 @@ from sentry.signals import (
     first_cron_monitor_created,
 )
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.projectflags import set_project_flag_and_signal
@@ -41,7 +42,9 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         )
 
 
-def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
+def check_and_signal_first_monitor_created(
+    project: Project, user: RpcUser | None, from_upsert: bool
+):
     set_project_flag_and_signal(
         project, "has_cron_monitors", first_cron_monitor_created, user=user, from_upsert=from_upsert
     )
