@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -131,18 +131,44 @@ export function useFetchReplaySummary(
     startSummaryRequestMutate();
   }, [options?.enabled, startSummaryRequestMutate]);
 
+  const isPollingRet = isPolling(summaryData, isStartSummaryRequestPending);
+  const isPendingRet =
+    dataUpdatedAt < startSummaryRequestTime.current ||
+    isPending ||
+    summaryData?.status === ReplaySummaryStatus.PROCESSING;
+  const isErrorRet =
+    isError ||
+    summaryData?.status === ReplaySummaryStatus.ERROR ||
+    isStartSummaryRequestError;
+
+  // Auto-start request logic
+  const segmentsIncreased =
+    !!summaryData?.num_segments && segmentCount > summaryData.num_segments;
+  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
+
+  useEffect(() => {
+    if (
+      (segmentsIncreased || needsInitialGeneration) &&
+      !isPendingRet &&
+      !isPollingRet &&
+      !isErrorRet
+    ) {
+      startSummaryRequest();
+    }
+  }, [
+    segmentsIncreased,
+    needsInitialGeneration,
+    isPendingRet,
+    isPollingRet,
+    startSummaryRequest,
+    isErrorRet,
+  ]);
+
   return {
     summaryData,
-    isPolling: isPolling(summaryData, isStartSummaryRequestPending),
-    isPending:
-      dataUpdatedAt < startSummaryRequestTime.current ||
-      isPending ||
-      summaryData?.status === ReplaySummaryStatus.PROCESSING ||
-      isStartSummaryRequestPending,
-    isError:
-      isError ||
-      summaryData?.status === ReplaySummaryStatus.ERROR ||
-      isStartSummaryRequestError,
+    isPolling: isPollingRet,
+    isPending: isPendingRet,
+    isError: isErrorRet,
     startSummaryRequest,
     isStartSummaryRequestPending,
   };

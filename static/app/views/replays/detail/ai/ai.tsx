@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -35,7 +34,6 @@ export default function Ai() {
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
-  const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const {
@@ -45,30 +43,6 @@ export default function Ai() {
     isError,
     startSummaryRequest,
   } = useReplayContext().replaySummary;
-
-  const segmentsIncreased =
-    summaryData?.num_segments !== null &&
-    summaryData?.num_segments !== undefined &&
-    segmentCount > summaryData.num_segments;
-  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
-
-  useEffect(() => {
-    if (
-      (segmentsIncreased || needsInitialGeneration) &&
-      !isSummaryPending &&
-      !isPolling &&
-      !isError
-    ) {
-      startSummaryRequest();
-    }
-  }, [
-    segmentsIncreased,
-    needsInitialGeneration,
-    isSummaryPending,
-    isPolling,
-    startSummaryRequest,
-    isError,
-  ]);
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (

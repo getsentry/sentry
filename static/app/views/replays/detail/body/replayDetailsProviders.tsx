@@ -1,4 +1,4 @@
-import {type ReactNode, useEffect} from 'react';
+import {Fragment, type ReactNode, useEffect} from 'react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
@@ -13,13 +13,30 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useFetchReplaySummary} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
+import {
+  useFetchReplaySummary,
+  type UseFetchReplaySummaryResult,
+} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 interface Props {
   children: ReactNode;
   projectSlug: string | null;
   replay: ReplayReader;
+}
+
+function ReplaySummaryFetcher({
+  children,
+  enabled,
+}: {
+  children: (replaySummaryResult: UseFetchReplaySummaryResult) => ReactNode;
+  enabled: boolean;
+}) {
+  const replaySummaryResult = useFetchReplaySummary({
+    staleTime: 0,
+    enabled,
+  });
+  return <Fragment>{children(replaySummaryResult)}</Fragment>;
 }
 
 export default function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
@@ -43,16 +60,13 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
-  const replaySummaryResult = useFetchReplaySummary({
-    staleTime: 0,
-    enabled: Boolean(
-      replayRecord?.id &&
-        projectSlug &&
-        organization.features.includes('replay-ai-summaries') &&
-        areAiFeaturesAllowed &&
-        setupAcknowledgement.orgHasAcknowledged
-    ),
-  });
+  const summaryEnabled = Boolean(
+    replayRecord?.id &&
+      projectSlug &&
+      organization.features.includes('replay-ai-summaries') &&
+      areAiFeaturesAllowed &&
+      setupAcknowledgement.orgHasAcknowledged
+  );
 
   return (
     <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
@@ -60,17 +74,21 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
         <ReplayReaderProvider replay={replay}>
           <ReplayPlayerStateContextProvider>
             <ReplayPlayerSizeContextProvider>
-              <ReplayContextProvider
-                analyticsContext="replay_details"
-                initialTimeOffsetMs={initialTimeOffsetMs}
-                isFetching={false}
-                replay={replay}
-                replaySummary={replaySummaryResult}
-              >
-                <ReplayTransactionContext replayRecord={replayRecord}>
-                  {children}
-                </ReplayTransactionContext>
-              </ReplayContextProvider>
+              <ReplaySummaryFetcher enabled={summaryEnabled}>
+                {replaySummaryResult => (
+                  <ReplayContextProvider
+                    analyticsContext="replay_details"
+                    initialTimeOffsetMs={initialTimeOffsetMs}
+                    isFetching={false}
+                    replay={replay}
+                    replaySummary={replaySummaryResult}
+                  >
+                    <ReplayTransactionContext replayRecord={replayRecord}>
+                      {children}
+                    </ReplayTransactionContext>
+                  </ReplayContextProvider>
+                )}
+              </ReplaySummaryFetcher>
             </ReplayPlayerSizeContextProvider>
           </ReplayPlayerStateContextProvider>
         </ReplayReaderProvider>
