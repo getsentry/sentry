@@ -68,6 +68,7 @@ function GroupListBody({
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
+  // const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // initial loading state
   if (!issuesSuccessfullyLoaded && loading) {
