@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
@@ -41,6 +42,9 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.organization_workflow_index import (
+    DetectorWorkflowMutationValidator,
+)
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
@@ -350,8 +354,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.ID,
         ],
         responses={
+            200: RESPONSE_SUCCESS,
             201: DetectorSerializer,
-            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -378,19 +382,16 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        enabled = request.data.get("enabled")
-        if enabled is None:
-            return Response(
-                {"enabled": "This field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator.is_valid(raise_exception=True)
+        enabled = validator.validated_data.get("enabled", True)
 
         queryset = self.filter_detectors(request, organization)
 
         if not queryset:
             return Response(
                 {"detail": "No detectors found."},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_200_OK,
             )
 
         # Check if the user has edit permissions for all detectors
@@ -406,6 +407,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             queryset=queryset,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
+            order_by=["id"],
         )
 
     @extend_schema(
@@ -418,6 +420,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.ID,
         ],
         responses={
+            200: RESPONSE_SUCCESS,
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -450,7 +453,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not queryset:
             return Response(
                 {"detail": "No detectors found."},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_200_OK,
             )
 
         # Check if the user has edit permissions for all detectors

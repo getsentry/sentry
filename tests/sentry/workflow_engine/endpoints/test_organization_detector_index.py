@@ -1018,7 +1018,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
 
-        assert response.data == {"enabled": "This field is required."}
+        assert "This field is required." in str(response.data["enabled"])
 
     def test_update_detectors_invalid_id_format(self) -> None:
         response = self.get_error_response(
@@ -1035,7 +1035,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug,
             qs_params={"id": "999999"},
             enabled=False,
-            status_code=204,
+            status_code=200,
         )
 
         assert response.data["detail"] == "No detectors found."
@@ -1353,11 +1353,12 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
     def test_delete_no_matching_detectors(self) -> None:
         # Test deleting detectors with non-existent ID
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug,
             qs_params={"id": "999999"},
-            status_code=204,
+            status_code=200,
         )
+        assert response.data["detail"] == "No detectors found."
 
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
@@ -1366,8 +1367,9 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         self.get_success_response(
             self.organization.slug,
             qs_params={"query": "nonexistent-detector-name", "project": self.project.id},
-            status_code=204,
+            status_code=200,
         )
+        assert response.data["detail"] == "No detectors found."
 
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
