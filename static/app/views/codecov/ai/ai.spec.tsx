@@ -15,7 +15,9 @@ describe('AIPage', () => {
     render(<AIPage />);
 
     expect(
-      screen.getByText('Prevent AI is a generative AI agent that automates tasks in your PR:')
+      screen.getByText(
+        'Prevent AI is a generative AI agent that automates tasks in your PR:'
+      )
     ).toBeInTheDocument();
   });
 

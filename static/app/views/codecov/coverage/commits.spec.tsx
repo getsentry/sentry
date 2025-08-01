@@ -37,7 +37,9 @@ describe('CommitsListPage', () => {
       organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
     });
 
-    expect(screen.getByRole('textbox', {name: /filter by commit name/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /filter by commit name/})
+    ).toBeInTheDocument();
     expect(screen.getByRole('table', {name: 'Commits Table'})).toBeInTheDocument();
   });
 
@@ -102,12 +104,16 @@ describe('CommitsListPage', () => {
     // Click on Pulls tab
     await user.click(screen.getByText('Pulls'));
     expect(screen.getByText('Pull Requests')).toBeInTheDocument();
-    expect(screen.getByText('Review pull requests and their coverage impact.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Review pull requests and their coverage impact.')
+    ).toBeInTheDocument();
 
     // Click on File Explorer tab
     await user.click(screen.getByText('File Explorer'));
     expect(screen.getByText('File Explorer')).toBeInTheDocument();
-    expect(screen.getByText('Browse repository files and view detailed coverage information.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Browse repository files and view detailed coverage information.')
+    ).toBeInTheDocument();
 
     // Switch back to Commits tab
     await user.click(screen.getByText('Commits'));
@@ -130,7 +136,10 @@ describe('CommitsListPage', () => {
     });
 
     const commitLink = screen.getByRole('link', {name: /d677638/});
-    expect(commitLink).toHaveAttribute('href', 'https://github.com/example-org/example-repo/commit/d677638');
+    expect(commitLink).toHaveAttribute(
+      'href',
+      'https://github.com/example-org/example-repo/commit/d677638'
+    );
     expect(commitLink).toHaveAttribute('target', '_blank');
   });
 
