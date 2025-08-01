@@ -283,8 +283,9 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
-  text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
-  text-decoration-color: ${p => p.theme.green300};
+  text-decoration: ${p =>
+    p.isSelected ? (p.isActive ? 'underline dashed' : 'none') : 'line-through'};
+  text-decoration-color: ${p => (p.isSelected ? p.theme.green300 : p.theme.textColor)};
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   transition: opacity 0.2s ease;
