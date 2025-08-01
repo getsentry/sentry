@@ -270,7 +270,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             extra={"project_id": self.project.id, "event_id": javascript_event.event_id},
         )
 
-    def test_variant_keys_and_types_use_dashes_not_underscores(self) -> None:
+    def test_variant_keys_and_types_use_underscored_not_dashes(self) -> None:
         """
         Test to make sure switching to using underscores on the BE doesn't change what we send
         to the FE.
@@ -293,8 +293,8 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
 
         assert response.status_code == 200
 
-        assert "custom-fingerprint" in content
-        assert "custom_fingerprint" not in content
+        assert "custom_fingerprint" in content
+        assert "custom-fingerprint" not in content
 
-        assert content["custom-fingerprint"]["key"] == "custom-fingerprint"
-        assert content["custom-fingerprint"]["type"] == "custom-fingerprint"
+        assert content["custom_fingerprint"]["key"] == "custom_fingerprint"
+        assert content["custom_fingerprint"]["type"] == "custom_fingerprint"
