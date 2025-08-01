@@ -34,7 +34,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_with_codecov_param_calls_api(self, mock_codecov_client_class):
+    def test_post_with_codecov_param_calls_api(self, mock_codecov_client_class) -> None:
         """Test that when use_codecov param is provided, it calls the Codecov API"""
         mock_graphql_response = {
             "data": {
@@ -67,7 +67,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_without_codecov_param_returns_uuid(self, mock_codecov_client_class):
+    def test_post_without_codecov_param_returns_uuid(self, mock_codecov_client_class) -> None:
         """Test that when use_codecov param is not provided, it returns a generic UUID and doesn't call Codecov"""
         url = self.reverse_url()
         response = self.client.post(url)
@@ -81,7 +81,7 @@ class RepositoryTokenRegenerateEndpointTest(APITestCase):
     @patch(
         "sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate.CodecovApiClient"
     )
-    def test_post_with_codecov_param_handles_errors(self, mock_codecov_client_class):
+    def test_post_with_codecov_param_handles_errors(self, mock_codecov_client_class) -> None:
         """Test that GraphQL errors are properly handled when calling Codecov API"""
         mock_graphql_response = {
             "data": {

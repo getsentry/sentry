@@ -48,11 +48,11 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
         self.login_as(user_no_team)
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-discover-saved-query-detail", args=[self.org.slug, "not-an-id"])
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -66,7 +66,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["conditions"] == []
         assert response.data["limit"] == 10
 
-    def test_get_discover_query_flag(self):
+    def test_get_discover_query_flag(self) -> None:
         with self.feature("organizations:discover-query"):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -80,7 +80,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["conditions"] == []
         assert response.data["limit"] == 10
 
-    def test_get_version(self):
+    def test_get_version(self) -> None:
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org, created_by_id=self.user.id, name="v2 query", query=query
@@ -101,7 +101,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["limit"] == 10
         assert response.data["version"] == 2
 
-    def test_get_org_without_access(self):
+    def test_get_org_without_access(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
@@ -111,7 +111,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
-    def test_get_homepage_query(self):
+    def test_get_homepage_query(self) -> None:
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
@@ -130,7 +130,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_get_disallow_when_no_project_access(self):
+    def test_get_disallow_when_no_project_access(self) -> None:
         self.setup_no_team_user()
 
         with self.feature(self.feature_name):
@@ -142,7 +142,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_put(self):
+    def test_put(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -169,7 +169,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["conditions"] == []
         assert response.data["limit"] == 20
 
-    def test_put_dataset(self):
+    def test_put_dataset(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -198,7 +198,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["limit"] == 20
         assert response.data["queryDataset"] == "transaction-like"
 
-    def test_put_dataset_with_discover_dataset_returns_validation_error(self):
+    def test_put_dataset_with_discover_dataset_returns_validation_error(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -224,7 +224,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             in response.content.decode()
         )
 
-    def test_dataset_set_to_discover_on_update(self):
+    def test_dataset_set_to_discover_on_update(self) -> None:
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
@@ -258,7 +258,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["queryDataset"] == "error-events"
         assert response.data["datasetSource"] == "user"
 
-    def test_put_with_interval(self):
+    def test_put_with_interval(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -281,7 +281,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["fields"] == ["transaction", "count()"]
         assert response.data["interval"] == "10m"
 
-    def test_put_query_without_access(self):
+    def test_put_query_without_access(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
@@ -294,7 +294,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 404
 
-    def test_put_query_with_team(self):
+    def test_put_query_with_team(self) -> None:
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         query = DiscoverSavedQuery.objects.create(
@@ -315,7 +315,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 200
 
-    def test_put_query_without_team(self):
+    def test_put_query_without_team(self) -> None:
         team = self.create_team(organization=self.org, members=[])
         project = self.create_project(organization=self.org, teams=[team])
         query = DiscoverSavedQuery.objects.create(
@@ -337,7 +337,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert response.status_code == 400
             assert "No Projects found, join a Team" == response.data["detail"]
 
-    def test_put_homepage_query(self):
+    def test_put_homepage_query(self) -> None:
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
@@ -359,7 +359,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_put_org_without_access(self):
+    def test_put_org_without_access(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
@@ -371,7 +371,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
-    def test_put_disallow_when_no_project_access(self):
+    def test_put_disallow_when_no_project_access(self) -> None:
         self.setup_no_team_user()
 
         with self.feature(self.feature_name):
@@ -396,7 +396,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -408,7 +408,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
             assert self.client.get(url).status_code == 404
 
-    def test_delete_removes_projects(self):
+    def test_delete_removes_projects(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -422,7 +422,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert projects == []
 
-    def test_delete_query_without_access(self):
+    def test_delete_query_without_access(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
@@ -433,7 +433,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 404
 
-    def test_delete_org_without_access(self):
+    def test_delete_org_without_access(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
                 "sentry-api-0-discover-saved-query-detail",
@@ -443,7 +443,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
-    def test_delete_homepage_query(self):
+    def test_delete_homepage_query(self) -> None:
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
@@ -463,7 +463,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_delete_disallow_when_no_project_access(self):
+    def test_delete_disallow_when_no_project_access(self) -> None:
         self.setup_no_team_user()
 
         with self.feature(self.feature_name):
@@ -476,7 +476,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_disallow_delete_all_projects_savedquery_when_no_open_membership(self):
+    def test_disallow_delete_all_projects_savedquery_when_no_open_membership(self) -> None:
         self.setup_no_team_user()
 
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
@@ -524,7 +524,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
             kwargs={"organization_id_or_slug": self.org.slug, "query_id": query_id},
         )
 
-    def test_visit_query(self):
+    def test_visit_query(self) -> None:
         last_visited = self.query.last_visited
         assert last_visited is not None
         assert self.query.visits == 1
@@ -539,7 +539,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         assert query.last_visited is not None
         assert query.last_visited > last_visited
 
-    def test_visit_query_no_access(self):
+    def test_visit_query_no_access(self) -> None:
         last_visited = self.query.last_visited
         assert self.query.visits == 1
 

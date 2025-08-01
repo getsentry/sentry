@@ -82,7 +82,7 @@ def test_shim_to_feedback_event_user_does_not_override_report(
 
 
 @django_db_all
-def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_to_kafka):
+def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_to_kafka) -> None:
     """User fields default to "" if not present."""
     report_dict = {
         "comments": "Shim this",
@@ -107,7 +107,7 @@ def test_shim_to_feedback_no_user_info(default_project, mock_produce_occurrence_
 
 
 @django_db_all
-def test_shim_to_feedback_fails_if_required_fields_missing(default_project):
+def test_shim_to_feedback_fails_if_required_fields_missing(default_project) -> None:
     # Email and comments are required to shim. Tests key errors are handled.
     report_dict = {
         "name": "andrew",

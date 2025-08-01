@@ -136,37 +136,37 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         )
         return self.client.get(url, query, format="json")
 
-    def test_empty_request(self):
+    def test_empty_request(self) -> None:
         response = self.do_request({})
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Request is missing a "field"'}
 
-    def test_inaccessible_project(self):
+    def test_inaccessible_project(self) -> None:
         response = self.do_request({"project": [self.project4.id]})
 
         assert response.status_code == 403, response.content
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_unknown_field(self):
+    def test_unknown_field(self) -> None:
         response = self.do_request({"field": ["summ(session)"]})
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid field: "summ(session)"'}
 
-    def test_unknown_groupby(self):
+    def test_unknown_groupby(self) -> None:
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["environment_"]})
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid groupBy: "environment_"'}
 
-    def test_illegal_groupby(self):
+    def test_illegal_groupby(self) -> None:
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["issue.id"]})
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid groupBy: "issue.id"'}
 
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         response = self.do_request(
             {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["foo:bar"]}
         )
@@ -187,14 +187,14 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         # since its not obvious where `message` comes from.
         assert response.data["detail"] == "Invalid search filter: message"
 
-    def test_illegal_query(self):
+    def test_illegal_query(self) -> None:
         response = self.do_request(
             {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["issue.id:123"]}
         )
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid search filter: issue.id"
 
-    def test_too_many_points(self):
+    def test_too_many_points(self) -> None:
         # default statsPeriod is 90d
         response = self.do_request({"field": ["sum(session)"], "interval": "1h"})
 
@@ -205,7 +205,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         }
 
     @freeze_time(MOCK_DATETIME)
-    def test_future_request(self):
+    def test_future_request(self) -> None:
         start = MOCK_DATETIME + datetime.timedelta(days=1)
         end = MOCK_DATETIME + datetime.timedelta(days=2)
         response = self.do_request(
@@ -220,7 +220,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200, response.content
 
     @freeze_time(MOCK_DATETIME)
-    def test_timeseries_interval(self):
+    def test_timeseries_interval(self) -> None:
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}
         )
@@ -272,7 +272,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         }
 
     @freeze_time(MOCK_DATETIME)
-    def test_user_all_accessible(self):
+    def test_user_all_accessible(self) -> None:
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
             user=self.user2,
@@ -296,7 +296,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             ],
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request(
             {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
             org=self.organization3,
@@ -306,7 +306,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.data == {"detail": "No projects available"}
 
     @freeze_time(MOCK_DATETIME_PLUS_TEN_MINUTES)
-    def test_minute_resolution(self):
+    def test_minute_resolution(self) -> None:
         with self.feature("organizations:minute-resolution-sessions"):
             response = self.do_request(
                 {
@@ -346,7 +346,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             }
 
     @freeze_time(MOCK_DATETIME_PLUS_TEN_MINUTES)
-    def test_10s_resolution(self):
+    def test_10s_resolution(self) -> None:
         with self.feature("organizations:minute-resolution-sessions"):
             response = self.do_request(
                 {
@@ -364,7 +364,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             assert len(response.data["intervals"]) == 7
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_projects(self):
+    def test_filter_projects(self) -> None:
         response = self.do_request(
             {
                 "statsPeriod": "1d",
@@ -380,7 +380,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_anr_invalid_aggregates(self):
+    def test_anr_invalid_aggregates(self) -> None:
         default_request = {
             "project": [-1],
             "statsPeriod": "1d",
@@ -416,7 +416,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_environment(self):
+    def test_filter_environment(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -448,7 +448,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_release(self):
+    def test_filter_release(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -505,7 +505,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_unknown_release(self):
+    def test_filter_unknown_release(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -520,7 +520,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200, response.content
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_unknown_release_in(self):
+    def test_filter_unknown_release_in(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -543,7 +543,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_groupby_project(self):
+    def test_groupby_project(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -574,7 +574,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_groupby_environment(self):
+    def test_groupby_environment(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -600,7 +600,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_groupby_release(self):
+    def test_groupby_release(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -631,7 +631,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_groupby_status(self):
+    def test_groupby_status(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -667,7 +667,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_groupby_cross(self):
+    def test_groupby_cross(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -703,7 +703,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_users_groupby(self):
+    def test_users_groupby(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -767,7 +767,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
     }
 
     @freeze_time(MOCK_DATETIME)
-    def test_users_groupby_status_advanced(self):
+    def test_users_groupby_status_advanced(self) -> None:
         project = self.create_project()
 
         user1 = uuid4().hex
@@ -867,7 +867,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_duration_percentiles(self):
+    def test_duration_percentiles(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -899,7 +899,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             assert series == pytest.approx([None, expected[key]])
 
     @freeze_time(MOCK_DATETIME)
-    def test_duration_percentiles_groupby(self):
+    def test_duration_percentiles_groupby(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -938,7 +938,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert seen == {"abnormal", "crashed", "errored", "healthy"}
 
     @freeze_time(MOCK_DATETIME)
-    def test_snuba_limit_exceeded(self):
+    def test_snuba_limit_exceeded(self) -> None:
         # 2 * 4 => only show two groups
         with (
             patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8),
@@ -978,7 +978,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_snuba_limit_exceeded_groupby_status(self):
+    def test_snuba_limit_exceeded_groupby_status(self) -> None:
         """Get consistent result when grouping by status"""
         # 2 * 4 => only show two groups
         with (
@@ -1080,7 +1080,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_environment_filter_not_present_in_query(self):
+    def test_environment_filter_not_present_in_query(self) -> None:
         self.create_environment(name="abc")
         response = self.do_request(
             {
@@ -1098,7 +1098,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_sessions_without_users(self):
+    def test_sessions_without_users(self) -> None:
         # The first field defines by which groups additional queries are filtered
         # But if the first field is the user count, the series should still
         # contain the session counts even if the project does not track users
@@ -1127,7 +1127,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME + datetime.timedelta(days=2))
-    def test_groupby_no_data(self):
+    def test_groupby_no_data(self) -> None:
         # Empty results for everything
         response = self.do_request(
             {
@@ -1143,7 +1143,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert result_sorted(response.data)["groups"] == []
 
     @freeze_time(MOCK_DATETIME)
-    def test_mix_known_and_unknown_strings(self):
+    def test_mix_known_and_unknown_strings(self) -> None:
         response = self.do_request(
             {
                 "project": self.project.id,  # project without users
@@ -1156,7 +1156,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200, response.data
 
     @freeze_time(MOCK_DATETIME)
-    def test_release_semver_filter(self):
+    def test_release_semver_filter(self) -> None:
         r1 = self.create_release(version="ahmed@1.0.0")
         r2 = self.create_release(version="ahmed@1.1.0")
         r3 = self.create_release(version="ahmed@2.0.0")
@@ -1189,7 +1189,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_release_package_filter(self):
+    def test_release_package_filter(self) -> None:
         r1 = self.create_release(version="ahmed@1.2.4+124")
         r2 = self.create_release(version="ahmed2@1.2.5+125")
         r3 = self.create_release(version="ahmed2@1.2.6+126")
@@ -1222,7 +1222,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_release_build_filter(self):
+    def test_release_build_filter(self) -> None:
         r1 = self.create_release(version="ahmed@1.2.4+124")
         r2 = self.create_release(version="ahmed@1.2.3+123")
         r3 = self.create_release(version="ahmed2@1.2.5+125")
@@ -1255,7 +1255,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_release_stage_filter(self):
+    def test_release_stage_filter(self) -> None:
         new_env = self.create_environment(name="new_env")
         adopted_release = self.create_release(version="adopted_release")
         not_adopted_release = self.create_release(version="not_adopted_release")
@@ -1297,7 +1297,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_orderby(self):
+    def test_orderby(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -1462,7 +1462,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             )
 
     @freeze_time(MOCK_DATETIME)
-    def test_wildcard_search(self):
+    def test_wildcard_search(self) -> None:
         default_request = {
             "project": [-1],
             "statsPeriod": "2d",
@@ -1489,7 +1489,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.data == {"detail": "Invalid condition: wildcard search is not supported"}
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_by_session_status(self):
+    def test_filter_by_session_status(self) -> None:
         default_request = {
             "project": [-1],
             "statsPeriod": "1d",
@@ -1557,7 +1557,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert result_sorted(response.data)["groups"] == []
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_by_session_status_with_groupby(self):
+    def test_filter_by_session_status_with_groupby(self) -> None:
         default_request = {
             "project": [-1],
             "statsPeriod": "1d",
@@ -1589,7 +1589,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_filter_by_session_status_with_orderby(self):
+    def test_filter_by_session_status_with_orderby(self) -> None:
         default_request = {
             "project": [-1],
             "statsPeriod": "1d",
@@ -1618,7 +1618,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.data == {"detail": "Cannot order by sum(session) with the current filters"}
 
     @freeze_time(MOCK_DATETIME)
-    def test_anr_rate(self):
+    def test_anr_rate(self) -> None:
         def store_anr_session(user_id, mechanism):
             self.store_session(
                 make_session(
@@ -1704,7 +1704,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_crash_rate(self):
+    def test_crash_rate(self) -> None:
         default_request = {
             "project": [-1],
             "statsPeriod": "1d",
@@ -1780,7 +1780,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         def do_request(cursor):
             return self.do_request(
                 {
@@ -1825,7 +1825,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
 
-    def test_unrestricted_date_range(self):
+    def test_unrestricted_date_range(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -1837,7 +1837,7 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200
 
     @freeze_time(MOCK_DATETIME)
-    def test_release_is_empty(self):
+    def test_release_is_empty(self) -> None:
         self.store_session(
             make_session(
                 self.project1, started=SESSION_STARTED + 12 * 60, release="", environment=""
@@ -1878,7 +1878,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         return self.client.get(url, query, format="json")
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_with_no_releases(self):
+    def test_order_by_with_no_releases(self) -> None:
         """
         Test that ensures if we have no releases in the preflight query when trying to order by
         `release.timestamp`, we get no groups.
@@ -1902,7 +1902,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         )
         assert response.data["groups"] == []
 
-    def test_order_by_max_limit(self):
+    def test_order_by_max_limit(self) -> None:
         response = self.do_request(
             {
                 "project": self.project.id,
@@ -1920,7 +1920,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         )
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by(self):
+    def test_order_by(self) -> None:
         """
         Test that ensures that we are able to get the crash_free_rate for the most 2 recent
         releases when grouping by release
@@ -1981,7 +1981,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_with_session_status_groupby(self):
+    def test_order_by_with_session_status_groupby(self) -> None:
         """
         Test that ensures we are able to group by session.status and order by `release.timestamp`
         since `release.timestamp` is generated from a preflight query
@@ -2064,7 +2064,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_with_limit(self):
+    def test_order_by_with_limit(self) -> None:
         rando_project = self.create_project()
 
         # Create two releases with no metrics data and then two releases with metric data
@@ -2168,7 +2168,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_with_limit_and_offset(self):
+    def test_order_by_with_limit_and_offset(self) -> None:
         rando_project = self.create_project()
 
         # Create two releases with no metrics data and then two releases with metric data
@@ -2199,7 +2199,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         )
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_with_environment_filter_on_preflight(self):
+    def test_order_by_with_environment_filter_on_preflight(self) -> None:
         rando_project = self.create_project()
         rando_env = self.create_environment(name="rando_env", project=self.project)
 
@@ -2290,7 +2290,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         assert response.json()["detail"] == "Unable to parse condition with environment"
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_without_release_groupby(self):
+    def test_order_by_without_release_groupby(self) -> None:
         rando_project = self.create_project()
         response = self.do_request(
             {
@@ -2308,7 +2308,7 @@ class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
         )
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_release_with_session_status_current_filter(self):
+    def test_order_by_release_with_session_status_current_filter(self) -> None:
         rando_project = self.create_project()
 
         release_1a = self.create_release(project=rando_project, version="1A")

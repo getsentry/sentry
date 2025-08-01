@@ -31,7 +31,7 @@ CUSTOM_SOURCE_CONFIG = """
 
 
 @django_db_all
-def test_sources_no_feature(default_project):
+def test_sources_no_feature(default_project) -> None:
     features = {"organizations:symbol-sources": False, "organizations:custom-symbol-sources": False}
 
     with Feature(features):
@@ -43,7 +43,7 @@ def test_sources_no_feature(default_project):
 
 
 @django_db_all
-def test_sources_builtin(default_project):
+def test_sources_builtin(default_project) -> None:
     features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
@@ -59,7 +59,7 @@ def test_sources_builtin(default_project):
 # Test that a builtin source that is not declared in SENTRY_BUILTIN_SOURCES does
 # not lead to an error. It should simply be ignored.
 @django_db_all
-def test_sources_builtin_unknown(default_project):
+def test_sources_builtin_unknown(default_project) -> None:
     features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["invalid"])
@@ -74,7 +74,7 @@ def test_sources_builtin_unknown(default_project):
 # Test that previously saved builtin sources are not returned if the feature for
 # builtin sources is missing at query time.
 @django_db_all
-def test_sources_builtin_disabled(default_project):
+def test_sources_builtin_disabled(default_project) -> None:
     features = {"organizations:symbol-sources": False, "organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", ["microsoft"])
@@ -87,7 +87,7 @@ def test_sources_builtin_disabled(default_project):
 
 
 @django_db_all
-def test_sources_custom(default_project):
+def test_sources_custom(default_project) -> None:
     features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": True}
 
     # Remove builtin sources explicitly to avoid defaults
@@ -106,7 +106,7 @@ def test_sources_custom(default_project):
 # Test that previously saved custom sources are not returned if the feature for
 # custom sources is missing at query time.
 @django_db_all
-def test_sources_custom_disabled(default_project):
+def test_sources_custom_disabled(default_project) -> None:
     features = {"organizations:symbol-sources": True, "organizations:custom-symbol-sources": False}
 
     default_project.update_option("sentry:builtin_symbol_sources", [])
@@ -275,7 +275,7 @@ class TestAliasReversion:
             },
         }
 
-    def test_reverse_aliases(self, builtin_sources):
+    def test_reverse_aliases(self, builtin_sources) -> None:
         reverse_aliases = reverse_aliases_map(builtin_sources)
         expected = {"sentry:ios-source": "sentry:ios", "sentry:tvos-source": "sentry:ios"}
         assert reverse_aliases == expected

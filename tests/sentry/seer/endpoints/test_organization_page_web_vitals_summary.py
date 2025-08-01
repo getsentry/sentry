@@ -115,7 +115,7 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
             user=ANY,
         )
 
-    def test_endpoint_without_trace_slug(self):
+    def test_endpoint_without_trace_slug(self) -> None:
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data == {

@@ -45,5 +45,5 @@ interface_json = {
 }
 
 
-def test_basic(make_expectct_snapshot):
+def test_basic(make_expectct_snapshot) -> None:
     make_expectct_snapshot(interface_json)

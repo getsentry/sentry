@@ -71,7 +71,7 @@ class TestSeerRpcMethods(APITestCase):
         result = get_organization_seer_consent_by_org_name(org_name="non-existent-org")
         assert result == {"consent": False}
 
-    def test_get_organization_seer_consent_by_org_name_no_consent(self):
+    def test_get_organization_seer_consent_by_org_name_no_consent(self) -> None:
         """Test when organization exists but has no consent"""
         self.create_integration(
             organization=self.organization,
@@ -89,7 +89,7 @@ class TestSeerRpcMethods(APITestCase):
 
         assert result == {"consent": False}
 
-    def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self):
+    def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self) -> None:
         """Test when organization has seer acknowledgement"""
         self.create_integration(
             organization=self.organization,
@@ -103,7 +103,7 @@ class TestSeerRpcMethods(APITestCase):
         # Should return True since PR review is enabled by default
         assert result == {"consent": True}
 
-    def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self):
+    def test_get_organization_seer_consent_by_org_name_multiple_orgs_one_with_consent(self) -> None:
         """Test when multiple organizations exist, one with consent"""
         org_without_consent = self.create_organization(owner=self.user)
         org_with_consent = self.create_organization(owner=self.user)
@@ -263,7 +263,7 @@ class TestSeerRpcMethods(APITestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config(self, mock_get_jwt):
+    def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
         """Test when organization has github enterprise integration"""
 
         installation_id = 1234
@@ -412,7 +412,9 @@ class TestSeerRpcMethods(APITestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
     @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config_invalid_encrypt_key(self, mock_get_jwt):
+    def test_get_github_enterprise_integration_config_invalid_encrypt_key(
+        self, mock_get_jwt
+    ) -> None:
         installation_id = 1234
         private_key = "private_key_1"
         access_token = "access_token_1"

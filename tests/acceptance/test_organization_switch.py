@@ -34,7 +34,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
 
-    def test_organization_switches(self):
+    def test_organization_switches(self) -> None:
         def navigate_to_issues_page(org_slug):
             issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
             self.browser.get(issues_url)

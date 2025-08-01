@@ -168,5 +168,5 @@ class FindStacktracesTest(TestCase):
         {"stacktrace": {"frames": [{"in_app": True, "marco": "polo"}]}},
     ],
 )
-def test_get_crash_frame(event):
+def test_get_crash_frame(event) -> None:
     assert get_crash_frame_from_event_data(event)["marco"] == "polo"

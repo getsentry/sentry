@@ -14,7 +14,7 @@ def latest_epoch(value):
 
 @django_db_all
 @latest_epoch(10)
-def test_defaults(default_project):
+def test_defaults(default_project) -> None:
     default_manager.register(
         key="__sentry_test:test-option",
         epoch_defaults={1: "whatever", 20: "new-value", 42: "latest-value"},
@@ -52,7 +52,7 @@ def test_epoch_defaults() -> None:
 
 
 @django_db_all
-def test_isset_simple(default_project):
+def test_isset_simple(default_project) -> None:
     default_manager.register("best_dogs", default="all dogs")
 
     assert default_project.get_option("best_dogs") == "all dogs"
@@ -64,7 +64,7 @@ def test_isset_simple(default_project):
 
 
 @django_db_all
-def test_isset_differentiates_unset_from_set_to_default(default_project):
+def test_isset_differentiates_unset_from_set_to_default(default_project) -> None:
     default_manager.register("best_dogs", default="all dogs")
 
     assert default_project.get_option("best_dogs") == "all dogs"
@@ -76,7 +76,7 @@ def test_isset_differentiates_unset_from_set_to_default(default_project):
 
 
 @django_db_all
-def test_project_template_options(default_project):
+def test_project_template_options(default_project) -> None:
     default_manager.register("test_option", default="default")
     assert default_project.get_option("test_option") == "default"
 

@@ -94,7 +94,7 @@ def mocked_rdap_registry():
         )
 
 
-def test_resolve_rdap_bootstrap_registry(mocked_rdap_registry):
+def test_resolve_rdap_bootstrap_registry(mocked_rdap_registry) -> None:
     assert resolve_rdap_bootstrap_registry() == SIMPLE_RDAP_BOOTSTRAP_RESPONSE["services"]
     assert mocked_rdap_registry.call_count == 1
 
@@ -103,7 +103,7 @@ def test_resolve_rdap_bootstrap_registry(mocked_rdap_registry):
     assert mocked_rdap_registry.call_count == 1
 
 
-def test_resolve_rdap_provider(mocked_rdap_registry):
+def test_resolve_rdap_provider(mocked_rdap_registry) -> None:
     assert resolve_rdap_provider("1.10.20.30") == "https://rdap.example.net/rdap/"
     assert resolve_rdap_provider("2.10.20.30") == "https://rdap.other-example.net/"
     assert resolve_rdap_provider("6.0.0.0") is None

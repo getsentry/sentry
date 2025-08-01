@@ -129,7 +129,7 @@ class BulkFetchEventsTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.ConditionalRetryPolicy")
     @patch("sentry.rules.processing.delayed_processing.EVENT_LIMIT", 2)
-    def test_more_than_limit_event_ids(self, mock_retry_policy):
+    def test_more_than_limit_event_ids(self, mock_retry_policy) -> None:
         """
         Test that when the number of event_ids exceeds the EVENT_LIMIT,
         batches into groups based on the EVENT_LIMT, and then merges results.

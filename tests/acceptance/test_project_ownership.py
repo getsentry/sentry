@@ -9,12 +9,12 @@ class ProjectOwnershipTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("ownership-rules-table")
 
-    def test_open_modal(self):
+    def test_open_modal(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("ownership-rules-table")

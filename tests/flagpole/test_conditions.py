@@ -14,21 +14,21 @@ from flagpole.conditions import (
 
 
 class TestCreateCaseInsensitiveSetFromList:
-    def test_empty_set(self):
+    def test_empty_set(self) -> None:
         assert create_case_insensitive_set_from_list([]) == set()
 
-    def test_returns_int_set(self):
+    def test_returns_int_set(self) -> None:
         assert create_case_insensitive_set_from_list([1, 2, 3]) == {1, 2, 3}
 
-    def test_returns_float_set(self):
+    def test_returns_float_set(self) -> None:
         assert create_case_insensitive_set_from_list([1.1, 2.2, 3.3]) == {1.1, 2.2, 3.3}
 
-    def test_returns_lowercase_string_set(self):
+    def test_returns_lowercase_string_set(self) -> None:
         assert create_case_insensitive_set_from_list(["AbC", "DEF"]) == {"abc", "def"}
 
 
 class TestInConditions:
-    def test_is_in(self):
+    def test_is_in(self) -> None:
         values = ["bar", "baz"]
         condition = InCondition(property="foo", value=values)
         assert condition.match(context=EvaluationContext({"foo": "bar"}), segment_name="test")
@@ -45,14 +45,14 @@ class TestInConditions:
         assert condition.match(context=EvaluationContext({"foo": 2}), segment_name="test")
         assert not condition.match(context=EvaluationContext({"foo": 3}), segment_name="test")
 
-    def test_is_in_numeric_string(self):
+    def test_is_in_numeric_string(self) -> None:
         values = ["123", "456"]
         condition = InCondition(property="foo", value=values, operator="in")
         assert condition.value == values
         assert not condition.match(context=EvaluationContext({"foo": 123}), segment_name="test")
         assert condition.match(context=EvaluationContext({"foo": "123"}), segment_name="test")
 
-    def test_is_not_in(self):
+    def test_is_not_in(self) -> None:
         values = ["bar", "baz"]
         condition = InCondition(property="foo", value=values)
         assert not condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
@@ -60,7 +60,7 @@ class TestInConditions:
         not_condition = NotInCondition(property="foo", value=values)
         assert not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-    def test_is_in_case_insensitivity(self):
+    def test_is_in_case_insensitivity(self) -> None:
         values = ["bAr", "baz"]
         condition = InCondition(property="foo", value=values)
         assert condition.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
@@ -70,7 +70,7 @@ class TestInConditions:
             context=EvaluationContext({"foo": "BaR"}), segment_name="test"
         )
 
-    def test_invalid_property_value(self):
+    def test_invalid_property_value(self) -> None:
         values = ["bar", "baz"]
         condition = InCondition(property="foo", value=values)
 
@@ -86,7 +86,7 @@ class TestInConditions:
                     context=EvaluationContext({"foo": attr_val}), segment_name="test"
                 )
 
-    def test_missing_context_property(self):
+    def test_missing_context_property(self) -> None:
         values = ["bar", "baz"]
         in_condition = InCondition(property="foo", value=values)
         assert not in_condition.match(
@@ -100,7 +100,7 @@ class TestInConditions:
 
 
 class TestContainsConditions:
-    def test_does_contain(self):
+    def test_does_contain(self) -> None:
         condition = ContainsCondition(property="foo", value="bar")
         assert condition.match(
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
@@ -115,7 +115,7 @@ class TestContainsConditions:
         assert condition.match(context=EvaluationContext({"foo": [1, 2]}), segment_name="test")
         assert not condition.match(context=EvaluationContext({"foo": [3, 4]}), segment_name="test")
 
-    def test_does_not_contain(self):
+    def test_does_not_contain(self) -> None:
         values = "baz"
         condition = ContainsCondition(property="foo", value=values, operator="contains")
         assert not condition.match(
@@ -127,7 +127,7 @@ class TestContainsConditions:
             context=EvaluationContext({"foo": ["foo", "bar"]}), segment_name="test"
         )
 
-    def test_invalid_property_provided(self):
+    def test_invalid_property_provided(self) -> None:
         values = "baz"
         bad_context = ("oops", "1", 1, 3.14, None, False, True)
 
@@ -145,7 +145,7 @@ class TestContainsConditions:
                     context=EvaluationContext({"foo": attr_val}), segment_name="test"
                 )
 
-    def test_missing_context_property(self):
+    def test_missing_context_property(self) -> None:
         condition = ContainsCondition(property="foo", value="bar")
 
         with pytest.raises(ConditionTypeMismatchException):
@@ -160,7 +160,7 @@ class TestContainsConditions:
 
 
 class TestEqualsConditions:
-    def test_is_equal_string(self):
+    def test_is_equal_string(self) -> None:
         value = "foo"
         condition = EqualsCondition(property="foo", value=value)
         assert condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
@@ -170,7 +170,7 @@ class TestEqualsConditions:
             context=EvaluationContext({"foo": "foo"}), segment_name="test"
         )
 
-    def test_is_not_equals(self):
+    def test_is_not_equals(self) -> None:
         values = "bar"
         condition = EqualsCondition(property="foo", value=values)
         assert not condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
@@ -178,7 +178,7 @@ class TestEqualsConditions:
         not_condition = NotEqualsCondition(property="foo", value=values)
         assert not_condition.match(context=EvaluationContext({"foo": "foo"}), segment_name="test")
 
-    def test_is_equal_case_insensitive(self):
+    def test_is_equal_case_insensitive(self) -> None:
         values = "bAr"
         condition = EqualsCondition(property="foo", value=values)
         assert condition.match(context=EvaluationContext({"foo": "BaR"}), segment_name="test")
@@ -188,7 +188,7 @@ class TestEqualsConditions:
             context=EvaluationContext({"foo": "BaR"}), segment_name="test"
         )
 
-    def test_equality_type_mismatch_strings(self):
+    def test_equality_type_mismatch_strings(self) -> None:
         values = ["foo", "bar"]
         condition = EqualsCondition(property="foo", value=values, operator="equals")
 

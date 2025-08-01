@@ -55,7 +55,7 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
     ],
     ids=(" lock_disabled: True ", " lock_disabled: False "),
 )
-def test_group_creation_race(default_project, lock_disabled):
+def test_group_creation_race(default_project, lock_disabled) -> None:
     with contextlib.ExitStack() as ctx:
         if lock_disabled:
             # Disable transaction isolation just within event manager, but not in

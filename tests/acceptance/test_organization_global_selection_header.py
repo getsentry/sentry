@@ -69,7 +69,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project_2.id,
         )
 
-    def test_global_selection_header_dropdown(self):
+    def test_global_selection_header_dropdown(self) -> None:
         self.project.update(first_event=django_timezone.now())
         self.issues_list.visit_issue_list(
             self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id)
@@ -83,7 +83,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('[data-test-id="page-filter-timerange-selector"]')
 
     @pytest.mark.skip(reason="Has been flaky lately.")
-    def test_global_selection_header_loads_with_correct_project(self):
+    def test_global_selection_header_loads_with_correct_project(self) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -121,7 +121,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list.wait_until_loaded()
         assert f"project={self.project_3.id}" in self.browser.current_url
 
-    def test_global_selection_header_navigates_with_browser_back_button(self):
+    def test_global_selection_header_navigates_with_browser_back_button(self) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -147,7 +147,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert f"project={self.project_1.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
-    def test_global_selection_header_updates_environment_with_browser_navigation_buttons(self):
+    def test_global_selection_header_updates_environment_with_browser_navigation_buttons(
+        self,
+    ) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -214,7 +216,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "environment=" not in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "All Envs"
 
-    def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
+    def test_global_selection_header_loads_with_correct_project_with_multi_project(self) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists

@@ -36,7 +36,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_count(self):
+    def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         logs = []
         for hour, count in enumerate(event_counts):
@@ -85,7 +85,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "interval": 3_600_000,
         }
 
-    def test_zerofill(self):
+    def test_zerofill(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,

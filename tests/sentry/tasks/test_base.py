@@ -192,7 +192,7 @@ def test_retry_on(capture_exception: MagicMock, current_task: MagicMock) -> None
     ),
 )
 @override_settings(SILO_MODE=SiloMode.CONTROL)
-def test_task_silo_limit_celery_task_methods(method_name):
+def test_task_silo_limit_celery_task_methods(method_name) -> None:
     method = getattr(region_task, method_name)
     with pytest.raises(SiloLimit.AvailabilityError):
         method("hi")

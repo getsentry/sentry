@@ -20,7 +20,7 @@ def _payload(span_id: str) -> bytes:
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
-def test_backpressure():
+def test_backpressure() -> None:
     # Flush very aggressively to make join() faster
     with mock.patch("time.sleep"):
         messages = []
@@ -161,7 +161,7 @@ def test_multi_producer_sliced_integration_with_arroyo_local_producer() -> None:
     manager.close()
 
 
-def test_flusher_waits_for_processes_to_start():
+def test_flusher_waits_for_processes_to_start() -> None:
     """Test that the flusher waits for all processes to become healthy during initialization."""
     buffer = SpansBuffer(assigned_shards=[0])
 

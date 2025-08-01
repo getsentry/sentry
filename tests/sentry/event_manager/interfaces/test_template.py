@@ -24,7 +24,7 @@ def make_template_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_template_snapshot):
+def test_basic(make_template_snapshot) -> None:
     make_template_snapshot(dict(filename="foo.html", context_line="hello world", lineno=1))
 
 
@@ -38,5 +38,5 @@ def test_basic(make_template_snapshot):
         {"lineno": 1, "context_line": 42},
     ],
 )
-def test_required_attributes(make_template_snapshot, input):
+def test_required_attributes(make_template_snapshot, input) -> None:
     make_template_snapshot(input)

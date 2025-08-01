@@ -26,7 +26,7 @@ def mock_baxter_response():
 
 class PushEventWebhookTest(APITestCase):
     @mock_baxter_response()
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
@@ -84,7 +84,7 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
     @mock_baxter_response()
-    def test_user_email(self):
+    def test_user_email(self) -> None:
         project = self.project  # force creation
         user = self.create_user(email="alberto@sentry.io")
         self.create_usersocialauth(provider="github", user=user, uid="6752317")
@@ -145,7 +145,7 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
     @responses.activate
-    def test_anonymous_lookup(self):
+    def test_anonymous_lookup(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"

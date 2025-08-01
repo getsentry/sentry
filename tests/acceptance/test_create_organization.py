@@ -11,7 +11,7 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         settings.PRIVACY_URL = "https://sentry.io/privacy/"
         settings.TERMS_URL = "https://sentry.io/terms/"
         self.browser.get("/organizations/new/")

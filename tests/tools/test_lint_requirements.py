@@ -3,7 +3,7 @@ import pytest
 from tools import lint_requirements
 
 
-def test_ok(tmp_path):
+def test_ok(tmp_path) -> None:
     f = tmp_path.joinpath("f.txt")
     f.write_text(
         "# allow comments\n"
@@ -15,7 +15,7 @@ def test_ok(tmp_path):
     assert lint_requirements.main((str(f),)) == 0
 
 
-def test_not_ok_classic_git_url(tmp_path):
+def test_not_ok_classic_git_url(tmp_path) -> None:
     f = tmp_path.joinpath("f.txt")
     f.write_text("git+https://github.com/asottile/astpretty@3.0.0#egg=astpretty")
 
@@ -32,7 +32,7 @@ See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references
     assert msg == expected.rstrip()
 
 
-def test_not_ok_new_style_git_url(tmp_path):
+def test_not_ok_new_style_git_url(tmp_path) -> None:
     f = tmp_path.joinpath("f.txt")
     f.write_text("astpretty @ git+https://github.com/asottile/astpretty@3.0.0")
 

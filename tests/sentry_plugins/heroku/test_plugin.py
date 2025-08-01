@@ -193,7 +193,7 @@ class HookHandleTest(TestCase):
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
 
-    def test_email_mismatch(self):
+    def test_email_mismatch(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
@@ -212,7 +212,7 @@ class HookHandleTest(TestCase):
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
-    def test_bad_version(self):
+    def test_bad_version(self) -> None:
         project = self.create_project()
         user = self.create_user()
         hook = HerokuReleaseHook(project)

@@ -12,5 +12,5 @@ expected_data = [
 
 
 @pytest.mark.parametrize("email,expected_name", expected_data)
-def test_get_name_from_email(email, expected_name):
+def test_get_name_from_email(email, expected_name) -> None:
     assert _get_name_from_email(email) == expected_name

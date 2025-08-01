@@ -111,7 +111,7 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
         self.handler_error = Exception("nope")
 
     @patch("sys.stderr.write")
-    def test_logs_error_locally(self, mock_stderr_write: MagicMock):
+    def test_logs_error_locally(self, mock_stderr_write: MagicMock) -> None:
         try:
             raise self.handler_error
         except Exception as e:

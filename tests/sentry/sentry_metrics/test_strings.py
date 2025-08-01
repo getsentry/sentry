@@ -104,7 +104,7 @@ def test_reverse_resolve_reindexed() -> None:
         if parse_mri(string) is not None
     ],
 )
-def test_shared_mri_string_range(mri, id):
+def test_shared_mri_string_range(mri, id) -> None:
     parsed_mri = parse_mri(mri)
     assert parsed_mri is not None, mri
     start, end = {

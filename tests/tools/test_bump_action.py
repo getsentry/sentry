@@ -19,7 +19,7 @@ def workflow_and_action(tmp_path):
     yield base, workflow, action
 
 
-def test_main_noop(workflow_and_action, capsys):
+def test_main_noop(workflow_and_action, capsys) -> None:
     base, workflow, action = workflow_and_action
 
     workflow_src = """\
@@ -54,7 +54,7 @@ runs:
     assert out == err == ""
 
 
-def test_main_upgrades_action(workflow_and_action, capsys):
+def test_main_upgrades_action(workflow_and_action, capsys) -> None:
     base, workflow, action = workflow_and_action
 
     workflow_src = """\

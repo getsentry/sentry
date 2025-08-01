@@ -605,7 +605,7 @@ class PostSentryAppsTest(SentryAppsTest):
                 assert content[key] == value
 
     @patch("sentry.analytics.record")
-    def test_wrong_schema_format(self, record):
+    def test_wrong_schema_format(self, record) -> None:
         kwargs = {
             "schema": {
                 "elements": [

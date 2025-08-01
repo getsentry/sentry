@@ -15,7 +15,7 @@ class SharedIssueTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
 
-    def test_python_event(self):
+    def test_python_event(self) -> None:
         data = load_data(platform="python")
         data["timestamp"] = before_now(days=1).isoformat()
         event = self.store_event(data=data, project_id=self.project.id)

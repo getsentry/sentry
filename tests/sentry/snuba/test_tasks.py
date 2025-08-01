@@ -473,7 +473,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_query_that_raises_invalid_search_query(self):
+    def test_query_that_raises_invalid_search_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         with pytest.raises(SubscriptionError):
             sub = self.create_subscription(

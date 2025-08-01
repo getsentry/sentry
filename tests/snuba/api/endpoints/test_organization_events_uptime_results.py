@@ -22,7 +22,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         return {"id": None, "project.name": None, **kwargs}
 
     @pytest.mark.querybuilder
-    def test_simple_uptime_query(self):
+    def test_simple_uptime_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -63,7 +63,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_status_filter_query(self):
+    def test_status_filter_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -102,7 +102,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_timing_fields_query(self):
+    def test_timing_fields_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -160,7 +160,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_cross_level_filter_query(self):
+    def test_cross_level_filter_query(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -209,7 +209,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_redirect_sequence_query(self):
+    def test_redirect_sequence_query(self) -> None:
         """Test querying redirect chains using request_sequence."""
         check_id = uuid4().hex
         trace_id = uuid4().hex
@@ -267,7 +267,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_region_and_status_combination(self):
+    def test_region_and_status_combination(self) -> None:
         results = [
             self.create_eap_uptime_result(
                 check_status="success",
@@ -318,7 +318,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
         ]
 
     @pytest.mark.querybuilder
-    def test_timestamp_precision(self):
+    def test_timestamp_precision(self) -> None:
         """Test that timestamp precision is maintained in queries."""
         base_time = self.ten_mins_ago
         results = [

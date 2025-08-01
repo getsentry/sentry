@@ -27,7 +27,7 @@ class SentryAppInstallationDocsTest(APIDocsTestCase):
             kwargs={"organization_id_or_slug": self.org.slug},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

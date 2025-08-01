@@ -181,7 +181,7 @@ class LogCaptureAPITestCase(APITestCase):
 class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
     endpoint = "snuba-ratelimit-endpoint"
 
-    def test_access_log_snuba_rate_limited(self):
+    def test_access_log_snuba_rate_limited(self) -> None:
         """Test that Snuba rate limits are properly logged by access log middleware."""
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)

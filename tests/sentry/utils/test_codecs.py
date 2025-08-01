@@ -12,7 +12,7 @@ from sentry.utils.codecs import BytesCodec, JSONCodec, ZlibCodec, ZstdCodec
         (ZstdCodec(), b"hello", b"(\xb5/\xfd \x05)\x00\x00hello"),
     ],
 )
-def test_codec(codec, encoded, decoded):
+def test_codec(codec, encoded, decoded) -> None:
     assert codec.encode(decoded) == encoded
     assert codec.decode(encoded) == decoded
 

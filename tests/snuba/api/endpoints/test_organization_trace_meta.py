@@ -21,7 +21,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
             format="json",
         )
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -39,7 +39,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
 
         assert response.status_code == 404, response.content
 
-    def test_bad_ids(self):
+    def test_bad_ids(self) -> None:
         # Fake trace id
         self.url = reverse(
             self.url_name,
@@ -72,7 +72,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
                 },
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -87,7 +87,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
 
-    def test_no_team(self):
+    def test_no_team(self) -> None:
         self.load_trace(is_eap=True)
         self.team.delete()
         with self.feature(self.FEATURES):
@@ -102,7 +102,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
 
-    def test_with_errors(self):
+    def test_with_errors(self) -> None:
         self.load_trace(is_eap=True)
         self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
@@ -118,7 +118,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
 
-    def test_with_default(self):
+    def test_with_default(self) -> None:
         self.load_trace(is_eap=True)
         self.load_default()
         with self.feature(self.FEATURES):
@@ -135,7 +135,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["span_count_map"]["http.server"] == 19
         assert len(data["transaction_child_count_map"]) == 8
 
-    def test_with_invalid_date(self):
+    def test_with_invalid_date(self) -> None:
         self.load_trace(is_eap=True)
         self.load_default()
         with self.options({"system.event-retention-days": 10}):

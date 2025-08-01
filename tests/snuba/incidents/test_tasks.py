@@ -190,7 +190,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         built_message = message_builder.build(self.user.email)
         assert out.body == built_message.body
 
-    def test_arroyo(self):
+    def test_arroyo(self) -> None:
         from sentry.consumers import get_stream_processor
 
         consumer = get_stream_processor(

@@ -213,7 +213,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.status == "completed"
         assert self.job.offset == 0
 
-    def test_fetch_rows_matching_pattern(self):
+    def test_fetch_rows_matching_pattern(self) -> None:
         t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         t2 = datetime.datetime.now() + datetime.timedelta(seconds=10)
         t3 = datetime.datetime.now()

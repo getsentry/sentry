@@ -7,7 +7,7 @@ from sentry.llm.providers.openai import get_openai_client
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 
 
-def test_complete_prompt(set_sentry_option):
+def test_complete_prompt(set_sentry_option) -> None:
     with (
         set_sentry_option(
             "llm.provider.options",

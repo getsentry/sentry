@@ -5,7 +5,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import metrics
 
 
-def test_delete_count():
+def test_delete_count() -> None:
     cache = redis.RedisProjectConfigCache()
     with mock.patch.object(metrics, "incr") as incr_mock:
         cache.set_many({"a": {"foo": "bar"}})

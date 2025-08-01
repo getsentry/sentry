@@ -476,7 +476,7 @@ class SnubaQueryRateLimitTest(TestCase):
 
     @mock.patch("sentry.utils.snuba._snuba_query")
     @override_options({"issues.use-snuba-error-data": 1.0})
-    def test_rate_limit_error_handling(self, mock_snuba_query):
+    def test_rate_limit_error_handling(self, mock_snuba_query) -> None:
         """
         Test error handling for rate limit errors creates a RateLimitExceeded exception
         with the correct quota used and rejection threshold
@@ -520,7 +520,7 @@ class SnubaQueryRateLimitTest(TestCase):
 
     @mock.patch("sentry.utils.snuba._snuba_query")
     @override_options({"issues.use-snuba-error-data": 1.0})
-    def test_rate_limit_error_handling_without_quota_details(self, mock_snuba_query):
+    def test_rate_limit_error_handling_without_quota_details(self, mock_snuba_query) -> None:
         """
         Test that error handling gracefully handles missing quota details
         """
@@ -547,7 +547,9 @@ class SnubaQueryRateLimitTest(TestCase):
 
     @mock.patch("sentry.utils.snuba._snuba_query")
     @override_options({"issues.use-snuba-error-data": 1.0})
-    def test_rate_limit_error_handling_with_stats_but_no_quota_details(self, mock_snuba_query):
+    def test_rate_limit_error_handling_with_stats_but_no_quota_details(
+        self, mock_snuba_query
+    ) -> None:
         """
         Test that error handling gracefully handles stats but no quota details
         """
