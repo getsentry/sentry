@@ -34,7 +34,7 @@ type Row = Pick<
   | 'sum(span.duration)'
   | 'messaging.destination.name'
   | 'avg(messaging.message.receive.latency)'
-  | `avg_if(${string},${string},${string})`
+  | `avg_if(${string},${string},${string},${string})`
   | `count_op(${string})`
 >;
 
@@ -52,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -82,7 +82,7 @@ const SORTABLE_FIELDS = [
   SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
   `sum(span.duration)`,
   'trace_status_rate(ok)',
