@@ -136,6 +136,13 @@ class EventKey:
             return NotImplemented
         return self.original_key == other.original_key
 
+    @cached_property
+    def dcg_ids(self) -> set[DataConditionGroupId]:
+        ids = {self.when_dcg_id} if self.when_dcg_id else set()
+        ids.update(id for id in self.if_dcg_ids)
+        ids.update(id for id in self.passing_dcg_ids)
+        return ids
+
 
 @dataclass(frozen=True)
 class EventRedisData:
@@ -169,19 +176,13 @@ class EventRedisData:
 
     @cached_property
     def dcg_ids(self) -> set[DataConditionGroupId]:
-        ids = {key.when_dcg_id for key in self.events if key.when_dcg_id}
-        ids.update(dcg_id for key in self.events for dcg_id in key.if_dcg_ids)
-        ids.update(dcg_id for key in self.events for dcg_id in key.passing_dcg_ids)
-        return ids
+        return {id for key in self.events for id in key.dcg_ids}
 
     @cached_property
     def dcg_to_groups(self) -> Mapping[DataConditionGroupId, set[GroupId]]:
         dcg_to_groups: dict[DataConditionGroupId, set[GroupId]] = defaultdict(set)
         for key in self.events:
-            key_dcg_ids = set(key.if_dcg_ids)
-            if key.when_dcg_id:
-                key_dcg_ids.add(key.when_dcg_id)
-            for dcg_id in key_dcg_ids:
+            for dcg_id in key.dcg_ids:
                 dcg_to_groups[dcg_id].add(key.group_id)
         return dcg_to_groups
 
@@ -491,6 +492,29 @@ class MissingQueryResult(Exception):
         self.query_result = query_result
 
 
+def _evaluate_group_result_for_dcg(
+    dcg_id: int,
+    data_condition_group_mapping: dict[int, DataConditionGroup],
+    dcg_to_slow_conditions: dict[DataConditionGroupId, list[DataCondition]],
+    event_key: EventKey,
+    workflow_env: int | None,
+    condition_group_results: dict[UniqueConditionQuery, QueryResult],
+) -> bool:
+    result = False
+    dcg = data_condition_group_mapping[dcg_id]
+    when_slow_conditions = dcg_to_slow_conditions[dcg_id]
+    group_id = event_key.group_id
+    try:
+        result = _group_result_for_dcg(
+            group_id, dcg, workflow_env, condition_group_results, when_slow_conditions
+        )
+    except MissingQueryResult:
+        # If we didn't get complete query results, don't fire.
+        metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
+        logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
+    return result
+
+
 def _group_result_for_dcg(
     group_id: GroupId,
     dcg: DataConditionGroup,
@@ -528,38 +552,30 @@ def get_groups_to_fire(
         workflow_env = workflows_to_envs[event_key.workflow_id]
         result = False
         if when_dcg_id := event_key.when_dcg_id:
-            when_dcg = data_condition_group_mapping[when_dcg_id]
-            when_slow_conditions = dcg_to_slow_conditions[when_dcg_id]
-            group_id = event_key.group_id
-            try:
-                result = _group_result_for_dcg(
-                    group_id, when_dcg, workflow_env, condition_group_results, when_slow_conditions
-                )
-            except MissingQueryResult:
-                # If we didn't get complete query results, don't fire.
-                metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
-                logger.warning(
-                    "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
-                )
+            result = _evaluate_group_result_for_dcg(
+                when_dcg_id,
+                data_condition_group_mapping,
+                dcg_to_slow_conditions,
+                event_key,
+                workflow_env,
+                condition_group_results,
+            )
         if when_dcg_id and not result:
             continue
 
         # the WHEN condition passed / was not evaluated, so we can now check the IF conditions
+        group_id = event_key.group_id
         for if_dcg_id in event_key.if_dcg_ids:
-            if_dcg = data_condition_group_mapping[if_dcg_id]
-            if_slow_conditions = dcg_to_slow_conditions[if_dcg_id]
-            try:
-                result = _group_result_for_dcg(
-                    group_id, if_dcg, workflow_env, condition_group_results, if_slow_conditions
-                )
-                if result:
-                    groups_to_fire[group_id].add(if_dcg)
-            except MissingQueryResult:
-                # If we didn't get complete query results, don't fire.
-                metrics.incr("workflow_engine.delayed_workflow.missing_query_result")
-                logger.warning(
-                    "workflow_engine.delayed_workflow.missing_query_result", exc_info=True
-                )
+            result = _evaluate_group_result_for_dcg(
+                if_dcg_id,
+                data_condition_group_mapping,
+                dcg_to_slow_conditions,
+                event_key,
+                workflow_env,
+                condition_group_results,
+            )
+            if result:
+                groups_to_fire[group_id].add(data_condition_group_mapping[if_dcg_id])
 
         for if_dcg_id in event_key.passing_dcg_ids:
             if_dcg = data_condition_group_mapping[if_dcg_id]
@@ -622,8 +638,7 @@ def get_group_to_groupevent(
 
     group_to_groupevent: dict[Group, GroupEvent] = {}
     for key, instance in event_data.events.items():
-        key_dcgs = {key.when_dcg_id}.union(key.if_dcg_ids)
-        if key_dcgs.intersection(groups_to_dcg_ids.get(key.group_id, set())):
+        if key.dcg_ids.intersection(groups_to_dcg_ids.get(key.group_id, set())):
             event = bulk_event_id_to_events.get(instance.event_id)
             group = group_id_to_group.get(key.group_id)
 
