@@ -109,7 +109,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.endpoints.organization_events_meta",
-    "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.paginator",
     "sentry.db.postgres.base",
@@ -159,6 +158,7 @@ module = [
     "sentry.analytics.*",
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
+    "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.release_thresholds.health_checks.*",
