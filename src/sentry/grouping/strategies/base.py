@@ -377,7 +377,7 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration_class(
-    id: str | None,
+    id: str,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
     changelog: str | None = None,
