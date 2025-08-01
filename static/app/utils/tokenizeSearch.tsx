@@ -492,7 +492,17 @@ function parseFilter(filter: string) {
 
     if (c === ':' && !quoted) {
       const key = removeSurroundingQuotes(filter.slice(0, idx));
-      const value = removeSurroundingQuotes(filter.slice(idx + 1));
+      const foundValue = filter.slice(idx + 1);
+
+      const isEscapingBracketsAndSingleValue =
+        foundValue.startsWith('"[') &&
+        foundValue.endsWith(']"') &&
+        !foundValue.includes(',');
+
+      const value = isEscapingBracketsAndSingleValue
+        ? foundValue
+        : removeSurroundingQuotes(foundValue);
+
       return [key, value];
     }
   }
