@@ -119,56 +119,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # RFC3339, RFC3339Nano
             (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
             |
-            # Datetime:
-            (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
-            |
-            # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
-            |
-            # Date
-            (\d{4}-[01]\d-[0-3]\d)
-            |
-            # Time
-            ([0-2]\d:[0-5]\d:[0-5]\d)
-            |
-            # Old Date Formats, TODO: possibly safe to remove?
-            (
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))
-            ) |
-            (
-                \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
-                (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
-                ([\d]{1,2})\s+
-                ([\d]{2}:[\d]{2}:[\d]{2})\s+
-                [\d]{4}
-            ) |
-            (
-                \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s+)?
-                (0[1-9]|[1-2]?[\d]|3[01])\s+
-                (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
-                (19[\d]{2}|[2-9][\d]{3})\s+
-                (2[0-3]|[0-1][\d]):([0-5][\d])
-                (?::(60|[0-5][\d]))?\s+
-                ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
-            ) |
-            (datetime.datetime\(.*?\))
-        """,
-        raw_pattern_experimental=r"""
-            # No word boundaries required around dates. Should there be?
-            # RFC822, RFC1123, RFC1123Z
-            ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])))
-            |
-            # Similar to RFC822, but "Mon Jan 02, 1999", "Jan 02, 1999"
-            (((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s[0-3]\d,\s\d{2,4})
-            |
-            # RFC850
-            ((?:Sun|Sunday|Mon|Monday|Tue|Tuesday|Wed|Wednesday|Thu|Thursday|Fri|Friday|Sat|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
-            |
-            # RFC3339, RFC3339Nano
-            (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
-            |
             # JavaScript
             ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2}\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT[+-]\d{4}(?:\s\([^)]+\))?)
             |
