@@ -52,6 +52,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -158,6 +159,9 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   }
                   triggerProps={{
                     borderless: true,
+                    style: {
+                      padding: `${theme.space.md} ${theme.space.lg}`,
+                    },
                   }}
                 />
                 <SearchFilter
@@ -220,7 +224,6 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   const environmentCss = css`
     display: block;
-    border-radius: ${theme.borderRadius};
     &:before {
       right: 0;
       top: ${theme.space.md};
@@ -246,6 +249,9 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       css={environmentCss}
       triggerProps={{
         borderless: true,
+        style: {
+          padding: `${theme.space.md} ${theme.space.lg}`,
+        },
       }}
     />
   );
