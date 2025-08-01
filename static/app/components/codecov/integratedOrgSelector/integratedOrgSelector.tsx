@@ -52,7 +52,7 @@ function OrgFooterMessage() {
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrgId, changeContextValue} = useCodecovContext();
+  const {integratedOrgId, codecovPeriod, changeContextValue} = useCodecovContext();
   const organization = useOrganization();
 
   const {data: integrations = []} = useApiQuery<Integration[]>(
@@ -65,9 +65,9 @@ export function IntegratedOrgSelector() {
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({integratedOrgId: selectedOption.value});
+      changeContextValue({codecovPeriod, integratedOrgId: selectedOption.value});
     },
-    [changeContextValue]
+    [changeContextValue, codecovPeriod]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
