@@ -81,7 +81,7 @@ jobs:
           dockerfile_path: 'self-hosted/Dockerfile'
           tag_suffix: ${{ matrix.platform }}
           ghcr: true
-          push_on_pr: true
+          publish_on_pr: true
           outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
 
       - name: Upload Image
