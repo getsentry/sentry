@@ -653,7 +653,7 @@ def agg_function_to_filter(expr: Any, settings: Settings) -> AggregationFilter:
 def expression(expr: Column | CurriedFunction | Function, settings: Settings) -> EAPColumn:
     if isinstance(expr, Column):
         return EAPColumn(key=key(expr, settings), label=expr.name)
-    elif isinstance(expr, Function):
+    elif isinstance(expr, (CurriedFunction, Function)):
         if expr.function in ARITHMETIC_FUNCTION_MAP:
             return EAPColumn(
                 formula=EAPColumn.BinaryFormula(
@@ -678,17 +678,30 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
                     aggregate=CONDITIONAL_FUNCTION_MAP[expr.function],
                     key=key(expr.parameters[0], settings),
                     extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
-                    filter=condition(expr.parameters[1], settings),
-                )
+                    filter=condidtional_aggregation_filter(expr.parameters[1], settings),
+                    label=label(expr),
+                ),
+                label=label(expr),
             )
         else:
             raise ValueError("Unsupported function specified", expr)
     elif isinstance(expr, (float, int)):
         return EAPColumn(literal=Literal(val_double=float(expr)))
-    elif isinstance(expr, CurriedFunction):
-        raise NotImplementedError
     else:
         raise TypeError("Invalid expression type specified", expr)
+
+
+def condidtional_aggregation_filter(expr: Any, settings: Settings) -> TraceItemFilter:
+    if not isinstance(expr, Function):
+        raise TypeError("Invalid function for conditional aggregation")
+
+    return TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=key(expr.parameters[0], settings),
+            op=AGGREGATION_FUNCTION_OPERATOR_MAP[expr.function],
+            value=literal(expr.parameters[1]),
+        )
+    )
 
 
 def literal(value: Any) -> AttributeValue:

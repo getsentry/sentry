@@ -1,3 +1,9 @@
+from snuba_sdk import Limit
+
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import run_table_query
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -27,53 +33,7 @@ class OrganizationReplayTraceItemsEndpointTest(
             is_eap=True,
         )
 
-    # def test_distribution_values(self):
-    #     tags = [
-    #         ({"browser": "chrome", "device": "desktop"}, 500),
-    #         ({"browser": "chrome", "device": "mobile"}, 100),
-    #         ({"browser": "chrome", "device": "mobile"}, 100),
-    #         ({"browser": "chrome", "device": "desktop"}, 100),
-    #         ({"browser": "safari", "device": "mobile"}, 100),
-    #         ({"browser": "chrome", "device": "desktop"}, 500),
-    #         ({"browser": "edge", "device": "desktop"}, 500),
-    #     ]
-
-    #     for tag, duration in tags:
-    #         self._store_span(tags=tag, duration=duration)
-
-    #     snuba_params = SnubaParams(
-    #         start=before_now(minutes=20),
-    #         end=before_now(minutes=0),
-    #         environments=[],
-    #         projects=[self.project],
-    #         user=None,
-    #         teams=[],
-    #         organization=self.organization,
-    #         query_string="",
-    #         sampling_mode="BEST_EFFORT",
-    #         debug="debug",
-    #     )
-
-    #     result = run_table_query(
-    #         snuba_params,
-    #         "",
-    #         ["count(span.duration)"],
-    #         None,
-    #         config=SearchResolverConfig(use_aggregate_conditions=False),
-    #         offset=0,
-    #         limit=1,
-    #         sampling_mode="BEST_EFFORT",
-    #         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-    #     )
-
-    #     print(result)
-    #     assert False
-
-    def test(self):
-        import datetime
-
-        from sentry.replays.lib.eap.snuba_transpiler import as_eap_request, execute_query
-
+    def test_distribution_values(self):
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
             ({"browser": "chrome", "device": "mobile"}, 100),
@@ -87,30 +47,71 @@ class OrganizationReplayTraceItemsEndpointTest(
         for tag, duration in tags:
             self._store_span(tags=tag, duration=duration)
 
+        start = before_now(minutes=20)
+        end = before_now(minutes=0)
+
+        snuba_params = SnubaParams(
+            start=start,
+            end=end,
+            environments=[],
+            projects=[self.project],
+            user=None,
+            teams=[],
+            organization=self.organization,
+            query_string="",
+            sampling_mode="BEST_EFFORT",
+            debug="debug",
+        )
+
+        result = run_table_query(
+            snuba_params,
+            "",
+            ["count(span.duration)"],
+            None,
+            config=SearchResolverConfig(use_aggregate_conditions=False),
+            offset=0,
+            limit=1,
+            sampling_mode="BEST_EFFORT",
+            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+        )
+
+        # print(result)
+
+        import datetime
         import uuid
 
-        from snuba_sdk import Column, Entity, Query
+        from snuba_sdk import Column, Entity, Function, Query
 
-        query = Query(match=Entity("trace_items"), select=[Column("browser")])
+        from sentry.replays.lib.eap.snuba_transpiler import as_eap_request, execute_query
+
+        query = Query(
+            match=Entity("trace_items"),
+            select=[
+                Function(
+                    "count", parameters=[Column("sentry.duration_ms")], alias="count(span.duration)"
+                )
+            ],
+            limit=Limit(1),
+        )
 
         req = as_eap_request(
             query,
             meta={
                 "cogs_category": "",
                 "debug": False,
-                "end_datetime": datetime.datetime.now(),
-                "organization_id": 1,
-                "project_ids": [1],
+                "end_datetime": end,
+                "organization_id": self.organization.id,
+                "project_ids": [self.project.id],
                 "referrer": "test",
-                "request_id": str(uuid.uuid4()),
-                "start_datetime": datetime.datetime.now(),
-                "trace_item_type": "replay",
+                "request_id": uuid.uuid4().hex,
+                "start_datetime": start,
+                "trace_item_type": "span",
             },
             settings={
-                "attribute_types": {"browser": str},
+                "attribute_types": {"sentry.duration_ms": float},
                 "default_limit": 25,
                 "default_offset": 0,
-                "extrapolation_mode": "none",
+                "extrapolation_mode": "weighted",
             },
             virtual_columns=[],
         )
@@ -228,5 +229,6 @@ class OrganizationReplayTraceItemsEndpointTest(
         #             aggregation_filter=None,
         #         )
         #     ]
+        # )
         # )
         # )
