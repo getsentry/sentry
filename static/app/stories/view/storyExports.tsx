@@ -170,7 +170,9 @@ function StoryAPI() {
 
   return (
     <Fragment>
-      <FaultyComponent />
+      <Component>
+        <h1>API Reference</h1>
+      </Component>
       {Object.entries(story.exports.types).map(([key, value]) => {
         return <Storybook.APIReference key={key} types={value} />;
       })}
@@ -178,7 +180,7 @@ function StoryAPI() {
   );
 }
 
-const FaultyComponent = styled('div')`
+const Component = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
