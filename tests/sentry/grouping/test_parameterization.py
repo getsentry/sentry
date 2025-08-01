@@ -111,7 +111,7 @@ standard_cases = [
     ("Multiple - ip:port", "0.0.0.0:80", "<ip>:<int>"),
 ]
 
-experimental_cases = [
+experimental_cases: list[tuple[str, str, str]] = [
     # None at this time.
 ]
 
