@@ -2121,69 +2121,41 @@ class TestSeerProjectDetails(TestProjectDetailsBase):
         self.authorization = f"Bearer {token.token}"
 
     def test_autofix_automation_tuning(self) -> None:
-        # Test without feature flag - should fail
+        # Test with invalid value - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, autofixAutomationTuning="off", status_code=400
+            self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
         )
-        assert (
-            "trigger-autofix-on-issue-summary feature enabled"
-            in resp.data["autofixAutomationTuning"][0]
-        )
+        assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
         assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
 
-        # Test with feature flag but invalid value - should fail
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_error_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
-            )
-            assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+        # Test with valid value - should succeed
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
+        assert resp.data["autofixAutomationTuning"] == "medium"
 
-            # Test with feature flag and valid value - should succeed
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
-            )
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
-            assert resp.data["autofixAutomationTuning"] == "medium"
-
-            # Test setting back to off
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="off"
-            )
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
-            assert resp.data["autofixAutomationTuning"] == "off"
+        # Test setting back to off
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="off"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
+        assert resp.data["autofixAutomationTuning"] == "off"
 
     def test_seer_scanner_automation(self) -> None:
-        # Test without feature flag - should fail
+        # Test with invalid value - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, seerScannerAutomation=False, status_code=400
+            self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
         )
-        assert (
-            "trigger-autofix-on-issue-summary feature enabled"
-            in resp.data["seerScannerAutomation"][0]
-        )
+        assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
         assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
 
-        # Test with feature flag but invalid value - should fail
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_error_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
-            )
-            assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
-            assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
-
-        # Test with feature flag and valid value - should succeed
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation=False
-            )
-            assert self.project.get_option("sentry:seer_scanner_automation") is False
-            assert resp.data["seerScannerAutomation"] is False
+        # Test with valid value - should succeed
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=False)
+        assert self.project.get_option("sentry:seer_scanner_automation") is False
+        assert resp.data["seerScannerAutomation"] is False
 
         # Test setting back to on
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation=True
-            )
-            assert self.project.get_option("sentry:seer_scanner_automation") is True
-            assert resp.data["seerScannerAutomation"] is True
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=True)
+        assert self.project.get_option("sentry:seer_scanner_automation") is True
+        assert resp.data["seerScannerAutomation"] is True
