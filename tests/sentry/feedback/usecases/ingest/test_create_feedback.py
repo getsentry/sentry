@@ -1098,6 +1098,7 @@ def test_make_seer_request_http_error():
             make_seer_request(request)
 
 
+@django_db_all
 def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
     with Feature(
