@@ -13,8 +13,9 @@ resources:
 ---
 
 import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
-import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/alert/index';
@@ -27,7 +28,9 @@ To create a basic alert, wrap your message in an `<Alert>` component and specify
 <Alert type="info">This is an informational message</Alert>
 ```
 
-## Types
+## Props
+
+### Types
 
 Alerts come in five different types to convey different levels of importance and meaning: `muted`, `info`, `warning`, `success`, and `error`.
 
@@ -50,7 +53,22 @@ Alerts come in five different types to convey different levels of importance and
 </Alert.Container>
 ```
 
-## Icons
+### System Alerts
+
+System alerts are full-width variants typically used for application-level notifications or banners.
+
+<Storybook.Demo>
+  <Alert type="warning" system>
+    This is a system-wide alert that spans the full width of its container
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert type="warning" system>
+  This is a system-wide alert that spans the full width of its container
+</Alert>
+```
+
+### Icons
 
 By default, alerts display appropriate icons based on their type. You can hide icons by setting `showIcon={false}` or provide custom icons.
 
@@ -77,7 +95,7 @@ By default, alerts display appropriate icons based on their type. You can hide i
 </Alert.Container>
 ```
 
-## Expandable Content
+### Expandable Content
 
 Alerts can contain expandable content to provide additional details without overwhelming the initial view.
 
@@ -114,7 +132,40 @@ Alerts can contain expandable content to provide additional details without over
 </Alert>
 ```
 
-## Trailing Items
+### Expanded by Default
+
+You can control the initial expansion state of alerts with the `defaultExpanded` prop.
+
+<Storybook.Demo>
+  <Alert
+    type="info"
+    defaultExpanded
+    expand={
+      <div>
+        <p>This alert starts in an expanded state.</p>
+        <p>Users can still collapse it by clicking the chevron.</p>
+      </div>
+    }
+  >
+    This alert is expanded by default
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert
+  type="info"
+  defaultExpanded
+  expand={
+    <div>
+      <p>This alert starts in an expanded state.</p>
+      <p>Users can still collapse it by clicking the chevron.</p>
+    </div>
+  }
+>
+  This alert is expanded by default
+</Alert>
+```
+
+### Trailing Items
 
 Add interactive elements like buttons or links to the right side of alerts using the `trailingItems` prop.
 
@@ -177,54 +228,6 @@ Add interactive elements like buttons or links to the right side of alerts using
 </Alert.Container>
 ```
 
-## System Alerts
-
-System alerts are full-width variants typically used for application-level notifications or banners.
-
-<Storybook.Demo>
-  <Alert type="warning" system>
-    This is a system-wide alert that spans the full width of its container
-  </Alert>
-</Storybook.Demo>
-```jsx
-<Alert type="warning" system>
-  This is a system-wide alert that spans the full width of its container
-</Alert>
-```
-
-## Expanded by Default
-
-You can control the initial expansion state of alerts with expandable content.
-
-<Storybook.Demo>
-  <Alert
-    type="info"
-    defaultExpanded
-    expand={
-      <div>
-        <p>This alert starts in an expanded state.</p>
-        <p>Users can still collapse it by clicking the chevron.</p>
-      </div>
-    }
-  >
-    This alert is expanded by default
-  </Alert>
-</Storybook.Demo>
-```jsx
-<Alert
-  type="info"
-  defaultExpanded
-  expand={
-    <div>
-      <p>This alert starts in an expanded state.</p>
-      <p>Users can still collapse it by clicking the chevron.</p>
-    </div>
-  }
->
-  This alert is expanded by default
-</Alert>
-```
-
 ## Container
 
 Use `Alert.Container` to properly manage spacing between multiple alerts.
@@ -242,6 +245,79 @@ Use `Alert.Container` to properly manage spacing between multiple alerts.
   <Alert type="warning">Second alert in a container</Alert>
   <Alert type="success">Third alert in a container</Alert>
 </Alert.Container>
+```
+
+## Alert Links
+
+The `AlertLink` component creates a clickable alert that can navigate to internal pages, external URLs, or triggers custom actions.
+
+AlertLink supports three types of navigation: internal routing, external URLs, and custom click handlers.
+
+### Internal
+
+Use the `to` prop for internal navigation within the application.
+
+<Storybook.Demo>
+  <AlertLink to="/settings">Go to Settings</AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Go to Settings</AlertLink>
+```
+
+### External
+
+Use the `href` prop for external URLs. The `openInNewTab` prop controls whether the link opens in a new tab.
+
+<Storybook.Demo>
+  <AlertLink href="https://docs.sentry.io" openInNewTab>
+    Read the Documentation
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink href="https://docs.sentry.io" openInNewTab>
+  Read the Documentation
+</AlertLink>
+```
+
+### Custom Handlers
+
+Use the `onClick` prop for custom actions that don't involve navigation.
+
+<Storybook.Demo>
+  {/* eslint-disable-next-line no-alert */}
+  <AlertLink onClick={() => alert('Custom action triggered!')}>
+    Trigger Custom Action
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink onClick={() => alert('Custom action triggered!')}>
+  Trigger Custom Action
+</AlertLink>
+```
+
+### Trailing Items
+
+By default, AlertLink includes a right-pointing chevron icon. You can customize this with the `trailingItems` prop.
+
+<Storybook.Demo>
+  <AlertLink.Container>
+    <AlertLink to="/settings">Default trailing chevron</AlertLink>
+    <AlertLink to="/settings" trailingItems={<IconMail />}>
+      Custom trailing icon
+    </AlertLink>
+    <AlertLink to="/settings" trailingItems={null}>
+      No trailing items
+    </AlertLink>
+  </AlertLink.Container>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Default trailing chevron</AlertLink>
+<AlertLink to="/settings" trailingItems={<IconMail />}>
+  Custom trailing icon
+</AlertLink>
+<AlertLink to="/settings" trailingItems={null}>
+  No trailing items
+</AlertLink>
 ```
 
 ## Accessibility
