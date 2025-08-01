@@ -5,7 +5,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {
+  useWrappedDiscoverQuery,
+  useWrappedDiscoverQueryWithoutPageFilters,
+} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
 
 interface UseDiscoverQueryOptions {
@@ -22,6 +25,11 @@ interface UseDiscoverOptions<Fields> {
   orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
+  /**
+   * If true, the query will be executed without the page filters.
+   * {@link pageFilters} can still be passed and will be used to build the event view on top of the query.
+   */
+  queryWithoutPageFilters?: boolean;
   samplingMode?: SamplingMode;
   /**
    * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
@@ -72,7 +80,11 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     orderby
   );
 
-  const result = useWrappedDiscoverQuery({
+  const queryFn = options.queryWithoutPageFilters
+    ? useWrappedDiscoverQueryWithoutPageFilters
+    : useWrappedDiscoverQuery;
+
+  const result = queryFn({
     eventView,
     initialData: [],
     limit,
