@@ -91,22 +91,17 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        SpanFields.SPAN_OP,
-        SpanFields.SPAN_DESCRIPTION,
-        SpanFields.SPAN_ACTION,
-        SpanFields.SPAN_DOMAIN,
-        'count()',
+        SpanFields.NORMALIZED_DESCRIPTION,
         `${SpanFunction.EPM}()`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
-        `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
     },
     'api.starfish.span-summary-page-metrics'
   );
 
-  const spanMetrics = data[0] ?? {};
+  const spanMetrics = data[0];
 
   const {
     isPending: isTransactionsListLoading,
@@ -132,21 +127,10 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     'api.starfish.span-transaction-metrics'
   );
 
-  const span = {
-    ...spanMetrics,
-    [SpanFields.SPAN_GROUP]: groupId,
-  } as {
-    [SpanFields.SPAN_OP]: string;
-    [SpanFields.SPAN_DESCRIPTION]: string;
-    [SpanFields.SPAN_ACTION]: string;
-    [SpanFields.SPAN_DOMAIN]: string[];
-    [SpanFields.SPAN_GROUP]: string;
-  };
-
   useSamplesDrawer({
     Component: (
       <SampleList
-        groupId={span[SpanFields.SPAN_GROUP]}
+        groupId={groupId}
         moduleName={ModuleName.DB}
         referrer={TraceViewSources.QUERIES_MODULE}
       />
@@ -188,7 +172,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('db')}
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
@@ -196,7 +179,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.avg}
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
@@ -204,7 +186,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
                     <MetricReadout
                       title={DataTitles.timeSpent}
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                       value={spanMetrics?.['sum(span.self_time)']}
                       unit={DurationUnit.MILLISECOND}
                       isLoading={areSpanMetricsLoading}
@@ -217,8 +198,9 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 <DescriptionContainer>
                   <DatabaseSpanDescription
                     groupId={groupId}
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    preliminaryDescription={spanMetrics?.['span.description']}
+                    preliminaryDescription={
+                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION]
+                    }
                   />
                 </DescriptionContainer>
               )}
@@ -243,10 +225,10 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 </ChartContainer>
               </ModuleLayout.Full>
 
-              {span && (
+              {groupId && (
                 <ModuleLayout.Full>
                   <QueryTransactionsTable
-                    span={span}
+                    groupId={groupId}
                     data={transactionsList}
                     error={transactionsListError}
                     isLoading={isTransactionsListLoading}
