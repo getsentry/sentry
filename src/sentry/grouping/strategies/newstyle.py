@@ -384,7 +384,10 @@ def get_contextline_component(
     quality of the sourcecode.  It does however protect against some bad
     JavaScript environments based on origin checks.
     """
-    line = " ".join((frame.context_line or "").expandtabs(2).split())
+    # Normalize all whitespace into single spaces
+    raw_line = frame.context_line or ""
+    line = " ".join(raw_line.split())
+
     if not line:
         return ContextLineGroupingComponent()
 
