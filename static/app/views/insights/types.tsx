@@ -494,7 +494,7 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${'equals' | 'notEquals' | 'lessOrEquals' | 'greaterOrEquals' | 'less' | 'greater'},${string})`]: number;
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   } & {
