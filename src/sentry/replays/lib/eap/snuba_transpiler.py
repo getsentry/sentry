@@ -188,6 +188,77 @@ TRACE_ITEM_TYPE_MAP = {
 
 
 class RequestMeta(TypedDict):
+    """
+    Metadata for trace analysis and monitoring requests.
+
+    This TypedDict contains essential metadata that accompanies requests for
+    trace data analysis, debugging, and monitoring operations. All fields are
+    required and provide context for request processing, billing, and audit trails.
+
+    Attributes:
+        cogs_category: Cost category identifier for billing and resource allocation.
+
+        debug: Flag indicating whether debug mode is enabled for this request.
+
+        end_datetime: End timestamp for the time range being queried.
+            Defines the upper bound of the window for data retrieval.
+            Must be timezone-aware and later than start_datetime.
+
+        organization_id: Unique identifier of the organization making the request.
+            Used for access control, data isolation, and billing attribution.
+            Must be a positive integer corresponding to an existing organization.
+
+        project_ids: List of project identifiers to include in the query scope.
+            Filters data to only include traces from the specified projects.
+            All IDs must correspond to projects accessible by the organization.
+
+        referrer: Identifier indicating the source or context of the request.
+            Used for analytics, debugging, and understanding request patterns.
+            Examples: "api.organization-events", "discover.query", "performance.summary"
+
+        request_id: Unique identifier for this specific request instance.
+
+        start_datetime: Start timestamp for the time range being queried.
+            Defines the lower bound of the window for data retrieval.
+            Must be timezone-aware and typically earlier than end_datetime.
+
+        trace_item_type: Type of trace items to retrieve in this request.
+            Determines what kind of observability data is being requested:
+            - "span": Distributed tracing span data
+            - "error": Error events
+            - "log": Application log entries
+            - "uptime_check": Uptime monitoring check results
+            - "uptime_result": Processed uptime monitoring outcomes
+            - "replay": Session replay events and data
+
+    Example:
+        Performance monitoring request:
+        >>> request_meta: RequestMeta = {
+        ...     "cogs_category": "performance",
+        ...     "debug": False,
+        ...     "end_datetime": datetime(2024, 1, 15, 23, 59, 59, tzinfo=timezone.utc),
+        ...     "organization_id": 12345,
+        ...     "project_ids": [67890, 67891],
+        ...     "referrer": "performance.transaction_summary",
+        ...     "request_id": "f288571e5c4a48ed881951dcb66800e5",
+        ...     "start_datetime": datetime(2024, 1, 15, 0, 0, 0, tzinfo=timezone.utc),
+        ...     "trace_item_type": "span"
+        ... }
+
+        Error analysis request:
+        >>> error_request: RequestMeta = {
+        ...     "cogs_category": "errors",
+        ...     "debug": True,
+        ...     "end_datetime": datetime(2024, 1, 16, 12, 0, 0, tzinfo=timezone.utc),
+        ...     "organization_id": 54321,
+        ...     "project_ids": [11111],
+        ...     "referrer": "issues.details",
+        ...     "request_id": "45bbcf4e8edf44919a71d5cb8c6bf376",
+        ...     "start_datetime": datetime(2024, 1, 16, 11, 0, 0, tzinfo=timezone.utc),
+        ...     "trace_item_type": "error"
+        ... }
+    """
+
     cogs_category: str
     debug: bool
     end_datetime: datetime
