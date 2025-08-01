@@ -133,7 +133,10 @@ const SelectOptionHeader = styled('h5')`
 `;
 
 const StepsContainer = styled('div')`
+  max-width: 1000px;
   padding-top: ${p => p.theme.space['2xl']};
   padding-left: ${p => p.theme.space['3xl']};
-  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['2xl']};
 `;

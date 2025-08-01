@@ -1,5 +1,8 @@
 import {Fragment, useState} from 'react';
 
+import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
+import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
+
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -7,6 +10,8 @@ import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface AddUploadTokenStepProps {
@@ -22,6 +27,10 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   // this value is only used when showing token details
   const [showFullToken, setShowFullToken] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
+
+  const config = useLegacyStore(ConfigStore);
+  const isDarkMode = config.theme === 'dark';
+
   const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
     step,
     // TODO: replace with actual link
@@ -46,59 +55,70 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <p>
-          {tct(
-            'Sentry requires a token to authenticate uploading your coverage reports. GitHub [repoAdmin] is required to access organization settings > secrets and variables > actions',
-            {
-              repoAdmin: <b>{t('Repository admin')}</b>,
-            }
-          )}
-        </p>
-        {showTokenDetails ? (
-          showFullToken ? (
-            <Fragment>
-              {showWarning && (
-                <Alert.Container>
-                  <Alert
-                    type="warning"
-                    data-test-id="page-error-alert"
-                    trailingItems={<IconClose size="sm" onClick={handleDismiss} />}
-                  >
-                    {t(
-                      "Please copy this token to a safe place - it won't be shown again."
-                    )}
-                  </Alert>
-                </Alert.Container>
-              )}
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <p>
+            {tct(
+              'Sentry requires a token to authenticate uploading your coverage reports. GitHub [repoAdmin] is required to access organization settings > secrets and variables > actions',
+              {
+                repoAdmin: <b>{t('Repository admin')}</b>,
+              }
+            )}
+          </p>
+          {showTokenDetails ? (
+            showFullToken ? (
+              <Fragment>
+                {showWarning && (
+                  <Alert.Container>
+                    <Alert
+                      type="warning"
+                      data-test-id="page-error-alert"
+                      trailingItems={<IconClose size="sm" onClick={handleDismiss} />}
+                    >
+                      {t(
+                        "Please copy this token to a safe place - it won't be shown again."
+                      )}
+                    </Alert>
+                  </Alert.Container>
+                )}
+                <Flex justify="between" gap="md">
+                  <Flex justify="between" gap="md">
+                    <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
+                    <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
+                  </Flex>
+                  <Button priority="primary" onClick={handleDoneClick}>
+                    {t('Done')}
+                  </Button>
+                </Flex>
+              </Fragment>
+            ) : (
               <Flex justify="between" gap="md">
                 <Flex justify="between" gap="md">
                   <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
-                  <CodeSnippet dark>{FULL_TOKEN}</CodeSnippet>
+                  <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
                 </Flex>
-                <Button priority="primary" onClick={handleDoneClick}>
-                  {t('Done')}
+                <Button priority="default" onClick={handleGenerateClick}>
+                  {t('Regenerate')}
                 </Button>
               </Flex>
-            </Fragment>
+            )
           ) : (
-            <Flex justify="between" gap="md">
-              <Flex justify="between" gap="md">
-                <CodeSnippet dark>SENTRY_PREVENT_TOKEN</CodeSnippet>
-                <CodeSnippet dark>{TRUNCATED_TOKEN}</CodeSnippet>
-              </Flex>
-              <Button priority="default" onClick={handleGenerateClick}>
-                {t('Regenerate')}
-              </Button>
-            </Flex>
-          )
-        ) : (
-          <Button priority="primary" onClick={handleGenerateClick}>
-            {t('Generate Repository Token')}
-          </Button>
-        )}
-      </OnboardingStep.Content>
+            <Button priority="primary" onClick={handleGenerateClick}>
+              {t('Generate Repository Token')}
+            </Button>
+          )}
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
+      <OnboardingStep.ExpandableDropdown
+        triggerContent={
+          <div>{t('Your repository secret in GitHub should look like this:')}</div>
+        }
+      >
+        <img
+          src={isDarkMode ? testAnalyticsRepoSecretDark : testAnalyticsRepoSecretLight}
+        />
+      </OnboardingStep.ExpandableDropdown>
     </OnboardingStep.Container>
   );
 }

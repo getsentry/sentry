@@ -14,18 +14,20 @@ export function ViewResultsInsightsStep({step}: ViewResultsInsightsStepProps) {
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <StyledP>
-          {t(
-            "After the test run completion, you'll be able to see the failed tests result in the following areas:"
-          )}
-        </StyledP>
-        <StyledUl>
-          <li>{t('GitHub pull request comment')}</li>
-          <li>{t('Failed tests dashboard here')}</li>
-        </StyledUl>
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <StyledP>
+            {t(
+              "After the test run completion, you'll be able to see the failed tests result in the following areas:"
+            )}
+          </StyledP>
+          <StyledUl>
+            <li>{t('GitHub pull request comment')}</li>
+            <li>{t('Failed tests dashboard here')}</li>
+          </StyledUl>
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }

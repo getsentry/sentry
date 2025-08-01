@@ -50,15 +50,17 @@ export function ChooseUploadPermissionStep({
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <RadioGroup
-          label="Choose an upload permission"
-          value={selectedUploadPermission}
-          onChange={handleRadioChange}
-          choices={CHOICE_OPTIONS}
-        />
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <RadioGroup
+            label="Choose an upload permission"
+            value={selectedUploadPermission}
+            onChange={handleRadioChange}
+            choices={CHOICE_OPTIONS}
+          />
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }
