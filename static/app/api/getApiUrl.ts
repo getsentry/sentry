@@ -1,16 +1,16 @@
-type ExtractPathParams<TApiPath extends string> =
+export type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
     ? Param | ExtractPathParams<`/${Rest}`>
     : TApiPath extends `${string}$${infer Param}`
       ? Param
       : never;
 
-type PathParamOptions<TApiPath extends string> =
+export type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number>};
 
-type OptionalPathParams<TApiPath extends string> =
+export type OptionalPathParams<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? [] // eslint-disable-line @typescript-eslint/no-restricted-types
     : [PathParamOptions<TApiPath>];
