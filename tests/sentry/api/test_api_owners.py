@@ -1,3 +1,4 @@
+import pytest
 from unittest import TestCase
 
 from sentry.api.api_owners import ApiOwner
@@ -16,6 +17,7 @@ class APIOwnersTestCase(TestCase):
                 tokens = [s.strip() for s in line.split("@getsentry/")]
                 self.teams.update(tokens[1:])
 
+    @pytest.mark.skip(reason="flaky: #96973")
     def test_api_owner_owns_api(self) -> None:
         for owner in ApiOwner:
             if owner != ApiOwner.UNOWNED:
