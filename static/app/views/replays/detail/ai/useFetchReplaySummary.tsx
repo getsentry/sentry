@@ -135,13 +135,14 @@ export function useFetchReplaySummary(
   const isPendingRet =
     dataUpdatedAt < startSummaryRequestTime.current ||
     isPending ||
-    summaryData?.status === ReplaySummaryStatus.PROCESSING;
+    summaryData?.status === ReplaySummaryStatus.PROCESSING ||
+    isStartSummaryRequestPending;
   const isErrorRet =
     isError ||
     summaryData?.status === ReplaySummaryStatus.ERROR ||
     isStartSummaryRequestError;
 
-  // Auto-start request logic
+  // Auto-start logic.
   const segmentsIncreased =
     !!summaryData?.num_segments && segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
