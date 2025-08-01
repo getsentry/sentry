@@ -42,7 +42,7 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
 );
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'sum_if(span.duration,is_transaction,true)' satisfies SpanProperty,
+  field: 'sum_if(span.duration,is_transaction,equals,true)' satisfies SpanProperty,
   kind: 'desc',
 };
 

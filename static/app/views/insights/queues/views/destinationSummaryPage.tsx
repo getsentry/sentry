@@ -92,7 +92,9 @@ function DestinationSummaryPage() {
                       />
                       <MetricReadout
                         title={t('Avg Processing Time')}
-                        value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
+                        value={
+                          data[0]?.['avg_if(span.duration,span.op,equals,queue.process)']
+                        }
                         unit={DurationUnit.MILLISECOND}
                         isLoading={isPending}
                       />

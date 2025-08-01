@@ -82,8 +82,8 @@ export function ClientTable() {
       'avg(span.duration)',
       'p95(span.duration)',
       'performance_score(measurements.score.total)',
-      'count_if(span.op,navigation)',
-      'count_if(span.op,pageload)',
+      'count_if(span.op,equals,navigation)',
+      'count_if(span.op,equals,pageload)',
     ],
     cursorParamName: 'tableCursor',
     referrer: Referrer.CLIENT_TABLE,
@@ -107,7 +107,7 @@ export function ClientTable() {
   const renderBodyCell = useCallback(
     (column: GridColumnHeader<string>, dataRow: TableData) => {
       if (column.key === 'performance_score(measurements.score.total)') {
-        if (!dataRow['count_if(span.op,pageload)']) {
+        if (!dataRow['count_if(span.op,equals,pageload)']) {
           return <AlignCenter>{' — '}</AlignCenter>;
         }
         return (

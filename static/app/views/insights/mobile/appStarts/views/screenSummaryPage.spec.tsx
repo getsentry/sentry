@@ -101,12 +101,12 @@ describe('Screen Summary', function () {
           data: [
             {
               'span.op': 'app.start.cold',
-              'avg_if(span.duration,release,com.example.vu.android@2.10.5)': 1000,
-              'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 2000,
+              'avg_if(span.duration,release,equals,com.example.vu.android@2.10.5)': 1000,
+              'avg_if(span.duration,release,equals,com.example.vu.android@2.10.3+42)': 2000,
               'avg_compare(span.duration,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
                 -0.5,
-              'count_if(release,com.example.vu.android@2.10.5)': 20,
-              'count_if(release,com.example.vu.android@2.10.3+42)': 10,
+              'count_if(release,equals,com.example.vu.android@2.10.5)': 20,
+              'count_if(release,equals,com.example.vu.android@2.10.3+42)': 10,
             },
           ],
         },
