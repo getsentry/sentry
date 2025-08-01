@@ -35,7 +35,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -52,7 +52,7 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -74,6 +74,7 @@ from sentry.seer.fetch_issues.fetch_issues_given_exception_type import (
     get_latest_issue_event,
 )
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
+from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
@@ -573,6 +574,40 @@ def get_github_enterprise_integration_config(
     }
 
 
+def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
+    """
+    Send a seer webhook event for an organization.
+
+    Args:
+        event_name: The sub-name of seer event (e.g., "root_cause_started")
+        organization_id: The ID of the organization to send the webhook for
+        payload: The webhook payload data
+
+    Returns:
+        dict: Status of the webhook sending operation
+    """
+    organization = Organization.objects.get(id=organization_id, status=OrganizationStatus.ACTIVE)
+
+    if not organization:
+        logger.error(
+            "Seer webhook trying to send to organization %s not found or not active",
+            organization_id,
+        )
+        return {"success": False, "error": "Organization not found or not active"}
+
+    if not features.has("organizations:seer-webhooks", organization):
+        return {"success": False, "error": "Seer webhooks are not enabled for this organization"}
+
+    broadcast_webhooks_for_organization.delay(
+        resource_name="seer",
+        event_name=event_name,
+        organization_id=organization_id,
+        payload=payload,
+    )
+
+    return {"success": True}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -591,6 +626,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
+    "send_seer_webhook": send_seer_webhook,
 }
 
 
