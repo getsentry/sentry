@@ -55,11 +55,10 @@ const StyledP = styled('p')`
 const StyledCodeSnippet = styled(CodeSnippet)`
   margin-top: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.md};
-  overflow: hidden;
-  max-width: 100%;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  flex-shrink: 1;
+
+  code {
+    text-wrap: wrap;
+  }
 `;
 
 const PinkText = styled('span')`
