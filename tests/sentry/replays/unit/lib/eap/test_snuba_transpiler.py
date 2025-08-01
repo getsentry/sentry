@@ -19,7 +19,18 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     ComparisonFilter,
     TraceItemFilter,
 )
-from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.replays.lib.eap.snuba_transpiler import (
     RequestMeta,
@@ -27,6 +38,8 @@ from sentry.replays.lib.eap.snuba_transpiler import (
     as_eap_request,
     condidtional_aggregation_filter,
     expression,
+    groupby,
+    orderby,
     where,
 )
 from sentry.snuba.rpc_dataset_common import TraceItemTableRequest
@@ -213,3 +226,31 @@ def test_conditional_aggregation_expressions(snuba_fn, eap_fn):
         label="func(col)",
     )
     assert expression(snuba_expr, SETTINGS) == eap_expr
+
+
+@pytest.mark.parametrize(
+    ("snuba_fn", "direction"),
+    [
+        (Column("int"), Direction.DESC),
+        (Column("float"), Direction.ASC),
+        (Function("count", parameters=[Column("int")]), Direction.DESC),
+        (Function("avg", parameters=[Column("float")]), Direction.ASC),
+    ],
+)
+def test_orderby(snuba_fn, direction):
+    assert orderby([OrderBy(snuba_fn, direction)], SETTINGS) == [
+        TraceItemTableRequest.OrderBy(
+            column=expression(snuba_fn, SETTINGS),
+            descending=direction == Direction.DESC,
+        )
+    ]
+
+
+def test_groupby():
+    cols = [Column("int"), Column("float"), Column("bool"), Column("str")]
+    assert groupby(cols, SETTINGS) == [
+        AttributeKey(type=AttributeKey.TYPE_INT, name="int"),
+        AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="float"),
+        AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="bool"),
+        AttributeKey(type=AttributeKey.TYPE_STRING, name="str"),
+    ]
