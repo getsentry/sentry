@@ -94,6 +94,8 @@ x-sentry-service-config:
       description: Workers that process tasks from the taskbroker
     taskworker-scheduler:
       description: Task scheduler that can spawn tasks based on their schedules
+    celery-worker:
+      description: Worker that processes tasks from celery (deprecated)
     # Kafka consumer services for event ingestion
     ingest-events:
       description: Kafka consumer for processing ingested events
@@ -147,8 +149,6 @@ x-sentry-service-config:
     # Uptime monitoring
     uptime-results:
       description: Kafka consumer for uptime monitoring results
-    worker:
-      description: Worker that processes tasks from celery
 
   modes:
     default: [snuba, postgres, relay, spotlight]
@@ -183,7 +183,7 @@ x-sentry-service-config:
         process-spans,
         ingest-occurrences,
         process-segments,
-        worker,
+        taskworker,
       ]
     crons:
       [
@@ -195,7 +195,7 @@ x-sentry-service-config:
         monitors-clock-tick,
         monitors-clock-tasks,
         monitors-incident-occurrences,
-        worker,
+        taskworker,
       ]
     profiling:
       [
@@ -208,7 +208,7 @@ x-sentry-service-config:
         ingest-transactions,
         ingest-profiles,
         ingest-occurrences,
-        worker,
+        taskworker,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
       ]
@@ -218,7 +218,7 @@ x-sentry-service-config:
         postgres,
         relay,
         spotlight,
-        worker,
+        taskworker,
         ingest-events,
         ingest-transactions,
         ingest-attachments,
@@ -251,7 +251,7 @@ x-sentry-service-config:
         relay,
         snuba,
         spotlight,
-        worker,
+        taskworker,
         vroom,
       ]
     full:
@@ -280,9 +280,8 @@ x-sentry-service-config:
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
-        taskworker,
         taskworker-scheduler,
-        worker,
+        taskworker,
       ]
 
 x-programs:
@@ -338,7 +337,7 @@ x-programs:
     command: sentry run consumer metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   generic-metrics-subscription-results:
     command: sentry run consumer generic-metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  worker:
+  celery-worker:
     command: sentry run worker -c 1 --autoreload
 
 services:

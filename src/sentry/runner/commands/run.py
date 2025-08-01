@@ -313,8 +313,8 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @click.option(
     "--processing-pool-name",
-    help="The name of the processing pool being used",
-    default="unknown",
+    help="The name of the processing pool metrics and logs are attributed to.",
+    default="default",
 )
 @log_options()
 @configuration

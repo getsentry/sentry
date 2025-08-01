@@ -9,6 +9,7 @@ from typing import NoReturn
 import click
 import sentry_sdk
 
+from sentry import options
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
@@ -19,11 +20,12 @@ from sentry.runner.decorators import configuration, log_options
 # If you are looking to add a kafka consumer, please do not create a new click
 # subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
-    "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
-    "celery-beat": ["sentry", "run", "cron", "--autoreload"],
-    "server": ["sentry", "run", "web"],
-    "taskworker": ["sentry", "run", "taskworker"],
     "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
+    "taskworker": ["sentry", "run", "taskworker"],
+    "worker": ["sentry", "run", "taskworker"],
+    "server": ["sentry", "run", "web"],
+    "celery-beat": ["sentry", "run", "cron", "--autoreload"],
+    "celery-worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -63,12 +65,12 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
 @click.option(
     "--workers/--no-workers",
     default=False,
-    help="Run celery workers (excluding celerybeat).",
+    help="Run a taskworker or celery worker depending on `taskworker.enabled` option.",
 )
 @click.option(
     "--celery-beat/--no-celery-beat",
     default=False,
-    help="Run celerybeat workers.",
+    help="Run celerybeat workers (deprecated).",
 )
 @click.option(
     "--ingest/--no-ingest",
@@ -308,17 +310,25 @@ def devserver(
             click.echo("--ingest was provided, implicitly enabling --workers")
             workers = True
 
+        taskworker_enabled = options.get("taskworker.enabled")
+
         if taskworker:
             daemons.append(_get_daemon("taskworker"))
 
         if taskworker_scheduler:
             daemons.append(_get_daemon("taskworker-scheduler"))
 
-        if workers and not celery_beat:
-            click.secho(
-                "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
-                fg="yellow",
-            )
+        if workers and not (celery_beat or taskworker_scheduler):
+            if taskworker_enabled:
+                click.secho(
+                    "If you want to run periodic tasks, you need to also pass --taskworker-scheduler.",
+                    fg="yellow",
+                )
+            else:
+                click.secho(
+                    "If you want to run periodic tasks from celery (celerybeat), you need to also pass --celery-beat.",
+                    fg="yellow",
+                )
 
         if celery_beat and silo != "control":
             daemons.append(_get_daemon("celery-beat"))
@@ -331,7 +341,14 @@ def devserver(
                     "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
                 )
 
-            daemons.append(_get_daemon("worker"))
+            if taskworker_enabled:
+                daemons.append(_get_daemon("taskworker"))
+            else:
+                click.secho(
+                    "You are using deprecated celery-workers. Enable the `taskworker.enabled` option.",
+                    fg="yellow",
+                )
+                daemons.append(_get_daemon("celery-worker"))
 
             from sentry import eventstream
 
@@ -532,9 +549,19 @@ def devserver(
             merged_env.update(control_environ)
             control_services = ["server"]
             if workers:
-                control_services.append("worker")
+                if taskworker_enabled:
+                    control_services.append("taskworker")
+                else:
+                    click.secho(
+                        "You are using deprecated celery-workers. Enable the `taskworker.enabled` option.",
+                        fg="yellow",
+                    )
+                    control_services.append("celery-worker")
+
             if celery_beat:
                 control_services.append("celery-beat")
+            if taskworker_scheduler:
+                control_services.append("taskworker-scheduler")
 
             for service in control_services:
                 name, cmd = _get_daemon(service)
