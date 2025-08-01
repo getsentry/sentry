@@ -69,7 +69,7 @@ describe('useFetchReplaySummary', () => {
         body: mockSummaryData,
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(), {
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 
@@ -89,7 +89,7 @@ describe('useFetchReplaySummary', () => {
         body: {detail: 'Internal server error'},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(), {
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 
@@ -112,7 +112,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       const {result} = renderHook(
-        () => useFetchReplaySummary({enabled: false, staleTime: 0}),
+        () => useFetchReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
         {
           wrapper: createWrapper(),
         }
@@ -135,7 +135,7 @@ describe('useFetchReplaySummary', () => {
       });
 
       const {result} = renderHook(
-        () => useFetchReplaySummary({enabled: true, staleTime: 0}),
+        () => useFetchReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
         {
           wrapper: createWrapper(),
         }
@@ -168,7 +168,7 @@ describe('useFetchReplaySummary', () => {
         body: triggerPromise,
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(), {
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 
@@ -197,7 +197,7 @@ describe('useFetchReplaySummary', () => {
         body: {status: ReplaySummaryStatus.PROCESSING, data: undefined},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(), {
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 
@@ -217,7 +217,7 @@ describe('useFetchReplaySummary', () => {
         },
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(), {
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 
@@ -234,7 +234,7 @@ describe('useFetchReplaySummary', () => {
         body: {status: ReplaySummaryStatus.ERROR, data: undefined},
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(), {
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 

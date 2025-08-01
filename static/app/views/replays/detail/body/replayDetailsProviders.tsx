@@ -1,6 +1,5 @@
-import {Fragment, type ReactNode, useEffect} from 'react';
+import {type ReactNode, useEffect} from 'react';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -13,21 +12,13 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useFetchReplaySummary} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
+import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 interface Props {
   children: ReactNode;
   projectSlug: string | null;
   replay: ReplayReader;
-}
-
-function ReplaySummary({children, enabled}: {children: ReactNode; enabled: boolean}) {
-  useFetchReplaySummary({
-    staleTime: 0,
-    enabled,
-  });
-  return <Fragment>{children}</Fragment>;
 }
 
 export default function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
@@ -50,15 +41,6 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
 
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
-  const summaryEnabled = Boolean(
-    replayRecord?.id &&
-      projectSlug &&
-      organization.features.includes('replay-ai-summaries') &&
-      areAiFeaturesAllowed &&
-      setupAcknowledgement.orgHasAcknowledged
-  );
-
   return (
     <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
       <ReplayPlayerPluginsContextProvider>
@@ -72,7 +54,9 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 replay={replay}
               >
                 <ReplayTransactionContext replayRecord={replayRecord}>
-                  <ReplaySummary enabled={summaryEnabled}>{children}</ReplaySummary>
+                  <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
+                    {children}
+                  </ReplaySummaryContextProvider>
                 </ReplayTransactionContext>
               </ReplayContextProvider>
             </ReplayPlayerSizeContextProvider>

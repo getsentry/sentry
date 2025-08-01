@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -79,10 +79,10 @@ function createAISummaryQueryKey(
 }
 
 export function useFetchReplaySummary(
+  replay: ReplayReader,
   options?: UseApiQueryOptions<SummaryResponse>
 ): UseFetchReplaySummaryResult {
   const organization = useOrganization();
-  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const api = useApi();
