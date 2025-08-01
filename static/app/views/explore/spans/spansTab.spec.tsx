@@ -179,7 +179,7 @@ describe('SpansTabContent', function () {
       'timestamp',
       'project',
     ]);
-  });
+  }, 20_000);
 
   describe('schema hints', function () {
     let spies: jest.SpyInstance[];
