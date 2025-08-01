@@ -52,7 +52,7 @@ const isPolling = (
 
   switch (summaryData.status) {
     case ReplaySummaryStatus.NOT_STARTED:
-      // Not started - poll if we've initiated a run
+      // Not started - poll if we've started a request
       return isStartSummaryRequestPending;
 
     case ReplaySummaryStatus.PROCESSING:
@@ -172,6 +172,8 @@ export function useFetchReplaySummary(
     isStartSummaryRequestError;
 
   // Auto-start logic.
+  // TODO: remove the condition segmentCount <= 100
+  // when BE is able to process more than 100 segments. Without this, generation will loop.
   const segmentsIncreased =
     summaryData?.num_segments !== null &&
     summaryData?.num_segments !== undefined &&

@@ -63,7 +63,6 @@ from sentry.tasks.post_process import (
     feedback_filter_decorator,
     locks,
     post_process_group,
-    post_process_group_shim,
     run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -213,37 +212,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         assert "tasks.post_process.old_time_to_post_process" not in [
             args[0] for args in logger_mock.warning.call_args_list
         ]
-
-
-class PostProcessGroupShimTest(TestCase, SnubaTestCase, BasePostProgressGroupMixin):
-    def create_event(self, data: dict[str, Any], project_id: int, assert_no_errors=True):
-        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
-
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
-        if cache_key is None:
-            cache_key = write_event_to_cache(event)
-        post_process_group_shim(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
-            group_id=event.group_id,
-            project_id=event.project_id,
-            eventstream_type=EventStreamEventType.Error.value,
-        )
-
-    @patch("sentry.signals.event_processed.send_robust")
-    def test_shim_calls_implementation(self, event_processed_signal_mock: MagicMock) -> None:
-        event = self.create_event(data={}, project_id=self.project.id)
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        assert event_processed_signal_mock.call_count == 1
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
@@ -2637,7 +2605,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_features(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2661,7 +2628,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         return_value=True,
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2685,7 +2651,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_seer_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2710,7 +2675,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2736,7 +2700,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2766,7 +2729,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2795,7 +2757,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2830,7 +2791,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_start_seer_automation,
@@ -2927,7 +2887,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
@@ -2979,7 +2938,6 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):

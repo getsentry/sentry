@@ -37,9 +37,14 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 class BaseEventFrequencyPercentTest(BaseMetricsTestCase):
     def _make_sessions(
-        self, num: int, environment_name: str | None = None, project: Project | None = None
+        self,
+        num: int,
+        environment_name: str | None = None,
+        project: Project | None = None,
+        received: float | None = None,
     ):
-        received = time.time()
+        if received is None:
+            received = time.time()
 
         def make_session(i):
             return dict(
@@ -134,7 +139,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventFrequencyCondition
 
-    def test_batch_query(self):
+    def test_batch_query(self) -> None:
         batch_query = self.condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -156,7 +161,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         assert batch_query == {self.event3.group_id: 1}
 
     @patch("sentry.tsdb.snuba.LIMIT", 3)
-    def test_batch_query_group_on_time(self):
+    def test_batch_query_group_on_time(self) -> None:
         """
         Test that if we hit the snuba query limit we get incorrect results when group_on_time is enabled
         """
@@ -225,7 +230,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             group_2_id: 4,
         }
 
-    def test_get_error_and_generic_group_ids(self):
+    def test_get_error_and_generic_group_ids(self) -> None:
         groups = Group.objects.filter(
             id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
         ).values("id", "type", "project__organization_id")
@@ -240,7 +245,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
     rule_cls = EventUniqueUserFrequencyCondition
 
-    def test_batch_query_user(self):
+    def test_batch_query_user(self) -> None:
         batch_query = self.condition_inst.batch_query_hook(
             group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
             start=self.start,
@@ -268,7 +273,7 @@ class EventFrequencyPercentConditionQueryTest(
     rule_cls = EventFrequencyPercentCondition
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_batch_query_percent(self):
+    def test_batch_query_percent(self) -> None:
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
         batch_query = self.condition_inst.batch_query_hook(
@@ -292,7 +297,7 @@ class EventFrequencyPercentConditionQueryTest(
         assert batch_query == {self.event3.group_id: percent_of_sessions}
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 100)
-    def test_batch_query_percent_no_avg_sessions_in_interval(self):
+    def test_batch_query_percent_no_avg_sessions_in_interval(self) -> None:
         self._make_sessions(60, self.environment2.name)
         self._make_sessions(60, self.environment.name)
         batch_query = self.condition_inst.batch_query_hook(
@@ -402,7 +407,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             self.assertDoesNotPass(rule, event, is_new=False)
             self.assertDoesNotPass(environment_rule, event, is_new=False)
 
-    def test_comparison_interval_empty_string(self):
+    def test_comparison_interval_empty_string(self) -> None:
         data = {
             "interval": "1m",
             "value": 16,
@@ -411,7 +416,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=1, passes=False)
 
-    def test_one_minute_with_events(self):
+    def test_one_minute_with_events(self) -> None:
         data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=True, add_events=True)
         data = {
@@ -422,7 +427,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=1, passes=False)
 
-    def test_one_hour_with_events(self):
+    def test_one_hour_with_events(self) -> None:
         data = {"interval": "1h", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=60, passes=True, add_events=True)
         data = {
@@ -433,7 +438,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=60, passes=False)
 
-    def test_one_day_with_events(self):
+    def test_one_day_with_events(self) -> None:
         data = {"interval": "1d", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1440, passes=True, add_events=True)
         data = {
@@ -444,7 +449,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=1440, passes=False)
 
-    def test_one_week_with_events(self):
+    def test_one_week_with_events(self) -> None:
         data = {"interval": "1w", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=10080, passes=True, add_events=True)
         data = {
@@ -455,23 +460,23 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         }
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_one_minute_no_events(self):
+    def test_one_minute_no_events(self) -> None:
         data = {"interval": "1m", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1, passes=False)
 
-    def test_one_hour_no_events(self):
+    def test_one_hour_no_events(self) -> None:
         data = {"interval": "1h", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=60, passes=False)
 
-    def test_one_day_no_events(self):
+    def test_one_day_no_events(self) -> None:
         data = {"interval": "1d", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=1440, passes=False)
 
-    def test_one_week_no_events(self):
+    def test_one_week_no_events(self) -> None:
         data = {"interval": "1w", "value": 6, "comparisonType": "count", "comparisonInterval": "5m"}
         self._run_test(data=data, minutes=10080, passes=False)
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         # Test data is 4 events in the current period and 2 events in the comparison period, so
         # a 100% increase.
         event = self.add_event(
@@ -510,7 +515,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event, is_new=False)
 
-    def test_comparison_empty_comparison_period(self):
+    def test_comparison_empty_comparison_period(self) -> None:
         # Test data is 1 event in the current period and 0 events in the comparison period. This
         # should always result in 0 and never fire.
         event = self.add_event(
@@ -622,7 +627,7 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
                 timestamp=timestamp,
             )
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         # Test data is 4 events in the current period and 2 events in the comparison period, so
         # a 100% increase.
         event = self.add_event(
@@ -685,7 +690,7 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
         )
         self.assertDoesNotPass(rule, event, is_new=False)
 
-    def test_comparison_empty_comparison_period(self):
+    def test_comparison_empty_comparison_period(self) -> None:
         # Test data is 1 event in the current period and 0 events in the comparison period. This
         # should always result in 0 and never fire.
         event = self.add_event(
@@ -773,7 +778,7 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
             self.assertDoesNotPass(environment_rule, event, is_new=False)
 
 
-def test_convert_rule_condition_to_snuba_condition():
+def test_convert_rule_condition_to_snuba_condition() -> None:
 
     # Test non-TaggedEventFilter condition
     condition = {"id": "some.other.condition"}
@@ -1019,7 +1024,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
             )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_five_minutes_with_events(self):
+    def test_five_minutes_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "5m",
@@ -1037,7 +1042,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=5, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_ten_minutes_with_events(self):
+    def test_ten_minutes_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "10m",
@@ -1055,7 +1060,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=10, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_thirty_minutes_with_events(self):
+    def test_thirty_minutes_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "30m",
@@ -1073,7 +1078,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=30, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_one_hour_with_events(self):
+    def test_one_hour_with_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "1h",
@@ -1091,7 +1096,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=60, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_five_minutes_no_events(self):
+    def test_five_minutes_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "5m",
@@ -1102,7 +1107,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=5, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_ten_minutes_no_events(self):
+    def test_ten_minutes_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "10m",
@@ -1113,7 +1118,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_thirty_minutes_no_events(self):
+    def test_thirty_minutes_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "30m",
@@ -1124,7 +1129,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=30, passes=True, add_events=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_one_hour_no_events(self):
+    def test_one_hour_no_events(self) -> None:
         self._make_sessions(60)
         data = {
             "interval": "1h",
@@ -1135,7 +1140,7 @@ class EventFrequencyPercentConditionTestCase(BaseEventFrequencyPercentTest, Rule
         self._run_test(data=data, minutes=60, passes=False)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         self._make_sessions(10)
         # Create sessions for previous period
         self._make_sessions(10)

@@ -15,6 +15,7 @@ import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageD
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -103,17 +104,19 @@ export default function LogsContent() {
             </Layout.HeaderActions>
           </Layout.Header>
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              <LogsPageDataProvider>
-                <LogsTabContent
-                  defaultPeriod={defaultPeriod}
-                  maxPickableDays={maxPickableDays}
-                  relativeOptions={relativeOptions}
-                />
-              </LogsPageDataProvider>
-            </LogsPageParamsProvider>
+            <LogsQueryParamsProvider>
+              <LogsPageParamsProvider
+                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              >
+                <LogsPageDataProvider>
+                  <LogsTabContent
+                    defaultPeriod={defaultPeriod}
+                    maxPickableDays={maxPickableDays}
+                    relativeOptions={relativeOptions}
+                  />
+                </LogsPageDataProvider>
+              </LogsPageParamsProvider>
+            </LogsQueryParamsProvider>
           </TraceItemAttributeProvider>
         </Layout.Page>
       </PageFiltersContainer>

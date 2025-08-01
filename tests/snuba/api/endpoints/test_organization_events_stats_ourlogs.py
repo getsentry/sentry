@@ -30,7 +30,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_count(self):
+    def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         logs = []
         for hour, count in enumerate(event_counts):
@@ -61,7 +61,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             [{"count": count}] for count in event_counts
         ]
 
-    def test_zerofill(self):
+    def test_zerofill(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,
@@ -75,7 +75,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}]] * 7
 
-    def test_homepage_query(self):
+    def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least
         for the initial load"""
         response = self._do_request(

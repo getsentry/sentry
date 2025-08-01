@@ -18,7 +18,7 @@ from sentry.utils.samples import load_data
         "../../../etc/passwd",
     ],
 )
-def test_path_traversal_attempt_raises_exception(platform):
+def test_path_traversal_attempt_raises_exception(platform) -> None:
     with pytest.raises(SuspiciousFileOperation) as excinfo:
         load_data(platform)
 
@@ -33,7 +33,7 @@ def test_missing_sample_returns_none() -> None:
     assert data is None
 
 
-def test_sample_as_directory_raises_exception(tmp_path):
+def test_sample_as_directory_raises_exception(tmp_path) -> None:
     # override DATA_ROOT to a tmp directory
     with mock.patch("sentry.utils.samples.DATA_ROOT", tmp_path):
         # create a directory ending with `.json`

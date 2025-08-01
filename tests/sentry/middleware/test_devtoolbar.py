@@ -27,7 +27,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_basic(self, mock_record: MagicMock):
+    def test_basic(self, mock_record: MagicMock) -> None:
         request = self.factory.get("/?queryReferrer=devtoolbar")
         view_name = "my-endpoint"
         route = "/issues/(?P<issue_id>)/"
@@ -39,7 +39,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_no_devtoolbar_header(self, mock_record: MagicMock):
+    def test_no_devtoolbar_header(self, mock_record: MagicMock) -> None:
         request = self.factory.get("/")
         request.resolver_match = MagicMock()
         self.middleware(request)
@@ -53,7 +53,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.middleware.devtoolbar.logger.exception")
     @patch("sentry.analytics.record")
-    def test_request_not_resolved(self, mock_record: MagicMock, mock_logger: MagicMock):
+    def test_request_not_resolved(self, mock_record: MagicMock, mock_logger: MagicMock) -> None:
         request = self.factory.get("/?queryReferrer=devtoolbar")
         request.resolver_match = None
         self.middleware(request)
@@ -67,7 +67,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_view_name_and_route(self, mock_record: MagicMock):
+    def test_view_name_and_route(self, mock_record: MagicMock) -> None:
         # Integration tests do a better job of testing these fields, since they involve route resolver.
         view_name = "my-endpoint"
         route = "/issues/(?P<issue_id>)/"
@@ -82,7 +82,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_query_string(self, mock_record: MagicMock):
+    def test_query_string(self, mock_record: MagicMock) -> None:
         query = "?a=b&statsPeriod=14d&queryReferrer=devtoolbar"
         request = self.factory.get("/" + query)
         request.resolver_match = MagicMock()
@@ -96,7 +96,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_origin(self, mock_record: MagicMock):
+    def test_origin(self, mock_record: MagicMock) -> None:
         origin = "https://potato.com"
         request = self.factory.get(
             f"{origin}/?queryReferrer=devtoolbar", headers={"Origin": origin}
@@ -110,7 +110,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_origin_from_referrer(self, mock_record: MagicMock):
+    def test_origin_from_referrer(self, mock_record: MagicMock) -> None:
         origin = "https://potato.com"
         url = origin + "/issues/?a=b&queryReferrer=devtoolbar"
         request = self.factory.get(url, headers={"Referer": url})
@@ -123,7 +123,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_response_status_code(self, mock_record: MagicMock):
+    def test_response_status_code(self, mock_record: MagicMock) -> None:
         request = self.factory.get("/?queryReferrer=devtoolbar")
         request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
         self.middleware.get_response.return_value = HttpResponse(status=420)
@@ -135,7 +135,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def test_methods(self, mock_record: MagicMock):
+    def test_methods(self, mock_record: MagicMock) -> None:
         for method in ["GET", "POST", "PUT", "DELETE"]:
             request = getattr(self.factory, method.lower())("/?queryReferrer=devtoolbar")
             request.resolver_match = MagicMock(
