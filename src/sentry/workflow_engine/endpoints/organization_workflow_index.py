@@ -40,6 +40,9 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowVa
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
 )
+from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
+    DetectorWorkflowMutationValidator,
+)
 from sentry.workflow_engine.models import Workflow
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -277,12 +280,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        enabled = request.data.get("enabled")
-        if enabled is None:
-            return Response(
-                {"enabled": "This field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator.is_valid(raise_exception=True)
+        enabled = validator.validated_data["enabled"]
 
         queryset = self.filter_workflows(request, organization)
 
