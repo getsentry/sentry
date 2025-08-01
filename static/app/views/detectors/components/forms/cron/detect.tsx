@@ -42,7 +42,7 @@ function ScheduleTypeField() {
   return (
     <Fragment>
       <SelectField
-        name="config.scheduleType"
+        name="scheduleType"
         label={t('Schedule Type')}
         hideLabel
         options={SCHEDULE_OPTIONS}
@@ -58,13 +58,12 @@ function ScheduleTypeField() {
 
 function Schedule() {
   const theme = useTheme();
-  const schedule = useCronDetectorFormField('schedule');
+  const scheduleCrontab = useCronDetectorFormField('scheduleCrontab');
+  const scheduleIntervalValue = useCronDetectorFormField('scheduleIntervalValue');
   const scheduleType = useCronDetectorFormField('scheduleType');
 
   const parsedSchedule =
-    scheduleType === 'crontab'
-      ? crontabAsText(typeof schedule === 'string' ? schedule : '')
-      : null;
+    scheduleType === 'crontab' ? crontabAsText(scheduleCrontab) : null;
 
   if (scheduleType === 'crontab') {
     return (
@@ -72,7 +71,7 @@ function Schedule() {
         <ScheduleTypeField />
         <MultiColumnInput columns="1fr 2fr">
           <TextField
-            name="config.schedule"
+            name="scheduleCrontab"
             label={t('Crontab Schedule')}
             hideLabel
             placeholder="* * * * *"
@@ -87,7 +86,7 @@ function Schedule() {
             inline={false}
           />
           <SelectField
-            name="config.timezone"
+            name="timezone"
             label={t('Timezone')}
             hideLabel
             defaultValue="UTC"
@@ -101,6 +100,7 @@ function Schedule() {
       </InputGroup>
     );
   }
+
   if (scheduleType === 'interval') {
     return (
       <InputGroup removeFieldPadding>
@@ -108,7 +108,7 @@ function Schedule() {
         <MultiColumnInput columns="auto 1fr 2fr">
           <LabelText>{t('Every')}</LabelText>
           <NumberField
-            name="config.schedule.frequency"
+            name="scheduleIntervalValue"
             label={t('Interval Frequency')}
             hideLabel
             placeholder="e.g. 1"
@@ -119,12 +119,10 @@ function Schedule() {
             inline={false}
           />
           <SelectField
-            name="config.schedule.interval"
+            name="scheduleIntervalUnit"
             label={t('Interval Type')}
             hideLabel
-            options={getScheduleIntervals(
-              Number(Array.isArray(schedule) ? schedule[0] : 1)
-            )}
+            options={getScheduleIntervals(scheduleIntervalValue)}
             defaultValue="day"
             required
             stacked
@@ -134,6 +132,7 @@ function Schedule() {
       </InputGroup>
     );
   }
+
   return null;
 }
 
@@ -147,7 +146,7 @@ function Margins() {
       </Text>
       <InputGroup>
         <NumberField
-          name="config.checkinMargin"
+          name="checkinMargin"
           min={CHECKIN_MARGIN_MINIMUM}
           placeholder={tn(
             'Defaults to %s minute',
@@ -158,7 +157,7 @@ function Margins() {
           label={t('Grace Period')}
         />
         <NumberField
-          name="config.maxRuntime"
+          name="maxRuntime"
           min={TIMEOUT_MINIMUM}
           placeholder={tn(
             'Defaults to %s minute',
@@ -183,7 +182,7 @@ function Thresholds() {
       <Text variant="muted">{t('Configure when an issue is created or resolved.')}</Text>
       <InputGroup>
         <NumberField
-          name="config.failureIssueThreshold"
+          name="failureIssueThreshold"
           min={1}
           placeholder="1"
           help={t(

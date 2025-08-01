@@ -15,7 +15,9 @@ interface CronDetectorFormData {
 
   projectId: string;
   recoveryThreshold: number;
-  schedule: string | [number, string]; // Crontab or interval
+  scheduleCrontab: string;
+  scheduleIntervalUnit: string;
+  scheduleIntervalValue: number;
   scheduleType: 'crontab' | 'interval';
   timezone: string;
   workflowIds: string[];
@@ -47,7 +49,10 @@ export function cronFormDataToEndpointPayload(
       failureIssueThreshold: data.failureIssueThreshold,
       maxRuntime: data.maxRuntime,
       recoveryThreshold: data.recoveryThreshold,
-      schedule: data.schedule,
+      schedule:
+        data.scheduleType === 'crontab'
+          ? data.scheduleCrontab
+          : [data.scheduleIntervalValue, data.scheduleIntervalUnit],
       scheduleType: data.scheduleType,
       timezone: data.timezone,
     },
@@ -70,29 +75,19 @@ export function cronSavedDetectorToFormData(
     projectId: detector.projectId,
   };
 
-  if (dataSource?.type === 'cron_subscription') {
-    return {
-      ...common,
-      checkinMargin: dataSource.queryObj.checkinMargin,
-      failureIssueThreshold: dataSource.queryObj.failureIssueThreshold ?? 1,
-      recoveryThreshold: dataSource.queryObj.recoveryThreshold ?? 1,
-      maxRuntime: dataSource.queryObj.maxRuntime,
-      schedule: dataSource.queryObj.schedule,
-      scheduleType: dataSource.queryObj.scheduleType,
-      timezone: dataSource.queryObj.timezone,
-      workflowIds: detector.workflowIds,
-    };
-  }
-
   return {
     ...common,
-    checkinMargin: null,
-    failureIssueThreshold: 1,
-    maxRuntime: null,
-    recoveryThreshold: 1,
-    schedule: '0 0 * * *',
-    scheduleType: 'crontab',
-    timezone: 'UTC',
+    checkinMargin: dataSource.queryObj.checkinMargin,
+    failureIssueThreshold: dataSource.queryObj.failureIssueThreshold ?? 1,
+    recoveryThreshold: dataSource.queryObj.recoveryThreshold ?? 1,
+    maxRuntime: dataSource.queryObj.maxRuntime,
+    scheduleCrontab: dataSource.queryObj.schedule,
+    scheduleIntervalValue: Array.isArray(dataSource.queryObj.schedule)
+      ? dataSource.queryObj.schedule[0]
+      : 1,
+    scheduleIntervalUnit: dataSource.queryObj.schedule?.[1] ?? 'day',
+    scheduleType: dataSource.queryObj.scheduleType,
+    timezone: dataSource.queryObj.timezone,
     workflowIds: detector.workflowIds,
   };
 }
