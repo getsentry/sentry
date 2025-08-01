@@ -389,17 +389,17 @@ def get_contextline_component(
         return ContextLineGroupingComponent()
 
     context_line_component = ContextLineGroupingComponent(values=[line])
-    if line:
-        if len(frame.context_line) > 120:
-            context_line_component.update(hint="discarded because line too long", contributes=False)
-        elif (
-            get_behavior_family_for_platform(platform) == "javascript"
-            and not function
-            and has_url_origin(frame.abs_path, files_count_as_urls=True)
-        ):
-            context_line_component.update(
-                hint="discarded because from URL origin and no function", contributes=False
-            )
+
+    if len(frame.context_line) > 120:
+        context_line_component.update(hint="discarded because line too long", contributes=False)
+    elif (
+        get_behavior_family_for_platform(platform) == "javascript"
+        and not function
+        and has_url_origin(frame.abs_path, files_count_as_urls=True)
+    ):
+        context_line_component.update(
+            hint="discarded because from URL origin and no function", contributes=False
+        )
 
     return context_line_component
 
