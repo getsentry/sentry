@@ -159,13 +159,14 @@ def _serialize_rpc_event(
         occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
 
         if event.get("event_type") == "uptime":
+            uptime_data = {
+                k: v for k, v in event.items() if k not in ["children", "errors", "occurrences"]
+            }
             return SerializedSpan(
-                **{
-                    k: v for k, v in event.items() if k not in ["children", "errors", "occurrences"]
-                },
                 children=children,
                 errors=errors,
                 occurrences=occurrences,
+                **uptime_data,  # type: ignore[typeddict-item]
             )
 
         return SerializedSpan(
@@ -314,6 +315,7 @@ def _uptime_results_query(
     if snuba_params.end:
         end_timestamp.FromDatetime(snuba_params.end)
 
+    assert snuba_params.organization
     return TraceItemTableRequest(
         meta=RequestMeta(
             organization_id=snuba_params.organization.id,
@@ -419,9 +421,10 @@ def _serialize_columnar_uptime_item(
         (scheduled_check_time_us + check_duration_us) / 1_000_000
     )
     span["duration"] = check_duration_us / 1_000.0
-    span["description"] = f"Uptime Check [{check_status}] - {request_url}"
+    description = f"Uptime Check [{check_status}] - {request_url}"
     if http_status_code:
-        span["description"] += f" ({http_status_code})"
+        description += f" ({http_status_code})"
+    span["description"] = description
 
     span["name"] = request_url
     span["additional_attributes"] = additional_attrs
