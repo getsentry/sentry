@@ -546,22 +546,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
-#
-# NOTE: Any value below 1.0 will break the product. Do not override in production.
-register(
-    "relay.ourlogs-breadcrumb-extraction.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Control number of breadcrumbs converted to OurLogs
-register(
-    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Ingest only a random fraction of logs sent to relay. Used to roll out ourlogs ingestion.
 #
 # NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
