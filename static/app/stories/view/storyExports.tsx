@@ -170,12 +170,20 @@ function StoryAPI() {
 
   return (
     <Fragment>
+      <FaultyComponent />
       {Object.entries(story.exports.types).map(([key, value]) => {
         return <Storybook.APIReference key={key} types={value} />;
       })}
     </Fragment>
   );
 }
+
+const FaultyComponent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  padding: ${space(2)};
+`;
 
 const StoryHeader = styled('header')`
   background: ${p => p.theme.tokens.background.secondary};
