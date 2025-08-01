@@ -39,7 +39,7 @@ describe('ProjectSeer', function () {
     ModalStore.init();
     project = ProjectFixture();
     organization = OrganizationFixture({
-      features: ['autofix-seer-preferences', 'trigger-autofix-on-issue-summary'],
+      features: ['autofix-seer-preferences'],
     });
 
     // Mock the seer setup check endpoint

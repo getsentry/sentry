@@ -15,7 +15,7 @@ const mockUseLocation = jest.mocked(useLocation);
 
 describe('SeerAutomationAlert', function () {
   const defaultOrganization = OrganizationFixture({
-    features: ['seer-added', 'trigger-autofix-on-issue-summary'],
+    features: ['seer-added'],
     slug: 'test-org',
   });
 
