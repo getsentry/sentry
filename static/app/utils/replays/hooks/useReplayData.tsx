@@ -258,13 +258,19 @@ function useReplayData({
   }, [errorPages, extraErrorPages, platformErrorPages]);
 
   const {
-    feedbackEvents,
+    feedbackEvents: rawFeedbackEvents,
     isPending: feedbackEventsPending,
     isError: feedbackEventsError,
   } = useFeedbackEvents({
     feedbackEventIds: feedbackEventIds ?? [],
     projectId: replayRecord?.project_id,
   });
+
+  // Stabilize feedbackEvents to prevent unnecessary re-renders
+  const feedbackEvents = useMemo(() => {
+    return rawFeedbackEvents;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawFeedbackEvents?.length]);
 
   const allStatuses = [
     enableReplayRecord ? fetchReplayStatus : undefined,
