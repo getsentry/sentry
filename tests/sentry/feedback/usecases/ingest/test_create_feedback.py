@@ -895,34 +895,34 @@ def test_get_feedback_title():
     """Test the get_feedback_title function with various message types."""
 
     # Test normal short message
-    assert get_feedback_title("Login button broken") == "Login button broken"
+    assert get_feedback_title("Login button broken") == "User Feedback: Login button broken"
 
     # Test message with exactly 10 words (default max_words)
     message_10_words = "This is a test message with exactly ten words total"
-    assert get_feedback_title(message_10_words) == message_10_words
+    assert get_feedback_title(message_10_words) == f"User Feedback: {message_10_words}"
 
     # Test message with more than 10 words (should truncate)
     long_message = "This is a very long feedback message that goes on and on and describes many different issues"
-    expected = "This is a very long feedback message that goes on..."
+    expected = "User Feedback: This is a very long feedback message that goes on..."
     assert get_feedback_title(long_message) == expected
 
     # Test very short message
-    assert get_feedback_title("Bug") == "Bug"
+    assert get_feedback_title("Bug") == "User Feedback: Bug"
 
     # Test custom max_words parameter
     message = "This is a test with custom word limit"
-    assert get_feedback_title(message, max_words=3) == "This is a..."
+    assert get_feedback_title(message, max_words=3) == "User Feedback: This is a..."
 
     # Test message that would create a title longer than 200 characters
     very_long_message = "a" * 300  # 300 character message
     result = get_feedback_title(very_long_message)
     assert len(result) <= 200
     assert result.endswith("...")
-    # No longer starts with "User Feedback: "
+    assert result.startswith("User Feedback: ")
 
     # Test message with special characters
     special_message = "The @login button doesn't work! It's broken & needs fixing."
-    expected_special = "The @login button doesn't work! It's broken & needs fixing."
+    expected_special = "User Feedback: The @login button doesn't work! It's broken & needs fixing."
     assert get_feedback_title(special_message) == expected_special
 
 
@@ -934,19 +934,19 @@ def test_get_feedback_title_with_ai():
 
     # Test with AI disabled (should fall back to original logic)
     title = get_feedback_title("Login button broken", organization=org)
-    assert title == "Login button broken"
+    assert title == "User Feedback: Login button broken"
 
     # Test with AI enabled but feature flag disabled
     with patch.object(features, "has", return_value=False):
         title = get_feedback_title("Login button broken", organization=org)
-        assert title == "Login button broken"
+        assert title == "User Feedback: Login button broken"
 
     # Test with AI enabled and feature flag enabled, but Seer call fails
     with patch.object(features, "has", return_value=True):
         with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
             mock_post.side_effect = Exception("Network error")
             title = get_feedback_title("Login button broken", organization=org)
-            assert title == "Login button broken"
+            assert title == "User Feedback: Login button broken"
 
     # Test with AI enabled and successful Seer response
     with patch.object(features, "has", return_value=True):
@@ -957,7 +957,7 @@ def test_get_feedback_title_with_ai():
             mock_post.return_value = mock_response
 
             title = get_feedback_title("Login button broken", organization=org)
-            assert title == "Login Button Issue"
+            assert title == "User Feedback: Login Button Issue"
 
     # Test with AI enabled but invalid Seer response
     with patch.object(features, "has", return_value=True):
@@ -968,7 +968,7 @@ def test_get_feedback_title_with_ai():
             mock_post.return_value = mock_response
 
             title = get_feedback_title("Login button broken", organization=org)
-            assert title == "Login button broken"
+            assert title == "User Feedback: Login button broken"
 
     # Test with AI enabled but HTTP error
     with patch.object(features, "has", return_value=True):
@@ -978,13 +978,13 @@ def test_get_feedback_title_with_ai():
             mock_post.return_value = mock_response
 
             title = get_feedback_title("Login button broken", organization=org)
-            assert title == "Login button broken"
+            assert title == "User Feedback: Login button broken"
 
     # Test with AI enabled but organization has AI features hidden
     org.update_option("sentry:hide_ai_features", True)
     with patch.object(features, "has", return_value=True):
         title = get_feedback_title("Login button broken", organization=org)
-        assert title == "Login button broken"
+        assert title == "User Feedback: Login button broken"
 
 
 @django_db_all
@@ -1003,5 +1003,7 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
     occurrence = call_args[1]["occurrence"]
 
     # Check that the title is truncated properly
-    expected_title = "This is a very long feedback message that describes multiple..."
+    expected_title = (
+        "User Feedback: This is a very long feedback message that describes multiple..."
+    )
     assert occurrence.issue_title == expected_title

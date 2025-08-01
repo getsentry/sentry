@@ -314,7 +314,7 @@ def get_feedback_title(
     """
     Generate a descriptive title for user feedback issues.
     Tries AI generation first if available, falls back to simple word-based title.
-    Format: [first few words of message] or AI-generated title
+    Format: "User Feedback: [first few words of message] or AI-generated title
 
     Args:
         feedback_message: The user's feedback message
@@ -345,11 +345,13 @@ def get_feedback_title(
         if len(summary) < len(stripped_message):
             summary += "..."
 
-    # Truncate if necessary (keeping some buffer for external system limits)
-    if len(summary) > 200:  # Conservative limit
-        summary = summary[:197] + "..."
+    title = f"User Feedback: {summary}"
 
-    return summary
+    # Truncate if necessary (keeping some buffer for external system limits)
+    if len(title) > 200:  # Conservative limit
+        title = title[:197] + "..."
+
+    return title
 
 
 def create_feedback_issue(
