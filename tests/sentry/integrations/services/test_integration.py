@@ -357,7 +357,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 
 
 @all_silo_test
-class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
+class StartGracePeriodForProviderTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -414,7 +414,6 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
     def test_start_grace_period_for_provider_github_with_skip_oldest(self) -> None:
         grace_period_end = datetime.now(timezone.utc) + timedelta(days=7)
         with assume_test_silo_mode(SiloMode.REGION):
-
             grace_perioded_ois = integration_service.start_grace_period_for_provider(
                 organization_id=self.org1.id,
                 provider="github",
@@ -478,6 +477,47 @@ class StartGracePeriodForProviderTest(BaseIntegrationServiceTest):
         assert self.org1_github_oi_2.grace_period_end == grace_period_end
 
         assert len(lof_grace_perioded_ois) == 2, "Both org1's GitHub OIs should be grace perioded"
+        for oi in grace_perioded_ois:
+            assert oi.grace_period_end == grace_period_end
+
+    def test_start_grace_period_for_provider_github_for_all_statuses(self) -> None:
+        grace_period_end = datetime.now(timezone.utc) + timedelta(days=7)
+        self.github_integration_3 = self.create_integration(
+            organization=self.org1,
+            name="GitHub Integration 3",
+            provider="github",
+            external_id="github:repo3",
+            status=None,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org1_github_oi_3 = OrganizationIntegration.objects.get(
+                organization_id=self.org1.id, integration_id=self.github_integration_3.id
+            )
+            self.org1_github_oi_3.status = ObjectStatus.HIDDEN
+            self.org1_github_oi_3.save()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            grace_perioded_ois = integration_service.start_grace_period_for_provider(
+                organization_id=self.org1.id,
+                provider="github",
+                grace_period_end=grace_period_end,
+                status=None,
+                skip_oldest=False,
+            )
+
+        # Expected behavior with skip_oldest=False:
+        # - Both org1's GitHub OrganizationIntegrations should get grace perioded
+        # - Other orgs' OIs should NOT be included
+
+        lof_grace_perioded_ois = [oi.id for oi in grace_perioded_ois]
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org1_github_oi_1.refresh_from_db()
+            self.org1_github_oi_2.refresh_from_db()
+            self.org1_github_oi_3.refresh_from_db()
+
+        assert len(lof_grace_perioded_ois) == 3, "All org1's GitHub OIs should be grace perioded"
 
         for oi in grace_perioded_ois:
             assert oi.grace_period_end == grace_period_end
+            assert oi.id in lof_grace_perioded_ois

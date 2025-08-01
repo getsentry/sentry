@@ -128,8 +128,8 @@ class IntegrationService(RpcService):
         organization_id: int,
         provider: str,
         grace_period_end: datetime,
-        status: int = ObjectStatus.ACTIVE,
-        skip_oldest: bool = True,
+        status: int | None = ObjectStatus.ACTIVE,
+        skip_oldest: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         """
         Start grace period for all OrganizationIntegrations of a given provider for an organization
