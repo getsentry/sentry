@@ -76,11 +76,11 @@ from sentry.net.http import connection_from_url
 from sentry.utils.snuba import RetrySkipTimeout
 from sentry.utils.snuba_rpc import SnubaRPCError
 
-ARITHMETIC_FUNCTION_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
-    "divide": Column.BinaryFormula.OP_DIVIDE,
-    "minus": Column.BinaryFormula.OP_SUBTRACT,
-    "multiply": Column.BinaryFormula.OP_MULTIPLY,
-    "plus": Column.BinaryFormula.OP_ADD,
+ARITHMETIC_FUNCTION_MAP: dict[str, EAPColumn.BinaryFormula.Op.ValueType] = {
+    "divide": EAPColumn.BinaryFormula.OP_DIVIDE,
+    "minus": EAPColumn.BinaryFormula.OP_SUBTRACT,
+    "multiply": EAPColumn.BinaryFormula.OP_MULTIPLY,
+    "plus": EAPColumn.BinaryFormula.OP_ADD,
 }
 
 FUNCTION_MAP = {
@@ -262,7 +262,7 @@ def execute_query(request: TraceItemTableRequest, referrer: str):
     return http_resp
 
 
-def query(
+def as_eap_request(
     query: Query, meta: RequestMeta, settings: Settings, virtual_columns: list[VirtualColumn]
 ) -> TraceItemTableRequest:
     start_timestamp = Timestamp()
@@ -354,8 +354,12 @@ def orderby(
 
 
 def groupby(
-    columns: list[AliasedExpression | Column | CurriedFunction | Function], settings: Settings
-) -> list[AttributeKey]:
+    columns: list[AliasedExpression | Column | CurriedFunction | Function] | None,
+    settings: Settings,
+) -> list[AttributeKey] | None:
+    if not columns:
+        return None
+
     if not all(isinstance(c, Column) for c in columns):
         raise TypeError("Only column types are permitted in the group by clause")
 
