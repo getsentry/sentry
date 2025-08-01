@@ -11,7 +11,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
 from sentry.replays.lib.storage import storage
 from sentry.replays.lib.summarize import (
@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 MAX_SEGMENTS_TO_SUMMARIZE = 100
+SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer requests.
 
 SEER_START_TASK_URL = (
     f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start"
@@ -46,6 +47,15 @@ def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str
     }
 
 
+class ReplaySummaryPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
+        "PUT": [],
+        "DELETE": [],
+    }
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummaryEndpoint(ProjectEndpoint):
@@ -54,6 +64,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (ReplaySummaryPermission,)
 
     def __init__(self, **options) -> None:
         storage.initialize_client()
@@ -67,6 +78,18 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
     def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
         data = json.dumps(post_body)
+
+        if len(data) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
+            logger.warning(
+                "Replay Summary: large Seer request.",
+                extra={
+                    "num_chars": len(data),
+                    "threshold": SEER_REQUEST_SIZE_LOG_THRESHOLD,
+                    "replay_id": post_body.get("replay_id"),
+                    "organization_id": post_body.get("organization_id"),
+                    "project_id": post_body.get("project_id"),
+                },
+            )
 
         try:
             response = requests.post(
@@ -120,7 +143,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         )
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Start a replay summary task in Seer."""
+        """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
         if not all(
             features.has(feature, project.organization, actor=request.user)
             for feature in self.features
@@ -128,6 +151,21 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         filter_params = self.get_filter_params(request, project)
+
+        # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
+        # While the replay is live, the FE and BE may have different counts.
+        num_segments = request.data.get("num_segments", 0)
+        if num_segments > MAX_SEGMENTS_TO_SUMMARIZE:
+            logger.warning(
+                "Replay Summary: hit max segment limit.",
+                extra={
+                    "replay_id": replay_id,
+                    "project_id": project.id,
+                    "organization_id": project.organization.id,
+                    "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
+                },
+            )
+            num_segments = MAX_SEGMENTS_TO_SUMMARIZE
 
         # Fetch the replay's error and trace IDs from the replay_id.
         snuba_response = query_replay_instance(
@@ -157,7 +195,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Download segment data.
         # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
-        segment_md = fetch_segments_metadata(project.id, replay_id, 0, MAX_SEGMENTS_TO_SUMMARIZE)
+        segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
         segment_data = iter_segment_data(segment_md)
 
         # Combine replay and error data and parse into logs.
@@ -170,7 +208,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             SEER_START_TASK_URL,
             {
                 "logs": logs,
-                "num_segments": len(segment_md),
+                "num_segments": num_segments,
                 "replay_id": replay_id,
                 "organization_id": project.organization.id,
                 "project_id": project.id,

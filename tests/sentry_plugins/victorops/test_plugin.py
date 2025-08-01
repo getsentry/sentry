@@ -32,13 +32,13 @@ class VictorOpsPluginTest(PluginTestCase):
     def plugin(self):
         return VictorOpsPlugin()
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("api_key", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(
             "POST",
             "https://alert.victorops.com/integrations/generic/20131114/alert/secret-api-key/everyone",
@@ -89,7 +89,7 @@ class VictorOpsPluginTest(PluginTestCase):
             "project_id": group.project.id,
         } == payload
 
-    def test_build_description_unicode(self):
+    def test_build_description_unicode(self) -> None:
         event = self.store_event(
             data={"message": "abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
             project_id=self.project.id,

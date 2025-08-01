@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
@@ -94,21 +94,21 @@ def test_task_silo_limit_call_monolith() -> None:
 
 
 @patch("sentry_sdk.capture_exception")
-def test_ignore_and_retry(capture_exception):
+def test_ignore_and_retry(capture_exception: MagicMock) -> None:
     ignore_and_capture_retry_task("bruh")
 
     assert capture_exception.call_count == 1
 
 
 @patch("sentry_sdk.capture_exception")
-def test_ignore_exception_retry(capture_exception):
+def test_ignore_exception_retry(capture_exception: MagicMock) -> None:
     ignore_on_exception_task("bruh")
 
     assert capture_exception.call_count == 0
 
 
 @patch("sentry_sdk.capture_exception")
-def test_exclude_exception_retry(capture_exception):
+def test_exclude_exception_retry(capture_exception: MagicMock) -> None:
     with pytest.raises(Exception):
         exclude_on_exception_task("bruh")
 
@@ -127,7 +127,7 @@ def test_exclude_exception_retry(capture_exception):
 )
 @patch("sentry.tasks.base.metrics.distribution")
 @freeze_time("2025-01-01 00:00:00")  # so size of params isn't impacted by current time.
-def test_capture_payload_metrics(mock_distribution):
+def test_capture_payload_metrics(mock_distribution: MagicMock) -> None:
     region_task.apply_async(args=("bruh",))
 
     mock_distribution.assert_called_once_with(
@@ -165,7 +165,7 @@ def test_validate_parameters_call() -> None:
 @override_settings(SILO_MODE=SiloMode.CONTROL)
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_on(capture_exception, current_task):
+def test_retry_on(capture_exception: MagicMock, current_task: MagicMock) -> None:
     class ExpectedException(Exception):
         pass
 
@@ -192,7 +192,7 @@ def test_retry_on(capture_exception, current_task):
     ),
 )
 @override_settings(SILO_MODE=SiloMode.CONTROL)
-def test_task_silo_limit_celery_task_methods(method_name):
+def test_task_silo_limit_celery_task_methods(method_name) -> None:
     method = getattr(region_task, method_name)
     with pytest.raises(SiloLimit.AvailabilityError):
         method("hi")

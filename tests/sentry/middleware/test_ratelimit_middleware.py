@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
-from unittest.mock import patch, sentinel
+from unittest.mock import MagicMock, patch, sentinel
 
 from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
@@ -68,7 +68,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         request.auth = token
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
-    def test_fails_open(self, default_rate_limit_mock):
+    def test_fails_open(self, default_rate_limit_mock: MagicMock) -> None:
         """Test that if something goes wrong in the rate limit middleware,
         the request still goes through"""
         request = self.factory.get("/")
@@ -89,7 +89,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         assert self.middleware.process_response(bad_request, bad_response) is bad_response
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
-    def test_positive_rate_limit_check(self, default_rate_limit_mock):
+    def test_positive_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
@@ -107,7 +107,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             assert request.will_be_rate_limited
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
-    def test_positive_rate_limit_response_headers(self, default_rate_limit_mock):
+    def test_positive_rate_limit_response_headers(self, default_rate_limit_mock: MagicMock) -> None:
         request = self.factory.get("/")
 
         with (
@@ -157,7 +157,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             assert response["Access-Control-Expose-Headers"]
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
-    def test_negative_rate_limit_check(self, default_rate_limit_mock):
+    def test_negative_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
         request = self.factory.get("/")
         default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
@@ -174,7 +174,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     @override_settings(SENTRY_SELF_HOSTED=True)
-    def test_self_hosted_rate_limit_check(self, default_rate_limit_mock):
+    def test_self_hosted_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
         """Check that for self hosted installs we don't rate limit"""
         request = self.factory.get("/")
         default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
@@ -378,7 +378,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_key")
-    def test_omit_header(self, can_be_ratelimited_patch):
+    def test_omit_header(self, can_be_ratelimited_patch: MagicMock) -> None:
         """
         Ensure that functions that can't be rate limited don't have rate limit headers
 

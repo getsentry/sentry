@@ -49,7 +49,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record):
+    def test_applies_correctly(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={
                 "message": "Hello world",
@@ -213,7 +213,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(form.errors) == 1
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
-    def test_team_deleted(self, mock_logger: MagicMock):
+    def test_team_deleted(self, mock_logger: MagicMock) -> None:
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self._create_integration("test-app-2")
@@ -243,7 +243,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
-    def test_integration_deleted(self, mock_logger: MagicMock):
+    def test_integration_deleted(self, mock_logger: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
@@ -260,7 +260,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_api_error(self, mock_record, mock_logger: MagicMock):
+    def test_api_error(self, mock_record, mock_logger: MagicMock) -> None:
         event = self.get_event()
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         results = list(rule.after(event=event))

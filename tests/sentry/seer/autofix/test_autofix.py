@@ -19,7 +19,7 @@ from sentry.seer.autofix.autofix import (
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -444,7 +444,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_empty_results(self, mock_get_events):
+    def test_get_trace_tree_empty_results(self, mock_get_events) -> None:
         """
         Expected trace structure:
 
@@ -468,7 +468,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_out_of_order_processing(self, mock_get_events):
+    def test_get_trace_tree_out_of_order_processing(self, mock_get_events) -> None:
         """
         Expected trace structure:
 
@@ -566,7 +566,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_with_only_errors(self, mock_get_events):
+    def test_get_trace_tree_with_only_errors(self, mock_get_events) -> None:
         """
         Tests that when results contain only error events (no transactions),
         the function still creates a valid trace tree.
@@ -708,7 +708,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         assert mock_get_events.call_count == 2
 
     @patch("sentry.eventstore.backend.get_events")
-    def test_get_trace_tree_all_relationship_rules(self, mock_get_events):
+    def test_get_trace_tree_all_relationship_rules(self, mock_get_events) -> None:
         """
         Tests that all three relationship rules are correctly implemented:
         1. An event whose span_id is X is a parent of an event whose parent_span_id is X
@@ -862,7 +862,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
 @pytest.mark.django_db
 class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service) -> None:
         """
         Test the _get_profile_from_trace_tree method which finds a transaction
         that contains the event's span_id or has a matching span_id.
@@ -944,7 +944,9 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_matching_span_id(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_matching_span_id(
+        self, mock_get_from_profiling_service
+    ) -> None:
         """
         Test _get_profile_from_trace_tree with a transaction whose own span_id
         matches the event's span_id.
@@ -1023,7 +1025,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service) -> None:
         """
         Test the behavior when the profiling service API returns an error.
         """
@@ -1131,7 +1133,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         mock_get_from_profiling_service.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service) -> None:
         """
         Test the behavior when the event doesn't have a span_id.
         """
@@ -1166,7 +1168,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -1270,7 +1272,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
 class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -1310,7 +1312,7 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 
 @requires_snuba
 @pytest.mark.django_db
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
@@ -1349,7 +1351,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.autofix.requests.post")
     @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
-    def test_call_autofix(self, mock_sign, mock_post):
+    def test_call_autofix(self, mock_sign, mock_post) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
         mock_sign.return_value = {"Authorization": "Bearer test"}
@@ -1639,7 +1641,7 @@ class TestGetLogsForEvent(TestCase):
         self.now = before_now(minutes=0)
 
     @patch("sentry.snuba.ourlogs.OurLogs.run_table_query")
-    def test_merging_consecutive_logs(self, mock_query):
+    def test_merging_consecutive_logs(self, mock_query) -> None:
         # Simulate logs with identical message/severity in sequence
         dt = self.now
         logs = [

@@ -186,6 +186,20 @@ const SECTIONS: TSection[] = [
         name: 'Seer',
         defaultProps: {variant: 'loading'},
       },
+      {
+        id: 'my-projects',
+        groups: ['product'],
+        keywords: ['starred', 'sidebar'],
+        name: 'MyProjects',
+        defaultProps: {},
+      },
+      {
+        id: 'all-projects',
+        groups: ['product'],
+        keywords: ['starred', 'sidebar'],
+        name: 'AllProjects',
+        defaultProps: {},
+      },
     ],
   },
   {

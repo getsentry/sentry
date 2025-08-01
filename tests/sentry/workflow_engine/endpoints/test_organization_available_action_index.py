@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -337,7 +337,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_sentry_apps(self, mock_sentry_app_component_preparer):
+    def test_sentry_apps(self, mock_sentry_app_component_preparer: MagicMock) -> None:
         self.setup_sentry_apps()
 
         response = self.get_success_response(
@@ -398,7 +398,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_actions_sorting(self, mock_sentry_app_component_preparer):
+    def test_actions_sorting(self, mock_sentry_app_component_preparer: MagicMock) -> None:
 
         self.setup_sentry_apps()
         self.setup_integrations()

@@ -220,6 +220,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     formatter: function (params: any) {
       const value = typeof params.value === 'number' ? params.value : 0;
       const percent = ((value / totalSize) * 100).toFixed(2);
+      const pathElement = params.data?.path
+        ? `<p style="font-size: 12px; margin-bottom: -4px;">${params.data.path}</p>`
+        : null;
+
       return `
             <div style="font-family: Rubik;">
               <div style="display: flex; align-items: center; font-size: 12px; font-weight: bold; line-height: 1; margin-bottom: ${space(1)}; gap: ${space(1)}">
@@ -228,11 +232,11 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
               </div>
               <div style="display: flex; flex-direction: column; line-height: 1; gap: ${space(0.5)}">
                 <p style="font-size: 14px; font-weight: bold; margin-bottom: -2px;">${params.name}</p>
-                <p style="font-size: 12px; margin-bottom: -4px;">${params.data?.path}</p>
+                ${pathElement || ''}
                 <p style="font-size: 12px; margin-bottom: -4px;">${formatBytesBase10(value)} (${percent}%)</p>
               </div>
             </div>
-          `;
+          `.trim();
     },
   };
 

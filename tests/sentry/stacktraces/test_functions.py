@@ -129,7 +129,7 @@ from sentry.stacktraces.functions import (
         ],
     ],
 )
-def test_trim_native_function_name(input, output):
+def test_trim_native_function_name(input, output) -> None:
     assert trim_function_name(input, "native") == output
 
 
@@ -143,7 +143,7 @@ def test_trim_native_function_name(input, output):
         ],
     ],
 )
-def test_trim_csharp_function_name(input, output):
+def test_trim_csharp_function_name(input, output) -> None:
     assert trim_function_name(input, "csharp") == output
 
 
@@ -176,7 +176,7 @@ def test_trim_csharp_function_name(input, output):
         ],
     ],
 )
-def test_trim_cocoa_function_name(input, output):
+def test_trim_cocoa_function_name(input, output) -> None:
     assert trim_function_name(input, "cocoa") == output
 
 
@@ -201,7 +201,7 @@ def replace_group(value, start):
         ],
     ],
 )
-def test_enclosed_string_simple(input, start, end, replacement, output):
+def test_enclosed_string_simple(input, start, end, replacement, output) -> None:
     assert replace_enclosed_string(input, start, end, replacement) == output
 
 
@@ -215,7 +215,7 @@ def test_enclosed_string_simple(input, start, end, replacement, output):
         ["foo bar [baz (blah)]", ["foo", "bar", "[baz (blah)]"]],
     ],
 )
-def test_split_func_tokens(input, output):
+def test_split_func_tokens(input, output) -> None:
     assert split_func_tokens(input) == output
 
 
@@ -261,5 +261,5 @@ def test_trim_function_name_cocoa() -> None:
         [{"source_link": "woejfdsiwjidsoi", "lineNo": "7"}, None],
     ],
 )
-def test_get_source_link_for_frame(input, output):
+def test_get_source_link_for_frame(input, output) -> None:
     assert get_source_link_for_frame(Frame.to_python(input)) == output

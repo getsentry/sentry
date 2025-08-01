@@ -604,7 +604,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
 
 
 @django_db_all
-def test_renormalization(factories, task_runner, default_project):
+def test_renormalization(factories, task_runner, default_project) -> None:
     from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event

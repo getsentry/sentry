@@ -376,15 +376,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
             )
-        if (
-            features.has(
-                "organizations:discover-saved-queries-deprecation", self.context["organization"]
-            )
-            and widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
-        ):
-            raise serializers.ValidationError(
-                "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
-            )
         return widget_type
 
     validate_id = validate_id
@@ -423,6 +414,21 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         ondemand_feature = features.has(
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
+
+        if (
+            features.has(
+                "organizations:discover-saved-queries-deprecation",
+                self.context["organization"],
+                actor=self.context["request"].user,
+            )
+            and not data.get("id")
+            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
+        ):
+            raise serializers.ValidationError(
+                {
+                    "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+                }
+            )
 
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
