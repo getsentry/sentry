@@ -41,13 +41,11 @@ export function apiOptions<
 ) {
   const url = getApiUrl(
     path,
-    ...((path
-      ? [
-          {
-            path: pathParams,
-          },
-        ]
-      : []) as OptionalPathParams<TApiPath>)
+    ...([
+      {
+        path: pathParams,
+      },
+    ] as OptionalPathParams<TApiPath>)
   );
 
   return queryOptions({
