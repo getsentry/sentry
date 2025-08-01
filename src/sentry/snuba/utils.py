@@ -50,7 +50,9 @@ RPC_DATASETS = {
     UptimeResults,
     UptimeChecks,
 }
-DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
+DATASET_LABELS = {
+    value: key for key, value in DATASET_OPTIONS.items() if key not in DEPRECATED_LABELS
+}
 
 
 TRANSACTION_ONLY_FIELDS = [
