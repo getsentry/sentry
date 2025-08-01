@@ -79,7 +79,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
             </Text>
             <Flex align="center" gap="sm">
               <Text variant="muted" size="sm" tabular>
-                {formatBytesBase10(insight.totalSavings)}
+                -{formatBytesBase10(insight.totalSavings)}
               </Text>
               <Text
                 variant="muted"
@@ -88,7 +88,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
                 align="right"
                 style={{width: '64px'}}
               >
-                ({formatPercentage(insight.percentage / 100, 1)})
+                (-{formatPercentage(insight.percentage / 100, 1)})
               </Text>
             </Flex>
           </InsightRow>
