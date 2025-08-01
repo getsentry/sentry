@@ -367,6 +367,7 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
+  const codingDisabled = !organization.enableSeerCoding;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -514,7 +515,11 @@ function AutofixSolutionDisplay({
                       ? t(
                           "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                         )
-                      : undefined
+                      : codingDisabled
+                        ? t(
+                            'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
+                          )
+                        : undefined
                 }
               >
                 <Button
@@ -525,7 +530,7 @@ function AutofixSolutionDisplay({
                       : 'default'
                   }
                   busy={isPending}
-                  disabled={hasNoRepos || cantReadRepos}
+                  disabled={hasNoRepos || cantReadRepos || codingDisabled}
                   onClick={() => {
                     handleContinue({
                       mode: 'fix',
