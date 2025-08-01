@@ -2,13 +2,19 @@ import {AppleInsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
+
 import {AppSizeInsights} from './appSizeInsights';
 
 describe('AppSizeInsights', () => {
-  const getDefaultProps = () => ({
-    insights: AppleInsightResultsFixture(),
-    totalSize: 10240000,
-  });
+  const getDefaultProps = () => {
+    const totalSize = 10240000;
+    const insights = AppleInsightResultsFixture();
+    return {
+      processedInsights: processInsights(insights, totalSize),
+      totalSize,
+    };
+  };
 
   it('renders the main insights container with correct header', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
@@ -29,7 +35,10 @@ describe('AppSizeInsights', () => {
       },
     });
 
-    render(<AppSizeInsights {...getDefaultProps()} insights={manyInsights} />);
+    const totalSize = 10240000;
+    render(
+      <AppSizeInsights processedInsights={processInsights(manyInsights, totalSize)} />
+    );
 
     // Should show top 3 insights in main view
     expect(screen.getByText('Remove duplicate files')).toBeInTheDocument();

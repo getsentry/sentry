@@ -2,11 +2,13 @@ import {AppleInsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
+
 import {AppSizeInsightsSidebar} from './appSizeInsightsSidebar';
 
 describe('AppSizeInsightsSidebar', () => {
-  const getDefaultProps = () => ({
-    insights: AppleInsightResultsFixture({
+  const getDefaultProps = () => {
+    const insights = AppleInsightResultsFixture({
       large_images: {
         total_savings: 128000,
         files: [
@@ -16,11 +18,14 @@ describe('AppSizeInsightsSidebar', () => {
           },
         ],
       },
-    }),
-    totalSize: 10240000,
-    isOpen: true,
-    onClose: jest.fn(),
-  });
+    });
+    const totalSize = 10240000;
+    return {
+      processedInsights: processInsights(insights, totalSize),
+      isOpen: true,
+      onClose: jest.fn(),
+    };
+  };
 
   it('renders the sidebar when open', () => {
     render(<AppSizeInsightsSidebar {...getDefaultProps()} />);
@@ -66,7 +71,7 @@ describe('AppSizeInsightsSidebar', () => {
   });
 
   it('handles empty insights', () => {
-    render(<AppSizeInsightsSidebar {...getDefaultProps()} insights={{}} />);
+    render(<AppSizeInsightsSidebar processedInsights={[]} isOpen onClose={jest.fn()} />);
 
     expect(screen.getByText('Insights')).toBeInTheDocument();
     expect(screen.queryByText('Duplicate files')).not.toBeInTheDocument();

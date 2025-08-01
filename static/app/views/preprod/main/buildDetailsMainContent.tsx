@@ -46,19 +46,20 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
-  const totalSize = appSizeData.treemap.root.size;
-  const processedInsights = appSizeData.insights
-    ? processInsights(appSizeData.insights, totalSize)
-    : [];
+  const totalSize = appSizeData.treemap.root.size || 0;
+  const processedInsights =
+    appSizeData.insights && totalSize > 0
+      ? processInsights(appSizeData.insights, totalSize)
+      : [];
 
   return (
     <MainContentContainer>
       <TreemapContainer>
         <AppSizeTreemap treemapData={appSizeData.treemap} />
       </TreemapContainer>
-      {appSizeData.insights && totalSize > 0 && processedInsights.length > 0 && (
+      {processedInsights.length > 0 && (
         <Container style={{marginTop: '20px'}}>
-          <AppSizeInsights insights={appSizeData.insights} totalSize={totalSize} />
+          <AppSizeInsights processedInsights={processedInsights} />
         </Container>
       )}
     </MainContentContainer>

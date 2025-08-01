@@ -11,18 +11,13 @@ import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
-import {type AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
-import {
-  type ProcessedInsight,
-  processInsights,
-} from 'sentry/views/preprod/utils/insightProcessing';
+import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsProps {
-  insights: AppleInsightResults;
-  totalSize: number;
+  processedInsights: ProcessedInsight[];
 }
 
-export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
+export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSidebarOpen = searchParams.get('insights') === 'open';
 
@@ -38,9 +33,8 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
-  const insightItems: ProcessedInsight[] = processInsights(insights, totalSize);
   // Only show top 3 insights, show the rest in the sidebar
-  const topInsights = insightItems.slice(0, 3);
+  const topInsights = processedInsights.slice(0, 3);
 
   return (
     <Container background="primary" radius="md" padding="lg" border="muted">
@@ -91,8 +85,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
       </Flex>
 
       <AppSizeInsightsSidebar
-        insights={insights}
-        totalSize={totalSize}
+        processedInsights={processedInsights}
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
       />

@@ -9,25 +9,20 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebarRow';
-import type {AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
-import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
+import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
-  insights: AppleInsightResults;
   isOpen: boolean;
   onClose: () => void;
-  totalSize: number;
+  processedInsights: ProcessedInsight[];
 }
 
 export function AppSizeInsightsSidebar({
-  insights,
-  totalSize,
+  processedInsights,
   isOpen,
   onClose,
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
-
-  const processedInsights = processInsights(insights, totalSize);
 
   const toggleExpanded = (insightName: string) => {
     const newExpanded = new Set(expandedInsights);
