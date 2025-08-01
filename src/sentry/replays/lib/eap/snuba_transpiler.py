@@ -202,7 +202,56 @@ class RequestMeta(TypedDict):
 
 
 class Settings(TypedDict, total=False):
-    """Query settings which are not representable in Snuba SDK."""
+    """
+    Query settings which are not representable within a Snuba query.
+
+    This type defines optional configuration parameters that extend beyond what the
+    Snuba SDK can natively express. All fields are optional due to `total=False`,
+    allowing for flexible partial configuration. However, the "attribute_types" is
+    required and if its omitted an error will be raised during query processing.
+
+    Attributes:
+        attribute_types: Mapping of attribute names to their type in EAP.
+            Keys are attribute identifiers (strings), values are type objects
+            for basic Python types (bool, float, int, str). Used for routing the
+            attribute name to the correct value bucket in EAP.
+
+        default_limit: Default number of records to return when no explicit
+            limit is specified in the query.
+
+        default_offset: Default number of records to skip when no explicit
+            offset is specified in the query.
+
+        extrapolation_mode: Strategy for handling data extrapolation in queries.
+            - "weighted": Apply weighted extrapolation algorithms to estimate
+              missing data points based on existing patterns
+            - "none": Disable extrapolation, return only actual data points
+              without any estimation or interpolation
+
+    Example:
+        Basic configuration with type validation:
+        >>> settings: Settings = {
+        ...     "attribute_types": {
+        ...         "user_id": int,
+        ...         "score": float,
+        ...         "is_active": bool,
+        ...         "username": str
+        ...     },
+        ...     "default_limit": 100,
+        ...     "default_offset": 0,
+        ...     "extrapolation_mode": "weighted"
+        ... }
+
+        Minimal configuration (all fields but "attribute_types" are optional):
+        >>> minimal_settings: Settings = {
+        ...     "attribute_types": {
+        ...         "user_id": int,
+        ...         "score": float,
+        ...         "is_active": bool,
+        ...         "username": str
+        ...     },
+        ... }
+    """
 
     attribute_types: dict[str, type[bool | float | int | str]]
     default_limit: int
@@ -219,6 +268,28 @@ VirtualColumn = TypedDict(
         "default_value": NotRequired[str],
     },
 )
+"""
+A virtual column defines translation instructions for mapping data inside EAP to data outside of
+EAP.
+
+For example sorting by project slug is not possible without virtual columns. Project slugs are not
+stored in EAP. However, project ids are. The application can define a mapping from slug to ID which
+can then be used within the EAP query context.
+
+Fields:
+    from: The source column name to read values from
+    to: The target column name to write transformed values to
+    value_map: A dictionary mapping source values to target values
+    default_value: Optional default value when source value not in value_map
+
+Example:
+    >>> col_def: VirtualColumn = {
+    ...     "from": "status_code",
+    ...     "to": "status_name",
+    ...     "value_map": {"200": "OK", "404": "Not Found"},
+    ...     "default_value": "Unknown"
+    ... }
+"""
 
 
 def execute_query(request: TraceItemTableRequest, referrer: str):
