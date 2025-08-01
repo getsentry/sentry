@@ -95,8 +95,8 @@ export function cronSavedDetectorToFormData(
     recoveryThreshold: dataSource.queryObj.recoveryThreshold ?? 1,
     maxRuntime: dataSource.queryObj.maxRuntime,
     scheduleCrontab: Array.isArray(dataSource.queryObj.schedule)
-      ? dataSource.queryObj.schedule[0]
-      : DEFAULT_CRONTAB,
+      ? DEFAULT_CRONTAB
+      : dataSource.queryObj.schedule,
     scheduleIntervalValue: Array.isArray(dataSource.queryObj.schedule)
       ? dataSource.queryObj.schedule[0]
       : CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
