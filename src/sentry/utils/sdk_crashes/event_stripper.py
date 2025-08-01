@@ -123,7 +123,7 @@ def strip_event_data(
     stripped_frames = _strip_frames(frames, sdk_crash_detector)
 
     event_data_copy = dict(event_data)
-    event_data_copy["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
+    event_data_copy["exception"]["values"][-1]["stacktrace"]["frames"] = stripped_frames
 
     stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
 
