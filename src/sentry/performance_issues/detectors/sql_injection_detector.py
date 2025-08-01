@@ -117,7 +117,6 @@ class SQLInjectionDetector(PerformanceDetector):
     def visit_span(self, span: Span) -> None:
         if not SQLInjectionDetector.is_span_eligible(span) or not self.request_parameters:
             return
-
         description = span.get("description") or ""
         op = span.get("op") or ""
         spans_involved = [span["span_id"]]
@@ -211,7 +210,6 @@ class SQLInjectionDetector(PerformanceDetector):
             or op == "db.sql.active_record"
         ):
             return False
-
         # Auto-generated rails queries can contain interpolated values
         if span.get("origin") == "auto.db.rails":
             return False
@@ -247,6 +245,14 @@ class SQLInjectionDetector(PerformanceDetector):
         ):
             return False
 
+        # Zend1 can cause false positives
+        if span.get("sentry_tags", {}).get("platform") == "php":
+            event_traces = span.get("data", {}).get("event.trace", [])
+            has_zf1_framework = any(
+                [trace.get("function", "").startswith("Zend_") for trace in event_traces]
+            )
+            if has_zf1_framework:
+                return False
         return True
 
     @classmethod
