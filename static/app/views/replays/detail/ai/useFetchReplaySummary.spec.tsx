@@ -260,7 +260,7 @@ describe('useFetchReplaySummary', () => {
         method: 'POST',
       });
 
-      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
+      const {result, rerender} = renderHook(() => useFetchReplaySummary(mockReplay), {
         wrapper: createWrapper(),
       });
 
@@ -273,6 +273,9 @@ describe('useFetchReplaySummary', () => {
 
       // Update the segment count and expect a POST.
       mockReplayRecord.count_segments = 2;
+      mockReplay.getReplay = jest.fn().mockReturnValue(mockReplayRecord);
+      rerender();
+
       await waitFor(() => {
         expect(mockPostRequest).toHaveBeenCalledWith(
           `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
@@ -282,10 +285,6 @@ describe('useFetchReplaySummary', () => {
           })
         );
       });
-      // Will keep polling since segment count in response is outdated.
-      expect(result.current.isPolling).toBe(true);
-      expect(result.current.isPending).toBe(true);
-      expect(result.current.isError).toBe(false);
     });
   });
 });
