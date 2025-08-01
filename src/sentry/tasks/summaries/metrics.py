@@ -46,5 +46,5 @@ class WeeklyReportSLO(EventLifecycleMetric):
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
             "operation_type": self.operation_type,
-            "dry_run": int(self.dry_run),
+            "dry_run": str(self.dry_run).lower(),
         }
