@@ -17,7 +17,8 @@ import {IconBranch} from './iconBranch';
 export const ALL_BRANCHES = 'All Branches';
 
 export function BranchSelector() {
-  const {branch, integratedOrgId, repository, changeContextValue} = useCodecovContext();
+  const {branch, integratedOrgId, repository, codecovPeriod, changeContextValue} =
+    useCodecovContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const {data} = useInfiniteRepositoryBranches({term: searchValue});
   const branches = data.branches;
@@ -25,9 +26,14 @@ export function BranchSelector() {
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({integratedOrgId, repository, branch: selectedOption.value});
+      changeContextValue({
+        integratedOrgId,
+        repository,
+        codecovPeriod,
+        branch: selectedOption.value,
+      });
     },
-    [changeContextValue, integratedOrgId, repository]
+    [changeContextValue, integratedOrgId, repository, codecovPeriod]
   );
 
   const handleOnSearch = useMemo(

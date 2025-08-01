@@ -79,11 +79,11 @@ export default function CodecovQueryParamsProvider({
 
         if (input.repository) {
           const orgId = input.integratedOrgId;
-          const repository = input.repository;
-          const branch = input.branch ? input.branch : ALL_BRANCHES;
 
           if (orgId) {
-            newState[orgId] = {repository, branch};
+            const branch = input.branch ? input.branch : ALL_BRANCHES;
+            newState[orgId] = {repository: input.repository, branch};
+            newState.lastVisitedOrgId = orgId;
           }
         }
 
