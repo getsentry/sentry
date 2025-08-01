@@ -78,7 +78,10 @@ function anomalyTooltipFormatter(
 /**
  * Groups consecutive anomalous data points into continuous periods
  */
-function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
+function groupAnomaliesIntoPeriods(
+  anomalies: Anomaly[],
+  timePeriodMs?: number
+): AnomalyPeriod[] {
   const periods: AnomalyPeriod[] = [];
   let currentPeriod: AnomalyPeriod | null = null;
 
@@ -115,6 +118,16 @@ function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
   // Handle last period if it ends with an anomaly
   if (currentPeriod) {
     periods.push(currentPeriod);
+  }
+
+  // Ensure each period spans at least 2 data points for better visualization
+  if (timePeriodMs) {
+    periods.forEach(period => {
+      if (period.start === period.end) {
+        // Extend single-point anomalies to span at least one more time period
+        period.end = period.start + timePeriodMs;
+      }
+    });
   }
 
   return periods;
@@ -285,12 +298,18 @@ function AnomalyBubbleSeries({
   };
 }
 
-function getAnomalyMarkerSeries(anomalies: Anomaly[], theme: Theme): LineSeriesOption[] {
+function getAnomalyMarkerSeries(
+  anomalies: Anomaly[],
+  theme: Theme,
+  timePeriod?: number
+): LineSeriesOption[] {
   if (!Array.isArray(anomalies) || anomalies.length === 0) {
     return [];
   }
 
-  const anomalyPeriods = groupAnomaliesIntoPeriods(anomalies);
+  // Convert timePeriod from seconds to milliseconds for minimum anomaly width
+  const timePeriodMs = timePeriod ? timePeriod * 1000 : undefined;
+  const anomalyPeriods = groupAnomaliesIntoPeriods(anomalies, timePeriodMs);
   if (anomalyPeriods.length === 0) {
     return [];
   }
@@ -367,6 +386,7 @@ interface UseMetricDetectorAnomalySeriesResult {
 
 interface UseAnomalyBubblesParams {
   anomalies: Anomaly[] | undefined;
+  timePeriod?: number; // Time period in seconds for minimum anomaly width
   yAxisIndex?: number;
 }
 
@@ -384,6 +404,7 @@ interface UseAnomalyBubblesResult {
  */
 export function useAnomalyBubbles({
   anomalies,
+  timePeriod,
   yAxisIndex = 0,
 }: UseAnomalyBubblesParams): UseAnomalyBubblesResult {
   const theme = useTheme();
@@ -393,8 +414,10 @@ export function useAnomalyBubbles({
     if (!anomalies?.length) {
       return [];
     }
-    return groupAnomaliesIntoPeriods(anomalies);
-  }, [anomalies]);
+    // Convert timePeriod from seconds to milliseconds for minimum anomaly width
+    const timePeriodMs = timePeriod ? timePeriod * 1000 : undefined;
+    return groupAnomaliesIntoPeriods(anomalies, timePeriodMs);
+  }, [anomalies, timePeriod]);
 
   const bubblePadding = 2; // Match release bubbles padding
   const totalBubblePaddingY = bubblePadding * 2; // 2px padding on top and bottom
@@ -635,8 +658,8 @@ export function useMetricDetectorAnomalySeries({
     if (!anomalies || anomalies.length === 0 || isHistoricalLoading || isLoading) {
       return [];
     }
-    return getAnomalyMarkerSeries(anomalies, theme);
-  }, [anomalies, theme, isHistoricalLoading, isLoading]);
+    return getAnomalyMarkerSeries(anomalies, theme, timePeriod);
+  }, [anomalies, theme, timePeriod, isHistoricalLoading, isLoading]);
 
   // Use the new bubble system for anomaly highlighting
   const {
@@ -647,6 +670,7 @@ export function useMetricDetectorAnomalySeries({
     anomalyBubbleGrid,
   } = useAnomalyBubbles({
     anomalies,
+    timePeriod, // Pass time period for minimum anomaly width
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
   });
 
