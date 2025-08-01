@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
+import psycopg2.errors
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -1625,19 +1626,13 @@ def _get_error_weighted_times_seen(event: BaseEvent) -> int:
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
     """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
 
-    error_message = err.args[0]
-
-    if not error_message.startswith("UniqueViolation"):
-        return False
-
-    for substring in [
-        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
-        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
-    ]:
-        if substring in error_message:
-            return True
-
-    return False
+    return isinstance(err.__cause__, psycopg2.errors.UniqueViolation) and any(
+        s in err.args[0]
+        for s in (
+            f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+            'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+        )
+    )
 
 
 def _handle_stuck_project_counter(project: Project, current_short_id: int) -> int:

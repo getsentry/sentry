@@ -1,7 +1,10 @@
+import pytest
 from django.db import connection
+from django.db.utils import DataError
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class CursorWrapperTestCase(TestCase):
@@ -60,3 +63,10 @@ class CursorWrapperTestCase(TestCase):
         cursor.execute("SELECT %(bad_str)s", {"bad_str": bad_str})
         bad_str_from_db = cursor.fetchone()[0]
         assert bad_str_from_db == "HelloWorld🇦🇹!"
+
+
+@django_db_all
+def test_sql_note() -> None:
+    with pytest.raises(DataError) as excinfo:
+        connection.cursor().execute("select 1/0")
+    assert excinfo.value.__notes__ == ["SQL: select 1/0"]
