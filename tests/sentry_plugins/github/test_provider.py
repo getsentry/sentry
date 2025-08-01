@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -220,7 +220,7 @@ class GitHubAppsProviderTest(TestCase):
         assert self.provider.delete_repository(repo=repo, actor=user) is None
 
     @patch.object(GithubPluginAppsClient, "get_last_commits", return_value=[])
-    def test_compare_commits_no_start(self, mock_get_last_commits):
+    def test_compare_commits_no_start(self, mock_get_last_commits: MagicMock) -> None:
         organization = self.create_organization()
         integration = self.create_integration(
             organization=organization, provider="github_apps", external_id="1"
@@ -238,7 +238,7 @@ class GitHubAppsProviderTest(TestCase):
         assert mock_get_last_commits.called
 
     @patch.object(GithubPluginAppsClient, "compare_commits", return_value={"commits": []})
-    def test_compare_commits(self, mock_compare_commits):
+    def test_compare_commits(self, mock_compare_commits: MagicMock) -> None:
         organization = self.create_organization()
         integration = self.create_integration(
             organization=organization, provider="github_apps", external_id="1"

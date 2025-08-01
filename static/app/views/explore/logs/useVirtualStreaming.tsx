@@ -1,9 +1,11 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
+  useLogsAutoRefreshContinued,
   useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -52,6 +54,8 @@ export function useVirtualStreaming(
   data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
 ) {
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const previousAutoRefresh = usePrevious(autoRefresh);
+  const isAutoRefreshContinued = useLogsAutoRefreshContinued();
   const refreshInterval = useLogsRefreshInterval();
   const rafOn = useRef(false);
   const [virtualTimestamp, setVirtualTimestamp] = useState<number | undefined>(undefined);
@@ -71,7 +75,7 @@ export function useVirtualStreaming(
 
   // If we've received data, initialize the virtual timestamp to be refreshEvery seconds before the max ingest delay timestamp
   const initializeVirtualTimestamp = useCallback(() => {
-    if (!data?.pages?.length || virtualTimestamp !== undefined) {
+    if (!data?.pages?.length) {
       return;
     }
 
@@ -104,14 +108,34 @@ export function useVirtualStreaming(
         );
 
     setVirtualTimestamp(initialTimestamp);
-  }, [data, virtualTimestamp, refreshInterval]);
+  }, [data, refreshInterval]);
 
-  // Initialize when auto refresh is enabled and we have data
   useEffect(() => {
-    if (autoRefresh && virtualTimestamp === undefined) {
+    if (!autoRefresh) {
+      return;
+    }
+
+    if (virtualTimestamp === undefined) {
+      // First time enabling autorefresh, initialize virtual timestamp.
+      initializeVirtualTimestamp();
+      return;
+    }
+
+    if (isAutoRefreshContinued) {
+      // Re-enabling autorefresh with existing virtual timestamp, and within continue window, do nothing.
+      return;
+    }
+    if (!isEqual(autoRefresh, previousAutoRefresh)) {
+      // Re-enabling autorefresh with existing virtual timestamp, but outside continue window, reset virtual timestamp.
       initializeVirtualTimestamp();
     }
-  }, [autoRefresh, initializeVirtualTimestamp, virtualTimestamp]);
+  }, [
+    autoRefresh,
+    initializeVirtualTimestamp,
+    virtualTimestamp,
+    isAutoRefreshContinued,
+    previousAutoRefresh,
+  ]);
 
   // Get the newest timestamp from the latest page to calculate how far behind we are
   const getMostRecentPageDataTimestamp = useCallback(() => {

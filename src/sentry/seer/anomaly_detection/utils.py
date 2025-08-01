@@ -14,11 +14,13 @@ from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
-from sentry.snuba import metrics_performance, ourlogs, spans_rpc
+from sentry.snuba import metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
 from sentry.workflow_engine.models import Detector
@@ -225,7 +227,7 @@ def format_historical_data(
         return format_crash_free_data(data)
 
     return format_snuba_ts_data(
-        data, query_columns, organization, transform_alias_to_input_format=dataset == spans_rpc
+        data, query_columns, organization, transform_alias_to_input_format=dataset == Spans
     )
 
 
@@ -293,8 +295,8 @@ def fetch_historical_data(
 
     if dataset == metrics_performance:
         return get_crash_free_historical_data(start, end, project, organization, granularity)
-    elif dataset == spans_rpc:
-        results = spans_rpc.run_timeseries_query(
+    elif dataset == Spans:
+        results = Spans.run_timeseries_query(
             params=snuba_params,
             query_string=snuba_query.query,
             y_axes=query_columns,
@@ -310,8 +312,8 @@ def fetch_historical_data(
             sampling_mode="NORMAL",
         )
         return results
-    elif dataset == ourlogs:
-        results = ourlogs.run_timeseries_query(
+    elif dataset == OurLogs:
+        results = OurLogs.run_timeseries_query(
             params=snuba_params,
             query_string=snuba_query.query,
             y_axes=query_columns,

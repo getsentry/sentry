@@ -1,4 +1,6 @@
-import psycopg2 as Database
+from collections.abc import Iterable
+
+import psycopg2
 
 # Some of these imports are unused, but they are inherited from other engines
 # and should be available as part of the backend ``base.py`` namespace.
@@ -7,56 +9,39 @@ from django.db.backends.postgresql.operations import DatabaseOperations
 
 from sentry.utils.strings import strip_lone_surrogates
 
-from .decorators import (
-    auto_reconnect_connection,
-    auto_reconnect_cursor,
-    capture_transaction_exceptions,
-    more_better_error_messages,
-)
+from .decorators import auto_reconnect_connection, auto_reconnect_cursor, more_better_error_messages
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
 
 
-def remove_null(value):
+def remove_null(value: str) -> str:
     # In psycopg2 2.7+, behavior was introduced where a
-    # NULL byte in a parameter would start raising a ValueError.
+    # NULL character in a parameter would start raising a ValueError.
     # psycopg2 chose to do this rather than let Postgres silently
-    # truncate the data, which is it's behavior when it sees a
-    # NULL byte. But for us, we'd rather remove the null value so it's
+    # truncate the data, which is its behavior when it sees a
+    # NULL character. But for us, we'd rather remove the null value so it's
     # somewhat legible rather than error. Considering this is better
     # behavior than the database truncating, seems good to do this
     # rather than attempting to sanitize all data inputs now manually.
-    if type(value) is bytes:
-        return value.replace(b"\x00", b"")
     return value.replace("\x00", "")
 
 
-def remove_surrogates(value):
-    # Another hack.  postgres does not accept lone surrogates
-    # in utf-8 mode.  If we encounter any lone surrogates in
-    # our string we need to remove it.
-    if type(value) is bytes:
-        try:
-            return strip_lone_surrogates(value.decode("utf-8")).encode("utf-8")
-        except UnicodeError:
-            return value
-    return strip_lone_surrogates(value)
-
-
-def clean_bad_params(params):
+def clean_bad_params(
+    params: dict[str, object] | Iterable[object]
+) -> dict[str, object] | list[object]:
     # Support dictionary of parameters for %(key)s placeholders
     # in raw SQL queries.
     if isinstance(params, dict):
         for key, param in params.items():
-            if isinstance(param, (str, bytes)):
-                params[key] = remove_null(remove_surrogates(param))
+            if isinstance(param, str):
+                params[key] = remove_null(strip_lone_surrogates(param))
         return params
 
     params = list(params)
     for idx, param in enumerate(params):
-        if isinstance(param, (str, bytes)):
-            params[idx] = remove_null(remove_surrogates(param))
+        if isinstance(param, str):
+            params[idx] = remove_null(strip_lone_surrogates(param))
     return params
 
 
@@ -76,7 +61,6 @@ class CursorWrapper:
     def __iter__(self):
         return iter(self.cursor)
 
-    @capture_transaction_exceptions
     @auto_reconnect_cursor
     @more_better_error_messages
     def execute(self, sql, params=None):
@@ -84,7 +68,6 @@ class CursorWrapper:
             return self.cursor.execute(sql, clean_bad_params(params))
         return self.cursor.execute(sql)
 
-    @capture_transaction_exceptions
     @auto_reconnect_cursor
     @more_better_error_messages
     def executemany(self, sql, paramlist=()):
@@ -98,10 +81,6 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
-
-    @auto_reconnect_connection
-    def _set_isolation_level(self, level):
-        return super()._set_isolation_level(level)
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
@@ -124,7 +103,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
             if not self.connection.closed:
                 try:
                     self.connection.close()
-                except Database.InterfaceError:
+                except psycopg2.InterfaceError:
                     # connection was already closed by something
                     # like pgbouncer idle timeout.
                     pass

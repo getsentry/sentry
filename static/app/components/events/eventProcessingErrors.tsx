@@ -2,10 +2,13 @@ import {useMemo} from 'react';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {t} from 'sentry/locale';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -23,6 +26,12 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
+export const DOCS_URLS: Record<string, string> = {
+  release: 'https://docs.sentry.io/cli/releases/#creating-releases',
+  environment:
+    'https://docs.sentry.io/concepts/key-terms/environments/#environment-naming-requirements',
+};
+
 function EventErrorCard({
   title,
   data,
@@ -33,7 +42,32 @@ function EventErrorCard({
   const contentItems = data.map(datum => {
     return {item: datum};
   });
-  return <KeyValueData.Card contentItems={contentItems} title={<div>{title}</div>} />;
+
+  // Find the first item that has a corresponding documentation URL
+  const docLink = data
+    .map(d => {
+      const value = String(d.value || '').toLowerCase();
+      return DOCS_URLS[value];
+    })
+    .find(Boolean);
+
+  const titleElement = docLink ? (
+    <Flex gap="md" align="center">
+      {title}
+      <QuestionTooltip
+        title={tct('Learn more about this error in our [docLink:documentation]', {
+          docLink: <ExternalLink href={docLink} />,
+        })}
+        size="sm"
+        position="top"
+        isHoverable
+      />
+    </Flex>
+  ) : (
+    <div>{title}</div>
+  );
+
+  return <KeyValueData.Card contentItems={contentItems} title={titleElement} />;
 }
 
 function EventErrorDescription({error}: {error: ErrorMessage}) {

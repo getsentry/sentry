@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import types
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
@@ -11,7 +10,7 @@ from typing import Any, TypedDict, Union
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
@@ -24,12 +23,14 @@ from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_values
-from sentry.snuba import ourlogs, rpc_dataset_common, spans_rpc
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -122,7 +123,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     """
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         pass
 
@@ -164,7 +168,10 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -238,7 +245,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
     dataset = Dataset.EventsAnalyticsPlatform
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -266,11 +276,11 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         if environment:
             params["environment"] = environment.name
 
-        dataset_module: types.ModuleType
+        dataset_module: type[RPCBase]
         if self.event_types and self.event_types[0] == SnubaQueryEventType.EventType.TRACE_ITEM_LOG:
-            dataset_module = ourlogs
+            dataset_module = OurLogs
         else:
-            dataset_module = spans_rpc
+            dataset_module = Spans
         now = datetime.now(tz=timezone.utc)
         snuba_params = SnubaParams(
             environments=[environment],
@@ -284,7 +294,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             snuba_params, SearchResolverConfig(stable_timestamp_quantization=False)
         )
 
-        rpc_request, _, _ = rpc_dataset_common.get_timeseries_query(
+        rpc_request, _, _ = dataset_module.get_timeseries_query(
             search_resolver=search_resolver,
             params=snuba_params,
             query_string=query,
@@ -307,7 +317,10 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -369,7 +382,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-
         if params is None:
             params = {}
 
@@ -630,10 +642,7 @@ def get_entity_key_from_snuba_query(
 ) -> EntityKey:
     query_dataset = Dataset(snuba_query.dataset)
     if query_dataset == Dataset.EventsAnalyticsPlatform:
-        use_eap_items = options.get("alerts.spans.use-eap-items")
-        if use_eap_items:
-            return EntityKey.EAPItems
-        return EntityKey.EAPItemsSpan
+        return EntityKey.EAPItems
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,

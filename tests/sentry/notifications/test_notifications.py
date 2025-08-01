@@ -1,7 +1,7 @@
 import logging
 import uuid
 from time import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import orjson
@@ -121,7 +121,7 @@ class ActivityNotificationTest(APITestCase):
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
-    def test_sends_note_notification(self, mock_post):
+    def test_sends_note_notification(self, mock_post: MagicMock) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when a comment is created on an issue.
@@ -161,7 +161,7 @@ class ActivityNotificationTest(APITestCase):
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    def test_sends_unassignment_notification(self, mock_post):
+    def test_sends_unassignment_notification(self, mock_post: MagicMock) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is unassigned.
@@ -199,7 +199,7 @@ class ActivityNotificationTest(APITestCase):
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    def test_html_escape(self, mock_post):
+    def test_html_escape(self, mock_post: MagicMock) -> None:
         other_user = self.create_user(name="<b>test</b>", is_staff=False, is_superuser=False)
         activity = Activity(
             project=self.project, data={"assignee": other_user.id}, group=self.group
@@ -211,7 +211,7 @@ class ActivityNotificationTest(APITestCase):
         assert "&lt;b&gt;test&lt;/b&gt;" in html
         assert "<b>test</b>" not in html
 
-    def test_regression_html_link(self, mock_post):
+    def test_regression_html_link(self, mock_post: MagicMock) -> None:
         notification = RegressionActivityNotification(
             Activity(
                 project=self.project,
@@ -227,7 +227,9 @@ class ActivityNotificationTest(APITestCase):
         assert "as a regression in <a href=" in context["html_description"]
 
     @patch("sentry.analytics.record")
-    def test_sends_resolution_notification(self, record_analytics, mock_post):
+    def test_sends_resolution_notification(
+        self, record_analytics: MagicMock, mock_post: MagicMock
+    ) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved.
@@ -281,7 +283,9 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_sends_deployment_notification(self, record_analytics, mock_post):
+    def test_sends_deployment_notification(
+        self, record_analytics: MagicMock, mock_post: MagicMock
+    ) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when a release is deployed.
@@ -346,7 +350,9 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_sends_regression_notification(self, record_analytics, mock_post):
+    def test_sends_regression_notification(
+        self, record_analytics: MagicMock, mock_post: MagicMock
+    ) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue regresses.
@@ -412,7 +418,9 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_sends_resolved_in_release_notification(self, record_analytics, mock_post):
+    def test_sends_resolved_in_release_notification(
+        self, record_analytics: MagicMock, mock_post: MagicMock
+    ) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved by a release.
@@ -472,14 +480,16 @@ class ActivityNotificationTest(APITestCase):
             actor_type="User",
         )
 
-    def test_sends_processing_issue_notification(self, mock_post):
+    def test_sends_processing_issue_notification(self, mock_post: MagicMock) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is held back for reprocessing
         """
 
     @patch("sentry.analytics.record")
-    def test_sends_issue_notification(self, record_analytics, mock_post):
+    def test_sends_issue_notification(
+        self, record_analytics: MagicMock, mock_post: MagicMock
+    ) -> None:
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue comes in that triggers an alert rule.

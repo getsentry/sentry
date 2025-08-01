@@ -52,7 +52,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_escalating_performance_issue_block(self, occurrence):
+    def test_escalating_performance_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue escalates
         and block kit is enabled.
@@ -81,7 +81,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_escalating_generic_issue_block(self, occurrence):
+    def test_escalating_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type escalates
         and block kit is enabled.

@@ -35,12 +35,14 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
 
-    def post_and_retrieve_event(self, data):
+    def post_and_retrieve_event(self, data, headers=None):
+        if headers is None:
+            headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
         url = self.get_relay_store_url(self.project.id)
         responses.add_passthru(url)
         resp = requests.post(
             url,
-            headers={"x-sentry-auth": self.auth_header, "content-type": "application/json"},
+            headers=headers,
             json=data,
         )
 
@@ -89,9 +91,9 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event
         return event
 
-    def post_and_try_retrieve_event(self, data):
+    def post_and_try_retrieve_event(self, data, headers=None):
         try:
-            return self.post_and_retrieve_event(data)
+            return self.post_and_retrieve_event(data, headers)
         except AssertionError:
             return None
 

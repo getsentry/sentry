@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -41,7 +41,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         return event
 
     @patch("boto3.client")
-    def test_simple_notification(self, mock_client):
+    def test_simple_notification(self, mock_client: MagicMock) -> None:
         event = self.run_test()
         mock_client.assert_called_once_with(
             service_name="sqs",
@@ -57,7 +57,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
 
     @patch("boto3.client")
-    def test_token_error(self, mock_client):
+    def test_token_error(self, mock_client: MagicMock) -> None:
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "Hello", "Message": "hello"}}, "SendMessage"
         )
@@ -70,7 +70,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.run_test()
 
     @patch("boto3.client")
-    def test_message_group_error(self, mock_client):
+    def test_message_group_error(self, mock_client: MagicMock) -> None:
         mock_client.return_value.send_message.side_effect = ClientError(
             {
                 "Error": {
@@ -85,7 +85,7 @@ class AmazonSQSPluginTest(PluginTestCase):
 
     @patch("uuid.uuid4")
     @patch("boto3.client")
-    def test_pass_message_group_id(self, mock_client, mock_uuid):
+    def test_pass_message_group_id(self, mock_client: MagicMock, mock_uuid: MagicMock) -> None:
         mock_uuid.return_value = self.get_mock_uuid()
 
         self.plugin.set_option("message_group_id", "my_group", self.project)
@@ -101,7 +101,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
 
     @patch("boto3.client")
-    def test_use_s3_bucket(self, mock_client):
+    def test_use_s3_bucket(self, mock_client: MagicMock) -> None:
         self.plugin.set_option("s3_bucket", "my_bucket", self.project)
         event = self.run_test()
         date = event.datetime.strftime("%Y-%m-%d")

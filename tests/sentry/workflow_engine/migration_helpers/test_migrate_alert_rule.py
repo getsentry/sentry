@@ -629,7 +629,7 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         assert not DataCondition.objects.filter(id=action_filter.id).exists()
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
-    def test_dual_delete_twice(self, mock_logger):
+    def test_dual_delete_twice(self, mock_logger: mock.MagicMock) -> None:
         """
         Test that nothing happens if dual delete is run twice. We should just quit early the
         second time.
@@ -847,7 +847,7 @@ class DualDeleteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         ).exists()
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
-    def test_dual_delete_unmigrated_alert_rule_trigger(self, mock_logger):
+    def test_dual_delete_unmigrated_alert_rule_trigger(self, mock_logger: mock.MagicMock) -> None:
         """
         Test that nothing weird happens if we try to dual delete a trigger whose alert rule was
         never dual written.
@@ -1060,7 +1060,9 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             migrate_metric_action(aarta_sentry_app_with_config)
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
-    def test_dual_write_metric_alert_trigger_action_no_type(self, mock_logger):
+    def test_dual_write_metric_alert_trigger_action_no_type(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
         """
         Test that if for some reason we don't find a match for Action.Type for the integration provider we return None and log.
         """
@@ -1102,7 +1104,9 @@ class DualDeleteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         ).exists()
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
-    def test_dual_delete_unmigrated_alert_rule_trigger_action(self, mock_logger):
+    def test_dual_delete_unmigrated_alert_rule_trigger_action(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
         """
         Test that nothing weird happens if we try to dual delete a trigger action whose alert
         rule was never dual written.
