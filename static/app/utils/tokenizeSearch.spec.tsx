@@ -575,6 +575,11 @@ describe('utils/tokenizeSearch', function () {
         ]),
         string: 'message:["value with \\\\\\" complex escape",other]',
       },
+      {
+        name: 'should leave escaped brackets as is',
+        object: new MutableSearch(['message:"[test, "[Filtered]"]"']),
+        string: 'message:"[test, "[Filtered]"]"',
+      },
     ];
 
     for (const {name, string, object} of cases) {
