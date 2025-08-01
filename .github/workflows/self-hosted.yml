@@ -92,7 +92,7 @@ jobs:
 
   assemble:
     needs: [self-hosted]
-    if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
+    # if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -133,16 +133,16 @@ jobs:
 
           docker manifest push ghcr.io/getsentry/sentry:${{ github.sha }}
 
-          docker manifest create \
-            ghcr.io/getsentry/sentry:latest \
-            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
-            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+          # docker manifest create \
+          #   ghcr.io/getsentry/sentry:latest \
+          #   --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+          #   --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
 
-          docker manifest push ghcr.io/getsentry/sentry:latest
+          # docker manifest push ghcr.io/getsentry/sentry:latest
 
-          docker manifest create \
-            ghcr.io/getsentry/sentry:nightly \
-            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
-            --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+          # docker manifest create \
+          #   ghcr.io/getsentry/sentry:nightly \
+          #   --amend ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+          #   --amend ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
 
-          docker manifest push ghcr.io/getsentry/sentry:nightly
+          # docker manifest push ghcr.io/getsentry/sentry:nightly
