@@ -56,9 +56,12 @@ export default function Ai() {
     ),
   });
 
+  // TODO: remove the condition segmentCount < 100
+  // when we process more than 100 segments for the summary
   const segmentsIncreased =
     summaryData?.num_segments !== null &&
     summaryData?.num_segments !== undefined &&
+    segmentCount < 100 &&
     segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
