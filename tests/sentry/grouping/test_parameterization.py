@@ -42,6 +42,12 @@ standard_cases = [
     ("date - RFC850 full weekday", "Monday, 02-Jan-06 15:04:05 MST", "<date>"),
     ("date - RFC1123", "Mon, 02 Jan 2006 15:04:05 MST", "<date>"),
     ("date - RFC1123Z", "Mon, 02 Jan 2006 15:04:05 -0700", "<date>"),
+    ("date - JS minus", "Mon Jan 02 2006 14:04:05 GMT-0800 (Pacific Standard Time)", "<date>"),
+    ("date - JS utc", "Mon Jan 02 2006 14:04:05 GMT+0000 (UTC)", "<date>"),
+    ("date - JS plus", "Mon Jan 02 2006 14:04:05 GMT+0800 (Pacific Standard Time)", "<date>"),
+    ("date - JS minus without tz", "Mon Jan 02 2006 14:04:05 GMT-0800", "<date>"),
+    ("date - JS utc without tz", "Mon Jan 02 2006 14:04:05 GMT+0000", "<date>"),
+    ("date - JS plus without tz", "Mon Jan 02 2006 14:04:05 GMT+0800", "<date>"),
     ("date - RFC3339", "2006-01-02T15:04:05Z07:00", "<date>"),
     ("date - RFC3339 without offset", "2006-01-02T15:04:05Z", "<date>"),
     ("date - RFC3339Nano", "2006-01-02T15:04:05.999999999Z07:00", "<date>"),
@@ -106,12 +112,7 @@ standard_cases = [
 ]
 
 experimental_cases = [
-    ("date - JS minus", "Mon Jan 02 2006 14:04:05 GMT-0800 (Pacific Standard Time)", "<date>"),
-    ("date - JS utc", "Mon Jan 02 2006 14:04:05 GMT+0000 (UTC)", "<date>"),
-    ("date - JS plus", "Mon Jan 02 2006 14:04:05 GMT+0800 (Pacific Standard Time)", "<date>"),
-    ("date - JS minus without tz", "Mon Jan 02 2006 14:04:05 GMT-0800", "<date>"),
-    ("date - JS utc without tz", "Mon Jan 02 2006 14:04:05 GMT+0000", "<date>"),
-    ("date - JS plus without tz", "Mon Jan 02 2006 14:04:05 GMT+0800", "<date>"),
+    # None at this time.
 ]
 
 
