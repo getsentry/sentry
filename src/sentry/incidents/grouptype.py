@@ -27,7 +27,12 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import (
+    DetectorException,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +194,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> tuple[DetectorOccurrence, EventData]:
         try:
             detector_trigger = DataCondition.objects.get(
@@ -223,7 +229,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         return (
             DetectorOccurrence(
                 issue_title=self.detector.name,
-                subtitle=self.construct_title(snuba_query, detector_trigger, priority),
+                subtitle=self.construct_title(snuba_query, detector_trigger, priority, group_key),
                 evidence_data={
                     **self.build_detector_evidence_data(evaluation_result, data_packet, priority),
                 },
@@ -243,15 +249,40 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
         # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet.values
-        if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            return {None: values}
-        return values.get("value")
+        # Check if this is grouped data returned in our data packet
+        if "groups" in values:
+            # Return grouped data as dict[DetectorGroupKey, int]
+            grouped_values = {}
+            for group_data in values["groups"]:
+                group_keys = group_data.get("group_keys", {})
+                group_value = group_data.get("value", 0)
+
+                # Create group key from group keys
+                group_key = self._create_group_key(group_keys)
+                grouped_values[group_key] = group_value
+
+            return grouped_values
+        else:
+            if values.get("value") is not None:
+                return values.get("value")
+            return values
+
+    def _create_group_key(self, group_keys: dict[str, str]) -> str:
+        """Create a deterministic group key from group keys"""
+        if not group_keys:
+            return None
+
+        # Sort keys for deterministic fingerprint.
+        sorted_items = sorted(group_keys.items())
+        key_string = ",".join(f"{k}={v}" for k, v in sorted_items)
+        return key_string
 
     def construct_title(
         self,
         snuba_query: SnubaQuery,
         detector_trigger: DataCondition,
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> str:
         comparison_delta = self.detector.config.get("comparison_delta")
         detection_type = self.detector.config.get("detection_type")
@@ -308,8 +339,12 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         else:
             comparison = detector_trigger.comparison
 
-        template = "{label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
+        template = (
+            "{group_key} {label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
+        )
+
         return template.format(
+            group_key=group_key,
             label=label.capitalize(),
             metric=aggregate,
             higher_or_lower=higher_or_lower,
