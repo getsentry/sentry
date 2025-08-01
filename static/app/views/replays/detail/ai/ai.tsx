@@ -177,7 +177,7 @@ export default function Ai() {
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
-            <Badge type="internal">{t('Internal')}</Badge>
+            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
