@@ -51,7 +51,7 @@ import {
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
-import {EmptyStateText} from 'sentry/views/traces/styles';
+import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
   allowPagination?: boolean;

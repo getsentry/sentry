@@ -920,7 +920,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             project_id=self.project.id, name="Third Detector", type=MetricIssue.slug
         )
 
-    def test_delete_detectors_by_ids_success(self):
+    def test_delete_detectors_by_ids_success(self) -> None:
         """Test successful deletion of detectors by specific IDs"""
         with outbox_runner():
             self.get_success_response(
@@ -954,7 +954,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Verify third detector is unaffected
         self.assert_unaffected_detectors([self.detector_three])
 
-    def test_delete_detectors_by_query_success(self):
+    def test_delete_detectors_by_query_success(self) -> None:
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,
@@ -980,7 +980,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Other detectors should be unaffected
         self.assert_unaffected_detectors([self.detector_two, self.detector_three])
 
-    def test_delete_detectors_by_project_success(self):
+    def test_delete_detectors_by_project_success(self) -> None:
         # Create detector in another project
         other_project = self.create_project(organization=self.organization)
         detector_other_project = self.create_detector(
@@ -1026,7 +1026,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Detector in other project should be unaffected
         self.assert_unaffected_detectors([detector_other_project])
 
-    def test_delete_no_matching_detectors(self):
+    def test_delete_no_matching_detectors(self) -> None:
         # Test deleting detectors with non-existent ID
         self.get_success_response(
             self.organization.slug,
@@ -1047,7 +1047,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
 
-    def test_delete_detectors_invalid_id_format(self):
+    def test_delete_detectors_invalid_id_format(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "not-a-number"},
@@ -1056,7 +1056,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
         assert "Invalid ID format" in str(response.data["id"])
 
-    def test_delete_detectors_filtering_ignored_with_ids(self):
+    def test_delete_detectors_filtering_ignored_with_ids(self) -> None:
         # Other project detector
         other_project = self.create_project(organization=self.organization)
         detector_other_project = self.create_detector(
@@ -1094,7 +1094,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             [self.detector, self.detector_three, detector_other_project]
         )
 
-    def test_delete_detectors_no_parameters_error(self):
+    def test_delete_detectors_no_parameters_error(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             status_code=400,
@@ -1107,7 +1107,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
 
-    def test_delete_detectors_audit_entry(self):
+    def test_delete_detectors_audit_entry(self) -> None:
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,
@@ -1122,7 +1122,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             actor=self.user,
         )
 
-    def test_delete_detectors_permission_denied(self):
+    def test_delete_detectors_permission_denied(self) -> None:
         # Members can not delete detectors for projects they are not part of
         other_detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[]),

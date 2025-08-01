@@ -100,7 +100,7 @@ class MSTeamsNotificationTest(TestCase):
 
         mock_send_card.assert_called_once_with("some_conversation_id", TEST_CARD)
 
-    def test_unsupported_notification_type(self, mock_send_card: MagicMock):
+    def test_unsupported_notification_type(self, mock_send_card: MagicMock) -> None:
         """
         Unsupported notification types should not be sent.
         """
@@ -120,7 +120,7 @@ class MSTeamsNotificationTest(TestCase):
 
         mock_send_card.assert_not_called()
 
-    def test_missing_tenant_id(self, mock_send_card: MagicMock):
+    def test_missing_tenant_id(self, mock_send_card: MagicMock) -> None:
         self._install_msteams_team()
 
         with patch(
@@ -138,7 +138,7 @@ class MSTeamsNotificationTest(TestCase):
             mock_get_user_conversation_id.assert_called_once_with(self.user_id_1, "some_tenant_id")
             mock_send_card.assert_called_once_with("some_conversation_id", TEST_CARD)
 
-    def test_no_identity(self, mock_send_card: MagicMock):
+    def test_no_identity(self, mock_send_card: MagicMock) -> None:
         """
         Notification should not be sent when identity is not linked.
         """
@@ -156,7 +156,7 @@ class MSTeamsNotificationTest(TestCase):
 
         mock_send_card.assert_not_called()
 
-    def test_multiple(self, mock_send_card: MagicMock):
+    def test_multiple(self, mock_send_card: MagicMock) -> None:
         self._install_msteams_personal()
 
         user_2 = self.create_user()
