@@ -133,7 +133,7 @@ class Task(Generic[P, R]):
                 wait_for_delivery=self.wait_for_delivery,
             )
 
-    def _signal_send(self, task: Task, args: Any, kwargs: Any) -> None:
+    def _signal_send(self, task: Task[Any, Any], args: Any, kwargs: Any) -> None:
         """
         This method is a stub that sentry.testutils.task_runner.BurstRunner or other testing
         hooks can monkeypatch to capture tasks that are being produced.
