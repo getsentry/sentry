@@ -530,7 +530,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     def test_run_automation_saves_fixability_score(
         self,
         mock_generate_fixability_score,
@@ -573,7 +572,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group.refresh_from_db()
         assert self.group.seer_fixability_score == 0.5
 
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
