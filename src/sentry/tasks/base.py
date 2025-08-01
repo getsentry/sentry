@@ -240,12 +240,16 @@ def retry(
     >>> def my_task():
     >>>     ...
 
-    The 'timeouts' parameter controls whether to retry on ProcessingDeadlineExceeded
-    and SoftTimeLimitExceeded exceptions.
+    If timeouts is True, task timeout exceptions will trigger a retry.
+    If it is False, timeout exceptions will behave as specified by the other parameters.
     """
 
     if func:
         return retry()(func)
+
+    timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
+    if not timeouts:
+        timeout_exceptions = ()
 
     def inner(func):
         @functools.wraps(func)
@@ -258,7 +262,7 @@ def retry(
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
-            except (ProcessingDeadlineExceeded, SoftTimeLimitExceeded):
+            except timeout_exceptions:
                 if timeouts:
                     sentry_sdk.capture_exception(level="info")
                     retry_task()
