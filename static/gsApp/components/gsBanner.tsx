@@ -323,7 +323,43 @@ class GSBanner extends Component<Props, State> {
     overageWarningDismissed: objectFromBilledCategories(() => true),
     productTrialDismissed: objectFromBilledCategories(() => true),
   };
+
+  /**
+   * Wait until the GuideStore has processed the initial fetchGuides() call.
+   * This resolves on the first change event from GuideStore or after a
+   * timeout (3s) so we do not block forever if something goes wrong.
+   */
+  private waitForGuidesLoaded(): Promise<void> {
+    return new Promise(resolve => {
+      // If fetchGuides has already completed, the GuideStore will have
+      // triggered at least once. We can approximate this by checking if the
+      // `prevGuide` key is no longer null OR if the guides array has been
+      // populated (which could legitimately be empty but *defined*).
+      // We also account for the case where a currentGuide already exists.
+      if (GuideStore.state.prevGuide !== null || GuideStore.state.currentGuide !== null) {
+        resolve();
+        return;
+      }
+
+      // Otherwise, wait for the first GuideStore trigger
+      const unsubscribe = GuideStore.listen(() => {
+        unsubscribe();
+        resolve();
+      });
+
+      // Safety timeout to ensure we never hang here
+      setTimeout(() => {
+        unsubscribe();
+        resolve();
+      }, 3000);
+    });
+  }
+
   async componentDidMount() {
+    // Ensure we wait for guides to be loaded before initializing Pendo so that
+    // we know the accurate currentGuide state.
+    await this.waitForGuidesLoaded();
+
     if (this.props.promotionData) {
       this.activateFirstAvailablePromo()
         .then(() => this.initializePendo())
@@ -401,13 +437,11 @@ class GSBanner extends Component<Props, State> {
       const completedPromotions = this.props.promotionData?.completedPromotions;
 
       const user = ConfigStore.get('user');
-      // if there is a current guide active, delay Pendo until it's done
-      // if no current active guide, can just start Pendo
-      // TODO: should delay Pendo if there is any popup at all that's blocking and not just guides
       const guideIsActive = !!GuideStore.state.currentGuide;
+      const forceHide = GuideStore.state.forceHide;
       window.pendo.initialize({
         guides: {
-          delay: guideIsActive,
+          delay: guideIsActive || forceHide,
         },
         visitor: {
           id: `${organization.id}.${user.id}`, // need uniqueness per org per user
