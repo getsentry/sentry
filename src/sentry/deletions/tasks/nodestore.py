@@ -11,7 +11,6 @@ from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -95,8 +94,6 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
     extra = {"project_id": project_id, "transaction_id": transaction_id}
     sentry_sdk.set_tags(extra)
     logger.info(f"{prefix}.started", extra=extra)
-    project = Project.objects.get(id=project_id)
-    assert project.organization_id == organization_id
 
     try:
         # Fetch events for deletion
