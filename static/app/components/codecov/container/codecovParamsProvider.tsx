@@ -65,9 +65,7 @@ export default function CodecovQueryParamsProvider({
 
   const changeContextValue = useCallback(
     (input: Partial<CodecovContextDataParams>) => {
-      const currentParams = Object.fromEntries(
-        new URLSearchParams(window.location.search).entries()
-      );
+      const currentParams = Object.fromEntries(searchParams.entries());
       const integratedOrgId = input.integratedOrgId;
 
       setLocalStorageState((prev: LocalStorageState) => {
@@ -101,7 +99,7 @@ export default function CodecovQueryParamsProvider({
 
       setSearchParams(updatedParams);
     },
-    [setLocalStorageState, setSearchParams]
+    [searchParams, setLocalStorageState, setSearchParams]
   );
 
   const {integratedOrgId, repository, branch, codecovPeriod} = _defineParams();
