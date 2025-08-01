@@ -149,30 +149,30 @@ describe('useFetchReplaySummary', () => {
       expect(result.current.isError).toBe(false);
     });
 
-    it('should poll when summary data is undefined and trigger mutation is pending', async () => {
+    it('should poll when summary data is undefined and startSummaryRequest is pending', async () => {
       // Mock the initial query to return undefined data
       const initialQuery = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         body: undefined,
       });
 
-      // Mock the POST request for triggering the summary - make it hang
-      let resolveTriggerRequest: (value?: any) => void;
-      const triggerPromise = new Promise(resolve => {
-        resolveTriggerRequest = resolve;
+      // Mock the POST request for starting the summary request - make it hang
+      let resolveStartSummaryRequest: (value?: any) => void;
+      const startSummaryRequestPromise = new Promise(resolve => {
+        resolveStartSummaryRequest = resolve;
       });
 
-      const triggerRequest = MockApiClient.addMockResponse({
+      const startSummaryRequest = MockApiClient.addMockResponse({
         url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
         method: 'POST',
-        body: triggerPromise,
+        body: startSummaryRequestPromise,
       });
 
       const {result} = renderHook(() => useFetchReplaySummary(), {
         wrapper: createWrapper(),
       });
 
-      // Trigger the summary mutation
+      // Start the summary mutation
       result.current.startSummaryRequest();
 
       // Wait for the mutation to be in pending state
@@ -183,10 +183,10 @@ describe('useFetchReplaySummary', () => {
       expect(result.current.summaryData).toBeUndefined();
       expect(result.current.isPolling).toBe(true);
       expect(initialQuery).toHaveBeenCalledTimes(1);
-      expect(triggerRequest).toHaveBeenCalledTimes(1);
+      expect(startSummaryRequest).toHaveBeenCalledTimes(1);
 
       // Resolve the promise to clean up
-      resolveTriggerRequest!();
+      resolveStartSummaryRequest!();
     });
   });
 
