@@ -26,8 +26,8 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
-import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -158,18 +158,6 @@ function ResolveSection() {
   return (
     <Container>
       <Section title={t('Resolve')} description={description} />
-    </Container>
-  );
-}
-
-function AssignSection() {
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-
-  return (
-    <Container>
-      <Section title={t('Assign')}>
-        <AssigneeField projectId={projectId} />
-      </Section>
     </Container>
   );
 }

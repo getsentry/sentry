@@ -4,6 +4,10 @@ import {t} from 'sentry/locale';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
+  EditExistingCronDetectorForm,
+  NewCronDetectorForm,
+} from 'sentry/views/detectors/components/forms/cron';
+import {
   EditExistingErrorDetectorForm,
   NewErrorDetectorForm,
 } from 'sentry/views/detectors/components/forms/error';
@@ -37,10 +41,10 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
     case 'error':
       return <NewErrorDetectorForm />;
     case 'uptime_subscription':
-      return <PlaceholderForm />;
+      return <NewCronDetectorForm />;
     default:
       unreachable(detectorType);
-      return null;
+      return <PlaceholderForm />;
   }
 }
 
@@ -54,9 +58,9 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
     case 'error':
       return <EditExistingErrorDetectorForm detector={detector} />;
     case 'uptime_subscription':
-      return <PlaceholderForm />;
+      return <EditExistingCronDetectorForm detector={detector} />;
     default:
       unreachable(detectorType);
-      return null;
+      return <PlaceholderForm />;
   }
 }
