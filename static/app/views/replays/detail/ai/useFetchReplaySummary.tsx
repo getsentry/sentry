@@ -83,7 +83,7 @@ export function useFetchReplaySummary(
   options?: UseApiQueryOptions<SummaryResponse>
 ): UseFetchReplaySummaryResult {
   const organization = useOrganization();
-  const replayRecord = replay?.getReplay();
+  const replayRecord = replay.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const api = useApi();
   const queryClient = useQueryClient();
