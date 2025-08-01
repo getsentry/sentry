@@ -1,6 +1,5 @@
 query = """query RepoTokensForOwner(
   $owner: String!
-  $filters: RepositorySetFilters!
   $ordering: RepositoryOrdering!
   $direction: OrderingDirection!
   $first: Int
@@ -10,7 +9,6 @@ query = """query RepoTokensForOwner(
 ) {
   owner(username: $owner) {
     repositories(
-      filters: $filters
       ordering: $ordering
       orderingDirection: $direction
       first: $first
@@ -21,7 +19,7 @@ query = """query RepoTokensForOwner(
       edges {
         node {
           name
-          uploadToken
+          token
         }
       }
       pageInfo {
@@ -33,4 +31,5 @@ query = """query RepoTokensForOwner(
       totalCount
     }
   }
-}"""
+}
+"""

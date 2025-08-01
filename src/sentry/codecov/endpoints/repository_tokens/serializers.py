@@ -14,7 +14,7 @@ class RepositoryTokenNodeSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField()
-    uploadToken = serializers.CharField()
+    token = serializers.CharField()
 
 
 class RepositoryTokensSerializer(serializers.Serializer):

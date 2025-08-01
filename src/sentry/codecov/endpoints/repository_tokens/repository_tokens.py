@@ -75,9 +75,8 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
 
         variables = {
             "owner": owner_slug,
-            "filters": {"term": request.query_params.get("term")},
             "direction": OrderingDirection.DESC.value,
-            "ordering": "UPDATED_AT",
+            "ordering": "COMMIT_DATE",
             "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
             "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,
