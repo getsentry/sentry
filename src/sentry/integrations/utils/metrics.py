@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import random
 from abc import ABC, abstractmethod
@@ -425,6 +426,7 @@ class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
         return str(self.interaction_type)
 
 
+@contextlib.contextmanager
 def with_event_lifecycle(
     metric: EventLifecycleMetric,
     assume_success: bool = True,
@@ -450,22 +452,15 @@ def with_event_lifecycle(
             pass
     """
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            with metric.capture(
-                assume_success=assume_success, sample_log_rate=sample_log_rate
-            ) as lifecycle:
-                try:
-                    result = func(*args, **kwargs)
-                    return result
-                except BaseException as e:
-                    if halt_on_exceptions and any(
-                        isinstance(e, exc_type) for exc_type in halt_on_exceptions
-                    ):
-                        lifecycle.record_halt(e)
-                    # Let the exception bubble up
-                    raise
-
-        return wrapper
-
-    return decorator
+    with metric.capture(
+        assume_success=assume_success, sample_log_rate=sample_log_rate
+    ) as lifecycle:
+        try:
+            yield lifecycle
+        except BaseException as e:
+            if halt_on_exceptions and any(
+                isinstance(e, exc_type) for exc_type in halt_on_exceptions
+            ):
+                lifecycle.record_halt(e)
+            # Let the exception bubble up
+            raise
