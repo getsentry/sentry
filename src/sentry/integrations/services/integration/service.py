@@ -138,8 +138,8 @@ class IntegrationService(RpcService):
             organization_id (int): The Organization whose OrganizationIntegrations will be grace perioded
             provider (str): The provider key - e.g. "github"
             grace_period_end (datetime): The grace period end date
-            status (int, optional): The status of the OrganizationIntegrations. Defaults to ObjectStatus.ACTIVE.
-            skip_oldest (bool, optional): Flag for if we want to skip grace period for the oldest OrganizationIntegration per Integration. Defaults to True.
+            status (int, optional): The status of the OrganizationIntegrations. Defaults to ObjectStatus.ACTIVE. Put None to include all statuses.
+            skip_oldest (bool, optional): Flag for if we want to skip grace period for the oldest OrganizationIntegration per Integration. Defaults to False.
 
         Returns:
             list[RpcOrganizationIntegration]: The updated OrganizationIntegrations

@@ -399,7 +399,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
             for oi in all_ois:
                 integration_to_ois[oi.integration_id].append(oi)
 
-            # Sort the OrganizationIntegrations for each Integration
             for integration, ois in integration_to_ois.items():
                 # Check if the oldest OrganizationIntegration for the Integration belongs to THIS organization
                 # If not we want to start the grace period for this org's OrganizationIntegration
