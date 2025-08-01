@@ -40,6 +40,8 @@ from sentry.grouping.variants import (
 )
 from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS_OPTION_KEY
 from sentry.models.grouphash import GroupHash
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -91,11 +93,6 @@ class GroupingConfigLoader:
         config_id = self._get_config_id(project)
         enhancements_base = CONFIGURATIONS[config_id].enhancements_base
         enhancements_version = get_enhancements_version(project, config_id)
-
-        # Instead of parsing and dumping out config here, we can make a
-        # shortcut
-        from sentry.utils.cache import cache
-        from sentry.utils.hashlib import md5_text
 
         cache_prefix = self.cache_prefix
         cache_prefix += f"{enhancements_version}:"

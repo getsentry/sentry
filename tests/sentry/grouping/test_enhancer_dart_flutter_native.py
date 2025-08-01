@@ -8,10 +8,9 @@ from typing import Any
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
-from sentry.testutils.fixtures import Fixtures
 
 
-class _BaseNativeDartFlutterEnhancerTest(TestCase, Fixtures):
+class _BaseNativeDartFlutterEnhancerTest(TestCase):
     """Common setup and helpers shared by native-platform tests."""
 
     PLATFORM = "native"

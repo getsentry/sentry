@@ -24,6 +24,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.grouping.enhancer.rules import EnhancementRule
+from sentry.grouping.strategies.base import DEFAULT_ENHANCEMENTS_BASE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
 
@@ -138,7 +139,7 @@ def test_basic_parsing(insta_snapshot: InstaSnapshotter, version: int) -> None:
 def test_parse_empty_with_base() -> None:
     enhancements = Enhancements.from_rules_text(
         "",
-        bases=["newstyle:2023-01-11"],
+        bases=[DEFAULT_ENHANCEMENTS_BASE],
     )
     assert enhancements
 

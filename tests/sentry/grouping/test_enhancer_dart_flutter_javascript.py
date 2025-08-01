@@ -9,10 +9,9 @@ from typing import Any
 
 from sentry.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
-from sentry.testutils.fixtures import Fixtures
 
 
-class _BaseJavaScriptDartFlutterEnhancerTest(TestCase, Fixtures):
+class _BaseJavaScriptDartFlutterEnhancerTest(TestCase):
     PLATFORM = "javascript"
 
     def setUp(self) -> None:
