@@ -953,7 +953,7 @@ def test_get_feedback_title_with_ai():
         with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
             mock_response = Mock()
             mock_response.status_code = 200
-            mock_response.content = b'{"data": "Login Button Issue"}'
+            mock_response.content = b'{"title": "Login Button Issue"}'
             mock_post.return_value = mock_response
 
             title = get_feedback_title("Login button broken", organization=org)

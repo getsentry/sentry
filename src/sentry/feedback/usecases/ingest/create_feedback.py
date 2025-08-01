@@ -249,8 +249,8 @@ def should_filter_feedback(
     return False, None
 
 
-class TitleRequest(TypedDict):
-    """Corresponds to SummarizeFeedbackRequest in Seer."""
+class GenerateFeedbackTitleRequest(TypedDict):
+    """Corresponds to GenerateFeedbackTitleRequest in Seer."""
 
     organization_id: int
     feedback_message: str
@@ -291,14 +291,14 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
         return None
 
     # Prepare the request to Seer
-    seer_request = TitleRequest(
+    seer_request = GenerateFeedbackTitleRequest(
         organization_id=organization.id,
         feedback_message=feedback_message,
     )
 
     try:
         response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
-        title = response_data["data"]
+        title = response_data["title"]
     except Exception:
         logger.exception("Error generating AI feedback title")
         return None
@@ -502,7 +502,7 @@ def create_feedback_issue(
     return event_fixed
 
 
-def make_seer_request(request: TitleRequest) -> bytes:
+def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
     serialized_request = json.dumps(request)
 
     response = requests.post(
