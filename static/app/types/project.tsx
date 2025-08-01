@@ -39,6 +39,7 @@ export type Project = {
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
+  hasLogs: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
