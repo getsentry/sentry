@@ -91,7 +91,13 @@ describe('AppSizeInsightsSidebarRow', () => {
           path: 'large-file.js',
           savings: 2147483648, // 2 GB
           percentage: 40,
-          fileType: 'regular' as const,
+          data: {
+            fileType: 'regular' as const,
+            originalFile: {
+              file_path: 'large-file.js',
+              total_savings: 2147483648,
+            },
+          },
         },
       ],
     });

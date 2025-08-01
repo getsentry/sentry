@@ -8,13 +8,16 @@ import type {
   StripBinaryFileInfo,
 } from 'sentry/views/preprod/types/appSizeTypes';
 
+type FileTypeData =
+  | {fileType: 'optimizable_image'; originalFile: OptimizableImageFile}
+  | {fileType: 'strip_binary'; originalFile: StripBinaryFileInfo}
+  | {fileType: 'regular'; originalFile: FileSavingsResult};
+
 export interface ProcessedInsightFile {
+  data: FileTypeData;
   path: string;
   percentage: number;
   savings: number;
-  // Optional additional data for special file types
-  fileType?: 'optimizable_image' | 'strip_binary' | 'regular';
-  originalFile?: OptimizableImageFile | StripBinaryFileInfo | FileSavingsResult;
 }
 
 export interface ProcessedInsight {
@@ -25,7 +28,13 @@ export interface ProcessedInsight {
   totalSavings: number;
 }
 
-const INSIGHT_CONFIGS = [
+interface InsightConfig {
+  description: string;
+  key: string;
+  name: string;
+}
+
+const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'image_optimization',
     name: 'Optimize images',
@@ -104,7 +113,7 @@ const INSIGHT_CONFIGS = [
     name: 'Compress video files',
     description: 'Video files can be compressed to reduce size.',
   },
-] as const;
+];
 
 /**
  * Process all insights into a standardized format for display
@@ -117,99 +126,112 @@ export function processInsights(
 
   if (insights.image_optimization?.total_savings) {
     const insight = insights.image_optimization;
-    const config = INSIGHT_CONFIGS.find(c => c.key === 'image_optimization')!;
-    const optimizableFiles = Array.isArray(insight.optimizable_files)
-      ? insight.optimizable_files
-      : [];
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'image_optimization');
+    if (config) {
+      const optimizableFiles = Array.isArray(insight.optimizable_files)
+        ? insight.optimizable_files
+        : [];
 
-    processedInsights.push({
-      name: config.name,
-      description: config.description,
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: optimizableFiles.map((file: OptimizableImageFile) => {
-        // Use max of minify_savings or conversion_savings instead of potential_savings
-        const maxSavings = Math.max(
-          file.minify_savings || 0,
-          file.conversion_savings || 0
-        );
-        return {
-          path: file.file_path,
-          savings: maxSavings,
-          percentage: (maxSavings / totalSize) * 100,
-          fileType: 'optimizable_image' as const,
-          originalFile: file,
-        };
-      }),
-    });
+      processedInsights.push({
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: optimizableFiles.map((file: OptimizableImageFile) => {
+          const maxSavings = Math.max(
+            file.minify_savings || 0,
+            file.conversion_savings || 0
+          );
+          return {
+            path: file.file_path,
+            savings: maxSavings,
+            percentage: (maxSavings / totalSize) * 100,
+            data: {
+              fileType: 'optimizable_image' as const,
+              originalFile: file,
+            },
+          };
+        }),
+      });
+    }
   }
 
   if (insights.duplicate_files?.total_savings) {
     const insight = insights.duplicate_files as GroupsInsightResult;
-    const config = INSIGHT_CONFIGS.find(c => c.key === 'duplicate_files')!;
-    const groups = Array.isArray(insight.groups) ? insight.groups : [];
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'duplicate_files');
+    if (config) {
+      const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
-    processedInsights.push({
-      name: config.name,
-      description: config.description,
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: groups.flatMap((group: FileSavingsResultGroup) => {
-        // Runtime validation for files array within each group
-        const files = Array.isArray(group?.files) ? group.files : [];
-        return files.map((file: FileSavingsResult) => ({
-          path: file.file_path,
-          savings: file.total_savings,
-          percentage: (file.total_savings / totalSize) * 100,
-          fileType: 'regular' as const,
-          originalFile: file,
-        }));
-      }),
-    });
+      processedInsights.push({
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: groups.flatMap((group: FileSavingsResultGroup) => {
+          const files = Array.isArray(group?.files) ? group.files : [];
+          return files.map((file: FileSavingsResult) => ({
+            path: file.file_path,
+            savings: file.total_savings,
+            percentage: (file.total_savings / totalSize) * 100,
+            data: {
+              fileType: 'regular' as const,
+              originalFile: file,
+            },
+          }));
+        }),
+      });
+    }
   }
 
   if (insights.strip_binary?.total_savings) {
     const insight = insights.strip_binary;
-    const config = INSIGHT_CONFIGS.find(c => c.key === 'strip_binary')!;
-    const files = Array.isArray(insight.files) ? insight.files : [];
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'strip_binary');
+    if (config) {
+      const files = Array.isArray(insight.files) ? insight.files : [];
 
-    processedInsights.push({
-      name: config.name,
-      description: config.description,
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: files.map((file: StripBinaryFileInfo) => ({
-        path: file.file_path,
-        savings: file.total_savings,
-        percentage: (file.total_savings / totalSize) * 100,
-        fileType: 'strip_binary' as const,
-        originalFile: file,
-      })),
-    });
+      processedInsights.push({
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: files.map((file: StripBinaryFileInfo) => ({
+          path: file.file_path,
+          savings: file.total_savings,
+          percentage: (file.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'strip_binary' as const,
+            originalFile: file,
+          },
+        })),
+      });
+    }
   }
 
   if (insights.loose_images?.total_savings) {
     const insight = insights.loose_images as GroupsInsightResult;
-    const config = INSIGHT_CONFIGS.find(c => c.key === 'loose_images')!;
-    const groups = Array.isArray(insight.groups) ? insight.groups : [];
+    const config = INSIGHT_CONFIGS.find(c => c.key === 'loose_images');
+    if (config) {
+      const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
-    processedInsights.push({
-      name: config.name,
-      description: config.description,
-      totalSavings: insight.total_savings,
-      percentage: (insight.total_savings / totalSize) * 100,
-      files: groups.flatMap((group: FileSavingsResultGroup) => {
-        // Runtime validation for files array within each group
-        const files = Array.isArray(group?.files) ? group.files : [];
-        return files.map((file: FileSavingsResult) => ({
-          path: file.file_path,
-          savings: file.total_savings,
-          percentage: (file.total_savings / totalSize) * 100,
-          fileType: 'regular' as const,
-          originalFile: file,
-        }));
-      }),
-    });
+      processedInsights.push({
+        name: config.name,
+        description: config.description,
+        totalSavings: insight.total_savings,
+        percentage: (insight.total_savings / totalSize) * 100,
+        files: groups.flatMap((group: FileSavingsResultGroup) => {
+          const files = Array.isArray(group?.files) ? group.files : [];
+          return files.map((file: FileSavingsResult) => ({
+            path: file.file_path,
+            savings: file.total_savings,
+            percentage: (file.total_savings / totalSize) * 100,
+            data: {
+              fileType: 'regular' as const,
+              originalFile: file,
+            },
+          }));
+        }),
+      });
+    }
   }
 
   const regularInsightKeys = [
@@ -229,22 +251,25 @@ export function processInsights(
   regularInsightKeys.forEach(key => {
     const insight = insights[key] as FilesInsightResult | undefined;
     if (insight?.total_savings) {
-      const config = INSIGHT_CONFIGS.find(c => c.key === key)!;
-      const files = Array.isArray(insight.files) ? insight.files : [];
-
-      processedInsights.push({
-        name: config.name,
-        description: config.description,
-        totalSavings: insight.total_savings,
-        percentage: (insight.total_savings / totalSize) * 100,
-        files: files.map((file: FileSavingsResult) => ({
-          path: file.file_path,
-          savings: file.total_savings,
-          percentage: (file.total_savings / totalSize) * 100,
-          fileType: 'regular' as const,
-          originalFile: file,
-        })),
-      });
+      const config = INSIGHT_CONFIGS.find(c => c.key === key);
+      if (config) {
+        const files = Array.isArray(insight.files) ? insight.files : [];
+        processedInsights.push({
+          name: config.name,
+          description: config.description,
+          totalSavings: insight.total_savings,
+          percentage: (insight.total_savings / totalSize) * 100,
+          files: files.map((file: FileSavingsResult) => ({
+            path: file.file_path,
+            savings: file.total_savings,
+            percentage: (file.total_savings / totalSize) * 100,
+            data: {
+              fileType: 'regular' as const,
+              originalFile: file,
+            },
+          })),
+        });
+      }
     }
   });
 

@@ -102,11 +102,11 @@ export function AppSizeInsightsSidebarRow({
 function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: number}) {
   const isAlternating = fileIndex % 2 === 0;
 
-  if (file.fileType === 'optimizable_image' && file.originalFile) {
+  if (file.data.fileType === 'optimizable_image') {
     return (
       <OptimizableImageFileRow
         file={file}
-        originalFile={file.originalFile as OptimizableImageFile}
+        originalFile={file.data.originalFile}
         isAlternating={isAlternating}
       />
     );
