@@ -121,7 +121,7 @@ def test_exclude_exception_retry(capture_exception: MagicMock) -> None:
 )
 @override_options(
     {
-        "taskworker.test.rollout": {"*": 0.0},
+        "taskworker.enabled": False,
         "taskworker.route.overrides": {},
     }
 )
@@ -144,7 +144,7 @@ def test_capture_payload_metrics(mock_distribution: MagicMock) -> None:
 )
 @override_options(
     {
-        "taskworker.test.rollout": {"*": 0.0},
+        "taskworker.enabled": False,
         "taskworker.route.overrides": {},
     }
 )
