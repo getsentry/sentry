@@ -5,6 +5,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
@@ -204,6 +205,13 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
+          {segmentCount > 100 && (
+            <Subtext>
+              {t(
+                'Note: this replay is too long, so we currently only summarize part of it.'
+              )}
+            </Subtext>
+          )}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
@@ -326,4 +334,12 @@ const CallToActionContainer = styled('div')`
   padding: ${space(2)};
   align-items: center;
   text-align: center;
+`;
+
+const Subtext = styled(Text)`
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
+  display: flex;
+  justify-content: center;
 `;
