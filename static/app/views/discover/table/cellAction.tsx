@@ -411,7 +411,7 @@ function CellAction({
                 aria-label={t('Actions')}
                 onClickCapture={e => {
                   // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
-                  if (e.metaKey || e.shiftKey) {
+                  if (e.metaKey || e.shiftKey || e.ctrlKey) {
                     e.stopPropagation();
                   } else {
                     e.preventDefault();
