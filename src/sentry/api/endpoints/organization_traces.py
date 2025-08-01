@@ -161,21 +161,22 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
-        executor = TracesExecutor(
-            dataset=serialized["dataset"],
-            snuba_params=snuba_params,
-            user_queries=serialized.get("query", []),
-            sort=serialized.get("sort"),
-            limit=self.get_per_page(request),
-            breakdown_slices=serialized["breakdownSlices"],
-            get_all_projects=lambda: self.get_projects(
-                request,
-                organization,
-                project_ids={-1},
-                project_slugs=None,
-                include_all_accessible=True,
-            ),
-        )
+        with handle_query_errors():
+            executor = TracesExecutor(
+                dataset=serialized["dataset"],
+                snuba_params=snuba_params,
+                user_queries=serialized.get("query", []),
+                sort=serialized.get("sort"),
+                limit=self.get_per_page(request),
+                breakdown_slices=serialized["breakdownSlices"],
+                get_all_projects=lambda: self.get_projects(
+                    request,
+                    organization,
+                    project_ids={-1},
+                    project_slugs=None,
+                    include_all_accessible=True,
+                ),
+            )
 
         return self.paginate(
             request=request,
