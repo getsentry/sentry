@@ -29,7 +29,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  autoSubmitSeer: boolean;
   committedQuery: string;
+  currentInputValue: string;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
@@ -49,6 +51,8 @@ interface SearchQueryBuilderContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  setAutoSubmitSeer: (enabled: boolean) => void;
+  setCurrentInputValue: (value: string) => void;
   setDisplaySeerResults: (enabled: boolean) => void;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -110,6 +114,8 @@ export function SearchQueryBuilderProvider({
   const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [displaySeerResults, setDisplaySeerResults] = useState(false);
+  const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
+  const [currentInputValue, setCurrentInputValue] = useState('');
 
   const {state, dispatch} = useQueryBuilderState({
     initialQuery,
@@ -193,10 +199,14 @@ export function SearchQueryBuilderProvider({
       portalTarget,
       displaySeerResults,
       setDisplaySeerResults,
+      autoSubmitSeer,
+      setAutoSubmitSeer,
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
       gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      currentInputValue,
+      setCurrentInputValue,
     };
   }, [
     disabled,
@@ -204,6 +214,7 @@ export function SearchQueryBuilderProvider({
     disallowWildcard,
     dispatch,
     displaySeerResults,
+    autoSubmitSeer,
     enableAISearch,
     filterKeyAliases,
     filterKeyMenuWidth,
@@ -224,6 +235,8 @@ export function SearchQueryBuilderProvider({
     stableFilterKeys,
     stableGetSuggestedFilterKey,
     state,
+    currentInputValue,
+    setCurrentInputValue,
   ]);
 
   return (

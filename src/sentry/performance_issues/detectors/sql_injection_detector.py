@@ -55,7 +55,7 @@ EXCLUDED_KEYWORDS = [
     "PAGE",
 ]
 
-EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize"]
+EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize", "gorm.io/gorm"]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
 
@@ -231,6 +231,14 @@ class SQLInjectionDetector(PerformanceDetector):
             or "WHERE" not in description.upper()
             or any(keyword in description for keyword in PARAMETERIZED_KEYWORDS)
         ):
+            return False
+
+        # If the description contains multiple occurrences of alias chaining, likely coming from an ORM
+        if len(re.findall(r"\w+(->\w+)+", description)) > 3:
+            return False
+
+        # If the description contains multiple deleted_at IS NULL clauses, likely coming from an ORM
+        if len(re.findall(r'"?deleted[_aA]+t"?\s+IS\s+NULL', description)) > 3:
             return False
 
         # Laravel queries with this pattern can contain interpolated values
