@@ -2255,7 +2255,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         ),
     ],
 )
-def test_process_breakdowns(data, traces_range, expected):
+def test_process_breakdowns(data, traces_range, expected) -> None:
     traces_range = {
         trace: {
             "start": trace_start,

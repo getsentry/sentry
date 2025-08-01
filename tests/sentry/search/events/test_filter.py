@@ -1104,7 +1104,7 @@ def _project(x):
         ),
     ],
 )
-def test_snql_boolean_search(description, query, expected_where, expected_having):
+def test_snql_boolean_search(description, query, expected_where, expected_having) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {"project_id": [1]}
     query_filter = UnresolvedQuery(
@@ -1180,7 +1180,7 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
         ),
     ],
 )
-def test_snql_malformed_boolean_search(description, query, expected_message):
+def test_snql_malformed_boolean_search(description, query, expected_message) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {}
     query_filter = UnresolvedQuery(

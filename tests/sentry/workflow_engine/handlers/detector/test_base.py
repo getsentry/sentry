@@ -55,7 +55,7 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
-    def test_get_empty_counter_state(self):
+    def test_get_empty_counter_state(self) -> None:
         return {name: None for name in self.state_manager.counter_names}
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:

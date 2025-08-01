@@ -66,7 +66,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_with_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task(msg):
+        def test_task(msg) -> None:
             return f"hello {msg}"
 
         assert test_task.name == "test.test_with_taskworker_rollout"
@@ -90,14 +90,14 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_with_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task(msg):
+        def test_task(msg) -> None:
             return f"hello {msg}"
 
         @instrumented_task(
             name="test.low_rate",
             taskworker_config=self.config,
         )
-        def test_low_rate(msg):
+        def test_low_rate(msg) -> None:
             return f"hello {msg}"
 
         test_task.delay("world")
@@ -124,7 +124,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_without_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task(msg):
+        def test_task(msg) -> None:
             return f"hello {msg}"
 
         assert test_task.name == "test.test_without_taskworker_rollout"
@@ -147,7 +147,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_without_taskworker_rollout",
             taskworker_config=self.config,
         )
-        def test_task(a, b):
+        def test_task(a, b) -> None:
             return a + b
 
         assert test_task.name == "test.test_without_taskworker_rollout"
@@ -181,7 +181,7 @@ class TestTaskworkerRollout(TestCase):
             name="test.test_taskworker_no_rollout_configured",
             taskworker_config=self.config,
         )
-        def test_task(msg):
+        def test_task(msg) -> None:
             return f"hello {msg}"
 
         assert test_task.name == "test.test_taskworker_no_rollout_configured"

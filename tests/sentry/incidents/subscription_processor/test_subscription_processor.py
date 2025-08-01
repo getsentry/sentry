@@ -3148,7 +3148,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_seer_call(self, mock_seer_request: MagicMock):
+    def test_seer_call(self, mock_seer_request: MagicMock) -> None:
         # trigger a warning
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -3311,7 +3311,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:performance-view")
-    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
+    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock) -> None:
         throughput_rule = self.dynamic_rule
         throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
         # trigger critical
