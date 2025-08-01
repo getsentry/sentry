@@ -356,10 +356,13 @@ function CellAction({
   const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
-  const filteredActions = allowActions ? [...allowActions] : undefined;
+  let filteredActions = allowActions;
   if (useCellActionsV2 && filteredActions) {
-    filteredActions.push(Actions.OPEN_INTERNAL_LINK);
-    filteredActions.push(Actions.OPEN_EXTERNAL_LINK);
+    filteredActions = [
+      ...filteredActions,
+      Actions.OPEN_INTERNAL_LINK,
+      Actions.OPEN_EXTERNAL_LINK,
+    ];
   }
 
   // Extract any internal links to add them to the dropdown menu
