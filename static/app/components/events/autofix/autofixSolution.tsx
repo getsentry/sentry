@@ -501,24 +501,24 @@ function AutofixSolutionDisplay({
               <Tooltip
                 isHoverable
                 title={
-                  hasNoRepos
-                    ? tct(
-                        'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
-                        {
-                          link: (
-                            <Link
-                              to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
-                            />
-                          ),
-                        }
+                  codingDisabled
+                    ? t(
+                        'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
                       )
-                    : cantReadRepos
-                      ? t(
-                          "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                    : hasNoRepos
+                      ? tct(
+                          'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                          {
+                            link: (
+                              <Link
+                                to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                              />
+                            ),
+                          }
                         )
-                      : codingDisabled
+                      : cantReadRepos
                         ? t(
-                            'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
+                            "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                           )
                         : undefined
                 }
