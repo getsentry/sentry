@@ -12,7 +12,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-const consoleConfig = {
+export const consoleConfig = {
   playstation: (
     <Fragment>
       <p>
