@@ -2,10 +2,11 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.event_manager import GroupInfo
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.issue_occurrence import IssueOccurrenceData
+from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
@@ -14,7 +15,7 @@ from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 
 class IncidentGroupOpenPeriodIntegrationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -24,7 +25,9 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             name="Test Alert Rule",
         )
 
-    def save_issue_occurrence(self, group_type=MetricIssue):
+    def save_issue_occurrence(
+        self, group_type: int = MetricIssue.type_id
+    ) -> tuple[IssueOccurrence, GroupInfo]:
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
         )
@@ -41,7 +44,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             "evidence_display": [
                 {"name": "Test Evidence", "value": "Test Value", "important": True}
             ],
-            "type": group_type.type_id,
+            "type": group_type,
             "detection_time": timezone.now().timestamp(),
             "level": "error",
             "culprit": "test-culprit",
@@ -51,11 +54,11 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             occurrence, group_info = save_issue_occurrence(occurrence_data, event)
 
         assert group_info is not None
-        assert group_info.group.type == group_type.type_id
+        assert group_info.group.type == group_type
         return occurrence, group_info
 
     @with_feature("organizations:issue-open-periods")
-    def test_save_issue_occurrence_creates_relationship_when_incident_exists(self):
+    def test_save_issue_occurrence_creates_relationship_when_incident_exists(self) -> None:
         """Test that save_issue_occurrence creates the relationship when incident exists"""
         incident = self.create_incident(
             organization=self.organization,
@@ -74,7 +77,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert item.incident_identifier == incident.identifier
 
     @with_feature("organizations:issue-open-periods")
-    def test_save_issue_occurrence_creates_placeholder_when_incident_doesnt_exist(self):
+    def test_save_issue_occurrence_creates_placeholder_when_incident_doesnt_exist(self) -> None:
         """Test that save_issue_occurrence creates placeholder when incident doesn't exist"""
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
@@ -86,7 +89,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert not IncidentGroupOpenPeriod.objects.filter(group_open_period=open_period).exists()
 
     @with_feature("organizations:issue-open-periods")
-    def test_save_issue_occurrence_creates_relationship_for_existing_group(self):
+    def test_save_issue_occurrence_creates_relationship_for_existing_group(self) -> None:
         """Test that save_issue_occurrence creates relationship for existing groups"""
         incident = self.create_incident(
             organization=self.organization,
@@ -114,9 +117,9 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert item.incident_identifier == incident.identifier
 
     @with_feature("organizations:issue-open-periods")
-    def test_save_issue_occurrence_no_relationship_for_non_metric_issues(self):
+    def test_save_issue_occurrence_no_relationship_for_non_metric_issues(self) -> None:
         # Test that save_issue_occurrence doesn't create relationships for non-metric issues
-        _, group_info = self.save_issue_occurrence(group_type=FeedbackGroup)
+        _, group_info = self.save_issue_occurrence(group_type=FeedbackGroup.type_id)
 
         group = group_info.group
         assert group is not None
