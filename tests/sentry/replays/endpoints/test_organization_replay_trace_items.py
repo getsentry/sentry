@@ -87,6 +87,8 @@ class OrganizationReplayTraceItemsEndpointTest(
         for tag, duration in tags:
             self._store_span(tags=tag, duration=duration)
 
+        import uuid
+
         from snuba_sdk import Column, Entity, Query
 
         query = Query(match=Entity("trace_items"), select=[Column("browser")])
@@ -100,7 +102,7 @@ class OrganizationReplayTraceItemsEndpointTest(
                 "organization_id": 1,
                 "project_ids": [1],
                 "referrer": "test",
-                "request_id": "1",
+                "request_id": str(uuid.uuid4()),
                 "start_datetime": datetime.datetime.now(),
                 "trace_item_type": "replay",
             },
