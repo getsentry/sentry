@@ -1,4 +1,10 @@
-import {css, type DO_NOT_USE_ChonkTheme, type SerializedStyles} from '@emotion/react';
+import {useEffect, useMemo, useState} from 'react';
+import {
+  css,
+  type DO_NOT_USE_ChonkTheme,
+  type SerializedStyles,
+  useTheme,
+} from '@emotion/react';
 
 import type {Theme} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
@@ -73,7 +79,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
 
 export type Responsive<T> = T | Record<Breakpoint, T | undefined>;
 
-function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
+export function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
   return typeof prop === 'object' && prop !== null;
 }
 
@@ -138,4 +144,96 @@ export function getSpacing(
     .split(' ')
     .map(size => resolveSpacing(size as SpacingSize, theme))
     .join(' ');
+}
+
+/**
+ * Hook that resolves responsive values to their current breakpoint value.
+ * Mirrors the behavior of the rc() function but returns the resolved value
+ * instead of generating CSS media queries.
+ */
+export function useResponsivePropValue<T extends Responsive<any>>(
+  prop: T
+): T extends Responsive<infer U> ? U : never {
+  const theme = useTheme();
+
+  const mediaQueries = useMemo(() => {
+    if (!isResponsive(prop)) {
+      return undefined;
+    }
+
+    const queries: Array<{breakpoint: Breakpoint; query: MediaQueryList}> = [];
+
+    // Iterate in reverse so that we always find the largest breakpoint
+    for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
+      const bp = BREAKPOINT_ORDER[i];
+
+      if (bp === undefined || prop[bp] === undefined) {
+        continue;
+      }
+
+      queries.push({
+        breakpoint: bp,
+        query: window.matchMedia(`(min-width: ${theme.breakpoints[bp]})`),
+      });
+    }
+
+    return queries;
+  }, [theme.breakpoints, prop]);
+
+  const [activeBreakpoint, setActiveBreakpoint] = useState<Breakpoint>(() => {
+    return findLargestBreakpoint(mediaQueries ?? []);
+  });
+
+  useEffect(() => {
+    if (!mediaQueries) {
+      return undefined;
+    }
+
+    function onMediaQueryChange() {
+      if (!mediaQueries) {
+        return;
+      }
+
+      setActiveBreakpoint(findLargestBreakpoint(mediaQueries));
+    }
+
+    for (const query of mediaQueries) {
+      query.query.addEventListener('change', onMediaQueryChange);
+    }
+
+    return () => {
+      for (const query of mediaQueries) {
+        query.query.removeEventListener('change', onMediaQueryChange);
+      }
+    };
+  }, [mediaQueries]);
+
+  // Only resolve the active breakpoint if the prop is responsive, else ignore it.
+  if (!isResponsive(prop)) {
+    return prop as any;
+  }
+
+  return prop[activeBreakpoint ?? 'xs'];
+}
+
+function findLargestBreakpoint(
+  queries: Array<{breakpoint: Breakpoint; query: MediaQueryList}>
+): Breakpoint {
+  // Find the largest active breakpoint with a defined value
+  // This mirrors the logic in rc() function
+  for (const query of queries) {
+    if (query === undefined) {
+      continue;
+    }
+
+    if (!query.query.matches) {
+      continue;
+    }
+
+    return query.breakpoint;
+  }
+
+  // Since we use min width, the only remaining breakpoint that we might have missed is <xs,
+  // in which case we return xs, which is in line with behavior of rc() function.
+  return 'xs';
 }
