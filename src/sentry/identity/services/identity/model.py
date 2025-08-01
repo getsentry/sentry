@@ -21,6 +21,7 @@ class RpcIdentity(RpcModel):
     idp_id: int  # IdentityProvider id
     user_id: int
     external_id: str
+    scopes: list[str]
     data: dict[str, Any]
 
     def get_identity(self) -> "Provider":
