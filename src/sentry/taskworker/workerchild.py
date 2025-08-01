@@ -339,6 +339,12 @@ def child_process(
         kwargs = parameters.get("kwargs", {})
 
         with sentry_sdk.continue_trace(headers):
+            attributes = {
+                "taskworker": {
+                    "task": activation.taskname,
+                },
+            }
+
             with (
                 track_memory_usage(
                     "taskworker.worker.memory_change",
@@ -349,6 +355,7 @@ def child_process(
                     op="queue.task.taskworker",
                     name=activation.taskname,
                     origin="taskworker",
+                    attributes=attributes,
                 ) as root_span,
             ):
                 root_span.set_attribute(
