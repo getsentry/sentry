@@ -2164,7 +2164,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ["p75_if(span.duration, is_transaction, true)"],
+                "field": ["p75_if(span.duration, is_transaction, equals, true)"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -2177,12 +2177,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data == [
             {
-                "p75_if(span.duration, is_transaction, true)": 3000,
+                "p75_if(span.duration, is_transaction, equals, true)": 3000,
             },
         ]
         assert meta["dataset"] == self.dataset
-        assert meta["units"] == {"p75_if(span.duration, is_transaction, true)": "millisecond"}
-        assert meta["fields"] == {"p75_if(span.duration, is_transaction, true)": "duration"}
+        assert meta["units"] == {
+            "p75_if(span.duration, is_transaction, equals, true)": "millisecond"
+        }
+        assert meta["fields"] == {"p75_if(span.duration, is_transaction, equals, true)": "duration"}
 
     def test_is_transaction(self):
         self.store_spans(
@@ -2996,7 +2998,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
 
         response = self.do_request(
             {
-                "field": ["failure_rate_if(is_transaction, true)"],
+                "field": ["failure_rate_if(is_transaction, equals, true)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -3006,13 +3008,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["failure_rate_if(is_transaction, true)"] == 0.25
+        assert data[0]["failure_rate_if(is_transaction, equals, true)"] == 0.25
         assert meta["dataset"] == self.dataset
         assert meta["fields"] == {
-            "failure_rate_if(is_transaction, true)": "percentage",
+            "failure_rate_if(is_transaction, equals, true)": "percentage",
         }
         assert meta["units"] == {
-            "failure_rate_if(is_transaction, true)": None,
+            "failure_rate_if(is_transaction, equals, true)": None,
         }
 
     def test_count_op(self):
@@ -3080,8 +3082,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         response = self.do_request(
             {
                 "field": [
-                    "avg_if(span.duration, span.op, queue.process)",
-                    "avg_if(span.duration, span.op, queue.publish)",
+                    "avg_if(span.duration, span.op, equals, queue.process)",
+                    "avg_if(span.duration, span.op, equals, queue.publish)",
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -3092,8 +3094,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["avg_if(span.duration, span.op, queue.process)"] == 1500.0
-        assert data[0]["avg_if(span.duration, span.op, queue.publish)"] == 3000.0
+        assert data[0]["avg_if(span.duration, span.op, equals, queue.process)"] == 1500.0
+        assert data[0]["avg_if(span.duration, span.op, equals, queue.publish)"] == 3000.0
         assert meta["dataset"] == self.dataset
 
     def test_avg_compare(self):
@@ -3148,7 +3150,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         response = self.do_request(
             {
                 "field": [
-                    "avg_if(span.duration, span.duration, queue.process)",
+                    "avg_if(span.duration, span.duration, equals, queue.process)",
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -3437,8 +3439,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         response = self.do_request(
             {
                 "field": [
-                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)",
-                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)",
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Chrome)",
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Firefox)",
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -3450,17 +3452,21 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         meta = response.data["meta"]
         assert len(data) == 1
         assert (
-            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)"]
+            data[0][
+                "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Chrome)"
+            ]
             == 10 / 100
         )
         assert (
-            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)"]
+            data[0][
+                "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Firefox)"
+            ]
             == 50 / 100
         )
         assert meta["dataset"] == self.dataset
         assert meta["fields"] == {
-            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)": "percentage",
-            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)": "percentage",
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Chrome)": "percentage",
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Firefox)": "percentage",
         }
 
     def test_total_performance_score(self):
@@ -4843,6 +4849,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         ]
 
     def test_count_if_two_args(self):
+        """count_if should have an operator"""
         self.store_spans(
             [
                 self.create_span({"sentry_tags": {"release": "foo"}}),
@@ -4863,13 +4870,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 "dataset": self.dataset,
             }
         )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-
-        assert len(data) == 1
-        assert data[0]["count_if(release,foo)"] == 1
-        assert meta["dataset"] == self.dataset
+        assert response.status_code == 400, response.content
 
     def test_span_ops_breakdown(self):
         self.store_spans(
