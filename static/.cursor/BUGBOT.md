@@ -1,8 +1,13 @@
 ## Frontend guidelines
 
-### Layout
+### Layout and Typography Review Rules
 
-CRITICAL: ONLY WARN ABOUT NEWLY ADDED CALLS TO STYLED() AND NOT PRs THAT MODIFY EXISTING STYLED() CALLS
+CRITICAL:
+
+- Only warn about newly added calls to styled() and do not warn on PRs that modify existing styled() calls
+- If you are suggesting to use a Layout or Typography component, read it's implementation to make sure suggestions conform to the actual implementation - this is super important!
+
+#### Layout
 
 - Use <Grid> from `sentry/components/core/layout` for elements that require grid layout as opposed to styled components with `display: grid`
 
@@ -12,7 +17,7 @@ const Component = styled('div')`
   display: flex;
   flex-directon: column;
 `;
-// ✅ Use the Flex layout primitive
+// ✅ Use the Grid layout primitive
 import {Grid} from 'sentry/components/core/layout';
 <Grid direction="column"></Grid>;
 ```
@@ -63,9 +68,7 @@ import {Flex} from 'sentry/components/core/layout';
 
 - Prefer the use of gap or padding over margin.
 
-### Typography
-
-CRITICAL: ONLY WARN ABOUT NEWLY ADDED CALLS TO STYLED() AND NOT PRs THAT MODIFY EXISTING STYLED() CALLS
+#### Typography
 
 - Use <Heading> from `sentry/components/core/text` for headings instead of styled components that style heading typography.
 
