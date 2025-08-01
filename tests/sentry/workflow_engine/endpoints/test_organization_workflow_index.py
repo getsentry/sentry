@@ -650,6 +650,154 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
 
 
 @region_silo_test
+class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Test Workflow", enabled=False
+        )
+        self.workflow_two = self.create_workflow(
+            organization_id=self.organization.id, name="Another Workflow", enabled=False
+        )
+        self.workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Third Workflow", enabled=False
+        )
+
+    def test_bulk_enable_workflows_by_ids_success(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
+            raw_data={"enabled": True},
+        )
+
+        # Verify workflows were enabled
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert self.workflow_two.enabled is True
+
+        # Verify response contains updated workflows
+        assert len(response.data) == 2
+        workflow_ids = {w["id"] for w in response.data}
+        assert workflow_ids == {str(self.workflow.id), str(self.workflow_two.id)}
+        assert all(w["enabled"] for w in response.data)
+
+        # Verify third workflow is unaffected
+        self.workflow_three.refresh_from_db()
+        assert self.workflow_three.enabled is False
+
+    def test_bulk_disable_workflows_by_ids_success(self):
+        self.workflow.update(enabled=True)
+        self.workflow_two.update(enabled=True)
+        self.workflow_three.update(enabled=True)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.workflow.id)), ("id", str(self.workflow_two.id))],
+            raw_data={"enabled": False},
+        )
+
+        # Verify workflows were disabled
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+
+        # Verify response contains updated workflows
+        assert len(response.data) == 2
+        assert all(not w["enabled"] for w in response.data)
+
+        # Verify third workflow is unaffected
+        self.workflow_three.refresh_from_db()
+        assert self.workflow_three.enabled is True
+
+    def test_bulk_enable_workflows_by_query_success(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "test"},
+            raw_data={"enabled": True},
+        )
+
+        # Verify workflow was enabled
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+        # Verify response contains updated workflow
+        assert len(response.data) == 1
+        assert response.data[0]["enabled"] is True
+        assert response.data[0]["name"] == self.workflow.name
+
+        # Other workflows should be unaffected
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+    def test_bulk_update_workflows_no_parameters_error(self):
+        """Test error when no filtering parameters are provided"""
+        response = self.get_error_response(
+            self.organization.slug,
+            raw_data={"enabled": True},
+            status_code=400,
+        )
+
+        assert "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided" in str(
+            response.data["detail"]
+        )
+
+        # Verify no workflows were affected
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+    def test_bulk_update_workflows_missing_enabled_field_error(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.workflow.id)},
+            raw_data={},
+            status_code=400,
+        )
+
+        assert "This field is required." in str(response.data["enabled"])
+
+        # Verify workflow was not updated
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is False
+
+    def test_bulk_update_no_matching_workflows(self):
+        # Test with non-existent ID
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": "999999"},
+            raw_data={"enabled": True},
+            status_code=200,
+        )
+        assert "No workflows found" in str(response.data["detail"])
+
+        # Test with non-matching query
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "nonexistent-workflow-name"},
+            raw_data={"enabled": True},
+            status_code=200,
+        )
+        assert "No workflows found" in str(response.data["detail"])
+
+        # Verify no workflows were affected
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+
+@region_silo_test
 class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
     method = "DELETE"
 
@@ -788,11 +936,12 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
     def test_delete_no_matching_workflows(self) -> None:
         # Test deleting workflows with non-existent ID
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug,
             qs_params={"id": "999999"},
-            status_code=204,
+            status_code=200,
         )
+        assert "No workflows found" in str(response.data["detail"])
 
         # Verify no workflows were affected
         self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
@@ -801,8 +950,9 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.get_success_response(
             self.organization.slug,
             qs_params={"query": "nonexistent-workflow-name"},
-            status_code=204,
+            status_code=200,
         )
+        assert "No workflows found" in str(response.data["detail"])
 
         # Verify no workflows were affected
         self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
