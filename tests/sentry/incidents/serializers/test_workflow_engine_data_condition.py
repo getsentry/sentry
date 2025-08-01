@@ -3,7 +3,12 @@ from sentry.incidents.endpoints.serializers.workflow_engine_data_condition impor
     WorkflowEngineDataConditionSerializer,
 )
 from sentry.incidents.endpoints.utils import translate_data_condition_type
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
@@ -124,6 +129,28 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         expected_trigger["id"] = str(comparison_delta_trigger.id)
         expected_trigger["alertRuleId"] = str(comparison_delta_rule.id)
         assert serialized_data_condition == expected_trigger
+
+    def test_anomaly_detection(self) -> None:
+        dynamic_rule = self.create_dynamic_alert()
+        critical_trigger = self.create_alert_rule_trigger(
+            alert_rule=dynamic_rule, label="critical", alert_threshold=0
+        )
+        trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=critical_trigger)
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(dynamic_rule)
+        detector_trigger, _, _ = migrate_metric_data_conditions(critical_trigger)
+        action, _, _ = migrate_metric_action(trigger_action)
+
+        serialized_data_condition = serialize(
+            detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        assert (
+            serialized_data_condition["thresholdType"]
+            == AlertRuleThresholdType.ABOVE_AND_BELOW.value
+        )
+        assert serialized_data_condition["alertThreshold"] == 0
+        assert serialized_data_condition["resolveThreshold"] is None
 
     def test_multiple_rules(self) -> None:
         # create another comprehensive alert rule in the DB

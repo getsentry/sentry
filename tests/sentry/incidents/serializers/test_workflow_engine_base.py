@@ -1,6 +1,17 @@
-from django.utils import timezone
+from unittest import mock
 
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleThresholdType
+import orjson
+from django.utils import timezone
+from urllib3.response import HTTPResponse
+
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+    AlertRuleStatus,
+    AlertRuleThresholdType,
+)
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
@@ -8,6 +19,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -67,7 +79,7 @@ class TestWorkflowEngineSerializer(TestCase):
                 "label": "critical",
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
                 "alertThreshold": self.critical_detector_trigger.comparison,
-                "resolveThreshold": AlertRuleThresholdType.BELOW.value,
+                "resolveThreshold": self.alert_rule.resolve_threshold,
                 "dateCreated": self.critical_trigger.date_added,
                 "actions": self.expected_critical_action,
             },
@@ -123,7 +135,7 @@ class TestWorkflowEngineSerializer(TestCase):
             "label": "warning",
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": AlertRuleThresholdType.BELOW.value,
+            "resolveThreshold": self.alert_rule.resolve_threshold,
             "dateCreated": self.critical_trigger.date_added,
             "actions": self.expected_warning_action,
         }
@@ -160,3 +172,19 @@ class TestWorkflowEngineSerializer(TestCase):
                 "reason": PriorityChangeReason.ONGOING,
             },
         )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def create_dynamic_alert(self, mock_seer_request: mock.MagicMock) -> AlertRule:
+        seer_return_value = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        dynamic_rule = self.create_alert_rule(
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+        )
+        return dynamic_rule
