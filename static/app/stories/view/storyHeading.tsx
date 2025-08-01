@@ -12,9 +12,11 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const {story} = useStory();
+
   const storyTitle = (story.exports.frontmatter as any)?.title;
   const text = stringifyReactNode(props.children);
   const id = props.id ?? slugify(text);
+
   const {onClick} = useCopyToClipboard({
     text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
     successMessage: (
@@ -61,12 +63,6 @@ const StyledLinkButton = styled(LinkButton)`
     inset: -8px;
     content: '';
     display: block;
-  }
-
-  /* Move to leading side of heading on xl screens */
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    order: -1;
-    margin-left: -40px;
   }
 `;
 

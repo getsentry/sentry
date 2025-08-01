@@ -43,8 +43,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self.event_id = self.event.event_id
         self.node_id = Event.generate_node_id(self.project.id, self.event_id)
         group = self.event.group
-        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id).event_id
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
+        self.event2 = self.store_event(data=group1_data, project_id=self.project.id)
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event2.event_id)
 
         # Group 2 event
         self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
@@ -91,6 +91,10 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert nodestore.backend.get(self.keep_node_id), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
 
+    def test_simple_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_simple()
+
     def test_simple_multiple_groups(self) -> None:
         other_event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
@@ -113,6 +117,10 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
         assert nodestore.backend.get(self.keep_node_id)
+
+    def test_simple_multiple_groups_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_simple_multiple_groups()
 
     def test_grouphistory_relation(self) -> None:
         other_event = self.store_event(
@@ -147,6 +155,10 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
         assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
 
+    def test_grouphistory_relation_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_grouphistory_relation()
+
     @mock.patch("sentry.nodestore.delete_multi")
     def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
         os.environ["_SENTRY_CLEANUP"] = "1"
@@ -163,6 +175,10 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert nodestore_delete_multi.call_count == 0
         finally:
             del os.environ["_SENTRY_CLEANUP"]
+
+    def test_cleanup_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_cleanup()
 
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -205,6 +221,10 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
             "args": [group.project.id, hashes, 0]
         }
+
+    def test_delete_groups_delete_grouping_records_by_hash_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_delete_groups_delete_grouping_records_by_hash()
 
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -253,6 +273,10 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
                 "args": [self.project.id, error_group_hashes, 0]
             }
+
+    def test_invalid_group_type_handling_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_invalid_group_type_handling()
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
@@ -361,11 +385,60 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # assert not nodestore.backend.get(occurrence_node_id)
         assert self.select_issue_platform_events(self.project.id) is None
 
+    def test_simple_issue_platform_with_new_task(self) -> None:
+        with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
+            self.test_simple_issue_platform()
+
     @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
         with mock.patch.object(IssuePlatformEventsDeletionTask, "max_rows_to_delete", 6):
             # Create three groups with times_seen such that batching is required
+            group1 = self.create_group(project=self.project)
+            group2 = self.create_group(project=self.project)
+            group3 = self.create_group(project=self.project)
+            group4 = self.create_group(project=self.project)
+
+            # Set times_seen for each group
+            Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+
+            # This will delete the group and the events from the node store and Snuba
+            with self.tasks():
+                delete_groups_for_project(
+                    object_ids=[group1.id, group2.id, group3.id, group4.id],
+                    transaction_id=uuid4().hex,
+                    project_id=self.project.id,
+                )
+
+            # There should be two batches: [group3, group1] (2+3=5 > 5, so group2 starts new batch), [group2]
+            assert mock_bulk_snuba_queries.call_count == 1
+            requests = mock_bulk_snuba_queries.call_args[0][0]
+            assert len(requests) == 2
+
+            first_batch = requests[0].query.column_conditions["group_id"]
+            second_batch = requests[1].query.column_conditions["group_id"]
+
+            # Since we sort by times_seen, the first batch will be [group2, group1]
+            # and the second batch will be [group3, group4]
+            assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
+            # group3 and group4 have the same times_seen, thus sorted by id
+            assert second_batch == [group3.id, group4.id]
+
+    @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
+    def test_issue_platform_batching_with_new_task(
+        self, mock_bulk_snuba_queries: mock.Mock
+    ) -> None:
+        # Patch max_rows_to_delete to a small value for testing
+        with (
+            mock.patch("sentry.deletions.tasks.nodestore.ISSUE_PLATFORM_MAX_ROWS_TO_DELETE", 6),
+            self.options({"deletions.nodestore.parallelization-task-enabled": True}),
+        ):
+            # Create three groups with times_seen such that batching is required
+            # XXX: Deleting from the nodestore is not working; the test needs to be fixed
+            # XXX: Use store_event to create the groups
             group1 = self.create_group(project=self.project)
             group2 = self.create_group(project=self.project)
             group3 = self.create_group(project=self.project)
