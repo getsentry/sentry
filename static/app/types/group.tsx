@@ -213,10 +213,10 @@ export enum IssueTitle {
   METRIC_ISSUE = 'Issue Detected by Metric Monitor',
 
   // Monitors
-  MONITOR_CHECK_IN_FAILURE = 'Crons Monitor Failure',
+  MONITOR_CHECK_IN_FAILURE = 'Missed or Failed Cron Check-In',
 
   // Uptime
-  UPTIME_DOMAIN_FAILURE = 'Uptime Domain Monitor Failure',
+  UPTIME_DOMAIN_FAILURE = 'Uptime Monitor Detected Downtime',
 
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
