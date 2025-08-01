@@ -496,15 +496,17 @@ def call_with_variants(
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    if context["variant"] is not None:
+    incoming_variant_name = context["variant"]
+
+    if incoming_variant_name is not None:
         # For the case where the variant is already determined, we act as a
         # delegate strategy.
         #
         # To ensure the function can deal with the particular value we assert
         # the variant name is one of our own though.
         assert (
-            context["variant"] in variants_to_produce
-            or "!" + context["variant"] in variants_to_produce
+            incoming_variant_name in variants_to_produce
+            or "!" + incoming_variant_name in variants_to_produce
         )
         return f(*args, **kwargs)
 
