@@ -357,7 +357,7 @@ const Chapter = styled('summary')`
 
 const ChapterTitle = styled('div')`
   display: grid;
-  grid-template-columns: 4fr 2fr;
+  grid-template-columns: auto auto;
   gap: ${space(1)};
   grid-template-areas: 'title timestamp';
   flex: 1;

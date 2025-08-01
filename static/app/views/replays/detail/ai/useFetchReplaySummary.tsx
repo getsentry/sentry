@@ -133,7 +133,7 @@ export function useFetchReplaySummary(
 
   return {
     summaryData,
-    isPolling: isPolling(summaryData, isStartSummaryRequestError),
+    isPolling: isPolling(summaryData, isStartSummaryRequestPending),
     isPending:
       dataUpdatedAt < startSummaryRequestTime.current ||
       isPending ||
