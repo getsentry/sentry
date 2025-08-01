@@ -1,0 +1,63 @@
+---
+title: Stack
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {Stack} from './stack.tsx';
+import {Flex} from './flex.tsx';
+
+export function Box(props) {
+  return (
+    <Flex
+      background="primary"
+      border="muted"
+      style={{width: '64px', height: '64px'}}
+      align="center"
+      justify="center"
+      {...props}
+    />
+  );
+}
+
+## Demo
+
+Use `switch` to flip the orientation on a breakpoint.
+
+<Storybook.Demo>
+  <Stack axis="x" switch="md" gap="lg">
+    <Box>A</Box>
+    <Stack.Divider />
+    <Box>B</Box>
+    <Stack.Divider />
+    <Box>C</Box>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack axis="x" switch="md" gap="lg">
+  <Box>A</Box>
+  <Stack.Divider />
+  <Box>B</Box>
+  <Stack.Divider />
+  <Box>C</Box>
+</Stack>
+```
+
+<Storybook.Demo>
+  <Stack axis="y" switch="xl" gap="lg">
+    <Box>D</Box>
+    <Stack.Divider />
+    <Box>E</Box>
+    <Stack.Divider />
+    <Box>F</Box>
+  </Stack>
+</Storybook.Demo>
+```jsx
+<Stack axis="y" switch="xl" gap="lg">
+  <Box>D</Box>
+  <Stack.Divider />
+  <Box>E</Box>
+  <Stack.Divider />
+  <Box>F</Box>
+</Stack>
+```
