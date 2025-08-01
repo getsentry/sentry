@@ -1590,7 +1590,7 @@ class BaseQueryBuilder:
 
     def run_query(
         self,
-        referrer: str | None,
+        referrer: str,
         use_cache: bool = False,
         query_source: QuerySource | None = None,
     ) -> Any:

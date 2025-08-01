@@ -1381,6 +1381,7 @@ class DetectorFilterTest(TestCase):
             search_filters=[
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id]))
             ],
+            referrer="search",
         )
 
         # Should return groups 1 and 2 (both associated with detector_id_1)
@@ -1402,6 +1403,7 @@ class DetectorFilterTest(TestCase):
                     SearchKey("detector"), "IN", SearchValue([self.detector1.id, self.detector2.id])
                 )
             ],
+            referrer="search",
         )
 
         # Should return groups 1 and 2 (associated with detector_id_1)
@@ -1422,6 +1424,7 @@ class DetectorFilterTest(TestCase):
             search_filters=[
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector2.id]))
             ],
+            referrer="search",
         )
 
         # Should return no groups
@@ -1441,6 +1444,7 @@ class DetectorFilterTest(TestCase):
                     SearchKey("detector"), "=", SearchValue([99999])  # Invalid detector ID
                 )
             ],
+            referrer="search",
         )
 
         # Should return no groups
@@ -1458,6 +1462,7 @@ class DetectorFilterTest(TestCase):
             search_filters=[
                 SearchFilter(SearchKey("detector"), "!=", SearchValue([self.detector1.id]))
             ],
+            referrer="search",
         )
 
         # Should return group3 (not associated with detector_id_1)
@@ -1477,6 +1482,7 @@ class DetectorFilterTest(TestCase):
                 SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id])),
                 SearchFilter(SearchKey("status"), "=", SearchValue([0])),
             ],
+            referrer="search",
         )
 
         # Should return groups 1 and 2 (both associated with detector1 and unresolved)
@@ -1494,6 +1500,7 @@ class DetectorFilterTest(TestCase):
         results = backend.query(
             projects=[self.project],
             search_filters=[SearchFilter(SearchKey("detector"), "IN", SearchValue([]))],
+            referrer="search",
         )
 
         # Should return no groups
