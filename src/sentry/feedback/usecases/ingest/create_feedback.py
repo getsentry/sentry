@@ -305,7 +305,7 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
         )
         return None
 
-    if not title or not isinstance(title, str):
+    if not title or not isinstance(title, str) or not title.strip():
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "invalid_response", "organization_id": organization.id},
