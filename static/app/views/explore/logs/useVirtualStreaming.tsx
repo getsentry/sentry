@@ -1,13 +1,16 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {logger} from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import type {ApiResult} from 'sentry/api';
 import type {InfiniteData} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
   useLogsAutoRefreshContinued,
   useLogsAutoRefreshEnabled,
   useLogsRefreshInterval,
+  useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   MAX_LOG_INGEST_DELAY,
@@ -53,6 +56,8 @@ import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuer
 export function useVirtualStreaming(
   data: InfiniteData<ApiResult<EventsLogsResult>> | undefined
 ) {
+  const organization = useOrganization();
+  const setLogsAutoRefresh = useSetLogsAutoRefresh();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const previousAutoRefresh = usePrevious(autoRefresh);
   const isAutoRefreshContinued = useLogsAutoRefreshContinued();
@@ -63,6 +68,8 @@ export function useVirtualStreaming(
     referrer: 'api.explore.logs-table',
     autoRefresh: false,
   });
+  const warnRef = useRef(() => {});
+  const hasWarnedRef = useRef(false);
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
 
@@ -145,13 +152,35 @@ export function useVirtualStreaming(
 
     const latestPage = data.pages[data.pages.length - 1];
     const latestPageData = latestPage?.[0]?.data;
+    const rawTimestamp = latestPageData?.[0]?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+    if (!rawTimestamp) {
+      return null;
+    }
 
     // Since data is always sorted by timestamp descending, the first row (index 0) is the latest timestamp.
-    return Number(
-      BigInt(latestPageData?.[0]?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE] ?? 0n) /
-        1_000_000n
-    );
+    return Number(BigInt(rawTimestamp) / 1_000_000n);
   }, [data]);
+
+  // We only want to warn once per session, also warning shouldn't add to the dependencies of the RAF useEffect.
+  warnRef.current = () => {
+    if (hasWarnedRef.current) {
+      return;
+    }
+    hasWarnedRef.current = true;
+
+    logger.warn(
+      `No most recent page data timestamp found, skipping virtual streaming update`,
+      {
+        logId:
+          data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[OurLogKnownFieldKey.ID],
+        traceId:
+          data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[
+            OurLogKnownFieldKey.TRACE_ID
+          ],
+        organization: organization.slug,
+      }
+    );
+  };
 
   // We setup a RAF loop to update the virtual timestamp smoothly to emulate real-time streaming.
   useEffect(() => {
@@ -166,6 +195,12 @@ export function useVirtualStreaming(
 
         const targetVirtualTime = Date.now() - MAX_LOG_INGEST_DELAY - refreshInterval;
         const mostRecentPageDataTimestamp = getMostRecentPageDataTimestamp();
+
+        if (!mostRecentPageDataTimestamp) {
+          warnRef.current();
+          setLogsAutoRefresh('error');
+          return;
+        }
 
         setVirtualTimestamp(prev => {
           if (prev === undefined) {
@@ -192,7 +227,7 @@ export function useVirtualStreaming(
         window.cancelAnimationFrame(rafId);
       }
     };
-  }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval]);
+  }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval, setLogsAutoRefresh]);
 
   return {
     virtualStreamedTimestamp: virtualTimestamp,
@@ -210,10 +245,33 @@ export function isRowVisibleInVirtualStream(
     return true;
   }
 
-  const rowTimestamp = BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n;
+  const rowTimestamp = getApproximateTimestamp(row);
 
   // Show rows that are older than or equal to the virtual timestamp
   return rowTimestamp <= virtualStreamedTimestamp;
+}
+
+let timestampHasWarned = false;
+
+function getApproximateTimestamp(row: {
+  [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: number | string;
+  [OurLogKnownFieldKey.TIMESTAMP]: string;
+  [OurLogKnownFieldKey.ID]: string;
+  [OurLogKnownFieldKey.TRACE_ID]: string;
+}): number {
+  if (row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) {
+    return Number(BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000n);
+  }
+  if (!timestampHasWarned) {
+    timestampHasWarned = true;
+    logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+      logId: row[OurLogKnownFieldKey.ID],
+      traceId: row[OurLogKnownFieldKey.TRACE_ID],
+      timestamp: row[OurLogKnownFieldKey.TIMESTAMP],
+      timestampPrecise: row[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
+    });
+  }
+  return Number(new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getTime());
 }
 
 /**
