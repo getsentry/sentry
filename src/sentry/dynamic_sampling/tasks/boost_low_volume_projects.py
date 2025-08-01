@@ -21,10 +21,11 @@ from snuba_sdk import (
 
 from sentry import features, options, quotas
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.projects_rebalancing import (
+    ProjectsRebalancingInput,
+    ProjectsRebalancingModel,
+)
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -497,7 +498,7 @@ def calculate_sample_rates_of_projects(
             )
         )
 
-    model = model_factory(ModelType.PROJECTS_REBALANCING)
+    model = ProjectsRebalancingModel()
     rebalanced_projects: list[RebalancedItem] | None = guarded_run(
         model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
