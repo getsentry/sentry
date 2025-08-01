@@ -356,7 +356,7 @@ function CellAction({
   const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
-  const filteredActions = allowActions;
+  const filteredActions = allowActions ? [...allowActions] : undefined;
   if (useCellActionsV2 && filteredActions) {
     filteredActions.push(Actions.OPEN_INTERNAL_LINK);
     filteredActions.push(Actions.OPEN_EXTERNAL_LINK);
