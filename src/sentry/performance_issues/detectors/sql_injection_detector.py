@@ -247,13 +247,13 @@ class SQLInjectionDetector(PerformanceDetector):
 
         # Zend1 can cause false positives
         if span.get("sentry_tags", {}).get("platform") == "php":
-            span_data = span.get("data", {})
-            event_traces = span_data.get("event.trace", []) if span_data else []
-            has_zf1_framework = any(
-                [trace.get("function", "").startswith("Zend_") for trace in event_traces]
-            )
-            if has_zf1_framework:
-                return False
+            span_data = span.get("data")
+            if span_data:
+                event_traces = span_data.get("event.trace", [])
+                if isinstance(event_traces, list) and any(
+                    trace.get("function", "").startswith("Zend_") for trace in event_traces
+                ):
+                    return False
         return True
 
     @classmethod
