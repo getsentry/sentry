@@ -1,12 +1,6 @@
 import {Fragment} from 'react';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
@@ -289,7 +283,9 @@ describe('DropdownMenu', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
-    await waitForElementToBeRemoved(screen.queryByRole('menuitemradio'));
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    });
   });
 
   it('navigates to link on enter', async function () {
