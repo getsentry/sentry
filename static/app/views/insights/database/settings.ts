@@ -43,8 +43,6 @@ export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
 
 export const DEFAULT_DURATION_AGGREGATE: Aggregate = SpanFunction.AVG;
 
-export const CHART_HEIGHT = 160;
-
 export const COUNTER_GRANULARITIES = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '12h'],
