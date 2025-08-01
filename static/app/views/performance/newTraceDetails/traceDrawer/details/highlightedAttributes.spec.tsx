@@ -55,9 +55,9 @@ describe('getHighlightedSpanAttributes', () => {
           has_model: 'true',
           has_cost: 'false',
           span_operation: 'gen_ai.chat',
+          model: 'gpt-4',
         },
         extra: {
-          model: 'gpt-4',
           total_costs: '0',
           span_operation: 'gen_ai.chat',
           attributes,
