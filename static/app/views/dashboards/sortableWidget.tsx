@@ -98,6 +98,7 @@ function SortableWidget(props: Props) {
 
   const onWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+    // Override the widget queries to pass the temporary sort to the widget and expanded modal
     const widgetQueries = cloneDeep(widget.queries);
     if (widgetQueries[0]) widgetQueries[0].orderby = newOrderBy;
     setQueries(widgetQueries);
