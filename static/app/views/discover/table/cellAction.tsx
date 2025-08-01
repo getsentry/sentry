@@ -1,3 +1,4 @@
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -14,9 +15,12 @@ import {
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import type {TableColumn} from './types';
 
@@ -30,6 +34,7 @@ export enum Actions {
   EDIT_THRESHOLD = 'edit_threshold',
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
   OPEN_EXTERNAL_LINK = 'open_external_link',
+  OPEN_INTERNAL_LINK = 'open_internal_link',
 }
 
 export function updateQuery(
@@ -95,6 +100,7 @@ export function updateQuery(
       break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
+    case Actions.OPEN_INTERNAL_LINK:
       break;
     default:
       throw new Error(`Unknown action type. ${action}`);
@@ -182,6 +188,10 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   children?: React.ReactNode;
+  /**
+   * Any parsed out internal links that should be added to the menu as an option
+   */
+  to?: string;
 };
 
 function makeCellActions({
@@ -189,6 +199,7 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
+  to,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -224,9 +235,20 @@ function makeCellActions({
         label: itemLabel,
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
+        to: action === Actions.OPEN_INTERNAL_LINK ? to : undefined,
       });
     }
   }
+
+  if (to) {
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name, to));
+  }
+
+  if (isUrl(value)) {
+    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  }
+
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (
     !['duration', 'number', 'percentage'].includes(column.type) ||
@@ -271,15 +293,43 @@ function makeCellActions({
     );
   }
 
-  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
-
-  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-
   if (actions.length === 0) {
     return null;
   }
 
   return actions;
+}
+
+/**
+ * Provides the correct text for the dropdown menu based on the field.
+ * @param field column field name
+ */
+function getCellActionText(field: string, to?: string): string {
+  switch (field) {
+    case FieldKey.ID:
+    case FieldKey.TRACE:
+      return t('Open trace');
+    case FieldKey.PROJECT:
+    case 'project_id':
+    case 'project.id':
+      return t('Open project');
+    case FieldKey.RELEASE:
+      return t('View details');
+    case FieldKey.ISSUE:
+      return t('Open issue');
+    case FieldKey.REPLAY_ID:
+      return t('Open replay');
+    case SpanFields.SPAN_DESCRIPTION: {
+      // Some span description renderers have a project icon link instead
+      if (to?.includes('/projects/')) {
+        return t('Open project');
+      }
+      return t('Open summary');
+    }
+    default:
+      break;
+  }
+  return t('Open link');
 }
 
 /**
@@ -291,7 +341,7 @@ export enum ActionTriggerType {
   BOLD_HOVER = 'bold_hover',
 }
 
-type Props = React.PropsWithoutRef<CellActionsOpts> & {
+type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   triggerType?: ActionTriggerType;
 };
 
@@ -301,19 +351,40 @@ function CellAction({
   ...props
 }: Props) {
   const organization = useOrganization();
-  const {children, column} = props;
+  const {children, column, dataRow} = props;
+  const childRef = useRef<HTMLDivElement>(null);
+  const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   let filteredActions = allowActions;
-  if (!useCellActionsV2)
-    filteredActions = filteredActions?.filter(
-      action => action !== Actions.OPEN_EXTERNAL_LINK
-    );
+  if (useCellActionsV2 && filteredActions) {
+    filteredActions = [
+      ...filteredActions,
+      Actions.OPEN_INTERNAL_LINK,
+      Actions.OPEN_EXTERNAL_LINK,
+    ];
+  }
 
-  const cellActions = makeCellActions({...props, allowActions: filteredActions});
+  // Extract any internal links to add them to the dropdown menu
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const linkElements = childRef.current?.getElementsByTagName('a');
+
+      if (linkElements?.[0]) {
+        const href = linkElements[0].href;
+        if (href !== dataRow[column.key]) setTarget(stripURLOrigin(href));
+      }
+    });
+  }, [column.key, dataRow]);
+
+  const cellActions = makeCellActions({
+    ...props,
+    allowActions: filteredActions,
+    to: target,
+  });
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
@@ -338,11 +409,21 @@ function CellAction({
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTriggerV2 {...triggerProps} aria-label={t('Actions')}>
-                {children}
+              <ActionMenuTriggerV2
+                {...triggerProps}
+                aria-label={t('Actions')}
+                onClickCapture={e => {
+                  // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
+                  if (e.metaKey || e.shiftKey || e.ctrlKey) {
+                    e.stopPropagation();
+                  } else {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <div ref={childRef}> {children}</div>
               </ActionMenuTriggerV2>
             )}
-            // So the menu doesn't fill the entire row which can lead to extremely wide menus
             minMenuWidth={0}
           />
         ) : (
@@ -350,6 +431,7 @@ function CellAction({
         )}
       </Container>
     );
+  }
 
   return (
     <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
