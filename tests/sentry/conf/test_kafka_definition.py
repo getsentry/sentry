@@ -52,7 +52,7 @@ class ConsumersDefinitionTest(TestCase):
             validate_consumer_definition(definition)
 
 
-def test_get_topic_codec():
+def test_get_topic_codec() -> None:
     """Test that get_topic_codec works with Topic enum values."""
     # Test with a known topic
     codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)

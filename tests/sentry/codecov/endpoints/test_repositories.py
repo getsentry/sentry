@@ -1,9 +1,9 @@
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.urls import reverse
 
-from sentry.codecov.endpoints.Repositories.serializers import (
+from sentry.codecov.endpoints.repositories.serializers import (
     RepositoryNodeSerializer as NodeSerializer,
 )
 from sentry.constants import ObjectStatus
@@ -54,9 +54,9 @@ mock_graphql_response_empty: dict[str, Any] = {
 
 
 class RepositoriesEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-repositories"
+    endpoint_name = "sentry-api-0-repositories"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -71,15 +71,17 @@ class RepositoriesEndpointTest(APITestCase):
     def reverse_url(self, owner="testowner"):
         """Custom reverse URL method to handle required URL parameters"""
         return reverse(
-            self.endpoint,
+            self.endpoint_name,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "owner": self.integration.id,
             },
         )
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
-    def test_get_returns_mock_response_with_default_variables(self, mock_codecov_client_class):
+    @patch("sentry.codecov.endpoints.repositories.repositories.CodecovApiClient")
+    def test_get_returns_mock_response_with_default_variables(
+        self, mock_codecov_client_class: MagicMock
+    ) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_populated
@@ -124,8 +126,8 @@ class RepositoriesEndpointTest(APITestCase):
             response_keys == serializer_fields
         ), f"Response keys {response_keys} don't match serializer fields {serializer_fields}"
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
-    def test_get_with_query_parameters(self, mock_codecov_client_class):
+    @patch("sentry.codecov.endpoints.repositories.repositories.CodecovApiClient")
+    def test_get_with_query_parameters(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty
@@ -157,8 +159,8 @@ class RepositoriesEndpointTest(APITestCase):
         assert call_args[1]["variables"] == expected_variables
         assert response.status_code == 200
 
-    @patch("sentry.codecov.endpoints.Repositories.repositories.CodecovApiClient")
-    def test_get_with_cursor_and_direction(self, mock_codecov_client_class):
+    @patch("sentry.codecov.endpoints.repositories.repositories.CodecovApiClient")
+    def test_get_with_cursor_and_direction(self, mock_codecov_client_class: MagicMock) -> None:
         mock_codecov_client_instance = Mock()
         mock_response = Mock()
         mock_response.json.return_value = mock_graphql_response_empty

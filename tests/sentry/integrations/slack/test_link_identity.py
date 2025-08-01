@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from slack_sdk.errors import SlackApiError
@@ -14,7 +14,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -118,7 +118,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert self.mock_post.call_count == 1
 
     @patch("sentry.integrations.slack.utils.notifications._logger")
-    def test_basic_flow_with_web_client_error(self, mock_logger):
+    def test_basic_flow_with_web_client_error(self, mock_logger: MagicMock) -> None:
         """No response URL is provided, so we use WebClient."""
         self.mock_post.side_effect = SlackApiError("", response={"ok": False})
 
@@ -160,7 +160,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
 @control_silo_test
 class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.unlinking_url = build_unlinking_url(

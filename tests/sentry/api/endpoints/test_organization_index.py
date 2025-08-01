@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from django.urls import reverse
@@ -26,7 +26,7 @@ from sentry.users.models.authenticator import Authenticator
 class OrganizationIndexTest(APITestCase):
     endpoint = "sentry-api-0-organizations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -222,7 +222,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.backend.is_limited",
         return_value=False,
     )
-    def test_name_slugify(self, is_limited):
+    def test_name_slugify(self, is_limited: MagicMock) -> None:
         response = self.get_success_response(name="---foo")
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug == "foo"
@@ -351,7 +351,7 @@ class OrganizationsCreateInRegionTest(OrganizationIndexTest, HybridCloudTestMixi
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_2fa = self.create_organization(owner=self.create_user())
         self.enable_org_2fa(self.org_2fa)
         self.no_2fa_user = self.create_user()

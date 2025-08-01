@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
@@ -14,7 +14,7 @@ from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 
 @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
 class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
@@ -60,7 +60,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         assert call_kwargs["artifact_id"] == str(artifact_id or self.preprod_artifact.id)
 
     @patch("sentry.analytics.record")
-    def test_assemble_size_analysis_success(self, mock_analytics):
+    def test_assemble_size_analysis_success(self, mock_analytics: MagicMock) -> None:
         blobs = self._create_blobs()
         checksum = "a" * 40
         data = {
@@ -91,7 +91,7 @@ class ProjectPreprodArtifactAssembleGenericEndpointTest(TestCase):
         self._assert_task_called_with(mock_task, checksum, [b.checksum for b in blobs])
 
     @patch("sentry.analytics.record")
-    def test_assemble_installable_app_success(self, mock_analytics):
+    def test_assemble_installable_app_success(self, mock_analytics: MagicMock) -> None:
         blobs = self._create_blobs()
         checksum = "a" * 40
         data = {

@@ -289,6 +289,10 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="io.sentry.graphql.SentryInstrumentation",
                     function_pattern="lambda$instrumentExecutionResult$0",
                 ),
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.graphql.SentryGraphqlInstrumentation",
+                    function_pattern="instrumentExecutionResultComplete",
+                ),
             },
         )
         configs.append(java_config)

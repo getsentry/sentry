@@ -209,7 +209,7 @@ def test_process_event_unprocessed(
 
 
 @django_db_all
-def test_hash_discarded_raised(default_project, mock_refund, register_plugin):
+def test_hash_discarded_raised(default_project, mock_refund, register_plugin) -> None:
     register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
@@ -297,7 +297,7 @@ def test_scrubbing_after_processing(
 
 
 @django_db_all
-def test_killswitch():
+def test_killswitch() -> None:
     assert not is_process_disabled(1, "asdasdasd", "null")
     options.set("store.load-shed-process-event-projects-gradual", {1: 0.0})
     assert not is_process_disabled(1, "asdasdasd", "null")
@@ -307,7 +307,9 @@ def test_killswitch():
 
 
 @django_db_all
-def test_transactions_store(default_project, register_plugin, mock_transaction_processing_store):
+def test_transactions_store(
+    default_project, register_plugin, mock_transaction_processing_store
+) -> None:
     register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {

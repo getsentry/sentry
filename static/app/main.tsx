@@ -11,11 +11,9 @@ import {routes} from 'sentry/routes';
 import {SentryTrackingProvider} from 'sentry/tracking';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 
-import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
-
 function buildRouter() {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
-  const router = sentryCreateBrowserRouter(buildReactRouter6Routes(routes()));
+  const router = sentryCreateBrowserRouter(routes());
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
 
   return router;

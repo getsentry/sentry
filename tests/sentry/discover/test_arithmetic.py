@@ -41,7 +41,7 @@ op_map = {
         (1.2345, "÷", 6.7890),
     ],
 )
-def test_simple_arithmetic(a, op, b):
+def test_simple_arithmetic(a, op, b) -> None:
     equation = f"{a}{op}{b}"
     result, _, _ = parse_arithmetic(equation)
     assert result.operator == op_map[op.strip()], equation
@@ -66,7 +66,7 @@ def test_simple_arithmetic(a, op, b):
         ("12", "÷", "34", "÷", "56"),
     ],
 )
-def test_homogenous_arithmetic(a, op1, b, op2, c):
+def test_homogenous_arithmetic(a, op1, b, op2, c) -> None:
     """Test that literal order of ops is respected assuming we don't have to worry about BEDMAS"""
     equation = f"{a}{op1}{b}{op2}{c}"
     result, _, _ = parse_arithmetic(equation)
@@ -78,7 +78,7 @@ def test_homogenous_arithmetic(a, op1, b, op2, c):
     assert result.rhs == float(c), equation
 
 
-def test_mixed_arithmetic():
+def test_mixed_arithmetic() -> None:
     result, _, _ = parse_arithmetic("12 + 34 * 56")
     assert result.operator == "plus"
     assert result.lhs == 12.0
@@ -96,7 +96,7 @@ def test_mixed_arithmetic():
     assert result.rhs == 56.0
 
 
-def test_four_terms():
+def test_four_terms() -> None:
     result, _, _ = parse_arithmetic("1 + 2 / 3 * 4")
     assert result.operator == "plus"
     assert result.lhs == 1.0
@@ -109,7 +109,7 @@ def test_four_terms():
     assert result.rhs.rhs == 4.0
 
 
-def test_brackets_with_two_inner_terms():
+def test_brackets_with_two_inner_terms() -> None:
     result, _, _ = parse_arithmetic("(1 + 2) / (3 - 4)")
     assert result.operator == "divide"
     assert isinstance(result.lhs, Operation)
@@ -122,7 +122,7 @@ def test_brackets_with_two_inner_terms():
     assert result.rhs.rhs == 4.0
 
 
-def test_brackets_with_three_inner_terms():
+def test_brackets_with_three_inner_terms() -> None:
     result, _, _ = parse_arithmetic("(1 + 2 + 3) / 4")
     assert result.operator == "divide"
     assert isinstance(result.lhs, Operation)
@@ -134,7 +134,7 @@ def test_brackets_with_three_inner_terms():
     assert result.rhs == 4.0
 
 
-def test_brackets_with_four_inner_terms():
+def test_brackets_with_four_inner_terms() -> None:
     result, _, _ = parse_arithmetic("(1 + 2 / 3 * 4)")
     assert result.operator == "plus"
     assert result.lhs == 1.0
@@ -163,7 +163,7 @@ def test_brackets_with_four_inner_terms():
         ("12", "÷", "34", "*", "56", "÷", "78"),
     ],
 )
-def test_homogenous_four_terms(a, op1, b, op2, c, op3, d):
+def test_homogenous_four_terms(a, op1, b, op2, c, op3, d) -> None:
     """This basically tests flatten in the ArithmeticVisitor
 
     flatten only kicks in when its a chain of the same operator type
@@ -181,7 +181,7 @@ def test_homogenous_four_terms(a, op1, b, op2, c, op3, d):
     assert result.rhs == float(d), equation
 
 
-def test_max_operators():
+def test_max_operators() -> None:
     with pytest.raises(MaxOperatorError):
         parse_arithmetic("1 + 2 * 3 * 4", 2)
 
@@ -197,7 +197,7 @@ def test_max_operators():
         (3.1415, "+", "spans.resource"),
     ],
 )
-def test_field_values(a, op, b):
+def test_field_values(a, op, b) -> None:
     for with_brackets in [False, True]:
         equation = f"{a}{op}{b}"
         if with_brackets:
@@ -230,7 +230,7 @@ def test_field_values(a, op, b):
         (100, "-", 'count_if(some_tag,notEquals,"something(really)annoying,like\\"this\\"")'),
     ],
 )
-def test_function_values(lhs, op, rhs):
+def test_function_values(lhs, op, rhs) -> None:
     for with_brackets in [False, True]:
         equation = f"{lhs}{op}{rhs}"
         if with_brackets:
@@ -264,7 +264,7 @@ def test_function_values(lhs, op, rhs):
         "+",
     ],
 )
-def test_unparseable_arithmetic(equation):
+def test_unparseable_arithmetic(equation) -> None:
     with pytest.raises(ArithmeticParseError):
         parse_arithmetic(equation)
 
@@ -287,6 +287,6 @@ def test_unparseable_arithmetic(equation):
         "(measurements.lcp)",
     ],
 )
-def test_invalid_arithmetic(equation):
+def test_invalid_arithmetic(equation) -> None:
     with pytest.raises(ArithmeticValidationError):
         parse_arithmetic(equation, validate_single_operator=True)

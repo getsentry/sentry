@@ -9,7 +9,7 @@ from sentry.utils.services import LazyServiceWrapper
 @override_settings(
     SENTRY_TRANSACTION_PROCESSING_STORE=None, SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS={}
 )
-def test_transaction_datastore_defaults_to_event_store():
+def test_transaction_datastore_defaults_to_event_store() -> None:
     assert isinstance(transaction_processing_store, LazyServiceWrapper)
 
     assert transaction_processing_store._backend == event_processing_store._backend

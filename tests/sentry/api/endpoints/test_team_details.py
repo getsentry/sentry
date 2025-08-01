@@ -12,7 +12,7 @@ from sentry.testutils.outbox import outbox_runner
 class TeamDetailsTestBase(APITestCase):
     endpoint = "sentry-api-0-team-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 

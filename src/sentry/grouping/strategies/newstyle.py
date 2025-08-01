@@ -469,6 +469,12 @@ def _single_stacktrace_variant(
         exception_data=context["exception_data"],
     )
 
+    # This context value is set by the grouping info endpoint, so that the frame order of the
+    # stacktraces we show in the issue details page's grouping info section matches the frame order
+    # of the main stacktraces on the page.
+    if context.get("reverse_stacktraces"):
+        stacktrace_component.reverse_when_serializing = True
+
     # TODO: Ideally this hint would get set by the rust enhancer. Right now the only stacktrace
     # component hint it sets is one about ignoring stacktraces with contributing frames because the
     # number of contributing frames isn't big enough. In that case it also sets `contributes` to
@@ -511,7 +517,6 @@ def single_exception(
     type_component = ErrorTypeGroupingComponent(
         values=[exception.type] if exception.type else [],
     )
-    system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
@@ -521,9 +526,7 @@ def single_exception(
             # actually carry any meaning with respect to what went wrong. (Synthetic exceptions
             # are dummy excepttions created by the SDK in order to harvest a stacktrace.)
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
-            system_type_component.update(
-                contributes=False, hint="ignored because exception is synthetic"
-            )
+
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = NSErrorGroupingComponent(
                 values=[
@@ -553,10 +556,7 @@ def single_exception(
             | ErrorValueGroupingComponent
             | NSErrorGroupingComponent
             | StacktraceGroupingComponent
-        ] = [
-            stacktrace_component,
-            system_type_component if variant_name == "system" else type_component,
-        ]
+        ] = [stacktrace_component, type_component]
 
         if ns_error_component is not None:
             values.append(ns_error_component)
@@ -657,10 +657,18 @@ def chained_exception(
         for exception_component in variant_exception_components:
             total_frame_counts += exception_component.frame_counts
 
-        chained_exception_components_by_variant[variant_name] = ChainedExceptionGroupingComponent(
+        chained_exception_component = ChainedExceptionGroupingComponent(
             values=variant_exception_components,
             frame_counts=total_frame_counts,
         )
+
+        # This context value is set by the grouping info endpoint, so that the exception order of
+        # the chained exceptions we show in the in the issue details page's grouping info section
+        # matches the exception order of the main stacktraces on the page.
+        if context.get("reverse_stacktraces"):
+            chained_exception_component.reverse_when_serializing = True
+
+        chained_exception_components_by_variant[variant_name] = chained_exception_component
 
     return chained_exception_components_by_variant
 

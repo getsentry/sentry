@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -19,7 +19,7 @@ from . import FireTest
 @freeze_time()
 class DiscordActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.spec = DiscordMessagingSpec()
         self.handler = MessagingActionHandler(self.spec)
         self.guild_id = "guild-id"
@@ -106,7 +106,9 @@ class DiscordActionHandlerTest(FireTest):
     @responses.activate
     @patch("sentry.integrations.discord.client.DiscordClient.send_message", side_effect=Exception)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_metric_alert_failure(self, mock_record_event, mock_send_message):
+    def test_metric_alert_failure(
+        self, mock_record_event: MagicMock, mock_send_message: MagicMock
+    ) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         metric_value = 1000
@@ -126,7 +128,9 @@ class DiscordActionHandlerTest(FireTest):
         side_effect=ApiRateLimitedError(text="Rate limited"),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_metric_alert_halt_for_rate_limited(self, mock_record_event, mock_send_message):
+    def test_metric_alert_halt_for_rate_limited(
+        self, mock_record_event: MagicMock, mock_send_message: MagicMock
+    ) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         metric_value = 1000
@@ -149,7 +153,9 @@ class DiscordActionHandlerTest(FireTest):
         ),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_metric_alert_halt_for_missing_access(self, mock_record_event, mock_send_message):
+    def test_metric_alert_halt_for_missing_access(
+        self, mock_record_event: MagicMock, mock_send_message: MagicMock
+    ) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         metric_value = 1000
@@ -169,7 +175,9 @@ class DiscordActionHandlerTest(FireTest):
         side_effect=ApiError(code=400, text="Bad request"),
     )
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_metric_alert_halt_for_other_api_error(self, mock_record_event, mock_send_message):
+    def test_metric_alert_halt_for_other_api_error(
+        self, mock_record_event: MagicMock, mock_send_message: MagicMock
+    ) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         metric_value = 1000

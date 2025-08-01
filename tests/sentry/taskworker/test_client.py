@@ -106,7 +106,7 @@ class MockGrpcError(grpc.RpcError):
 
 
 @django_db_all
-def test_get_task_ok():
+def test_get_task_ok() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -134,7 +134,7 @@ def test_get_task_ok():
 
 @django_db_all
 @override_settings(TASKWORKER_SHARED_SECRET='["a long secret value","notused"]')
-def test_get_task_with_interceptor():
+def test_get_task_with_interceptor() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -167,7 +167,7 @@ def test_get_task_with_interceptor():
 
 
 @django_db_all
-def test_get_task_with_namespace():
+def test_get_task_with_namespace() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -194,7 +194,7 @@ def test_get_task_with_namespace():
 
 
 @django_db_all
-def test_get_task_not_found():
+def test_get_task_not_found() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -209,7 +209,7 @@ def test_get_task_not_found():
 
 
 @django_db_all
-def test_get_task_failure():
+def test_get_task_failure() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -223,7 +223,7 @@ def test_get_task_failure():
 
 
 @django_db_all
-def test_update_task_ok_with_next():
+def test_update_task_ok_with_next() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
@@ -253,7 +253,7 @@ def test_update_task_ok_with_next():
 
 
 @django_db_all
-def test_update_task_ok_with_next_namespace():
+def test_update_task_ok_with_next_namespace() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
@@ -286,7 +286,7 @@ def test_update_task_ok_with_next_namespace():
 
 
 @django_db_all
-def test_update_task_ok_no_next():
+def test_update_task_ok_no_next() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus", SetTaskStatusResponse()
@@ -307,7 +307,7 @@ def test_update_task_ok_no_next():
 
 
 @django_db_all
-def test_update_task_not_found():
+def test_update_task_not_found() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
@@ -329,7 +329,7 @@ def test_update_task_not_found():
 
 
 @django_db_all
-def test_update_task_unavailable_retain_task_to_host():
+def test_update_task_unavailable_retain_task_to_host() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
@@ -352,7 +352,7 @@ def test_update_task_unavailable_retain_task_to_host():
 
 
 @django_db_all
-def test_client_loadbalance():
+def test_client_loadbalance() -> None:
     channel_0 = MockChannel()
     channel_0.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -474,7 +474,7 @@ def test_client_loadbalance():
 
 
 @django_db_all
-def test_client_loadbalance_on_notfound():
+def test_client_loadbalance_on_notfound() -> None:
     channel_0 = MockChannel()
     channel_0.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -550,7 +550,7 @@ def test_client_loadbalance_on_notfound():
 
 
 @django_db_all
-def test_client_loadbalance_on_unavailable():
+def test_client_loadbalance_on_unavailable() -> None:
     channel_0 = MockChannel()
     channel_0.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -613,7 +613,7 @@ def test_client_loadbalance_on_unavailable():
 
 
 @django_db_all
-def test_client_single_host_unavailable():
+def test_client_single_host_unavailable() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -664,7 +664,7 @@ def test_client_single_host_unavailable():
 
 
 @django_db_all
-def test_client_reset_errors_after_success():
+def test_client_reset_errors_after_success() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -708,7 +708,7 @@ def test_client_reset_errors_after_success():
 
 
 @django_db_all
-def test_client_update_task_host_unavailable():
+def test_client_update_task_host_unavailable() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",

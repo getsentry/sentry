@@ -5,6 +5,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
@@ -17,34 +18,33 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
-import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
+import {
+  NO_REPLAY_SUMMARY_MESSAGES,
+  ReplaySummaryStatus,
+} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
-
-import {useFetchReplaySummary} from './useFetchReplaySummary';
 
 export default function Ai() {
   const organization = useOrganization();
+  const {
+    areAiFeaturesAllowed,
+    setupAcknowledgement,
+    isPending: isOrgSeerSetupPending,
+  } = useOrganizationSeerSetup();
+
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
+  const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+
   const {
-    data: summaryData,
-    isPending,
+    summaryData,
+    isPending: isSummaryPending,
+    isPolling,
     isError,
-    isRefetching,
-    refetch,
-  } = useFetchReplaySummary({
-    staleTime: 0,
-    enabled: Boolean(
-      replayRecord?.id &&
-        project?.slug &&
-        organization.features.includes('replay-ai-summaries') &&
-        areAiFeaturesAllowed &&
-        setupAcknowledgement.orgHasAcknowledged
-    ),
-    retry: false,
-  });
+    startSummaryRequest,
+  } = useReplaySummaryContext();
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
@@ -58,7 +58,8 @@ export default function Ai() {
     );
   }
 
-  if (isPending || isRefetching) {
+  // check for org seer setup first before attempting to fetch summary
+  if (isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -94,6 +95,23 @@ export default function Ai() {
     );
   }
 
+  // checking this prevents initial flicker
+  const summaryNotComplete =
+    summaryData?.status &&
+    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
+      summaryData?.status
+    );
+
+  if (isSummaryPending || isPolling || summaryNotComplete) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      </Wrapper>
+    );
+  }
+
   if (replayRecord?.project_id && !project) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -116,7 +134,7 @@ export default function Ai() {
     );
   }
 
-  if (!summaryData) {
+  if (!summaryData?.data) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
@@ -160,7 +178,7 @@ export default function Ai() {
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
-            <Badge type="internal">{t('Internal')}</Badge>
+            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
@@ -174,7 +192,7 @@ export default function Ai() {
             type="button"
             size="xs"
             onClick={() => {
-              refetch();
+              startSummaryRequest();
               trackAnalytics('replay.ai-summary.regenerate-requested', {
                 organization,
               });
@@ -187,7 +205,14 @@ export default function Ai() {
       </Summary>
       <StyledTabItemContainer>
         <OverflowBody>
-          <ChapterList summaryData={summaryData} />
+          <ChapterList timeRanges={summaryData.data.time_ranges} />
+          {segmentCount > 100 && (
+            <Subtext>
+              {t(
+                'Note: this replay is too long, so we currently only summarize part of it.'
+              )}
+            </Subtext>
+          )}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
@@ -310,4 +335,12 @@ const CallToActionContainer = styled('div')`
   padding: ${space(2)};
   align-items: center;
   text-align: center;
+`;
+
+const Subtext = styled(Text)`
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
+  display: flex;
+  justify-content: center;
 `;

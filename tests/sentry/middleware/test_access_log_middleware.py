@@ -17,6 +17,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.snuba import RateLimitExceeded
 
 
 class DummyEndpoint(Endpoint):
@@ -31,6 +32,20 @@ class DummyFailEndpoint(Endpoint):
 
     def get(self, request):
         raise Exception("this is bad yo")
+
+
+class SnubaRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        raise RateLimitExceeded(
+            "Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
+            policy="ConcurrentRateLimitAllocationPolicy",
+            quota_used=41,
+            rejection_threshold=40,
+            quota_unit="no_units",
+            storage_key="test_storage_key",
+        )
 
 
 class RateLimitedEndpoint(Endpoint):
@@ -83,6 +98,9 @@ urlpatterns = [
     re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
     re_path(r"^api/0/internal/test$", DummyEndpoint.as_view(), name="internal-dummy-endpoint"),
     re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
+    re_path(
+        r"^snubaratelimit$", SnubaRateLimitedEndpoint.as_view(), name="snuba-ratelimit-endpoint"
+    ),
     re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
     re_path(
         r"^/dummyratelimitconcurrent$",
@@ -129,6 +147,11 @@ access_log_fields = (
     "reset_time",
     "limit",
     "remaining",
+    "snuba_policy",
+    "snuba_quota_unit",
+    "snuba_storage_key",
+    "snuba_quota_used",
+    "snuba_rejection_threshold",
 )
 
 
@@ -152,6 +175,34 @@ class LogCaptureAPITestCase(APITestCase):
     def get_tested_log(self, **kwargs):
         tested_log_path = unquote(reverse(self.endpoint, **kwargs))
         return next(log for log in self.captured_logs if log.path == tested_log_path)
+
+
+@all_silo_test
+class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
+    endpoint = "snuba-ratelimit-endpoint"
+
+    def test_access_log_snuba_rate_limited(self) -> None:
+        """Test that Snuba rate limits are properly logged by access log middleware."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.get_error_response(status_code=429)
+        self.assert_access_log_recorded()
+
+        assert self.captured_logs[0].rate_limit_type == "RateLimitType.SNUBA"
+        assert self.captured_logs[0].rate_limited == "True"
+
+        # All the types from the standard rate limit metadata should not be set
+        assert self.captured_logs[0].remaining == "None"
+        assert self.captured_logs[0].concurrent_limit == "None"
+        assert self.captured_logs[0].concurrent_requests == "None"
+        assert self.captured_logs[0].limit == "None"
+        assert self.captured_logs[0].reset_time == "None"
+
+        # Snuba rate limit specific fields should be set
+        assert self.captured_logs[0].snuba_policy == "ConcurrentRateLimitAllocationPolicy"
+        assert self.captured_logs[0].snuba_quota_unit == "no_units"
+        assert self.captured_logs[0].snuba_storage_key == "test_storage_key"
+        assert self.captured_logs[0].snuba_quota_used == "41"
+        assert self.captured_logs[0].snuba_rejection_threshold == "40"
 
 
 @all_silo_test
@@ -261,7 +312,7 @@ class TestAccessLogFail(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     def test_org_id_populated(self) -> None:
@@ -285,7 +336,7 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-members"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     def test_org_id_populated(self) -> None:

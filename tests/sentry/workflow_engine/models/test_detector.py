@@ -4,7 +4,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DetectorTest(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.detector = self.create_detector()
 
     def test_queryset(self) -> None:

@@ -14,7 +14,7 @@ import {
   QueryClientProvider,
 } from 'sentry/utils/queryClient';
 
-import {routes6} from 'admin/routes';
+import {routes} from 'admin/routes';
 
 export function init(config: Config) {
   initializeSdk(config);
@@ -28,7 +28,7 @@ export function init(config: Config) {
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
 const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
-const router = sentryCreateBrowserRouter(routes6);
+const router = sentryCreateBrowserRouter(routes);
 
 DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
 

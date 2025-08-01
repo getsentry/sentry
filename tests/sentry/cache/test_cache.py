@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.cache = cache
         self.cache_key = "test-key"
         self.cache_val = "test-val"

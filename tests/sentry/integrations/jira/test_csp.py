@@ -7,7 +7,7 @@ from sentry.utils.http import absolute_uri
 
 
 class JiraCSPTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.issue_key = "APP-123"
         self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"

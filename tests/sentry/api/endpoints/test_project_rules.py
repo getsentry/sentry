@@ -28,7 +28,7 @@ from sentry.users.models.user import User
 class ProjectRuleBaseTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rules"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.rule = self.create_project_rule(project=self.project)
         self.slack_integration = install_slack(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
@@ -118,6 +118,21 @@ class GetMaxAlertsTest(ProjectRuleBaseTestCase):
     def test_get_max_alerts_slow_with_group_processing(self) -> None:
         result = get_max_alerts(self.project, "slow")
         assert result == 1
+
+
+class GetProjectRulesTest(ProjectRuleBaseTestCase):
+    method = "get"
+
+    def test_simple(self) -> None:
+        # attaches lastTriggered by default
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert len(response.data) == Rule.objects.filter(project=self.project).count()
+        for rule in response.data:
+            assert "lastTriggered" in rule
 
 
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):

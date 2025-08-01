@@ -1,18 +1,20 @@
 import uuid
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 import sentry
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -76,7 +78,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
             assert len(mail.outbox) == USER_COUNT
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule(project=self.project)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
@@ -91,7 +93,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
     @patch("sentry.analytics.record")
     @patch("sentry.notifications.notifications.digest.logger")
-    def test_sends_digest_to_every_member(self, mock_logger, mock_record):
+    def test_sends_digest_to_every_member(
+        self, mock_logger: MagicMock, mock_record: MagicMock
+    ) -> None:
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -117,15 +121,18 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             group_id=None,
             user_id=ANY,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=self.rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=str(self.rule.id),
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
         mock_logger.info.assert_called_with(
             "mail.adapter.notify_digest",
@@ -155,7 +162,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification_block(self, digests):
+    def test_slack_digest_notification_block(self, digests: MagicMock) -> None:
         """
         Test that with digests and block kkit enabled, but Slack notification settings
         (and not email settings), we send a properly formatted Slack notification

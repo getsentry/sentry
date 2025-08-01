@@ -26,7 +26,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
             status=status,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.monitor = self._create_monitor()

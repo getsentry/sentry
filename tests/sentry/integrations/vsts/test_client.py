@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import time
 from typing import TypedDict
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 from urllib.parse import parse_qs, quote_plus
 
 import orjson
@@ -261,7 +261,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         side_effect=ApiUnauthorized(text="Unauthorized"),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_check_file_unauthorized(self, mock_record_event, mock_check_file):
+    def test_check_file_unauthorized(
+        self, mock_record_event: MagicMock, mock_check_file: MagicMock
+    ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -385,7 +387,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         ),
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_stacktrace_link_identity_deleted(self, mock_record, mock_check_file):
+    def test_get_stacktrace_link_identity_deleted(
+        self, mock_record: MagicMock, mock_check_file: MagicMock
+    ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
         with assume_test_silo_mode(SiloMode.REGION):
@@ -432,7 +436,7 @@ def assert_proxy_request(request, is_proxy=True):
 
 
 class VstsProxyApiClientTest(VstsIntegrationTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration, _, _, _ = self.create_identity_integration(
             user=self.user,

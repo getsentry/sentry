@@ -10,7 +10,7 @@ def full_rebalancing_model():
     return model_factory(ModelType.FULL_REBALANCING)
 
 
-def test_run_with_exception(full_rebalancing_model):
+def test_run_with_exception(full_rebalancing_model) -> None:
     with pytest.raises(InvalidModelInputError):
         full_rebalancing_model.run(
             FullRebalancingInput(

@@ -170,9 +170,9 @@ function LogDetails() {
       disableCollapsePersistence
     >
       {hasInfiniteFeature ? (
-        <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+        <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
       ) : (
-        <LogsTable showHeader={false} />
+        <LogsTable embedded />
       )}
     </FoldSection>
   );
@@ -471,7 +471,9 @@ function EAPSpanNodeDetails({
                       project={project}
                     />
 
-                    {isTransaction ? <Contexts event={eventTransaction} /> : null}
+                    {isTransaction ? (
+                      <Contexts event={eventTransaction} project={project} />
+                    ) : null}
 
                     <LogDetails />
 

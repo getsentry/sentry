@@ -35,7 +35,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -685,7 +685,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
 
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
@@ -2661,11 +2661,92 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["queries"][0]["fields"] == ["issue", "title"]
         assert response.data["widgets"][0]["widgetType"] == "issue"
 
+    def test_dashboard_transaction_widget_deprecation_with_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "title": "Test Dashboard",
+                "widgets": [
+                    {
+                        "title": "Transaction Widget",
+                        "displayType": "table",
+                        "widgetType": DashboardWidgetTypes.get_type_name(
+                            DashboardWidgetTypes.TRANSACTION_LIKE
+                        ),
+                        "queries": [
+                            {
+                                "name": "Transaction Widget",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "-count()",
+                                "columns": [],
+                                "fieldAliases": [],
+                            }
+                        ],
+                    }
+                ],
+            }
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400
+            assert (
+                response.data["widgets"][0]["widgetType"][0]
+                == "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+            )
+
+    def test_dashboard_exisiting_transaction_widget_deprecation_with_flag(self) -> None:
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            data = {
+                "title": "Test Dashboard",
+                "widgets": [
+                    {
+                        "id": self.widget_1.id,
+                        "title": "Transaction Widget",
+                        "displayType": "table",
+                        "widgetType": DashboardWidgetTypes.get_type_name(
+                            DashboardWidgetTypes.TRANSACTION_LIKE
+                        ),
+                        "queries": [
+                            {
+                                "name": "Transaction Widget",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "-count()",
+                                "columns": [],
+                                "fieldAliases": [],
+                            }
+                        ],
+                    },
+                    {
+                        "title": "Error Widget",
+                        "displayType": "table",
+                        "widgetType": DashboardWidgetTypes.get_type_name(
+                            DashboardWidgetTypes.ERROR_EVENTS
+                        ),
+                        "queries": [
+                            {
+                                "name": "Error Widget",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "-count()",
+                                "columns": [],
+                                "fieldAliases": [],
+                            }
+                        ],
+                    },
+                ],
+            }
+            # should be able to add widget to dashboard with existing transaction widgets
+
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 200
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
@@ -2799,7 +2880,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=0)
-    def test_ondemand_hits_spec_limit(self, mock_max):
+    def test_ondemand_hits_spec_limit(self, mock_max: mock.MagicMock) -> None:
         data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
@@ -2838,7 +2919,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "disabled:spec-limit"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_ondemand_hits_card_limit(self, mock_query):
+    def test_ondemand_hits_card_limit(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {
             "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
         }, [
@@ -2883,7 +2964,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "disabled:high-cardinality"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_ondemand_updates_existing_widget(self, mock_query):
+    def test_ondemand_updates_existing_widget(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -2967,7 +3048,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_ondemand_updates_new_widget(self, mock_query):
+    def test_ondemand_updates_new_widget(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -3051,7 +3132,7 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "enabled:creation"
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
-    def test_cardinality_precedence_over_feature_checks(self, mock_query):
+    def test_cardinality_precedence_over_feature_checks(self, mock_query: mock.MagicMock) -> None:
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
@@ -3091,7 +3172,9 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             assert current_version.extraction_state == "disabled:high-cardinality"
 
     @mock.patch("sentry.api.serializers.rest_framework.dashboard.get_current_widget_specs")
-    def test_cardinality_skips_non_discover_widget_types(self, mock_get_specs):
+    def test_cardinality_skips_non_discover_widget_types(
+        self, mock_get_specs: mock.MagicMock
+    ) -> None:
         widget = {
             "title": "issues widget",
             "displayType": "table",
@@ -3274,7 +3357,7 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
 
 
 class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Create two additional users
         self.user_1 = self.create_user(email="user1@example.com")
@@ -3345,7 +3428,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
         with self.feature(self.features):
             return super().do_request(*args, **kwargs)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Create two additional users
         self.user_1 = self.create_user(email="user1@example.com")

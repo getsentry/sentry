@@ -360,7 +360,7 @@ def get_detector(
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             source_id=str(uptime_subscription.id),
         )
-        qs = Detector.objects.filter(
+        qs = Detector.objects_for_deletion.filter(
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, data_sources=data_source[:1]
         )
         select_related = ["project", "project__organization"]

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
@@ -51,7 +51,7 @@ class MockConditionTrue(EventCondition):
 
 @mock_redis_buffer()
 class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         self.group_event = event.for_group(cast(Group, event.group))
 
@@ -681,7 +681,7 @@ class RuleProcessorTestFilters(TestCase):
         "tests.sentry.rules.processing.test_processor.MockFilterFalse",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         self.group_event = event.for_group(cast(Group, event.group))
 
@@ -842,7 +842,7 @@ class RuleProcessorTestFilters(TestCase):
             assert len(results) == 0
 
     @mock.patch("sentry.rules.processing.processor.logger")
-    def test_invalid_predicate(self, mock_logger):
+    def test_invalid_predicate(self, mock_logger: MagicMock) -> None:
         filter_data = {"id": "tests.sentry.rules.processing.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.group_event.project).delete()
@@ -954,7 +954,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].kwargs == {}
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_slack_title_link_notification_uuid(self, mock_post):
+    def test_slack_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
         action_data = [
@@ -984,7 +984,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
-    def test_msteams_title_link_notification_uuid(self, mock_post):
+    def test_msteams_title_link_notification_uuid(self, mock_post: MagicMock) -> None:
         """Test that the slack title link includes the notification uuid from apply function"""
         tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         integration = self.create_integration(
@@ -1026,7 +1026,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
     @patch("sentry.integrations.discord.message_builder.base.DiscordMessageBuilder._build")
-    def test_discord_title_link_notification_uuid(self, mock_build):
+    def test_discord_title_link_notification_uuid(self, mock_build: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization,
             external_id="1234567890",

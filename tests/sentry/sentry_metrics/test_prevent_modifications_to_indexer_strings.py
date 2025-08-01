@@ -10,7 +10,7 @@ MESSAGE = f"""{LOCKED_FILE} is locked.
 """
 
 
-def test_prevent_indexer_strings_modification():
+def test_prevent_indexer_strings_modification() -> None:
     with open(LOCKED_FILE, "rb") as f:
         digest = sha256(f.read()).hexdigest()
         assert LOCKED_DIGEST == digest, MESSAGE

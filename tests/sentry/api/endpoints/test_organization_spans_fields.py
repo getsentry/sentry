@@ -13,7 +13,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = False
     view = "sentry-api-0-organization-spans-fields"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -202,7 +202,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     is_eap = False
     view = "sentry-api-0-organization-spans-fields-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -815,7 +815,9 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         "sentry.api.endpoints.organization_spans_fields.SpanFieldValuesAutocompletionExecutor.execute",
         side_effect=InvalidSearchQuery,
     )
-    def test_invalid_query(self, mock_executor_1, mock_executor_2):
+    def test_invalid_query(
+        self, mock_executor_1: mock.MagicMock, mock_executor_2: mock.MagicMock
+    ) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         self.store_segment(
             self.project.id,

@@ -9,6 +9,7 @@ import GridEditable, {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -50,14 +51,14 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
-  'count_if(span.status,unknown)',
+  'count_if(span.status,equals,unknown)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -77,7 +78,7 @@ export function ToolsTable() {
         pathname,
         query: {
           ...previousQuery,
-          tableCursor: cursor,
+          toolsCursor: cursor,
         },
       },
       {replace: true, preventScrollReset: true}
@@ -85,6 +86,8 @@ export function ToolsTable() {
   };
 
   const {sortField, sortOrder} = useTableSortParams();
+
+  const cursor = decodeScalar(location.query?.toolsCursor);
 
   const toolsRequest = useSpans(
     {
@@ -94,15 +97,12 @@ export function ToolsTable() {
         'avg(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
-        'count_if(span.status,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
       limit: 10,
-      cursor:
-        typeof location.query.toolsCursor === 'string'
-          ? location.query.toolsCursor
-          : undefined,
+      cursor,
       keepPreviousData: true,
     },
     Referrer.TOOLS_TABLE
@@ -118,7 +118,7 @@ export function ToolsTable() {
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),
-      errors: Number(span['count_if(span.status,unknown)']),
+      errors: Number(span['count_if(span.status,equals,unknown)']),
     }));
   }, [toolsRequest.data]);
 
@@ -218,7 +218,7 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'count_if(span.status,unknown)':
+    case 'count_if(span.status,equals,unknown)':
       return (
         <ErrorCell
           value={dataRow.errors}

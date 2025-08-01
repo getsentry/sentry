@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
@@ -21,7 +21,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         "id": LatestReleaseFilter.id,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group_event.group)
         self.dc = self.create_data_condition(
@@ -150,12 +150,12 @@ class TestLatestReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch("sentry.search.utils.get_latest_release")
-    def test_release_does_not_exist(self, mock_get_latest_release):
+    def test_release_does_not_exist(self, mock_get_latest_release: MagicMock) -> None:
         mock_get_latest_release.side_effect = Release.DoesNotExist
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch.object(Release.objects, "get", return_value=None)
-    def test_no_release_object(self, mock_get):
+    def test_no_release_object(self, mock_get: MagicMock) -> None:
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",

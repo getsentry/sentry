@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class SharedGroupDetailsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(project=self.project)
         self.org_domain = f"{self.organization.slug}.testserver"
 

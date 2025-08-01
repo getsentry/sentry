@@ -19,11 +19,11 @@ import NumericDropdownFilter from 'sentry/components/replays/table/filters/numer
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
+import {IconNot} from 'sentry/icons';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconFire} from 'sentry/icons/iconFire';
-import {IconNot} from 'sentry/icons/iconNot';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
@@ -143,8 +143,16 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.browser;
-    if (name === null && version === null) {
-      return <IconNot size="xs" color="gray300" />;
+    if (!name && !version) {
+      return (
+        <DropdownContainer>
+          <Tooltip title={t('N/A')}>
+            <Flex justify="center" style={{width: '20px'}}>
+              <IconNot size="xs" color="gray300" />
+            </Flex>
+          </Tooltip>
+        </DropdownContainer>
+      );
     }
 
     const icon = generatePlatformIconName(
@@ -152,9 +160,12 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
+    const nameOrUnknown = name ?? t('Unknown');
+    const versionOrBlank = version ?? '';
+
     return (
       <DropdownContainer key="browser">
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
@@ -361,9 +372,12 @@ export const ReplayOSColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
+    const nameOrUnknown = name ?? t('Unknown');
+    const versionOrBlank = version ?? '';
+
     return (
       <DropdownContainer key="os">
-        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
+        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
@@ -421,7 +435,13 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
 
 export const ReplaySelectColumn: ReplayTableColumn = {
   Header: ({
-    listItemCheckboxState: {isAllSelected, deselectAll, knownIds, toggleSelected},
+    listItemCheckboxState: {
+      deselectAll,
+      isAllSelected,
+      knownIds,
+      selectedIds,
+      toggleSelected,
+    },
     replays,
   }) => {
     const organization = useOrganization();
@@ -435,13 +455,17 @@ export const ReplaySelectColumn: ReplayTableColumn = {
           checked={isAllSelected}
           disabled={knownIds.length === 0}
           onChange={() => {
-            if (isAllSelected === true) {
+            // If the replay is archived, don't include it in the selection
+            const eligibleIds = knownIds.filter(
+              id => !replays.find(r => r.id === id)?.is_archived
+            );
+
+            if (isAllSelected === true || selectedIds.length === eligibleIds.length) {
               deselectAll();
             } else {
-              // If the replay is archived, don't include it in the selection
-              toggleSelected(
-                knownIds.filter(id => !replays.find(r => r.id === id)?.is_archived)
-              );
+              // Make everything visible selected
+              const unselectedIds = eligibleIds.filter(id => !selectedIds.includes(id));
+              toggleSelected(unselectedIds);
             }
           }}
         />
@@ -560,7 +584,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
             size={24}
           />
           <SubText>
-            <Flex gap="xs" align="flex-start">
+            <Flex gap="xs" align="start">
               <DisplayName data-underline-on-hover>
                 {replay.user.display_name || t('Anonymous User')}
               </DisplayName>
@@ -629,7 +653,6 @@ const DropdownContainer = styled(Flex)`
   position: relative;
   flex-direction: column;
   justify-content: center;
-  flex-grow: 1;
 `;
 
 const SmallFont = styled('div')`

@@ -296,7 +296,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
 
 class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
@@ -373,7 +373,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.preprod_artifact = PreprodArtifact.objects.create(
             project=self.project, state=PreprodArtifact.ArtifactState.UPLOADED
@@ -403,7 +403,9 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         return status, details
 
     def test_assemble_preprod_artifact_size_analysis_success(self) -> None:
-        status, details = self._run_task_and_verify_status(b"test size analysis content")
+        status, details = self._run_task_and_verify_status(
+            b'{"download_size": 1000, "install_size": 2000}'
+        )
 
         assert status == ChunkFileState.OK
         assert details is None
@@ -432,7 +434,9 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
         )
 
-        status, details = self._run_task_and_verify_status(b"test size analysis update content")
+        status, details = self._run_task_and_verify_status(
+            b'{"download_size": 1000, "install_size": 2000}'
+        )
 
         assert status == ChunkFileState.OK
         assert details is None

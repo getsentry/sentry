@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 class APIOwnersTestCase(TestCase):
     teams: set[str] = set()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         code_owners_file = open(".github/CODEOWNERS")
         lines = code_owners_file.readlines()

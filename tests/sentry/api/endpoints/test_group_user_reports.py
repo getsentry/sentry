@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupUserReport(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.env1 = self.create_environment(self.project, name="production")

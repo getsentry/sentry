@@ -122,6 +122,10 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         if "__nextjs_original-stack-frame" in url:
             return False
 
+        # LaunchDarkly SDK calls are not useful
+        if "https://app.launchdarkly.com/sdk/" in url:
+            return False
+
         if not url:
             return False
 

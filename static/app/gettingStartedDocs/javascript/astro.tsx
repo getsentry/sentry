@@ -46,6 +46,12 @@ export default defineConfig({
           : `
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,`
+      }${
+        params.isLogsSelected
+          ? `
+      // Logs
+      enableLogs: true,`
+          : ''
       }
       // Setting this option to true will send default PII data to Sentry.
       // For example, automatic IP address collection on events
@@ -209,16 +215,31 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'astro-manual-setup',
-      name: t('Customize your SDK Setup'),
-      description: t(
-        'Learn how to further configure and customize your Sentry Astro SDK setup.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'astro-manual-setup',
+        name: t('Customize your SDK Setup'),
+        description: t(
+          'Learn how to further configure and customize your Sentry Astro SDK setup.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {

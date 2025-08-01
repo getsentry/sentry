@@ -43,7 +43,7 @@ def get_client():
 
 
 class RegionJiraIntegrationTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
@@ -922,7 +922,7 @@ class RegionJiraIntegrationTest(APITestCase):
 
 @control_silo_test
 class JiraIntegrationTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(self.user)
@@ -1249,7 +1249,7 @@ class JiraMigrationIntegrationTest(APITestCase):
         integration.add_organization(self.organization, self.user)
         return integration
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.plugin = JiraPlugin()
         self.plugin.set_option("enabled", True, self.project)
@@ -1361,7 +1361,7 @@ class JiraMigrationIntegrationTest(APITestCase):
 class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.metadata = {
             "oauth_client_id": "oauth-client-id",

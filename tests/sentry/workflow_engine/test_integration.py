@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
@@ -30,7 +30,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class BaseWorkflowIntegrationTest(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -201,7 +201,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 @mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.delay")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
-    def setUp(self):
+    def setUp(self) -> None:
         (
             self.workflow,
             self.detector,
@@ -272,7 +272,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_default_workflow(self, mock_trigger):
+    def test_default_workflow(self, mock_trigger: MagicMock) -> None:
         from sentry.models.group import GroupStatus
         from sentry.types.group import GroupSubStatus
 
@@ -327,7 +327,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(low_priority_event, is_new=True)
         assert not mock_trigger.called
 
-    def test_snoozed_workflow(self, mock_trigger):
+    def test_snoozed_workflow(self, mock_trigger: MagicMock) -> None:
         event_1 = self.create_error_event()
         self.post_process_error(event_1)
         mock_trigger.assert_called_once()
@@ -338,7 +338,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_2)
         assert not mock_trigger.called
 
-    def test_workflow_frequency(self, mock_trigger):
+    def test_workflow_frequency(self, mock_trigger: MagicMock) -> None:
         self.workflow.update(config={"frequency": 5})
         now = timezone.now()
 
@@ -358,7 +358,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_3)
             mock_trigger.assert_called_once()  # called again after 5 minutes
 
-    def test_workflow_environment(self, mock_trigger):
+    def test_workflow_environment(self, mock_trigger: MagicMock) -> None:
         env = self.create_environment(self.project, name="production")
         self.workflow.update(environment=env)
 
@@ -372,7 +372,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_without_env)
         assert not mock_trigger.called  # Should not trigger for events without the environment
 
-    def test_slow_condition_workflow_with_conditions(self, mock_trigger):
+    def test_slow_condition_workflow_with_conditions(self, mock_trigger: MagicMock) -> None:
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
@@ -446,7 +446,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         process_delayed_workflows(project_ids[0][0])
         mock_trigger.assert_called_once()
 
-    def test_slow_condition_subqueries(self, mock_trigger):
+    def test_slow_condition_subqueries(self, mock_trigger: MagicMock) -> None:
         env = self.create_environment(self.project, name="production")
         self.workflow.update(environment=env)
         self.create_data_condition(
