@@ -3,6 +3,7 @@
 ## Current State
 
 Sentry already has internal support for Flutter/Dart deobfuscation:
+
 - The `dart_symbols` file type is recognized in events (see `src/sentry/lang/dart/utils.py`)
 - Flutter mapping files are expected to be JSON arrays with alternating deobfuscated/obfuscated names
 - The deobfuscation logic exists and works for view hierarchies
@@ -14,6 +15,7 @@ However, there's no direct way to upload these files through the API.
 ### Option 1: Extend Existing Debug Files Upload (Recommended)
 
 1. **Add dart_symbols to KNOWN_DIF_FORMATS** in `src/sentry/constants.py`:
+
 ```python
 KNOWN_DIF_FORMATS: dict[str, str] = {
     # ... existing formats ...
@@ -22,10 +24,11 @@ KNOWN_DIF_FORMATS: dict[str, str] = {
 ```
 
 2. **Extend detect_dif_from_path** in `src/sentry/models/debugfile.py`:
+
 ```python
 def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
     # ... existing code ...
-    
+
     # Add detection for dart_symbols files
     if path.endswith('.json') and 'dart' in (name or path).lower():
         if debug_id is None:
@@ -36,7 +39,7 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
                 debug_id = normalize_debug_id(match.group(1))
             else:
                 raise BadDif("Missing debug_id for dart_symbols")
-        
+
         try:
             with open(path, 'rb') as fp:
                 data = json.load(fp)
@@ -45,7 +48,7 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
                     raise BadDif("Invalid dart_symbols format")
         except json.JSONDecodeError as e:
             raise BadDif(f"Invalid dart_symbols: {e}")
-        
+
         return [
             DifMeta(
                 file_format="dart_symbols",
@@ -59,6 +62,7 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
 ```
 
 3. **Update file extension handling** in `ProjectDebugFile.file_extension`:
+
 ```python
 @property
 def file_extension(self) -> str:
@@ -76,25 +80,25 @@ Create a new endpoint specifically for Flutter symbols at `/api/0/projects/{org}
 @region_silo_endpoint
 class ProjectFlutterSymbolsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
-    
+
     def post(self, request: Request, project: Project) -> Response:
         """Upload Flutter/Dart symbol mapping file"""
-        
+
         debug_id = request.data.get('debug_id')
         if not debug_id:
             debug_id = str(uuid.uuid4())
-        
+
         mapping = request.data.get('mapping')
         if not mapping or not isinstance(mapping, list) or len(mapping) % 2 != 0:
             return Response(
                 {"error": "Invalid mapping format"},
                 status=400
             )
-        
+
         # Create the file
         file_content = json.dumps(mapping).encode('utf-8')
         checksum = hashlib.sha1(file_content).hexdigest()
-        
+
         # Store as a File
         file = File.objects.create(
             name=f"dart_symbols/{debug_id}.json",
@@ -104,7 +108,7 @@ class ProjectFlutterSymbolsEndpoint(ProjectEndpoint):
             headers={"Content-Type": "application/x-dart-symbols+json"}
         )
         file.putfile(BytesIO(file_content))
-        
+
         # Create ProjectDebugFile entry
         debug_file = ProjectDebugFile.objects.create(
             file=file,
@@ -118,7 +122,7 @@ class ProjectFlutterSymbolsEndpoint(ProjectEndpoint):
                 "features": ["mapping"]
             }
         )
-        
+
         return Response(serialize(debug_file, request.user), status=201)
 ```
 
@@ -127,6 +131,7 @@ class ProjectFlutterSymbolsEndpoint(ProjectEndpoint):
 Once the changes are implemented, you can test uploading a Flutter mapping file:
 
 ### Using the Debug Files Endpoint (Option 1):
+
 ```bash
 # Create a Flutter mapping file
 echo '["MaterialApp", "ax", "Scaffold", "ay", "Container", "az"]' > flutter_mapping.json
@@ -141,6 +146,7 @@ curl -X POST "https://sentry.io/api/0/projects/ORG/PROJECT/files/dsyms/" \
 ```
 
 ### Using a Dedicated Endpoint (Option 2):
+
 ```bash
 curl -X POST "https://sentry.io/api/0/projects/ORG/PROJECT/flutter-symbols/" \
      -H "Authorization: Bearer YOUR_TOKEN" \
