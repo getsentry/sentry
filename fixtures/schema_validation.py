@@ -14,9 +14,9 @@ def invalid_schema[**P](func: Callable[P, None]) -> Callable[P, None]:
     return inner
 
 
-def invalid_schema_with_error_message[
-    **P
-](message: str) -> Callable[[Callable[P, None]], Callable[P, None]]:
+def invalid_schema_with_error_message[**P](
+    message: str,
+) -> Callable[[Callable[P, None]], Callable[P, None]]:
     def decorator(func: Callable[P, None]) -> Callable[P, None]:
         @functools.wraps(func)
         def inner(*args: P.args, **kwargs: P.kwargs) -> None:
