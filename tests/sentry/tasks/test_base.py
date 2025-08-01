@@ -206,7 +206,7 @@ class ExpectedException(Exception):
 
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_timeout_enabled_taskbroker(capture_exception, current_task):
+def test_retry_timeout_enabled_taskbroker(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
 
     @retry(timeouts=True)
@@ -222,7 +222,7 @@ def test_retry_timeout_enabled_taskbroker(capture_exception, current_task):
 
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_timeout_disabled_taskbroker(capture_exception, current_task):
+def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
 
     @retry(timeouts=False)
     def timeout_no_retry_task():
@@ -237,7 +237,7 @@ def test_retry_timeout_disabled_taskbroker(capture_exception, current_task):
 
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_soft_timeout_enabled(capture_exception, current_task):
+def test_retry_soft_timeout_enabled(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
 
     @retry(timeouts=True)
@@ -253,7 +253,7 @@ def test_retry_soft_timeout_enabled(capture_exception, current_task):
 
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_soft_timeout_disabled(capture_exception, current_task):
+def test_retry_soft_timeout_disabled(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
 
     @retry(on=(ValueError,), timeouts=False)
@@ -269,7 +269,7 @@ def test_retry_soft_timeout_disabled(capture_exception, current_task):
 
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
-def test_retry_soft_timeouts_by_default(capture_exception, current_task):
+def test_retry_soft_timeouts_by_default(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
 
     @retry
