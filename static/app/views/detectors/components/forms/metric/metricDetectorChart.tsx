@@ -150,11 +150,62 @@ export function MetricDetectorChart({
   }, [series, thresholdMaxValue]);
 
   const additionalSeries = useMemo<LineSeriesOption[]>(() => {
+    const baseSeries = [...thresholdAdditionalSeries];
+
     if (isAnomalyDetection) {
-      return [...thresholdAdditionalSeries, ...anomalyResult.anomalySeries];
+      // Add the anomaly bubble series if it exists
+      if (anomalyResult.anomalyBubbleSeries) {
+        baseSeries.push(anomalyResult.anomalyBubbleSeries as any);
+      }
+      // Optionally keep the old overlay series for comparison
+      // baseSeries.push(...anomalyResult.anomalySeries);
     }
-    return thresholdAdditionalSeries;
-  }, [isAnomalyDetection, thresholdAdditionalSeries, anomalyResult.anomalySeries]);
+
+    return baseSeries;
+  }, [isAnomalyDetection, thresholdAdditionalSeries, anomalyResult.anomalyBubbleSeries]);
+
+  // Prepare Y-axes for anomaly bubbles
+  const yAxes = useMemo(() => {
+    const mainYAxis = {
+      max: maxValue > 0 ? maxValue : undefined,
+      min: 0,
+      axisLabel: {
+        // Hide the maximum y-axis label to avoid showing arbitrary threshold values
+        showMaxLabel: false,
+      },
+      // Disable the y-axis grid lines
+      splitLine: {show: false},
+    };
+
+    const axes = [mainYAxis];
+
+    // Add anomaly bubble Y-axis if available
+    if (isAnomalyDetection && anomalyResult.anomalyBubbleYAxis) {
+      axes.push(anomalyResult.anomalyBubbleYAxis as any);
+    }
+
+    return axes;
+  }, [maxValue, isAnomalyDetection, anomalyResult.anomalyBubbleYAxis]);
+
+  // Prepare grid with anomaly bubble adjustments
+  const grid = useMemo(() => {
+    const baseGrid = {
+      left: space(0.25),
+      right: space(0.25),
+      top: space(1.5),
+      bottom: space(1),
+    };
+
+    // Apply anomaly bubble grid adjustments if available
+    if (isAnomalyDetection && anomalyResult.anomalyBubbleGrid) {
+      return {
+        ...baseGrid,
+        ...anomalyResult.anomalyBubbleGrid,
+      };
+    }
+
+    return baseGrid;
+  }, [isAnomalyDetection, anomalyResult.anomalyBubbleGrid]);
 
   if (isLoading || anomalyLoading) {
     return (
@@ -183,22 +234,11 @@ export function MetricDetectorChart({
       stacked={false}
       series={series}
       additionalSeries={additionalSeries}
-      yAxis={{
-        max: maxValue > 0 ? maxValue : undefined,
-        min: 0,
-        axisLabel: {
-          // Hide the maximum y-axis label to avoid showing arbitrary threshold values
-          showMaxLabel: false,
-        },
-        // Disable the y-axis grid lines
-        splitLine: {show: false},
-      }}
-      grid={{
-        left: space(0.25),
-        right: space(0.25),
-        top: space(1.5),
-        bottom: space(1),
-      }}
+      yAxes={yAxes.length > 1 ? yAxes : undefined}
+      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+      grid={grid}
+      xAxis={isAnomalyDetection ? anomalyResult.anomalyBubbleXAxis : undefined}
+      ref={isAnomalyDetection ? anomalyResult.connectAnomalyBubbleChartRef : undefined}
     />
   );
 }
