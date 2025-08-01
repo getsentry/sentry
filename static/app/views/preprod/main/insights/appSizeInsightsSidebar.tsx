@@ -64,7 +64,8 @@ export function AppSizeInsightsSidebar({
             <Heading as="h2" size="xl">
               {t('Insights')}
             </Heading>
-            <CloseButton
+            <Button
+              priority="transparent"
               size="sm"
               icon={<IconClose />}
               aria-label={t('Close sidebar')}
@@ -99,10 +100,6 @@ const Backdrop = styled(motion.div)`
   background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
   pointer-events: auto;
-`;
-
-const CloseButton = styled(Button)`
-  color: ${p => p.theme.subText};
 `;
 
 const Header = styled(Flex)`

@@ -30,24 +30,15 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
   }
 
   const insightItems: ProcessedInsight[] = processInsights(insights, totalSize);
+  if (!insightItems.length) {
+    return null;
+  }
 
   // Only show top 3 insights, show the rest in the sidebar
   const topInsights = insightItems.slice(0, 3);
 
-  if (topInsights.length === 0) {
-    return null;
-  }
-
   return (
-    <Container
-      background="primary"
-      radius="md"
-      padding="lg"
-      border="muted"
-      style={{
-        marginTop: '20px',
-      }}
-    >
+    <Container background="primary" radius="md" padding="lg" border="muted">
       <Flex
         align="center"
         justify="between"
@@ -70,6 +61,8 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
             align="center"
             justify="between"
             radius="md"
+            height="22px"
+            padding="xs sm"
           >
             <Text variant="primary" size="sm" bold>
               {insight.name}
@@ -105,7 +98,5 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
 }
 
 const InsightRow = styled(Flex)<{isAlternating: boolean}>`
-  height: 22px;
-  padding: 4px 6px;
   background: ${p => (p.isAlternating ? p.theme.surface200 : 'transparent')};
 `;

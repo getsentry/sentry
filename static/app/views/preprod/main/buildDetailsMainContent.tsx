@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Container} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -50,10 +51,12 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         <AppSizeTreemap treemapData={appSizeData.treemap} />
       </TreemapContainer>
       {appSizeData.insights && (
-        <AppSizeInsights
-          insights={appSizeData.insights}
-          totalSize={appSizeData.treemap.root.size || 0}
-        />
+        <Container style={{marginTop: '20px'}}>
+          <AppSizeInsights
+            insights={appSizeData.insights}
+            totalSize={appSizeData.treemap.root.size || 0}
+          />
+        </Container>
       )}
     </MainContentContainer>
   );

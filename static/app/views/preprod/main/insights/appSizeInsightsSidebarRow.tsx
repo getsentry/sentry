@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -63,17 +64,21 @@ export function AppSizeInsightsSidebarRow({
       </Text>
 
       <Container>
-        <FilesToggleButton
+        <Button
+          priority="transparent"
+          size="sm"
           onClick={onToggleExpanded}
           style={{marginBottom: isExpanded ? '16px' : '0'}}
+          icon={
+            <ToggleIcon
+              style={{transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)'}}
+            />
+          }
         >
-          <ToggleIcon
-            style={{transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)'}}
-          />
           <Text variant="primary" size="md" bold>
             {tn('%s file', '%s files', insight.files.length)}
           </Text>
-        </FilesToggleButton>
+        </Button>
 
         {isExpanded && (
           <Flex direction="column">
@@ -93,7 +98,6 @@ export function AppSizeInsightsSidebarRow({
 
 function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: number}) {
   const isAlternating = fileIndex % 2 === 0;
-  const theme = useTheme();
 
   if (file.fileType === 'optimizable_image' && file.originalFile) {
     return (
@@ -106,18 +110,7 @@ function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: numb
   }
 
   return (
-    <Flex
-      align="center"
-      justify="between"
-      radius="md"
-      height="24px"
-      minWidth={0}
-      gap="lg"
-      style={{
-        backgroundColor: isAlternating ? theme.surface200 : 'transparent',
-        padding: '4px 6px',
-      }}
-    >
+    <FlexAlternatingRow isAlternating={isAlternating}>
       <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -129,7 +122,7 @@ function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: numb
           (-{formatPercentage(file.percentage / 100, 1)})
         </Text>
       </Flex>
-    </Flex>
+    </FlexAlternatingRow>
   );
 }
 
@@ -142,19 +135,8 @@ function OptimizableImageFileRow({
   isAlternating: boolean;
   originalFile: OptimizableImageFile;
 }) {
-  const theme = useTheme();
   return (
-    <Flex
-      align="center"
-      justify="between"
-      gap="lg"
-      radius="md"
-      minWidth={0}
-      style={{
-        backgroundColor: isAlternating ? theme.surface200 : 'transparent',
-        padding: '4px 6px',
-      }}
-    >
+    <FlexAlternatingRow isAlternating={isAlternating}>
       <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -166,26 +148,22 @@ function OptimizableImageFileRow({
           (-{formatPercentage(file.percentage / 100, 1)})
         </Text>
       </Flex>
-    </Flex>
+    </FlexAlternatingRow>
   );
 }
-
-const FilesToggleButton = styled('button')`
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.textColor};
-  line-height: 1;
-  &:hover {
-    color: ${p => p.theme.blue400};
-  }
-`;
 
 const ToggleIcon = styled(IconChevron)`
   transition: transform 0.2s ease;
   color: inherit;
+`;
+
+const FlexAlternatingRow = styled(Flex)<{isAlternating: boolean}>`
+  align-items: center;
+  justify-content: space-between;
+  border-radius: ${({theme}) => theme.borderRadius};
+  min-width: 0;
+  gap: ${({theme}) => theme.space.lg};
+  padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
+  background-color: ${({isAlternating, theme}) =>
+    isAlternating ? theme.surface200 : 'transparent'};
 `;
