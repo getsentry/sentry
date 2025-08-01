@@ -34,7 +34,7 @@ class ExploreSpansTest(AcceptanceTestCase, SpanTestCase, SnubaTestCase):
         self.login_as(self.user)
 
         self.page = ExploreSpansPage(self.browser, self.client)
-        self.dismiss_assistant()
+        self.dismiss_assistant(which="tour.explore.spans")
 
     @patch("django.utils.timezone.now")
     def test_spans_table_loads_all_events(self, mock_now) -> None:
