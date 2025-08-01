@@ -153,6 +153,7 @@ export function useVirtualStreaming(
     const latestPage = data.pages[data.pages.length - 1];
     const latestPageData = latestPage?.[0]?.data;
     const rawTimestamp = latestPageData?.[0]?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+
     if (!rawTimestamp) {
       return null;
     }
@@ -196,7 +197,7 @@ export function useVirtualStreaming(
         const targetVirtualTime = Date.now() - MAX_LOG_INGEST_DELAY - refreshInterval;
         const mostRecentPageDataTimestamp = getMostRecentPageDataTimestamp();
 
-        if (!mostRecentPageDataTimestamp) {
+        if (mostRecentPageDataTimestamp === null) {
           warnRef.current();
           setLogsAutoRefresh('error');
           return;
