@@ -1,60 +1,18 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {ProcessedInsightFixture} from 'sentry-fixture/preProdAppSize';
 
-import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
-import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AppSizeInsightsSidebarRow} from './appSizeInsightsSidebarRow';
 
 describe('AppSizeInsightsSidebarRow', () => {
-  const mockInsight: ProcessedInsight = {
-    name: 'Duplicate files',
-    description: 'You have files that are duplicated across your app',
-    totalSavings: 1024000,
-    percentage: 15.5,
-    files: [
-      {
-        path: 'src/components/Button.js',
-        savings: 512000,
-        percentage: 7.5,
-        fileType: 'regular' as const,
-      },
-      {
-        path: 'src/components/Icon.js',
-        savings: 256000,
-        percentage: 4.0,
-        fileType: 'regular' as const,
-      },
-      {
-        path: 'src/assets/logo.png',
-        savings: 256000,
-        percentage: 4.0,
-        fileType: 'optimizable_image' as const,
-        originalFile: {
-          best_optimization_type: 'convert_to_heic',
-          conversion_savings: 128000,
-          current_size: 256000,
-          file_path: 'src/assets/logo.png',
-          heic_size: 128000,
-          minified_size: null,
-          minify_savings: 0,
-          potential_savings: 128000,
-        } as OptimizableImageFile,
-      },
-    ],
-  };
-
-  const defaultProps = {
-    insight: mockInsight,
+  const getDefaultProps = () => ({
+    insight: ProcessedInsightFixture(),
     isExpanded: false,
     onToggleExpanded: jest.fn(),
-  };
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   it('renders insight name and savings information', () => {
-    render(<AppSizeInsightsSidebarRow {...defaultProps} />);
+    render(<AppSizeInsightsSidebarRow {...getDefaultProps()} />);
 
     expect(screen.getByText('Duplicate files')).toBeInTheDocument();
     expect(
@@ -65,20 +23,20 @@ describe('AppSizeInsightsSidebarRow', () => {
   });
 
   it('shows file count button', () => {
-    render(<AppSizeInsightsSidebarRow {...defaultProps} />);
+    render(<AppSizeInsightsSidebarRow {...getDefaultProps()} />);
 
     expect(screen.getByText('3 files')).toBeInTheDocument();
   });
 
   it('does not show files when collapsed', () => {
-    render(<AppSizeInsightsSidebarRow {...defaultProps} />);
+    render(<AppSizeInsightsSidebarRow {...getDefaultProps()} />);
 
     expect(screen.queryByText('src/components/Button.js')).not.toBeInTheDocument();
     expect(screen.queryByText('src/components/Icon.js')).not.toBeInTheDocument();
   });
 
   it('shows files when expanded', () => {
-    render(<AppSizeInsightsSidebarRow {...defaultProps} isExpanded />);
+    render(<AppSizeInsightsSidebarRow {...getDefaultProps()} isExpanded />);
 
     expect(screen.getByText('src/components/Button.js')).toBeInTheDocument();
     expect(screen.getByText('src/components/Icon.js')).toBeInTheDocument();
@@ -94,29 +52,28 @@ describe('AppSizeInsightsSidebarRow', () => {
   });
 
   it('calls onToggleExpanded when clicking the toggle button', async () => {
-    const user = userEvent.setup();
-    render(<AppSizeInsightsSidebarRow {...defaultProps} />);
+    const props = getDefaultProps();
+    render(<AppSizeInsightsSidebarRow {...props} />);
 
     const toggleButton = screen.getByRole('button', {name: /3 files/i});
-    await user.click(toggleButton);
+    await userEvent.click(toggleButton);
 
-    expect(defaultProps.onToggleExpanded).toHaveBeenCalledTimes(1);
+    expect(props.onToggleExpanded).toHaveBeenCalledTimes(1);
   });
 
   it('handles optimizable image files', () => {
-    render(<AppSizeInsightsSidebarRow {...defaultProps} isExpanded />);
+    render(<AppSizeInsightsSidebarRow {...getDefaultProps()} isExpanded />);
     expect(screen.getByText('src/assets/logo.png')).toBeInTheDocument();
   });
 
   it('renders with no files', () => {
-    const insightWithNoFiles = {
-      ...mockInsight,
+    const insightWithNoFiles = ProcessedInsightFixture({
       files: [],
-    };
+    });
 
     render(
       <AppSizeInsightsSidebarRow
-        {...defaultProps}
+        {...getDefaultProps()}
         insight={insightWithNoFiles}
         isExpanded
       />
@@ -127,8 +84,7 @@ describe('AppSizeInsightsSidebarRow', () => {
   });
 
   it('formats large file sizes correctly', () => {
-    const insightWithLargeFiles = {
-      ...mockInsight,
+    const insightWithLargeFiles = ProcessedInsightFixture({
       totalSavings: 5242880000, // 5 GB
       files: [
         {
@@ -138,11 +94,11 @@ describe('AppSizeInsightsSidebarRow', () => {
           fileType: 'regular' as const,
         },
       ],
-    };
+    });
 
     render(
       <AppSizeInsightsSidebarRow
-        {...defaultProps}
+        {...getDefaultProps()}
         insight={insightWithLargeFiles}
         isExpanded
       />

@@ -1,67 +1,42 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {AppleInsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
-import type {AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AppSizeInsightsSidebar} from './appSizeInsightsSidebar';
 
 describe('AppSizeInsightsSidebar', () => {
-  const mockInsights: AppleInsightResults = {
-    duplicate_files: {
-      total_savings: 768000,
-      groups: [
-        {
-          name: 'Duplicate files',
-          total_savings: 768000,
-          files: [
-            {
-              file_path: 'src/components/Button.js',
-              total_savings: 512000,
-            },
-            {
-              file_path: 'src/components/Icon.js',
-              total_savings: 256000,
-            },
-          ],
-        },
-      ],
-    },
-    large_images: {
-      total_savings: 128000,
-      files: [
-        {
-          file_path: 'src/assets/logo.png',
-          total_savings: 128000,
-        },
-      ],
-    },
-  };
-
-  const defaultProps = {
-    insights: mockInsights,
+  const getDefaultProps = () => ({
+    insights: AppleInsightResultsFixture({
+      large_images: {
+        total_savings: 128000,
+        files: [
+          {
+            file_path: 'src/assets/logo.png',
+            total_savings: 128000,
+          },
+        ],
+      },
+    }),
     totalSize: 10240000,
     isOpen: true,
     onClose: jest.fn(),
-  };
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   it('renders the sidebar when open', () => {
-    render(<AppSizeInsightsSidebar {...defaultProps} />);
+    render(<AppSizeInsightsSidebar {...getDefaultProps()} />);
 
     expect(screen.getByText('Insights')).toBeInTheDocument();
     expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
   });
 
   it('does not render sidebar content when closed', () => {
-    render(<AppSizeInsightsSidebar {...defaultProps} isOpen={false} />);
+    render(<AppSizeInsightsSidebar {...getDefaultProps()} isOpen={false} />);
 
     expect(screen.queryByText('Insights')).not.toBeInTheDocument();
   });
 
   it('renders processed insights from processInsights util', () => {
-    render(<AppSizeInsightsSidebar {...defaultProps} />);
+    render(<AppSizeInsightsSidebar {...getDefaultProps()} />);
 
     // Should render processed insights (the processInsights util creates these display names)
     expect(screen.getByText('Remove duplicate files')).toBeInTheDocument();
@@ -69,29 +44,29 @@ describe('AppSizeInsightsSidebar', () => {
   });
 
   it('calls onClose when close button is clicked', async () => {
-    const user = userEvent.setup();
-    render(<AppSizeInsightsSidebar {...defaultProps} />);
+    const props = getDefaultProps();
+    render(<AppSizeInsightsSidebar {...props} />);
 
     const closeButton = screen.getByLabelText('Close sidebar');
-    await user.click(closeButton);
+    await userEvent.click(closeButton);
 
-    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 
   it('calls onClose when backdrop is clicked', async () => {
-    const user = userEvent.setup();
-    render(<AppSizeInsightsSidebar {...defaultProps} />);
+    const props = getDefaultProps();
+    render(<AppSizeInsightsSidebar {...props} />);
 
     // The backdrop doesn't have a role, so we'll query by its styled properties
     const backdrop = document.querySelector('[style*="position: fixed"]');
     if (backdrop) {
-      await user.click(backdrop);
-      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+      await userEvent.click(backdrop);
+      expect(props.onClose).toHaveBeenCalledTimes(1);
     }
   });
 
   it('handles empty insights', () => {
-    render(<AppSizeInsightsSidebar {...defaultProps} insights={{}} />);
+    render(<AppSizeInsightsSidebar {...getDefaultProps()} insights={{}} />);
 
     expect(screen.getByText('Insights')).toBeInTheDocument();
     expect(screen.queryByText('Duplicate files')).not.toBeInTheDocument();

@@ -1,13 +1,12 @@
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {type FileRowProps} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
 import type {OptimizableImageFile} from 'sentry/views/preprod/types/appSizeTypes';
 import type {
   ProcessedInsight,
@@ -38,7 +37,7 @@ export function AppSizeInsightsSidebarRow({
           }}
         >
           <Text size="sm" tabular>
-            Potential savings {formatBytesBase10(insight.totalSavings)}
+            {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
           <Flex
             align="center"
@@ -72,7 +71,7 @@ export function AppSizeInsightsSidebarRow({
             style={{transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)'}}
           />
           <Text variant="primary" size="md" bold>
-            {insight.files.length} files
+            {tn('%s file', '%s files', insight.files.length)}
           </Text>
         </FilesToggleButton>
 
@@ -83,7 +82,6 @@ export function AppSizeInsightsSidebarRow({
                 key={`${file.path}-${fileIndex}`}
                 file={file}
                 fileIndex={fileIndex}
-                theme={theme}
               />
             ))}
           </Flex>
@@ -93,8 +91,9 @@ export function AppSizeInsightsSidebarRow({
   );
 }
 
-function FileRow({file, fileIndex, theme}: FileRowProps & {theme: Theme}) {
+function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: number}) {
   const isAlternating = fileIndex % 2 === 0;
+  const theme = useTheme();
 
   if (file.fileType === 'optimizable_image' && file.originalFile) {
     return (
@@ -102,7 +101,6 @@ function FileRow({file, fileIndex, theme}: FileRowProps & {theme: Theme}) {
         file={file}
         originalFile={file.originalFile as OptimizableImageFile}
         isAlternating={isAlternating}
-        theme={theme}
       />
     );
   }
@@ -127,12 +125,7 @@ function FileRow({file, fileIndex, theme}: FileRowProps & {theme: Theme}) {
         <Text variant="primary" size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
-        <Text
-          variant="muted"
-          size="sm"
-          tabular
-          style={{width: '64px', textAlign: 'right'}}
-        >
+        <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
           (-{formatPercentage(file.percentage / 100, 1)})
         </Text>
       </Flex>
@@ -144,13 +137,12 @@ function OptimizableImageFileRow({
   file,
   originalFile: _originalFile,
   isAlternating,
-  theme,
 }: {
   file: ProcessedInsightFile;
   isAlternating: boolean;
   originalFile: OptimizableImageFile;
-  theme: Theme;
 }) {
+  const theme = useTheme();
   return (
     <Flex
       align="center"
@@ -170,12 +162,7 @@ function OptimizableImageFileRow({
         <Text variant="primary" size="sm" tabular>
           -{formatBytesBase10(file.savings)}
         </Text>
-        <Text
-          variant="muted"
-          size="sm"
-          tabular
-          style={{width: '64px', textAlign: 'right'}}
-        >
+        <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
           (-{formatPercentage(file.percentage / 100, 1)})
         </Text>
       </Flex>

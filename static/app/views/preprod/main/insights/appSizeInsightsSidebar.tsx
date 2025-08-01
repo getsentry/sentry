@@ -7,23 +7,16 @@ import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebarRow';
 import type {AppleInsightResults} from 'sentry/views/preprod/types/appSizeTypes';
-import {
-  type ProcessedInsightFile,
-  processInsights,
-} from 'sentry/views/preprod/utils/insightProcessing';
+import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
   insights: AppleInsightResults;
   isOpen: boolean;
   onClose: () => void;
   totalSize: number;
-}
-
-export interface FileRowProps {
-  file: ProcessedInsightFile;
-  fileIndex: number;
 }
 
 export function AppSizeInsightsSidebar({
@@ -64,23 +57,21 @@ export function AppSizeInsightsSidebar({
         collapsed={!isOpen}
         slidePosition="right"
         panelWidth="502px"
-        ariaLabel="App size insights details"
+        ariaLabel={t('App size insights details')}
       >
         <Flex height="100%" direction="column">
-          {/* Header */}
           <Header padding="xl" align="center" justify="between">
             <Heading as="h2" size="xl">
-              Insights
+              {t('Insights')}
             </Heading>
             <CloseButton
               size="sm"
               icon={<IconClose />}
-              aria-label="Close sidebar"
+              aria-label={t('Close sidebar')}
               onClick={onClose}
             />
           </Header>
 
-          {/* Insights list */}
           <Flex flex={1} overflowY="auto" padding="xl">
             <Flex direction="column" gap="xl" width="100%">
               {processedInsights.map(insight => (

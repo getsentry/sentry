@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -7,6 +7,7 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
@@ -23,10 +24,6 @@ interface AppSizeInsightsProps {
 
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const handleCloseSidebar = useCallback(() => {
-    setIsSidebarOpen(false);
-  }, []);
 
   if (!totalSize || totalSize <= 0) {
     return null;
@@ -59,10 +56,10 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         }}
       >
         <Heading as="h2" size="lg">
-          Top insights
+          {t('Top insights')}
         </Heading>
         <Button size="sm" icon={<IconSettings />} onClick={() => setIsSidebarOpen(true)}>
-          View all insights
+          {t('View all insights')}
         </Button>
       </Flex>
       <Flex direction="column" gap="2xs">
@@ -99,7 +96,9 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         insights={insights}
         totalSize={totalSize}
         isOpen={isSidebarOpen}
-        onClose={handleCloseSidebar}
+        onClose={() => {
+          setIsSidebarOpen(false);
+        }}
       />
     </Container>
   );
