@@ -47,7 +47,7 @@ from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
-    can_edit_detector,
+    can_edit_detectors,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
@@ -138,23 +138,34 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         """
         Filter detectors based on the request parameters.
         """
-        projects = self.get_projects(request, organization)
-        queryset: QuerySet[Detector] = Detector.objects.filter(
-            project_id__in=projects,
-        )
 
         if not request.user.is_authenticated:
-            return queryset
+            return Detector.objects.none()
 
         if raw_idlist := request.GET.getlist("id"):
             try:
                 ids = [int(id) for id in raw_idlist]
+                # If filtering by IDs, we must search across all accessible projects
+                projects = self.get_projects(
+                    request,
+                    organization,
+                    include_all_accessible=True,
+                )
+                return Detector.objects.filter(
+                    project_id__in=projects,
+                    id__in=ids,
+                )
             except ValueError:
                 raise ValidationError({"id": ["Invalid ID format"]})
-            queryset = queryset.filter(id__in=ids)
 
-            # If specific IDs are provided, skip other filtering
-            return queryset
+        projects = self.get_projects(
+            request,
+            organization,
+        )
+
+        queryset: QuerySet[Detector] = Detector.objects.filter(
+            project_id__in=projects,
+        )
 
         if raw_query := request.GET.get("query"):
             for filter in parse_detector_query(raw_query):
@@ -375,15 +386,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
-        detectors_to_update = []
+        if not queryset:
+            return Response(
+                {"detail": "No detectors found."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
 
-        # Check permissions for all detectors first
+        # Check if the user has edit permissions for all detectors
+        if not can_edit_detectors(queryset, request):
+            raise PermissionDenied
+
+        # We update detectors individually to ensure post_save signals are called
         for detector in queryset:
-            if not can_edit_detector(detector, request):
-                raise PermissionDenied
-            detectors_to_update.append(detector)
-
-        Detector.objects.update(ids__in=detectors_to_update, enabled=enabled)
+            detector.update(enabled=enabled)
 
         return self.paginate(
             request=request,
@@ -431,16 +446,18 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
 
-        list_of_ids_to_delete = []
+        if not queryset:
+            return Response(
+                {"detail": "No detectors found."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
 
-        with transaction.atomic(router.db_for_write(Detector)):
-            for detector in queryset:
+        # Check if the user has edit permissions for all detectors
+        if not can_edit_detectors(queryset, request):
+            raise PermissionDenied
 
-                if not can_edit_detector(detector, request):
-                    raise PermissionDenied
-
-                list_of_ids_to_delete.append(detector.id)
-
+        for detector in queryset:
+            with transaction.atomic(router.db_for_write(Detector)):
                 RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
@@ -449,9 +466,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("DETECTOR_REMOVE"),
                     data=detector.get_audit_log_data(),
                 )
-
-            Detector.objects.filter(id__in=list_of_ids_to_delete).update(
-                status=ObjectStatus.PENDING_DELETION
-            )
+                detector.update(status=ObjectStatus.PENDING_DELETION)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
