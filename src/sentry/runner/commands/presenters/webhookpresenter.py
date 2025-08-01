@@ -21,9 +21,9 @@ class WebhookPresenter(OptionsPresenter):
 
     MAX_OPTION_VALUE_LENGTH = 30
 
-    def __init__(self, source: str, timestamp: str | None = None) -> None:
+    def __init__(self, source: str, timestamp: float | None = None) -> None:
         self.source = source
-        self.timestamp = timestamp
+        self.timestamp: float | None = timestamp
         self.drifted_options: list[tuple[str, Any]] = []
         self.channel_updated_options: list[str] = []
         self.updated_options: list[tuple[str, Any, Any]] = []

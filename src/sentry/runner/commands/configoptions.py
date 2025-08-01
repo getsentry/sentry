@@ -77,12 +77,12 @@ def _attempt_update(
     is_flag=True,
     help="Hide the actual value of the option on DB when detecting drift.",
 )
-@click.option("--timestamp", type=str, help="Timestamp to measure latency for the automator.")
+@click.option("--timestamp", type=float, help="Timestamp to measure latency for the automator.")
 @log_options()
 @click.pass_context
 @configuration
 def configoptions(
-    ctx: click.Context, dry_run: bool, file: str | None, hide_drift: bool, timestamp: str | None
+    ctx: click.Context, dry_run: bool, file: str | None, hide_drift: bool, timestamp: float | None
 ) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
