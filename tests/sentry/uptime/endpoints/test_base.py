@@ -102,7 +102,6 @@ class UptimeResultEAPTestCase(BaseTestCase):
         if incident_status is not None:
             attributes_data["incident_status"] = incident_status.value
 
-        # Always set original_url
         if original_url is None:
             original_url = request_url
         attributes_data["original_url"] = original_url

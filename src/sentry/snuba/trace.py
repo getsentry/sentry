@@ -343,12 +343,7 @@ def _uptime_results_query(
 
 
 def _run_uptime_results_query(uptime_query: TraceItemTableRequest) -> list[TraceItemTableResponse]:
-    """Execute the uptime results query"""
-    try:
-        return table_rpc([uptime_query])
-    except Exception:
-        logger.exception("Failed to execute uptime results query")
-        raise
+    return table_rpc([uptime_query])
 
 
 def _serialize_columnar_uptime_item(
@@ -529,7 +524,6 @@ def query_trace_data(
             parent = id_to_span[span["parent_span"]]
             parent["children"].append(span)
         elif root_span:
-            # Update parent_span to point to the root span when reassigning orphans
             span["parent_span"] = root_span.get("event_id", root_span.get("id"))
             root_span["children"].append(span)
         else:

@@ -452,7 +452,6 @@ class OrganizationEventsTraceEndpointTest(
         if original_url is None:
             original_url = kwargs.get("request_url", "https://example.com")
         kwargs["original_url"] = original_url
-        # Don't include default body size fields if not specified
         kwargs.setdefault("request_body_size_bytes", None)
         kwargs.setdefault("response_body_size_bytes", None)
         return self.create_eap_uptime_result(**kwargs)
