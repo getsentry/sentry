@@ -5,8 +5,7 @@ WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
-	@python3 -S -m tools.mirror_dev_extra_to_group
-	@uv sync --extra dev --extra getsentry
+	@uv sync --extra getsentry
 
 bootstrap:
 	@echo "devenv bootstrap is typically run on new machines."
