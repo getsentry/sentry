@@ -35,6 +35,7 @@ export default function Ai() {
 
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
+  const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
   const {
