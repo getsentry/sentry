@@ -18,10 +18,6 @@ import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useRAF from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
-import {
-  defaultUseFetchReplaySummaryResult,
-  type UseFetchReplaySummaryResult,
-} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
@@ -94,13 +90,9 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   isVideoReplay: boolean;
 
   /**
-   * Context from the useFetchReplaySummary hook.
-   */
-  replaySummary: UseFetchReplaySummaryResult;
-
-  /**
    * The core replay data
    */
+
   /**
    * Restart the replay
    */
@@ -146,7 +138,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setRoot: () => {},
   togglePlayPause: () => {},
   getMirror: () => null,
-  replaySummary: defaultUseFetchReplaySummaryResult,
 });
 
 type Props = {
@@ -177,11 +168,6 @@ type Props = {
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
 
   /**
-   * Set the replay summary result for replay details.
-   */
-  replaySummary?: UseFetchReplaySummaryResult;
-
-  /**
    * Override return fields for testing
    */
   value?: Partial<ReplayPlayerContextProps>;
@@ -201,7 +187,6 @@ export function Provider({
   replay,
   autoStart,
   value = {},
-  replaySummary = defaultUseFetchReplaySummaryResult,
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
@@ -634,7 +619,6 @@ export function Provider({
           isPlaying,
           removeHighlight,
           restart,
-          replaySummary,
           setCurrentTime,
           togglePlayPause,
           getMirror: () => replayerRef.current?.getMirror() ?? null,

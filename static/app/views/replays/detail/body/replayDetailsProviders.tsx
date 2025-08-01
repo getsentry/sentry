@@ -13,10 +13,7 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  useFetchReplaySummary,
-  type UseFetchReplaySummaryResult,
-} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
+import {useFetchReplaySummary} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 interface Props {
@@ -25,18 +22,12 @@ interface Props {
   replay: ReplayReader;
 }
 
-function ReplaySummaryFetcher({
-  children,
-  enabled,
-}: {
-  children: (replaySummaryResult: UseFetchReplaySummaryResult) => ReactNode;
-  enabled: boolean;
-}) {
-  const replaySummaryResult = useFetchReplaySummary({
+function ReplaySummary({children, enabled}: {children: ReactNode; enabled: boolean}) {
+  useFetchReplaySummary({
     staleTime: 0,
     enabled,
   });
-  return <Fragment>{children(replaySummaryResult)}</Fragment>;
+  return <Fragment>{children}</Fragment>;
 }
 
 export default function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
@@ -74,21 +65,16 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
         <ReplayReaderProvider replay={replay}>
           <ReplayPlayerStateContextProvider>
             <ReplayPlayerSizeContextProvider>
-              <ReplaySummaryFetcher enabled={summaryEnabled}>
-                {replaySummaryResult => (
-                  <ReplayContextProvider
-                    analyticsContext="replay_details"
-                    initialTimeOffsetMs={initialTimeOffsetMs}
-                    isFetching={false}
-                    replay={replay}
-                    replaySummary={replaySummaryResult}
-                  >
-                    <ReplayTransactionContext replayRecord={replayRecord}>
-                      {children}
-                    </ReplayTransactionContext>
-                  </ReplayContextProvider>
-                )}
-              </ReplaySummaryFetcher>
+              <ReplayContextProvider
+                analyticsContext="replay_details"
+                initialTimeOffsetMs={initialTimeOffsetMs}
+                isFetching={false}
+                replay={replay}
+              >
+                <ReplayTransactionContext replayRecord={replayRecord}>
+                  <ReplaySummary enabled={summaryEnabled}>{children}</ReplaySummary>
+                </ReplayTransactionContext>
+              </ReplayContextProvider>
             </ReplayPlayerSizeContextProvider>
           </ReplayPlayerStateContextProvider>
         </ReplayReaderProvider>

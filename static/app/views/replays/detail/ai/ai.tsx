@@ -7,7 +7,6 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,6 +17,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {useFetchReplaySummary} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 import {
   NO_REPLAY_SUMMARY_MESSAGES,
   ReplaySummaryStatus,
@@ -42,7 +42,18 @@ export default function Ai() {
     isPolling,
     isError,
     startSummaryRequest,
-  } = useReplayContext().replaySummary;
+  } = useFetchReplaySummary({
+    staleTime: 0,
+    enabled: Boolean(
+      replayRecord?.id &&
+        project?.slug &&
+        organization.features.includes('replay-ai-summaries') &&
+        areAiFeaturesAllowed &&
+        setupAcknowledgement.orgHasAcknowledged
+    ),
+  });
+
+  // useReplayContext().replaySummary;
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
