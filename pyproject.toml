@@ -489,6 +489,7 @@ module = [
     "tests.sentry.data_secrecy.*",
     "tests.sentry.debug.*",
     "tests.sentry.deletions.tasks.test_groups",
+    "tests.sentry.deletions.tasks.test_nodestore",
     "tests.sentry.deletions.test_group",
     "tests.sentry.digests.backends.*",
     "tests.sentry.dynamic_sampling.rules.biases.snapshots.*",
