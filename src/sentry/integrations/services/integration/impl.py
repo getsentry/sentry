@@ -371,20 +371,25 @@ class DatabaseBackedIntegrationService(IntegrationService):
             "organization_id": organization_id,
             "integration__provider": provider,
         }
+        all_ois_filter_kwargs = {
+            "integration__provider": provider,
+        }
+
         if status is not None:
             filter_kwargs["status"] = status
+            all_ois_filter_kwargs["status"] = status
 
         current_org_ois = OrganizationIntegration.objects.filter(**filter_kwargs)
         ois_to_update = list(current_org_ois.values_list("id", flat=True))
 
         if skip_oldest:
+            all_ois_filter_kwargs["integration__in"] = current_org_ois.values_list(
+                "integration_id", flat=True
+            )
+
             # Get all associated OrganizationIntegrations for the Integrations used by this org
             all_ois = (
-                OrganizationIntegration.objects.filter(
-                    integration__in=current_org_ois.values_list("integration_id", flat=True),
-                    status=status,
-                    integration__provider=provider,
-                )
+                OrganizationIntegration.objects.filter(**all_ois_filter_kwargs)
                 .order_by("id")
                 .distinct()
             )
