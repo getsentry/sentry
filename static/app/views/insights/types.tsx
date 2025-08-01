@@ -364,6 +364,7 @@ export enum SpanFunction {
   COUNT_SCORES = 'count_scores',
   OPPORTUNITY_SCORE = 'opportunity_score',
   FAILURE_RATE = 'failure_rate',
+  AVG_COMPARE = 'avg_compare',
 }
 
 export const COUNTER_AGGREGATES = [
@@ -387,7 +388,7 @@ export type Aggregate =
   | (typeof COUNTER_AGGREGATES)[number]
   | (typeof DISTRIBUTION_AGGREGATES)[number];
 
-// Count conditional aggregates only work on number properties
+// Counter conditional aggregates take in an additional number arg
 type CounterConditionalAggregate =
   | SpanFunction.SUM_IF
   | SpanFunction.AVG_IF
@@ -396,12 +397,10 @@ type CounterConditionalAggregate =
   | SpanFunction.P75_IF
   | SpanFunction.P90_IF
   | SpanFunction.P95_IF
-  | SpanFunction.P99_IF;
+  | SpanFunction.P99_IF
+  | SpanFunction.AVG_IF;
 
-type ConditionalAggregate =
-  | SpanFunction.AVG_IF
-  | SpanFunction.DIVISION_IF
-  | SpanFunction.FAILURE_RATE_IF;
+type ConditionalAggregate = SpanFunction.FAILURE_RATE_IF;
 
 type SingleArgConditionalAggregate =
   | SpanFunction.COUNT_OP
@@ -489,7 +488,7 @@ type SpanResponseRaw = {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as `${Property}(${string},${string},${ConditionAggregateOperator},${string})`]: number;
+    [Property in ConditionalAggregate as `${Property}(${SpanNumberFields},${string},${ConditionAggregateOperator},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
   } & {
     [Property in SingleArgConditionalAggregate as `${Property}(${string})`]: number;
@@ -502,9 +501,11 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${ConditionAggregateOperator},${string})`]: number;
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${ConditionAggregateOperator},${string})`]: number;
   } & {
-    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+    [Property in SpanNumberFields as `${SpanFunction.AVG_COMPARE}(${Property},${string},${string},${string})`]: number;
+  } & {
+    [Property in SpanNumberFields as `${SpanFunction.DIVISION_IF}(${Property},${Property},${string},${ConditionAggregateOperator},${string})`]: number;
   } & {
     [Property in SpanFields as `count_if(${Property},${ConditionAggregateOperator},${string})`]: number;
   };
