@@ -825,7 +825,7 @@ def _call_autofix(
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
                 "disable_coding_step": not group.organization.get_option(
-                    "sentry:enable_seer_coding"
+                    "sentry:enable_seer_coding", default=True
                 ),
             },
         },
