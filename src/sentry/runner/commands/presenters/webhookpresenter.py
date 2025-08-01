@@ -59,7 +59,7 @@ class WebhookPresenter(OptionsPresenter):
             else settings.CUSTOMER_ID if settings.CUSTOMER_ID else settings.SILO_MODE
         )
 
-        json_data = {
+        json_data: dict[str, Any] = {
             "region": region,
             "source": self.source,
             "drifted_options": [
