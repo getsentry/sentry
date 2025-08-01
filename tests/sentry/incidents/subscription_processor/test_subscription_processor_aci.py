@@ -1,9 +1,11 @@
+import copy
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import call, patch
 
 from django.utils import timezone
 
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.subscription_processor.test_subscription_processor_base import (
@@ -141,6 +143,167 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        self.send_update(2, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(6, timedelta(minutes=-7))
+        # Shouldn't trigger: 6/4 == 150%, but we want > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(7, timedelta(minutes=-6))
+        # Should trigger: 7/4 == 175% > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(6, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_comparison_alert_below(self, helper_metrics):
+        detector = self.comparison_detector_below
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        self.send_update(self.critical_threshold - 1, timedelta(minutes=-10))
+
+        # Shouldn't trigger, since there should be no data in the comparison period
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+        helper_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        self.send_update(6, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 6/4 == 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(2, timedelta(minutes=-7))
+        # Shouldn't trigger: 2/4 == 50%, but we want < 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(1, timedelta(minutes=-6))
+        # Should trigger: 1/4 == 25% < 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(2, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_is_unresolved_comparison_query(self, helper_metrics):
+        """
+        Test that uses the ErrorsQueryBuilder (because of the specific query)
+        """
+        detector = self.comparison_detector_above
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        snuba_query = self.get_snuba_query(detector)
+        snuba_query.update(query="(event.type:error) AND (is:unresolved)")
+
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10), subscription=self.sub)
+        helper_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            data = {
+                "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group2"],
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            }
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+        self.metrics.incr.reset_mock()
+        self.send_update(2, timedelta(minutes=-9))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(4, timedelta(minutes=-8))
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(6, timedelta(minutes=-7))
+        # Shouldn't trigger: 6/4 == 150%, but we want > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+        self.send_update(7, timedelta(minutes=-6))
+        # Should trigger: 7/4 == 175% > 150%
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.HIGH
+
+        # Check that we successfully resolve
+        self.send_update(6, timedelta(minutes=-5))
+        assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
+
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_is_unresolved_different_aggregate(self, helper_metrics):
+        detector = self.comparison_detector_above
+        comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
+        snuba_query = self.get_snuba_query(detector)
+        snuba_query.update(aggregate="count_unique(tags[sentry:user])")
+
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10), subscription=self.sub)
+        helper_metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        for i in range(4):
+            self.store_event(
+                data={
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "tags": {"sentry:user": i},
+                },
                 project_id=self.project.id,
             )
 
