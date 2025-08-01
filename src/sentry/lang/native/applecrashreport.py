@@ -42,7 +42,7 @@ class AppleCrashReport:
         current_span = sentry_sdk.get_current_span()
 
         if current_span:
-            current_span.set_data("time_spent_parsing_addrs", self.time_spent_parsing_addrs)
+            current_span.set_attribute("time_spent_parsing_addrs", self.time_spent_parsing_addrs)
 
         return "\n\n".join(rv) + "\n\nEOF"
 
