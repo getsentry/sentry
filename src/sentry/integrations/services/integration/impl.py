@@ -371,7 +371,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             "organization_id": organization_id,
             "integration__provider": provider,
         }
-        all_ois_filter_kwargs = {
+        all_ois_filter_kwargs: dict[str, Any] = {
             "integration__provider": provider,
         }
 
