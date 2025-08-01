@@ -11,7 +11,6 @@ from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
@@ -124,11 +123,12 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             )
         else:
             logger.info(f"{prefix}.completed", extra=extra)
-            groups = list(Group.objects.filter(id__in=group_ids))
             # The fetch request for the nodestore uses the eventstore to determine what IDs to delete
             # from the nodestore. This is why we only delete from the eventstore once we've deleted
             # from the nodestore.
-            delete_events_from_eventstore(organization_id, project_id, groups, Dataset(dataset_str))
+            delete_events_from_eventstore(
+                organization_id, project_id, group_ids, Dataset(dataset_str)
+            )
 
     # XXX: Once we find errors that should be retried add a new section and raise a RetryTask
     except Exception:
@@ -191,45 +191,26 @@ def delete_events_from_nodestore(events: Sequence[Event], dataset: Dataset) -> N
 
 
 def delete_events_from_eventstore(
-    organization_id: int, project_id: int, groups: Sequence[Group], dataset: Dataset
+    organization_id: int, project_id: int, group_ids: Sequence[int], dataset: Dataset
 ) -> None:
     if dataset == Dataset.IssuePlatform:
-        delete_events_from_eventstore_issue_platform(organization_id, project_id, list(groups))
+        delete_events_from_eventstore_issue_platform(organization_id, project_id, group_ids)
     else:
-        group_ids = [group.id for group in groups]
         eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
         eventstream.backend.end_delete_groups(eventstream_state)
 
 
+# Since we now schedule a task to delete events from the eventstore, we are likely
+# to end up with the groups being deleted from the DB, thus, we won't have access
+# to the times_seen field.
+#
+# For now, we will drop the ability to delete groups in batches based on the times_seen field.
+#
+# In the future, we can schedule multiple event deletion tasks taking into account the times_seen field.
 def delete_events_from_eventstore_issue_platform(
-    organization_id: int, project_id: int, groups: list[Group]
+    organization_id: int, project_id: int, group_ids: Sequence[int]
 ) -> None:
-    requests = []
-    # Split group_ids into batches where the sum of times_seen is less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
-    current_batch: list[int] = []
-    current_batch_rows = 0
-
-    # Deterministic sort for sanity, and for very large deletions we'll
-    # delete the "smaller" groups first
-    groups.sort(key=lambda g: (g.times_seen, g.id))
-
-    for group in groups:
-        times_seen = group.times_seen
-
-        # If adding this group would exceed the limit, create a request with the current batch
-        if current_batch_rows + times_seen > ISSUE_PLATFORM_MAX_ROWS_TO_DELETE:
-            requests.append(delete_request(organization_id, project_id, current_batch))
-            # We now start a new batch
-            current_batch = [group.id]
-            current_batch_rows = times_seen
-        else:
-            current_batch.append(group.id)
-            current_batch_rows += times_seen
-
-    # Add the final batch if it's not empty
-    if current_batch:
-        requests.append(delete_request(organization_id, project_id, current_batch))
-
+    requests = [delete_request(organization_id, project_id, group_ids)]
     bulk_snuba_queries(requests)
 
 
