@@ -487,6 +487,12 @@ export interface FieldDefinition {
    */
   desc?: string;
   /**
+   * Disallow wildcard (contains, starts with, ends with) operators for this field
+   * This is only valid for string fields and will default to false.
+   * `allowWildcard` will override this.
+   */
+  disallowWildcardOperators?: boolean;
+  /**
    * Feature flag that indicates gating of the field from use
    */
   featureFlag?: string;
@@ -1990,6 +1996,7 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    disallowWildcardOperators: true,
   },
 };
 
