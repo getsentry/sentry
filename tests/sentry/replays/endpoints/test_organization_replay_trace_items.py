@@ -71,113 +71,114 @@ class OrganizationReplayTraceItemsEndpointTest(
         )
 
         print(result)
+        assert False
 
-        from google.protobuf.timestamp_pb2 import Timestamp
-        from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
-        from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
-        from sentry_protos.snuba.v1.request_common_pb2 import (
-            TRACE_ITEM_TYPE_REPLAY,
-            PageToken,
-            RequestMeta,
-        )
+        # from google.protobuf.timestamp_pb2 import Timestamp
+        # from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
+        # from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
+        # from sentry_protos.snuba.v1.request_common_pb2 import (
+        #     TRACE_ITEM_TYPE_REPLAY,
+        #     PageToken,
+        #     RequestMeta,
+        # )
 
-        # meta {
-        #     organization_id: 4556506305921024
-        #     referrer: "api.spans.sample-get-span-data"
-        #     project_ids: 4556506306052097
-        #     start_timestamp {
-        #     seconds: 1753889050
-        #     nanos: 595000000
-        #     }
-        #     end_timestamp {
-        #     seconds: 1753890250
-        #     nanos: 595000000
-        #     }
-        #     trace_item_type: TRACE_ITEM_TYPE_SPAN
-        #     downsampled_storage_config {
-        #     mode: MODE_BEST_EFFORT
-        #     }
-        # }
-        # columns {
-        #     aggregation {
-        #     aggregate: FUNCTION_COUNT
-        #     key {
-        #         type: TYPE_DOUBLE
-        #         name: "sentry.duration_ms"
-        #     }
-        #     label: "count(span.duration)"
-        #     extrapolation_mode: EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-        #     }
-        #     label: "count(span.duration)"
-        # }
-        # limit: 1
-        # page_token {
-        #     offset: 0
-        # }
-        from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
-            AttributeAggregation,
-            AttributeKey,
-            AttributeValue,
-            DoubleArray,
-            IntArray,
-            StrArray,
-            VirtualColumnContext,
-        )
+        # # meta {
+        # #     organization_id: 4556506305921024
+        # #     referrer: "api.spans.sample-get-span-data"
+        # #     project_ids: 4556506306052097
+        # #     start_timestamp {
+        # #     seconds: 1753889050
+        # #     nanos: 595000000
+        # #     }
+        # #     end_timestamp {
+        # #     seconds: 1753890250
+        # #     nanos: 595000000
+        # #     }
+        # #     trace_item_type: TRACE_ITEM_TYPE_SPAN
+        # #     downsampled_storage_config {
+        # #     mode: MODE_BEST_EFFORT
+        # #     }
+        # # }
+        # # columns {
+        # #     aggregation {
+        # #     aggregate: FUNCTION_COUNT
+        # #     key {
+        # #         type: TYPE_DOUBLE
+        # #         name: "sentry.duration_ms"
+        # #     }
+        # #     label: "count(span.duration)"
+        # #     extrapolation_mode: EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+        # #     }
+        # #     label: "count(span.duration)"
+        # # }
+        # # limit: 1
+        # # page_token {
+        # #     offset: 0
+        # # }
+        # from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+        #     AttributeAggregation,
+        #     AttributeKey,
+        #     AttributeValue,
+        #     DoubleArray,
+        #     IntArray,
+        #     StrArray,
+        #     VirtualColumnContext,
+        # )
 
-        from sentry.utils.snuba_rpc import table_rpc
+        # from sentry.utils.snuba_rpc import table_rpc
 
-        t1 = Timestamp()
-        t1.FromSeconds(0)
+        # t1 = Timestamp()
+        # t1.FromSeconds(0)
 
-        t2 = Timestamp()
-        t2.FromSeconds(1)
+        # t2 = Timestamp()
+        # t2.FromSeconds(1)
 
-        def categorize_column(
-            column: AnyResolved,
-        ) -> Column:
-            # Can't do bare literals, so they're actually formulas with +0
-            if isinstance(column, (ResolvedFormula, ResolvedEquation, ResolvedLiteral)):
-                return Column(formula=column.proto_definition, label=column.public_alias)
-            elif isinstance(column, ResolvedAggregate):
-                return Column(aggregation=column.proto_definition, label=column.public_alias)
-            elif isinstance(column, ResolvedConditionalAggregate):
-                return Column(
-                    conditional_aggregation=column.proto_definition, label=column.public_alias
-                )
-            else:
-                return Column(key=column.proto_definition, label=column.public_alias)
+        # def categorize_column(
+        #     column: AnyResolved,
+        # ) -> Column:
+        #     # Can't do bare literals, so they're actually formulas with +0
+        #     if isinstance(column, (ResolvedFormula, ResolvedEquation, ResolvedLiteral)):
+        #         return Column(formula=column.proto_definition, label=column.public_alias)
+        #     elif isinstance(column, ResolvedAggregate):
+        #         return Column(aggregation=column.proto_definition, label=column.public_alias)
+        #     elif isinstance(column, ResolvedConditionalAggregate):
+        #         return Column(
+        #             conditional_aggregation=column.proto_definition, label=column.public_alias
+        #         )
+        #     else:
+        #         return Column(key=column.proto_definition, label=column.public_alias)
 
-        table_rpc(
-            requests=[
-                TraceItemTableRequest(
-                    meta=RequestMeta(
-                        organization_id=1,
-                        referrer="xyz",
-                        project_ids=[1],
-                        start_timestamp=t1,
-                        end_timestamp=t2,
-                        trace_item_type=TRACE_ITEM_TYPE_REPLAY,
-                        downsampled_storage_config=None,
-                    ),
-                    columns=[],
-                    filter=None,
-                    order_by=[
-                        TraceItemTableRequest.OrderBy(
-                            column=EAPColumn(
-                                key=AttributeKey(
-                                    name="project.id",
-                                    type=AttributeKey.TYPE_INT,
-                                ),
-                                label="project_id",
-                            ),
-                            descending=True,
-                        )
-                    ],
-                    group_by=None,
-                    limit=1,
-                    page_token=PageToken(offset=0),
-                    virtual_column_contexts=None,
-                    aggregation_filter=None,
-                )
-            ]
-        )
+        # table_rpc(
+        #     requests=[
+        #         TraceItemTableRequest(
+        #             meta=RequestMeta(
+        #                 organization_id=1,
+        #                 referrer="xyz",
+        #                 project_ids=[1],
+        #                 start_timestamp=t1,
+        #                 end_timestamp=t2,
+        #                 trace_item_type=TRACE_ITEM_TYPE_REPLAY,
+        #                 downsampled_storage_config=None,
+        #             ),
+        #             columns=[],
+        #             filter=None,
+        #             order_by=[
+        #                 TraceItemTableRequest.OrderBy(
+        #                     column=EAPColumn(
+        #                         key=AttributeKey(
+        #                             name="project.id",
+        #                             type=AttributeKey.TYPE_INT,
+        #                         ),
+        #                         label="project_id",
+        #                     ),
+        #                     descending=True,
+        #                 )
+        #             ],
+        #             group_by=None,
+        #             limit=1,
+        #             page_token=PageToken(offset=0),
+        #             virtual_column_contexts=None,
+        #             aggregation_filter=None,
+        #         )
+        #     ]
+        # )

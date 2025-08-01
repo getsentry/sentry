@@ -22,7 +22,10 @@ from typing import Any
 from typing import Literal as TLiteral
 from typing import NotRequired, TypedDict, cast
 
+import urllib3
+from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -34,6 +37,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
+from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.formula_pb2 import Literal
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta as EAPRequestMeta
@@ -67,6 +71,10 @@ from snuba_sdk import (
     Query,
 )
 from snuba_sdk.orderby import Direction, OrderBy
+
+from sentry.net.http import connection_from_url
+from sentry.utils.snuba import RetrySkipTimeout
+from sentry.utils.snuba_rpc import SnubaRPCError
 
 ARITHMETIC_FUNCTION_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
     "divide": Column.BinaryFormula.OP_DIVIDE,
@@ -211,6 +219,47 @@ VirtualColumn = TypedDict(
         "default_value": NotRequired[str],
     },
 )
+
+
+def execute_query(request: TraceItemTableRequest, referrer: str):
+    request_method = "POST"
+    request_body = request.SerializeToString()
+    request_url = "/rpc/EndpointTraceItemTable/v1"
+    request_headers = {"referer": referrer}
+
+    try:
+        _snuba_pool = connection_from_url(
+            settings.SENTRY_SNUBA,
+            retries=RetrySkipTimeout(
+                total=5,
+                # Our calls to snuba frequently fail due to network issues. We want to
+                # automatically retry most requests. Some of our POSTs and all of our DELETEs
+                # do cause mutations, but we have other things in place to handle duplicate
+                # mutations.
+                allowed_methods={"GET", "POST", "DELETE"},
+            ),
+            timeout=settings.SENTRY_SNUBA_TIMEOUT,
+            maxsize=10,
+        )
+
+        http_resp = _snuba_pool.urlopen(
+            method=request_method,
+            url=request_url,
+            body=request_body,
+            headers=request_headers,
+        )
+    except urllib3.exceptions.HTTPError as err:
+        raise SnubaRPCError(err)
+
+    if http_resp.status >= 400:
+        error = ErrorProto()
+        error.ParseFromString(http_resp.data)
+        if http_resp.status == 404:
+            raise NotFound() from SnubaRPCError(error)
+        else:
+            raise SnubaRPCError(error)
+
+    return http_resp
 
 
 def query(
