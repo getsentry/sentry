@@ -1,7 +1,3 @@
-from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
-from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import run_table_query
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -31,7 +27,53 @@ class OrganizationReplayTraceItemsEndpointTest(
             is_eap=True,
         )
 
-    def test_distribution_values(self):
+    # def test_distribution_values(self):
+    #     tags = [
+    #         ({"browser": "chrome", "device": "desktop"}, 500),
+    #         ({"browser": "chrome", "device": "mobile"}, 100),
+    #         ({"browser": "chrome", "device": "mobile"}, 100),
+    #         ({"browser": "chrome", "device": "desktop"}, 100),
+    #         ({"browser": "safari", "device": "mobile"}, 100),
+    #         ({"browser": "chrome", "device": "desktop"}, 500),
+    #         ({"browser": "edge", "device": "desktop"}, 500),
+    #     ]
+
+    #     for tag, duration in tags:
+    #         self._store_span(tags=tag, duration=duration)
+
+    #     snuba_params = SnubaParams(
+    #         start=before_now(minutes=20),
+    #         end=before_now(minutes=0),
+    #         environments=[],
+    #         projects=[self.project],
+    #         user=None,
+    #         teams=[],
+    #         organization=self.organization,
+    #         query_string="",
+    #         sampling_mode="BEST_EFFORT",
+    #         debug="debug",
+    #     )
+
+    #     result = run_table_query(
+    #         snuba_params,
+    #         "",
+    #         ["count(span.duration)"],
+    #         None,
+    #         config=SearchResolverConfig(use_aggregate_conditions=False),
+    #         offset=0,
+    #         limit=1,
+    #         sampling_mode="BEST_EFFORT",
+    #         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+    #     )
+
+    #     print(result)
+    #     assert False
+
+    def test(self):
+        import datetime
+
+        from sentry.replays.lib.eap.snuba_transpiler import as_eap_request, execute_query
+
         tags = [
             ({"browser": "chrome", "device": "desktop"}, 500),
             ({"browser": "chrome", "device": "mobile"}, 100),
@@ -45,32 +87,35 @@ class OrganizationReplayTraceItemsEndpointTest(
         for tag, duration in tags:
             self._store_span(tags=tag, duration=duration)
 
-        snuba_params = SnubaParams(
-            start=before_now(minutes=20),
-            end=before_now(minutes=0),
-            environments=[],
-            projects=[self.project],
-            user=None,
-            teams=[],
-            organization=self.organization,
-            query_string="",
-            sampling_mode="BEST_EFFORT",
-            debug="debug",
-        )
+        from snuba_sdk import Column, Entity, Query
 
-        result = run_table_query(
-            snuba_params,
-            "",
-            ["count(span.duration)"],
-            None,
-            config=SearchResolverConfig(use_aggregate_conditions=False),
-            offset=0,
-            limit=1,
-            sampling_mode="BEST_EFFORT",
-            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-        )
+        query = Query(match=Entity("trace_items"), select=[Column("browser")])
 
-        print(result)
+        req = as_eap_request(
+            query,
+            meta={
+                "cogs_category": "",
+                "debug": False,
+                "end_datetime": datetime.datetime.now(),
+                "organization_id": 1,
+                "project_ids": [1],
+                "referrer": "test",
+                "request_id": "1",
+                "start_datetime": datetime.datetime.now(),
+                "trace_item_type": "replay",
+            },
+            settings={
+                "attribute_types": {"browser": str},
+                "default_limit": 25,
+                "default_offset": 0,
+                "extrapolation_mode": "none",
+            },
+            virtual_columns=[],
+        )
+        print(req)
+        res = execute_query(req, referrer="test")
+        print(res)
+
         assert False
 
         # from google.protobuf.timestamp_pb2 import Timestamp
@@ -181,4 +226,5 @@ class OrganizationReplayTraceItemsEndpointTest(
         #             aggregation_filter=None,
         #         )
         #     ]
+        # )
         # )
