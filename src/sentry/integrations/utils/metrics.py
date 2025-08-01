@@ -423,3 +423,49 @@ class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
+
+
+def with_event_lifecycle(
+    metric: EventLifecycleMetric,
+    assume_success: bool = True,
+    sample_log_rate: float = 1.0,
+    halt_on_exceptions: list[type[BaseException]] | None = None,
+):
+    """
+    Decorator that wraps a function with event lifecycle tracking.
+    This decorator provides the same functionality as using the EventLifecycle
+    context manager manually, but in a more convenient decorator form.
+    Args:
+        metric: The EventLifecycleMetric instance to use for tracking
+        assume_success: Whether to assume success if no explicit outcome is recorded (default True)
+        sample_log_rate: Rate at which to sample logs (0.0-1.0)
+        halt_on_exceptions: List of exception types that should be treated as halts instead of failures
+    Example:
+        @with_event_lifecycle(
+            my_metric,
+            halt_on_exceptions=[requests.RequestException, ValueError]
+        )
+        def my_integration_function():
+            # Function implementation
+            pass
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            with metric.capture(
+                assume_success=assume_success, sample_log_rate=sample_log_rate
+            ) as lifecycle:
+                try:
+                    result = func(*args, **kwargs)
+                    return result
+                except BaseException as e:
+                    if halt_on_exceptions and any(
+                        isinstance(e, exc_type) for exc_type in halt_on_exceptions
+                    ):
+                        lifecycle.record_halt(e)
+                    # Let the exception bubble up
+                    raise
+
+        return wrapper
+
+    return decorator
