@@ -40,7 +40,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from tests.sentry.incidents.subscription_processor.test_subscription_processor_legacy import (
+from tests.sentry.incidents.subscription_processor.test_subscription_processor import (
     ProcessUpdateAnomalyDetectionTest,
     ProcessUpdateComparisonAlertTest,
 )
