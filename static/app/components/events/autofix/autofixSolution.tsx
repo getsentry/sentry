@@ -367,7 +367,8 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
-  const codingDisabled = !organization.enableSeerCoding;
+  const codingDisabled =
+    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
