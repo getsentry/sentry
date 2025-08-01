@@ -17,7 +17,7 @@ from sentry.types.activity import ActivityType
 @patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
 class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
     @skip("Flaky test")
-    def test_deploy(self, mock_send_card: MagicMock):
+    def test_deploy(self, mock_send_card: MagicMock) -> None:
         """
         Test that the card for MS Teams notification is generated correctly when a deployment is created.
         """
