@@ -9,6 +9,7 @@ from sentry import http, options
 from sentry.http import safe_urlopen
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
@@ -79,7 +80,7 @@ class VSTSIdentityProvider(OAuth2Provider):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(
-        self, refresh_token: str, identity: Identity, **kwargs: Any
+        self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
         client_secret = options.get("vsts.client-secret")
 
