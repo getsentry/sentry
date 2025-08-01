@@ -5,6 +5,7 @@ on:
       - '.pre-commit-config.yaml'
       - 'Makefile'
       - '.github/workflows/development-environment.yml'
+      - 'requirements-*.txt'
       - 'pyproject.toml'
       - 'uv.lock'
       - '.python-version'
