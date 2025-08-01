@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -1879,3 +1880,16 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Dashboard 3",
             "Dashboard 1",
         ]
+
+    @patch("sentry.quotas.backend.get_dashboard_limit")
+    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
+        mock_get_dashboard_limit.return_value = 1
+        with self.feature("organizations:dashboards-plan-limits"):
+            response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
+        assert response.status_code == 400
+        assert response.data == "You may not exceed 1 dashboards on your current plan."
+
+        mock_get_dashboard_limit.return_value = 5
+        with self.feature("organizations:dashboards-plan-limits"):
+            response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
+        assert response.status_code == 201
