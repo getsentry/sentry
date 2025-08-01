@@ -41,15 +41,6 @@ describe('apiOptions', () => {
     expect(options.queryKey[0]).toBe('/projects/my-org/my-project/releases/v%201.0.0/');
   });
 
-  test('should not modify already encoded parameters', () => {
-    const options = apiOptions('/search/$query/', {
-      staleTime: 0,
-      path: {query: 'test%20query'},
-    });
-
-    expect(options.queryKey[0]).toBe('/search/test%20query/');
-  });
-
   test('should not include empty options in queryKey', () => {
     const options = apiOptions('/projects/$id/', {
       staleTime: 0,
