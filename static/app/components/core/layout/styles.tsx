@@ -71,7 +71,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     ? `${T} ${T}` | `${T}`
     : never;
 
-export type Responsive<T> = T | Record<Breakpoint, T | undefined>;
+export type Responsive<T> = T | Partial<Record<Breakpoint, T>>;
 
 function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
   return typeof prop === 'object' && prop !== null;
