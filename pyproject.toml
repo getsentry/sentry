@@ -114,8 +114,6 @@ module = [
     "sentry.api.paginator",
     "sentry.db.postgres.base",
     "sentry.eventstore.models",
-    "sentry.identity.gitlab.provider",
-    "sentry.identity.oauth2",
     "sentry.integrations.github.client",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.slack.message_builder.notifications.issues",
