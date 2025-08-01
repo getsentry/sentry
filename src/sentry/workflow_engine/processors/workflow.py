@@ -126,6 +126,13 @@ def enqueue_workflows(
 def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
 ) -> tuple[set[Workflow], dict[Workflow, DelayedWorkflowItem]]:
+    """
+    Returns a tuple of (triggered_workflows, queue_items_by_workflow)
+    - triggered_workflows: set of workflows that were triggered
+    - queue_items_by_workflow: mapping of workflow to the delayed workflow item, used
+      in the next step (evaluate action filters) to enqueue workflows with slow conditions
+      within that function
+    """
     triggered_workflows: set[Workflow] = set()
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
     current_time = timezone.now()
@@ -193,22 +200,32 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow
 
 
-def evaluate_action_filters(
+@sentry_sdk.trace
+def evaluate_workflows_action_filters(
+    workflows: set[Workflow],
     event_data: WorkflowEventData,
-    dcg_to_workflow: dict[DataConditionGroup, Workflow],
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> set[DataConditionGroup]:
     """
-    Evaluate the action filters for the given mapping of DataConditionGroup to Workflow. (dcg_to_workflow_id)
+    Evaluate the action filters for the given workflows.
     Returns a set of DataConditionGroups that were evaluated to True.
-
-    Use this function if you are repeatedly evaluating action filters in a loop --
-    query for all the DataConditionGroups in a single query before using this function to avoid N+1s queries.
+    Enqueues workflows with slow conditions to be evaluated in a batched task.
     """
+    # Collect all workflows, including those with pending slow condition results (queue_items_by_workflow)
+    # to evaluate all fast conditions
+    all_workflows = workflows.union(set(queue_items_by_workflow.keys()))
+
+    action_conditions_to_workflow = {
+        wdcg.condition_group: wdcg.workflow
+        for wdcg in WorkflowDataConditionGroup.objects.select_related(
+            "workflow", "condition_group"
+        ).filter(workflow__in=all_workflows)
+    }
+
     filtered_action_groups: set[DataConditionGroup] = set()
     current_time = timezone.now()
 
-    for action_condition, workflow in dcg_to_workflow.items():
+    for action_condition, workflow in action_conditions_to_workflow.items():
         env = (
             Environment.objects.get_from_cache(id=workflow.environment_id)
             if workflow.environment_id
@@ -271,43 +288,15 @@ def evaluate_action_filters(
         extra={
             "group_id": event_data.group.id,
             "event_id": event_id,
-            "workflow_ids": [workflow.id for workflow in dcg_to_workflow.values()],
+            "workflow_ids": [workflow.id for workflow in action_conditions_to_workflow.values()],
             "action_conditions": [
-                action_condition.id for action_condition in dcg_to_workflow.keys()
+                action_condition.id for action_condition in action_conditions_to_workflow.keys()
             ],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
         },
     )
 
     return filtered_action_groups
-
-
-@sentry_sdk.trace
-def evaluate_workflows_action_filters(
-    workflows: set[Workflow],
-    event_data: WorkflowEventData,
-    queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
-) -> set[DataConditionGroup]:
-    """
-    Evaluate the action filters for the given workflows.
-    Returns a set of DataConditionGroups that were evaluated to True.
-
-    Use this function if you only have a set of workflows to evaluate and will not repeatedly evaluate action filters in a loop.
-    """
-    # Collect all workflows, including those with pending slow condition results, to evaluate all fast conditions
-
-    all_workflows = workflows.union(set(queue_items_by_workflow.keys()))
-
-    action_conditions_to_workflow = {
-        wdcg.condition_group: wdcg.workflow
-        for wdcg in WorkflowDataConditionGroup.objects.select_related(
-            "workflow", "condition_group"
-        ).filter(workflow__in=all_workflows)
-    }
-
-    return evaluate_action_filters(
-        event_data, action_conditions_to_workflow, queue_items_by_workflow
-    )
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
