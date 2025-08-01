@@ -221,4 +221,35 @@ describe('IntegrationCodeMappings', function () {
       expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
     });
   });
+
+  it('deletes existing config and refreshes data', async () => {
+    const deleteUrl = `/organizations/${org.slug}/code-mappings/${pathConfig1.id}/`;
+    const deleteMock = MockApiClient.addMockResponse({
+      url: deleteUrl,
+      method: 'DELETE',
+    });
+
+    render(<IntegrationCodeMappings integration={integration} />);
+    renderGlobalModal();
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    // Should show both path configs initially
+    expect(screen.getByText(pathConfig1.repoName)).toBeInTheDocument();
+    expect(screen.getByText(pathConfig2.repoName)).toBeInTheDocument();
+
+    // Override mock before refetch happens after delete
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      body: [pathConfig2], // Only pathConfig2 remains after delete
+    });
+
+    // Click delete button for first config
+    await userEvent.click(screen.getAllByRole('button', {name: 'delete'})[0]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() => expect(deleteMock).toHaveBeenCalled());
+
+    expect(screen.queryByText(pathConfig1.repoName)).not.toBeInTheDocument();
+    expect(screen.getByText(pathConfig2.repoName)).toBeInTheDocument();
+  });
 });
