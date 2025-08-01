@@ -1,5 +1,5 @@
-import {useState} from 'react';
-import styled from '@emotion/styled';
+import {useCallback} from 'react';
+import {useSearchParams} from 'react-router-dom';
 
 import {Button} from 'sentry/components/core/button';
 import {Container} from 'sentry/components/core/layout/container';
@@ -23,17 +23,22 @@ interface AppSizeInsightsProps {
 }
 
 export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isSidebarOpen = searchParams.get('insights') === 'open';
 
-  if (!totalSize || totalSize <= 0) {
-    return null;
-  }
+  const openSidebar = useCallback(() => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('insights', 'open');
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
+  const closeSidebar = useCallback(() => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('insights');
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
 
   const insightItems: ProcessedInsight[] = processInsights(insights, totalSize);
-  if (!insightItems.length) {
-    return null;
-  }
-
   // Only show top 3 insights, show the rest in the sidebar
   const topInsights = insightItems.slice(0, 3);
 
@@ -49,20 +54,20 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         <Heading as="h2" size="lg">
           {t('Top insights')}
         </Heading>
-        <Button size="sm" icon={<IconSettings />} onClick={() => setIsSidebarOpen(true)}>
+        <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
           {t('View all insights')}
         </Button>
       </Flex>
       <Flex direction="column" gap="2xs">
         {topInsights.map((insight, index) => (
-          <InsightRow
+          <Flex
             key={insight.name}
-            isAlternating={index % 2 === 0}
             align="center"
             justify="between"
             radius="md"
             height="22px"
             padding="xs sm"
+            background={index % 2 === 0 ? 'secondary' : undefined}
           >
             <Text variant="primary" size="sm" bold>
               {insight.name}
@@ -81,7 +86,7 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
                 (-{formatPercentage(insight.percentage / 100, 1)})
               </Text>
             </Flex>
-          </InsightRow>
+          </Flex>
         ))}
       </Flex>
 
@@ -89,14 +94,8 @@ export function AppSizeInsights({insights, totalSize}: AppSizeInsightsProps) {
         insights={insights}
         totalSize={totalSize}
         isOpen={isSidebarOpen}
-        onClose={() => {
-          setIsSidebarOpen(false);
-        }}
+        onClose={closeSidebar}
       />
     </Container>
   );
 }
-
-const InsightRow = styled(Flex)<{isAlternating: boolean}>`
-  background: ${p => (p.isAlternating ? p.theme.surface200 : 'transparent')};
-`;

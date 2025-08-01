@@ -65,13 +65,16 @@ export function AppSizeInsightsSidebarRow({
 
       <Container>
         <Button
-          priority="transparent"
           size="sm"
           onClick={onToggleExpanded}
           style={{marginBottom: isExpanded ? '16px' : '0'}}
           icon={
-            <ToggleIcon
-              style={{transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)'}}
+            <IconChevron
+              style={{
+                transition: 'transform 0.2s ease',
+                color: 'inherit',
+                transform: isExpanded ? 'rotate(180deg)' : 'rotate(90deg)',
+              }}
             />
           }
         >
@@ -151,11 +154,6 @@ function OptimizableImageFileRow({
     </FlexAlternatingRow>
   );
 }
-
-const ToggleIcon = styled(IconChevron)`
-  transition: transform 0.2s ease;
-  color: inherit;
-`;
 
 const FlexAlternatingRow = styled(Flex)<{isAlternating: boolean}>`
   align-items: center;

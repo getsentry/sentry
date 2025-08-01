@@ -65,7 +65,6 @@ export function AppSizeInsightsSidebar({
               {t('Insights')}
             </Heading>
             <Button
-              priority="transparent"
               size="sm"
               icon={<IconClose />}
               aria-label={t('Close sidebar')}

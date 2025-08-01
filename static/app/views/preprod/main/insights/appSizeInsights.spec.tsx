@@ -10,21 +10,6 @@ describe('AppSizeInsights', () => {
     totalSize: 10240000,
   });
 
-  it('renders nothing when totalSize is 0 or negative', () => {
-    const {container} = render(<AppSizeInsights {...getDefaultProps()} totalSize={0} />);
-    expect(container).toBeEmptyDOMElement();
-
-    const {container: container2} = render(
-      <AppSizeInsights {...getDefaultProps()} totalSize={-100} />
-    );
-    expect(container2).toBeEmptyDOMElement();
-  });
-
-  it('renders nothing when no insights are provided', () => {
-    const {container} = render(<AppSizeInsights {...getDefaultProps()} insights={{}} />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('renders the main insights container with correct header', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
