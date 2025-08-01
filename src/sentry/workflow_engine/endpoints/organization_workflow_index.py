@@ -292,7 +292,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_204_NO_CONTENT,
             )
 
-        queryset.update(enabled=enabled)
+        # We update workflows individually to ensure post_save signals are called
+        for workflow in queryset:
+            workflow.update(enabled=enabled)
 
         return self.paginate(
             request=request,
@@ -339,8 +341,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_204_NO_CONTENT,
             )
 
-        with transaction.atomic(router.db_for_write(Workflow)):
-            for workflow in queryset:
+        for workflow in queryset:
+            with transaction.atomic(router.db_for_write(Workflow)):
                 RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
@@ -349,6 +351,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("WORKFLOW_REMOVE"),
                     data=workflow.get_audit_log_data(),
                 )
-            queryset.update(status=ObjectStatus.PENDING_DELETION)
+                workflow.update(status=ObjectStatus.PENDING_DELETION)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
