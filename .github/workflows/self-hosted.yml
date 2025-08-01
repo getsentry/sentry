@@ -103,7 +103,7 @@ jobs:
         run: docker pull ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-amd64
 
       - name: Pull arm64 Image
-        run: docker pull ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-arm64
+        run: docker pull ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-arm64 --platform linux/arm64
 
       - name: Push to GitHub Container Registry
         run: |
