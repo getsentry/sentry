@@ -258,13 +258,22 @@ function useReplayData({
   }, [errorPages, extraErrorPages, platformErrorPages]);
 
   const {
-    feedbackEvents,
+    feedbackEvents: rawFeedbackEvents,
     isPending: feedbackEventsPending,
     isError: feedbackEventsError,
   } = useFeedbackEvents({
     feedbackEventIds: feedbackEventIds ?? [],
     projectId: replayRecord?.project_id,
   });
+
+  // stabilize feedbackEvents to prevent unnecessary re-renders.
+  // we don't care about reordering and feedback events can't be updated.
+  // if a new feedback is submitted, then the length will increase, which is
+  // the only thing we care about.
+  const feedbackEvents = useMemo(() => {
+    return rawFeedbackEvents;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawFeedbackEvents?.length]);
 
   const allStatuses = [
     enableReplayRecord ? fetchReplayStatus : undefined,
