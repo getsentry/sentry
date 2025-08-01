@@ -80,13 +80,8 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           dockerfile_path: 'self-hosted/Dockerfile'
           tag_suffix: -${{ matrix.platform }}
-          outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
-
-      - name: Upload Image
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: sentry-${{ matrix.platform }}
-          path: /tmp/sentry-${{ matrix.platform }}.tar
+          ghcr: true
+          publish_on_pr: true
 
   assemble:
     needs: [self-hosted]
@@ -104,23 +99,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
-      - name: Download amd64 Image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.2
-        with:
-          name: sentry-amd64
-          path: /tmp
+      - name: Pull amd64 Image
+        run: docker pull ghcr.io/getsentry/sentry:${{ github.sha }}-amd64
 
-      - name: Load amd64 Image
-        run: docker load --input /tmp/sentry-amd64.tar
-
-      - name: Download arm64 Image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.2
-        with:
-          name: sentry-arm64
-          path: /tmp
-
-      - name: Load arm64 Image
-        run: docker load --input /tmp/sentry-arm64.tar
+      - name: Pull arm64 Image
+        run: docker pull ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
 
       - name: Push to GitHub Container Registry
         run: |
