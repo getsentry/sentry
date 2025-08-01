@@ -2197,6 +2197,9 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "nodestore.set-subkeys.enable-errors-caching", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # === Backpressure related runtime options ===
 
