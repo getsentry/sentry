@@ -311,7 +311,7 @@ function CopySolutionButton({
   const text = formatSolutionText(solution, customSolution);
   return (
     <CopyToClipboardButton
-      size="sm"
+      size="zero"
       text={text}
       borderless
       title="Copy solution as Markdown"
@@ -338,7 +338,6 @@ function AutofixSolutionDisplay({
 
   const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
-  const [isEditing, _setIsEditing] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
     () => {
@@ -475,26 +474,24 @@ function AutofixSolutionDisplay({
         <HeaderWrapper>
           <HeaderText>
             <HeaderIconWrapper ref={iconFixRef}>
-              <IconFix size="sm" color="green400" />
+              <IconFix size="md" color="green400" />
             </HeaderIconWrapper>
             {t('Solution')}
-            <ChatButton
-              size="zero"
-              borderless
-              title={t('Chat with Seer')}
-              onClick={handleSelectDescription}
-              analyticsEventName="Autofix: Solution Chat"
-              analyticsEventKey="autofix.solution.chat"
-            >
-              <IconChat size="xs" />
-            </ChatButton>
+            <ButtonBar gap={'0'}>
+              <ChatButton
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectDescription}
+                analyticsEventName="Autofix: Solution Chat"
+                analyticsEventKey="autofix.solution.chat"
+              >
+                <IconChat />
+              </ChatButton>
+              <CopySolutionButton solution={solution} />
+            </ButtonBar>
           </HeaderText>
           <ButtonBar>
-            <ButtonBar gap="0">
-              {!isEditing && (
-                <CopySolutionButton solution={solution} isEditing={isEditing} />
-              )}
-            </ButtonBar>
             <ButtonBar gap="0">
               <Tooltip
                 isHoverable
@@ -650,7 +647,7 @@ const HeaderWrapper = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -709,5 +706,4 @@ const AddInstructionWrapper = styled('div')`
 
 const ChatButton = styled(Button)`
   color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
 `;
