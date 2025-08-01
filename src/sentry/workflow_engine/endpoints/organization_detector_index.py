@@ -42,9 +42,6 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.organization_workflow_index import (
-    DetectorWorkflowMutationValidator,
-)
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
@@ -52,6 +49,9 @@ from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeVal
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkDetectorWorkflowsValidator,
     can_edit_detectors,
+)
+from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
+    DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
