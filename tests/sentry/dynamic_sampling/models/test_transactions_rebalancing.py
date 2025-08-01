@@ -130,7 +130,7 @@ def test_explicit_elements_ideal_rate(
             )
 
 
-def test_total_num_classes_mismatch(transactions_rebalancing_model):
+def test_total_num_classes_mismatch(transactions_rebalancing_model) -> None:
     """
     Simple test case that checks that the model is resilient to cases where the
     reported total number of classes is less than the number of passed classes

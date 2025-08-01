@@ -502,7 +502,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    def test_notify_users_does_email(self, mock_logger, mock_func):
+    def test_notify_users_does_email(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -562,7 +562,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func):
+    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -624,7 +624,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
     @mock_notify
-    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
+    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func) -> None:
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
         to send an email notification to those emails, these stale `UserOption` instances are
@@ -694,7 +694,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock_notify
-    def test_multiline_error(self, mock_func):
+    def test_multiline_error(self, mock_func) -> None:
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()

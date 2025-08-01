@@ -112,7 +112,7 @@ class JiraInstalledTest(APITestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry_sdk.set_tag")
-    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event):
+    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event) -> None:
         self.get_success_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
@@ -125,7 +125,7 @@ class JiraInstalledTest(APITestCase):
 
     @patch("sentry_sdk.set_tag")
     @responses.activate
-    def test_with_key_id(self, mock_set_tag: MagicMock):
+    def test_with_key_id(self, mock_set_tag: MagicMock) -> None:
         self.add_response()
 
         self.get_success_response(
@@ -138,7 +138,7 @@ class JiraInstalledTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_with_invalid_key_id(self, mock_record_event: MagicMock):
+    def test_with_invalid_key_id(self, mock_record_event: MagicMock) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(

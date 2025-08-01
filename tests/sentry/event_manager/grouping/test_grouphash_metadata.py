@@ -152,7 +152,7 @@ class GroupHashMetadataTest(TestCase):
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
-    def test_does_grouping_config_update(self, mock_metrics_incr: MagicMock):
+    def test_does_grouping_config_update(self, mock_metrics_incr: MagicMock) -> None:
         self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         event1 = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -230,7 +230,7 @@ class GroupHashMetadataTest(TestCase):
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
-    def test_does_schema_update(self, mock_metrics_incr: MagicMock):
+    def test_does_schema_update(self, mock_metrics_incr: MagicMock) -> None:
         with patch(
             "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "11"
         ):
@@ -288,7 +288,7 @@ class GroupHashMetadataTest(TestCase):
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
-    def test_does_both_updates(self, mock_metrics_incr: MagicMock):
+    def test_does_both_updates(self, mock_metrics_incr: MagicMock) -> None:
         self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         with patch(
@@ -356,7 +356,7 @@ class GroupHashMetadataTest(TestCase):
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
     @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
-    def test_grouping_config_update_precedence(self, mock_metrics_incr: MagicMock):
+    def test_grouping_config_update_precedence(self, mock_metrics_incr: MagicMock) -> None:
         """
         Test that we don't overwrite a newer config with an older one, or with None.
         """
