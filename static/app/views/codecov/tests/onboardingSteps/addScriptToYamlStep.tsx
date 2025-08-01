@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import testAnalyticsGHAWorkflowExample from 'sentry-images/features/test-analytics-gha-workflow-ex.svg';
+
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,21 +30,36 @@ export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <AddScriptsParagraph>
-          {t('In your CI YAML file, add below scripts to the end of your test run.')}
-        </AddScriptsParagraph>
-        <CodeSnippet dark language="yaml">
-          {SNIPPET}
-        </CodeSnippet>
-        <SnippetFollowupParagraph>
-          {t(
-            'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
-          )}
-        </SnippetFollowupParagraph>
-        {/* TODO: add dropdown expansion */}
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <AddScriptsParagraph>
+            {t('In your CI YAML file, add below scripts to the end of your test run.')}
+          </AddScriptsParagraph>
+          <CodeSnippet dark language="yaml">
+            {SNIPPET}
+          </CodeSnippet>
+          <SnippetFollowupParagraph>
+            {t(
+              'This action will download the Sentry Prevent CLI, and upload the junit.xml file generated in the previous step to Sentry.'
+            )}
+          </SnippetFollowupParagraph>
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
+      <OnboardingStep.ExpandableDropdown
+        triggerContent={
+          <div>
+            {tct(
+              'A GitHub Actions workflow for a repository using [pytest] might look something like this:',
+              {
+                pytest: <PinkText>{t('pytest')}</PinkText>,
+              }
+            )}
+          </div>
+        }
+      >
+        <img src={testAnalyticsGHAWorkflowExample} />
+      </OnboardingStep.ExpandableDropdown>
     </OnboardingStep.Container>
   );
 }
@@ -53,4 +70,8 @@ const AddScriptsParagraph = styled('div')`
 
 const SnippetFollowupParagraph = styled('div')`
   margin-top: ${space(1.5)};
+`;
+
+const PinkText = styled('span')`
+  color: ${p => p.theme.pink400};
 `;
