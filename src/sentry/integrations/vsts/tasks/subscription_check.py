@@ -2,6 +2,7 @@ from time import time
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.tasks import logger
 from sentry.models.apitoken import generate_token
@@ -27,7 +28,7 @@ from sentry.taskworker.retry import Retry
         ),
     ),
 )
-@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
+@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist, IdentityNotValid))
 def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     from sentry.integrations.vsts.integration import VstsIntegration
 
@@ -53,6 +54,18 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
                 "error": str(e),
             },
         )
+    except IdentityNotValid as e:
+        logger.info(
+            "vsts_subscription_check.identity_not_valid",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "error": str(e),
+            },
+        )
+        # There is no point in continuing this task if the identity is not valid.
+        # The integration is fundamentally broken
+        return
 
     # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
     if not subscription or subscription["status"] == "disabledBySystem":
