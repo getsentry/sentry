@@ -4,6 +4,11 @@ import pytest
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    AggregationAndFilter,
+    AggregationComparisonFilter,
+    AggregationFilter,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
 from sentry_protos.snuba.v1.formula_pb2 import Literal
@@ -31,6 +36,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
 )
+from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.replays.lib.eap.snuba_transpiler import (
     RequestMeta,
@@ -39,6 +45,7 @@ from sentry.replays.lib.eap.snuba_transpiler import (
     condidtional_aggregation_filter,
     expression,
     groupby,
+    having,
     orderby,
     where,
 )
@@ -125,6 +132,59 @@ def test_where_comparison_filters(snuba_op, eap_op):
         )
     )
     assert where(conditions, SETTINGS) == eap_filter
+
+
+@pytest.mark.parametrize(
+    ("snuba_fn", "eap_fn"),
+    [
+        ("avg", EAPFunction.FUNCTION_AVG),
+        ("count", EAPFunction.FUNCTION_COUNT),
+        ("max", EAPFunction.FUNCTION_MAX),
+        ("min", EAPFunction.FUNCTION_MIN),
+        ("p50", EAPFunction.FUNCTION_P50),
+        ("p75", EAPFunction.FUNCTION_P75),
+        ("p90", EAPFunction.FUNCTION_P90),
+        ("p95", EAPFunction.FUNCTION_P95),
+        ("p99", EAPFunction.FUNCTION_P99),
+        ("quantiles(0.5)", EAPFunction.FUNCTION_P50),
+        ("quantiles(0.75)", EAPFunction.FUNCTION_P75),
+        ("quantiles(0.90)", EAPFunction.FUNCTION_P90),
+        ("quantiles(0.95)", EAPFunction.FUNCTION_P95),
+        ("quantiles(0.99)", EAPFunction.FUNCTION_P99),
+        ("sum", EAPFunction.FUNCTION_SUM),
+        ("uniq", EAPFunction.FUNCTION_UNIQ),
+    ],
+)
+def test_having_comparison_filters(snuba_fn, eap_fn):
+    operators = [
+        (Op.EQ, AggregationComparisonFilter.OP_EQUALS),
+        (Op.NEQ, AggregationComparisonFilter.OP_NOT_EQUALS),
+        (Op.GT, AggregationComparisonFilter.OP_GREATER_THAN),
+        (Op.LT, AggregationComparisonFilter.OP_LESS_THAN),
+        (Op.GTE, AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS),
+        (Op.LTE, AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS),
+    ]
+
+    for snuba_op, eap_op in operators:
+        conditions = [Condition(Function(snuba_fn, parameters=[Column("int")]), snuba_op, 1.0)]
+        eap_filter = AggregationFilter(
+            and_filter=AggregationAndFilter(
+                filters=[
+                    AggregationFilter(
+                        comparison_filter=AggregationComparisonFilter(
+                            op=eap_op,
+                            val=1.0,
+                            aggregation=AttributeAggregation(
+                                aggregate=eap_fn,
+                                key=AttributeKey(type=AttributeKey.TYPE_INT, name="int"),
+                                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                            ),
+                        )
+                    )
+                ]
+            )
+        )
+        assert having(conditions, SETTINGS) == eap_filter
 
 
 @pytest.mark.parametrize(
