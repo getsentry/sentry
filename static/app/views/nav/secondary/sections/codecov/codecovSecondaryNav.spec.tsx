@@ -72,6 +72,27 @@ describe('CodecovSecondaryNav', () => {
     expect(testsLink).toHaveAttribute('href', '/organizations/org-slug/codecov/tests/');
   });
 
+  it('renders the correct ai link', () => {
+    render(
+      <NavContextProvider>
+        <Nav />
+        <div id="main" />
+      </NavContextProvider>,
+      {
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/codecov/ai/',
+          },
+        },
+      }
+    );
+
+    const aiLink = screen.getByRole('link', {name: 'AI'});
+    expect(aiLink).toBeInTheDocument();
+    expect(aiLink).toHaveAttribute('href', '/organizations/org-slug/codecov/ai/');
+  });
+
   it('renders the correct tokens link', () => {
     render(
       <NavContextProvider>

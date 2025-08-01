@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
 import {
+  AI_BASE_URL,
   COVERAGE_BASE_URL,
   TESTS_BASE_URL,
   TOKENS_BASE_URL,
@@ -21,6 +22,10 @@ function CodecovSecondaryNav() {
   const testsPathname = makeCodecovPathname({
     organization,
     path: `/${TESTS_BASE_URL}/`,
+  });
+  const aiPathname = makeCodecovPathname({
+    organization,
+    path: `/${AI_BASE_URL}/`,
   });
   const tokensPathName = makeCodecovPathname({
     organization,
@@ -42,6 +47,9 @@ function CodecovSecondaryNav() {
           </SecondaryNav.Item>
           <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
             {t('Tests')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item to={aiPathname} activeTo={aiPathname}>
+            {t('AI')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="codecov-configure" title={t('Configure')}>
