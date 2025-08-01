@@ -493,8 +493,12 @@ function parseFilter(filter: string) {
     if (c === ':' && !quoted) {
       const key = removeSurroundingQuotes(filter.slice(0, idx));
       const foundValue = filter.slice(idx + 1);
+
+      // This snippet here handles the case where we have a single value that uses quotes
+      // to escape the brackets e.g. message:"[foo]" whereas before it was removing them.
       const isEscapingBrackets = foundValue.startsWith('"[') && foundValue.endsWith(']"');
       const value = isEscapingBrackets ? foundValue : removeSurroundingQuotes(foundValue);
+
       return [key, value];
     }
   }
