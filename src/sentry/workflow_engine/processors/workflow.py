@@ -65,7 +65,7 @@ def delete_workflow(workflow: Workflow) -> bool:
     return True
 
 
-@dataclass(frozen=True)
+@dataclass
 class DelayedWorkflowItem:
     workflow: Workflow
     event: GroupEvent
