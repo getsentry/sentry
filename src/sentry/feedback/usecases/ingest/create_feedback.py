@@ -299,10 +299,23 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
         title = response_data["title"]
     except Exception:
         logger.exception("Error generating AI feedback title")
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"organization_id": organization.id},
+        )
         return None
 
     if not title or not isinstance(title, str):
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "invalid_response", "organization_id": organization.id},
+        )
         return None
+
+    metrics.incr(
+        "feedback.ai_title_generation.success",
+        tags={"organization_id": organization.id},
+    )
     return title
 
 
