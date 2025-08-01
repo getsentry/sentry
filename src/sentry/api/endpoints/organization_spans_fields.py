@@ -60,7 +60,7 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
 
 
 class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
-    type = serializers.ChoiceField(["string", "number"], required=False)
+    type = serializers.ChoiceField(["string", "number"], required=True)
 
 
 @region_silo_endpoint
