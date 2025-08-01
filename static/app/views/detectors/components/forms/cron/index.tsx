@@ -9,6 +9,7 @@ import {
   cronFormDataToEndpointPayload,
   cronSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/cron/fields';
+import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/forms/cron/resolve';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 
@@ -16,6 +17,7 @@ function CronDetectorForm({isEditing}: {isEditing: boolean}) {
   return (
     <FormStack>
       <CronDetectorFormDetectSection isEditing={isEditing} />
+      <CronDetectorFormResolveSection />
       <AssignSection />
       <AutomateSection />
     </FormStack>
@@ -27,18 +29,7 @@ export function NewCronDetectorForm() {
     <NewDetectorLayout
       detectorType="uptime_subscription"
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
-      initialFormData={{
-        scheduleCrontab: '0 0 * * *',
-        scheduleIntervalValue: 1,
-        scheduleIntervalUnit: 'day',
-        scheduleType: 'crontab',
-        timezone: 'UTC',
-        failureIssueThreshold: 1,
-        recoveryThreshold: 1,
-        maxRuntime: 30,
-        checkinMargin: 1,
-        workflowIds: [],
-      }}
+      initialFormData={{}}
     >
       <CronDetectorForm isEditing={false} />
     </NewDetectorLayout>

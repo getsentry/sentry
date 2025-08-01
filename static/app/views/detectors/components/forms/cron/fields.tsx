@@ -85,7 +85,9 @@ export function cronSavedDetectorToFormData(
     scheduleIntervalValue: Array.isArray(dataSource.queryObj.schedule)
       ? dataSource.queryObj.schedule[0]
       : 1,
-    scheduleIntervalUnit: dataSource.queryObj.schedule?.[1] ?? 'day',
+    scheduleIntervalUnit: Array.isArray(dataSource.queryObj.schedule)
+      ? dataSource.queryObj.schedule[1]
+      : 'day',
     scheduleType: dataSource.queryObj.scheduleType,
     timezone: dataSource.queryObj.timezone,
     workflowIds: detector.workflowIds,

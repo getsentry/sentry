@@ -83,6 +83,7 @@ function Schedule() {
             required
             stacked
             inline={false}
+            preserveOnUnmount
           />
           <SelectField
             name="timezone"
@@ -93,6 +94,7 @@ function Schedule() {
             required
             stacked
             inline={false}
+            preserveOnUnmount
           />
           {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
         </MultiColumnInput>
@@ -116,6 +118,7 @@ function Schedule() {
             required
             stacked
             inline={false}
+            preserveOnUnmount
           />
           <SelectField
             name="scheduleIntervalUnit"
@@ -126,6 +129,7 @@ function Schedule() {
             required
             stacked
             inline={false}
+            preserveOnUnmount
           />
         </MultiColumnInput>
       </InputGroup>
@@ -140,9 +144,6 @@ function Margins() {
     <Fragment>
       <SubSectionSeparator aria-hidden="true" />
       <SectionSubHeading>{t('Set margins')}</SectionSubHeading>
-      <Text variant="muted">
-        {t('Configure when we mark your monitor as failed or missed.')}
-      </Text>
       <InputGroup>
         <NumberField
           name="checkinMargin"
@@ -154,6 +155,7 @@ function Margins() {
           )}
           help={t('Number of minutes before a check-in is considered missed.')}
           label={t('Grace Period')}
+          defaultValue={DEFAULT_CHECKIN_MARGIN}
         />
         <NumberField
           name="maxRuntime"
@@ -167,6 +169,7 @@ function Margins() {
             'Number of minutes before an in-progress check-in is marked timed out.'
           )}
           label={t('Max Runtime')}
+          defaultValue={DEFAULT_MAX_RUNTIME}
         />
       </InputGroup>
     </Fragment>
@@ -178,12 +181,12 @@ function Thresholds() {
     <Fragment>
       <SubSectionSeparator aria-hidden="true" />
       <SectionSubHeading>{t('Set thresholds')}</SectionSubHeading>
-      <Text variant="muted">{t('Configure when an issue is created or resolved.')}</Text>
       <InputGroup>
         <NumberField
           name="failureIssueThreshold"
           min={1}
           placeholder="1"
+          defaultValue={1}
           help={t(
             'Create a new issue when this many consecutive missed or error check-ins are processed.'
           )}

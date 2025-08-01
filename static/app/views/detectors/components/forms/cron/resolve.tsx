@@ -12,7 +12,7 @@ export function CronDetectorFormResolveSection() {
       <Section title={t('Resolve')}>
         <RemoveFieldPadding>
           <NumberField
-            name="config.recoveryThreshold"
+            name="recoveryThreshold"
             min={1}
             placeholder="1"
             help={t(
