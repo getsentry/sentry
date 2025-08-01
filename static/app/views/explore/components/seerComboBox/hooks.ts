@@ -51,11 +51,11 @@ export const useSeerSearch = () => {
   const memberProjects = projects.filter(p => p.isMember);
   const [rawResult, setRawResult] = useState<SeerSearchQuery[]>([]);
 
-  const {mutate: submitQuery, isPending} = useMutation<
-    SeerSearchResponse,
-    RequestError,
-    string
-  >({
+  const {
+    mutate: submitQuery,
+    isPending,
+    isError,
+  } = useMutation<SeerSearchResponse, RequestError, string>({
     mutationFn: (query: string) => {
       const selectedProjects =
         pageFilters.selection.projects?.length > 0 &&
@@ -102,6 +102,7 @@ export const useSeerSearch = () => {
     rawResult,
     submitQuery,
     isPending,
+    isError,
   };
 };
 
@@ -110,7 +111,8 @@ export const useApplySeerSearchQuery = () => {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
 
-  const {setDisplaySeerResults} = useSearchQueryBuilder();
+  const {setDisplayAskSeer, setDisplayAskSeerFeedback, askSeerSuggestedQueryRef} =
+    useSearchQueryBuilder();
 
   return useCallback(
     (result: SeerSearchQuery) => {
@@ -154,9 +156,25 @@ export const useApplySeerSearchQuery = () => {
         mode,
       });
 
+      askSeerSuggestedQueryRef.current = JSON.stringify({
+        selection,
+        query,
+        visualize,
+        groupBy: groupBys,
+        sort,
+        mode,
+      });
       navigate(url, {replace: true, preventScrollReset: true});
-      setDisplaySeerResults(false);
+      setDisplayAskSeerFeedback(true);
+      setDisplayAskSeer(false);
     },
-    [navigate, organization, pageFilters.selection, setDisplaySeerResults]
+    [
+      askSeerSuggestedQueryRef,
+      navigate,
+      organization,
+      pageFilters.selection,
+      setDisplayAskSeer,
+      setDisplayAskSeerFeedback,
+    ]
   );
 };

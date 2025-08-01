@@ -173,7 +173,7 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displaySeerResults, query, currentInputValue} = useSearchQueryBuilder();
+  const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
 
   const initialSeerQuery = (() => {
     const committedQuery = query.trim();
@@ -186,7 +186,7 @@ function SpansSearchBar({
     return `${committedQuery} ${inputValue}`;
   })();
 
-  return displaySeerResults ? (
+  return displayAskSeer ? (
     <SeerComboBox initialQuery={initialSeerQuery} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
