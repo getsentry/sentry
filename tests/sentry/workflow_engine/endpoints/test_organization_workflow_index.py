@@ -670,7 +670,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow"
         )
 
-    def test_delete_workflows_by_ids_success(self):
+    def test_delete_workflows_by_ids_success(self) -> None:
         """Test successful deletion of workflows by specific IDs"""
         with outbox_runner():
             self.get_success_response(
@@ -704,7 +704,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Verify third workflow is unaffected
         self.assert_unaffected_workflows([self.workflow_three])
 
-    def test_delete_workflows_by_query_success(self):
+    def test_delete_workflows_by_query_success(self) -> None:
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,
@@ -730,7 +730,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Other workflows should be unaffected
         self.assert_unaffected_workflows([self.workflow_two, self.workflow_three])
 
-    def test_delete_workflows_by_project_success(self):
+    def test_delete_workflows_by_project_success(self) -> None:
         # Create detectors and link workflows to projects
         detector_1 = self.create_detector(project=self.project)
         detector_2 = self.create_detector(project=self.project)
@@ -773,7 +773,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Workflow linked to other project should be unaffected
         self.assert_unaffected_workflows([self.workflow_three])
 
-    def test_delete_workflows_no_parameters_error(self):
+    def test_delete_workflows_no_parameters_error(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             status_code=400,
@@ -786,7 +786,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Verify no workflows were affected
         self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
 
-    def test_delete_no_matching_workflows(self):
+    def test_delete_no_matching_workflows(self) -> None:
         # Test deleting workflows with non-existent ID
         self.get_success_response(
             self.organization.slug,
@@ -807,7 +807,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Verify no workflows were affected
         self.assert_unaffected_workflows([self.workflow, self.workflow_two, self.workflow_three])
 
-    def test_delete_workflows_invalid_id_format(self):
+    def test_delete_workflows_invalid_id_format(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "not-a-number"},
@@ -816,7 +816,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
 
         assert "Invalid ID format" in str(response.data["id"])
 
-    def test_delete_workflows_filtering_ignored_with_ids(self):
+    def test_delete_workflows_filtering_ignored_with_ids(self) -> None:
         # Link workflow to project via detector
         detector = self.create_detector(project=self.project)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -850,7 +850,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Other workflows should be unaffected
         self.assert_unaffected_workflows([self.workflow, self.workflow_three])
 
-    def test_delete_workflows_audit_entry(self):
+    def test_delete_workflows_audit_entry(self) -> None:
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,

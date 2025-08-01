@@ -81,7 +81,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             )
         )
 
-    def test_get_oldest_health_data_for_releases(self):
+    def test_get_oldest_health_data_for_releases(self) -> None:
         data = self.backend.get_oldest_health_data_for_releases(
             [(self.project.id, self.session_release)]
         )
@@ -91,13 +91,15 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             )
         }
 
-    def test_check_has_health_data(self):
+    def test_check_has_health_data(self) -> None:
         data = self.backend.check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
         assert data == {(self.project.id, self.session_release)}
 
-    def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
+    def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(
+        self,
+    ) -> None:
         """
         Test that ensures that `check_has_health_data` returns a set of projects that has health
         data within the last 90d if only a list of project ids is provided and any project with
@@ -122,11 +124,11 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         data = self.backend.check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id, project2.id}
 
-    def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
+    def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self) -> None:
         data = self.backend.check_has_health_data({self.project.id})
         assert data == {self.project.id}
 
-    def test_get_project_releases_by_stability(self):
+    def test_get_project_releases_by_stability(self) -> None:
         # Add an extra session with a different `distinct_id` so that sorting by users
         # is stable
         self.store_session(
@@ -148,7 +150,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 (self.project.id, self.session_crashed_release),
             ]
 
-    def test_get_project_releases_by_stability_for_crash_free_sort(self):
+    def test_get_project_releases_by_stability_for_crash_free_sort(self) -> None:
         """
         Test that ensures that using crash free rate sort options, returns a list of ASC releases
         according to the chosen crash_free sort option
@@ -174,7 +176,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 (self.project.id, self.session_release),
             ]
 
-    def test_get_project_releases_by_stability_for_releases_with_users_data(self):
+    def test_get_project_releases_by_stability_for_releases_with_users_data(self) -> None:
         """
         Test that ensures if releases contain no users data, then those releases should not be
         returned on `users` and `crash_free_users` sorts
@@ -204,7 +206,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             (self.project.id, self.session_release),
         }
 
-    def test_get_release_adoption(self):
+    def test_get_release_adoption(self) -> None:
         data = self.backend.get_release_adoption(
             [
                 (self.project.id, self.session_release),
@@ -232,7 +234,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         }
 
-    def test_get_release_adoption_lowered(self):
+    def test_get_release_adoption_lowered(self) -> None:
         self.store_session(
             self.build_session(
                 release=self.session_crashed_release,
@@ -270,7 +272,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         }
 
-    def test_fetching_release_sessions_time_bounds_for_different_release(self):
+    def test_fetching_release_sessions_time_bounds_for_different_release(self) -> None:
         """
         Test that ensures only session bounds for releases are calculated according
         to their respective release
@@ -332,7 +334,9 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             "sessions_upper_bound": expected_formatted_upper_bound,
         }
 
-    def test_fetching_release_sessions_time_bounds_for_different_release_with_no_sessions(self):
+    def test_fetching_release_sessions_time_bounds_for_different_release_with_no_sessions(
+        self,
+    ) -> None:
         """
         Test that ensures if no sessions are available for a specific release then the bounds
         should be returned as None
@@ -348,7 +352,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             "sessions_upper_bound": None,
         }
 
-    def test_get_crash_free_breakdown(self):
+    def test_get_crash_free_breakdown(self) -> None:
         start = timezone.now() - timedelta(days=4)
 
         # it should work with and without environments
@@ -447,7 +451,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         ]
 
-    def test_basic_release_model_adoptions(self):
+    def test_basic_release_model_adoptions(self) -> None:
         """
         Test that the basic (project,release) data is returned
         """
@@ -455,7 +459,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
         assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
 
-    def test_old_release_model_adoptions(self):
+    def test_old_release_model_adoptions(self) -> None:
         """
         Test that old entries (older that 72 h) are not returned
         """
@@ -474,7 +478,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
         assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
 
-    def test_multi_proj_release_model_adoptions(self):
+    def test_multi_proj_release_model_adoptions(self) -> None:
         """Test that the api works with multiple projects"""
         proj_id = self.project.id
         new_proj_id = proj_id + 1
@@ -526,7 +530,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         assert normed == self._add_timestamps_to_series(expected_series, start)
         assert totals == expected_totals
 
-    def test_get_project_release_stats_users(self):
+    def test_get_project_release_stats_users(self) -> None:
         self._test_get_project_release_stats(
             "users",
             self.session_release,
@@ -577,7 +581,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         )
 
-    def test_get_project_release_stats_users_crashed(self):
+    def test_get_project_release_stats_users_crashed(self) -> None:
         self._test_get_project_release_stats(
             "users",
             self.session_crashed_release,
@@ -628,7 +632,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         )
 
-    def test_get_project_release_stats_sessions(self):
+    def test_get_project_release_stats_sessions(self) -> None:
         self._test_get_project_release_stats(
             "sessions",
             self.session_release,
@@ -679,7 +683,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         )
 
-    def test_get_project_release_stats_sessions_crashed(self):
+    def test_get_project_release_stats_sessions_crashed(self) -> None:
         self._test_get_project_release_stats(
             "sessions",
             self.session_crashed_release,
@@ -730,7 +734,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         )
 
-    def test_get_project_release_stats_no_sessions(self):
+    def test_get_project_release_stats_no_sessions(self) -> None:
         """
         Test still returning correct data when no sessions are available
         :return:
@@ -785,7 +789,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
             },
         )
 
-    def test_get_project_release_stats_no_users(self):
+    def test_get_project_release_stats_no_users(self) -> None:
         self._test_get_project_release_stats(
             "users",
             "INEXISTENT-RELEASE",
@@ -935,7 +939,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
                 )
             )
 
-    def test_get_current_and_previous_crash_free_rates(self):
+    def test_get_current_and_previous_crash_free_rates(self) -> None:
         now = timezone.now().replace(minute=15, second=23)
         last_24h_start = now - 24 * timedelta(hours=1)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
@@ -959,7 +963,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
             self.project3.id: {"currentCrashFreeRate": None, "previousCrashFreeRate": 80.0},
         }
 
-    def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
+    def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self) -> None:
         now = timezone.now().replace(minute=15, second=23)
         last_48h_start = now - 2 * 24 * timedelta(hours=1)
         last_72h_start = now - 3 * 24 * timedelta(hours=1)
@@ -982,7 +986,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
             },
         }
 
-    def test_extract_crash_free_rate_from_result_groups(self):
+    def test_extract_crash_free_rate_from_result_groups(self) -> None:
         result_groups = [
             {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
             {"by": {"project_id": 2}, "totals": {"rate": 0.8}},
@@ -991,7 +995,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
         assert crash_free_rates[1] == 0.66 * 100
         assert crash_free_rates[2] == 0.8 * 100
 
-    def test_extract_crash_free_rate_from_result_groups_with_none(self):
+    def test_extract_crash_free_rate_from_result_groups_with_none(self) -> None:
         result_groups = [
             {"by": {"project_id": 1}, "totals": {"rate": 0.66}},
             {"by": {"project_id": 2}, "totals": {"rate": None}},
@@ -1000,7 +1004,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
         assert crash_free_rates[1] == 0.66 * 100
         assert crash_free_rates[2] is None
 
-    def test_extract_crash_free_rates_from_result_groups_only_none(self):
+    def test_extract_crash_free_rates_from_result_groups_only_none(self) -> None:
         result_groups = [
             {"by": {"project_id": 2}, "totals": {"rate": None}},
         ]
@@ -1011,7 +1015,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
 class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         # Test no errors when no session data
         org = self.create_organization()
         proj = self.create_project(organization=org)
@@ -1022,7 +1026,7 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
             == 0
         )
 
-    def test_with_other_metrics(self):
+    def test_with_other_metrics(self) -> None:
         assert isinstance(self, BaseMetricsTestCase)
 
         # Test no errors when no session data
@@ -1047,7 +1051,7 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
             == 0
         )
 
-    def test(self):
+    def test(self) -> None:
         project_release_1 = self.create_release(self.project)
         other_project = self.create_project()
         other_project_release_1 = self.create_release(other_project)
@@ -1116,12 +1120,12 @@ class CheckReleasesHaveHealthDataTest(TestCase, BaseMetricsTestCase):
             end,
         ) == {v.version for v in expected}
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         # Test no errors when no session data
         project_release_1 = self.create_release(self.project)
         self.run_test([], [self.project], [project_release_1])
 
-    def test(self):
+    def test(self) -> None:
         other_project = self.create_project()
         release_1 = self.create_release(
             self.project, version="1", additional_projects=[other_project]
@@ -1169,7 +1173,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         self._2_h_ago = self._2_h_ago_dt.timestamp()
         self._3_h_ago = self._3_h_ago_dt.timestamp()
 
-    def test_no_sessions(self):
+    def test_no_sessions(self) -> None:
         """
         Tests that when there are no sessions the function behaves and returns 0
         """
@@ -1182,7 +1186,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         )
         assert 0 == actual
 
-    def test_sessions_in_environment(self):
+    def test_sessions_in_environment(self) -> None:
         """
         Tests that it correctly picks up the sessions for the selected environment
         in the selected time, not counting other environments and other times
@@ -1217,7 +1221,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
 
         assert actual == 2
 
-    def test_environment_without_sessions(self):
+    def test_environment_without_sessions(self) -> None:
         """
         We should get zero sessions, even if the environment name has not been indexed
         by the metrics indexer.
@@ -1261,7 +1265,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
 
         assert count_env_new == 0
 
-    def test_sessions_in_all_environments(self):
+    def test_sessions_in_all_environments(self) -> None:
         """
         When the environment is not specified sessions from all environments are counted
         """
@@ -1294,7 +1298,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
 
         assert actual == 3
 
-    def test_sessions_from_multiple_projects(self):
+    def test_sessions_from_multiple_projects(self) -> None:
         """
         Only sessions from the specified project are considered
         """
@@ -1328,7 +1332,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
 
         assert actual == 2
 
-    def test_sessions_per_project_no_sessions(self):
+    def test_sessions_per_project_no_sessions(self) -> None:
         """
         Tests that no sessions are returned
         """
@@ -1341,7 +1345,7 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         )
         assert [] == actual
 
-    def test_sesions_per_project_multiple_projects(self):
+    def test_sesions_per_project_multiple_projects(self) -> None:
         dev = self.dev_env.name
         prod = self.prod_env.name
         test = self.test_env.name
@@ -1483,7 +1487,7 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
             ]
         )
 
-    def test_get_release_adoption(self):
+    def test_get_release_adoption(self) -> None:
         data = self.backend.get_release_adoption(
             [
                 (self.project.id, self.session_release),
@@ -1492,7 +1496,7 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
         inner = data[(self.project.id, self.session_release)]
         assert inner["users_24h"] == 3
 
-    def test_get_release_health_data_overview_users(self):
+    def test_get_release_health_data_overview_users(self) -> None:
         data = self.backend.get_release_health_data_overview(
             [
                 (self.project.id, self.session_release),
@@ -1506,7 +1510,7 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
         assert inner["total_users"] == 3
         assert inner["crash_free_users"] == 66.66666666666667
 
-    def test_get_crash_free_breakdown(self):
+    def test_get_crash_free_breakdown(self) -> None:
         start = timezone.now() - timedelta(days=4)
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
@@ -1544,7 +1548,7 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
             },
         ]
 
-    def test_get_project_release_stats_users(self):
+    def test_get_project_release_stats_users(self) -> None:
         end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(

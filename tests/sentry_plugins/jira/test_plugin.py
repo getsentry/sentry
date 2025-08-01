@@ -220,14 +220,14 @@ class JiraPluginTest(TestCase):
     def request(self):
         return RequestFactory()
 
-    def test_conf_key(self):
+    def test_conf_key(self) -> None:
         assert self.plugin.conf_key == "jira"
 
-    def test_get_issue_label(self):
+    def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert self.plugin.get_issue_label(group, "SEN-1") == "SEN-1"
 
-    def test_get_issue_url(self):
+    def test_get_issue_url(self) -> None:
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert (
@@ -235,13 +235,13 @@ class JiraPluginTest(TestCase):
             == "https://getsentry.atlassian.net/browse/SEN-1"
         )
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("default_project", "SEN", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         responses.add(
             responses.GET,
             "https://getsentry.atlassian.net/rest/api/2/issue/createmeta",
@@ -266,7 +266,7 @@ class JiraPluginTest(TestCase):
         assert self.plugin.create_issue(request, group, form_data) == "SEN-1"
 
     @responses.activate
-    def test_link_issue(self):
+    def test_link_issue(self) -> None:
         responses.add(
             responses.GET,
             "https://getsentry.atlassian.net/rest/api/2/issue/SEN-19",
@@ -283,7 +283,7 @@ class JiraPluginTest(TestCase):
             == issue_response["fields"]["summary"]
         )
 
-    def test_no_secrets(self):
+    def test_no_secrets(self) -> None:
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -301,7 +301,7 @@ class JiraPluginTest(TestCase):
         assert password_config.get("hasSavedValue") is True
         assert password_config.get("prefix") == ""
 
-    def test_get_formatted_user(self):
+    def test_get_formatted_user(self) -> None:
         assert self.plugin._get_formatted_user(
             {"displayName": "Foo Bar", "emailAddress": "foo@sentry.io", "name": "foobar"}
         ) == {"text": "Foo Bar - foo@sentry.io (foobar)", "id": "foobar"}
@@ -325,7 +325,7 @@ class JiraPluginTest(TestCase):
         self.group = self.create_group(message="Hello world", culprit="foo.bar")
 
     @responses.activate
-    def test_autocomplete_issue_id(self):
+    def test_autocomplete_issue_id(self) -> None:
         self._setup_autocomplete_jira()
         responses.add(
             responses.GET,
@@ -346,7 +346,7 @@ class JiraPluginTest(TestCase):
         }
 
     @responses.activate
-    def test_autocomplete_jira_url_reporter(self):
+    def test_autocomplete_jira_url_reporter(self) -> None:
         self._setup_autocomplete_jira()
 
         responses.add(
@@ -363,7 +363,7 @@ class JiraPluginTest(TestCase):
             ]
         }
 
-    def test_autocomplete_jira_url_missing(self):
+    def test_autocomplete_jira_url_missing(self) -> None:
         self._setup_autocomplete_jira()
 
         url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=reporter"
@@ -373,7 +373,7 @@ class JiraPluginTest(TestCase):
             "errors": [{"jira_url": "missing required parameter"}],
         }
 
-    def test_autocomplete_jira_url_mismatch(self):
+    def test_autocomplete_jira_url_mismatch(self) -> None:
         self._setup_autocomplete_jira()
 
         url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=reporter&jira_url=https://eviljira.com/"
