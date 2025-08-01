@@ -145,7 +145,7 @@ def get_filename_component(
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = FilenameGroupingComponent(values=[filename])
 
-    if has_url_origin(abs_path, allow_file_origin=True):
+    if has_url_origin(abs_path, files_count_as_urls=False):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
         filename_component.update(contributes=False, hint="anonymous filename discarded")
@@ -395,7 +395,7 @@ def get_contextline_component(
         elif (
             get_behavior_family_for_platform(platform) == "javascript"
             and not function
-            and has_url_origin(frame.abs_path)
+            and has_url_origin(frame.abs_path, files_count_as_urls=True)
         ):
             context_line_component.update(
                 hint="discarded because from URL origin and no function", contributes=False
