@@ -132,8 +132,8 @@ const NavigationSidebarWrapper = withChonk(
     display: flex;
     padding: ${p =>
       p.hasToggleSidebar
-        ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
-        : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+        ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
+        : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
   `,
   chonkStyled('div')<{
     hasToggleSidebar: boolean;
@@ -150,5 +150,6 @@ const NavigationSidebarWrapper = withChonk(
 
 const ContentPadding = styled('div')`
   min-height: 100vh;
-  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
+  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
+    ${p => p.theme.space['2xl']};
 `;
