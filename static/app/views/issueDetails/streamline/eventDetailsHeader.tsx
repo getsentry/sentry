@@ -220,6 +220,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   const environmentCss = css`
     display: block;
+    border-radius: ${theme.borderRadius};
     &:before {
       right: 0;
       top: ${theme.space.md};
@@ -256,11 +257,11 @@ const DetailsContainer = styled('div')<{
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: ${p => p.theme.space.lg};
-  padding-top: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
+  padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
@@ -302,7 +303,7 @@ const DateFilter = styled(TimeRangeSelector)`
 
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};

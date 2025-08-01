@@ -302,7 +302,7 @@ export default function StreamlinedGroupHeader({
 
 const Header = styled('header')`
   background-color: ${p => p.theme.background};
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
 const HeaderGrid = styled('div')`
