@@ -278,6 +278,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   justify-content: space-between;
   width: 100%;
   padding: ${space(0.25)};
+  padding-right: 0;
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
   font-weight: ${p => p.theme.fontWeight.normal};
