@@ -11,7 +11,7 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
-interface UseFetchReplaySummaryResult {
+export interface UseFetchReplaySummaryResult {
   /**
    * Whether there was an error with the initial query or summary generation,
    * or the summary data status is errored.
@@ -175,4 +175,13 @@ const isPolling = (
       // Unknown status - don't poll
       return false;
   }
+};
+
+export const defaultUseFetchReplaySummaryResult: UseFetchReplaySummaryResult = {
+  summaryData: undefined,
+  isError: false,
+  isPending: false,
+  isPolling: false,
+  startSummaryRequest: () => {},
+  isStartSummaryRequestPending: false,
 };
