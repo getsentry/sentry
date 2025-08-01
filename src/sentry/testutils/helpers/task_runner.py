@@ -33,6 +33,10 @@ class BurstTaskRunnerRetryError(Exception):
     """
 
 
+# TODO(mark) This will need to be reworked when celery is removed.
+# Currently we rely on being able to monkeypatch the static call to Task.apply_async()
+# that is buried inside sentry.celery.Task.apply_async() to monkeypatch any task that may
+# run within a BurstRunner.
 class _BurstState:
     def __init__(self) -> None:
         self._active = False

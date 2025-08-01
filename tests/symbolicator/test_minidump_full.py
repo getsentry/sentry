@@ -11,6 +11,7 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
@@ -154,6 +155,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         insta_snapshot_native_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
+    @override_options({"taskworker.enabled": False})
     def test_reprocessing(self):
         # NOTE:
         # When running this test against a local symbolicator instance,

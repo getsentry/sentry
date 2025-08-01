@@ -89,6 +89,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -2519,6 +2520,7 @@ class CompletedTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
+@override_options({"taskworker.enabled": False})
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")

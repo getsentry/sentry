@@ -16,6 +16,7 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -135,11 +136,10 @@ def test_debounce(
 ):
     tasks = []
 
-    def apply_async(args, kwargs):
-        assert not args
+    def mock_delay(**kwargs):
         tasks.append(kwargs)
 
-    with mock.patch("sentry.tasks.relay.build_project_config.apply_async", apply_async):
+    with mock.patch("sentry.tasks.relay.build_project_config.delay", mock_delay):
         schedule_build_project_config(public_key=default_projectkey.public_key)
         schedule_build_project_config(public_key=default_projectkey.public_key)
 
@@ -173,6 +173,7 @@ def test_generate(
     ]
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_project_update_option(
     default_projectkey,
@@ -210,6 +211,7 @@ def test_project_update_option(
         }
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_project_delete_option(
     default_projectkey,
@@ -248,6 +250,7 @@ def test_project_get_option_does_not_reload(
     assert not build_project_config.called
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_invalidation_project_deleted(
     default_project,
@@ -275,6 +278,7 @@ def test_invalidation_project_deleted(
     assert redis_cache.get(project_key)["disabled"]
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_projectkeys(
     default_project,
@@ -497,6 +501,7 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all(transaction=True)
 def test_invalidate_hierarchy(
     default_project,

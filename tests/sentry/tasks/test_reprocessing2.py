@@ -25,6 +25,7 @@ from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -103,6 +104,7 @@ def register_event_preprocessor(register_plugin):
     return inner
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
@@ -214,6 +216,7 @@ def test_basic(
             assert not tombstone_calls
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 def test_concurrent_events_go_into_new_group(
@@ -286,6 +289,7 @@ def test_concurrent_events_go_into_new_group(
     assert activity.ident == str(original_issue_id)
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
@@ -368,6 +372,7 @@ def test_max_events(
     assert is_group_finished(group_id)
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 def test_attachments_and_userfeedback(
@@ -437,6 +442,7 @@ def test_attachments_and_userfeedback(
     assert is_group_finished(event.group_id)
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
@@ -486,6 +492,7 @@ def test_nodestore_missing(
     mock_logger.warning.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 def test_apply_new_fingerprinting_rules(
@@ -559,6 +566,7 @@ def test_apply_new_fingerprinting_rules(
     assert event2.group.message == "hello world 2"
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @pytest.mark.snuba
 def test_apply_new_stack_trace_rules(

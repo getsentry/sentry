@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -376,6 +377,7 @@ class TestAccounts(TestCase):
 
         assert not UserEmail.objects.get(email=user.email).is_verified
 
+    @override_options({"taskworker.enabled": False})
     def test_relocate_reclaim_success(self) -> None:
         user = self.create_user(email="member@example.com", is_unclaimed=True)
         lost_password = LostPasswordHash.objects.create(user=user)

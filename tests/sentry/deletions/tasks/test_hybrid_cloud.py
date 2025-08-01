@@ -35,6 +35,7 @@ from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -153,6 +154,7 @@ def setup_deletable_objects(
     assert False, "find_regions_for_user could not determine a region for production."
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_region_processing(task_runner):
     reset_watermarks()
@@ -190,6 +192,7 @@ def test_region_processing(task_runner):
     assert not results3.exists()
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 @control_silo_test
 def test_control_processing(task_runner):
@@ -231,6 +234,7 @@ def setup_deletion_test():
     }
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_cascade_deletion_behavior(task_runner):
     data = setup_deletion_test()
@@ -252,6 +256,7 @@ def test_cascade_deletion_behavior(task_runner):
     assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_do_nothing_deletion_behavior(task_runner):
     data = setup_deletion_test()
@@ -275,6 +280,7 @@ def test_do_nothing_deletion_behavior(task_runner):
     assert model.integration_id == integration_id
 
 
+@override_options({"taskworker.enabled": False})
 @django_db_all
 def test_set_null_deletion_behavior(task_runner):
     data = setup_deletion_test()
@@ -355,6 +361,7 @@ def setup_cross_db_deletion_data(
     )
 
 
+@override_options({"taskworker.enabled": False})
 @region_silo_test
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
     def setUp(self) -> None:

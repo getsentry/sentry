@@ -112,6 +112,7 @@ class SentryTask(Task):
         self._validate_parameters(args, kwargs)
 
         with metrics.timer("jobs.delay", instance=self.name):
+            # The Task.apply_async() without super is load bearing for BurstRunner :|
             return Task.apply_async(self, *args, **kwargs)
 
     def _validate_parameters(self, args: tuple[Any, ...], kwargs: dict[str, Any]):
