@@ -12,6 +12,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -353,6 +354,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
       ],
     },
+    getConsoleExtensions(params),
     {
       title: t('Further Settings'),
       content: [
