@@ -1,8 +1,8 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -11,7 +11,7 @@ import {
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
-interface UseFetchReplaySummaryResult {
+export interface UseFetchReplaySummaryResult {
   /**
    * Whether there was an error with the initial query or summary generation,
    * or the summary data status is errored.
@@ -41,6 +41,35 @@ interface UseFetchReplaySummaryResult {
 
 const POLL_INTERVAL_MS = 500;
 
+const isPolling = (
+  summaryData: SummaryResponse | undefined,
+  isStartSummaryRequestPending: boolean
+) => {
+  if (!summaryData) {
+    // No data yet - poll if we've started a request
+    return isStartSummaryRequestPending;
+  }
+
+  switch (summaryData.status) {
+    case ReplaySummaryStatus.NOT_STARTED:
+      // Not started - poll if we've started a request
+      return isStartSummaryRequestPending;
+
+    case ReplaySummaryStatus.PROCESSING:
+      // Currently processing - always poll
+      return true;
+
+    case ReplaySummaryStatus.COMPLETED:
+    case ReplaySummaryStatus.ERROR:
+      // Final states - no need to poll
+      return false;
+
+    default:
+      // Unknown status - don't poll
+      return false;
+  }
+};
+
 function createAISummaryQueryKey(
   orgSlug: string,
   projectSlug: string | undefined,
@@ -50,11 +79,11 @@ function createAISummaryQueryKey(
 }
 
 export function useFetchReplaySummary(
+  replay: ReplayReader,
   options?: UseApiQueryOptions<SummaryResponse>
 ): UseFetchReplaySummaryResult {
   const organization = useOrganization();
-  const replay = useReplayReader();
-  const replayRecord = replay?.getReplay();
+  const replayRecord = replay.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const api = useApi();
   const queryClient = useQueryClient();
@@ -131,48 +160,51 @@ export function useFetchReplaySummary(
     startSummaryRequestMutate();
   }, [options?.enabled, startSummaryRequestMutate]);
 
+  const isPollingRet = isPolling(summaryData, isStartSummaryRequestPending);
+  const isPendingRet =
+    dataUpdatedAt < startSummaryRequestTime.current ||
+    isPending ||
+    summaryData?.status === ReplaySummaryStatus.PROCESSING ||
+    isStartSummaryRequestPending;
+  const isErrorRet =
+    isError ||
+    summaryData?.status === ReplaySummaryStatus.ERROR ||
+    isStartSummaryRequestError;
+
+  // Auto-start logic.
+  // TODO: remove the condition segmentCount <= 100
+  // when BE is able to process more than 100 segments. Without this, generation will loop.
+  const segmentsIncreased =
+    summaryData?.num_segments !== null &&
+    summaryData?.num_segments !== undefined &&
+    segmentCount <= 100 &&
+    segmentCount > summaryData.num_segments;
+  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
+
+  useEffect(() => {
+    if (
+      (segmentsIncreased || needsInitialGeneration) &&
+      !isPendingRet &&
+      !isPollingRet &&
+      !isErrorRet
+    ) {
+      startSummaryRequest();
+    }
+  }, [
+    segmentsIncreased,
+    needsInitialGeneration,
+    isPendingRet,
+    isPollingRet,
+    startSummaryRequest,
+    isErrorRet,
+  ]);
+
   return {
     summaryData,
-    isPolling: isPolling(summaryData, isStartSummaryRequestPending),
-    isPending:
-      dataUpdatedAt < startSummaryRequestTime.current ||
-      isPending ||
-      summaryData?.status === ReplaySummaryStatus.PROCESSING ||
-      isStartSummaryRequestPending,
-    isError:
-      isError ||
-      summaryData?.status === ReplaySummaryStatus.ERROR ||
-      isStartSummaryRequestError,
+    isPolling: isPollingRet,
+    isPending: isPendingRet,
+    isError: isErrorRet,
     startSummaryRequest,
     isStartSummaryRequestPending,
   };
 }
-
-const isPolling = (
-  summaryData: SummaryResponse | undefined,
-  isStartSummaryRequestPending: boolean
-) => {
-  if (!summaryData) {
-    // No data yet - poll if we've started a request
-    return isStartSummaryRequestPending;
-  }
-
-  switch (summaryData.status) {
-    case ReplaySummaryStatus.NOT_STARTED:
-      // Not started - poll if we've started a request
-      return isStartSummaryRequestPending;
-
-    case ReplaySummaryStatus.PROCESSING:
-      // Currently processing - always poll
-      return true;
-
-    case ReplaySummaryStatus.COMPLETED:
-    case ReplaySummaryStatus.ERROR:
-      // Final states - no need to poll
-      return false;
-
-    default:
-      // Unknown status - don't poll
-      return false;
-  }
-};
