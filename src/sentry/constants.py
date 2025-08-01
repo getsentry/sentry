@@ -359,6 +359,7 @@ KNOWN_DIF_FORMATS: dict[str, str] = {
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
     "application/x-portable-pdb": "portablepdb",
+    "application/x-dart-symbols+json": "dart_symbols",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

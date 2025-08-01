@@ -270,6 +270,7 @@ def create_dif_from_id(
         "bcsymbolmap",
         "uuidmap",
         "il2cpp",
+        "dart_symbols",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -443,6 +444,7 @@ class DifKind(enum.Enum):
     BcSymbolMap = enum.auto()
     UuidMap = enum.auto()
     Il2Cpp = enum.auto()
+    DartSymbols = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -460,6 +462,8 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.UuidMap
         elif data.startswith(b"{"):  # lol
             return DifKind.Il2Cpp
+        elif data.startswith(b"["):
+            return DifKind.DartSymbols
         else:
             return DifKind.Object
 
@@ -550,6 +554,32 @@ def detect_dif_from_path(
             logger.debug("File loaded as il2cpp: %s", path)
             return [
                 DifMeta(file_format="il2cpp", arch="any", debug_id=debug_id, name=name, path=path)
+            ]
+    elif dif_kind == DifKind.DartSymbols:
+        if debug_id is None:
+            raise BadDif("Missing debug_id for dart_symbols")
+        try:
+            with open(path, "rb") as fp:
+                data = json.load(fp)
+                # Validate it's an array with even number of elements
+                if not isinstance(data, list):
+                    raise BadDif("dart_symbols must be a JSON array")
+                if len(data) % 2 != 0:
+                    raise BadDif("dart_symbols array must have an even number of elements")
+        except json.JSONDecodeError as e:
+            logger.debug("File failed to load as dart_symbols: %s", path)
+            raise BadDif("Invalid dart_symbols: %s" % e)
+        except BadDif:
+            raise
+        except Exception as e:
+            logger.debug("File failed validation as dart_symbols: %s", path)
+            raise BadDif("Invalid dart_symbols format: %s" % e)
+        else:
+            logger.debug("File loaded as dart_symbols: %s", path)
+            return [
+                DifMeta(
+                    file_format="dart_symbols", arch="any", debug_id=debug_id, name=name, path=path
+                )
             ]
     else:
         # native debug information files (MachO, ELF or Breakpad)
