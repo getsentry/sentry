@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {
   CRON_DEFAULT_CHECKIN_MARGIN,
+  CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,
   CRON_DEFAULT_MAX_RUNTIME,
   CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
   CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
@@ -188,7 +189,7 @@ function Thresholds() {
           name="failureIssueThreshold"
           min={1}
           placeholder="1"
-          defaultValue={1}
+          defaultValue={CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD}
           help={t(
             'Create a new issue when this many consecutive missed or error check-ins are processed.'
           )}
