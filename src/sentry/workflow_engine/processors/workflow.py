@@ -1,4 +1,3 @@
-from collections.abc import Collection, Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -14,13 +13,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.utils import json
-from sentry.workflow_engine.models import (
-    Action,
-    DataCondition,
-    DataConditionGroup,
-    Detector,
-    Workflow,
-)
+from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -75,22 +68,22 @@ def delete_workflow(workflow: Workflow) -> bool:
 @dataclass(frozen=True)
 class DelayedWorkflowItem:
     workflow: Workflow
-    delayed_conditions: list[DataCondition]
     event: GroupEvent
-    source: WorkflowDataConditionGroupType
+    delayed_when_group_id: int | None
+    delayed_if_group_ids: list[int]
+    passing_if_group_ids: list[int]
 
     # Used to pick the end of the time window in snuba querying.
     # Should be close to when fast conditions were evaluated to try to be consistent.
     timestamp: datetime
 
     def buffer_key(self) -> str:
-        condition_group_set = {
-            condition.condition_group_id for condition in self.delayed_conditions
-        }
-        condition_groups = ",".join(
-            str(condition_group_id) for condition_group_id in sorted(condition_group_set)
+        when_condition_group_str = (
+            str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
         )
-        return f"{self.workflow.id}:{self.event.group.id}:{condition_groups}:{self.source}"
+        if_condition_groups = ",".join(str(id) for id in sorted(self.delayed_if_group_ids))
+        passing_if_groups = ",".join(str(id) for id in sorted(self.passing_if_group_ids))
+        return f"{self.workflow.id}:{self.event.group.id}:{when_condition_group_str}:{if_condition_groups}:{passing_if_groups}"
 
     def buffer_value(self) -> str:
         return json.dumps(
@@ -103,10 +96,20 @@ class DelayedWorkflowItem:
 
 
 def enqueue_workflows(
-    items_by_project_id: Mapping[int, Collection[DelayedWorkflowItem]],
+    items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
+    items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    for queue_item in items_by_workflow.values():
+        if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
+            # Skip because there are no IF groups we could possibly fire actions for if
+            # the WHEN/IF delayed condtions are met
+            continue
+        project_id = queue_item.event.project_id
+        items_by_project_id[project_id].append(queue_item)
+
     if not items_by_project_id:
         return
+
     for project_id, queue_items in items_by_project_id.items():
         buffer.backend.push_to_hash_bulk(
             model=Workflow,
@@ -122,9 +125,9 @@ def enqueue_workflows(
 @sentry_sdk.trace
 def evaluate_workflow_triggers(
     workflows: set[Workflow], event_data: WorkflowEventData
-) -> set[Workflow]:
+) -> tuple[set[Workflow], dict[Workflow, DelayedWorkflowItem]]:
     triggered_workflows: set[Workflow] = set()
-    queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
+    queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
     current_time = timezone.now()
 
     for workflow in workflows:
@@ -132,14 +135,13 @@ def evaluate_workflow_triggers(
 
         if remaining_conditions:
             if isinstance(event_data.event, GroupEvent):
-                queue_items_by_project_id[event_data.event.group.project_id].append(
-                    DelayedWorkflowItem(
-                        workflow,
-                        remaining_conditions,
-                        event_data.event,
-                        WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
-                        timestamp=current_time,
-                    )
+                queue_items_by_workflow[workflow] = DelayedWorkflowItem(
+                    workflow=workflow,
+                    event=event_data.event,
+                    delayed_when_group_id=workflow.when_condition_group_id,
+                    delayed_if_group_ids=[],
+                    passing_if_group_ids=[],
+                    timestamp=current_time,
                 )
             else:
                 """
@@ -159,8 +161,6 @@ def evaluate_workflow_triggers(
             if evaluation:
                 triggered_workflows.add(workflow)
 
-    enqueue_workflows(queue_items_by_project_id)
-
     metrics_incr(
         "process_workflows.triggered_workflows",
         len(triggered_workflows),
@@ -172,7 +172,7 @@ def evaluate_workflow_triggers(
         try:
             environment = get_environment_by_event(event_data)
         except Environment.DoesNotExist:
-            return set()
+            return set(), {}
 
     event_id = (
         event_data.event.event_id
@@ -190,12 +190,13 @@ def evaluate_workflow_triggers(
         },
     )
 
-    return triggered_workflows
+    return triggered_workflows, queue_items_by_workflow
 
 
 def evaluate_action_filters(
     event_data: WorkflowEventData,
     dcg_to_workflow: dict[DataConditionGroup, Workflow],
+    queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> set[DataConditionGroup]:
     """
     Evaluate the action filters for the given mapping of DataConditionGroup to Workflow. (dcg_to_workflow_id)
@@ -205,7 +206,6 @@ def evaluate_action_filters(
     query for all the DataConditionGroups in a single query before using this function to avoid N+1s queries.
     """
     filtered_action_groups: set[DataConditionGroup] = set()
-    queue_items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     current_time = timezone.now()
 
     for action_condition, workflow in dcg_to_workflow.items():
@@ -224,16 +224,17 @@ def evaluate_action_filters(
             # then return the list of conditions to enqueue.
 
             if isinstance(event_data.event, GroupEvent):
-                # `delayed_workflows` only supports group events
-                queue_items_by_project_id[event_data.event.group.project_id].append(
-                    DelayedWorkflowItem(
-                        workflow,
-                        slow_conditions,
-                        event_data.event,
-                        WorkflowDataConditionGroupType.ACTION_FILTER,
+                if delayed_workflow_item := queue_items_by_workflow.get(workflow):
+                    delayed_workflow_item.delayed_if_group_ids.append(action_condition.id)
+                else:
+                    queue_items_by_workflow[workflow] = DelayedWorkflowItem(
+                        workflow=workflow,
+                        delayed_when_group_id=None,
+                        delayed_if_group_ids=[action_condition.id],
+                        event=event_data.event,
+                        passing_if_group_ids=[],
                         timestamp=current_time,
                     )
-                )
             else:
                 # We should not include activity updates in delayed conditions,
                 # this is because the actions should always be triggered if this condition is met.
@@ -249,9 +250,15 @@ def evaluate_action_filters(
                 )
         else:
             if group_evaluation.logic_result:
-                filtered_action_groups.add(action_condition)
+                if delayed_workflow_item := queue_items_by_workflow.get(workflow):
+                    if delayed_workflow_item.delayed_when_group_id:
+                        # If there are already delayed when conditions,
+                        # we need to evaluate them before firing the action group
+                        delayed_workflow_item.passing_if_group_ids.append(action_condition.id)
+                else:
+                    filtered_action_groups.add(action_condition)
 
-    enqueue_workflows(queue_items_by_project_id)
+    enqueue_workflows(queue_items_by_workflow)
 
     event_id = (
         event_data.event.event_id
@@ -279,6 +286,7 @@ def evaluate_action_filters(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
+    queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> set[DataConditionGroup]:
     """
     Evaluate the action filters for the given workflows.
@@ -286,14 +294,20 @@ def evaluate_workflows_action_filters(
 
     Use this function if you only have a set of workflows to evaluate and will not repeatedly evaluate action filters in a loop.
     """
+    # Collect all workflows, including those with pending slow condition results, to evaluate all fast conditions
+
+    all_workflows = workflows.union(set(queue_items_by_workflow.keys()))
+
     action_conditions_to_workflow = {
         wdcg.condition_group: wdcg.workflow
         for wdcg in WorkflowDataConditionGroup.objects.select_related(
             "workflow", "condition_group"
-        ).filter(workflow__in=workflows)
+        ).filter(workflow__in=all_workflows)
     }
 
-    return evaluate_action_filters(event_data, action_conditions_to_workflow)
+    return evaluate_action_filters(
+        event_data, action_conditions_to_workflow, queue_items_by_workflow
+    )
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
@@ -420,12 +434,16 @@ def process_workflows(
         # If there aren't any workflows, there's nothing to evaluate
         return set()
 
-    triggered_workflows = evaluate_workflow_triggers(workflows, event_data)
-    if not triggered_workflows:
+    triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
+        workflows, event_data
+    )
+    if not triggered_workflows and not queue_items_by_workflow_id:
         # if there aren't any triggered workflows, there's no action filters to evaluate
         return set()
 
-    actions_to_trigger = evaluate_workflows_action_filters(triggered_workflows, event_data)
+    actions_to_trigger = evaluate_workflows_action_filters(
+        triggered_workflows, event_data, queue_items_by_workflow_id
+    )
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
 
     if not actions:
