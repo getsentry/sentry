@@ -104,6 +104,7 @@ export function getValidOpsForFilter(
   if (
     hasWildcardOperators &&
     fieldDefinition?.allowWildcard !== false &&
+    !fieldDefinition?.disallowWildcardOperators &&
     (filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN)
   ) {
     validOps.add(WildcardOperators.CONTAINS);
@@ -223,7 +224,13 @@ export function getLabelAndOperatorFromToken(
   token: TokenResult<Token.FILTER>,
   hasWildcardOperators: boolean
 ) {
-  if (token.value.type === Token.VALUE_TEXT && hasWildcardOperators) {
+  const fieldDefinition = getFieldDefinition(token.key.text);
+
+  if (
+    token.value.type === Token.VALUE_TEXT &&
+    hasWildcardOperators &&
+    !fieldDefinition?.disallowWildcardOperators
+  ) {
     if (getIsContains(token.value.wildcard)) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),
@@ -246,7 +253,11 @@ export function getLabelAndOperatorFromToken(
         operator: WildcardOperators.ENDS_WITH,
       };
     }
-  } else if (token.value.type === Token.VALUE_TEXT_LIST && hasWildcardOperators) {
+  } else if (
+    token.value.type === Token.VALUE_TEXT_LIST &&
+    hasWildcardOperators &&
+    !fieldDefinition?.disallowWildcardOperators
+  ) {
     if (token.value.items.every(entry => getIsContains(entry.value?.wildcard))) {
       return {
         label: token.negated ? t('does not contain') : t('contains'),
