@@ -159,8 +159,8 @@ const isPolling = (
 
   switch (summaryData.status) {
     case ReplaySummaryStatus.NOT_STARTED:
-      // Not started - poll
-      return true;
+      // Not started - poll if we've started a request
+      return isStartSummaryRequestPending;
 
     case ReplaySummaryStatus.PROCESSING:
       // Currently processing - always poll
