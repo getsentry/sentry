@@ -8,7 +8,6 @@ import preventAiIllustration from 'sentry-images/features/preventai.svg';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export default function AIPage() {
   return (
@@ -178,15 +177,15 @@ export default function AIPage() {
 }
 
 const OnboardingPanel = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(2)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  margin-bottom: ${p => p.theme.space.xl};
   position: relative;
 `;
 
 const Container = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   position: relative;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -210,11 +209,11 @@ const ImageColumn = styled('div')`
   min-height: 100px;
   max-width: 300px;
   min-width: 150px;
-  margin: ${space(2)} auto;
+  margin: ${p => p.theme.space.xl} auto;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
-    margin: ${space(3)};
+    margin: ${p => p.theme.space['2xl']};
     max-width: auto;
     display: flex;
     align-items: center;
@@ -243,9 +242,9 @@ const Title = styled('h3')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 26px;
-  line-height: 1.25;
-  color: ${p => p.theme.headingColor};
-  margin: 0 0 ${space(0.5)} 0;
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  color: ${p => p.theme.tokens.content.primary};
+  margin: 0 0 ${p => p.theme.space.xs} 0;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     font-size: ${p => p.theme.fontSize.xl};
@@ -257,57 +256,57 @@ const Description = styled('p')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.43;
-  color: ${p => p.theme.textColor};
-  margin: 0 0 ${space(1)} 0;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.primary};
+  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const SetupGuidePanel = styled('div')`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  margin-bottom: ${space(2)};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  margin-bottom: ${p => p.theme.space.xl};
   position: relative;
 `;
 
 const SetupContainer = styled('div')`
-  padding: ${space(3)} ${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
   max-width: 1230px;
   margin: 0 auto;
 `;
 
 const SetupHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const SetupTitle = styled('h3')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 26px;
-  line-height: 1.54;
-  color: ${p => p.theme.headingColor};
-  margin: 0 0 ${space(0.5)} 0;
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  color: ${p => p.theme.tokens.content.primary};
+  margin: 0 0 ${p => p.theme.space.xs} 0;
 `;
 
 const SetupDescription = styled('p')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.43;
-  color: ${p => p.theme.headingColor};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.primary};
   margin: 0;
   max-width: 621px;
 `;
 
 const Divider = styled('div')`
   height: 1px;
-  background: ${p => p.theme.border};
-  margin: ${space(3)} 0;
+  background: ${p => p.theme.tokens.border.primary};
+  margin: ${p => p.theme.space['2xl']} 0;
 `;
 
 const StepsContainer = styled('div')`
   position: relative;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StepLine = styled('div')`
@@ -316,18 +315,18 @@ const StepLine = styled('div')`
   top: 26px;
   bottom: 26px;
   width: 0;
-  border-left: 1px solid ${p => p.theme.border};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 1;
 `;
 
 const StepsContent = styled('div')`
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space['3xl']};
 `;
 
 const Step = styled('div')`
   display: flex;
   align-items: flex-start;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   position: relative;
 
   &:last-child {
@@ -337,8 +336,8 @@ const Step = styled('div')`
 
 const StepNumber = styled('div')`
   position: absolute;
-  left: -${space(4)};
-  top: ${space(0.5)};
+  left: -${p => p.theme.space['3xl']};
+  top: ${p => p.theme.space.xs};
   z-index: 2;
 `;
 
@@ -346,7 +345,7 @@ const StepCircle = styled('div')`
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: ${p => p.theme.purple300};
+  background: ${p => p.theme.tokens.content.accent};
   color: ${p => p.theme.white};
   display: flex;
   align-items: center;
@@ -365,27 +364,27 @@ const StepTitle = styled('h4')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: 18px;
-  line-height: 1.72;
+  line-height: ${p => p.theme.text.lineHeightHeading};
   letter-spacing: -0.31px;
-  color: ${p => p.theme.textColor};
-  margin: 0 0 ${space(0.5)} 0;
+  color: ${p => p.theme.tokens.content.primary};
+  margin: 0 0 ${p => p.theme.space.xs} 0;
 `;
 
 const StepDescription = styled('p')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.25;
-  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.muted};
   margin: 0;
 `;
 
 const InfoBox = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.translucentBorder};
+  background: ${p => p.theme.tokens.background.secondary};
+  border: 1px solid ${p => p.theme.tokens.border.muted};
   border-radius: 8px;
-  padding: ${space(3)} ${space(3)};
-  margin-bottom: ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space['2xl']};
   max-width: 657px;
 `;
 
@@ -397,32 +396,32 @@ const InfoTitle = styled('h4')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.5;
-  color: ${p => p.theme.textColor};
-  margin: 0 0 ${space(1)} 0;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.primary};
+  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const InfoDescription = styled('p')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.5;
-  color: ${p => p.theme.textColor};
-  margin: 0 0 ${space(1)} 0;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.primary};
+  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const InfoList = styled('ul')`
-  margin: 0 0 ${space(2)} 0;
-  padding-left: ${space(2)};
+  margin: 0 0 ${p => p.theme.space.xl} 0;
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 const InfoListItem = styled('li')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1.5;
-  color: ${p => p.theme.textColor};
-  margin-bottom: ${space(0.5)};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.primary};
+  margin-bottom: ${p => p.theme.space.xs};
 
   &:last-child {
     margin-bottom: 0;
@@ -433,27 +432,27 @@ const InfoNote = styled('p')`
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1.5;
-  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.muted};
   margin: 0;
 `;
 
 const DisclaimerText = styled('div')`
-  padding: 0 ${space(4)} ${space(3)};
+  padding: 0 ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
   font-family: ${p => p.theme.text.family};
   font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1.67;
-  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.tokens.content.muted};
   text-align: left;
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SetupContentWrapper = styled('div')`
   display: flex;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   align-items: flex-start;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -471,7 +470,7 @@ const SetupImageColumn = styled('div')`
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     max-width: 100%;
@@ -483,11 +482,11 @@ const PreventAiImage = styled('img')`
   width: 100%;
   height: auto;
   border-radius: 8px;
-  border: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   object-fit: contain;
 `;
 
 const PurpleText = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.tokens.content.accent};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;

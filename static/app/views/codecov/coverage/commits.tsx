@@ -16,7 +16,6 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {IconGithub, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -451,14 +450,14 @@ function renderTableBody(
         <UploadNumber>{total}</UploadNumber>
         <UploadBreakdown>
           <UploadStatus>
-            <StatusDot color="#2BA185" />
+            <StatusDot $color="success" />
             <UploadText>
               {processed} {t('Processed')}
             </UploadText>
           </UploadStatus>
           {pending > 0 && (
             <UploadStatus>
-              <StatusDot color="#EBC000" />
+              <StatusDot $color="warning" />
               <UploadText>
                 {pending} {t('Pending')}
               </UploadText>
@@ -466,7 +465,7 @@ function renderTableBody(
           )}
           {failed > 0 && (
             <UploadStatus>
-              <StatusDot color="#CF2126" />
+              <StatusDot $color="error" />
               <UploadText>
                 {failed} {t('Failed')}
               </UploadText>
@@ -716,12 +715,12 @@ export default function CommitsListPage() {
 
 const LayoutGap = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const ControlsContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const TriggerLabelWrap = styled('span')`
@@ -752,16 +751,16 @@ const DropdownMenuContent = styled('div')`
   right: 0;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  z-index: ${p => p.theme.zIndex.dropdown};
   min-width: 200px;
-  margin-top: 4px;
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const TabNavigationContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: 0 22px;
+  padding: 0 ${p => p.theme.space['2xl']};
 `;
 
 const TabsList = styled('div')`
@@ -773,8 +772,8 @@ const TabItem = styled('button')<{isActive: boolean}>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0 8px;
+  gap: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.md};
   border: none;
   background: none;
   cursor: pointer;
@@ -786,40 +785,40 @@ const TabItem = styled('button')<{isActive: boolean}>`
 `;
 
 const TabLabel = styled('span')<{isActive: boolean}>`
-  font-family: Rubik;
-  font-weight: 400;
-  font-size: 14px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.143;
   text-align: center;
-  padding: 9px 0;
-  color: ${p => (p.isActive ? '#6559C5' : '#3E3446')};
+  padding: ${p => p.theme.space.md} 0;
+  color: ${p => (p.isActive ? p.theme.active : p.theme.textColor)};
 `;
 
 const TabIndicator = styled('div')<{isActive: boolean}>`
   width: 100%;
   height: 3px;
-  background: ${p => (p.isActive ? '#6C5FC7' : 'transparent')};
+  background: ${p => (p.isActive ? p.theme.purple300 : 'transparent')};
   position: absolute;
   bottom: 0;
 `;
 
 const CommitsSection = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const PullsSection = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const FileExplorerSection = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const SectionHeader = styled('h2')`
-  font-size: 20px;
-  font-weight: 600;
-  color: ${p => p.theme.textColor};
-  margin: 0 0 ${space(2)} 0;
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.headingColor};
+  margin: 0 0 ${p => p.theme.space.xl} 0;
 `;
 
 const SectionContent = styled('div')`
@@ -829,19 +828,19 @@ const SectionContent = styled('div')`
 
 const CommitsFilterContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(3)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space['2xl']};
   width: 100%;
 `;
 
 const SearchBarContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-radius: 6px;
+  border-radius: ${p => p.theme.borderRadius};
   flex: 1;
   max-width: 1082px;
   height: 40px;
@@ -852,24 +851,24 @@ const SearchInput = styled('input')`
   background: none;
   outline: none;
   flex: 1;
-  font-family: 'Roboto Mono', monospace;
-  font-size: 12px;
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.667;
   color: ${p => p.theme.textColor};
 
   &::placeholder {
-    color: #80708f;
+    color: ${p => p.theme.formPlaceholder};
   }
 `;
 
 const DropdownItem = styled('div')`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   cursor: pointer;
-  font-family: Rubik;
-  font-size: 14px;
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
 
   &:hover {
@@ -877,11 +876,11 @@ const DropdownItem = styled('div')`
   }
 
   &:first-child {
-    border-radius: 4px 4px 0 0;
+    border-radius: ${p => p.theme.space.xs} ${p => p.theme.space.xs} 0 0;
   }
 
   &:last-child {
-    border-radius: 0 0 4px 4px;
+    border-radius: 0 0 ${p => p.theme.space.xs} ${p => p.theme.space.xs};
   }
 `;
 
@@ -890,11 +889,11 @@ const Checkbox = styled('input')`
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #6559c5;
+  accent-color: ${p => p.theme.purple400};
 
   &:checked {
-    background-color: #6559c5;
-    border-color: #6559c5;
+    background-color: ${p => p.theme.purple400};
+    border-color: ${p => p.theme.purple400};
   }
 `;
 
@@ -905,36 +904,36 @@ const DropdownItemText = styled('span')`
 // Table-specific styled components
 const HeaderCell = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
-  padding: 12px 16px;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const HeaderText = styled('span')`
-  font-family: Rubik;
-  font-weight: 600;
-  font-size: 12px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.xs};
   line-height: 1em;
   text-transform: uppercase;
-  color: #80708f;
+  color: ${p => p.theme.subText};
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const AlignmentContainer = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
-  padding: 8px 16px;
-  font-family: Rubik;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #2b2233;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.textColor};
 `;
 
 const CommitCell = styled('div')`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const CommitInfo = styled('div')`
@@ -944,19 +943,19 @@ const CommitInfo = styled('div')`
 `;
 
 const CommitMessage = styled('div')`
-  font-family: Rubik;
-  font-weight: 400;
-  font-size: 18px;
-  line-height: 1.4;
-  color: #71637e;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.xl};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
 `;
 
 const CommitDetails = styled('div')`
-  font-family: Rubik;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #968ba0;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.subText};
 `;
 
 const AuthorName = styled('span')`
@@ -967,64 +966,75 @@ const AuthorName = styled('span')`
 const CommitHashLink = styled('a')`
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.5)};
-  color: ${p => p.theme.blue300};
+  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.linkColor};
   text-decoration: none;
-  font-family: 'Roboto Mono', monospace;
-  font-weight: 400;
+  font-family: ${p => p.theme.text.familyMono};
+  font-weight: ${p => p.theme.fontWeight.normal};
 
   &:hover {
-    color: ${p => p.theme.blue200};
+    color: ${p => p.theme.linkHoverColor};
     text-decoration: underline;
   }
 
   &:visited {
-    color: ${p => p.theme.blue300};
+    color: ${p => p.theme.linkColor};
   }
 `;
 
 const UploadCountCell = styled('div')`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   justify-content: flex-end;
 `;
 
 const UploadNumber = styled('div')`
-  font-family: Rubik;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #2b2233;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  color: ${p => p.theme.textColor};
 `;
 
 const UploadBreakdown = styled('div')`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: ${p => p.theme.space.md};
   width: 253px;
 `;
 
 const UploadStatus = styled('div')`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: ${p => p.theme.space.xs};
 `;
 
-const StatusDot = styled('div')<{color: string}>`
+const StatusDot = styled('div')<{$color: 'success' | 'warning' | 'error'}>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: ${p => p.color};
+  background-color: ${p => {
+    switch (p.$color) {
+      case 'success':
+        return p.theme.success;
+      case 'warning':
+        return p.theme.warning;
+      case 'error':
+        return p.theme.error;
+      default:
+        return p.theme.gray300;
+    }
+  }};
 `;
 
 const UploadText = styled('span')`
-  font-family: Rubik;
-  font-weight: 400;
-  font-size: 12px;
+  font-family: ${p => p.theme.text.family};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.sm};
   line-height: 1.2;
-  color: #71637e;
+  color: ${p => p.theme.subText};
 `;
 
 const StyledLink = styled(Link)`
@@ -1049,18 +1059,18 @@ const StyledPagination = styled(Pagination)`
 const TooltipContent = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const TooltipSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const TooltipTitle = styled('div')`
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
 `;
 
