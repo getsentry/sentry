@@ -36,6 +36,7 @@ import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {Am1FrontendOverviewPage} from 'sentry/views/insights/pages/frontend/am1OverviewPage';
 import {
   FrontendOverviewTable,
   isAValidSort,
@@ -43,7 +44,6 @@ import {
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {NewFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/newFrontendOverviewPage';
-import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
@@ -330,7 +330,7 @@ function FrontendOverviewPageWithProviders() {
   const isNewUiEnabled =
     organization.features.includes('insights-frontend-overview-new-ui') && useEap;
 
-  let overviewPage = <OldFrontendOverviewPage />;
+  let overviewPage = <Am1FrontendOverviewPage />;
   if (isNextJsPageEnabled) {
     overviewPage = <NextJsOverviewPage performanceType="frontend" />;
   } else if (isNewUiEnabled) {

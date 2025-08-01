@@ -885,7 +885,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightPreset"] == preset
 
         # Set to custom
-        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        highlight_tags = ["bears", "beets", "battlestar_galactica", "blue bugs"]
         resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
@@ -912,26 +912,36 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["highlightContext"] == preset["context"]
         assert resp.data["highlightPreset"] == preset
 
-        # Set to custom
-        highlight_context_type = "bird-words"
-        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
-        resp = self.get_success_response(
-            self.org_slug,
-            self.proj_slug,
-            highlightContext=highlight_context,
-        )
-        option_result = self.project.get_option("sentry:highlight_context")
-        resp_result = resp.data["highlightContext"]
-        for highlight_context_key in highlight_context[highlight_context_type]:
-            assert highlight_context_key in option_result[highlight_context_type]
-            assert highlight_context_key in resp_result[highlight_context_type]
+        # Set to custom with different separators
+        highlight_context_types = ["birdwords", "bird-words", "bird words"]
+        for highlight_context_type in highlight_context_types:
+            highlight_context_value = [
+                "red",
+                "robin",
+                "blue",
+                "jay",
+                "red",
+                "blue",
+                "canadian goose",
+            ]
+            highlight_context = {highlight_context_type: highlight_context_value}
+            resp = self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                highlightContext=highlight_context,
+            )
+            option_result = self.project.get_option("sentry:highlight_context")
+            resp_result = resp.data["highlightContext"]
+            for highlight_context_key in highlight_context[highlight_context_type]:
+                assert highlight_context_key in option_result[highlight_context_type]
+                assert highlight_context_key in resp_result[highlight_context_type]
 
-        # Filters duplicates
-        assert (
-            len(option_result[highlight_context_type])
-            == len(resp_result[highlight_context_type])
-            == 4
-        )
+            # Filters duplicates
+            assert (
+                len(option_result[highlight_context_type])
+                == len(resp_result[highlight_context_type])
+                == 5
+            )
 
         # Set to empty
         resp = self.get_success_response(
@@ -962,6 +972,12 @@ class ProjectUpdateTest(APITestCase):
             highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
         )
         assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"bird \n words": ["empty", "context", "type"]},
+        )
+        assert "Key 'bird \n words' is invalid" in resp.data["highlightContext"][0]
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
@@ -2121,69 +2137,41 @@ class TestSeerProjectDetails(TestProjectDetailsBase):
         self.authorization = f"Bearer {token.token}"
 
     def test_autofix_automation_tuning(self) -> None:
-        # Test without feature flag - should fail
+        # Test with invalid value - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, autofixAutomationTuning="off", status_code=400
+            self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
         )
-        assert (
-            "trigger-autofix-on-issue-summary feature enabled"
-            in resp.data["autofixAutomationTuning"][0]
-        )
+        assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
         assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
 
-        # Test with feature flag but invalid value - should fail
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_error_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="invalid", status_code=400
-            )
-            assert '"invalid" is not a valid choice.' in resp.data["autofixAutomationTuning"][0]
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"  # default
+        # Test with valid value - should succeed
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
+        assert resp.data["autofixAutomationTuning"] == "medium"
 
-            # Test with feature flag and valid value - should succeed
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="medium"
-            )
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "medium"
-            assert resp.data["autofixAutomationTuning"] == "medium"
-
-            # Test setting back to off
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, autofixAutomationTuning="off"
-            )
-            assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
-            assert resp.data["autofixAutomationTuning"] == "off"
+        # Test setting back to off
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, autofixAutomationTuning="off"
+        )
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "off"
+        assert resp.data["autofixAutomationTuning"] == "off"
 
     def test_seer_scanner_automation(self) -> None:
-        # Test without feature flag - should fail
+        # Test with invalid value - should fail
         resp = self.get_error_response(
-            self.org_slug, self.proj_slug, seerScannerAutomation=False, status_code=400
+            self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
         )
-        assert (
-            "trigger-autofix-on-issue-summary feature enabled"
-            in resp.data["seerScannerAutomation"][0]
-        )
+        assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
         assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
 
-        # Test with feature flag but invalid value - should fail
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_error_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation="invalid", status_code=400
-            )
-            assert "Must be a valid boolean." in resp.data["seerScannerAutomation"][0]
-            assert self.project.get_option("sentry:seer_scanner_automation") is True  # default
-
-        # Test with feature flag and valid value - should succeed
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation=False
-            )
-            assert self.project.get_option("sentry:seer_scanner_automation") is False
-            assert resp.data["seerScannerAutomation"] is False
+        # Test with valid value - should succeed
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=False)
+        assert self.project.get_option("sentry:seer_scanner_automation") is False
+        assert resp.data["seerScannerAutomation"] is False
 
         # Test setting back to on
-        with self.feature("organizations:trigger-autofix-on-issue-summary"):
-            resp = self.get_success_response(
-                self.org_slug, self.proj_slug, seerScannerAutomation=True
-            )
-            assert self.project.get_option("sentry:seer_scanner_automation") is True
-            assert resp.data["seerScannerAutomation"] is True
+        resp = self.get_success_response(self.org_slug, self.proj_slug, seerScannerAutomation=True)
+        assert self.project.get_option("sentry:seer_scanner_automation") is True
+        assert resp.data["seerScannerAutomation"] is True

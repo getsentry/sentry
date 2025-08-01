@@ -1592,9 +1592,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ]:
         return
 
-    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization
-    ):
+    if not features.has("organizations:gen-ai-features", group.organization):
         return
 
     gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
