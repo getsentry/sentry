@@ -50,8 +50,8 @@ const ANOMALY_BUBBLE_HEIGHT = 6; // Height matching release bubbles
  */
 interface AnomalyPeriod {
   confidence: AnomalyType;
-  end: string;
-  start: string;
+  end: number;
+  start: number;
 }
 
 function anomalyTooltipFormatter(
@@ -83,7 +83,7 @@ function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
   let currentPeriod: AnomalyPeriod | null = null;
 
   for (const anomaly of anomalies) {
-    const timestamp = new Date(anomaly.timestamp * 1000).toISOString();
+    const timestampMs = anomaly.timestamp * 1000;
     const isAnomalous = [
       AnomalyType.HIGH_CONFIDENCE,
       AnomalyType.LOW_CONFIDENCE,
@@ -94,12 +94,12 @@ function groupAnomaliesIntoPeriods(anomalies: Anomaly[]): AnomalyPeriod[] {
         // Start a new anomaly period
         currentPeriod = {
           confidence: anomaly.anomaly.anomaly_type,
-          end: timestamp,
-          start: timestamp,
+          end: timestampMs,
+          start: timestampMs,
         };
       } else {
         // Extend the current period
-        currentPeriod.end = timestamp;
+        currentPeriod.end = timestampMs;
         // Use higher confidence if available
         if (anomaly.anomaly.anomaly_type === AnomalyType.HIGH_CONFIDENCE) {
           currentPeriod.confidence = AnomalyType.HIGH_CONFIDENCE;
@@ -214,24 +214,24 @@ function AnomalyBubbleSeries({
   // Create mark lines for start and end of each anomaly period
   const markLineData: MarkLineComponentOption['data'] = anomalyPeriods.flatMap(period => [
     {
-      xAxis: new Date(period.start).getTime(),
+      xAxis: period.start,
       lineStyle: {
-        color: theme.gray300,
+        color: theme.gray400,
         type: 'solid',
         width: 1,
-        opacity: 0.8,
+        opacity: 0.25,
       },
       label: {
         show: false,
       },
     },
     {
-      xAxis: new Date(period.end).getTime(),
+      xAxis: period.end,
       lineStyle: {
-        color: theme.gray300,
+        color: theme.gray400,
         type: 'solid',
         width: 1,
-        opacity: 0.8,
+        opacity: 0.25,
       },
       label: {
         show: false,
@@ -475,9 +475,9 @@ export function useAnomalyBubbles({
             itemStyle: {
               color:
                 data.confidence === AnomalyType.HIGH_CONFIDENCE
-                  ? theme.red400
+                  ? theme.red300
                   : theme.yellow400,
-              opacity: 0.15,
+              opacity: 0.2,
             },
             data: [
               [
