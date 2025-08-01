@@ -79,7 +79,7 @@ jobs:
           image_name: 'sentry'
           platforms: linux/${{ matrix.platform }}
           dockerfile_path: 'self-hosted/Dockerfile'
-          tag_suffix: ${{ matrix.platform }}
+          tag_suffix: -${{ matrix.platform }}
           ghcr: true
           publish_on_pr: true
           outputs: type=tar,dest=/tmp/sentry-${{ matrix.platform }}.tar
