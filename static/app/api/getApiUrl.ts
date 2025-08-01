@@ -1,3 +1,5 @@
+import type {MaybeApiPath} from './apiDefinition';
+
 export type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
     ? Param | ExtractPathParams<`/${Rest}`>
@@ -19,7 +21,7 @@ const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
 type ApiUrl = string & {__apiUrl: true};
 
-export function getApiUrl<TApiPath extends string>(
+export function getApiUrl<TApiPath extends MaybeApiPath>(
   path: TApiPath,
   ...[options]: OptionalPathParams<TApiPath>
 ): ApiUrl {
