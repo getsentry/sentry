@@ -18,7 +18,6 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
-from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
@@ -53,7 +52,7 @@ class IdentityProvider(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     type = models.CharField(max_length=64)
-    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    config = models.JSONField(default=dict)
     date_added = models.DateTimeField(default=timezone.now, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
@@ -197,7 +196,7 @@ class Identity(Model):
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = models.JSONField(default=dict)
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)
