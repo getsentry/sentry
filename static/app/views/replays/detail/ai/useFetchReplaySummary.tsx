@@ -41,6 +41,35 @@ export interface UseFetchReplaySummaryResult {
 
 const POLL_INTERVAL_MS = 500;
 
+const isPolling = (
+  summaryData: SummaryResponse | undefined,
+  isStartSummaryRequestPending: boolean
+) => {
+  if (!summaryData) {
+    // No data yet - poll if we've started a request
+    return isStartSummaryRequestPending;
+  }
+
+  switch (summaryData.status) {
+    case ReplaySummaryStatus.NOT_STARTED:
+      // Not started - poll if we've initiated a run
+      return isStartSummaryRequestPending;
+
+    case ReplaySummaryStatus.PROCESSING:
+      // Currently processing - always poll
+      return true;
+
+    case ReplaySummaryStatus.COMPLETED:
+    case ReplaySummaryStatus.ERROR:
+      // Final states - no need to poll
+      return false;
+
+    default:
+      // Unknown status - don't poll
+      return false;
+  }
+};
+
 function createAISummaryQueryKey(
   orgSlug: string,
   projectSlug: string | undefined,
@@ -144,7 +173,9 @@ export function useFetchReplaySummary(
 
   // Auto-start logic.
   const segmentsIncreased =
-    !!summaryData?.num_segments && segmentCount > summaryData.num_segments;
+    summaryData?.num_segments !== null &&
+    summaryData?.num_segments !== undefined &&
+    segmentCount > summaryData.num_segments;
   const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
 
   useEffect(() => {
@@ -174,41 +205,3 @@ export function useFetchReplaySummary(
     isStartSummaryRequestPending,
   };
 }
-
-const isPolling = (
-  summaryData: SummaryResponse | undefined,
-  isStartSummaryRequestPending: boolean
-) => {
-  if (!summaryData) {
-    // No data yet - poll if we've started a request
-    return isStartSummaryRequestPending;
-  }
-
-  switch (summaryData.status) {
-    case ReplaySummaryStatus.NOT_STARTED:
-      // Not started - poll if we've initiated a run
-      return isStartSummaryRequestPending;
-
-    case ReplaySummaryStatus.PROCESSING:
-      // Currently processing - always poll
-      return true;
-
-    case ReplaySummaryStatus.COMPLETED:
-    case ReplaySummaryStatus.ERROR:
-      // Final states - no need to poll
-      return false;
-
-    default:
-      // Unknown status - don't poll
-      return false;
-  }
-};
-
-export const defaultUseFetchReplaySummaryResult: UseFetchReplaySummaryResult = {
-  summaryData: undefined,
-  isError: false,
-  isPending: false,
-  isPolling: false,
-  startSummaryRequest: () => {},
-  isStartSummaryRequestPending: false,
-};
