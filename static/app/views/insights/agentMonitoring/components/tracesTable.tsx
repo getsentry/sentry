@@ -82,6 +82,7 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
+// FIXME: This is potentially not correct, we need to find a way for it to work with the new filter
 const GENERATION_COUNTS = AI_GENERATION_OPS.map(op => `count_if(span.op,${op})` as const);
 
 const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS].map(
