@@ -5,6 +5,17 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
+export const DEFAULT_CRONTAB = '0 0 * * *';
+export const CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE = 1;
+export const CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT = 'day';
+
+export const CRON_DEFAULT_CHECKIN_MARGIN = 1;
+export const CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD = 1;
+export const CRON_DEFAULT_RECOVERY_THRESHOLD = 1;
+
+// In minutes
+export const CRON_DEFAULT_MAX_RUNTIME = 30;
+
 interface CronDetectorFormData {
   checkinMargin: number | null;
   environment: string;
@@ -81,13 +92,15 @@ export function cronSavedDetectorToFormData(
     failureIssueThreshold: dataSource.queryObj.failureIssueThreshold ?? 1,
     recoveryThreshold: dataSource.queryObj.recoveryThreshold ?? 1,
     maxRuntime: dataSource.queryObj.maxRuntime,
-    scheduleCrontab: dataSource.queryObj.schedule,
+    scheduleCrontab: Array.isArray(dataSource.queryObj.schedule)
+      ? dataSource.queryObj.schedule[0]
+      : DEFAULT_CRONTAB,
     scheduleIntervalValue: Array.isArray(dataSource.queryObj.schedule)
       ? dataSource.queryObj.schedule[0]
-      : 1,
+      : CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
     scheduleIntervalUnit: Array.isArray(dataSource.queryObj.schedule)
       ? dataSource.queryObj.schedule[1]
-      : 'day',
+      : CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
     scheduleType: dataSource.queryObj.scheduleType,
     timezone: dataSource.queryObj.timezone,
     workflowIds: detector.workflowIds,

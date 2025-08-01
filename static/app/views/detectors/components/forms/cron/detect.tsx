@@ -15,7 +15,12 @@ import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
+import {
+  CRON_DEFAULT_CHECKIN_MARGIN,
+  CRON_DEFAULT_MAX_RUNTIME,
+  DEFAULT_CRONTAB,
+  useCronDetectorFormField,
+} from 'sentry/views/detectors/components/forms/cron/fields';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
 import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
@@ -25,11 +30,6 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
 
-const DEFAULT_CRONTAB = '0 0 * * *';
-
-// In minutes
-const DEFAULT_MAX_RUNTIME = 30;
-const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
@@ -50,6 +50,7 @@ function ScheduleTypeField() {
         required
         stacked
         inline={false}
+        preserveOnUnmount
       />
     </Fragment>
   );
@@ -151,11 +152,11 @@ function Margins() {
           placeholder={tn(
             'Defaults to %s minute',
             'Defaults to %s minutes',
-            DEFAULT_CHECKIN_MARGIN
+            CRON_DEFAULT_CHECKIN_MARGIN
           )}
           help={t('Number of minutes before a check-in is considered missed.')}
           label={t('Grace Period')}
-          defaultValue={DEFAULT_CHECKIN_MARGIN}
+          defaultValue={CRON_DEFAULT_CHECKIN_MARGIN}
         />
         <NumberField
           name="maxRuntime"
@@ -163,13 +164,13 @@ function Margins() {
           placeholder={tn(
             'Defaults to %s minute',
             'Defaults to %s minutes',
-            DEFAULT_MAX_RUNTIME
+            CRON_DEFAULT_MAX_RUNTIME
           )}
           help={t(
             'Number of minutes before an in-progress check-in is marked timed out.'
           )}
           label={t('Max Runtime')}
-          defaultValue={DEFAULT_MAX_RUNTIME}
+          defaultValue={CRON_DEFAULT_MAX_RUNTIME}
         />
       </InputGroup>
     </Fragment>
