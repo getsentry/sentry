@@ -49,11 +49,13 @@ BASE_STRATEGY = create_strategy_configuration_class(
 
 
 def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
-    if kwargs.get("base") is not None:
-        kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
-    else:
-        kwargs["base"] = BASE_STRATEGY
+    # Replace the base strategy id in kwargs with the base stategy class itself (or the default
+    # base class, if no base is specified)
+    base_config_id = kwargs.get("base")
+    kwargs["base"] = CONFIGURATIONS[base_config_id] if base_config_id else BASE_STRATEGY
+
     strategy_class = create_strategy_configuration_class(id, **kwargs)
+
     CONFIGURATIONS[id] = strategy_class
     return strategy_class
 
