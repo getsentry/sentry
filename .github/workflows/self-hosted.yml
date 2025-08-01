@@ -82,7 +82,7 @@ jobs:
           tag_suffix: ${{ matrix.platform }}
           ghcr: true
           publish_on_pr: true
-          outputs: type=docker,dest=/tmp/sentry-${{ matrix.platform }}.tar
+          outputs: type=tar,dest=/tmp/sentry-${{ matrix.platform }}.tar
 
       - name: Upload Image
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
