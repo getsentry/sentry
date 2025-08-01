@@ -26,7 +26,6 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    spans_indexed,
     spans_metrics,
     transactions,
 )
@@ -179,7 +178,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        spans_indexed,
                         spans_metrics,
                         Spans,
                         OurLogs,
