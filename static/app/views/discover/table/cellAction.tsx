@@ -240,10 +240,12 @@ function makeCellActions({
     }
   }
 
+  if (to) {
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name, to));
+  }
+
   if (isUrl(value)) {
     addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-  } else if (to) {
-    addMenuItem(Actions.OPEN_INTERNAL_LINK, getCellActionText(column.name, to));
   }
 
   if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
@@ -349,18 +351,15 @@ function CellAction({
   ...props
 }: Props) {
   const organization = useOrganization();
-  const {children, column} = props;
+  const {children, column, dataRow} = props;
   const childRef = useRef<HTMLDivElement>(null);
   const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
-  let filteredActions = allowActions;
-  if (!useCellActionsV2) {
-    filteredActions = filteredActions?.filter(
-      action => action !== Actions.OPEN_EXTERNAL_LINK
-    );
-  } else if (filteredActions) {
+  const filteredActions = allowActions;
+  if (useCellActionsV2 && filteredActions) {
     filteredActions.push(Actions.OPEN_INTERNAL_LINK);
+    filteredActions.push(Actions.OPEN_EXTERNAL_LINK);
   }
 
   // Extract any internal links to add them to the dropdown menu
@@ -369,11 +368,11 @@ function CellAction({
       const linkElements = childRef.current?.getElementsByTagName('a');
 
       if (linkElements?.[0]) {
-        const href = stripURLOrigin(linkElements[0].href);
-        setTarget(href);
+        const href = linkElements[0].href;
+        if (href !== dataRow[column.key]) setTarget(stripURLOrigin(href));
       }
     });
-  }, [column.key, children]);
+  }, [column.key, dataRow]);
 
   const cellActions = makeCellActions({
     ...props,
