@@ -232,9 +232,13 @@ def delete_dangling_attachments_and_user_reports(
     group ID, therefore there may be dangling ones after "regular" model
     deletion.
     """
+    # We don't want to fail the deletion task if we can't delete the attachments and user reports
     event_ids = [event.event_id for event in events]
-    EventAttachment.objects.filter(event_id__in=event_ids, project_id__in=project_ids).delete()
-    UserReport.objects.filter(event_id__in=event_ids, project_id__in=project_ids).delete()
+    try:
+        EventAttachment.objects.filter(event_id__in=event_ids, project_id__in=project_ids).delete()
+        UserReport.objects.filter(event_id__in=event_ids, project_id__in=project_ids).delete()
+    except Exception:
+        pass
 
 
 def tenant_ids(organization_id: int) -> Mapping[str, Any]:
