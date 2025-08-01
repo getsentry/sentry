@@ -28,7 +28,9 @@ export function NewCronDetectorForm() {
       detectorType="uptime_subscription"
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       initialFormData={{
-        schedule: '0 0 * * *',
+        scheduleCrontab: '0 0 * * *',
+        scheduleIntervalValue: 1,
+        scheduleIntervalUnit: 'day',
         scheduleType: 'crontab',
         timezone: 'UTC',
         failureIssueThreshold: 1,

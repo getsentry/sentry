@@ -25,12 +25,11 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
 
-export const DEFAULT_MONITOR_TYPE = 'cron_job';
-export const DEFAULT_CRONTAB = '0 0 * * *';
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 // In minutes
-export const DEFAULT_MAX_RUNTIME = 30;
-export const DEFAULT_CHECKIN_MARGIN = 1;
+const DEFAULT_MAX_RUNTIME = 30;
+const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
