@@ -5,6 +5,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -130,6 +131,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    getConsoleExtensions(params),
     {
       title: t('Further Settings'),
       content: [
