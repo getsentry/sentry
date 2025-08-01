@@ -66,6 +66,7 @@ class AnyType(Type[typing.Any]):
 
 class BoolType(Type[bool]):
     "Coerce a boolean from a string"
+
     name = "boolean"
     default = False
     expected_types = (bool,)

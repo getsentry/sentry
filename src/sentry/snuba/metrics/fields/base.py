@@ -1926,7 +1926,7 @@ def metric_object_factory(op: MetricOperationType | None, metric_mri: str) -> Me
 
 
 def generate_bottom_up_dependency_tree_for_metrics(
-    metrics_query_fields_set: set[tuple[MetricOperationType | None, str, str]]
+    metrics_query_fields_set: set[tuple[MetricOperationType | None, str, str]],
 ) -> list[tuple[MetricOperationType | None, str, str]]:
     """
     This function basically generates a dependency list for all instances of

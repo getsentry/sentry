@@ -1,4 +1,4 @@
-""" Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+"""Classes needed to build a metrics query. Inspired by snuba_sdk.query."""
 
 from __future__ import annotations
 

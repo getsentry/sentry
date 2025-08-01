@@ -289,7 +289,7 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
 
 
 def _maybe_renew_and_return_bundles(
-    bundles: dict[int, tuple[datetime, str]]
+    bundles: dict[int, tuple[datetime, str]],
 ) -> list[tuple[int, str]]:
     maybe_renew_artifact_bundles(
         {id: date_added for id, (date_added, _resolved) in bundles.items()}

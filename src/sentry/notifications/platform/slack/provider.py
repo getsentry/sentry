@@ -21,9 +21,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     provider_key = NotificationProviderKey.DISCORD
 
     @classmethod
-    def render[
-        DataT: NotificationData
-    ](cls, *, data: DataT, rendered_template: NotificationRenderedTemplate) -> SlackRenderable:
+    def render[DataT: NotificationData](
+        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+    ) -> SlackRenderable:
         return {}
 
 

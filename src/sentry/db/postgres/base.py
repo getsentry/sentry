@@ -28,7 +28,7 @@ def remove_null(value: str) -> str:
 
 
 def clean_bad_params(
-    params: dict[str, object] | Iterable[object] | None
+    params: dict[str, object] | Iterable[object] | None,
 ) -> dict[str, object] | list[object] | None:
     if params is None:
         return None

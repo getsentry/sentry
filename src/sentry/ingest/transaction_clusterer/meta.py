@@ -1,4 +1,4 @@
-""" Track metadata about clusterer runs """
+"""Track metadata about clusterer runs"""
 
 from datetime import datetime, timezone
 from typing import TypedDict

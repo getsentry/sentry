@@ -386,7 +386,7 @@ def get_serialized_event_file_committers(
 
 
 def dedupe_commits(
-    commits: Sequence[MutableMapping[str, Any]]
+    commits: Sequence[MutableMapping[str, Any]],
 ) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())
 
