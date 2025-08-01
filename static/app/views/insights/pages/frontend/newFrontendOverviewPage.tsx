@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -23,34 +25,30 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
-import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
-import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
-import OverviewRequestsChartWidget from 'sentry/views/insights/common/components/widgets/overviewRequestsChartWidget';
-import OverviewSlowQueriesChartWidget from 'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {Am1BackendOverviewPage} from 'sentry/views/insights/pages/backend/am1BackendOverviewPage';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
-  BackendOverviewTable,
+  StackedWidgetWrapper,
+  TripleRowWidgetWrapper,
+} from 'sentry/views/insights/pages/backend/backendOverviewPage';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {
+  FrontendOverviewTable,
   isAValidSort,
   type ValidSort,
-} from 'sentry/views/insights/pages/backend/backendTable';
+} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
-  BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/backend/settings';
-import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+  DEFAULT_SPAN_OP_SELECTION,
+  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
+  FRONTEND_LANDING_TITLE,
+  PAGE_SPAN_OPS,
+  SPAN_OP_QUERY_PARAM,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -58,24 +56,8 @@ import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-function BackendOverviewPage() {
+export function NewFrontendOverviewPage() {
   useOverviewPageTrackPageload();
-  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
-  const isNewBackendExperienceEnabled = useInsightsEap();
-  if (isLaravelPageAvailable) {
-    return <LaravelOverviewPage />;
-  }
-  if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage performanceType="backend" />;
-  }
-  if (isNewBackendExperienceEnabled) {
-    return <EAPBackendOverviewPage />;
-  }
-  return <Am1BackendOverviewPage />;
-}
-
-function EAPBackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -83,6 +65,9 @@ function EAPBackendOverviewPage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  const spanOp: PageSpanOps = getSpanOpFromQuery(
+    decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
+  );
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -90,35 +75,38 @@ function EAPBackendOverviewPage() {
     },
   });
 
-  const disallowedOps = [
-    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
-  ];
-
   const {
-    otherProjects: selectedOtherProjects,
     frontendProjects: selectedFrontendProjects,
-    mobileProjects: selectedMobileProjects,
-    backendProjects: selectedBackendProjects,
+    otherProjects: selectedOtherProjects,
   } = categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
   const existingQuery = new MutableSearch(searchBarQuery);
-  existingQuery.addOp('(');
-  existingQuery.addOp('(');
-  existingQuery.addFilterValues('!span.op', disallowedOps);
 
-  if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
-    existingQuery.addFilterValue(
-      '!project.id',
-      `[${[
-        ...selectedFrontendProjects.map(project => project.id),
-        ...selectedMobileProjects.map(project => project.id),
-      ]}]`
-    );
+  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
+  existingQuery.addOp('(');
+
+  if (spanOp === 'all') {
+    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation'];
+    existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
+    // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
+    if (selectedFrontendProjects.length > 0) {
+      existingQuery.addOp('OR');
+      existingQuery.addFilterValue(
+        'project.id',
+        `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
+      );
+    }
+  } else if (spanOp === 'pageload') {
+    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload'];
+    existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
+  } else if (spanOp === 'navigation') {
+    // navigation span ops doesn't work for web vitals, so we do need to filter for web vital spans
+    existingQuery.addFilterValue('span.op', 'navigation');
   }
+
   existingQuery.addOp(')');
-  existingQuery.addOp('OR');
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
-  existingQuery.addOp(')');
+
+  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -137,7 +125,7 @@ function EAPBackendOverviewPage() {
   };
 
   function handleSearch(searchQuery: string) {
-    trackAnalytics('performance.domains.backend.search', {organization});
+    trackAnalytics('performance.domains.frontend.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -158,7 +146,7 @@ function EAPBackendOverviewPage() {
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
-  existingQuery.addFilterValue('is_transaction', 'true');
+  const displayPerfScore = ['pageload', 'all'].includes(spanOp);
 
   const response = useSpans(
     {
@@ -168,24 +156,26 @@ function EAPBackendOverviewPage() {
       useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',
-        'request.method',
         'transaction',
-        'span.op',
         'project',
-        'epm()',
-        'p50(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
+        'tpm()',
+        'p50_if(span.duration,is_transaction,true)',
+        'p95_if(span.duration,is_transaction,true)',
+        'failure_rate_if(is_transaction,true)',
+        ...(displayPerfScore
+          ? (['performance_score(measurements.score.total)'] as const)
+          : []),
         'count_unique(user)',
-        'sum(span.duration)',
+        'sum_if(span.duration,is_transaction,true)',
       ],
     },
     'api.performance.landing-table'
   );
 
-  const searchBarProjectsIds = [...selectedBackendProjects, ...selectedOtherProjects].map(
-    project => project.id
-  );
+  const searchBarProjectsIds = [
+    ...selectedFrontendProjects,
+    ...selectedOtherProjects,
+  ].map(project => project.id);
 
   return (
     <Feature
@@ -193,7 +183,7 @@ function EAPBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -205,14 +195,34 @@ function EAPBackendOverviewPage() {
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    projectIds={searchBarProjectsIds}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
-                  />
+                  <InsightsSpanTagProvider>
+                    <CompactSelect
+                      value={spanOp}
+                      menuTitle={t('Filter by operation')}
+                      options={[
+                        {value: 'all', label: t('All Transactions')},
+                        {value: 'pageload', label: t('Pageload')},
+                        {value: 'navigation', label: t('Navigation')},
+                      ]}
+                      onChange={(selectedOption: SelectOption<PageSpanOps>) => {
+                        navigate({
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            [SPAN_OP_QUERY_PARAM]: selectedOption.value,
+                          },
+                        });
+                      }}
+                    />
+                    <StyledTransactionNameSearchBar
+                      organization={organization}
+                      projectIds={searchBarProjectsIds}
+                      onSearch={(query: string) => {
+                        handleSearch(query);
+                      }}
+                      query={getFreeTextFromQuery(searchBarQuery) ?? ''}
+                    />
+                  </InsightsSpanTagProvider>
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
@@ -223,8 +233,8 @@ function EAPBackendOverviewPage() {
               <Fragment>
                 <ModuleLayout.Third>
                   <StackedWidgetWrapper>
-                    <OverviewRequestsChartWidget />
-                    <OverviewApiLatencyChartWidget />
+                    <span>Throughput chart</span>
+                    <span>Duration chart</span>
                   </StackedWidgetWrapper>
                 </ModuleLayout.Third>
                 <ModuleLayout.TwoThirds>
@@ -233,18 +243,22 @@ function EAPBackendOverviewPage() {
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <OverviewJobsChartWidget />
+                      <div>Web perf score chart</div>
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <OverviewSlowQueriesChartWidget />
+                      <div>Assets by time spent</div>
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <OverviewCacheMissChartWidget />
+                      <div>Requests by time spent</div>
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>
                 <ModuleLayout.Full>
-                  <BackendOverviewTable response={response} sort={sorts[1]} />
+                  <FrontendOverviewTable
+                    displayPerfScore={displayPerfScore}
+                    response={response}
+                    sort={sorts[1]}
+                  />
                 </ModuleLayout.Full>
               </Fragment>
             )}
@@ -255,31 +269,17 @@ function EAPBackendOverviewPage() {
   );
 }
 
-function BackendOverviewPageWithProviders() {
-  return (
-    <DomainOverviewPageProviders>
-      <BackendOverviewPage />
-    </DomainOverviewPageProviders>
-  );
-}
+const isPageSpanOp = (op?: string): op is PageSpanOps => {
+  return PAGE_SPAN_OPS.includes(op as PageSpanOps);
+};
+
+const getSpanOpFromQuery = (op?: string): PageSpanOps => {
+  if (isPageSpanOp(op)) {
+    return op;
+  }
+  return DEFAULT_SPAN_OP_SELECTION;
+};
 
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
-`;
-
-export default BackendOverviewPageWithProviders;
-
-export const StackedWidgetWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  height: 100%;
-  min-height: 502px;
-`;
-
-export const TripleRowWidgetWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: 300px;
-  gap: ${space(2)};
 `;

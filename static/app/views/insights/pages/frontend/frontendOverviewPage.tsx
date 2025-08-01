@@ -43,6 +43,7 @@ import {
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {NewFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/newFrontendOverviewPage';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
@@ -325,18 +326,20 @@ function EAPOverviewPage() {
 function FrontendOverviewPageWithProviders() {
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
+  const organization = useOrganization();
+  const isNewUiEnabled =
+    organization.features.includes('insights-frontend-overview-new-ui') && useEap;
 
-  return (
-    <DomainOverviewPageProviders>
-      {isNextJsPageEnabled ? (
-        <NextJsOverviewPage performanceType="frontend" />
-      ) : useEap ? (
-        <EAPOverviewPage />
-      ) : (
-        <Am1FrontendOverviewPage />
-      )}
-    </DomainOverviewPageProviders>
-  );
+  let overviewPage = <Am1FrontendOverviewPage />;
+  if (isNextJsPageEnabled) {
+    overviewPage = <NextJsOverviewPage performanceType="frontend" />;
+  } else if (isNewUiEnabled) {
+    overviewPage = <NewFrontendOverviewPage />;
+  } else if (useEap) {
+    overviewPage = <EAPOverviewPage />;
+  }
+
+  return <DomainOverviewPageProviders>{overviewPage}</DomainOverviewPageProviders>;
 }
 
 const isPageSpanOp = (op?: string): op is PageSpanOps => {
