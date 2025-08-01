@@ -26,7 +26,6 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
@@ -48,7 +47,6 @@ class FetchIssueSummaryTest(TestCase):
         mock_has_budget.assert_not_called()
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
@@ -78,7 +76,6 @@ class FetchIssueSummaryTest(TestCase):
         mock_get_issue_summary.assert_called_once()
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     def test_fetch_issue_summary_without_seer_scanner_automation(
         self, mock_seer_ack: MagicMock
@@ -92,7 +89,6 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     def test_fetch_issue_summary_without_org_acknowledgement(
         self, mock_seer_ack: MagicMock
@@ -115,17 +111,6 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_fetch_issue_summary_without_trigger_autofix_feature(self) -> None:
-        """Test that fetch_issue_summary returns None without trigger-autofix-on-issue-summary flag"""
-        self.project.update_option("sentry:seer_scanner_automation", True)
-
-        # Only gen-ai-features enabled, not trigger-autofix-on-issue-summary
-        result = fetch_issue_summary(self.group)
-
-        assert result is None
-
-    @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     def test_fetch_issue_summary_rate_limited(
@@ -141,7 +126,6 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
@@ -159,7 +143,6 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")
@@ -183,7 +166,6 @@ class FetchIssueSummaryTest(TestCase):
         assert result is None
 
     @with_feature("organizations:gen-ai-features")
-    @with_feature("organizations:trigger-autofix-on-issue-summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
     @patch("sentry.integrations.utils.issue_summary_for_alerts.is_seer_scanner_rate_limited")

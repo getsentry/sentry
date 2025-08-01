@@ -101,28 +101,6 @@ class ProjectMemberSerializer(serializers.Serializer):
     )
     seerScannerAutomation = serializers.BooleanField(required=False)
 
-    def validate_autofixAutomationTuning(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
-    def validate_seerScannerAutomation(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
 
 @extend_schema_serializer(
     exclude_fields=[

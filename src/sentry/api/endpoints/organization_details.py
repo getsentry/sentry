@@ -491,28 +491,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_defaultAutofixAutomationTuning(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
-    def validate_defaultSeerScannerAutomation(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        if not features.has(
-            "organizations:trigger-autofix-on-issue-summary", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
-            )
-        return value
-
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":

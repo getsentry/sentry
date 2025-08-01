@@ -24,8 +24,6 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not features.has("organizations:gen-ai-features", group.organization):
         return None
-    if not features.has("organizations:trigger-autofix-on-issue-summary", group.organization):
-        return None
     project = group.project
     if not project.get_option("sentry:seer_scanner_automation"):
         return None
