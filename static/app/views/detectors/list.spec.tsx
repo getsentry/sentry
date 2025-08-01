@@ -162,9 +162,9 @@ describe('DetectorsList', function () {
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
-      expect(options[1]).toHaveTextContent('metric_issue');
-      expect(options[2]).toHaveTextContent('uptime_subscription');
-      expect(options[3]).toHaveTextContent('uptime_domain_failure');
+      expect(options[1]).toHaveTextContent('metric');
+      expect(options[2]).toHaveTextContent('cron');
+      expect(options[3]).toHaveTextContent('uptime');
       await userEvent.click(screen.getByText('error'));
 
       await screen.findByText('Error Detector');
