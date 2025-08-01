@@ -5,7 +5,20 @@
 CRITICAL: ONLY WARN ABOUT NEWLY ADDED COMPONENTS AND NOT CHANGES TO EXISTING STYLED COMPONENTS!
 
 - Use <Grid> from `sentry/components/core/layout` for elements that require grid layout as opposed to styled components with `display: grid`
+
 - Use <Flex> from `sentry/components/core/layout` for elements that require flex layout as opposed to styled components with `display: flex`.
+
+```tsx
+// ❌ No need to use styled and create a new styled component
+const Component = styled('div')`
+  display: flex;
+  flex-directon: column;
+`;
+// ✅ Use the Flex layout primitive
+import {Flex} from 'sentry/components/core/layout';
+<Flex direction="column"></Flex>;
+```
+
 - Use using <Container> from `sentry/components/core/layout` over simple elements that require a border or border radius. Example: <Container border="primary" radius="md">
 - Use responsive props instead of styled media queries for Flex, Grid and Container. Example: <Flex gap={{sm: "md", lg: "xl"}}>...</Flex>
 - Prefer the use of gap or padding over margin.
