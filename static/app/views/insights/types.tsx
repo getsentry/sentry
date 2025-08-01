@@ -371,7 +371,6 @@ export const COUNTER_AGGREGATES = [
   SpanFunction.AVG,
   SpanFunction.MIN,
   SpanFunction.MAX,
-  SpanFunction.P100,
   SpanFunction.COUNT,
 ] as const;
 
@@ -381,12 +380,14 @@ export const DISTRIBUTION_AGGREGATES = [
   SpanFunction.P90,
   SpanFunction.P95,
   SpanFunction.P99,
+  SpanFunction.P100,
 ] as const;
 
 export type Aggregate =
   | (typeof COUNTER_AGGREGATES)[number]
   | (typeof DISTRIBUTION_AGGREGATES)[number];
 
+// Count conditional aggregates only work on number properties
 type CounterConditionalAggregate =
   | SpanFunction.SUM_IF
   | SpanFunction.AVG_IF
@@ -400,10 +401,11 @@ type CounterConditionalAggregate =
 type ConditionalAggregate =
   | SpanFunction.AVG_IF
   | SpanFunction.DIVISION_IF
+  | SpanFunction.FAILURE_RATE_IF;
+
+type SingleArgConditionalAggregate =
   | SpanFunction.COUNT_OP
-  | SpanFunction.FAILURE_RATE_IF
-  | SpanFunction.TRACE_STATUS_RATE
-  | SpanFunction.TIME_SPENT_PERCENTAGE;
+  | SpanFunction.TRACE_STATUS_RATE;
 
 export const SPAN_FUNCTIONS = [
   SpanFunction.EPM,
@@ -430,6 +432,14 @@ type RegressionFunctions = [
 type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
+
+type ConditionAggregateOperator =
+  | 'equals'
+  | 'notEquals'
+  | 'lessOrEquals'
+  | 'greaterOrEquals'
+  | 'less'
+  | 'greater';
 
 type WebVitalsFunctions =
   | SpanFunction.PERFORMANCE_SCORE
@@ -479,12 +489,10 @@ type SpanResponseRaw = {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as
-      | `${Property}(${string})`
-      | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`
-      | `${Property}(${string},${string},${string},${string})`]: number;
+    [Property in ConditionalAggregate as `${Property}(${string},${string},${ConditionAggregateOperator},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
+  } & {
+    [Property in SingleArgConditionalAggregate as `${Property}(${string})`]: number;
   } & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
     // TODO: This should include all valid HTTP codes or just all integers
     [Property in HttpResponseFunctions as `${Property}(${number})`]: number;
@@ -494,11 +502,11 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${'equals' | 'notEquals' | 'lessOrEquals' | 'greaterOrEquals' | 'less' | 'greater'},${string})`]: number;
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${ConditionAggregateOperator},${string})`]: number;
   } & {
     [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   } & {
-    [Property in SpanFields as `count_if(${Property},${'equals' | 'notEquals' | 'lessOrEquals' | 'greaterOrEquals' | 'less' | 'greater'},${string})`]: number;
+    [Property in SpanFields as `count_if(${Property},${ConditionAggregateOperator},${string})`]: number;
   };
 
 export type SpanResponse = Flatten<SpanResponseRaw>;
