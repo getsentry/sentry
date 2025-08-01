@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
@@ -255,8 +256,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
+            200: RESPONSE_SUCCESS,
             201: WorkflowSerializer,
-            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -289,12 +290,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         if not queryset:
             return Response(
                 {"detail": "No workflows found."},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_200_OK,
             )
 
-        # We update workflows individually to ensure post_save signals are called
-        for workflow in queryset:
-            workflow.update(enabled=enabled)
+        with transaction.atomic(router.db_for_write(Workflow)):
+            # We update workflows individually to ensure post_save signals are called
+            for workflow in queryset:
+                workflow.update(enabled=enabled)
 
         return self.paginate(
             request=request,
@@ -309,6 +311,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
+            200: RESPONSE_SUCCESS,
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -338,7 +341,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         if not queryset:
             return Response(
                 {"detail": "No workflows found."},
-                status=status.HTTP_204_NO_CONTENT,
+                status=status.HTTP_200_OK,
             )
 
         for workflow in queryset:

@@ -775,7 +775,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             self.organization.slug,
             qs_params={"id": "999999"},
             raw_data={"enabled": True},
-            status_code=204,
+            status_code=200,
         )
         assert "No workflows found" in str(response.data["detail"])
 
@@ -784,7 +784,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             self.organization.slug,
             qs_params={"query": "nonexistent-workflow-name"},
             raw_data={"enabled": True},
-            status_code=204,
+            status_code=200,
         )
         assert "No workflows found" in str(response.data["detail"])
 
@@ -939,7 +939,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"id": "999999"},
-            status_code=204,
+            status_code=200,
         )
         assert "No workflows found" in str(response.data["detail"])
 
@@ -950,7 +950,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.get_success_response(
             self.organization.slug,
             qs_params={"query": "nonexistent-workflow-name"},
-            status_code=204,
+            status_code=200,
         )
         assert "No workflows found" in str(response.data["detail"])
 
