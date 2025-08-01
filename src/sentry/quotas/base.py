@@ -446,14 +446,6 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
@@ -469,12 +461,6 @@ class Quota(Service):
                 id="pas",
                 option="project-abuse-quota.session-limit",
                 categories=[DataCategory.SESSION],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="paspi",
-                option="project-abuse-quota.span-limit",
-                categories=[DataCategory.SPAN_INDEXED],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
