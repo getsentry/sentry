@@ -18,6 +18,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -28,7 +29,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -336,6 +337,23 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
         return final_blob
 
 
+def convert_priority_to_detector_priority_level(
+    priority_level: int | None,
+) -> DetectorPriorityLevel:
+    """
+    Convert an integer priority level to DetectorPriorityLevel.
+    This handles the case where DetectorPriorityLevel.OK (0) doesn't have a corresponding PriorityLevel.
+    """
+    if priority_level is None:
+        raise ValueError("Priority level is required for metric issues")
+
+    # Direct mapping from int to DetectorPriorityLevel
+    try:
+        return DetectorPriorityLevel(priority_level)
+    except ValueError:
+        raise ValueError(f"Invalid priority level: {priority_level}")
+
+
 class BaseMetricAlertHandler(ABC):
     ACTIVITIES_TO_INVOKE_ON = [ActivityType.SET_RESOLVED.value]
 
@@ -349,25 +367,28 @@ class BaseMetricAlertHandler(ABC):
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
         group_status: GroupStatus,
-        priority_level: int | None,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
         return AlertContext.from_workflow_engine_models(
-            detector, evidence_data, group_status, priority_level
+            detector, evidence_data, group_status, detector_priority_level
         )
 
     @classmethod
     def build_metric_issue_context(
-        cls, group: Group, evidence_data: MetricIssueEvidenceData, priority_level: int | None
+        cls,
+        group: Group,
+        evidence_data: MetricIssueEvidenceData,
+        detector_priority_level: DetectorPriorityLevel,
     ) -> MetricIssueContext:
-        return MetricIssueContext.from_group_event(group, evidence_data, priority_level)
+        return MetricIssueContext.from_group_event(group, evidence_data, detector_priority_level)
 
     @classmethod
-    def build_open_period_context(cls, event: GroupEvent) -> OpenPeriodContext:
-        return OpenPeriodContext.from_group(event.group)
+    def build_open_period_context(cls, group: Group) -> OpenPeriodContext:
+        return OpenPeriodContext.from_group(group)
 
     @classmethod
-    def get_trigger_status(cls, event: GroupEvent) -> TriggerStatus:
-        if event.group.status == GroupStatus.RESOLVED or event.group.status == GroupStatus.IGNORED:
+    def get_trigger_status(cls, group: Group) -> TriggerStatus:
+        if group.status == GroupStatus.RESOLVED or group.status == GroupStatus.IGNORED:
             return TriggerStatus.RESOLVED
         return TriggerStatus.ACTIVE
 
@@ -392,54 +413,66 @@ class BaseMetricAlertHandler(ABC):
         action: Action,
         detector: Detector,
     ) -> None:
-        if not isinstance(event_data.event, GroupEvent):
-            raise ValueError(
-                "WorkflowEventData.event must be a GroupEvent to invoke metric alert legacy registry"
-            )
 
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.metric_alert.invoke_legacy_registry"
-        ):
-            event = event_data.event
-            if not isinstance(event, GroupEvent) or event.occurrence is None:
+        event = event_data.event
+
+        # Extract evidence data and priority based on event type
+        if isinstance(event, GroupEvent):
+            if event.occurrence is None:
                 raise ValueError("Event occurrence is required for alert context")
-
             evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
-
-            notification_context = cls.build_notification_context(action)
-            alert_context = cls.build_alert_context(
-                detector, evidence_data, event_data.group.status, event.occurrence.priority
+            priority = event.occurrence.priority
+        elif isinstance(event, Activity):
+            if event.type != ActivityType.SET_RESOLVED.value:
+                raise ValueError(
+                    "Activity type must be SET_RESOLVED to invoke metric alert legacy registry"
+                )
+            if event.data is None or not event.data:
+                raise ValueError("Activity data is required for alert context")
+            evidence_data_dict = dict(event.data)
+            priority = 0  # This is the OK priority level
+            evidence_data = MetricIssueEvidenceData(**evidence_data_dict)
+        else:
+            raise ValueError(
+                "WorkflowEventData.event must be a GroupEvent or Activity to invoke metric alert legacy registry"
             )
 
-            metric_issue_context = cls.build_metric_issue_context(
-                event_data.group, evidence_data, event.occurrence.priority
-            )
-            open_period_context = cls.build_open_period_context(event)
+        detector_priority_level = convert_priority_to_detector_priority_level(priority)
 
-            trigger_status = cls.get_trigger_status(event)
+        notification_context = cls.build_notification_context(action)
+        alert_context = cls.build_alert_context(
+            detector, evidence_data, event_data.group.status, detector_priority_level
+        )
 
-            notification_uuid = str(uuid.uuid4())
+        metric_issue_context = cls.build_metric_issue_context(
+            event_data.group, evidence_data, detector_priority_level
+        )
+        open_period_context = cls.build_open_period_context(event_data.group)
 
-            logger.info(
-                "notification_action.execute_via_metric_alert_handler",
-                extra={
-                    "action_id": action.id,
-                    "detector_id": detector.id,
-                    "event_data": asdict(event_data),
-                    "notification_context": asdict(notification_context),
-                    "alert_context": asdict(alert_context),
-                    "metric_issue_context": asdict(metric_issue_context),
-                    "open_period_context": asdict(open_period_context),
-                    "trigger_status": trigger_status,
-                },
-            )
-            cls.send_alert(
-                notification_context=notification_context,
-                alert_context=alert_context,
-                metric_issue_context=metric_issue_context,
-                open_period_context=open_period_context,
-                trigger_status=trigger_status,
-                notification_uuid=notification_uuid,
-                organization=detector.project.organization,
-                project=detector.project,
-            )
+        trigger_status = cls.get_trigger_status(event_data.group)
+
+        notification_uuid = str(uuid.uuid4())
+
+        logger.info(
+            "notification_action.execute_via_metric_alert_handler",
+            extra={
+                "action_id": action.id,
+                "detector_id": detector.id,
+                "event_data": asdict(event_data),
+                "notification_context": asdict(notification_context),
+                "alert_context": asdict(alert_context),
+                "metric_issue_context": asdict(metric_issue_context),
+                "open_period_context": asdict(open_period_context),
+                "trigger_status": trigger_status,
+            },
+        )
+        cls.send_alert(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            trigger_status=trigger_status,
+            notification_uuid=notification_uuid,
+            organization=detector.project.organization,
+            project=detector.project,
+        )
