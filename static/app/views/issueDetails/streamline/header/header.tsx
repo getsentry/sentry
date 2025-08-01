@@ -118,7 +118,7 @@ export default function StreamlinedGroupHeader({
       <Header>
         <Flex justify="between">
           <Flex align="center">
-            <Breadcrumbs
+            <StyledBreadcrumbs
               crumbs={[
                 {
                   label: 'Issues',
@@ -405,4 +405,8 @@ const Title = styled('div')`
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
 `;
