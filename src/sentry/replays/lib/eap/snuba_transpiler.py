@@ -17,7 +17,7 @@ normalize it first.
 """
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from typing import Literal as TLiteral
 from typing import NotRequired, TypedDict, cast
@@ -36,7 +36,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationOrFilter,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemTableRequest,
+    TraceItemTableResponse,
+)
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.formula_pb2 import Literal
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
@@ -70,9 +73,12 @@ from snuba_sdk import (
     Op,
     Query,
 )
+from snuba_sdk.expressions import ScalarType
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.net.http import connection_from_url
+from sentry.search.eap.constants import DownsampledStorageConfig
+from sentry.utils import json
 from sentry.utils.snuba import RetrySkipTimeout
 from sentry.utils.snuba_rpc import SnubaRPCError
 
@@ -401,7 +407,9 @@ def execute_query(request: TraceItemTableRequest, referrer: str):
         else:
             raise SnubaRPCError(error)
 
-    return http_resp
+    response = TraceItemTableResponse()
+    response.ParseFromString(http_resp.data)
+    return response
 
 
 def as_eap_request(
@@ -442,6 +450,9 @@ def as_eap_request(
             request_id=meta["request_id"],
             start_timestamp=start_timestamp,
             trace_item_type=TRACE_ITEM_TYPE_MAP[meta["trace_item_type"]],
+            downsampled_storage_config=DownsampledStorageConfig(
+                mode=DownsampledStorageConfig.MODE_BEST_EFFORT
+            ),
         ),
     )
 
@@ -657,7 +668,9 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
                     aggregate=FUNCTION_MAP[expr.function],
                     key=key(expr.parameters[0], settings),
                     extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
-                )
+                    label=label(expr),
+                ),
+                label=label(expr),
             )
         elif expr.function in CONDITIONAL_FUNCTION_MAP:
             return EAPColumn(
@@ -729,3 +742,23 @@ def aggregate_operator(op: Op) -> AggregationComparisonFilter.Op.ValueType:
         return AGGREGATION_OPERATOR_MAP[op]
     except KeyError:
         raise ValueError("Invalid aggregate operator specified", op)
+
+
+def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
+    if isinstance(expr, Column):
+        return expr.name
+    elif isinstance(expr, (CurriedFunction, Function)):
+        if expr.alias:
+            return expr.alias
+        else:
+            return f'{expr.function}({", ".join(label(p) for p in expr.parameters)})'
+    elif isinstance(expr, (date, datetime)):
+        return expr.isoformat()
+    elif isinstance(expr, (list, tuple)):
+        return f"[{", ".join(label(item) for item in expr)}]"
+    elif isinstance(expr, (bytes, bytearray, memoryview)):
+        return str(expr)
+    elif isinstance(expr, Sequence[ScalarType]):
+        return f"[{", ".join(label(item) for item in expr)}]"
+    else:
+        return json.dumps(expr)
