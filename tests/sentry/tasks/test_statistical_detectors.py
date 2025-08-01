@@ -282,7 +282,7 @@ def test_detect_function_trends_options_with_str(
 
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
-def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
+def test_detect_function_trends_query_timerange(functions_query, timestamp, project) -> None:
     options = {
         "statistical_detectors.enable": True,
     }
@@ -502,7 +502,7 @@ def test_detect_transaction_trends_ratelimit(
         pytest.param(3, 4, id="three per project"),
     ],
 )
-def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx):
+def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx) -> None:
     payloads = {
         (project_id, group): DetectorPayload(
             project_id=project_id,

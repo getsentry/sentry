@@ -53,12 +53,12 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         )
         add_group_to_inbox(self.event_b.group, GroupInboxReason.NEW)
 
-    def test_with_onboarding(self):
+    def test_with_onboarding(self) -> None:
         self.project.update(first_event=None)
         self.page.visit_issue_list(self.org.slug)
         self.browser.wait_until_test_id("awaiting-events")
 
-    def test_with_no_results(self):
+    def test_with_no_results(self) -> None:
         self.project.update(first_event=django_timezone.now())
         self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame")
         self.browser.wait_until_test_id("empty-state")

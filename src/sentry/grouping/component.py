@@ -286,6 +286,7 @@ class MessageGroupingComponent(BaseGroupingComponent[str]):
 class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
     id: str = "stacktrace"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -296,6 +297,14 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 ExceptionGroupingComponentChildren = (
@@ -324,6 +333,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
     id: str = "chained-exception"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -334,6 +344,14 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):

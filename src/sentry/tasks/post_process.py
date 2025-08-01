@@ -1325,8 +1325,9 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         )
     except PluginError as e:
         logger.info("post_process.process_error_ignored", extra={"exception": e})
+    # Since plugins are deprecated, instead of creating issues, lets just create a warning log
     except Exception as e:
-        logger.exception("post_process.process_error", extra={"exception": e})
+        logger.warning("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(func):
@@ -1592,9 +1593,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ]:
         return
 
-    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization
-    ):
+    if not features.has("organizations:gen-ai-features", group.organization):
         return
 
     gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
