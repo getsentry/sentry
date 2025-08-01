@@ -1,4 +1,3 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -18,7 +17,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
-import {ReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {
   NO_REPLAY_SUMMARY_MESSAGES,
   ReplaySummaryStatus,
@@ -43,7 +42,7 @@ export default function Ai() {
     isPolling,
     isError,
     startSummaryRequest,
-  } = useContext(ReplaySummaryContext);
+  } = useReplaySummaryContext();
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (

@@ -5,7 +5,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {ReplaySummaryStatus} from 'sentry/views/replays/detail/ai/utils';
@@ -15,7 +14,6 @@ import {useFetchReplaySummary} from './useFetchReplaySummary';
 jest.mock('sentry/utils/replays/playback/providers/replayReaderProvider');
 jest.mock('sentry/utils/useProjectFromId');
 
-const mockUseReplayReader = jest.mocked(useReplayReader);
 const mockUseProjectFromId = jest.mocked(useProjectFromId);
 
 describe('useFetchReplaySummary', () => {
@@ -29,6 +27,7 @@ describe('useFetchReplaySummary', () => {
 
     mockReplayRecord = {
       id: 'replay-123',
+      count_segments: 1,
     };
     mockReplay = {
       getReplay: jest.fn().mockReturnValue(mockReplayRecord),
@@ -38,7 +37,6 @@ describe('useFetchReplaySummary', () => {
       slug: 'test-project',
     });
 
-    mockUseReplayReader.mockReturnValue(mockReplay);
     mockUseProjectFromId.mockReturnValue(mockProject);
   });
 
@@ -243,6 +241,51 @@ describe('useFetchReplaySummary', () => {
       });
       expect(result.current.isPending).toBe(false);
       expect(result.current.isError).toBe(true);
+    });
+  });
+
+  describe('regenerate behavior', () => {
+    it('should regenerate the summary when the segment count increases', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
+        body: {
+          status: ReplaySummaryStatus.COMPLETED,
+          data: {summary: 'This is a test summary'},
+          num_segments: 1,
+        },
+      });
+
+      const mockPostRequest = MockApiClient.addMockResponse({
+        url: `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
+        method: 'POST',
+      });
+
+      const {result} = renderHook(() => useFetchReplaySummary(mockReplay), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isPolling).toBe(false);
+      });
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.isError).toBe(false);
+      expect(mockPostRequest).toHaveBeenCalledTimes(0);
+
+      // Update the segment count and expect a POST.
+      mockReplayRecord.count_segments = 2;
+      await waitFor(() => {
+        expect(mockPostRequest).toHaveBeenCalledWith(
+          `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {num_segments: 2},
+          })
+        );
+      });
+      // Will keep polling since segment count in response is outdated.
+      expect(result.current.isPolling).toBe(true);
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.isError).toBe(false);
     });
   });
 });

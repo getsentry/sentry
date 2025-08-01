@@ -1,4 +1,4 @@
-import {createContext} from 'react';
+import {createContext, useContext} from 'react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -8,7 +8,7 @@ import {
   type UseFetchReplaySummaryResult,
 } from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
 
-export const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
+const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
   summaryData: undefined,
   isError: false,
   isPending: false,
@@ -16,6 +16,10 @@ export const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
   startSummaryRequest: () => {},
   isStartSummaryRequestPending: false,
 });
+
+export function useReplaySummaryContext() {
+  return useContext(ReplaySummaryContext);
+}
 
 export function ReplaySummaryContextProvider({
   children,
