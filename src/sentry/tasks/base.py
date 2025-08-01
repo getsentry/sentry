@@ -247,12 +247,12 @@ def retry(
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except ignore:
+                return
             except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
-            except ignore:
-                return
             except ignore_and_capture:
                 sentry_sdk.capture_exception(level="info")
                 return
