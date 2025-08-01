@@ -69,8 +69,8 @@ class AppleCrashReport:
             # If the image has an `image_vmaddr`, save the mapping from
             # `image_addr` to `image_vmaddr`. This will be used in
             # `_get_slide_value`.
-            if image_vmaddr := new_image.get("image_vmaddr"):
-                self.image_addrs_to_vmaddrs[new_image["image_addr"]] = image_vmaddr
+            if new_image.get("image_vmaddr") is not None:
+                self.image_addrs_to_vmaddrs[new_image["image_addr"]] = new_image["image_vmaddr"]
 
     @sentry_sdk.trace
     def __str__(self):
