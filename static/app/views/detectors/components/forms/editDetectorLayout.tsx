@@ -57,7 +57,7 @@ export function EditDetectorLayout<
 
         <EditLayout.HeaderFields>
           <DetectorBaseFields />
-          {previewChart}
+          {previewChart ?? <div />}
         </EditLayout.HeaderFields>
       </EditLayout.Header>
 
