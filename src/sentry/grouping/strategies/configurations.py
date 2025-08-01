@@ -10,7 +10,7 @@ CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
 BASE_STRATEGY = create_strategy_configuration_class(
-    None,
+    "BASE_CONFIG",
     # Strategy priority is enforced programaticaly via the `score` argument to the `@strategy`
     # decorator (rather than by the order they're listed here), but they are nonetheless listed here
     # from highest to lowest priority for documentation purposes. The first strategy to produce a
