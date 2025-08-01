@@ -18,6 +18,9 @@ import type {SelectValue} from 'sentry/types/core';
 import {
   CRON_DEFAULT_CHECKIN_MARGIN,
   CRON_DEFAULT_MAX_RUNTIME,
+  CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT,
+  CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE,
+  CRON_DEFAULT_SCHEDULE_TYPE,
   DEFAULT_CRONTAB,
   useCronDetectorFormField,
 } from 'sentry/views/detectors/components/forms/cron/fields';
@@ -39,20 +42,18 @@ type Props = {
 
 function ScheduleTypeField() {
   return (
-    <Fragment>
-      <SelectField
-        name="scheduleType"
-        label={t('Schedule Type')}
-        hideLabel
-        options={SCHEDULE_OPTIONS}
-        defaultValue={ScheduleType.CRONTAB}
-        orientInline
-        required
-        stacked
-        inline={false}
-        preserveOnUnmount
-      />
-    </Fragment>
+    <SelectField
+      name="scheduleType"
+      label={t('Schedule Type')}
+      hideLabel
+      options={SCHEDULE_OPTIONS}
+      defaultValue={CRON_DEFAULT_SCHEDULE_TYPE}
+      orientInline
+      required
+      stacked
+      inline={false}
+      preserveOnUnmount
+    />
   );
 }
 
@@ -114,7 +115,7 @@ function Schedule() {
             label={t('Interval Frequency')}
             hideLabel
             placeholder="e.g. 1"
-            defaultValue="1"
+            defaultValue={CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE}
             min={1}
             required
             stacked
@@ -126,7 +127,7 @@ function Schedule() {
             label={t('Interval Type')}
             hideLabel
             options={getScheduleIntervals(scheduleIntervalValue)}
-            defaultValue="day"
+            defaultValue={CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT}
             required
             stacked
             inline={false}

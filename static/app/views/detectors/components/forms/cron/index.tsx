@@ -6,6 +6,7 @@ import {AutomateSection} from 'sentry/views/detectors/components/forms/automateS
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
+  CRON_DEFAULT_SCHEDULE_TYPE,
   cronFormDataToEndpointPayload,
   cronSavedDetectorToFormData,
 } from 'sentry/views/detectors/components/forms/cron/fields';
@@ -29,7 +30,9 @@ export function NewCronDetectorForm() {
     <NewDetectorLayout
       detectorType="uptime_subscription"
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
-      initialFormData={{}}
+      initialFormData={{
+        scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
+      }}
     >
       <CronDetectorForm isEditing={false} />
     </NewDetectorLayout>

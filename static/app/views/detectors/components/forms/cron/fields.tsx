@@ -4,7 +4,9 @@ import type {
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 
+export const CRON_DEFAULT_SCHEDULE_TYPE = ScheduleType.CRONTAB;
 export const DEFAULT_CRONTAB = '0 0 * * *';
 export const CRON_DEFAULT_SCHEDULE_INTERVAL_VALUE = 1;
 export const CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT = 'day';
