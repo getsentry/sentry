@@ -94,9 +94,7 @@ class GitlabIdentityProvider(OAuth2Provider):
             "client_secret": client_secret,
         }
 
-    def refresh_identity(
-        self, identity: Identity | RpcIdentity, **kwargs: Any
-    ) -> RpcIdentity | None:
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> RpcIdentity:
         refresh_token = identity.data.get("refresh_token")
         refresh_token_url = kwargs.get("refresh_token_url")
 
@@ -132,4 +130,10 @@ class GitlabIdentityProvider(OAuth2Provider):
             payload = {}
 
         identity.data.update(get_oauth_data(payload))
-        return identity_service.update_data(identity_id=identity.id, data=identity.data)
+        rpc_identity = identity_service.update_data(identity_id=identity.id, data=identity.data)
+
+        # This should not happen since we are using the same identity object
+        if rpc_identity is None:
+            raise IdentityNotValid("Failed to refresh identity: No RPC identity found")
+
+        return rpc_identity
