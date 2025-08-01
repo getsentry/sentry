@@ -237,6 +237,22 @@ describe('apiOptions', () => {
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();
     });
 
+    test('manual data type should override even for known api urls', () => {
+      const options = apiOptions.as<number>()(
+        '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
+        {
+          staleTime: 0,
+          path: {
+            orgSlug: 'my-org',
+            projectSlug: 'my-project',
+            releaseVersion: 'v1.0.0',
+          },
+        }
+      );
+
+      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();
+    });
+
     test('should disallow path if there are no path params', () => {
       const options = apiOptions.as<number>()('/foo', {
         staleTime: 0,
