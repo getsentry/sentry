@@ -34,6 +34,7 @@ export interface SeerSearchItem<S extends string> extends SeerSearchQuery {
 interface SeerSearchResponse {
   queries: Array<{
     group_by: string[];
+    mode: string;
     query: string;
     sort: string;
     stats_period: string;
