@@ -25,7 +25,8 @@ from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.metrics import (
-    WeeklyReportFailureType,
+    WeeklyReportFailureReason,
+    WeeklyReportHaltReason,
     WeeklyReportOperationType,
     WeeklyReportSLO,
 )
@@ -116,7 +117,7 @@ def schedule_organizations(
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
 
     with WeeklyReportSLO(
-        operation_type=WeeklyReportOperationType.SCHEDULE_ORGANIZATION_REPORTS
+        operation_type=WeeklyReportOperationType.SCHEDULE_ORGANIZATION_REPORTS, dry_run=dry_run
     ).capture() as lifecycle:
         try:
             batch_id = str(uuid.uuid4())
@@ -154,7 +155,7 @@ def schedule_organizations(
 
             batching.delete_min_org_id()
         except ProcessingDeadlineExceeded:
-            lifecycle.record_failure(WeeklyReportFailureType.TIMEOUT)
+            lifecycle.record_failure(WeeklyReportFailureReason.TIMEOUT)
             raise
 
 
@@ -199,20 +200,28 @@ def prepare_organization_report(
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
-    ctx = OrganizationReportContextFactory(
-        timestamp=timestamp, duration=duration, organization=organization
-    ).create_context()
-
-    with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
-        report_is_available = not ctx.is_empty()
-    set_tag("report.available", report_is_available)
-
-    if not report_is_available:
-        logger.info(
-            "prepare_organization_report.skipping_empty",
-            extra={"batch_id": str(batch_id), "organization": organization_id},
+    with WeeklyReportSLO(
+        operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "batch_id": batch_id,
+                "organization_id": organization_id,
+                "timestamp": timestamp,
+                "duration": duration,
+            }
         )
-        return
+        ctx = OrganizationReportContextFactory(
+            timestamp=timestamp, duration=duration, organization=organization
+        ).create_context()
+
+        with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+            report_is_available = not ctx.is_empty()
+        set_tag("report.available", report_is_available)
+
+        if not report_is_available:
+            lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
+            return
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
@@ -269,13 +278,28 @@ class OrganizationReportBatch:
                     self._send_to_user(user_template)
 
     def _send_to_user(self, user_template_context: Mapping[str, Any]) -> None:
-        template_context: Mapping[str, Any] | None = user_template_context.get("context")
-        user_id: int | None = user_template_context.get("user_id")
-        if template_context and user_id:
-            dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
-            if not dupe_check.check_for_duplicate_delivery():
-                self.send_email(template_ctx=template_context, user_id=user_id)
-                dupe_check.record_delivery()
+        with WeeklyReportSLO(
+            operation_type=WeeklyReportOperationType.SEND_EMAIL, dry_run=self.dry_run
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "batch_id": self.batch_id,
+                    "organization": self.ctx.organization.id,
+                }
+            )
+
+            template_context: Mapping[str, Any] | None = user_template_context.get("context")
+            user_id: int | None = user_template_context.get("user_id")
+
+            lifecycle.add_extra("user_id", user_id)
+
+            if template_context and user_id:
+                dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
+                if not dupe_check.check_for_duplicate_delivery():
+                    self.send_email(template_ctx=template_context, user_id=user_id)
+                    dupe_check.record_delivery()
+                else:
+                    lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
         message = MessageBuilder(
