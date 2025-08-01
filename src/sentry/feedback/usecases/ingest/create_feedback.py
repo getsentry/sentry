@@ -267,7 +267,6 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
     Returns:
         An AI-generated title string, or None if generation fails
     """
-    # Check if AI features are enabled for this organization
     if not features.has("organizations:gen-ai-features", organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
@@ -275,18 +274,17 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
         )
         return None
 
-    # Check if feedback AI titles feature is enabled
-    if not features.has("organizations:user-feedback-ai-titles", organization):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "feedback_ai_titles_disabled", "organization_id": organization.id},
-        )
-        return None
-
     if organization.get_option("sentry:hide_ai_features"):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "ai_features_hidden", "organization_id": organization.id},
+        )
+        return None
+
+    if not features.has("organizations:user-feedback-ai-titles", organization):
+        metrics.incr(
+            "feedback.ai_title_generation.skipped",
+            tags={"reason": "feedback_ai_titles_disabled", "organization_id": organization.id},
         )
         return None
 
