@@ -128,7 +128,27 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load replay summary.')}</Alert>
+          <Alert
+            type="error"
+            trailingItems={
+              <Button
+                priority="default"
+                type="button"
+                size="xs"
+                onClick={() => {
+                  startSummaryRequest();
+                  trackAnalytics('replay.ai-summary.regenerate-requested', {
+                    organization,
+                  });
+                }}
+                icon={<IconSync size="xs" />}
+              >
+                {t('Retry')}
+              </Button>
+            }
+          >
+            {t('Failed to load replay summary.')}
+          </Alert>
         </EmptySummaryContainer>
       </Wrapper>
     );
