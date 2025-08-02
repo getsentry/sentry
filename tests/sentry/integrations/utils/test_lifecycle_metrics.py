@@ -474,3 +474,207 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
         # Should log since default is 1.0
         mock_logger.info.assert_called_once()
+
+    # Decorator tests
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_success(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator records success for functions that complete normally"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj)
+        def test_function():
+            return "success"
+
+        result = test_function()
+
+        assert result == "success"
+        self._check_metrics_call_args(mock_metrics, "success")
+        mock_logger.error.assert_not_called()
+        mock_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_failure(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator records failure for unhandled exceptions"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj)
+        def test_function():
+            raise ExampleException("test error")
+
+        with pytest.raises(ExampleException):
+            test_function()
+
+        self._check_metrics_call_args(mock_metrics, "failure")
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_halt_on_specific_exceptions(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator records halt for specified exception types"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj, halt_on_exceptions=[ExampleException])
+        def test_function():
+            raise ExampleException("this should be a halt")
+
+        with pytest.raises(ExampleException):
+            test_function()
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_logger.info.assert_called_once_with(
+            "integrations.slo.halted",
+            extra={
+                "integration_domain": "messaging",
+                "integration_name": "my_integration",
+                "interaction_type": "my_interaction",
+                "exception_summary": repr(ExampleException("this should be a halt")),
+            },
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_halt_vs_failure_exception_types(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator correctly distinguishes between halt and failure exceptions"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        class HaltException(Exception):
+            pass
+
+        class FailureException(Exception):
+            pass
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj, halt_on_exceptions=[HaltException])
+        def test_function_halt():
+            raise HaltException("should halt")
+
+        @with_event_lifecycle(metric_obj, halt_on_exceptions=[HaltException])
+        def test_function_failure():
+            raise FailureException("should fail")
+
+        # Test halt exception
+        with pytest.raises(HaltException):
+            test_function_halt()
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_logger.info.assert_called_once()
+
+        # Reset mocks
+        mock_metrics.reset_mock()
+        mock_logger.reset_mock()
+
+        # Test failure exception
+        with pytest.raises(FailureException):
+            test_function_failure()
+
+        self._check_metrics_call_args(mock_metrics, "failure")
+        mock_logger.warning.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_assume_success_false(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator respects assume_success=False"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj, assume_success=False)
+        def test_function():
+            return "completed"
+
+        result = test_function()
+
+        assert result == "completed"
+        self._check_metrics_call_args(mock_metrics, "halted")
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_sample_log_rate(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_random: mock.MagicMock
+    ) -> None:
+        """Test that decorator respects sample_log_rate parameter"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        mock_random.random.return_value = 0.15  # Above 0.1 threshold
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(
+            metric_obj, sample_log_rate=0.1, halt_on_exceptions=[ExampleException]
+        )
+        def test_function():
+            raise ExampleException("test")
+
+        with pytest.raises(ExampleException):
+            test_function()
+
+        # Metrics should always be called
+        self._check_metrics_call_args(mock_metrics, "halted")
+        # Logger should NOT be called since 0.15 > 0.1
+        mock_logger.info.assert_not_called()
+        mock_random.random.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_inheritance_with_halt_exceptions(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator handles exception inheritance correctly"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        class BaseHaltException(Exception):
+            pass
+
+        class DerivedHaltException(BaseHaltException):
+            pass
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj, halt_on_exceptions=[BaseHaltException])
+        def test_function():
+            raise DerivedHaltException("derived exception")
+
+        with pytest.raises(DerivedHaltException):
+            test_function()
+
+        # Should be treated as halt since DerivedHaltException inherits from BaseHaltException
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_logger.info.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_decorator_function_arguments_preserved(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """Test that decorator preserves function arguments and return values"""
+        from sentry.integrations.utils.metrics import with_event_lifecycle
+
+        metric_obj = self.TestLifecycleMetric()
+
+        @with_event_lifecycle(metric_obj)
+        def test_function(arg1, arg2, kwarg1=None, kwarg2=None):
+            return f"{arg1}-{arg2}-{kwarg1}-{kwarg2}"
+
+        result = test_function("a", "b", kwarg1="c", kwarg2="d")
+
+        assert result == "a-b-c-d"
+        self._check_metrics_call_args(mock_metrics, "success")
