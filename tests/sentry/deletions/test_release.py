@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         env = self.create_environment(organization=org)
@@ -36,7 +36,7 @@ class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
         assert Environment.objects.filter(id=env.id).exists()
         assert Project.objects.filter(id=project.id).exists()
 
-    def test_cascade_from_user(self):
+    def test_cascade_from_user(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         env = self.create_environment(organization=org)

@@ -2,21 +2,16 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
+import type {Space} from 'sentry/utils/theme/theme';
 
 interface ModelNameProps {
   modelId: string;
-  gap?: string | number;
+  gap?: Space;
   provider?: string;
   size?: number;
 }
 
-export function ModelName({
-  modelId,
-  provider,
-  size = 16,
-  gap = space(1),
-}: ModelNameProps) {
+export function ModelName({modelId, provider, size = 16, gap = 'md'}: ModelNameProps) {
   const platform = getModelPlatform(modelId, provider);
 
   return (

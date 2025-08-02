@@ -36,7 +36,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_count(self):
+    def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         logs = []
         for hour, count in enumerate(event_counts):
@@ -59,12 +59,12 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "ourlogs",
+                "dataset": "logs",
             },
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "dataset": "ourlogs",
+            "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
@@ -81,11 +81,11 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
-            "valueType": "string",
+            "valueType": "integer",
             "interval": 3_600_000,
         }
 
-    def test_zerofill(self):
+    def test_zerofill(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,
@@ -93,12 +93,12 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "ourlogs",
+                "dataset": "logs",
             },
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "dataset": "ourlogs",
+            "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }

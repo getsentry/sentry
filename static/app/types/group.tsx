@@ -171,10 +171,10 @@ export enum IssueType {
   UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 
   // Metric Issues
-  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+  METRIC_ISSUE = 'metric_issue',
 
   // Detectors
-  DB_QUERY_INJECTION_VULNERABILITY = 'db_query_injection_vulnerability',
+  QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -209,7 +209,16 @@ export enum IssueTitle {
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 
-  DB_QUERY_INJECTION_VULNERABILITY = 'Potential Database Query Injection Vulnerability',
+  // Metric Issues
+  METRIC_ISSUE = 'Issue Detected by Metric Monitor',
+
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'Missed or Failed Cron Check-In',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'Uptime Monitor Detected Downtime',
+
+  QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -236,10 +245,15 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
 
-  db_query_injection_vulnerability: IssueTitle.DB_QUERY_INJECTION_VULNERABILITY,
+  query_injection_vulnerability: IssueTitle.QUERY_INJECTION_VULNERABILITY,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+
+  metric_issue: IssueTitle.METRIC_ISSUE,
+
+  monitor_check_in_failure: IssueTitle.MONITOR_CHECK_IN_FAILURE,
+  uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -265,7 +279,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-  1020: IssueType.DB_QUERY_INJECTION_VULNERABILITY,
+  1021: IssueType.QUERY_INJECTION_VULNERABILITY,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
@@ -335,6 +349,7 @@ export type Tag = {
    */
   maxSuggestedValues?: number;
   predefined?: boolean;
+  secondaryAliases?: string[];
   totalValues?: number;
   uniqueValues?: number;
   /**
@@ -806,7 +821,6 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
-  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {
@@ -869,6 +883,7 @@ export const enum FixabilityScoreThresholds {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
+  SUPER_LOW = 'super_low',
 }
 
 // TODO(ts): incomplete

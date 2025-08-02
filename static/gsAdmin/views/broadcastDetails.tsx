@@ -6,7 +6,7 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';

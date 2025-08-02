@@ -25,11 +25,14 @@ interface SnubaQuery {
   environment?: string;
 }
 
+/**
+ * See DataSourceSerializer
+ */
 interface BaseDataSource {
   id: string;
   organizationId: string;
   sourceId: string;
-  type: 'snuba_query_subscription' | 'uptime_subscription';
+  type: 'snuba_query_subscription' | 'uptime_subscription' | 'cron_subscription';
 }
 
 export interface SnubaQueryDataSource extends BaseDataSource {
@@ -45,30 +48,36 @@ export interface SnubaQueryDataSource extends BaseDataSource {
   type: 'snuba_query_subscription';
 }
 
-interface UptimeSubscriptionDataSource extends BaseDataSource {
+export interface UptimeSubscriptionDataSource extends BaseDataSource {
   /**
    * See UptimeSubscriptionSerializer
    */
   queryObj: {
     body: string | null;
     headers: Array<[string, string]>;
-    hostProviderId: string;
-    hostProviderName: string;
     intervalSeconds: number;
     method: string;
     timeoutMs: number;
     traceSampling: boolean;
     url: string;
-    urlDomain: string;
-    urlDomainSuffix: string;
   };
   type: 'uptime_subscription';
 }
 
-/**
- * See DataSourceSerializer
- */
-export type DataSource = SnubaQueryDataSource | UptimeSubscriptionDataSource;
+export interface CronSubscriptionDataSource extends BaseDataSource {
+  /* TODO: Make this match the actual properties when implemented in backend */
+  queryObj: {
+    checkinMargin: number | null;
+    failureIssueThreshold: number | null;
+    maxRuntime: number | null;
+    recoveryThreshold: number | null;
+    schedule: string;
+    scheduleType: 'crontab' | 'interval';
+    timezone: string;
+  };
+  // TODO: Change this to the actual type when implemented in backend
+  type: 'cron_subscription';
+}
 
 export type DetectorType =
   | 'error'
@@ -114,27 +123,50 @@ interface UptimeDetectorConfig {
   environment: string;
 }
 
-export type DetectorConfig = MetricDetectorConfig | UptimeDetectorConfig;
+interface CronDetectorConfig {
+  environment: string;
+}
 
-interface NewDetector {
-  conditionGroup: DataConditionGroup | null;
-  config: DetectorConfig;
-  dataSources: DataSource[] | null;
-  disabled: boolean;
+type BaseDetector = Readonly<{
+  createdBy: string | null;
+  dateCreated: string;
+  dateUpdated: string;
+  enabled: boolean;
+  id: string;
+  lastTriggered: string;
   name: string;
+  owner: string | null;
   projectId: string;
   type: DetectorType;
   workflowIds: string[];
+}>;
+
+export interface MetricDetector extends BaseDetector {
+  readonly alertRuleId: number | null;
+  readonly conditionGroup: DataConditionGroup | null;
+  readonly config: MetricDetectorConfig;
+  readonly dataSources: [SnubaQueryDataSource];
+  readonly type: 'metric_issue';
 }
 
-export interface Detector extends Readonly<NewDetector> {
-  readonly createdBy: string | null;
-  readonly dateCreated: string;
-  readonly dateUpdated: string;
-  readonly id: string;
-  readonly lastTriggered: string;
-  readonly owner: string | null;
+export interface UptimeDetector extends BaseDetector {
+  readonly config: UptimeDetectorConfig;
+  readonly dataSources: [UptimeSubscriptionDataSource];
+  readonly type: 'uptime_domain_failure';
 }
+
+export interface CronDetector extends BaseDetector {
+  readonly config: CronDetectorConfig;
+  readonly dataSources: [CronSubscriptionDataSource];
+  readonly type: 'uptime_subscription';
+}
+
+export interface ErrorDetector extends BaseDetector {
+  // TODO: Add error detector type fields
+  readonly type: 'error';
+}
+
+export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<DataCondition, 'id'>>;
@@ -159,10 +191,23 @@ interface UpdateUptimeDataSourcePayload {
   url: string;
 }
 
+interface UpdateCronDataSourcePayload {
+  checkinMargin: number | null;
+  failureIssueThreshold: number | null;
+  maxRuntime: number | null;
+  recoveryThreshold: number | null;
+  schedule: string | [number, string]; // Crontab or interval
+  scheduleType: 'crontab' | 'interval';
+  timezone: string;
+}
+
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: Detector['owner'];
   projectId: Detector['projectId'];
+  type: Detector['type'];
+  workflowIds: string[];
+  enabled?: boolean;
 }
 
 export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
@@ -172,7 +217,13 @@ export interface UptimeDetectorUpdatePayload extends BaseDetectorUpdatePayload {
 
 export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   conditionGroup: UpdateConditionGroupPayload;
-  config: DetectorConfig;
+  config: MetricDetectorConfig;
   dataSource: UpdateSnubaDataSourcePayload;
   type: 'metric_issue';
+}
+
+export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
+  config: CronDetectorConfig;
+  dataSource: UpdateCronDataSourcePayload;
+  type: 'uptime_subscription';
 }

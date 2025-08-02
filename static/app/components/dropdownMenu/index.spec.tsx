@@ -274,8 +274,6 @@ describe('DropdownMenu', function () {
   });
 
   it('closes after clicking external link', async function () {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     render(
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
@@ -288,9 +286,6 @@ describe('DropdownMenu', function () {
     await waitFor(() => {
       expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
     });
-
-    // JSDOM throws an error on navigation to random urls
-    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 
   it('navigates to link on enter', async function () {
@@ -347,8 +342,6 @@ describe('DropdownMenu', function () {
     const onAction = jest.fn();
     const user = userEvent.setup();
 
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     render(
       <DropdownMenu
         items={[
@@ -369,8 +362,6 @@ describe('DropdownMenu', function () {
     await user.keyboard('{Enter}');
 
     expect(onAction).toHaveBeenCalledTimes(1);
-    // JSDOM throws an error on navigation
-    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 
   it('should allow opening of a nearby menu', async function () {

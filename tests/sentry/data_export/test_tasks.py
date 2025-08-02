@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
 
@@ -29,7 +29,7 @@ from sentry.utils.snuba import (
 
 
 class AssembleDownloadTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
@@ -62,11 +62,11 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_issue_by_tag_batched(self, emailer):
+    def test_issue_by_tag_batched(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -96,7 +96,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_no_error_on_retry(self, emailer):
+    def test_no_error_on_retry(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -129,7 +129,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_issue_by_tag_missing_key(self, emailer):
+    def test_issue_by_tag_missing_key(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -142,7 +142,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Requested key does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_issue_by_tag_missing_project(self, emailer):
+    def test_issue_by_tag_missing_project(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -155,7 +155,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Requested project does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_issue_by_tag_missing_issue(self, emailer):
+    def test_issue_by_tag_missing_issue(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -170,7 +170,9 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.tagstore.backend.get_tag_key")
     @patch("sentry.utils.snuba.raw_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_issue_by_tag_outside_retention(self, emailer, mock_query, mock_get_tag_key):
+    def test_issue_by_tag_outside_retention(
+        self, emailer: MagicMock, mock_query: MagicMock, mock_get_tag_key: MagicMock
+    ) -> None:
         """
         When an issues by tag query goes outside the retention range, it returns 0 results.
         This gives us an empty CSV with just the headers.
@@ -200,7 +202,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert header == b"value,times_seen,last_seen,first_seen"
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_batched(self, emailer):
+    def test_discover_batched(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -230,7 +232,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_respects_selected_environment(self, emailer):
+    def test_discover_respects_selected_environment(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -264,7 +266,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_respects_selected_environment_multiple(self, emailer):
+    def test_discover_respects_selected_environment_multiple(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -299,7 +301,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_missing_environment(self, emailer):
+    def test_discover_missing_environment(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -317,7 +319,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Requested environment does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_missing_project(self, emailer):
+    def test_discover_missing_project(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -332,7 +334,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 35)
     @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 55)
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_export_file_too_large(self, emailer):
+    def test_discover_export_file_too_large(self, emailer) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -362,7 +364,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_export_too_many_rows(self, emailer):
+    def test_discover_export_too_many_rows(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -393,7 +395,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     @patch("sentry.search.events.builder.base.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_outside_retention(self, emailer, mock_query):
+    def test_discover_outside_retention(self, emailer: MagicMock, mock_query: MagicMock) -> None:
         """
         When a discover query goes outside the retention range, email the user they should
         use a more recent date range.
@@ -420,7 +422,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     @patch("sentry.snuba.discover.query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_invalid_search_query(self, emailer, mock_query):
+    def test_discover_invalid_search_query(self, emailer: MagicMock, mock_query: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -442,7 +444,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Invalid query. Please fix the query and try again."
 
     @patch("sentry.search.events.builder.base.raw_snql_query")
-    def test_retries_on_recoverable_snuba_errors(self, mock_query):
+    def test_retries_on_recoverable_snuba_errors(self, mock_query: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -472,7 +474,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     @patch("sentry.search.events.builder.base.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_snuba_error(self, emailer, mock_query):
+    def test_discover_snuba_error(self, emailer: MagicMock, mock_query: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -568,7 +570,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
     @patch("sentry.data_export.models.ExportedData.finalize_upload")
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_integrity_error(self, emailer, finalize_upload):
+    def test_discover_integrity_error(self, emailer: MagicMock, finalize_upload: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -582,7 +584,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Failed to save the assembled file."
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_sort(self, emailer):
+    def test_discover_sort(self, emailer: MagicMock) -> None:
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
@@ -610,7 +612,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
@@ -619,7 +621,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
 
     @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 200)
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_discover_large_batch(self, emailer):
+    def test_discover_large_batch(self, emailer) -> None:
         """
         Each row in this export requires exactly 13 bytes, with batch_size=3 and
         MAX_BATCH_SIZE=200, this means that each batch can export 6 batch fragments,
@@ -654,7 +656,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
-    def test_character_escape(self, emailer):
+    def test_character_escape(self, emailer: MagicMock) -> None:
         strings = [
             "SyntaxError: Unexpected token '\u0003', \"\u0003WM�\u0000\u0000\u0000\u0000��\"... is not valid JSON"
         ]
@@ -686,5 +688,5 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
 
 
 class MergeExportBlobsTest(TestCase, SnubaTestCase):
-    def test_task_persistent_name(self):
+    def test_task_persistent_name(self) -> None:
         assert merge_export_blobs.name == "sentry.data_export.tasks.merge_blobs"

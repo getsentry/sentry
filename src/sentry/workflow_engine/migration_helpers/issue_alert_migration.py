@@ -9,7 +9,7 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.locks import locks
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.every_event import EveryEventCondition
@@ -128,18 +128,15 @@ class IssueAlertMigrator:
 
         return workflow
 
-    def _create_detector_lookup(self) -> Detector:
+    def _create_detector_lookup(self) -> Detector | None:
+        if self.rule.source == RuleSource.CRON_MONITOR:
+            return None
 
         if self.is_dry_run:
-            created = True
             error_detector = Detector.objects.filter(
                 type=ErrorGroupType.slug, project=self.project
             ).first()
-            if error_detector:
-                created = not AlertRuleDetector.objects.filter(
-                    detector=error_detector, rule_id=self.rule.id
-                ).exists()
-            else:
+            if not error_detector:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
 
         else:
@@ -148,12 +145,7 @@ class IssueAlertMigrator:
                 project=self.project,
                 defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
             )
-            _, created = AlertRuleDetector.objects.get_or_create(
-                detector=error_detector, rule_id=self.rule.id
-            )
-
-        if not created:
-            raise Exception("Issue alert already migrated")
+            AlertRuleDetector.objects.get_or_create(detector=error_detector, rule_id=self.rule.id)
 
         return error_detector
 
@@ -237,7 +229,7 @@ class IssueAlertMigrator:
         conditions: list[dict[str, Any]],
         filters: list[dict[str, Any]],
         action_match: str,
-        detector: Detector,
+        detector: Detector | None,
     ) -> Workflow:
         when_dcg = self._create_when_dcg(action_match=action_match)
         data_conditions = self._bulk_create_data_conditions(
@@ -286,10 +278,13 @@ class IssueAlertMigrator:
             workflow = Workflow(**kwargs)
             workflow.full_clean(exclude=["when_condition_group"])
             workflow.validate_config(workflow.config_schema)
+            if AlertRuleWorkflow.objects.filter(rule_id=self.rule.id).exists():
+                raise Exception("Issue alert already migrated")
         else:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
-            DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+            if detector:
+                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
             AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow

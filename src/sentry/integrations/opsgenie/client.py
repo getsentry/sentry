@@ -9,7 +9,9 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.shared_integrations.exceptions import ApiError
@@ -22,7 +24,7 @@ OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 
 
 class OpsgenieClient(ApiClient):
-    integration_name = "opsgenie"
+    integration_name = IntegrationProviderSlug.OPSGENIE.value
 
     def __init__(self, integration: RpcIntegration | Integration, integration_key: str) -> None:
         self.integration = integration
@@ -57,7 +59,7 @@ class OpsgenieClient(ApiClient):
         rule_urls = []
         for rule in rules:
             rule_id = rule.id
-            if features.has("organizations:workflow-engine-trigger-actions", organization):
+            if should_fire_workflow_actions(organization, group.type):
                 rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
 
             path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"
@@ -86,7 +88,7 @@ class OpsgenieClient(ApiClient):
         if group:
             payload["alias"] = f"sentry: {group.id}"
             payload["entity"] = group.culprit if group.culprit else ""
-            group_params = {"referrer": "opsgenie"}
+            group_params = {"referrer": IntegrationProviderSlug.OPSGENIE.value}
             if notification_uuid:
                 group_params["notification_uuid"] = notification_uuid
             rule_workflow_context = {}

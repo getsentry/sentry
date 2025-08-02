@@ -9,6 +9,7 @@ from requests import PreparedRequest
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -44,7 +45,7 @@ class JiraCloudClient(ApiClient):
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
-    integration_name = "jira"
+    integration_name = IntegrationProviderSlug.JIRA.value
 
     # This timeout is completely arbitrary. Jira doesn't give us any
     # caching headers to work with. Ideally we want a duration that

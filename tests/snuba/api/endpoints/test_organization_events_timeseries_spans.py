@@ -85,7 +85,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_count(self):
+    def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -133,7 +133,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_handle_nans_from_snuba(self):
+    def test_handle_nans_from_snuba(self) -> None:
         self.store_spans(
             [self.create_span({"description": "foo"}, start_ts=self.start)],
             is_eap=True,
@@ -148,7 +148,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 200, response.content
 
-    def test_handle_nans_from_snuba_top_n(self):
+    def test_handle_nans_from_snuba_top_n(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -260,7 +260,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 1,
         }
 
-    def test_count_unique(self):
+    def test_count_unique(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -308,7 +308,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_p95(self):
+    def test_p95(self) -> None:
         event_durations = [6, 0, 6, 3, 0, 3]
         self.store_spans(
             [
@@ -352,7 +352,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_multiaxis(self):
+    def test_multiaxis(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -413,7 +413,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_top_events(self):
+    def test_top_events(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -506,7 +506,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 2,
         }
 
-    def test_top_events_empty_other(self):
+    def test_top_events_empty_other(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -571,7 +571,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 1,
         }
 
-    def test_top_events_multi_y_axis(self):
+    def test_top_events_multi_y_axis(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -695,7 +695,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 2,
         }
 
-    def test_top_events_with_project(self):
+    def test_top_events_with_project(self) -> None:
         projects = [self.create_project(), self.create_project()]
         spans = [
             self.create_span(
@@ -780,7 +780,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 2,
         }
 
-    def test_top_events_with_project_and_project_id(self):
+    def test_top_events_with_project_and_project_id(self) -> None:
         projects = [self.create_project(), self.create_project()]
         spans = [
             self.create_span(
@@ -869,7 +869,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 2,
         }
 
-    def test_top_events_with_no_data(self):
+    def test_top_events_with_no_data(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,
@@ -885,7 +885,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 200, response.content
 
-    def test_count_extrapolation(self):
+    def test_count_extrapolation(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -938,7 +938,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_confidence_is_set(self):
+    def test_confidence_is_set(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -1006,7 +1006,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 confidence=[any_confidence if val else None for val in event_counts],
             ), y_axis
 
-    def test_extrapolation_with_multiaxis(self):
+    def test_extrapolation_with_multiaxis(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -1057,7 +1057,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
-    def test_top_events_with_extrapolation(self):
+    def test_top_events_with_extrapolation(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1130,7 +1130,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 confidence=[any_confidence if val else None for val in event_counts],
             )
 
-    def test_comparison_delta(self):
+    def test_comparison_delta(self) -> None:
         event_counts = [6, 0, 6, 4, 0, 4]
         spans = []
         for current_period in [True, False]:
@@ -1185,7 +1185,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_comparison_delta_with_empty_comparison_values(self):
+    def test_comparison_delta_with_empty_comparison_values(self) -> None:
         event_counts = [6, 0, 6, 4, 0, 4]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -1230,7 +1230,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
-    def test_invalid_intervals(self):
+    def test_invalid_intervals(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,
@@ -1262,7 +1262,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 400, response.content
 
-    def test_project_filters(self):
+    def test_project_filters(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -1308,7 +1308,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": 3_600_000,
             }
 
-    def test_nonexistent_project_filter(self):
+    def test_nonexistent_project_filter(self) -> None:
         response = self._do_request(
             data={
                 "start": self.start,
@@ -1323,7 +1323,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 400, response.content
         assert "Unknown value foobar" in response.data["detail"]
 
-    def test_device_class_filter(self):
+    def test_device_class_filter(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -1372,7 +1372,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "interval": 3_600_000,
             }
 
-    def test_top_events_filters_out_groupby_even_when_its_just_one_row(self):
+    def test_top_events_filters_out_groupby_even_when_its_just_one_row(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1420,7 +1420,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         }
         assert len(response.data["timeseries"]) == 0
 
-    def test_interval_larger_than_period_uses_default_period(self):
+    def test_interval_larger_than_period_uses_default_period(self) -> None:
         response = self._do_request(
             data={
                 "start": self.day_ago,
@@ -1435,7 +1435,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 400, response.content
         assert "Interval cannot be larger than the date range" in response.data["detail"]
 
-    def test_cache_miss_rate(self):
+    def test_cache_miss_rate(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1502,7 +1502,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
-    def test_trace_status_rate(self):
+    def test_trace_status_rate(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1563,7 +1563,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
-    def test_count_op(self):
+    def test_count_op(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1613,7 +1613,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         }
 
     @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
-    def test_downsampling_single_series(self):
+    def test_downsampling_single_series(self) -> None:
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             start_ts=self.day_ago + timedelta(minutes=1),
@@ -1692,7 +1692,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         }
 
     @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
-    def test_downsampling_top_events(self):
+    def test_downsampling_top_events(self) -> None:
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
             duration=100,
@@ -1783,7 +1783,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
-    def test_simple_equation(self):
+    def test_simple_equation(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1832,7 +1832,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
-    def test_equation_all_symbols(self):
+    def test_equation_all_symbols(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1882,7 +1882,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
-    def test_simple_equation_with_multi_axis(self):
+    def test_simple_equation_with_multi_axis(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -1942,7 +1942,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
-    def test_simple_equation_with_top_events(self):
+    def test_simple_equation_with_top_events(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -2053,7 +2053,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "order": 2,
         }
 
-    def test_disable_extrapolation(self):
+    def test_disable_extrapolation(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
         spans = []
         for hour, count in enumerate(event_counts):
@@ -2101,3 +2101,22 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "valueType": "integer",
             "interval": 3_600_000,
         }
+
+    def test_top_events_with_timestamp(self) -> None:
+        """Users shouldn't groupby timestamp for top events"""
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count(span.self_time)",
+                "groupBy": ["timestamp", "count(span.self_time)"],
+                "query": "count(span.self_time):>4",
+                "orderby": ["-count(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 5,
+            },
+        )
+        assert response.status_code == 400, response.content

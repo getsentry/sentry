@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
@@ -116,6 +116,10 @@ class GithubSetupApiClient(IntegrationProxyClient):
 class GithubProxyClient(IntegrationProxyClient):
     integration: Integration | RpcIntegration  # late init
 
+    class AccessTokenData(TypedDict):
+        access_token: str
+        permissions: dict[str, str] | None
+
     def _get_installation_id(self) -> str:
         """
         Returns the Github App installation identifier.
@@ -133,7 +137,7 @@ class GithubProxyClient(IntegrationProxyClient):
         return get_jwt()
 
     @control_silo_function
-    def _refresh_access_token(self) -> str | None:
+    def _refresh_access_token(self) -> AccessTokenData | None:
         integration = Integration.objects.filter(id=self.integration.id).first()
         if not integration:
             return None
@@ -148,18 +152,29 @@ class GithubProxyClient(IntegrationProxyClient):
         data = self.post(f"/app/installations/{self._get_installation_id()}/access_tokens")
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
-        integration.metadata.update({"access_token": access_token, "expires_at": expires_at})
+        permissions = data.get("permissions")
+        integration.metadata.update(
+            {
+                "access_token": access_token,
+                "expires_at": expires_at,
+                "permissions": permissions,
+            }
+        )
         integration.save()
         logger.info(
             "token.refresh_end",
             extra={
                 "new_expires_at": integration.metadata.get("expires_at"),
+                "new_permissions": integration.metadata.get("permissions"),
                 "integration_id": integration.id,
             },
         )
 
         self.integration = integration
-        return access_token
+        return {
+            "access_token": access_token,
+            "permissions": permissions,
+        }
 
     @control_silo_function
     def _get_token(self, prepared_request: PreparedRequest) -> str | None:
@@ -184,6 +199,13 @@ class GithubProxyClient(IntegrationProxyClient):
             return jwt
 
         # The rest should use access tokens...
+        metadata = self.get_access_token()
+        if not metadata:
+            return None
+        return metadata["access_token"]
+
+    @control_silo_function
+    def get_access_token(self) -> AccessTokenData | None:
         now = datetime.utcnow()
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
@@ -193,9 +215,15 @@ class GithubProxyClient(IntegrationProxyClient):
         should_refresh = not access_token or not expires_at or is_expired
 
         if should_refresh:
-            access_token = self._refresh_access_token()
+            return self._refresh_access_token()
 
-        return access_token
+        if access_token:
+            return {
+                "access_token": access_token,
+                "permissions": self.integration.metadata.get("permissions"),
+            }
+
+        return None
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:

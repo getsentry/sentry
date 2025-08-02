@@ -23,15 +23,13 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     spans_metrics,
-    spans_rpc,
     transactions,
-    uptime_checks,
 )
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
-from sentry.snuba.utils import DATASET_LABELS
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -40,7 +38,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_rpc,
+    Spans,
     errors,
     transactions,
 }
@@ -160,7 +158,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_rpc, ourlogs, uptime_checks}
+            use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
@@ -234,12 +232,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset in {spans_rpc, ourlogs}:
+            raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
+            if "timestamp" in raw_groupby:
+                raise ParseError("Cannot group by timestamp")
+            if dataset in RPC_DATASETS:
                 return dataset.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    raw_groupby=self.get_field_list(organization, request, param_name="groupBy"),
+                    raw_groupby=raw_groupby,
                     orderby=self.get_orderby(request),
                     limit=top_events,
                     referrer=referrer,
@@ -254,7 +255,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
-                selected_columns=self.get_field_list(organization, request, param_name="groupBy"),
+                selected_columns=raw_groupby,
                 equations=self.get_equation_list(organization, request),
                 user_query=query,
                 snuba_params=snuba_params,
@@ -271,7 +272,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 fallback_to_transactions=True,
             )
 
-        if dataset in {spans_rpc, ourlogs}:
+        if dataset in RPC_DATASETS:
             return dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,

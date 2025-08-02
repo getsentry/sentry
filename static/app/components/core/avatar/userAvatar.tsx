@@ -7,10 +7,10 @@ import {userDisplayName} from 'sentry/utils/formatters';
 import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 export interface UserAvatarProps extends BaseAvatarProps {
+  user: Actor | AvatarUser | undefined;
   gravatar?: boolean;
   ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
   renderTooltip?: (user: AvatarUser | Actor) => React.ReactNode;
-  user?: Actor | AvatarUser;
 }
 
 export function UserAvatar({

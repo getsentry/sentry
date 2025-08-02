@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,7 +32,6 @@ function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
     <Alert.Container>
       <Alert
         type="warning"
-        showIcon
         trailingItems={
           <StyledCloseButton
             icon={<IconClose size="sm" />}
@@ -87,6 +86,12 @@ export function DataSetStep({
   if (hasDatasetSelectorFeature) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
+    if (organization.features.includes('discover-saved-queries-deprecation')) {
+      disabledChoices.push([
+        DataSet.TRANSACTIONS,
+        t('This dataset is is no longer supported. Please use the Spans dataset.'),
+      ]);
+    }
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 

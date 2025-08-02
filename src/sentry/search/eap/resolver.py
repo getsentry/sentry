@@ -53,6 +53,7 @@ from sentry.search.eap.columns import (
     ResolvedEquation,
     ResolvedFormula,
     ResolvedLiteral,
+    ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
@@ -101,7 +102,9 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_meta(
-        self, referrer: str, sampling_mode: SAMPLING_MODES | None = None
+        self,
+        referrer: str,
+        sampling_mode: SAMPLING_MODES | None = None,
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
@@ -899,9 +902,6 @@ class SearchResolver:
         ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
         VirtualColumnDefinition | None,
     ]:
-        if column in self._resolved_function_cache:
-            return self._resolved_function_cache[column]
-        # Check if the column looks like a function (matches a pattern), parse the function name and args out
         if match is None:
             match = fields.is_function(column)
             if match is None:
@@ -913,6 +913,10 @@ class SearchResolver:
         alias = match.group("alias") or column
         if public_alias_override is not None:
             alias = public_alias_override
+
+        if alias in self._resolved_function_cache:
+            return self._resolved_function_cache[alias]
+        # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
         function_definition = self.get_function_definition(function_name)
         if function_definition.private and function_name not in self.config.fields_acl.functions:
@@ -937,8 +941,11 @@ class SearchResolver:
             # If there are missing arguments, and the argument definition has a default arg, use the default arg
             # this assumes the missing args are at the beginning or end of the arguments list
             if missing_args > 0 and argument_definition.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
-                parsed_args.append(parsed_argument)
+                if isinstance(argument_definition, ValueArgumentDefinition):
+                    parsed_args.append(argument_definition.default_arg)
+                else:
+                    parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                    parsed_args.append(parsed_argument)
                 missing_args -= 1
                 continue
 
@@ -1014,8 +1021,8 @@ class SearchResolver:
         )
 
         resolved_context = None
-        self._resolved_function_cache[column] = (resolved_function, resolved_context)
-        return self._resolved_function_cache[column]
+        self._resolved_function_cache[alias] = (resolved_function, resolved_context)
+        return self._resolved_function_cache[alias]
 
     def resolve_equations(self, equations: list[str]) -> tuple[
         list[AnyResolved],

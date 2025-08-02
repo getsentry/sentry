@@ -26,6 +26,8 @@ export default function FilterLoadingIndicator({children, isLoading}: Props) {
 
 const Wrapper = styled('div')`
   display: flex;
+  flex-direction: column;
+  flex-grow: 1;
   justify-content: space-between;
   gap: ${space(1)};
 `;

@@ -17,6 +17,7 @@ import type {
 import {sampleHTTPRequestTableData} from 'sentry/views/dashboards/widgets/tableWidget/fixtures/sampleHTTPRequestTableData';
 import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 jest.mock('sentry/icons/iconArrow', () => ({
   IconArrow: jest.fn(() => <div />),
@@ -26,11 +27,9 @@ describe('TableWidgetVisualization', function () {
   const columns: Array<Partial<TabularColumn>> = [
     {
       key: 'count(span.duration)',
-      name: 'Count of Span Duration',
     },
     {
       key: 'http.request_method',
-      name: 'HTTP Request Method',
     },
   ];
   const sortableColumns = columns.map(column => ({...column, sortable: true}));
@@ -54,8 +53,8 @@ describe('TableWidgetVisualization', function () {
       );
 
       const $headers = screen.getAllByRole('columnheader');
-      expect($headers[0]).toHaveTextContent(columns[0]!.name!);
-      expect($headers[1]).toHaveTextContent(columns[1]!.name!);
+      expect($headers[0]).toHaveTextContent(columns[0]!.key!);
+      expect($headers[1]).toHaveTextContent(columns[1]!.key!);
     });
 
     it('Renders unique number fields correctly', async function () {
@@ -250,17 +249,66 @@ describe('TableWidgetVisualization', function () {
         expect(onResizeColumnMock).toHaveBeenCalledWith([
           {
             key: 'http.request_method',
-            name: 'http.request_method',
             type: 'string',
             width: 100,
           },
           {
             key: 'count(span.duration)',
-            name: 'count(span.duration)',
             type: 'integer',
             width: -1,
           },
         ])
+      );
+    });
+  });
+
+  describe('Cell actions functionality', () => {
+    it('Renders default action', async function () {
+      render(<TableWidgetVisualization tableData={sampleHTTPRequestTableData} />);
+
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      await screen.findByText('Copy to clipboard');
+    });
+
+    it('Renders custom cell actions from allowedCellActions if supplied', async function () {
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          allowedCellActions={[Actions.ADD]}
+        />
+      );
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      await screen.findByText('Add to filter');
+    });
+
+    it('Uses onTriggerCellAction if supplied on action click', async function () {
+      const onTriggerCellActionMock = jest.fn(
+        (_actions: Actions, _value: string | number) => {}
+      );
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: jest.fn(() => Promise.resolve()),
+        },
+      });
+
+      render(
+        <TableWidgetVisualization
+          tableData={sampleHTTPRequestTableData}
+          onTriggerCellAction={onTriggerCellActionMock}
+        />
+      );
+
+      const $cell = screen.getAllByRole('button')[0]!;
+      await userEvent.click($cell);
+      const $option = screen.getAllByRole('menuitemradio')[0]!;
+      await userEvent.click($option);
+      await waitFor(() =>
+        expect(onTriggerCellActionMock).toHaveBeenCalledWith(
+          Actions.COPY_TO_CLIPBOARD,
+          sampleHTTPRequestTableData.data[0]!['http.request_method']
+        )
       );
     });
   });

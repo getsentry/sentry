@@ -311,9 +311,9 @@ describe('InvoiceDetails', function () {
       ).toBeInTheDocument();
       expect(screen.getByText('Details:')).toBeInTheDocument();
       expect(screen.getByText(`${billingDetails.displayAddress}`)).toBeInTheDocument();
-      expect(screen.getByText('Tax Number:')).toBeInTheDocument();
-      expect(screen.getByText(`${billingDetails.taxNumber}`)).toBeInTheDocument();
       expect(screen.getByText(`${billingDetails.billingEmail}`)).toBeInTheDocument();
+      expect(screen.queryByText('Tax Number:')).not.toBeInTheDocument();
+      expect(screen.queryByText(`${billingDetails.taxNumber}`)).not.toBeInTheDocument();
       expect(screen.queryByText('Country Id: 1234')).not.toBeInTheDocument();
       expect(screen.queryByText('Regional Tax Id: 5678')).not.toBeInTheDocument();
     });

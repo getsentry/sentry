@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable, MutableMapping
 from os import path
 from typing import Any
 from unittest import mock
@@ -10,27 +11,50 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry import eventstore
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     GroupingConfig,
-    apply_server_fingerprinting,
+    apply_server_side_fingerprinting,
     get_default_grouping_config_dict,
     load_grouping_config,
 )
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_strategy_config
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
 
 GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
 FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
+
+MANUAL_SAVE_CONFIGS = set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG}
+FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
+
+# When regenerating snapshots locally, you can set `SENTRY_SNAPSHOTS_WRITEBACK=1` and
+# `SENTRY_FAST_GROUPING_SNAPSHOTS=1` in the environment to update snapshots automatically and run
+# all snapshots through the faster, non-DB-involving process.
+if os.environ.get("SENTRY_FAST_GROUPING_SNAPSHOTS") and not os.environ.get("GITHUB_ACTIONS"):
+    FULL_PIPELINE_CONFIGS.remove(DEFAULT_GROUPING_CONFIG)
+    MANUAL_SAVE_CONFIGS.add(DEFAULT_GROUPING_CONFIG)
+
+# Create a grouping config to be used only in tests, in which message parameterization is turned
+# off. This lets us easily force an event to have different hashes for different configs. (We use a
+# purposefully old date so that it can be used as a secondary config.)
+#
+# Note: This must be registered after `MANUAL_SAVE_CONFIGS` is defined, so that
+# `MANUAL_SAVE_CONFIGS` doesn't include it.
+NO_MSG_PARAM_CONFIG = "no-msg-param-tests-only:2012-12-31"
+register_strategy_config(
+    id=NO_MSG_PARAM_CONFIG,
+    base=DEFAULT_GROUPING_CONFIG,
+    initial_context={"normalize_message": False},
+)
 
 
 class GroupingInput:
@@ -54,7 +78,7 @@ class GroupingInput:
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
 
         data.setdefault("fingerprint", ["{{ default }}"])
-        apply_server_fingerprinting(data, fingerprinting_config)
+        apply_server_side_fingerprinting(data, fingerprinting_config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
@@ -66,7 +90,7 @@ class GroupingInput:
         grouping_config: GroupingConfig,
         fingerprinting_config: FingerprintingRules,
         project: Project,
-    ):
+    ) -> Event:
         with (
             mock.patch(
                 "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -91,8 +115,6 @@ class GroupingInput:
         grouping_config["enhancements"] = Enhancements.from_rules_text(
             self.data.get("_grouping", {}).get("enhancements", ""),
             bases=Enhancements.from_base64_string(grouping_config["enhancements"]).bases,
-            # Version 3 to run split enhancements on newstyle configs
-            version=3 if not config_name.startswith("legacy") else 2,
         ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
@@ -125,16 +147,25 @@ def with_grouping_inputs(test_param_name: str, inputs_dir: str) -> pytest.MarkDe
     )
 
 
+def with_grouping_configs(config_ids: Iterable[str]) -> pytest.MarkDecorator:
+    if not config_ids:
+        return pytest.mark.skip("no configs to test")
+
+    return pytest.mark.parametrize(
+        "config_name", config_ids, ids=lambda config_name: config_name.replace("-", "_")
+    )
+
+
 class FingerprintInput:
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @cached_property
-    def data(self):
+    def data(self) -> MutableMapping[str, Any]:
         with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self):
+    def create_event(self) -> tuple[FingerprintingRules, Event]:
         config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
             bases=CONFIGURATIONS[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
@@ -144,7 +175,7 @@ class FingerprintInput:
         data = mgr.get_data()
 
         data.setdefault("fingerprint", ["{{ default }}"])
-        apply_server_fingerprinting(data, config)
+        apply_server_side_fingerprinting(data, config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
@@ -160,7 +191,7 @@ fingerprint_input = list(
 )
 
 
-def with_fingerprint_input(name):
+def with_fingerprint_input(name: str) -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         name, fingerprint_input, ids=lambda x: x.filename[:-5].replace("-", "_")
     )
@@ -180,7 +211,9 @@ def dump_variant(
     indent: int = 0,
     include_non_contributing: bool = True,
 ) -> list[str]:
-    def _dump_component(component: BaseGroupingComponent, indent: int) -> None:
+    def _dump_component(
+        component: BaseGroupingComponent[str | int | BaseGroupingComponent[Any]], indent: int
+    ) -> None:
         if not component.hint and not component.values:
             return
         if component.contributes or include_non_contributing:

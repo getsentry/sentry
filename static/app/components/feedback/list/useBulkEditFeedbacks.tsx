@@ -11,7 +11,7 @@ import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type useListItemCheckboxState from 'sentry/utils/list/useListItemCheckboxState';
+import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,7 +30,7 @@ const statusToText: Record<string, string> = {
 
 interface Props
   extends Pick<
-    ReturnType<typeof useListItemCheckboxState>,
+    ReturnType<typeof useListItemCheckboxContext>,
     'deselectAll' | 'selectedIds'
   > {}
 

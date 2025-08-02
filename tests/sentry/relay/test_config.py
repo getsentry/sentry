@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from sentry_relay.processing import normalize_project_config
@@ -98,7 +98,7 @@ def _validate_project_config(config):
 
 @django_db_all
 @region_silo_test
-def test_get_project_config_non_visible(default_project):
+def test_get_project_config_non_visible(default_project) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
     cfg = get_project_config(default_project, project_keys=keys)
@@ -107,7 +107,7 @@ def test_get_project_config_non_visible(default_project):
 
 @django_db_all
 @region_silo_test
-def test_get_project_config(default_project, insta_snapshot):
+def test_get_project_config(default_project, insta_snapshot) -> None:
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
@@ -138,7 +138,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @region_silo_test
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.experimental.logger")
-def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
+def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project) -> None:
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
@@ -213,7 +213,7 @@ def test_project_config_uses_filter_features(
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
-def test_project_config_exposed_features(default_project):
+def test_project_config_exposed_features(default_project: MagicMock) -> None:
     with Feature({"organizations:profiling": True}):
         project_cfg = get_project_config(default_project)
 
@@ -226,7 +226,7 @@ def test_project_config_exposed_features(default_project):
 @django_db_all
 @region_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
-def test_project_config_exposed_features_raise_exc(default_project):
+def test_project_config_exposed_features_raise_exc(default_project: MagicMock) -> None:
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
             get_project_config(default_project)
@@ -423,7 +423,9 @@ def test_project_config_with_all_biases_enabled(
 @django_db_all
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @region_silo_test
-def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
+def test_project_config_with_breakdown(
+    default_project, insta_snapshot, transaction_metrics
+) -> None:
     with Feature(
         {
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
@@ -509,7 +511,7 @@ def test_project_config_satisfaction_thresholds(
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
 )
-def test_has_metric_extraction(default_project, feature_flag, killswitch):
+def test_has_metric_extraction(default_project, feature_flag, killswitch) -> None:
     options = override_options(
         {
             "relay.drop-transaction-metrics": (
@@ -534,7 +536,7 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
 
 
 @django_db_all
-def test_accept_transaction_names(default_project):
+def test_accept_transaction_names(default_project) -> None:
     feature = Feature(
         {
             "organizations:transaction-metrics-extraction": True,
@@ -551,7 +553,7 @@ def test_accept_transaction_names(default_project):
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
 @django_db_all
-def test_txnames_ready(default_project, num_clusterer_runs):
+def test_txnames_ready(default_project, num_clusterer_runs) -> None:
     with mock.patch(
         "sentry.relay.config.get_clusterer_meta", return_value={"runs": num_clusterer_runs}
     ):
@@ -565,7 +567,7 @@ def test_txnames_ready(default_project, num_clusterer_runs):
 
 @django_db_all
 @region_silo_test
-def test_project_config_setattr(default_project):
+def test_project_config_setattr(default_project) -> None:
     project_cfg = ProjectConfig(default_project)
     with pytest.raises(Exception) as exc_info:
         project_cfg.foo = "bar"
@@ -574,14 +576,14 @@ def test_project_config_setattr(default_project):
 
 @django_db_all
 @region_silo_test
-def test_project_config_getattr(default_project):
+def test_project_config_getattr(default_project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.foo == "bar"
 
 
 @django_db_all
 @region_silo_test
-def test_project_config_str(default_project):
+def test_project_config_str(default_project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert str(project_cfg) == '{"foo":"bar"}'
 
@@ -593,21 +595,21 @@ def test_project_config_str(default_project):
 
 @django_db_all
 @region_silo_test
-def test_project_config_repr(default_project):
+def test_project_config_repr(default_project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
 
 
 @django_db_all
 @region_silo_test
-def test_project_config_to_json_string(default_project):
+def test_project_config_to_json_string(default_project) -> None:
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.to_json_string() == '{"foo":"bar"}'
 
 
 @django_db_all
 @region_silo_test
-def test_project_config_get_at_path(default_project):
+def test_project_config_get_at_path(default_project) -> None:
     project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
     assert project_cfg.get_at_path("b") == "The b"
     assert project_cfg.get_at_path("bb") is None
@@ -621,7 +623,7 @@ def test_project_config_get_at_path(default_project):
     [True, False],
     ids=["healthcheck set", "healthcheck not set"],
 )
-def test_healthcheck_filter(default_project, health_check_set):
+def test_healthcheck_filter(default_project, health_check_set) -> None:
     """
     Tests that the project config properly returns healthcheck filters when the
     user has enabled healthcheck filters.
@@ -643,7 +645,7 @@ def test_healthcheck_filter(default_project, health_check_set):
 
 
 @django_db_all
-def test_alert_metric_extraction_rules_empty(default_project):
+def test_alert_metric_extraction_rules_empty(default_project) -> None:
     features = {
         "organizations:transaction-metrics-extraction": True,
         "organizations:on-demand-metrics-extraction": True,
@@ -656,7 +658,7 @@ def test_alert_metric_extraction_rules_empty(default_project):
 
 
 @django_db_all
-def test_alert_metric_extraction_rules(default_project, factories):
+def test_alert_metric_extraction_rules(default_project, factories) -> None:
     # Alert compatible with out-of-the-box metrics. This should NOT be included
     # in the config.
     factories.create_alert_rule(
@@ -704,7 +706,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
 
 
 @django_db_all
-def test_desktop_performance_calculate_score(default_project):
+def test_desktop_performance_calculate_score(default_project) -> None:
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
@@ -872,7 +874,7 @@ def test_desktop_performance_calculate_score(default_project):
 
 
 @django_db_all
-def test_mobile_performance_calculate_score(default_project):
+def test_mobile_performance_calculate_score(default_project) -> None:
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
@@ -1004,7 +1006,7 @@ def test_mobile_performance_calculate_score(default_project):
 @django_db_all
 @region_silo_test
 @pytest.mark.parametrize("passive", [False, True])
-def test_project_config_cardinality_limits(default_project, insta_snapshot, passive):
+def test_project_config_cardinality_limits(default_project, insta_snapshot, passive) -> None:
     options: dict[Any, Any] = {
         "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": [
@@ -1098,7 +1100,9 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
 
 @django_db_all
 @region_silo_test
-def test_project_config_cardinality_limits_project_options_override_other_options(default_project):
+def test_project_config_cardinality_limits_project_options_override_other_options(
+    default_project,
+) -> None:
     options: dict[Any, Any] = {
         "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
@@ -1166,7 +1170,9 @@ def test_project_config_cardinality_limits_project_options_override_other_option
 
 @django_db_all
 @region_silo_test
-def test_project_config_cardinality_limits_organization_options_override_options(default_project):
+def test_project_config_cardinality_limits_organization_options_override_options(
+    default_project,
+) -> None:
     options: dict[Any, Any] = {
         "relay.cardinality-limiter.mode": "enabled",
         "sentry-metrics.cardinality-limiter.limits.transactions.per-org": None,
@@ -1220,7 +1226,7 @@ def test_project_config_cardinality_limits_organization_options_override_options
 
 @django_db_all
 @region_silo_test
-def test_project_config_with_generic_filters(default_project):
+def test_project_config_with_generic_filters(default_project) -> None:
     config = get_project_config(default_project).to_dict()
     _validate_project_config(config["config"])
 
@@ -1252,3 +1258,32 @@ def test_project_config_with_transaction_name_clustering_disabled(
         config = get_project_config(default_project).to_dict()
         _validate_project_config(config["config"])
         assert "txNameRules" not in config["config"]
+
+
+@django_db_all
+@region_silo_test
+@pytest.mark.parametrize("feature_enabled", [True, False])
+@pytest.mark.parametrize("project_option_value", ["enabled", "disabled"])
+def test_project_config_trusted_relay_settings(
+    default_project, feature_enabled, project_option_value
+):
+    default_project.organization.update_option(
+        "sentry:ingest-through-trusted-relays-only", project_option_value
+    )
+
+    features_dict = {}
+    if feature_enabled:
+        features_dict["organizations:ingest-through-trusted-relays-only"] = True
+
+    with Feature(features_dict):
+        config = get_project_config(default_project).to_dict()
+
+        trusted_relay_settings = config["config"].get("trustedRelaySettings")
+
+        if feature_enabled:
+            # trustedRelaySettings should be present
+            assert trusted_relay_settings is not None
+            assert trusted_relay_settings["verifySignature"] == project_option_value
+        else:
+            # trustedRelaySettings should not be present
+            assert trusted_relay_settings is None

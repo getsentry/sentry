@@ -30,12 +30,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -43,10 +38,10 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
   USER_GEO_SUBREGION,
-} = SpanMetricsField;
+} = SpanFields;
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'avg(http.response_content_length)'
   | 'avg(span.self_time)'
   | 'epm()'
@@ -138,9 +133,9 @@ function ResourceSummaryTable() {
                   group={groupId}
                   moduleName={ModuleName.RESOURCE}
                   filters={{
-                    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
+                    [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]:
                       row[RESOURCE_RENDER_BLOCKING_STATUS],
-                    [SpanIndexedField.TRANSACTION]: row[TRANSACTION],
+                    [SpanFields.TRANSACTION]: row[TRANSACTION],
                   }}
                 />
               </Fragment>

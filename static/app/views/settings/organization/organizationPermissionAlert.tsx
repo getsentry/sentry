@@ -22,7 +22,7 @@ export function OrganizationPermissionAlert({
       {({hasAccess}) =>
         !hasAccess && (
           <Alert.Container>
-            <Alert data-test-id="org-permission-alert" type="warning" showIcon {...props}>
+            <Alert data-test-id="org-permission-alert" type="warning" {...props}>
               {message}
             </Alert>
           </Alert.Container>

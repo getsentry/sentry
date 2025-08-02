@@ -6,10 +6,8 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Link} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import type {
@@ -58,12 +56,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -88,12 +81,12 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
   GridColumnOrder<keyof SpanSampleRowWithScore>
 > = [
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
     name: t('Description'),
   },
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
-  {key: SpanIndexedField.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
+  {key: SpanFields.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
@@ -104,7 +97,7 @@ const SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER: Array<
 > = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
     name: t('Description'),
   },
@@ -164,16 +157,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
-  const handleStandaloneClsLcp = organization.features.includes(
-    'performance-vitals-standalone-cls-lcp'
-  );
-
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = decodeList(
-    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+    location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const defaultDatatype = handleStandaloneClsLcp ? Datatype.LCP : Datatype.PAGELOADS;
+  const defaultDatatype = Datatype.LCP;
   let datatype = defaultDatatype;
   if (
     Object.values(Datatype).includes(
@@ -307,9 +296,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                 title={
                   <span>
                     {tct('The [webVital] performance rating of this sample.', {
-                      webVital: handleStandaloneClsLcp
-                        ? datatype.toUpperCase()
-                        : 'overall',
+                      webVital: datatype.toUpperCase(),
                     })}
                     <br />
                     <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
@@ -320,7 +307,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               >
                 <TooltipHeader>
                   {tct('[webVital] Score', {
-                    webVital: handleStandaloneClsLcp ? datatype.toUpperCase() : 'Perf',
+                    webVital: datatype.toUpperCase(),
                   })}
                 </TooltipHeader>
               </StyledTooltip>
@@ -345,7 +332,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return <AlignRight>{datatype.toUpperCase()}</AlignRight>;
     }
 
-    if (col.key === SpanIndexedField.SPAN_DESCRIPTION) {
+    if (col.key === SpanFields.SPAN_DESCRIPTION) {
       if (datatype === Datatype.LCP) {
         return <span>{t('LCP Element')}</span>;
       }
@@ -458,7 +445,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         (row['transaction.duration'] !== undefined ||
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
+          row[SpanFields.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
           {
@@ -467,7 +454,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             'transaction.duration':
               datatype === Datatype.INTERACTIONS
                 ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  row[SpanIndexedField.SPAN_SELF_TIME]
+                  row[SpanFields.SPAN_SELF_TIME]
                 : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   row['transaction.duration'],
             timestamp: row.timestamp,
@@ -493,7 +480,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
+    if (key === 'id' || key === SpanFields.SPAN_DESCRIPTION) {
       const traceViewLink = generateLinkToEventInTraceView({
         traceSlug: row.trace,
         eventId: row.id,
@@ -514,14 +501,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         );
       }
 
-      if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      if (key === SpanFields.SPAN_DESCRIPTION) {
         const description =
           datatype === 'lcp' &&
-          (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
-            ? (row as SpanSampleRowWithScore)[SpanIndexedField.LCP_ELEMENT]
+          (row as SpanSampleRowWithScore)[SpanFields.SPAN_OP] === 'pageload'
+            ? (row as SpanSampleRowWithScore)[SpanFields.LCP_ELEMENT]
             : datatype === 'cls' &&
-                (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
-              ? (row as SpanSampleRowWithScore)[SpanIndexedField.CLS_SOURCE]
+                (row as SpanSampleRowWithScore)[SpanFields.SPAN_OP] === 'pageload'
+              ? (row as SpanSampleRowWithScore)[SpanFields.CLS_SOURCE]
               : (row as SpanSampleRowWithScore)[key];
 
         if (description) {
@@ -563,58 +550,24 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {handleStandaloneClsLcp ? (
-          <CompactSelect
-            triggerProps={{prefix: t('Web Vital')}}
-            value={datatype}
-            options={WEB_VITAL_DATATYPES.map(type => ({
-              label: type.toUpperCase(),
-              value: type,
-            }))}
-            onChange={newDataType => {
-              trackAnalytics('insight.vital.overview.toggle_data_type', {
-                organization,
-                type: newDataType.value,
-              });
-              navigate({
-                ...location,
-                query: {...location.query, [DATATYPE_KEY]: newDataType.value},
-              });
-            }}
-          />
-        ) : (
-          <SegmentedControl
-            size="md"
-            value={datatype}
-            aria-label={t('Data Type')}
-            onChange={newDataSet => {
-              // Reset pagination and sort when switching datatypes
-              trackAnalytics('insight.vital.overview.toggle_data_type', {
-                organization,
-                type: newDataSet,
-              });
-              navigate({
-                ...location,
-                query: {
-                  ...location.query,
-                  sort: undefined,
-                  cursor: undefined,
-                  [DATATYPE_KEY]: newDataSet,
-                },
-              });
-            }}
-          >
-            <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
-              {t('Pageloads')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item
-              key={Datatype.INTERACTIONS}
-              aria-label={t('Interactions')}
-            >
-              {t('Interactions')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+        <CompactSelect
+          triggerProps={{prefix: t('Web Vital')}}
+          value={datatype}
+          options={WEB_VITAL_DATATYPES.map(type => ({
+            label: type.toUpperCase(),
+            value: type,
+          }))}
+          onChange={newDataType => {
+            trackAnalytics('insight.vital.overview.toggle_data_type', {
+              organization,
+              type: newDataType.value,
+            });
+            navigate({
+              ...location,
+              query: {...location.query, [DATATYPE_KEY]: newDataType.value},
+            });
+          }}
+        />
         <StyledSearchBar>
           <TransactionSearchQueryBuilder
             projects={projectIds}
@@ -627,13 +580,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       {datatype === Datatype.PAGELOADS && (
         <GridEditable
           isLoading={isLoading}
-          columnOrder={
-            handleStandaloneClsLcp
-              ? PAGELOADS_COLUMN_ORDER.filter(
-                  col => !['measurements.cls', 'measurements.lcp'].includes(col.key)
-                )
-              : PAGELOADS_COLUMN_ORDER
-          }
+          columnOrder={PAGELOADS_COLUMN_ORDER}
           columnSortBy={[]}
           data={tableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
           grid={{
@@ -671,7 +618,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
       {!(isSpansBasedDatatype ? standaloneSpansPageLinks : pageLinks) && (
         <Wrapper>
-          <ButtonBar merged>
+          <ButtonBar merged gap="0">
             <Button
               icon={<IconChevron direction="left" />}
               disabled

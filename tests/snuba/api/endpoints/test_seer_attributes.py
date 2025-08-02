@@ -2,7 +2,7 @@ from concurrent.futures import TimeoutError
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from sentry.api.endpoints.seer_rpc import (
+from sentry.seer.endpoints.seer_rpc import (
     get_attribute_names,
     get_attribute_values_with_substring,
     get_attributes_and_values,
@@ -17,7 +17,7 @@ from tests.snuba.api.endpoints.test_organization_trace_item_attributes import (
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
 ):
-    def test_get_attribute_names(self):
+    def test_get_attribute_names(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -48,7 +48,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
         }
 
-    def test_get_attribute_values_with_substring(self):
+    def test_get_attribute_values_with_substring(self) -> None:
         for transaction in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -87,7 +87,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         }
 
-    def test_get_attributes_and_values(self):
+    def test_get_attributes_and_values(self) -> None:
         for tag_value in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -122,26 +122,28 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             project_ids=[self.project.id],
             stats_period="7d",
             sampled=False,
+            attributes_ignored=[
+                "sentry.segment_id",
+                "sentry.event_id",
+                "sentry.raw_description",
+                "sentry.transaction",
+            ],
         )
 
         assert result == {
-            "attributes_and_values": [
-                {
-                    "test_tag": [
-                        {"value": "foo", "count": 1.0},
-                        {"value": "baz", "count": 1.0},
-                        {"value": "bar", "count": 1.0},
-                    ],
-                },
-                {
-                    "another_tag": [
-                        {"value": "another_value", "count": 1.0},
-                    ],
-                },
-            ]
+            "attributes_and_values": {
+                "test_tag": [
+                    {"value": "foo", "count": 1.0},
+                    {"value": "baz", "count": 1.0},
+                    {"value": "bar", "count": 1.0},
+                ],
+                "another_tag": [
+                    {"value": "another_value", "count": 1.0},
+                ],
+            },
         }
 
-    def test_get_attribute_values_with_substring_empty_field_list(self):
+    def test_get_attribute_values_with_substring_empty_field_list(self) -> None:
         """Test handling of empty fields_with_substrings list"""
         result = get_attribute_values_with_substring(
             org_id=self.organization.id,
@@ -153,7 +155,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         expected: dict = {"values": {}}
         assert result == expected
 
-    def test_get_attribute_values_with_substring_async_success_and_partial_failures(self):
+    def test_get_attribute_values_with_substring_async_success_and_partial_failures(
+        self,
+    ):
         """Test concurrent execution with successful results, timeouts, and exceptions"""
         for transaction in ["foo", "bar"]:
             self.store_segment(
@@ -170,7 +174,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 is_eap=True,
             )
 
-        with patch("sentry.api.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
+        with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
             mock_executor_instance = Mock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
 
@@ -194,10 +198,14 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"field": "span.status", "substring": "error_field"},
             ]
 
-            with patch("sentry.api.endpoints.seer_rpc.as_completed") as mock_as_completed:
+            with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
 
                 def as_completed_side_effect(future_to_field_dict, timeout):
-                    return [mock_future_success, mock_future_timeout, mock_future_exception]
+                    return [
+                        mock_future_success,
+                        mock_future_timeout,
+                        mock_future_exception,
+                    ]
 
                 mock_as_completed.side_effect = as_completed_side_effect
 
@@ -218,7 +226,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 assert mock_executor_instance.submit.call_count == 3
                 mock_as_completed.assert_called_once()
 
-    def test_get_attribute_values_with_substring_overall_timeout(self):
+    def test_get_attribute_values_with_substring_overall_timeout(self) -> None:
         """Test overall timeout handling with future cancellation"""
         self.store_segment(
             self.project.id,
@@ -234,10 +242,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             is_eap=True,
         )
 
-        with patch("sentry.api.endpoints.seer_rpc.as_completed") as mock_as_completed:
+        with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
             mock_as_completed.side_effect = TimeoutError("Overall timeout")
 
-            with patch("sentry.api.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
+            with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
                 mock_executor_instance = Mock()
                 mock_executor.return_value.__enter__.return_value = mock_executor_instance
 
@@ -261,7 +269,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 mock_future1.cancel.assert_called_once()
                 mock_future2.cancel.assert_called_once()
 
-    def test_get_attribute_values_with_substring_max_workers_limit(self):
+    def test_get_attribute_values_with_substring_max_workers_limit(self) -> None:
         """Test that ThreadPoolExecutor is limited to max 10 workers even with more fields"""
         self.store_segment(
             self.project.id,
@@ -281,7 +289,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"field": "transaction", "substring": f"field_{i}"} for i in range(15)
         ]
 
-        with patch("sentry.api.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
+        with patch("sentry.seer.endpoints.seer_rpc.ThreadPoolExecutor") as mock_executor:
             mock_executor_instance = Mock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
 
@@ -291,7 +299,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
             mock_executor_instance.submit.side_effect = mock_futures
 
-            with patch("sentry.api.endpoints.seer_rpc.as_completed") as mock_as_completed:
+            with patch("sentry.seer.endpoints.seer_rpc.as_completed") as mock_as_completed:
                 mock_as_completed.return_value = mock_futures
 
                 get_attribute_values_with_substring(

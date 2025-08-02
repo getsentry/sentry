@@ -80,7 +80,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleAggregateFields.length,
+    visibleAggregateFields.map(aggregateField => {
+      if (isGroupBy(aggregateField)) {
+        return aggregateField.groupBy;
+      }
+      return aggregateField.yAxis;
+    }),
     tableRef,
     {
       minimumColumnWidth: 50,

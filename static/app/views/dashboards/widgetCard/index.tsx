@@ -40,6 +40,7 @@ import {
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
@@ -89,6 +90,7 @@ type Props = WithRouterProps & {
   onSetTransactionsDataset?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
@@ -158,6 +160,7 @@ function WidgetCard(props: Props) {
     showLoadingText,
     router,
     onWidgetTableSort,
+    onWidgetTableResizeColumn,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -223,7 +226,13 @@ function WidgetCard(props: Props) {
           pathname: `${location.pathname}${
             location.pathname.endsWith('/') ? '' : '/'
           }widget/${props.index}/`,
-          query: location.query,
+          query: {
+            ...location.query,
+            sort:
+              widget.displayType === DisplayType.TABLE
+                ? widget.queries[0]?.orderby
+                : location.query.sort,
+          },
         },
         {preventScrollReset: true}
       );
@@ -325,6 +334,7 @@ function WidgetCard(props: Props) {
             onDataFetchStart={onDataFetchStart}
             showLoadingText={showLoadingText && isLoadingTextVisible}
             onWidgetTableSort={onWidgetTableSort}
+            onWidgetTableResizeColumn={onWidgetTableResizeColumn}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

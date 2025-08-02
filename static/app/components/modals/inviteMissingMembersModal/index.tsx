@@ -290,7 +290,7 @@ export function InviteMissingMembersModal({
       </StyledPanelTable>
       <Footer>
         <div>{renderStatusMessage()}</div>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             size="sm"
             onClick={() => {

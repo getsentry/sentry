@@ -53,7 +53,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleFields.length,
+    visibleFields,
     tableRef,
     {minimumColumnWidth: 50}
   );
@@ -70,7 +70,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
+      <Table ref={tableRef} style={initialTableStyles} data-test-id="spans-table">
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {

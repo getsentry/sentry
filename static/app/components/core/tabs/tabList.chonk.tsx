@@ -34,3 +34,11 @@ export const ChonkStyledTabListWrap = chonkStyled('ul', {
           padding-right: ${space(0.5)};
         `};
 `;
+
+export const ChonkStyledTabListOverflowWrap = chonkStyled('div')`
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;

@@ -188,6 +188,8 @@ const CHART_MAP = {
     import(
       'sentry/views/insights/common/components/widgets/overviewSlowQueriesChartWidget'
     ),
+  mcpTrafficWidget: () =>
+    import('sentry/views/insights/common/components/widgets/mcpTrafficWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**

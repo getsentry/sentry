@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
@@ -12,9 +12,7 @@ import {
 import {hasSDKContext} from './sdk';
 
 type Props = {
-  cacheMetrics: Array<
-    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
-  >;
+  cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
 };
 

@@ -45,7 +45,7 @@ def process_pending() -> None:
     queue="buffers.process_pending_batch",
     taskworker_config=TaskworkerConfig(
         namespace=buffer_tasks,
-        processing_deadline_duration=20,
+        processing_deadline_duration=40,
     ),
 )
 def process_pending_batch() -> None:

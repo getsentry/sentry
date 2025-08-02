@@ -22,38 +22,38 @@ class GroupSnoozeTest(
 ):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.group.times_seen_pending = 0
 
-    def test_until_not_reached(self):
+    def test_until_not_reached(self) -> None:
         snooze = GroupSnooze.objects.create(
             group=self.group, until=timezone.now() + timedelta(days=1)
         )
         assert snooze.is_valid()
 
-    def test_until_reached(self):
+    def test_until_reached(self) -> None:
         snooze = GroupSnooze.objects.create(
             group=self.group, until=timezone.now() - timedelta(days=1)
         )
         assert not snooze.is_valid()
 
-    def test_mismatched_group(self):
+    def test_mismatched_group(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group)
         with pytest.raises(ValueError):
             snooze.is_valid(self.create_group())
 
-    def test_delta_not_reached(self):
+    def test_delta_not_reached(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, state={"times_seen": 0})
         assert snooze.is_valid()
 
-    def test_delta_reached(self):
+    def test_delta_reached(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, state={"times_seen": 0})
         self.group.update(times_seen=100)
         assert not snooze.is_valid()
 
-    def test_delta_reached_pending(self):
+    def test_delta_reached_pending(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, state={"times_seen": 0})
         self.group.update(times_seen=90)
         assert snooze.is_valid(use_pending_data=True)
@@ -61,14 +61,14 @@ class GroupSnoozeTest(
         self.group.times_seen_pending = 10
         assert not snooze.is_valid(use_pending_data=True)
 
-    def test_user_delta_not_reached(self):
+    def test_user_delta_not_reached(self) -> None:
         snooze = GroupSnooze.objects.create(
             group=self.group, user_count=100, state={"users_seen": 0}
         )
         assert snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_user_delta_reached(self):
+    def test_user_delta_reached(self) -> None:
         for i in range(5):
             self.store_event(
                 data={
@@ -84,7 +84,7 @@ class GroupSnoozeTest(
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_user_rate_reached(self):
+    def test_user_rate_reached(self) -> None:
         """Test that ignoring an error issue until it's hit by 10 users in an hour works."""
         for i in range(5):
             group = self.store_event(
@@ -100,7 +100,7 @@ class GroupSnoozeTest(
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_user_rate_reached_perf_issues(self):
+    def test_user_rate_reached_perf_issues(self) -> None:
         """Test that ignoring a performance issue until it's hit by 10 users in an hour works."""
         for i in range(0, 10):
             event_data = load_data(
@@ -114,22 +114,22 @@ class GroupSnoozeTest(
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_user_rate_not_reached(self):
+    def test_user_rate_not_reached(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
         assert snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_user_rate_without_test(self):
+    def test_user_rate_without_test(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
         assert snooze.is_valid(test_rates=False)
 
     @freeze_time()
-    def test_rate_not_reached(self):
+    def test_rate_not_reached(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
         assert snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_rate_reached(self):
+    def test_rate_reached(self) -> None:
         """Test when an error issue is ignored until it happens 5 times in a day"""
         for i in range(5):
             group = self.store_event(
@@ -143,7 +143,7 @@ class GroupSnoozeTest(
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_rate_reached_perf_issue(self):
+    def test_rate_reached_perf_issue(self) -> None:
         """Test when a performance issue is ignored until it happens 10 times in a day"""
         for i in range(0, 10):
             event = self.create_performance_issue()
@@ -151,12 +151,12 @@ class GroupSnoozeTest(
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_rate_without_test(self):
+    def test_rate_without_test(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
         assert snooze.is_valid(test_rates=False)
 
     @freeze_time()
-    def test_user_rate_reached_generic_issues(self):
+    def test_user_rate_reached_generic_issues(self) -> None:
         """Test that ignoring a generic issue until it's hit by 10 users in an hour works."""
         for i in range(0, 10):
             event, occurrence, group_info = self.store_search_issue(
@@ -172,7 +172,7 @@ class GroupSnoozeTest(
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
-    def test_rate_reached_generic_issue(self):
+    def test_rate_reached_generic_issue(self) -> None:
         """Test when a generic issue is ignored until it happens 10 times in a day"""
         for i in range(0, 10):
             event, occurrence, group_info = self.store_search_issue(
@@ -187,7 +187,7 @@ class GroupSnoozeTest(
         snooze = GroupSnooze.objects.create(group=generic_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
 
-    def test_test_user_rates_w_cache(self):
+    def test_test_user_rates_w_cache(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
 
         cache_key = f"groupsnooze:v1:{snooze.id}:test_user_rate:events_seen_counter"
@@ -236,7 +236,7 @@ class GroupSnoozeTest(
             assert not snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 3
 
-    def test_test_user_rates_w_cache_expired(self):
+    def test_test_user_rates_w_cache_expired(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
 
         cache_key = f"groupsnooze:v1:{snooze.id}:test_user_rate:events_seen_counter"
@@ -274,7 +274,7 @@ class GroupSnoozeTest(
             assert mocked_get_distinct_counts_totals.call_count == 3
             cache_spy.set.assert_called_with(cache_key, 100, 3600)
 
-    def test_test_user_count_w_cache(self):
+    def test_test_user_count_w_cache(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100)
 
         cache_key = f"groupsnooze:v1:{snooze.id}:test_user_counts:events_seen_counter"
@@ -322,7 +322,7 @@ class GroupSnoozeTest(
             assert not snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 3
 
-    def test_test_user_count_w_cache_expired(self):
+    def test_test_user_count_w_cache_expired(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100)
 
         cache_key = f"groupsnooze:v1:{snooze.id}:test_user_counts:events_seen_counter"
@@ -358,7 +358,7 @@ class GroupSnoozeTest(
             assert mocked_count_users_seen.call_count == 3
             cache_spy.set.assert_called_with(cache_key, 100, 3600)
 
-    def test_test_frequency_rates_w_cache(self):
+    def test_test_frequency_rates_w_cache(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
 
         cache_key = f"groupsnooze:v1:{snooze.id}:test_frequency_rate:events_seen_counter"
@@ -405,7 +405,7 @@ class GroupSnoozeTest(
             assert not snooze.is_valid(test_rates=True)
             assert mocked_get_timeseries_sums.call_count == 3
 
-    def test_test_frequency_rates_w_cache_expired(self):
+    def test_test_frequency_rates_w_cache_expired(self) -> None:
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
 
         cache_key = f"groupsnooze:v1:{snooze.id}:test_frequency_rate:events_seen_counter"

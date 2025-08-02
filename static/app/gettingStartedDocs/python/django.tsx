@@ -1,5 +1,5 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   type Docs,
   type DocsParams,
@@ -156,13 +156,17 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
+      content: [
         {
-          language: 'python',
-          description: tct(
+          type: 'text',
+          text: tct(
             'To configure the Sentry SDK, initialize it in your [code:settings.py] file:',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
+          language: 'python',
           code: `
 import sentry_sdk
 
@@ -173,7 +177,10 @@ sentry_sdk.init(
   // of transactions for performance monitoring.
   traces_sample_rate=1.0,
 )`,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               linkTracingOptions: (
@@ -194,14 +201,19 @@ sentry_sdk.init(
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],

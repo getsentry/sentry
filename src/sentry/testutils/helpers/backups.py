@@ -39,7 +39,6 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
     ExploreSavedQuery,
@@ -59,12 +58,18 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
+    DashboardWidgetSnapshot,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -567,6 +572,11 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             organization=org,
         )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard,
+            member=invited,
+            last_visited=timezone.now(),
+        )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
         )
@@ -585,6 +595,10 @@ class ExhaustiveFixtures(Fixtures):
             dashboard_widget_query=widget_query,
             extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
             spec_hashes=[],
+        )
+        DashboardWidgetSnapshot.objects.create(
+            widget=widget,
+            data={"test": "data"},
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
@@ -653,13 +667,6 @@ class ExhaustiveFixtures(Fixtures):
                 group=group,
                 user_id=owner_id,
             )
-
-        # DataSecrecyWaiver
-        DataSecrecyWaiver.objects.create(
-            organization=org,
-            access_start=timezone.now(),
-            access_end=timezone.now() + timedelta(days=1),
-        )
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)

@@ -1,16 +1,15 @@
-import {Fragment} from 'react';
-
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -19,10 +18,6 @@ import {
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -208,104 +203,111 @@ const getVerifySnippet = () => `
   Throw error
 </button>`;
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/solidstart',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/solidstart',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: `pnpm add @sentry/solidstart`,
-      },
-    ],
-  },
-];
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/solidstart',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/solidstart',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: `pnpm add @sentry/solidstart`,
+    },
+  ],
+};
 
 const onboarding: OnboardingConfig = {
-  introduction: params => (
-    <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
-      <p>
-        {tct(
-          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
-          {
-            strong: <strong />,
-          }
-        )}
-      </p>
-    </Fragment>
-  ),
+  introduction: () =>
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            "Initialize Sentry as early as possible in your application's lifecycle."
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'For the client, initialize the Sentry SDK in your [code:src/entry-client.tsx] file',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'TypeScript',
-              // value and language are in JS to get consistent syntax highlighting
+              // language are in JS to get consistent syntax highlighting
               // we aren't using any Typescript specific code in these snippets but
               // want a typescript ending.
-              value: 'javascript',
               language: 'javascript',
               code: getSdkClientSetupSnippet(params),
             },
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For the server, create an instrument file [code:instrument.server.mjs], initialize the Sentry SDK and deploy it alongside your application. For example by placing it in the [code:public] folder.',
             {code: <code />}
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkServerSetupSnippet(params),
             },
           ],
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'Note: Placing [code:instrument.server.mjs] inside the [code:public] folder makes it accessible to the outside world. Consider blocking requests to this file or finding a more appropriate location which your backend can access.',
             {code: <code />}
           ),
         },
-        ...(params.isPerformanceSelected
+        ...((params.isPerformanceSelected
           ? [
               {
-                description: tct(
+                type: 'text',
+                text: tct(
                   'Complete the setup by adding the Sentry [solidStartMiddlewareLink: middleware] to your [code:src/middleware.ts] file',
                   {
                     code: <code />,
@@ -314,33 +316,36 @@ const onboarding: OnboardingConfig = {
                     ),
                   }
                 ),
-                code: [
+              },
+              {
+                type: 'code',
+                tabs: [
                   {
                     label: 'TypeScript',
-                    // value and language are in JS to get consistent syntax highlighting
-                    // we aren't using any Typescript specific code in these snippets but
-                    // want a typescript ending.
-                    value: 'javascript',
                     language: 'javascript',
                     code: getSdkMiddlewareSetup(),
                   },
                 ],
               },
               {
-                description: tct('And including it in the [code:app.config.ts] file', {
+                type: 'text',
+                text: tct('And including it in the [code:app.config.ts] file', {
                   code: <code />,
                 }),
-                code: [
+              },
+              {
+                type: 'code',
+                tabs: [
                   {
                     label: 'TypeScript',
-                    value: 'javascript',
                     language: 'javascript',
                     code: getSdkMiddlewareLinkSetup(),
                   },
                 ],
               },
               {
-                description: tct(
+                type: 'text',
+                text: tct(
                   "If you're using [solidRouterLink:Solid Router], wrap your [code:Router] with [code:withSentryRouterRouting]. This creates a higher order component, which will enable Sentry to collect navigation spans.",
                   {
                     code: <code />,
@@ -349,31 +354,33 @@ const onboarding: OnboardingConfig = {
                     ),
                   }
                 ),
-                code: [
+              },
+              {
+                type: 'code',
+                tabs: [
                   {
                     label: 'TypeScript',
-                    value: 'typescript',
                     language: 'typescript',
                     code: getSdkRouterWrappingSetup(),
                   },
                 ],
               },
             ]
-          : []),
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
+          : []) as ContentBlock[]),
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'Add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:public/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JSON',
-              value: 'json',
               language: 'json',
               code: getSdkRun(),
             },
@@ -396,15 +403,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getVerifySnippet(),
             },
@@ -427,13 +437,18 @@ const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -465,13 +480,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/solid]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/solid]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -523,7 +543,7 @@ const crashReportOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptProfilingOnboarding({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink:
     'https://docs.sentry.io/platforms/javascript/guides/solidstart/profiling/browser-profiling/',
 });

@@ -369,7 +369,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):
-    key = "bitbucket_server"
+    key = IntegrationProviderSlug.BITBUCKET_SERVER.value
     name = "Bitbucket Server"
     metadata = metadata
     integration_cls = BitbucketServerIntegration

@@ -18,7 +18,7 @@ pytestmark = requires_snuba
 class BaseListMonitorCheckInsTest(MonitorTestCase):
     __test__ = False
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -33,7 +33,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         }
         return self.store_event(data, project_id=project_id)
 
-    def test_options_cors(self):
+    def test_options_cors(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
@@ -55,7 +55,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp["Access-Control-Allow-Origin"]
         assert resp["Access-Control-Allow-Headers"]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
@@ -94,7 +94,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[1]["id"] == str(checkin2.guid)
         assert resp.data[2]["id"] == str(checkin1.guid)
 
-    def test_statsperiod_constraints(self):
+    def test_statsperiod_constraints(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
@@ -128,7 +128,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         )
         assert resp.data[0]["id"] == str(checkin.guid)
 
-    def test_simple_environment(self):
+    def test_simple_environment(self) -> None:
         self.login_as(self.user)
 
         monitor = self._create_monitor()
@@ -157,7 +157,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[0]["id"] == str(checkin1.guid)
         assert resp.data[0]["environment"] == checkin1.monitor_environment.get_environment().name
 
-    def test_bad_monitorenvironment(self):
+    def test_bad_monitorenvironment(self) -> None:
         self.login_as(self.user)
 
         monitor = self._create_monitor()
@@ -183,7 +183,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         )
         assert len(resp.data) == 0
 
-    def test_trace_ids(self):
+    def test_trace_ids(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
@@ -226,7 +226,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[1]["id"] == str(checkin1.guid)
         assert resp.data[1]["groups"] == [{"id": group.id, "shortId": group.qualified_short_id}]
 
-    def test_serializes_monitor_config_correctly(self):
+    def test_serializes_monitor_config_correctly(self) -> None:
         monitor = self.create_monitor(project=self.project)
         config = {
             "schedule": "0 0 * * *",

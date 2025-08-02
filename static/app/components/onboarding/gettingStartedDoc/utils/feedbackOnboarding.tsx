@@ -1,10 +1,10 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({
@@ -76,7 +76,7 @@ export const getCrashReportInstallDescription = () =>
 export function FeedbackOnboardingWebApiBanner() {
   return (
     <Alert.Container>
-      <Alert type="info" showIcon>
+      <Alert type="info">
         {tct(
           `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
           {

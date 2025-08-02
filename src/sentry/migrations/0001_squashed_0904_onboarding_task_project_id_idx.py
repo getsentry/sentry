@@ -8410,7 +8410,7 @@ class Migration(CheckedMigration):
         # would be nice but it doesn't support hints :(
         # django.contrib.postgres.operations.BtreeGistExtension(),
         SafeRunSQL(
-            sql="CREATE EXTENSION btree_gist;",
+            sql="CREATE EXTENSION IF NOT EXISTS btree_gist;",
             reverse_sql="",
             hints={"tables": ["sentry_groupopenperiod"]},
         ),

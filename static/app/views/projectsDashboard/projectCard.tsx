@@ -124,7 +124,7 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
             hideOverflow
             disableLink={!hasProjectAccess}
           />
-          <ButtonBar gap={0.5}>
+          <ButtonBar gap="xs">
             <SettingsButton
               borderless
               size="zero"

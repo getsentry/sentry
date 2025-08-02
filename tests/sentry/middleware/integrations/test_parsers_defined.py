@@ -19,7 +19,7 @@ def extract_matching_url_patterns(urlpatterns, base: str = ""):
                 yield url_pattern
 
 
-def test_parsers_for_all_extension_urls():
+def test_parsers_for_all_extension_urls() -> None:
     """
     Ensure that we have a request parser for all defined integrations.
     """

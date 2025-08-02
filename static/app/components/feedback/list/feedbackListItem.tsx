@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
@@ -29,8 +28,6 @@ interface Props {
   feedbackItem: FeedbackIssueListItem;
   isSelected: 'all-selected' | boolean;
   onSelect: (isSelected: boolean) => void;
-  ref?: React.Ref<HTMLDivElement>;
-  style?: CSSProperties;
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListItem}) {
@@ -41,7 +38,7 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Props) {
+export default function FeedbackListItem({feedbackItem, isSelected, onSelect}: Props) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -53,7 +50,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
   const hasComments = feedbackItem.numComments > 0;
 
   return (
-    <CardSpacing ref={ref} style={style}>
+    <CardSpacing>
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
@@ -105,8 +102,8 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
         )}
 
         <PreviewRow
-          align="flex-start"
-          justify="flex-start"
+          align="start"
+          justify="start"
           style={{
             gridArea: 'message',
           }}
@@ -115,7 +112,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
         </PreviewRow>
 
         <BottomGrid style={{gridArea: 'bottom'}}>
-          <Row justify="flex-start" gap={space(0.75)}>
+          <Row justify="start" gap="sm">
             {feedbackItem.project ? (
               <StyledProjectBadge
                 disableLink
@@ -128,7 +125,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
             <ShortId>{feedbackItem.shortId}</ShortId>
           </Row>
 
-          <Row justify="flex-end" gap={space(1)}>
+          <Row justify="end" gap="md">
             <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
             {hasComments && (
@@ -168,8 +165,6 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
     </CardSpacing>
   );
 }
-
-export default FeedbackListItem;
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;

@@ -2,7 +2,7 @@ import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import type {ValidSort} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export const MOBILE_LANDING_SUB_PATH = 'mobile';
@@ -24,6 +24,6 @@ export const MODULES = [ModuleName.MOBILE_VITALS, ModuleName.HTTP, ModuleName.SE
 export const MOBILE_PLATFORMS: PlatformKey[] = [...mobile];
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'sum(span.duration)' satisfies EAPSpanProperty,
+  field: 'sum(span.duration)' satisfies SpanProperty,
   kind: 'desc',
 };

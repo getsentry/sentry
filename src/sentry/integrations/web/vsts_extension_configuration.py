@@ -1,5 +1,6 @@
 import re
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.web.frontend.base import control_silo_view
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
@@ -7,7 +8,7 @@ from .integration_extension_configuration import IntegrationExtensionConfigurati
 
 @control_silo_view
 class VstsExtensionConfigurationView(IntegrationExtensionConfigurationView):
-    provider = "vsts"
+    provider = IntegrationProviderSlug.AZURE_DEVOPS.value
     external_provider_key = "vsts-extension"
 
     def _is_valid_account_name(self, account_name: str) -> bool:

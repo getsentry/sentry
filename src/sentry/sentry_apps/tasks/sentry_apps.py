@@ -6,15 +6,21 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
+import sentry_sdk
 from django.urls import reverse
-from requests.exceptions import RequestException
+from requests import HTTPError, Timeout
+from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 
 from sentry import analytics, features, nodestore
+from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
+    AlertRuleUiComponentWebhookSentEvent,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.eventstore.models import BaseEvent, Event, GroupEvent
+from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -46,8 +52,9 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
-from sentry.taskworker.retry import Retry, retry_task
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -76,8 +83,23 @@ CONTROL_TASK_OPTIONS = {
 }
 
 retry_decorator = retry(
-    on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError, SentryAppSentryError, AssertionError, ValueError),
+    on=(RequestException),
+    on_silent=(
+        ChunkedEncodingError,
+        Timeout,
+        ApiHostError,
+        ApiTimeoutError,
+        ConnectionError,
+        HTTPError,
+    ),
+    ignore=(
+        ClientError,
+        SentryAppSentryError,
+        AssertionError,
+        ValueError,
+        RestrictedIPAddress,
+        NoRetriesRemainingError,
+    ),
     ignore_and_capture=(),
 )
 
@@ -152,7 +174,7 @@ def _webhook_issue_data(
             times=3,
             delay=60 * 5,
         ),
-        processing_deadline_duration=20,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
@@ -241,12 +263,16 @@ def send_alert_webhook_v2(
 
     # On success, record analytic event for Alert Rule UI Component
     if request_data.data.get("issue_alert"):
-        analytics.record(
-            "alert_rule_ui_component_webhook.sent",
-            organization_id=organization.id,
-            sentry_app_id=sentry_app_id,
-            event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
-        )
+        try:
+            analytics.record(
+                AlertRuleUiComponentWebhookSentEvent(
+                    organization_id=organization.id,
+                    sentry_app_id=sentry_app_id,
+                    event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 @instrumented_task(
@@ -329,7 +355,7 @@ def _process_resource_change(
             except model.DoesNotExist as e:
                 # Explicitly requeue the task, so we don't report this to Sentry until
                 # we hit the max number of retries.
-                return retry_task(e)
+                retry_task(e)
 
         org = None
 
@@ -654,6 +680,8 @@ def get_webhook_data(
             times=3,
             delay=60 * 5,
         ),
+        compression_type=CompressionType.ZSTD,
+        processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
@@ -676,6 +704,8 @@ def send_resource_change_webhook(
 
 
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             logger.info(
@@ -698,9 +728,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         if int(id) != -1:
             if features.has("organizations:workflow-engine-ui-links", event.group.organization):
                 id = get_key_from_rule_data(f.rule, "workflow_id")
-            elif features.has(
-                "organizations:workflow-engine-trigger-actions", event.group.organization
-            ):
+            elif should_fire_workflow_actions(event.group.organization, event.group.type):
                 id = get_key_from_rule_data(f.rule, "legacy_rule_id")
 
         settings = f.kwargs.get("schema_defined_settings")

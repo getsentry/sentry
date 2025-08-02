@@ -41,7 +41,7 @@ class SpanOpDefaults(TypedDict):
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
-    aiModelCosts: AIModelCosts
+    aiModelCosts: AIModelCosts | None
     metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
     spanOpDefaults: SpanOpDefaults

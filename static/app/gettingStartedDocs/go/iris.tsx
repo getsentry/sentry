@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
@@ -40,8 +40,14 @@ if err := sentry.Init(sentry.ClientOptions{
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable structured logs to Sentry
+  EnableLogs: true,`
+      : ''
   }
-); err != nil {
+}); err != nil {
   fmt.Printf("Sentry initialization failed: %v\\n", err)
 }
 
@@ -174,7 +180,7 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <Alert type="info">
+          <Alert type="info" showIcon={false}>
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryiris]!",
               {code: <code />}
@@ -202,6 +208,22 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/go/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {

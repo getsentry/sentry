@@ -149,18 +149,32 @@ class PushEventWebhook(Webhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+
+                    file_changes = []
+
                     for fname in commit["added"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="A"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id, commit=c, filename=fname, type="A"
+                            )
                         )
+
                     for fname in commit["removed"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="D"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id, commit=c, filename=fname, type="D"
+                            )
                         )
                     for fname in commit["modified"]:
-                        CommitFileChange.objects.create(
-                            organization_id=organization_id, commit=c, filename=fname, type="M"
+                        file_changes.append(
+                            CommitFileChange(
+                                organization_id=organization_id, commit=c, filename=fname, type="M"
+                            )
                         )
+
+                    if file_changes:
+                        CommitFileChange.objects.bulk_create(file_changes)
+
             except IntegrityError:
                 pass
 

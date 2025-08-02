@@ -30,6 +30,7 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
+   * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
    */
   analyticsContext: string;
@@ -91,7 +92,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * The core replay data
    */
-  replay: ReplayReader | null;
 
   /**
    * Restart the replay
@@ -99,7 +99,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Jump the video to a specific time
+   * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
 
@@ -133,7 +133,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isPlaying: false,
   isVideoReplay: false,
   removeHighlight: () => {},
-  replay: null,
   restart: () => {},
   setCurrentTime: () => {},
   setRoot: () => {},
@@ -143,6 +142,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
 
 type Props = {
   /**
+   * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
    * Attached to certain analytics events.
    */
@@ -618,7 +618,6 @@ export function Provider({
           isFinished,
           isPlaying,
           removeHighlight,
-          replay,
           restart,
           setCurrentTime,
           togglePlayPause,

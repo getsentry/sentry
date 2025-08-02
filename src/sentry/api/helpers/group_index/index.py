@@ -20,8 +20,6 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
-from sentry.models.groupsearchview import GroupSearchView
-from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -104,49 +102,31 @@ def build_query_params_from_request(
     query = query.strip()
 
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
-        if features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            selected_view_id = request.GET.get("viewId")
-            if selected_view_id:
-                default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
-            else:
-                first_starred_view = GroupSearchViewStarred.objects.filter(
-                    organization=organization,
-                    user_id=request.user.id,
-                    position=0,
-                ).first()
-                default_view = first_starred_view.group_search_view if first_starred_view else None
-
-            if default_view:
-                query_kwargs["sort_by"] = default_view.query_sort
-                query = default_view.query
-        else:
-            saved_searches = (
-                SavedSearch.objects
-                # Do not include pinned or personal searches from other users in
-                # the same organization. DOES include the requesting users pinned
-                # search
-                .exclude(
-                    ~Q(owner_id=request.user.id),
-                    visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
-                )
-                .filter(
-                    Q(organization=organization) | Q(is_global=True),
-                )
-                .extra(order_by=["name"])
+        saved_searches = (
+            SavedSearch.objects
+            # Do not include pinned or personal searches from other users in
+            # the same organization. DOES include the requesting users pinned
+            # search
+            .exclude(
+                ~Q(owner_id=request.user.id),
+                visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
             )
-            selected_search_id = request.GET.get("searchId", None)
-            if selected_search_id:
-                # saved search requested by the id
-                saved_search = saved_searches.filter(id=int(selected_search_id)).first()
-            else:
-                # pinned saved search
-                saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
+            .filter(
+                Q(organization=organization) | Q(is_global=True),
+            )
+            .extra(order_by=["name"])
+        )
+        selected_search_id = request.GET.get("searchId", None)
+        if selected_search_id:
+            # saved search requested by the id
+            saved_search = saved_searches.filter(id=int(selected_search_id)).first()
+        else:
+            # pinned saved search
+            saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
 
-            if saved_search:
-                query_kwargs["sort_by"] = saved_search.sort
-                query = saved_search.query
+        if saved_search:
+            query_kwargs["sort_by"] = saved_search.sort
+            query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)

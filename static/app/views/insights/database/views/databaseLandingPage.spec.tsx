@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseLandingPage} from 'sentry/views/insights/database/views/databaseLandingPage';
 
 jest.mock('sentry/utils/useLocation');
@@ -138,7 +139,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -165,7 +167,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -190,7 +193,8 @@ describe('DatabaseLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project.id',
@@ -256,7 +260,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -283,7 +288,8 @@ describe('DatabaseLandingPage', function () {
         method: 'GET',
         query: {
           cursor: undefined,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           excludeOther: 0,
           field: [],
@@ -308,7 +314,8 @@ describe('DatabaseLandingPage', function () {
       expect.objectContaining({
         method: 'GET',
         query: {
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           environment: [],
           field: [
             'project.id',

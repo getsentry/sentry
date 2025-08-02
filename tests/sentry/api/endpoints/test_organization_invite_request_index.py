@@ -20,7 +20,7 @@ class OrganizationInviteRequestListTest(APITestCase):
     def org(self):
         return self.create_organization(owner=self.user)
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.invite_request = self.create_member(
             email="test@example.com",
             organization=self.org,
@@ -34,7 +34,7 @@ class OrganizationInviteRequestListTest(APITestCase):
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug)
 
@@ -45,7 +45,7 @@ class OrganizationInviteRequestListTest(APITestCase):
         assert resp.data[1]["email"] == self.request_to_join.email
         assert resp.data[1]["inviteStatus"] == "requested_to_join"
 
-    def test_join_requests_disabled(self):
+    def test_join_requests_disabled(self) -> None:
         OrganizationOption.objects.create(
             organization_id=self.org.id, key="sentry:join_requests", value=False
         )
@@ -65,7 +65,7 @@ class OrganizationInviteRequestCreateTest(
     endpoint = "sentry-api-0-organization-invite-request-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
 
         # SlackActivityNotificationTest needs the manager as self.user to create the identity
@@ -87,7 +87,7 @@ class OrganizationInviteRequestCreateTest(
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         with self.tasks(), outbox_runner():
@@ -115,7 +115,7 @@ class OrganizationInviteRequestCreateTest(
 
         self.assert_org_member_mapping(org_member=member)
 
-    def test_higher_role(self):
+    def test_higher_role(self) -> None:
         self.login_as(user=self.user)
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
@@ -129,7 +129,7 @@ class OrganizationInviteRequestCreateTest(
         )
         assert member.role == "owner"
 
-    def test_existing_member(self):
+    def test_existing_member(self) -> None:
         self.login_as(user=self.user)
 
         user2 = self.create_user("foobar@example.com")
@@ -142,7 +142,7 @@ class OrganizationInviteRequestCreateTest(
         assert resp.status_code == 400
         assert ("The user %s is already a member" % user2.email).encode("utf-8") in resp.content
 
-    def test_existing_invite_request(self):
+    def test_existing_invite_request(self) -> None:
         self.login_as(user=self.user)
 
         invite_request = self.create_member(
@@ -160,7 +160,7 @@ class OrganizationInviteRequestCreateTest(
             "utf-8"
         ) in resp.content
 
-    def test_request_to_invite_email(self):
+    def test_request_to_invite_email(self) -> None:
         with self.tasks():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -184,7 +184,7 @@ class OrganizationInviteRequestCreateTest(
         assert mail.outbox[0].subject == expected_subject
         assert "eric@localhost" in mail.outbox[0].body
 
-    def test_request_to_invite_slack(self):
+    def test_request_to_invite_slack(self) -> None:
         with self.tasks():
             self.get_success_response(
                 self.organization.slug,
@@ -240,7 +240,7 @@ class OrganizationInviteRequestCreateTest(
             "member_email": "eric@localhost",
         }
 
-    def test_disallow_when_sso_required(self):
+    def test_disallow_when_sso_required(self) -> None:
         from sentry.models.authidentity import AuthIdentity
         from sentry.models.authprovider import AuthProvider
         from sentry.silo.base import SiloMode

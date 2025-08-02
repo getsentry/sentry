@@ -1,10 +1,10 @@
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -35,6 +35,12 @@ Sentry.init({
       ? `
   // Tracing
   tracesSampleRate: 1.0, // Capture 100% of the transactions`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Send structured logs to Sentry
+  enableLogs: true,`
       : ''
   }
 });`;
@@ -83,7 +89,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/bun/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {

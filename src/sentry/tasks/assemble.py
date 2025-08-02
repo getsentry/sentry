@@ -515,10 +515,19 @@ class ArtifactBundlePostAssembler:
 
         # In case there is not ArtifactBundle with a specific bundle_id, we just create it and return.
         if existing_artifact_bundle is None:
+            file = self.assemble_result.bundle
+
+            metrics.distribution(
+                "storage.put.size",
+                file.size,
+                tags={"usecase": "artifact-bundles", "compression": "none"},
+                unit="byte",
+            )
+
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=self.organization.id,
                 bundle_id=bundle_id,
-                file=self.assemble_result.bundle,
+                file=file,
                 artifact_count=self.archive.artifact_count,
                 # By default, a bundle is not indexed.
                 indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,

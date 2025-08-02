@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/llmMonitoring/referrers';
 
 export default function LlmPipelineDurationChartWidget(props: LoadableChartWidgetProps) {
@@ -12,7 +12,7 @@ export default function LlmPipelineDurationChartWidget(props: LoadableChartWidge
   const aggregate = 'avg(span.duration)';
   const referrer = Referrer.PIPELINE_DURATION_CHART;
   const search = new MutableSearch('span.category:"ai.pipeline"');
-  const {data, isPending, error} = useSpanMetricsSeries(
+  const {data, isPending, error} = useSpanSeries(
     {
       yAxis: [aggregate],
       search,

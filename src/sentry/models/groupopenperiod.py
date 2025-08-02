@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -18,6 +19,24 @@ from sentry.models.group import Group, GroupStatus
 from sentry.types.activity import ActivityType
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class OpenPeriod:
+    start: datetime
+    end: datetime | None
+    duration: timedelta | None
+    is_open: bool
+    last_checked: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start": self.start,
+            "end": self.end,
+            "duration": self.duration,
+            "isOpen": self.is_open,
+            "lastChecked": self.last_checked,
+        }
 
 
 class TsTzRange(models.Func):
@@ -99,12 +118,12 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
 
 def get_last_checked_for_open_period(group: Group) -> datetime:
+    from sentry.incidents.grouptype import MetricIssue
     from sentry.incidents.models.alert_rule import AlertRule
-    from sentry.issues.grouptype import MetricIssuePOC
 
     event = group.get_latest_event()
     last_checked = group.last_seen
-    if event and group.type == MetricIssuePOC.type_id:
+    if event and group.type == MetricIssue.type_id:
         alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
         if alert_rule_id:
             try:
@@ -124,7 +143,6 @@ def get_open_periods_for_group(
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[Any]:
-    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
 
     if not features.has("organizations:issue-open-periods", group.organization):
         return []

@@ -126,7 +126,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (mini) {
       return (
         <Alert.Container>
-          <Alert type="error" showIcon className={className}>
+          <Alert type="error" className={className}>
             <AlertContent>
               {message || t('There was a problem rendering this component')}
               {this.props.allowDismiss && <IconClose onClick={this.handleClose} />}

@@ -1,9 +1,15 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import ReplayPlatformIcon from 'sentry/components/replays/replayPlatformIcon';
+import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 export default function BrowserOSIcons({
   showBrowser = true,
@@ -12,33 +18,63 @@ export default function BrowserOSIcons({
   isLoading?: boolean;
   showBrowser?: boolean;
 }) {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
 
-  return isLoading ? (
-    <Placeholder width="50px" height="32px" />
-  ) : (
-    <Fragment>
-      <Tooltip title={`${replayRecord?.os.name ?? ''} ${replayRecord?.os.version ?? ''}`}>
-        <ReplayPlatformIcon
-          name={replayRecord?.os.name ?? ''}
-          version={replayRecord?.os.version ?? undefined}
-          showVersion
-        />
+  if (isLoading) {
+    return <Placeholder width="34px" height="20px" />;
+  }
+
+  if (!replayRecord) {
+    return (
+      <Tooltip title={t('Unknown Device')}>
+        <PlatformIcon platform="unknown" size="20px" />
       </Tooltip>
-      {showBrowser && (
-        <Tooltip
-          title={`${replayRecord?.browser.name ?? ''} ${
-            replayRecord?.browser.version ?? ''
-          }`}
-        >
-          <ReplayPlatformIcon
-            name={replayRecord?.browser.name ?? ''}
-            version={replayRecord?.browser.version ?? undefined}
-            showVersion
-          />
-        </Tooltip>
-      )}
-    </Fragment>
+    );
+  }
+
+  return (
+    <Tooltip
+      title={
+        <CountTooltipContent>
+          {showBrowser && (
+            <Fragment>
+              <dt>{t('Browser:')}</dt>
+              <dd>{`${replayRecord?.browser.name ?? ''} ${replayRecord?.browser.version ?? ''}`}</dd>
+            </Fragment>
+          )}
+          <dt>{t('OS:')}</dt>
+          <dd>
+            {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
+          </dd>
+        </CountTooltipContent>
+      }
+    >
+      <Flex>
+        {showBrowser && (
+          <Overlap>
+            <PlatformIcon
+              platform={generatePlatformIconName(
+                replayRecord?.browser.name ?? '',
+                replayRecord?.browser.version ?? undefined
+              )}
+              size="20px"
+            />
+          </Overlap>
+        )}
+        <PlatformIcon
+          platform={generatePlatformIconName(
+            replayRecord?.os.name ?? '',
+            replayRecord?.os.version ?? undefined
+          )}
+          size="20px"
+        />
+      </Flex>
+    </Tooltip>
   );
 }
+
+const Overlap = styled('div')`
+  margin-right: -${space(0.75)};
+  z-index: 1;
+`;

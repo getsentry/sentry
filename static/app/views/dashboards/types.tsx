@@ -105,6 +105,8 @@ export type Widget = {
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
+  // Used for table widget column widths, currently is not saved
+  tableWidths?: number[];
   tempId?: string;
   thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
@@ -129,6 +131,8 @@ export type DashboardPermissions = {
  * The response shape from dashboard list endpoint
  */
 export type DashboardListItem = {
+  environment: string[];
+  filters: DashboardFilters;
   id: string;
   projects: number[];
   title: string;
@@ -137,6 +141,7 @@ export type DashboardListItem = {
   createdBy?: User;
   dateCreated?: string;
   isFavorited?: boolean;
+  lastVisited?: string;
   permissions?: DashboardPermissions;
 };
 
@@ -184,4 +189,5 @@ export enum DashboardWidgetSource {
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
+  LOGS = 'logs',
 }
