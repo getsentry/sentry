@@ -59,12 +59,20 @@ class DatabaseBackedAppService(AppService):
         return self._FQ.get_many(filter)
 
     def find_app_components(self, *, app_id: int) -> list[RpcSentryAppComponent]:
+        """
+        Fetches all components for a Sentry App by its ID from the database using the read replica.
+        Not safe to use in a write context, as it may not reflect the most recent changes.
+        """
         return [
             serialize_sentry_app_component(c)
             for c in SentryAppComponent.objects.using_replica().filter(sentry_app_id=app_id)
         ]
 
     def get_sentry_app_by_id(self, *, id: int) -> RpcSentryApp | None:
+        """
+        Fetches a Sentry App by its ID from the database using the read replica.
+        Not safe to use in a write context, as it may not reflect the most recent changes.
+        """
         try:
             sentry_app = SentryApp.objects.using_replica().get(id=id)
         except SentryApp.DoesNotExist:
@@ -72,9 +80,15 @@ class DatabaseBackedAppService(AppService):
         return serialize_sentry_app(sentry_app)
 
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
+        """
+        Fetches a Sentry App Installation by its ID from the database using the read replica.
+        Not safe to use in a write context, as it may not reflect the most recent changes.
+        """
         try:
-            install = SentryAppInstallation.objects.select_related("sentry_app").get(
-                id=id, status=SentryAppInstallationStatus.INSTALLED
+            install = (
+                SentryAppInstallation.objects.using_replica()
+                .select_related("sentry_app")
+                .get(id=id, status=SentryAppInstallationStatus.INSTALLED)
             )
             return serialize_sentry_app_installation(install)
         except SentryAppInstallation.DoesNotExist:
