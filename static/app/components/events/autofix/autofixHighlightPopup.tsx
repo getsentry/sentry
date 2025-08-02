@@ -280,10 +280,8 @@ function AutofixHighlightPopupContent({
   }, [serverMessages, pendingUserMessage, showLoadingAssistant]);
 
   const truncatedText =
-    selectedText.length > 70
-      ? selectedText.slice(0, 35).split(' ').slice(0, -1).join(' ') +
-        '... ...' +
-        selectedText.slice(-35)
+    selectedText.length > 35
+      ? selectedText.slice(0, 35).split(' ').slice(0, -1).join(' ') + '...'
       : selectedText;
 
   const currentUser = useUser();
@@ -763,12 +761,15 @@ const Header = styled('div')`
 const SelectedText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  display: flex;
   align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   span {
-    overflow: wrap;
-    white-space: wrap;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
