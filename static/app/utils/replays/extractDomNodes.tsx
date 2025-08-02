@@ -2,7 +2,7 @@ import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getNodeIds} from 'sentry/utils/replays/types';
-import constructSelector from 'sentry/views/replays/deadRageClick/constructSelector';
+import constructSelector from 'sentry/views/replays/selectors/constructSelector';
 
 export type Extraction = {
   frame: ReplayFrame;

@@ -2,6 +2,10 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Pagination from 'sentry/components/pagination';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/components/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,
@@ -31,10 +35,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import {
-  JetpackComposePiiNotice,
-  useNeedsJetpackComposePiiNotice,
-} from 'sentry/views/replays/jetpackComposePiiNotice';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 const COLUMNS_WEB = [
