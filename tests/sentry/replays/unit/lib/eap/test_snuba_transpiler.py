@@ -188,6 +188,69 @@ def test_having_comparison_filters(snuba_fn, eap_fn):
 
 
 @pytest.mark.parametrize(
+    ("snuba_fn", "eap_fn"),
+    [
+        ("avgIf", EAPFunction.FUNCTION_AVG),
+        ("countIf", EAPFunction.FUNCTION_COUNT),
+        ("maxIf", EAPFunction.FUNCTION_MAX),
+        ("minIf", EAPFunction.FUNCTION_MIN),
+        ("p50If", EAPFunction.FUNCTION_P50),
+        ("p75If", EAPFunction.FUNCTION_P75),
+        ("p90If", EAPFunction.FUNCTION_P90),
+        ("p95If", EAPFunction.FUNCTION_P95),
+        ("p99If", EAPFunction.FUNCTION_P99),
+        ("quantilesIf(0.5)", EAPFunction.FUNCTION_P50),
+        ("quantilesIf(0.75)", EAPFunction.FUNCTION_P75),
+        ("quantilesIf(0.90)", EAPFunction.FUNCTION_P90),
+        ("quantilesIf(0.95)", EAPFunction.FUNCTION_P95),
+        ("quantilesIf(0.99)", EAPFunction.FUNCTION_P99),
+        ("sumIf", EAPFunction.FUNCTION_SUM),
+        ("uniqIf", EAPFunction.FUNCTION_UNIQ),
+    ],
+)
+def test_having_conditional_comparison_filters(snuba_fn, eap_fn):
+    snuba_condition = Function("greater", parameters=[Column("float"), 1.0])
+    eap_condition = condidtional_aggregation_filter(snuba_condition, SETTINGS)
+
+    operators = [
+        (Op.EQ, AggregationComparisonFilter.OP_EQUALS),
+        (Op.NEQ, AggregationComparisonFilter.OP_NOT_EQUALS),
+        (Op.GT, AggregationComparisonFilter.OP_GREATER_THAN),
+        (Op.LT, AggregationComparisonFilter.OP_LESS_THAN),
+        (Op.GTE, AggregationComparisonFilter.OP_GREATER_THAN_OR_EQUALS),
+        (Op.LTE, AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS),
+    ]
+
+    for snuba_op, eap_op in operators:
+        conditions = [
+            Condition(
+                Function(snuba_fn, parameters=[Column("int"), snuba_condition]),
+                snuba_op,
+                1.0,
+            )
+        ]
+        eap_filter = AggregationFilter(
+            and_filter=AggregationAndFilter(
+                filters=[
+                    AggregationFilter(
+                        comparison_filter=AggregationComparisonFilter(
+                            op=eap_op,
+                            val=1.0,
+                            conditional_aggregation=AttributeConditionalAggregation(
+                                aggregate=eap_fn,
+                                key=AttributeKey(type=AttributeKey.TYPE_INT, name="int"),
+                                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                                filter=eap_condition,
+                            ),
+                        )
+                    )
+                ]
+            )
+        )
+        assert having(conditions, SETTINGS) == eap_filter
+
+
+@pytest.mark.parametrize(
     ("column", "eap_type"),
     [
         ("bool", AttributeKey.TYPE_BOOLEAN),

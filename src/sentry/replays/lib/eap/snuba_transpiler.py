@@ -610,7 +610,7 @@ def agg_condition(expr: BooleanCondition | Condition, settings: Settings) -> Agg
                         aggregate=CONDITIONAL_FUNCTION_MAP[expr.lhs.function],
                         key=key(expr.lhs.parameters[0], settings),
                         extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
-                        filter=condition(expr.lhs.parameters[1], settings),
+                        filter=condidtional_aggregation_filter(expr.lhs.parameters[1], settings),
                     ),
                 )
             )
