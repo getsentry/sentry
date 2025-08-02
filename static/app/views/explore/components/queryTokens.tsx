@@ -16,7 +16,7 @@ interface QueryTokensProps {
   visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
 }
 
-export function generateQueryTokensString({
+function generateQueryTokensString({
   groupBys,
   query,
   sort,
