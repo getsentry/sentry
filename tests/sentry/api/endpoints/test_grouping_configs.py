@@ -22,7 +22,7 @@ class GroupingConfigsNoSlugTest(APITestCase):
 
 
 class GroupingConfigsWithSlugTest(APITestCase):
-    endpoint = "sentry-api-0-organization-grouping-configs"
+    endpoint = "sentry-api-0-grouping-configs"
 
     def setUp(self) -> None:
         super().setUp()
@@ -30,7 +30,7 @@ class GroupingConfigsWithSlugTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_with_slug(self) -> None:
-        resp = self.get_response(self.organization.slug)
+        resp = self.get_response()
         assert resp.status_code == 200
 
         body = resp.data
