@@ -29,9 +29,11 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         self.session_started = time.time() // 60 * 60
         self.session_release = "foo@1.0.0"
         self.session_crashed_release = "foo@2.0.0"
+        self.session_unhandled_release = "foo@2.1.0"
         session_1 = "5d52fd05-fcc9-4bf3-9dc9-267783670341"
         session_2 = "5e910c1a-6941-460e-9843-24103fb6a63c"
         session_3 = "a148c0c5-06a2-423b-8901-6b43b812cf82"
+        session_4 = "dce6ff99-3fcc-4a61-9a79-7bd8d6b917e9"
         user_1 = "39887d89-13b2-4c84-8c23-5d13d2102666"
 
         self.store_session(
@@ -75,6 +77,17 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 session_id=session_3,
                 status="crashed",
                 release=self.session_crashed_release,
+                environment="prod",
+                started=self.session_started,
+                received=self.received,
+            )
+        )
+        self.store_session(
+            self.build_session(
+                distinct_id=user_1,
+                session_id=session_4,
+                status="unhandled",
+                release=self.session_unhandled_release,
                 environment="prod",
                 started=self.session_started,
                 received=self.received,
@@ -457,7 +470,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         """
         proj_id = self.project.id
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
-        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
+        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0"), (proj_id, "foo@2.1.0")}
 
     def test_old_release_model_adoptions(self) -> None:
         """
@@ -467,7 +480,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         proj_id = self.project.id
         self.store_session(
             self.build_session(
-                release="foo@3.0.0",
+                release="foo@0.0.1-beta.1",
                 environment="prod",
                 status="crashed",
                 started=self.session_started - _100h,
@@ -476,7 +489,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         )
 
         data = self.backend.get_changed_project_release_model_adoptions([proj_id])
-        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0")}
+        assert set(data) == {(proj_id, "foo@1.0.0"), (proj_id, "foo@2.0.0"), (proj_id, "foo@2.1.0")}
 
     def test_multi_proj_release_model_adoptions(self) -> None:
         """Test that the api works with multiple projects"""
@@ -497,6 +510,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
         assert set(data) == {
             (proj_id, "foo@1.0.0"),
             (proj_id, "foo@2.0.0"),
+            (proj_id, "foo@2.1.0"),
             (new_proj_id, "foo@3.0.0"),
         }
 
@@ -538,11 +552,12 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 {
                     "duration_p50": None,
                     "duration_p90": None,
-                    "users": 0,
                     "users_abnormal": 0,
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
+                    "users": 0,
                 },
                 {
                     "duration_p50": None,
@@ -552,6 +567,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -561,6 +577,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": 45.0,
@@ -570,6 +587,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 1,
+                    "users_unhandled": 0,
                 },
             ],
             {
@@ -578,6 +596,63 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "users_crashed": 0,
                 "users_errored": 0,
                 "users_healthy": 1,
+                "users_unhandled": 0,
+            },
+        )
+
+    def test_get_project_release_stats_users_unhandled(self):
+        self._test_get_project_release_stats(
+            "users",
+            self.session_unhandled_release,
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                    "users_unhandled": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                    "users_unhandled": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                    "users_unhandled": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 1,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                    "users_unhandled": 1,
+                },
+            ],
+            {
+                "users": 1,
+                "users_abnormal": 0,
+                "users_crashed": 0,
+                "users_errored": 0,
+                "users_healthy": 0,
+                "users_unhandled": 1,
             },
         )
 
@@ -594,6 +669,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -603,6 +679,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -612,6 +689,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -621,6 +699,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 1,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
             ],
             {
@@ -629,6 +708,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "users_crashed": 1,
                 "users_errored": 0,
                 "users_healthy": 0,
+                "users_unhandled": 0,
             },
         )
 
@@ -645,6 +725,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -654,6 +735,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -663,6 +745,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": 45.0,
@@ -672,6 +755,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 2,
+                    "sessions_unhandled": 0,
                 },
             ],
             {
@@ -680,6 +764,63 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
                 "sessions_healthy": 2,
+                "sessions_unhandled": 0,
+            },
+        )
+
+    def test_get_project_release_stats_sessions_unhandled(self):
+        self._test_get_project_release_stats(
+            "sessions",
+            self.session_unhandled_release,
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 1,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                    "sessions_unhandled": 1.0,
+                },
+            ],
+            {
+                "sessions": 1,
+                "sessions_abnormal": 0,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "sessions_healthy": 0,
+                "sessions_unhandled": 1.0,
             },
         )
 
@@ -696,6 +837,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -705,6 +847,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -714,6 +857,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -723,6 +867,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 1,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
             ],
             {
@@ -731,6 +876,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "sessions_crashed": 1,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+                "sessions_unhandled": 0,
             },
         )
 
@@ -751,6 +897,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -760,6 +907,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -769,6 +917,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -778,6 +927,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "sessions_crashed": 0,
                     "sessions_errored": 0,
                     "sessions_healthy": 0,
+                    "sessions_unhandled": 0,
                 },
             ],
             {
@@ -786,6 +936,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+                "sessions_unhandled": 0,
             },
         )
 
@@ -802,6 +953,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -811,6 +963,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -820,6 +973,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
                 {
                     "duration_p50": None,
@@ -829,6 +983,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                     "users_crashed": 0,
                     "users_errored": 0,
                     "users_healthy": 0,
+                    "users_unhandled": 0,
                 },
             ],
             {
@@ -837,6 +992,7 @@ class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
                 "users_crashed": 0,
                 "users_errored": 0,
                 "users_healthy": 0,
+                "users_unhandled": 0,
             },
         )
 
@@ -1568,4 +1724,5 @@ class InitWithoutUserTestCase(TestCase, BaseMetricsTestCase):
             "users_crashed": 1,
             "users_errored": 0,
             "users_healthy": 2,
+            "users_unhandled": 0,
         }
