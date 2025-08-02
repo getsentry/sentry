@@ -15,11 +15,7 @@ export function rc<T>(
   value: Responsive<T> | undefined,
   theme: Theme,
   // Optional resolver function to transform the value before it is applied to the CSS property.
-  resolver?: (
-    value: T,
-    breakpoint: Breakpoint | undefined,
-    theme: Theme
-  ) => string | number
+  resolver?: (value: T, breakpoint: Breakpoint | undefined, theme: Theme) => string
 ): SerializedStyles | undefined {
   if (!value) {
     return undefined;
@@ -29,7 +25,9 @@ export function rc<T>(
   // them directly and return early.
   if (!isResponsive(value)) {
     return css`
-      ${property}: ${resolver ? resolver(value, undefined, theme) : value};
+      ${property}: ${resolver
+        ? resolver(value as T, undefined, theme)
+        : (value as string)};
     `;
   }
 
@@ -67,7 +65,7 @@ const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
 export type SpacingSize = keyof Theme['space'];
 export type Border = keyof Theme['tokens']['border'];
-type Breakpoint = keyof Theme['breakpoints'];
+export type Breakpoint = keyof Theme['breakpoints'];
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
@@ -77,7 +75,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     ? `${T} ${T}` | `${T}`
     : never;
 
-export type Responsive<T> = T | Record<Breakpoint, T | undefined>;
+export type Responsive<T> = T | Partial<Record<Breakpoint, T | undefined>>;
 
 export function isResponsive(prop: unknown): prop is Record<Breakpoint, any> {
   return typeof prop === 'object' && prop !== null;
