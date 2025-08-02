@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.testutils.cases import BaseMetricsTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, Session, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -32,7 +32,7 @@ class ReleaseHealthBaseTestCase(BaseMetricsTestCase):
     user_2 = "39887d89-13b2-4c84-8c23-5d13d2102667"
     user_3 = "39887d89-13b2-4c84-8c23-5d13d2102668"
 
-    def create_sessions__v2_crashed(self) -> None:
+    def create_sessions__v2_crashed(self) -> list[Session]:
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
 
@@ -77,7 +77,7 @@ class ReleaseHealthBaseTestCase(BaseMetricsTestCase):
             ),
         ]
 
-    def create_sessions__v1(self) -> None:
+    def create_sessions__v1(self) -> list[Session]:
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
 
@@ -1320,8 +1320,6 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         in the selected time, not counting other environments and other times
         """
         prod_env = self.create_environment(name="production", project=self.project)
-        self.create_environment(name="development", project=self.project)
-        self.create_environment(name="test", project=self.project)
 
         self.bulk_store_sessions(
             [

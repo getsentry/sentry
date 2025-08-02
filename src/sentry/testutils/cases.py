@@ -10,7 +10,7 @@ from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, TypedDict, Union
+from typing import Any, NotRequired, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -1023,6 +1023,23 @@ class IntegrationTestCase(TestCase):
         assert b'window.opener.postMessage({"success":true' in resp.content
 
 
+class Session(TypedDict):
+    session_id: str
+    org_id: str
+    project_id: str
+    distinct_id: NotRequired[str]
+    release: NotRequired[str]
+    environment: NotRequired[str]
+    abnormal_mechanism: NotRequired[str]
+    status: NotRequired[str]
+    seq: NotRequired[int]
+    retention_days: NotRequired[int]
+    duration: NotRequired[float]
+    errors: NotRequired[int]
+    started: NotRequired[float]
+    received: NotRequired[float]
+
+
 @pytest.mark.snuba
 @requires_snuba
 class SnubaTestCase(BaseTestCase):
@@ -1105,18 +1122,20 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def build_session(self, **kwargs):
-        session = {
-            "session_id": str(uuid4()),
-            "distinct_id": str(uuid4()),
-            "status": "ok",
-            "seq": 0,
-            "retention_days": 90,
-            "duration": 60.0,
-            "errors": 0,
-            "started": time.time() // 60 * 60,
-            "received": time.time(),
-        }
+    def build_session(self, **kwargs) -> Session:
+        session = Session(
+            org_id=kwargs.get("org_id", ""),
+            project_id=kwargs.get("project_id", ""),
+            session_id=str(uuid4()),
+            distinct_id=str(uuid4()),
+            status="ok",
+            seq=0,
+            retention_days=90,
+            duration=60.0,
+            errors=0,
+            started=time.time() // 60 * 60,
+            received=time.time(),
+        )
         # Support both passing the values for these field directly, and the full objects
         translators = [
             ("release", "version", "release"),
@@ -1129,7 +1148,7 @@ class SnubaTestCase(BaseTestCase):
                 kwargs[key] = getattr(self, default_attr)
             val = kwargs[key]
             kwargs[key] = getattr(val, attr, val)
-        session.update(kwargs)
+        # session.update(kwargs)
         return session
 
     def store_group(self, group):
@@ -1406,7 +1425,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
-    def store_session(self, session):
+    def store_session(self, session: Session) -> None:
         """Mimic relays behavior of always emitting a metric for a started session,
         and emitting an additional one if the session is fatal
         https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
@@ -1467,7 +1486,7 @@ class BaseMetricsTestCase(SnubaTestCase):
                     session["duration"],
                 )
 
-    def bulk_store_sessions(self, sessions):
+    def bulk_store_sessions(self, sessions: list[Session]) -> None:
         for session in sessions:
             self.store_session(session)
 
