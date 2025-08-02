@@ -65,8 +65,8 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
         environments = get_environments(request, group.project.organization)
 
         with sentry_sdk.start_span(op="CurrentReleaseEndpoint.get.current_release") as span:
-            span.set_data("Environment Count", len(environments))
-            span.set_data(
+            span.set_attribute("Environment Count", len(environments))
+            span.set_attribute(
                 "Raw Parameters",
                 {
                     "group.id": group.id,

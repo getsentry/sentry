@@ -126,7 +126,7 @@ class GroupTypeRegistry:
             span.set_tag("has_batch_features", batch_features is not None)
             span.set_tag("released", released)
             span.set_tag("enabled", enabled)
-            span.set_data("feature_to_grouptype", feature_to_grouptype)
+            span.set_attribute("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
