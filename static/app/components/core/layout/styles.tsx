@@ -151,9 +151,10 @@ export function getSpacing(
  * Mirrors the behavior of the rc() function but returns the resolved value
  * instead of generating CSS media queries.
  */
+type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
   prop: T
-): T extends Responsive<infer U> ? U : never {
+): ResponsiveValue<T> {
   const theme = useTheme();
 
   const mediaQueries = useMemo(() => {
@@ -193,7 +194,6 @@ export function useResponsivePropValue<T extends Responsive<any>>(
       if (!mediaQueries) {
         return;
       }
-
       setActiveBreakpoint(findLargestBreakpoint(mediaQueries));
     }
 
@@ -210,10 +210,23 @@ export function useResponsivePropValue<T extends Responsive<any>>(
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
-    return prop as any;
+    return prop as ResponsiveValue<T>;
   }
 
-  return prop[activeBreakpoint ?? 'xs'];
+  if (prop[activeBreakpoint]) {
+    return prop[activeBreakpoint];
+  }
+
+  if (isEmptyBreakpointObject(prop)) {
+    throw new TypeError(`A breakpoint object must have at least one defined value`);
+  }
+
+  // This is unsafe.
+  return prop[activeBreakpoint];
+}
+
+function isEmptyBreakpointObject(breakpoint: Record<Breakpoint, any>) {
+  return Object.keys(breakpoint).length === 0;
 }
 
 function findLargestBreakpoint(

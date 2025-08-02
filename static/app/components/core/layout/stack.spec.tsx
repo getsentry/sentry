@@ -108,21 +108,28 @@ describe('Stack', () => {
     expect(firstStack).toEqual(secondStack);
   });
 
-  it('manages separator orientation context', () => {
+  it('row orientation = vertical separator', () => {
     render(
       <Stack direction="row">
+        <div>Item 1</div>
         <Stack.Separator />
       </Stack>
     );
 
     expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
+  });
 
+  it('column orientation = horizontal separator', () => {
     render(
       <Stack direction="column">
+        <div>Item 1</div>
         <Stack.Separator />
       </Stack>
     );
 
-    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
+    expect(screen.getByRole('separator')).toHaveAttribute(
+      'aria-orientation',
+      'horizontal'
+    );
   });
 });

@@ -8,7 +8,7 @@ export type SeparatorProps = Pick<ContainerProps, 'border'> & {
   children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
 
-const omitSeparatorProps = new Set<keyof SeparatorProps>(['orientation', 'border']);
+const omitSeparatorProps = new Set<keyof SeparatorProps>(['border']);
 
 /**
  * We require a wrapper if we want to use the orientation context,
