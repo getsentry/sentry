@@ -3,7 +3,12 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {type Breakpoint, type Responsive, useResponsivePropValue} from './styles';
+import {
+  type Breakpoint,
+  type Responsive,
+  useActiveBreakpoint,
+  useResponsivePropValue,
+} from './styles';
 
 const theme = ThemeFixture();
 
@@ -61,29 +66,18 @@ describe('useResponsivePropValue', () => {
     expect(result.current).toBe('hello');
   });
 
-  it('throws error for empty breakpoint objects', () => {
-    expect(() => {
-      renderHook(() => useResponsivePropValue({}), {
-        wrapper: createWrapper(),
-      });
-    }).toThrow('A breakpoint object must have at least one defined value');
-  });
-
-  it('returns value for the largest matching breakpoint that matches', () => {
+  it('window matches breakpoint = breakpoint value', () => {
     const cleanup = setupMediaQueries({
       xs: true,
       sm: true,
       md: true,
       lg: false,
-      xl: false,
     });
 
     const responsiveValue: Responsive<string> = {
       xs: 'extra-small',
       sm: 'small',
       md: 'medium',
-      lg: 'large',
-      xl: 'extra-large',
     };
 
     const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
@@ -94,15 +88,34 @@ describe('useResponsivePropValue', () => {
     cleanup();
   });
 
-  // We return the smallest value because we use min-width media queries,
-  // so the only way we don't match is if we are below the smallest breakpoint.
-  it('returns value for xs breakpoint when no media queries match', () => {
-    const cleanup = setupMediaQueries({});
+  it('window > largest breakpoint = largest breakpoint value', () => {
+    const cleanup = setupMediaQueries({
+      lg: false,
+      xl: true,
+    });
 
     const responsiveValue: Responsive<string> = {
-      xs: 'small',
+      xs: 'extra-small',
+      sm: 'small',
       md: 'medium',
-      lg: 'large',
+    };
+
+    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current).toBe('medium');
+    cleanup();
+  });
+
+  it('window < smallest breakpoint = smallest breakpoint value', () => {
+    const cleanup = setupMediaQueries({
+      xs: true,
+      sm: false,
+    });
+
+    const responsiveValue: Responsive<string> = {
+      sm: 'small',
     };
 
     const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
@@ -113,40 +126,24 @@ describe('useResponsivePropValue', () => {
     cleanup();
   });
 
-  it('skips undefined breakpoint values', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: true,
-      md: true,
-      lg: true,
-      xl: true,
-    });
-
-    const {result} = renderHook(
-      () => useResponsivePropValue({xs: 'extra-small', lg: 'large'}),
-      {
-        wrapper: createWrapper(),
-      }
-    );
-
-    expect(result.current).toBe('large');
-    cleanup();
-  });
-
-  it('handles sparse breakpoint objects', () => {
+  it('window > smallest breakpoint and < largest breakpoint = smallest matching breakpoint value', () => {
     const cleanup = setupMediaQueries({
       xs: false,
       sm: false,
       md: true,
       lg: false,
-      xl: false,
     });
 
-    const {result} = renderHook(() => useResponsivePropValue({md: 'medium-only'}), {
+    const responsiveValue: Responsive<string> = {
+      sm: 'small',
+      lg: 'large',
+    };
+
+    const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
       wrapper: createWrapper(),
     });
 
-    expect(result.current).toBe('medium-only');
+    expect(result.current).toBe('small');
     cleanup();
   });
 
@@ -168,6 +165,88 @@ describe('useResponsivePropValue', () => {
     });
 
     expect(result.current).toBe('medium');
+    cleanup();
+  });
+
+  it('throws an error when no breakpoints are defined in responsive prop', () => {
+    expect(() =>
+      renderHook(() => useResponsivePropValue({}), {
+        wrapper: createWrapper(),
+      })
+    ).toThrow('Responsive prop must contain at least one breakpoint');
+  });
+});
+
+describe('useActiveBreakpoint', () => {
+  // We use min-width, so the only breakpoint that will match will be xs.
+  // Fallback to xs here mimics how we treat the smallest breakpoint in responsive props
+  // by doing max-width and min-width and essentially establishing a min value.
+  it('returns xs as fallback when no breakpoints match', () => {
+    const cleanup = setupMediaQueries({
+      xs: false,
+      sm: false,
+      md: false,
+      lg: false,
+      xl: false,
+    });
+
+    const {result} = renderHook(() => useActiveBreakpoint(), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current).toBe('xs');
+    cleanup();
+  });
+
+  it('returns the largest matching breakpoint', () => {
+    const cleanup = setupMediaQueries({
+      xs: true,
+      sm: true,
+      md: true,
+      lg: false,
+      xl: false,
+    });
+
+    const {result} = renderHook(() => useActiveBreakpoint(), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current).toBe('md');
+    cleanup();
+  });
+
+  it('sets up media queries for all breakpoints', () => {
+    const matchMediaSpy = jest.fn(() => mockMatchMedia(false));
+    window.matchMedia = matchMediaSpy;
+
+    renderHook(() => useActiveBreakpoint(), {
+      wrapper: createWrapper(),
+    });
+
+    // Should create media queries for all breakpoints (in reverse order)
+    expect(matchMediaSpy).toHaveBeenCalledTimes(5);
+    expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xl})`);
+    expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.lg})`);
+    expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.md})`);
+    expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.sm})`);
+    expect(matchMediaSpy).toHaveBeenCalledWith(`(min-width: ${theme.breakpoints.xs})`);
+  });
+
+  it('uses correct breakpoint order (largest first)', () => {
+    const cleanup = setupMediaQueries({
+      xs: true,
+      sm: true,
+      md: true,
+      lg: true,
+      xl: true,
+    });
+
+    const {result} = renderHook(() => useActiveBreakpoint(), {
+      wrapper: createWrapper(),
+    });
+
+    // Should return xl (largest) when all are active
+    expect(result.current).toBe('xl');
     cleanup();
   });
 
@@ -251,8 +330,10 @@ describe('useResponsivePropValue', () => {
       }
     );
 
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(2);
+    // Sets up listeners for all breakpoints
+    expect(addEventListenerSpy).toHaveBeenCalledTimes(5);
     unmount();
-    expect(removeEventListenerSpy).toHaveBeenCalledTimes(2);
+    // Removes listeners for all breakpoints
+    expect(removeEventListenerSpy).toHaveBeenCalledTimes(5);
   });
 });

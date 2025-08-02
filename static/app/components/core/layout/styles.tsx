@@ -153,11 +153,55 @@ type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
 export function useResponsivePropValue<T extends Responsive<any>>(
   prop: T
 ): ResponsiveValue<T> {
+  const activeBreakpoint = useActiveBreakpoint();
+
+  // Only resolve the active breakpoint if the prop is responsive, else ignore it.
+  if (!isResponsive(prop)) {
+    return prop as ResponsiveValue<T>;
+  }
+
+  if (Object.keys(prop).length === 0) {
+    throw new Error('Responsive prop must contain at least one breakpoint');
+  }
+
+  // If the active breakpoint exists in the prop, return it
+  if (prop[activeBreakpoint] !== undefined) {
+    return prop[activeBreakpoint];
+  }
+
+  let value: ResponsiveValue<T> | undefined;
+
+  const activeIndex = BREAKPOINT_ORDER.indexOf(activeBreakpoint);
+
+  // If we don't have an exact match, find the next smallest breakpoint
+  for (let i = activeIndex - 1; i >= 0; i--) {
+    const smallerBreakpoint = BREAKPOINT_ORDER[i]!;
+    if (prop[smallerBreakpoint] !== undefined) {
+      value = prop[smallerBreakpoint];
+      break;
+    }
+  }
+
+  // If no smaller breakpoint found, then window < smallest breakpoint, so we need to find the first larger breakpoint
+  if (value === undefined) {
+    for (let i = activeIndex + 1; i < BREAKPOINT_ORDER.length; i++) {
+      const largerBreakpoint = BREAKPOINT_ORDER[i]!;
+      if (prop[largerBreakpoint] !== undefined) {
+        value = prop[largerBreakpoint];
+        break;
+      }
+    }
+  }
+
+  return value as ResponsiveValue<T>;
+}
+
+export function useActiveBreakpoint(): Breakpoint {
   const theme = useTheme();
 
   const mediaQueries = useMemo(() => {
-    if (!isResponsive(prop)) {
-      return undefined;
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return [];
     }
 
     const queries: Array<{breakpoint: Breakpoint; query: MediaQueryList}> = [];
@@ -166,7 +210,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
       const bp = BREAKPOINT_ORDER[i];
 
-      if (bp === undefined || prop[bp] === undefined) {
+      if (bp === undefined) {
         continue;
       }
 
@@ -177,10 +221,10 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     }
 
     return queries;
-  }, [theme.breakpoints, prop]);
+  }, [theme.breakpoints]);
 
-  const [activeBreakpoint, setActiveBreakpoint] = useState<Breakpoint>(() => {
-    return findLargestBreakpoint(mediaQueries ?? []);
+  const [activeBreakpoint, setActiveBreakpoint] = useState(() => {
+    return findLargestBreakpoint(mediaQueries);
   });
 
   useEffect(() => {
@@ -206,25 +250,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     };
   }, [mediaQueries]);
 
-  // Only resolve the active breakpoint if the prop is responsive, else ignore it.
-  if (!isResponsive(prop)) {
-    return prop as ResponsiveValue<T>;
-  }
-
-  if (prop[activeBreakpoint]) {
-    return prop[activeBreakpoint];
-  }
-
-  if (isEmptyBreakpointObject(prop)) {
-    throw new TypeError(`A breakpoint object must have at least one defined value`);
-  }
-
-  // This is unsafe.
-  return prop[activeBreakpoint];
-}
-
-function isEmptyBreakpointObject(breakpoint: Record<Breakpoint, any>) {
-  return Object.keys(breakpoint).length === 0;
+  return activeBreakpoint;
 }
 
 function findLargestBreakpoint(
