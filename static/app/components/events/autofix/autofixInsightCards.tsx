@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
@@ -604,7 +604,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
       });
-      addSuccessMessage(t('Rethinking this...'));
+      addLoadingMessage(t('Rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Seer your message.'));
