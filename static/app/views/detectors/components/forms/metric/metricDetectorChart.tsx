@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import type {LineSeriesOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -16,7 +15,8 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {useMetricDetectorAnomalySeries} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalySeries';
+import {useIncidentBubbles} from 'sentry/views/detectors/hooks/useIncidentBubbles';
+import {useMetricDetectorAnomalyData} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyData';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 
@@ -106,8 +106,8 @@ export function MetricDetectorChart({
   const shouldFetchAnomalies =
     isAnomalyDetection && !isLoading && !isError && series.length > 0;
 
-  // Add anomaly detection when detection type is dynamic and series data is ready
-  const anomalyResult = useMetricDetectorAnomalySeries({
+  // Fetch anomaly data when detection type is dynamic and series data is ready
+  const anomalyDataResult = useMetricDetectorAnomalyData({
     series: shouldFetchAnomalies ? series : [],
     dataset,
     aggregate,
@@ -115,14 +115,22 @@ export function MetricDetectorChart({
     environment,
     projectId,
     statsPeriod,
-    timePeriod: interval, // Convert interval (seconds) to timePeriod
+    timePeriod: interval,
     thresholdType,
     sensitivity,
     enabled: shouldFetchAnomalies,
   });
 
-  const anomalyLoading = shouldFetchAnomalies ? anomalyResult.isLoading : false;
-  const anomalyError = shouldFetchAnomalies ? anomalyResult.error : null;
+  // Create anomaly bubble rendering from pre-grouped anomaly periods
+  const anomalyBubbleResult = useIncidentBubbles({
+    incidents: anomalyDataResult.anomalyPeriods,
+    seriesName: t('Anomalies'),
+    seriesId: '__anomaly_bubble__',
+    yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
+  });
+
+  const anomalyLoading = shouldFetchAnomalies ? anomalyDataResult.isLoading : false;
+  const anomalyError = shouldFetchAnomalies ? anomalyDataResult.error : null;
 
   // Calculate y-axis bounds to ensure all thresholds are visible
   const maxValue = useMemo(() => {
@@ -149,20 +157,24 @@ export function MetricDetectorChart({
     return roundedMax + padding;
   }, [series, thresholdMaxValue]);
 
-  const additionalSeries = useMemo<LineSeriesOption[]>(() => {
+  const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries];
 
     if (isAnomalyDetection) {
       // Add the anomaly bubble series if it exists
-      if (anomalyResult.anomalyBubbleSeries) {
-        baseSeries.push(anomalyResult.anomalyBubbleSeries as any);
+      if (anomalyBubbleResult.incidentBubbleSeries) {
+        baseSeries.push(anomalyBubbleResult.incidentBubbleSeries as any);
       }
       // Optionally keep the old overlay series for comparison
-      // baseSeries.push(...anomalyResult.anomalySeries);
+      // baseSeries.push(...anomalyDataResult.anomalySeries);
     }
 
     return baseSeries;
-  }, [isAnomalyDetection, thresholdAdditionalSeries, anomalyResult.anomalyBubbleSeries]);
+  }, [
+    isAnomalyDetection,
+    thresholdAdditionalSeries,
+    anomalyBubbleResult.incidentBubbleSeries,
+  ]);
 
   // Prepare Y-axes for anomaly bubbles
   const yAxes = useMemo(() => {
@@ -180,12 +192,12 @@ export function MetricDetectorChart({
     const axes = [mainYAxis];
 
     // Add anomaly bubble Y-axis if available
-    if (isAnomalyDetection && anomalyResult.anomalyBubbleYAxis) {
-      axes.push(anomalyResult.anomalyBubbleYAxis as any);
+    if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleYAxis) {
+      axes.push(anomalyBubbleResult.incidentBubbleYAxis as any);
     }
 
     return axes;
-  }, [maxValue, isAnomalyDetection, anomalyResult.anomalyBubbleYAxis]);
+  }, [maxValue, isAnomalyDetection, anomalyBubbleResult.incidentBubbleYAxis]);
 
   // Prepare grid with anomaly bubble adjustments
   const grid = useMemo(() => {
@@ -197,15 +209,15 @@ export function MetricDetectorChart({
     };
 
     // Apply anomaly bubble grid adjustments if available
-    if (isAnomalyDetection && anomalyResult.anomalyBubbleGrid) {
+    if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleGrid) {
       return {
         ...baseGrid,
-        ...anomalyResult.anomalyBubbleGrid,
+        ...anomalyBubbleResult.incidentBubbleGrid,
       };
     }
 
     return baseGrid;
-  }, [isAnomalyDetection, anomalyResult.anomalyBubbleGrid]);
+  }, [isAnomalyDetection, anomalyBubbleResult.incidentBubbleGrid]);
 
   if (isLoading || anomalyLoading) {
     return (
@@ -234,11 +246,13 @@ export function MetricDetectorChart({
       stacked={false}
       series={series}
       additionalSeries={additionalSeries}
-      yAxes={yAxes.length > 1 ? yAxes : undefined}
-      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+      yAxes={yAxes.length > 1 ? (yAxes as any) : undefined}
+      yAxis={yAxes.length === 1 ? (yAxes[0] as any) : undefined}
       grid={grid}
-      xAxis={isAnomalyDetection ? anomalyResult.anomalyBubbleXAxis : undefined}
-      ref={isAnomalyDetection ? anomalyResult.connectAnomalyBubbleChartRef : undefined}
+      xAxis={isAnomalyDetection ? anomalyBubbleResult.incidentBubbleXAxis : undefined}
+      ref={
+        isAnomalyDetection ? anomalyBubbleResult.connectIncidentBubbleChartRef : undefined
+      }
     />
   );
 }
