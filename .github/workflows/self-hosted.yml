@@ -109,8 +109,8 @@ jobs:
         run: |
           docker manifest create \
             ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }} \
-            --amend ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-amd64 \
-            --amend ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-arm64
+            --amend ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-amd64 --platform linux/amd64 \
+            --amend ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-arm64 --platform linux/arm64
 
           docker manifest push ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}
 
