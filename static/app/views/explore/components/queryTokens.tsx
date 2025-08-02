@@ -5,6 +5,7 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {formatQueryToNaturalLanguage} from 'sentry/views/explore/utils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface QueryTokensProps {
@@ -13,6 +14,56 @@ interface QueryTokensProps {
   sort?: string;
   statsPeriod?: string;
   visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
+}
+
+export function generateQueryTokensString({
+  groupBys,
+  query,
+  sort,
+  statsPeriod,
+  visualizations,
+}: QueryTokensProps): string {
+  const parts = [];
+
+  if (query) {
+    const parsedQuery = parseQueryBuilderValue(query, getFieldDefinition);
+    if (parsedQuery?.length) {
+      const queryText = parsedQuery
+        .filter(({text}) => text.trim() !== '')
+        .map(({text}) => text)
+        .join(' ');
+      if (queryText) {
+        const formattedFilter = formatQueryToNaturalLanguage(queryText.trim());
+        parts.push(`Filter is '${formattedFilter}'`);
+      }
+    }
+  }
+
+  if (visualizations && visualizations.length > 0) {
+    const vizParts = visualizations.flatMap(visualization =>
+      visualization.yAxes.map(yAxis => yAxis)
+    );
+    if (vizParts.length > 0) {
+      const vizText = vizParts.length === 1 ? vizParts[0] : vizParts.join(', ');
+      parts.push(`visualizations are '${vizText}'`);
+    }
+  }
+
+  if (groupBys && groupBys.length > 0) {
+    const groupByText = groupBys.length === 1 ? groupBys[0] : groupBys.join(', ');
+    parts.push(`groupBys are '${groupByText}'`);
+  }
+
+  if (statsPeriod && statsPeriod.length > 0) {
+    parts.push(`time range is '${statsPeriod}'`);
+  }
+
+  if (sort && sort.length > 0) {
+    const sortText = sort[0] === '-' ? `${sort.slice(1)} Desc` : `${sort} Asc`;
+    parts.push(`sort is '${sortText}'`);
+  }
+
+  return parts.length > 0 ? parts.join(', ') : 'No query parameters set';
 }
 
 function QueryTokens({
@@ -84,7 +135,19 @@ function QueryTokens({
     );
   }
 
-  return <TokenContainer>{tokens}</TokenContainer>;
+  const readableQueryString = generateQueryTokensString({
+    groupBys,
+    query,
+    sort,
+    statsPeriod,
+    visualizations,
+  });
+
+  return (
+    <TokenContainer aria-label={`Query parameters: ${readableQueryString}`}>
+      {tokens}
+    </TokenContainer>
+  );
 }
 
 export default QueryTokens;
