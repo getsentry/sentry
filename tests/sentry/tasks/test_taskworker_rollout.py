@@ -27,6 +27,24 @@ class TestTaskworkerRollout(TestCase):
         super().tearDown()
         options.unregister("taskworker.test_namespace.rollout")
 
+    @mock.patch("sentry.taskworker.registry.TaskNamespace.send_task")
+    @override_options({"taskworker.enabled": True})
+    def test_with_taskworker_enabled_option(self, mock_send_task: mock.MagicMock) -> None:
+        @instrumented_task(
+            name="test.test_with_taskworker_rollout",
+            taskworker_config=self.config,
+        )
+        def test_task() -> str:
+            return "done"
+
+        assert test_task.name == "test.test_with_taskworker_rollout"
+        task = self.namespace.get("test.test_with_taskworker_rollout")
+        assert task is not None
+        assert task.name == "test.test_with_taskworker_rollout"
+        test_task.delay()
+        test_task.apply_async()
+        assert mock_send_task.call_count == 2
+
     @mock.patch("sentry.tasks.base.random.random")
     @mock.patch("sentry.taskworker.registry.TaskNamespace.send_task")
     @override_options(
