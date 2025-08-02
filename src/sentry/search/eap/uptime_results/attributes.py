@@ -7,8 +7,8 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedAttribute(
-            public_alias="trace_id",
-            internal_name="trace_id",
+            public_alias="trace",
+            internal_name="sentry.trace_id",
             search_type="string",
         ),
         ResolvedAttribute(
