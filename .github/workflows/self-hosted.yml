@@ -81,11 +81,10 @@ jobs:
           dockerfile_path: 'self-hosted/Dockerfile'
           tag_suffix: -${{ matrix.platform }}
           ghcr: true
-          publish_on_pr: true
 
   assemble:
     needs: [self-hosted]
-    # if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
+    if: ${{ (github.ref_name == 'master' || startsWith(github.ref_name, 'releases/')) && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,7 +100,7 @@ jobs:
 
       - name: Create multiplatform manifests
         run: |
-          docker buildx imagetools create --dry-run \
+          docker buildx imagetools create \
             --tag ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }} \
             --tag ghcr.io/getsentry/sentry:nightly \
             --tag ghcr.io/getsentry/sentry:latest \
