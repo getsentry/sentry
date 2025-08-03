@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import random
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
@@ -96,8 +98,15 @@ def event_lifecycle_context(
     payload: EventLifecycleMetric,
     assume_success: bool = True,
     sample_log_rate: float = 1.0,
-):
-    """Context manager for measuring event lifecycle."""
+) -> Generator[EventLifecycle]:
+    """
+    Context manager for measuring event lifecycle.
+
+    Args:
+        payload: The metric to measure.
+        assume_success: Whether to assume success if the context is exited without a failure.
+        sample_log_rate: The rate at which to sample logs.
+    """
     lifecycle = EventLifecycle(payload, assume_success, sample_log_rate)
 
     # Enter logic
