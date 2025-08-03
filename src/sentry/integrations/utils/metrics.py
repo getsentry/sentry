@@ -2,10 +2,10 @@ import logging
 import random
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
-from types import TracebackType
-from typing import Any, Self
+from typing import Any
 
 import sentry_sdk
 
@@ -39,11 +39,9 @@ class EventLifecycleMetric(ABC):
         """Get extra data to log."""
         return {}
 
-    def capture(
-        self, assume_success: bool = True, sample_log_rate: float = 1.0
-    ) -> "EventLifecycle":
+    def capture(self, assume_success: bool = True, sample_log_rate: float = 1.0):
         """Open a context to measure the event."""
-        return EventLifecycle(self, assume_success, sample_log_rate)
+        return event_lifecycle_context(self, assume_success, sample_log_rate)
 
 
 class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
@@ -91,6 +89,43 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
+
+
+@contextmanager
+def event_lifecycle_context(
+    payload: EventLifecycleMetric,
+    assume_success: bool = True,
+    sample_log_rate: float = 1.0,
+):
+    """Context manager for measuring event lifecycle."""
+    lifecycle = EventLifecycle(payload, assume_success, sample_log_rate)
+
+    # Enter logic
+    if lifecycle._state is not None:
+        lifecycle._report_flow_error("The lifecycle has already been entered")
+    lifecycle._state = EventLifecycleOutcome.STARTED
+    lifecycle.record_event(EventLifecycleOutcome.STARTED)
+
+    try:
+        yield lifecycle
+    except BaseException as exc_value:
+        # Exception exit logic
+        if lifecycle._state == EventLifecycleOutcome.STARTED:
+            # We were forced to exit the context by a raised exception.
+            # Default to creating a Sentry issue for unhandled exceptions
+            lifecycle.record_failure(exc_value, create_issue=True)
+        raise
+    else:
+        # Normal exit logic
+        if lifecycle._state == EventLifecycleOutcome.STARTED:
+            # We exited the context without record_success or record_failure being
+            # called. Assume success if we were told to do so. Else, log a halt
+            # indicating that there is no clear success or failure signal.
+            lifecycle._terminate(
+                EventLifecycleOutcome.SUCCESS
+                if lifecycle.assume_success
+                else EventLifecycleOutcome.HALTED
+            )
 
 
 class EventLifecycle:
@@ -295,38 +330,6 @@ class EventLifecycle:
         if extra:
             self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.HALTED, halt_reason, create_issue, sample_log_rate)
-
-    def __enter__(self) -> Self:
-        if self._state is not None:
-            self._report_flow_error("The lifecycle has already been entered")
-        self._state = EventLifecycleOutcome.STARTED
-        self.record_event(EventLifecycleOutcome.STARTED)
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType,
-    ) -> None:
-        if self._state != EventLifecycleOutcome.STARTED:
-            # The context called record_success or record_failure being closing,
-            # so we can just exit quietly.
-            return
-
-        if exc_value is not None:
-            # We were forced to exit the context by a raised exception.
-            # Default to creating a Sentry issue for unhandled exceptions
-            self.record_failure(exc_value, create_issue=True)
-        else:
-            # We exited the context without record_success or record_failure being
-            # called. Assume success if we were told to do so. Else, log a halt
-            # indicating that there is no clear success or failure signal.
-            self._terminate(
-                EventLifecycleOutcome.SUCCESS
-                if self.assume_success
-                else EventLifecycleOutcome.HALTED
-            )
 
 
 class IntegrationPipelineViewType(StrEnum):
