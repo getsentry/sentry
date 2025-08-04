@@ -1,9 +1,8 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'ui/layout';
-
-import {Button} from 'sentry/components/core/button';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -51,6 +50,7 @@ interface EventDetailsHeaderProps {
 }
 
 export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,7 +114,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             position="bottom-start"
           >
             <Flex>
-              <FilterContainer>
+              <Grid
+                width="100%"
+                gap="sm"
+                columns="auto minmax(100px, 1fr) auto"
+                rows={`minmax(${theme.form.md.height}, auto)`}
+              >
                 <PageFilterBar condensed>
                   <EnvironmentSelector group={group} event={event} project={project} />
                   <TimeRangeSelector
@@ -177,7 +182,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     label: searchText,
                   }}
                 />
-              </FilterContainer>
+              </Grid>
               <ToggleSidebar />
             </Flex>
           </TourElement>
@@ -219,9 +224,13 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
 
   return isFixedEnvironment ? (
-    <Button disabled title={t('This issue only occurs in a single environment')}>
-      {eventEnvironment ?? t('All Envs')}
-    </Button>
+    <EnvironmentPageFilter
+      disabled
+      triggerProps={{
+        label: eventEnvironment ?? t('All Envs'),
+        title: t('This issue only occurs in a single environment'),
+      }}
+    />
   ) : (
     <EnvironmentPageFilter />
   );
@@ -242,14 +251,6 @@ const DetailsContainer = styled('div')<{
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
-`;
-
-const FilterContainer = styled('div')`
-  display: grid;
-  flex: 1;
-  gap: ${p => p.theme.space.sm};
-  grid-template-columns: auto minmax(100px, 1fr) auto;
-  grid-template-rows: ${p => `minmax(${p.theme.form.md.height}, auto)`};
 `;
 
 const GraphSection = styled('div')`
