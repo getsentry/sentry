@@ -170,7 +170,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Invalid project uptime subscription ids provided"
+            assert response.data == "Invalid project uptime subscription ids provided"
 
     def test_no_uptime_subscription_id(self) -> None:
         """
@@ -185,7 +185,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "No project uptime subscription ids provided"
+            assert response.data == "No project uptime subscription ids provided"
 
     def test_too_many_uptime_subscription_ids(self) -> None:
         """
@@ -201,8 +201,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             )
             assert response.status_code == 400
             assert (
-                response.json()
-                == "Too many project uptime subscription ids provided. Maximum is 100"
+                response.data == "Too many project uptime subscription ids provided. Maximum is 100"
             )
 
     def test_cross_project_access_denied(self) -> None:
@@ -228,7 +227,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Invalid project uptime subscription ids provided"
+            assert response.data == "Invalid project uptime subscription ids provided"
 
     def test_success_only_scenario(self) -> None:
         """

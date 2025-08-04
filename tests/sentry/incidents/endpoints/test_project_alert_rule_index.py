@@ -114,7 +114,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             )
         assert len(audit_log_entry) == 1
         assert (
-            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            getattr(resp, "renderer_context")["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
 
@@ -165,6 +165,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             )
         assert len(audit_log_entry) == 1
         assert (
-            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            getattr(resp, "renderer_context")["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )

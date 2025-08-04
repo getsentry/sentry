@@ -556,7 +556,7 @@ class APITestCaseMixin:
     def endpoint(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args, **params) -> Response:
         """
         Simulate an API call to the test case's URI and method.
 
@@ -592,7 +592,7 @@ class APITestCaseMixin:
 
         return getattr(self.client, method)(url, format=format, data=data, **headers)
 
-    def get_success_response(self, *args, **params):
+    def get_success_response(self, *args, **params) -> Response:
         """
         Call `get_response` (see above) and assert the response's status code.
 
