@@ -59,7 +59,7 @@ import {
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
+import {RightAlignedCell} from 'sentry/views/replays/selectors/deadRageSelectorCards';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;

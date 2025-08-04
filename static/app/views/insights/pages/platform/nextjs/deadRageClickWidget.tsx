@@ -13,11 +13,11 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {
   SelectorLink,
   transformSelectorQuery,
-} from 'sentry/views/replays/deadRageClick/selectorTable';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+} from 'sentry/views/replays/selectors/selectorTable';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export function DeadRageClicksWidget() {

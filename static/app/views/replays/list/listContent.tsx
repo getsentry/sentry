@@ -12,13 +12,13 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import DeadRageSelectorCards from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
+import ReplayIndexTable from 'sentry/views/replays/list/replayIndexTable';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysSearch from 'sentry/views/replays/list/search';
-import ReplayIndexTable from 'sentry/views/replays/table/replayIndexTable';
+import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
 
 export default function ListContent() {
   const organization = useOrganization();
