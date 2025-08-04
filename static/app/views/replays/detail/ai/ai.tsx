@@ -4,6 +4,7 @@ import loadingGif from 'sentry-images/spot/ai-loader.gif';
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -39,6 +40,7 @@ export default function Ai() {
   const replayRecord = replay?.getReplay();
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const analyticsArea = useAnalyticsArea();
 
   const {
     summaryData,
@@ -53,7 +55,11 @@ export default function Ai() {
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
           <img src={replayEmptyState} height={300} alt="" />
-          <div>{t('AI features are not available for this organization.')}</div>
+          <div>
+            {areAiFeaturesAllowed
+              ? t('AI features are not available for this organization.')
+              : t('Replay summaries are not available for this organization.')}
+          </div>
         </EndStateContainer>
       </Wrapper>
     );
@@ -147,6 +153,7 @@ export default function Ai() {
                 startSummaryRequest();
                 trackAnalytics('replay.ai-summary.regenerate-requested', {
                   organization,
+                  area: analyticsArea + '.error',
                 });
               }}
               icon={<IconSync size="xs" />}
@@ -174,8 +181,7 @@ export default function Ai() {
     summaryData.data.time_ranges.length <= 1 &&
     replay
       ?.getChapterFrames()
-      ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init').length ===
-      0
+      ?.every(frame => !isSpanFrame(frame) || frame.category === 'replay.init')
   ) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -219,6 +225,7 @@ export default function Ai() {
               startSummaryRequest();
               trackAnalytics('replay.ai-summary.regenerate-requested', {
                 organization,
+                area: analyticsArea + '.finished-summary',
               });
             }}
             icon={<IconSync size="xs" />}
