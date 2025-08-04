@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 
 import pytest
@@ -5,6 +6,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -31,7 +33,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Or, Query
+from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.query import SelectableExpression
 
 from sentry.replays.lib.eap.snuba_transpiler import (
     TRACE_ITEM_TYPE_MAP,
@@ -45,7 +49,6 @@ from sentry.replays.lib.eap.snuba_transpiler import (
     orderby,
     where,
 )
-from sentry.search.eap.constants import DownsampledStorageConfig
 
 REQUEST_META: RequestMeta = {
     "cogs_category": "a",
@@ -82,7 +85,7 @@ SETTINGS: Settings = {
         (Op.NOT_LIKE, ComparisonFilter.OP_NOT_LIKE),
     ],
 )
-def test_where_comparison_filters(snuba_op, eap_op):
+def test_where_comparison_filters(snuba_op, eap_op):  # type: ignore[no-untyped-def]
     conditions = [Condition(Column("int"), snuba_op, 1)]
     eap_filter = TraceItemFilter(
         and_filter=AndFilter(
@@ -121,7 +124,7 @@ def test_where_comparison_filters(snuba_op, eap_op):
         ("uniq", EAPFunction.FUNCTION_UNIQ),
     ],
 )
-def test_having_comparison_filters(snuba_fn, eap_fn):
+def test_having_comparison_filters(snuba_fn, eap_fn):  # type: ignore[no-untyped-def]
     operators = [
         (Op.EQ, AggregationComparisonFilter.OP_EQUALS),
         (Op.NEQ, AggregationComparisonFilter.OP_NOT_EQUALS),
@@ -174,7 +177,7 @@ def test_having_comparison_filters(snuba_fn, eap_fn):
         ("uniqIf", EAPFunction.FUNCTION_UNIQ),
     ],
 )
-def test_having_conditional_comparison_filters(snuba_fn, eap_fn):
+def test_having_conditional_comparison_filters(snuba_fn, eap_fn):  # type: ignore[no-untyped-def]
     snuba_condition = Function("greater", parameters=[Column("float"), 1.0])
     eap_condition = condidtional_aggregation_filter(snuba_condition, SETTINGS)
 
@@ -225,7 +228,7 @@ def test_having_conditional_comparison_filters(snuba_fn, eap_fn):
         ("str", AttributeKey.TYPE_STRING),
     ],
 )
-def test_column_expressions(column, eap_type):
+def test_column_expressions(column, eap_type):  # type: ignore[no-untyped-def]
     """Test columns are translated to their type.
 
     Type mappings are stored in the SETTINGS global.
@@ -235,7 +238,7 @@ def test_column_expressions(column, eap_type):
     )
 
 
-def test_literal_expressions():
+def test_literal_expressions():  # type: ignore[no-untyped-def]
     assert expression(1, SETTINGS) == EAPColumn(literal=Literal(val_double=float(1.0)))
     assert expression(1.0, SETTINGS) == EAPColumn(literal=Literal(val_double=float(1.0)))
     assert expression(True, SETTINGS) == EAPColumn(literal=Literal(val_double=float(1.0)))
@@ -264,7 +267,7 @@ def test_literal_expressions():
         ("uniq", EAPFunction.FUNCTION_UNIQ),
     ],
 )
-def test_aggregation_expressions(snuba_fn, eap_fn):
+def test_aggregation_expressions(snuba_fn, eap_fn):  # type: ignore[no-untyped-def]
     snuba_expr = Function(snuba_fn, parameters=[Column("int")], alias="func(col)")
     eap_expr = EAPColumn(
         aggregation=AttributeAggregation(
@@ -299,7 +302,7 @@ def test_aggregation_expressions(snuba_fn, eap_fn):
         ("uniqIf", EAPFunction.FUNCTION_UNIQ),
     ],
 )
-def test_conditional_aggregation_expressions(snuba_fn, eap_fn):
+def test_conditional_aggregation_expressions(snuba_fn, eap_fn):  # type: ignore[no-untyped-def]
     snuba_condition = Function("greater", parameters=[Column("float"), 1.0])
     eap_condition = condidtional_aggregation_filter(snuba_condition, SETTINGS)
 
@@ -326,7 +329,7 @@ def test_conditional_aggregation_expressions(snuba_fn, eap_fn):
         (Function("avg", parameters=[Column("float")]), Direction.ASC),
     ],
 )
-def test_orderby(snuba_fn, direction):
+def test_orderby(snuba_fn, direction):  # type: ignore[no-untyped-def]
     assert orderby([OrderBy(snuba_fn, direction)], SETTINGS) == [
         TraceItemTableRequest.OrderBy(
             column=expression(snuba_fn, SETTINGS),
@@ -335,7 +338,7 @@ def test_orderby(snuba_fn, direction):
     ]
 
 
-def test_groupby():
+def test_groupby():  # type: ignore[no-untyped-def]
     cols = [Column("int"), Column("float"), Column("bool"), Column("str")]
     assert groupby(cols, SETTINGS) == [
         AttributeKey(type=AttributeKey.TYPE_INT, name="int"),
@@ -346,7 +349,13 @@ def test_groupby():
 
 
 def make_query(
-    select=None, where=None, having=None, groupby=None, orderby=None, limit=1, offset=0
+    select: Sequence[SelectableExpression] | None = None,
+    where: ConditionGroup | None = None,
+    having: ConditionGroup | None = None,
+    groupby: Sequence[SelectableExpression] | None = None,
+    orderby: Sequence[OrderBy] | None = None,
+    limit: int = 1,
+    offset: int = 0,
 ) -> Query:
     return Query(
         match=Entity("trace_items"),
@@ -361,7 +370,13 @@ def make_query(
 
 
 def make_request(
-    select=None, where=None, having=None, groupby=None, orderby=None, limit=1, offset=0
+    select: Iterable[EAPColumn] | None = None,
+    where: TraceItemFilter | None = None,
+    having: AggregationFilter | None = None,
+    groupby: Iterable[AttributeKey] | None = None,
+    orderby: Iterable[TraceItemTableRequest.OrderBy] | None = None,
+    limit: int = 1,
+    offset: int = 0,
 ) -> TraceItemTableRequest:
     start_timestamp = Timestamp()
     start_timestamp.FromDatetime(REQUEST_META["start_datetime"])
@@ -526,11 +541,11 @@ def make_request(
         ),
     ],
 )
-def test_as_eap_request(query, req):
+def test_as_eap_request(query: Query, req: TraceItemTableRequest):  # type: ignore[no-untyped-def]
     compare_requests(as_eap_request(query, REQUEST_META, SETTINGS, virtual_columns=[]), req)
 
 
-def compare_requests(req1: TraceItemTableRequest, req2: TraceItemTableRequest):
+def compare_requests(req1: TraceItemTableRequest, req2: TraceItemTableRequest):  # type: ignore[no-untyped-def]
     """Gives more granular error reporting when two requests do not match."""
     assert req1.meta.cogs_category == req2.meta.cogs_category
     assert req1.meta.debug == req2.meta.debug

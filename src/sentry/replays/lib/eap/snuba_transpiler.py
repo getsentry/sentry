@@ -29,6 +29,7 @@ from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -77,7 +78,6 @@ from snuba_sdk.expressions import ScalarType
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.net.http import connection_from_url
-from sentry.search.eap.constants import DownsampledStorageConfig
 from sentry.utils import json
 from sentry.utils.snuba import RetrySkipTimeout
 from sentry.utils.snuba_rpc import SnubaRPCError
@@ -698,7 +698,7 @@ def condidtional_aggregation_filter(expr: Any, settings: Settings) -> TraceItemF
     return TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key(expr.parameters[0], settings),
-            op=AGGREGATION_FUNCTION_OPERATOR_MAP[expr.function],
+            op=FUNCTION_OPERATOR_MAP[expr.function],
             value=literal(expr.parameters[1]),
         )
     )
@@ -767,11 +767,9 @@ def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
             return f'{expr.function}({", ".join(label(p) for p in expr.parameters)})'
     elif isinstance(expr, (date, datetime)):
         return expr.isoformat()
-    elif isinstance(expr, (list, tuple)):
+    elif isinstance(expr, (list, tuple, Sequence)):
         return f"[{", ".join(label(item) for item in expr)}]"
     elif isinstance(expr, (bytes, bytearray, memoryview)):
         return str(expr)
-    elif isinstance(expr, Sequence[ScalarType]):
-        return f"[{", ".join(label(item) for item in expr)}]"
     else:
         return json.dumps(expr)
