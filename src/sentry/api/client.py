@@ -18,7 +18,7 @@ class ApiError(Exception):
         self.status_code = status_code
         self.body = body
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"status={self.status_code} body={self.body}"
 
     def __repr__(self):
