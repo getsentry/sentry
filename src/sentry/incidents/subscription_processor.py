@@ -50,6 +50,7 @@ from sentry.incidents.utils.types import (
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.utils import (
@@ -379,7 +380,10 @@ class SubscriptionProcessor:
         return fired_incident_triggers, metrics_incremented
 
     def process_results_workflow_engine(
-        self, subscription_update: QuerySubscriptionUpdate, aggregation_value: float
+        self,
+        subscription_update: QuerySubscriptionUpdate,
+        aggregation_value: float,
+        organization: Organization,
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
         if self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
             anomaly_detection_packet = AnomalyDetectionUpdate(
@@ -510,7 +514,7 @@ class SubscriptionProcessor:
             if aggregation_value is not None:
                 if has_metric_alert_processing:
                     results = self.process_results_workflow_engine(
-                        subscription_update, aggregation_value
+                        subscription_update, aggregation_value, organization
                     )
 
             if has_metric_issue_single_processing:
