@@ -9,9 +9,11 @@ import pytest
 from sentry import features
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
+    GenerateFeedbackTitleRequest,
     create_feedback_issue,
     fix_for_issue_platform,
     get_feedback_title,
+    make_seer_request,
     validate_issue_platform_event_schema,
 )
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX, MAX_AI_LABELS
@@ -1100,11 +1102,6 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
 @django_db_all
 def test_make_seer_request():
     """Test the make_seer_request function directly."""
-    from sentry.feedback.usecases.ingest.create_feedback import (
-        GenerateFeedbackTitleRequest,
-        make_seer_request,
-    )
-
     request = GenerateFeedbackTitleRequest(
         organization_id=123, feedback_message="Test feedback message"
     )
@@ -1124,24 +1121,10 @@ def test_make_seer_request():
         result = make_seer_request(request)
         assert result == b'{"title": "Test Title"}'
 
-        # Verify the request was made correctly
         mock_post.assert_called_once()
         call_args = mock_post.call_args
         assert call_args[1]["headers"]["content-type"] == "application/json;charset=utf-8"
         assert "sentry-seer-signature" in call_args[1]["headers"]
-
-
-@django_db_all
-def test_make_seer_request_http_error():
-    """Test make_seer_request handles HTTP errors correctly."""
-    from sentry.feedback.usecases.ingest.create_feedback import (
-        GenerateFeedbackTitleRequest,
-        make_seer_request,
-    )
-
-    request = GenerateFeedbackTitleRequest(
-        organization_id=123, feedback_message="Test feedback message"
-    )
 
     with patch("sentry.feedback.usecases.ingest.create_feedback.requests.post") as mock_post:
         mock_response = Mock()
