@@ -80,6 +80,9 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           dockerfile_path: 'self-hosted/Dockerfile'
           tag_suffix: -${{ matrix.platform }}
+          build_args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            TARGETARCH=${{ matrix.platform }}
           ghcr: true
 
   assemble:
