@@ -51,9 +51,11 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     """
     Clean and format a title for user feedback issues.
     Format: "User Feedback: [first few words of title]"
+
     Args:
         title: The title to format
         max_words: Maximum number of words to include from the title
+
     Returns:
         A formatted title string
     """
@@ -84,10 +86,12 @@ def get_feedback_title_from_seer(
     """
     Generate an AI-powered title for user feedback using Seer, or None if generation fails.
     Format: "User Feedback: [AI-generated title]"
+
     Args:
         feedback_message: The user's feedback message
         organization_id: The ID of the organization
         max_words: Maximum number of words to include from the generated title
+
     Returns:
         A formatted title string or None if generation fails
     """
@@ -130,9 +134,11 @@ def get_feedback_title_from_message(feedback_message: str, max_words: int = 10) 
     """
     Generate a descriptive title for user feedback issues.
     Format: "User Feedback: [first few words of message]"
+
     Args:
         feedback_message: The user's feedback message
         max_words: Maximum number of words to include from the message
+
     Returns:
         A formatted title string
     """
@@ -146,11 +152,13 @@ def get_feedback_title(
     Generate a descriptive title for user feedback issues.
     Tries AI generation first if available and enabled; falls back to simple word-based title.
     Format: "User Feedback: [first few words of message or AI-generated title]"
+
     Args:
         feedback_message: The user's feedback message
         organization_id: The ID of the organization
         max_words: Maximum number of words to include from the generated title
         get_ai_title: Whether to use AI-generated title
+
     Returns:
         A formatted title string
     """
