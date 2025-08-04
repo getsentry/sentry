@@ -133,7 +133,7 @@ access_log_fields = (
     "is_app",
     "token_type",
     "organization_id",
-    "auth_id",
+    "entity_id",
     "path",
     "caller_ip",
     "user_agent",
@@ -260,6 +260,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         tested_log = self.get_tested_log()
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
+        assert tested_log.entity_id == str(token.id)
 
     def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
