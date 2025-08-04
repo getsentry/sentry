@@ -23,7 +23,9 @@ export function rc<T>(
   // them directly and return early.
   if (!isResponsive(value)) {
     return css`
-      ${property}: ${resolver ? resolver(value, undefined, theme) : value};
+      ${property}: ${resolver
+        ? resolver(value as T, undefined, theme)
+        : (value as string)};
     `;
   }
 
