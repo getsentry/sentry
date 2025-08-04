@@ -399,8 +399,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             raise PermissionDenied
 
         # We update detectors individually to ensure post_save signals are called
-        for detector in queryset:
-            detector.update(enabled=enabled)
+        with transaction.atomic(router.db_for_write(Detector)):
+            for detector in queryset:
+                detector.update(enabled=enabled)
 
         return self.paginate(
             request=request,
