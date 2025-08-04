@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -6,6 +5,7 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
@@ -18,13 +18,12 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {
   NO_REPLAY_SUMMARY_MESSAGES,
   ReplaySummaryStatus,
 } from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
-
-import {useFetchReplaySummary} from './useFetchReplaySummary';
 
 export default function Ai() {
   const organization = useOrganization();
@@ -45,43 +44,7 @@ export default function Ai() {
     isPolling,
     isError,
     startSummaryRequest,
-  } = useFetchReplaySummary({
-    staleTime: 0,
-    enabled: Boolean(
-      replayRecord?.id &&
-        project?.slug &&
-        organization.features.includes('replay-ai-summaries') &&
-        areAiFeaturesAllowed &&
-        setupAcknowledgement.orgHasAcknowledged
-    ),
-  });
-
-  // TODO: remove the condition segmentCount < 100
-  // when we process more than 100 segments for the summary
-  const segmentsIncreased =
-    summaryData?.num_segments !== null &&
-    summaryData?.num_segments !== undefined &&
-    segmentCount < 100 &&
-    segmentCount > summaryData.num_segments;
-  const needsInitialGeneration = summaryData?.status === ReplaySummaryStatus.NOT_STARTED;
-
-  useEffect(() => {
-    if (
-      (segmentsIncreased || needsInitialGeneration) &&
-      !isSummaryPending &&
-      !isPolling &&
-      !isError
-    ) {
-      startSummaryRequest();
-    }
-  }, [
-    segmentsIncreased,
-    needsInitialGeneration,
-    isSummaryPending,
-    isPolling,
-    startSummaryRequest,
-    isError,
-  ]);
+  } = useReplaySummaryContext();
 
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
@@ -215,7 +178,7 @@ export default function Ai() {
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
-            <Badge type="internal">{t('Internal')}</Badge>
+            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
@@ -243,6 +206,13 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
+          {segmentCount > 100 && (
+            <Subtext>
+              {t(
+                'Note: this replay is too long, so we currently only summarize part of it.'
+              )}
+            </Subtext>
+          )}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
@@ -365,4 +335,12 @@ const CallToActionContainer = styled('div')`
   padding: ${space(2)};
   align-items: center;
   text-align: center;
+`;
+
+const Subtext = styled(Text)`
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
+  display: flex;
+  justify-content: center;
 `;

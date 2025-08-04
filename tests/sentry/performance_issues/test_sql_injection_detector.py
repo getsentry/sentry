@@ -97,3 +97,7 @@ class SQLInjectionDetectorTest(TestCase):
 
         injection_event = get_event("sql-injection/sql-injection-orm-event-deleted-at-null")
         assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_zf1_event(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-zf1")
+        assert len(self.find_problems(injection_event)) == 0

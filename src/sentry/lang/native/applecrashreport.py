@@ -1,9 +1,8 @@
 import posixpath
 from collections.abc import Mapping
-from timeit import default_timer as timer
 
 import sentry_sdk
-import symbolic.common
+from symbolic.common import parse_addr
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
@@ -28,7 +27,6 @@ class AppleCrashReport:
 
         This constructor can modify the passed structures in place.
         """
-        self.time_spent_parsing_addrs = 0.0
         self.threads = threads if threads else []
         self.context = context
         self.symbolicated = symbolicated
@@ -47,7 +45,7 @@ class AppleCrashReport:
                         if frame.get("instruction_addr", None) is None:
                             continue
                         new_frame = {
-                            key: self._parse_addr(frame[key]) if key in frame_keys else value
+                            key: parse_addr(frame[key]) if key in frame_keys else value
                             for key, value in frame.items()
                         }
                         new_frames.append(new_frame)
@@ -61,7 +59,7 @@ class AppleCrashReport:
             if image.get("image_addr", None) is None:
                 continue
             new_image = {
-                key: self._parse_addr(image[key]) if key in image_keys else value
+                key: parse_addr(image[key]) if key in image_keys else value
                 for key, value in image.items()
             }
             self.debug_images.append(new_image)
@@ -80,19 +78,8 @@ class AppleCrashReport:
         rv.append(self.get_threads_apple_string())
         rv.append(self._get_crashed_thread_registers())
         rv.append(self.get_binary_images_apple_string())
-        current_span = sentry_sdk.get_current_span()
-
-        if current_span:
-            current_span.set_data("time_spent_parsing_addrs", self.time_spent_parsing_addrs)
 
         return "\n\n".join(rv) + "\n\nEOF"
-
-    def _parse_addr(self, x: int | str | None) -> int:
-        start = timer()
-        res = symbolic.common.parse_addr(x)
-        end = timer()
-        self.time_spent_parsing_addrs += end - start
-        return res
 
     @sentry_sdk.trace
     def _get_meta_header(self):

@@ -58,6 +58,7 @@ class FetchIssueSummaryTest(TestCase):
         # Set up all the required conditions to pass
         self.project.update_option("sentry:seer_scanner_automation", True)
         self.organization.update_option("sentry:hide_ai_features", False)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
         mock_seer_ack.return_value = True
         mock_rate_limited.return_value = False
         mock_has_budget.return_value = True
@@ -100,6 +101,25 @@ class FetchIssueSummaryTest(TestCase):
         result = fetch_issue_summary(self.group)
 
         assert result is None
+
+    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement")
+    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    def test_fetch_issue_summary_without_enable_seer_enhanced_alerts(
+        self, mock_has_budget: MagicMock, mock_seer_ack: MagicMock
+    ) -> None:
+        """Test that fetch_issue_summary returns None when enable_seer_enhanced_alerts is disabled"""
+        # Set up all the required conditions to pass except enable_seer_enhanced_alerts
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:hide_ai_features", False)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
+        mock_seer_ack.return_value = True
+
+        result = fetch_issue_summary(self.group)
+
+        assert result is None
+        # Verify that budget check wasn't called since we returned early
+        mock_has_budget.assert_not_called()
 
     def test_fetch_issue_summary_without_gen_ai_features(self) -> None:
         """Test that fetch_issue_summary returns None without gen-ai-features flag"""

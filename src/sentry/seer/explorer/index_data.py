@@ -410,6 +410,7 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
         sort_by="freq",
         limit=3,
         environments=[],
+        referrer=Referrer.SEER_RPC,
     )
     issues = list(results_cursor)
 
