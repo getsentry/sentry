@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -12,6 +13,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column as EAPColumn
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
 from sentry_protos.snuba.v1.formula_pb2 import Literal
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta as EAPRequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -22,23 +25,16 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function as EAPFunct
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
+    OrFilter,
     TraceItemFilter,
 )
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Limit,
-    Offset,
-    Op,
-    OrderBy,
-    Query,
-)
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Or, Query
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.replays.lib.eap.snuba_transpiler import (
+    TRACE_ITEM_TYPE_MAP,
     RequestMeta,
     Settings,
     as_eap_request,
@@ -49,7 +45,7 @@ from sentry.replays.lib.eap.snuba_transpiler import (
     orderby,
     where,
 )
-from sentry.snuba.rpc_dataset_common import TraceItemTableRequest
+from sentry.search.eap.constants import DownsampledStorageConfig
 
 REQUEST_META: RequestMeta = {
     "cogs_category": "a",
@@ -69,36 +65,6 @@ SETTINGS: Settings = {
     "default_offset": 0,
     "extrapolation_mode": "none",
 }
-
-
-def make_query(select=None, where=None, having=None, groupby=None, orderby=None) -> Query:
-    return Query(
-        match=Entity("trace_items"),
-        select=select,
-        where=where,
-        having=having,
-        groupby=groupby,
-        orderby=orderby,
-        limit=Limit(1),
-        offset=Offset(0),
-    )
-
-
-def make_request(
-    select=None, where=None, having=None, groupby=None, orderby=None
-) -> TraceItemTableRequest:
-    return TraceItemTableRequest(
-        columns=select,
-        filter=where,
-        aggregation_filter=having,
-        order_by=orderby,
-        group_by=groupby,
-    )
-
-
-@pytest.mark.parametrize(("query", "req"), [(make_query(), make_request())])
-def test_as_eap_request(query, req):
-    str(as_eap_request(query, REQUEST_META, SETTINGS, virtual_columns=[])) == str(req)
 
 
 @pytest.mark.parametrize(
@@ -377,3 +343,213 @@ def test_groupby():
         AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="bool"),
         AttributeKey(type=AttributeKey.TYPE_STRING, name="str"),
     ]
+
+
+def make_query(
+    select=None, where=None, having=None, groupby=None, orderby=None, limit=1, offset=0
+) -> Query:
+    return Query(
+        match=Entity("trace_items"),
+        select=select,
+        where=where,
+        having=having,
+        groupby=groupby,
+        orderby=orderby,
+        limit=Limit(limit),
+        offset=Offset(offset),
+    )
+
+
+def make_request(
+    select=None, where=None, having=None, groupby=None, orderby=None, limit=1, offset=0
+) -> TraceItemTableRequest:
+    start_timestamp = Timestamp()
+    start_timestamp.FromDatetime(REQUEST_META["start_datetime"])
+
+    end_timestamp = Timestamp()
+    end_timestamp.FromDatetime(REQUEST_META["end_datetime"])
+
+    return TraceItemTableRequest(
+        columns=select,
+        filter=where,
+        aggregation_filter=having,
+        order_by=orderby,
+        group_by=groupby,
+        limit=limit,
+        page_token=PageToken(offset=offset),
+        meta=EAPRequestMeta(
+            cogs_category=REQUEST_META["cogs_category"],
+            debug=REQUEST_META["debug"],
+            end_timestamp=end_timestamp,
+            organization_id=REQUEST_META["organization_id"],
+            project_ids=REQUEST_META["project_ids"],
+            referrer=REQUEST_META["referrer"],
+            request_id=REQUEST_META["request_id"],
+            start_timestamp=start_timestamp,
+            trace_item_type=TRACE_ITEM_TYPE_MAP[REQUEST_META["trace_item_type"]],
+            downsampled_storage_config=DownsampledStorageConfig(
+                mode=DownsampledStorageConfig.MODE_BEST_EFFORT
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("query", "req"),
+    [
+        (make_query(), make_request()),
+        (make_query(limit=10, offset=20), make_request(limit=10, offset=20)),
+        (
+            make_query(
+                where=[Condition(Column("int"), Op.EQ, 2), Condition(Column("str"), Op.EQ, "a")]
+            ),
+            make_request(
+                where=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                comparison_filter=ComparisonFilter(
+                                    key=AttributeKey(name="int", type=AttributeKey.TYPE_INT),
+                                    op=ComparisonFilter.OP_EQUALS,
+                                    value=AttributeValue(val_int=2),
+                                )
+                            ),
+                            TraceItemFilter(
+                                comparison_filter=ComparisonFilter(
+                                    key=AttributeKey(name="str", type=AttributeKey.TYPE_STRING),
+                                    op=ComparisonFilter.OP_EQUALS,
+                                    value=AttributeValue(val_str="a"),
+                                )
+                            ),
+                        ]
+                    )
+                )
+            ),
+        ),
+        (
+            make_query(
+                where=[
+                    Or([Condition(Column("int"), Op.EQ, 2), Condition(Column("str"), Op.EQ, "a")])
+                ]
+            ),
+            make_request(
+                where=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                or_filter=OrFilter(
+                                    filters=[
+                                        TraceItemFilter(
+                                            comparison_filter=ComparisonFilter(
+                                                key=AttributeKey(
+                                                    name="int", type=AttributeKey.TYPE_INT
+                                                ),
+                                                op=ComparisonFilter.OP_EQUALS,
+                                                value=AttributeValue(val_int=2),
+                                            )
+                                        ),
+                                        TraceItemFilter(
+                                            comparison_filter=ComparisonFilter(
+                                                key=AttributeKey(
+                                                    name="str", type=AttributeKey.TYPE_STRING
+                                                ),
+                                                op=ComparisonFilter.OP_EQUALS,
+                                                value=AttributeValue(val_str="a"),
+                                            )
+                                        ),
+                                    ]
+                                )
+                            )
+                        ]
+                    )
+                )
+            ),
+        ),
+        (
+            make_query(where=[Condition(Function("exists", parameters=[Column("int")]), Op.EQ, 1)]),
+            make_request(
+                where=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                exists_filter=ExistsFilter(
+                                    key=AttributeKey(type=AttributeKey.TYPE_INT, name="int")
+                                )
+                            )
+                        ]
+                    )
+                )
+            ),
+        ),
+        (
+            make_query(
+                where=[
+                    Condition(
+                        Function(
+                            "not", parameters=[Function("equals", parameters=[Column("int"), 1])]
+                        ),
+                        Op.EQ,
+                        1,
+                    )
+                ]
+            ),
+            make_request(
+                where=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                not_filter=NotFilter(
+                                    filters=[
+                                        TraceItemFilter(
+                                            and_filter=AndFilter(
+                                                filters=[
+                                                    TraceItemFilter(
+                                                        comparison_filter=ComparisonFilter(
+                                                            key=AttributeKey(
+                                                                name="int",
+                                                                type=AttributeKey.TYPE_INT,
+                                                            ),
+                                                            op=ComparisonFilter.OP_EQUALS,
+                                                            value=AttributeValue(val_int=1),
+                                                        )
+                                                    )
+                                                ]
+                                            )
+                                        )
+                                    ]
+                                )
+                            )
+                        ]
+                    )
+                )
+            ),
+        ),
+    ],
+)
+def test_as_eap_request(query, req):
+    compare_requests(as_eap_request(query, REQUEST_META, SETTINGS, virtual_columns=[]), req)
+
+
+def compare_requests(req1: TraceItemTableRequest, req2: TraceItemTableRequest):
+    """Gives more granular error reporting when two requests do not match."""
+    assert req1.meta.cogs_category == req2.meta.cogs_category
+    assert req1.meta.debug == req2.meta.debug
+    assert req1.meta.end_timestamp == req2.meta.end_timestamp
+    assert req1.meta.organization_id == req2.meta.organization_id
+    assert req1.meta.project_ids == req2.meta.project_ids
+    assert req1.meta.referrer == req2.meta.referrer
+    assert req1.meta.request_id == req2.meta.request_id
+    assert req1.meta.start_timestamp == req2.meta.start_timestamp
+    assert req1.meta.trace_item_type == req2.meta.trace_item_type
+    assert req1.meta.downsampled_storage_config.mode == req2.meta.downsampled_storage_config.mode
+
+    assert req1.filter == req2.filter
+    assert req1.aggregation_filter == req2.aggregation_filter
+    assert req1.columns == req2.columns
+    assert req1.group_by == req2.group_by
+    assert req1.order_by == req2.order_by
+    assert req1.limit == req2.limit
+    assert req1.page_token == req2.page_token
+    assert req1.virtual_column_contexts == req2.virtual_column_contexts
+
+    assert req1 == req2
