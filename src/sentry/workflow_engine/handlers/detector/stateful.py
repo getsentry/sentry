@@ -569,11 +569,15 @@ class StatefulDetectorHandler(
         if self.detector.workflow_condition_group is None:
             return []
 
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
-        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
-            condition_result__in=priority_levels
-        ).values_list("condition_result", flat=True)
+        if (
+            hasattr(self.detector.workflow_condition_group, "_prefetched_objects_cache")
+            and "conditions" in self.detector.workflow_condition_group._prefetched_objects_cache
+        ):
+            condition_result_levels = list(self.detector.workflow_condition_group.conditions.all())
+        else:
+            condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
+                condition_result__in=priority_levels
+            ).values_list("condition_result", flat=True)
 
         return list(DetectorPriorityLevel(level) for level in condition_result_levels)
 
