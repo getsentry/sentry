@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
@@ -178,7 +178,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
     method = "put"
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_owner_can_approve_invite_request(self, mock_invite_email):
+    def test_owner_can_approve_invite_request(self, mock_invite_email: MagicMock) -> None:
         self.login_as(user=self.user)
         with outbox_runner():
             resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
@@ -209,7 +209,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert resp.status_code == 403
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_approve_requires_invite_members_feature(self, mock_invite_email):
+    def test_approve_requires_invite_members_feature(self, mock_invite_email: MagicMock) -> None:
         self.login_as(user=self.user)
 
         with Feature({"organizations:invite-members": False}):
@@ -218,7 +218,9 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
             assert mock_invite_email.call_count == 0
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_cannot_approve_join_request_with_disabled_setting(self, mock_invite_email):
+    def test_cannot_approve_join_request_with_disabled_setting(
+        self, mock_invite_email: MagicMock
+    ) -> None:
         OrganizationOption.objects.create(
             organization_id=self.org.id, key="sentry:join_requests", value=False
         )
@@ -234,7 +236,9 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert resp.status_code == 200
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_can_approve_join_request_with_enabled_setting(self, mock_invite_email):
+    def test_can_approve_join_request_with_enabled_setting(
+        self, mock_invite_email: MagicMock
+    ) -> None:
         OrganizationOption.objects.create(
             organization_id=self.org.id, key="sentry:join_requests", value=True
         )
@@ -246,7 +250,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert mock_invite_email.call_count == 1
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_email_not_sent_without_invites_enabled(self, mock_invite_email):
+    def test_email_not_sent_without_invites_enabled(self, mock_invite_email: MagicMock) -> None:
         self.login_as(user=self.user)
 
         with self.settings(SENTRY_ENABLE_INVITES=False):
@@ -260,7 +264,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         ).exists()
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_owner_can_update_and_approve(self, mock_invite_email):
+    def test_owner_can_update_and_approve(self, mock_invite_email: MagicMock) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(
             self.org.slug,
@@ -287,7 +291,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         assert mock_invite_email.call_count == 1
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_manager_cannot_approve_owner(self, mock_invite_email):
+    def test_manager_cannot_approve_owner(self, mock_invite_email: MagicMock) -> None:
         self.login_as(user=self.manager)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 

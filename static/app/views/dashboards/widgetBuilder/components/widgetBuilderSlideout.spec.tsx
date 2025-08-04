@@ -590,7 +590,7 @@ describe('WidgetBuilderSlideout', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByTestId('transaction-widget-disabled-wrapper')).toBeInTheDocument();
+    expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
   });
 
   it('should not show deprecation alert when flag enabled', async () => {

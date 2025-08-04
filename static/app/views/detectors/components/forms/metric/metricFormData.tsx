@@ -154,6 +154,7 @@ export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   dataset: DetectorDataset.SPANS,
   aggregateFunction: 'avg(span.duration)',
   interval: 60 * 60, // One hour in seconds
+  query: '',
 } satisfies Partial<MetricDetectorFormData>;
 
 /**

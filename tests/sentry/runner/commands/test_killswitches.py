@@ -116,7 +116,9 @@ class KillswitchesTest(CliTestCase):
     @mock.patch(
         "sentry.options.set",
     )
-    def test_relay_drop_transaction_metrics(self, mock_set, mock_schedule):
+    def test_relay_drop_transaction_metrics(
+        self, mock_set: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
 
         option = "relay.drop-transaction-metrics"
 
@@ -141,7 +143,9 @@ class KillswitchesTest(CliTestCase):
     @mock.patch(
         "sentry.options.set",
     )
-    def test_relay_drop_transaction_metrics_all(self, mock_set, mock_schedule):
+    def test_relay_drop_transaction_metrics_all(
+        self, mock_set: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
         self.organization
         option = "relay.drop-transaction-metrics"
 

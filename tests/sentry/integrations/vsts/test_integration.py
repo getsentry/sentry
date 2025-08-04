@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -39,7 +39,9 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         "sentry.identity.pipeline.IdentityPipeline._get_provider",
         return_value=VSTSNewIdentityProvider(),
     )
-    def test_original_installation_still_works(self, mock_get_scopes, mock_get_provider):
+    def test_original_installation_still_works(
+        self, mock_get_scopes: MagicMock, mock_get_provider: MagicMock
+    ) -> None:
         self.pipeline = Mock()
         self.pipeline.organization = self.organization
         self.assert_installation(new=True)
@@ -59,7 +61,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
     )
-    def test_migration(self, mock_get_scopes):
+    def test_migration(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -121,7 +123,7 @@ class VstsIntegrationMigrationTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.VstsIntegrationProvider.get_scopes",
         return_value=VstsIntegrationProvider.NEW_SCOPES,
     )
-    def test_migration_after_reinstall(self, mock_get_scopes):
+    def test_migration_after_reinstall(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -243,7 +245,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_accounts_list_failure(self, mock_record):
+    def test_accounts_list_failure(self, mock_record: MagicMock) -> None:
         responses.replace(
             responses.GET,
             "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
@@ -265,7 +267,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert_halt_metric(mock_record, "no_accounts")
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_webhook_subscription_created_once(self, mock_get_scopes):
+    def test_webhook_subscription_created_once(self, mock_get_scopes: MagicMock) -> None:
         self.assert_installation()
 
         state = {
@@ -295,7 +297,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         )
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_fix_subscription(self, mock_get_scopes):
+    def test_fix_subscription(self, mock_get_scopes: MagicMock) -> None:
         external_id = self.vsts_account_id
         self.create_provider_integration(metadata={}, provider="vsts", external_id=external_id)
         provider = VstsIntegrationProvider()
@@ -404,7 +406,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 @control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_success(self, mock_get_scopes):
+    def test_success(self, mock_get_scopes: MagicMock) -> None:
         state = {
             "account": {"accountName": self.vsts_account_name, "accountId": self.vsts_account_id},
             "base_url": self.vsts_base_url,
@@ -433,7 +435,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert integration_dict["user_identity"]["scopes"] == FULL_SCOPES
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_create_subscription_forbidden(self, mock_get_scopes):
+    def test_create_subscription_forbidden(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
             f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
@@ -468,7 +470,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert "Azure DevOps organization" in str(err) and "Please ensu" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
-    def test_create_subscription_unauthorized(self, mock_get_scopes):
+    def test_create_subscription_unauthorized(self, mock_get_scopes: MagicMock) -> None:
         responses.replace(
             responses.POST,
             f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
@@ -736,7 +738,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 @with_feature("organizations:migrate-azure-devops-integration")
 class NewVstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self) -> None:
-        self.assert_installation()
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         fields = installation.get_organization_config()
@@ -750,7 +752,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         ]
 
     def test_get_organization_config_failure(self) -> None:
-        self.assert_installation()
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
@@ -760,9 +762,16 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         identity.data["expires"] = 1566851050
         identity.save()
 
+        # Mock both legacy and new OAuth token endpoints to ensure failure regardless of which is used
         responses.replace(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
+        )
+        responses.replace(
+            responses.POST,
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             status=400,
             json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
         )
@@ -770,7 +779,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert fields[0]["disabled"], "Fields should be disabled"
 
     def test_update_organization_config_remove_all(self) -> None:
-        self.assert_installation()
+        self.assert_installation(new=True)
 
         model = Integration.objects.get(provider="vsts")
         integration = VstsIntegration(model, self.organization.id)
@@ -813,7 +822,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert config == {"sync_status_forward": False, "other_option": "hello"}
 
     def test_update_organization_config(self) -> None:
-        self.assert_installation()
+        self.assert_installation(new=True)
 
         org_integration = OrganizationIntegration.objects.get(organization_id=self.organization.id)
 
@@ -881,7 +890,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         account_name = "MyVSTSAccount.visualstudio.com"
         account_uri = "https://MyVSTSAccount.visualstudio.com/"
 
-        self.assert_installation()
+        self.assert_installation(new=True)
 
         model = Integration.objects.get(provider="vsts")
         model.metadata["domain_name"] = account_name
@@ -890,12 +899,14 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
         integration.get_client()
 
-        domain_name = integration.model.metadata["domain_name"]
+        model.refresh_from_db()
+
+        domain_name = model.metadata["domain_name"]
         assert domain_name == account_uri
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
     def test_get_repositories(self) -> None:
-        self.assert_installation()
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         result = installation.get_repositories()
@@ -903,7 +914,7 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         assert {"name": "ProjectA/cool-service", "identifier": self.repo_id} == result[0]
 
     def test_get_repositories_identity_error(self) -> None:
-        self.assert_installation()
+        self.assert_installation(new=True)
         integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
@@ -913,9 +924,16 @@ class NewVstsIntegrationTest(VstsIntegrationTestCase):
         identity.data["expires"] = 1566851050
         identity.save()
 
+        # Mock both legacy and new OAuth token endpoints to ensure failure regardless of which is used
         responses.replace(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",
+            status=400,
+            json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
+        )
+        responses.replace(
+            responses.POST,
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             status=400,
             json={"error": "invalid_grant", "message": "The provided authorization grant failed"},
         )
@@ -933,7 +951,7 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
             self.user.save()
 
     @patch("sentry.integrations.vsts.client.VstsApiClient.update_work_item")
-    def test_create_comment(self, mock_update_work_item):
+    def test_create_comment(self, mock_update_work_item: MagicMock) -> None:
         comment_text = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
         comment = Mock()
         comment.data = {"text": comment_text}

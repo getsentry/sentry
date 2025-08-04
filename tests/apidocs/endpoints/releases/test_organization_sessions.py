@@ -22,7 +22,7 @@ class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         query = {
             "project": [self.project.id],
             "statsPeriod": "30d",

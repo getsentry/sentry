@@ -80,7 +80,7 @@ function CIEfficiencyBody({
   slowestTestsDuration,
 }: CIEfficiencyBodyProps) {
   return (
-    <SummaryEntries largeColumnSpan={8} smallColumnSpan={1}>
+    <SummaryEntries largeColumnSpan={9} smallColumnSpan={1}>
       <SummaryEntry columns={5}>
         <SummaryEntryLabel showUnderline body={<TotalTestsRunTimeTooltip />}>
           {t('Total Tests Run Time')}
@@ -97,7 +97,7 @@ function CIEfficiencyBody({
             )}
         </SummaryEntryValue>
       </SummaryEntry>
-      <SummaryEntry columns={3}>
+      <SummaryEntry columns={4}>
         <SummaryEntryLabel
           showUnderline
           body={
@@ -140,6 +140,6 @@ const CIEfficiencyPanel = styled(Panel)`
   grid-column: span 24;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 8;
+    grid-column: span 9;
   }
 `;

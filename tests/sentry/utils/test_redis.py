@@ -40,7 +40,7 @@ class ClusterManagerTestCase(TestCase):
             manager.get("invalid")
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
-    def test_specific_cluster(self, RetryingRedisCluster):
+    def test_specific_cluster(self, RetryingRedisCluster: mock.MagicMock) -> None:
         manager = RedisClusterManager(_options_manager())
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
@@ -57,7 +57,9 @@ class ClusterManagerTestCase(TestCase):
             manager.get("bar")
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
-    def test_multiple_retrieval_do_not_setup_lazy_object(self, RetryingRedisCluster):
+    def test_multiple_retrieval_do_not_setup_lazy_object(
+        self, RetryingRedisCluster: mock.MagicMock
+    ) -> None:
         RetryingRedisCluster.side_effect = AssertionError("should not be called")
 
         manager = RedisClusterManager(_options_manager())

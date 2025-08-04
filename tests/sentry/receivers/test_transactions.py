@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import router
 
@@ -67,7 +67,7 @@ class RecordFirstTransactionTest(TestCase):
         assert not project.flags.has_transactions
 
     @patch("sentry.analytics.record")
-    def test_analytics_event(self, mock_record):
+    def test_analytics_event(self, mock_record: MagicMock) -> None:
         assert not self.project.flags.has_transactions
         event = self.store_event(
             data={
