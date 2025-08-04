@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry import features
 from sentry.feedback.usecases.title_generation import (
     GenerateFeedbackTitleRequest,
     get_feedback_title,
@@ -12,22 +11,20 @@ from sentry.feedback.usecases.title_generation import (
     make_seer_request,
     should_get_ai_title,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.models.organization import Organization
+from sentry.testutils.helpers.features import Feature
 
 
-@django_db_all
-def test_should_get_ai_title(default_project):
+def test_should_get_ai_title():
     """Test the should_get_ai_title function with various feature flag combinations."""
-    org = default_project.organization
-
-    def mock_gen_ai_enabled_only(feature_name, *args, **kwargs):
-        return feature_name == "organizations:gen-ai-features"
-
-    def mock_feedback_ai_enabled_only(feature_name, *args, **kwargs):
-        return feature_name == "organizations:user-feedback-ai-titles"
+    org = Mock(spec=Organization)
+    org.id = 123
+    org.slug = "test-org"
 
     # both feature flags disabled
-    with patch.object(features, "has", return_value=False):
+    with Feature(
+        {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": False}
+    ):
         with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
             result = should_get_ai_title(org)
             assert result is False
@@ -37,7 +34,9 @@ def test_should_get_ai_title(default_project):
             )
 
     # gen-ai-features enabled
-    with patch.object(features, "has", side_effect=mock_gen_ai_enabled_only):
+    with Feature(
+        {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": False}
+    ):
         with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
             result = should_get_ai_title(org)
             assert result is False
@@ -47,7 +46,9 @@ def test_should_get_ai_title(default_project):
             )
 
     # user-feedback-ai-titles enabled
-    with patch.object(features, "has", side_effect=mock_feedback_ai_enabled_only):
+    with Feature(
+        {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": True}
+    ):
         with patch("sentry.feedback.usecases.title_generation.metrics") as mock_metrics:
             result = should_get_ai_title(org)
             assert result is False
@@ -57,7 +58,6 @@ def test_should_get_ai_title(default_project):
             )
 
 
-@django_db_all
 def test_make_seer_request():
     """Test the make_seer_request function with successful and unsuccessful responses."""
     request = GenerateFeedbackTitleRequest(
@@ -131,7 +131,6 @@ def test_get_feedback_title() -> None:
     assert get_feedback_title(special_message) == expected_special
 
 
-@django_db_all
 def test_get_feedback_title_from_seer():
     """Test the get_feedback_title_from_seer function with various feature flag combinations and Seer call responses."""
     org_id = 123
