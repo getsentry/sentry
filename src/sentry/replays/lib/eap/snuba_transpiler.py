@@ -349,23 +349,32 @@ VirtualColumn = TypedDict(
 A virtual column defines translation instructions for mapping data inside EAP to data outside of
 EAP.
 
-For example sorting by project slug is not possible without virtual columns. Project slugs are not
-stored in EAP. However, project ids are. The application can define a mapping from slug to ID which
-can then be used within the EAP query context.
-
-Fields:
-    from: The source column name to read values from
-    to: The target column name to write transformed values to
-    value_map: A dictionary mapping source values to target values
-    default_value: Optional default value when source value not in value_map
+This TypedDict models a virtual column that maps values from an existing
+column to new values, allowing for user-friendly column names and values
+that may not be stored directly in the database.
 
 Example:
-    >>> col_def: VirtualColumn = {
-    ...     "from": "status_code",
-    ...     "to": "status_name",
-    ...     "value_map": {"200": "OK", "404": "Not Found"},
-    ...     "default_value": "Unknown"
+    For a scenario where `project_name` is changeable by the user and not
+    stored in EAP, but sorting by it is desired:
+
+    ```python
+    >>> virtual_column: VirtualColumn = {
+    ...     "from": "sentry.project_id",
+    ...     "to": "sentry.project_name",
+    ...     "value_map": {"1": "sentry", "2": "snuba"},
+    ...     "default_value": "unknown"
     ... }
+    ```
+
+    In this example, `sentry.project_name` is a virtual column created by
+    mapping values from the real column `sentry.project_id`. A project_id
+    of "1" gets mapped to project_name="sentry", etc.
+
+Attributes:
+    from: The name of the source column containing the original values
+    to: The name of the virtual column to be created
+    value_map: Dictionary mapping original column values to new virtual column values
+    default_value: Optional default value to use when no mapping exists for a given value
 """
 
 
