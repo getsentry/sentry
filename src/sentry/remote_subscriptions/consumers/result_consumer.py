@@ -19,6 +19,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.locks import locks
 from sentry.remote_subscriptions.consumers.queue_consumer import (
     FixedQueuePool,
     SimpleQueueProcessingStrategy,
@@ -26,6 +27,7 @@ from sentry.remote_subscriptions.consumers.queue_consumer import (
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,9 @@ FAKE_SUBSCRIPTION_ID = 12345
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
+    def __init__(self, use_subscription_lock: bool = False):
+        self.use_subscription_lock = use_subscription_lock
+
     @property
     @abc.abstractmethod
     def subscription_model(self) -> type[U]:
@@ -49,7 +54,17 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
                 name=f"monitors.{identifier}.result_consumer.ResultProcessor",
                 op="result_processor.handle_result",
             ):
-                self.handle_result(self.get_subscription(result), result)
+                subscription = self.get_subscription(result)
+                if self.use_subscription_lock and subscription:
+                    lock = locks.get(
+                        f"subscription:{subscription.type}:{subscription.subscription_id}",
+                        duration=10,
+                        name=f"subscription_{identifier}",
+                    )
+                    with TimedRetryPolicy(10)(lock.acquire):
+                        self.handle_result(subscription, result)
+                else:
+                    self.handle_result(subscription, result)
         except Exception:
             logger.exception("Failed to process message result")
 
@@ -118,7 +133,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         self.mode = mode
         self.consumer_group = consumer_group
         metric_tags = {"identifier": self.identifier, "mode": self.mode}
-        self.result_processor = self.result_processor_cls()
+        self.result_processor = self.result_processor_cls(use_subscription_lock=mode == "parallel")
         if mode == "batched-parallel":
             self.batched_parallel = True
             self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
