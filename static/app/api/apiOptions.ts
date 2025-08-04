@@ -26,7 +26,7 @@ export const selectWithHeaders =
     ) as Record<THeaders[number], string | undefined>,
   });
 
-export function apiOptions<
+function _apiOptions<
   TManualData = never,
   TApiPath extends ApiPath = ApiPath,
   // todo: infer the actual data type from the ApiMapping
