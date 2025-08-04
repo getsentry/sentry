@@ -701,6 +701,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'ruler',
+        groups: ['ruler'],
+        keywords: ['ruler', 'measure'],
+        name: 'Ruler',
+        defaultProps: {},
+      },
+      {
         id: 'download',
         groups: ['action'],
         keywords: ['file', 'image', 'down'],
