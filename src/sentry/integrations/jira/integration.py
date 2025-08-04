@@ -191,17 +191,11 @@ class JiraIntegration(IssueSyncIntegration):
         """
         Set the status choices in the provided organization config.
         This will mutate the provided config object and replace the existing
-        mappedSelectors field with the status choices.
-
-        Optionally, if the organization has the feature flag
-        organizations:jira-per-project-statuses enabled, we will set the status
-        choices per-project for the organization.
+        mappedSelectors field with the status choices. We will set the status choices per-project for the organization=
         """
         client = self.get_client()
 
-        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES and features.has(
-            "organizations:jira-per-project-statuses", self.organization
-        ):
+        if len(jira_projects) <= MAX_PER_PROJECT_QUERIES:
             # If we have less projects than the max query limit, and the feature
             # flag is enabled for the organization, we can query the statuses
             # for each project. This ensures we don't display statuses that are
@@ -389,8 +383,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         sync_status_forward = {}
 
-        if features.has("organizations:jira-per-project-statuses", self.organization):
-            project_mappings = self._filter_active_projects(project_mappings)
+        project_mappings = self._filter_active_projects(project_mappings)
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
