@@ -934,7 +934,6 @@ def test_get_feedback_title_with_ai():
     # Create a mock organization to avoid database setup issues
     org = Mock()
     org.id = 123
-    org.get_option.return_value = False
 
     def mock_gen_ai_enabled_only(feature_name, *args, **kwargs):
         return feature_name == "organizations:gen-ai-features"
