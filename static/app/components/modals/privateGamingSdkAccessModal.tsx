@@ -135,7 +135,9 @@ export function PrivateGamingSdkAccessModal({
           ? error.message
           : typeof error === 'string'
             ? error
-            : t('There was an error submitting your request. Please try again.')
+            : t(
+                'Unable to submit the request. This could be because of network issues, or because you are using an ad-blocker.'
+              )
       );
     } finally {
       setIsSubmitting(false);
