@@ -228,7 +228,7 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
         "sentry.rules.processing.delayed_processing.DelayedRule.option",
         "delayed_processing.emit_logs",
     )
-    def test_skips_processing_with_option(self, mock_process_in_batches):
+    def test_skips_processing_with_option(self, mock_process_in_batches) -> None:
         self._push_base_events()
         process_buffer()
 

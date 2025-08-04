@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
@@ -231,14 +232,6 @@ def handle_owner_assignment(job):
     # - we tried to calculate and could not find issue owners with TTL 1 day
     # - an Assignee has been set with TTL of infinite
 
-    if should_issue_owners_ratelimit(
-        project_id=project.id,
-        group_id=group.id,
-        organization_id=event.project.organization_id,
-    ):
-        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
-        return
-
     # Is the issue already assigned to a team or user?
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
     assignees_exists = cache.get(assignee_key)
@@ -260,6 +253,23 @@ def handle_owner_assignment(job):
 
     if debounce_issue_owners:
         metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
+        return
+
+    if should_issue_owners_ratelimit(
+        project_id=project.id,
+        group_id=group.id,
+        organization_id=event.project.organization_id,
+    ):
+        if random.random() < 0.01:
+            logger.warning(
+                "handle_owner_assignment.ratelimited",
+                extra={
+                    "organization_id": event.project.organization_id,
+                    "project_id": project.id,
+                    "group_id": group.id,
+                },
+            )
+        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
         return
 
     if killswitch_matches_context(
@@ -964,14 +974,17 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     try:
-        process_workflows_event.delay(
-            project_id=job["event"].project_id,
-            event_id=job["event"].event_id,
-            occurrence_id=job["event"].occurrence_id,
-            group_id=job["event"].group_id,
-            group_state=job["group_state"],
-            has_reappeared=job["has_reappeared"],
-            has_escalated=job["has_escalated"],
+        process_workflows_event.apply_async(
+            kwargs=dict(
+                project_id=job["event"].project_id,
+                event_id=job["event"].event_id,
+                occurrence_id=job["event"].occurrence_id,
+                group_id=job["event"].group_id,
+                group_state=job["group_state"],
+                has_reappeared=job["has_reappeared"],
+                has_escalated=job["has_escalated"],
+            ),
+            headers={"sentry-propagate-traces": False},
         )
     except Exception:
         logger.exception("Could not process workflow task", extra={"job": job})
@@ -1325,8 +1338,9 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         )
     except PluginError as e:
         logger.info("post_process.process_error_ignored", extra={"exception": e})
+    # Since plugins are deprecated, instead of creating issues, lets just create a warning log
     except Exception as e:
-        logger.exception("post_process.process_error", extra={"exception": e})
+        logger.warning("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(func):
@@ -1592,9 +1606,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ]:
         return
 
-    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization
-    ):
+    if not features.has("organizations:gen-ai-features", group.organization):
         return
 
     gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")

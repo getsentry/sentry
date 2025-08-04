@@ -5,10 +5,14 @@ export type CodecovContextData = {
   codecovPeriod: string;
   branch?: string;
   integratedOrgId?: string;
+  lastVisitedOrgId?: string;
   repository?: string;
 };
 
-export type CodecovContextDataParams = Omit<CodecovContextData, 'changeContextValue'>;
+export type CodecovContextDataParams = Omit<
+  CodecovContextData,
+  'changeContextValue' | 'lastVisitedOrgId'
+>;
 
 export const CodecovContext = createContext<CodecovContextData | undefined>(undefined);
 

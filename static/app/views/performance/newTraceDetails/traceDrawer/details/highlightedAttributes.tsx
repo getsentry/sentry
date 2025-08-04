@@ -116,9 +116,9 @@ function getAISpanAttributes(
         has_model: 'true',
         has_cost: 'false',
         span_operation: op || 'unknown',
+        model: model.toString(),
       },
       extra: {
-        model: model.toString(),
         total_costs: totalCosts,
         span_operation: op,
         attributes,

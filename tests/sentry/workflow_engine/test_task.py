@@ -146,7 +146,8 @@ class TestProcessWorkflowActivity(TestCase):
             assert mock_evaluate.call_count == 0
 
     @mock.patch(
-        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers", return_value=set()
+        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+        return_value=(set(), {}),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
@@ -238,6 +239,9 @@ class TestProcessWorkflowActivity(TestCase):
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
-                tags={"activity_type": self.activity.type},
+                tags={
+                    "activity_type": self.activity.type,
+                    "detector_type": self.detector.type,
+                },
                 sample_rate=1.0,
             )
