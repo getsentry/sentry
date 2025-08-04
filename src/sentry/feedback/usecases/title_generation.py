@@ -21,96 +21,33 @@ class GenerateFeedbackTitleRequest(TypedDict):
     feedback_message: str
 
 
-def get_ai_feedback_title(feedback_message: str, organization: Organization) -> str | None:
-    """
-    Generate an AI-powered title for user feedback using Seer.
-
-    Args:
-        feedback_message: The user's feedback message
-        organization: The organization the feedback belongs to
-
-    Returns:
-        An AI-generated title string, or None if generation fails
-    """
+def should_get_ai_title(organization: Organization) -> bool:
+    """Check if AI title generation should be used for the given organization."""
     if not features.has("organizations:gen-ai-features", organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
-            tags={"reason": "gen_ai_disabled", "organization_id": organization.id},
+            tags={"reason": "gen_ai_disabled"},
         )
-        return None
+        return False
 
     if organization.get_option("sentry:hide_ai_features"):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
-            tags={"reason": "ai_features_hidden", "organization_id": organization.id},
+            tags={"reason": "ai_features_hidden"},
         )
-        return None
+        return False
 
     if not features.has("organizations:user-feedback-ai-titles", organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
-            tags={"reason": "feedback_ai_titles_disabled", "organization_id": organization.id},
+            tags={"reason": "feedback_ai_titles_disabled"},
         )
-        return None
+        return False
 
-    seer_request = GenerateFeedbackTitleRequest(
-        organization_id=organization.id,
-        feedback_message=feedback_message,
-    )
-
-    try:
-        response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
-    except Exception:
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"organization_id": organization.id},
-        )
-        return None
-
-    try:
-        title = response_data["title"]
-    except KeyError:
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "invalid_response", "organization_id": organization.id},
-        )
-        return None
-
-    if not title or not isinstance(title, str) or not title.strip():
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "invalid_response", "organization_id": organization.id},
-        )
-        return None
-
-    metrics.incr(
-        "feedback.ai_title_generation.success",
-        tags={"organization_id": organization.id},
-    )
-    return title
+    return True
 
 
-def get_feedback_title(
-    feedback_message: str, max_words: int = 10, organization: Organization | None = None
-) -> str:
-    """
-    Generate a descriptive title for user feedback issues.
-    Tries AI generation first if available, falls back to simple word-based title.
-    Format: "User Feedback: [first few words of message] or AI-generated title
-
-    Args:
-        feedback_message: The user's feedback message
-        max_words: Maximum number of words to include from the message (fallback only)
-        organization: The organization the feedback belongs to (for AI features)
-
-    Returns:
-        A formatted title string
-    """
-    title = None
-    if organization:
-        title = get_ai_feedback_title(feedback_message, organization)
-    if title is None:
-        title = feedback_message
+def format_feedback_title(title: str, max_words: int = 10) -> str:
     stripped_message = title.strip()
 
     # Clean and split the message into words
@@ -132,7 +69,67 @@ def get_feedback_title(
     return title
 
 
+def get_feedback_title_from_seer(
+    feedback_message: str, organization_id: int, max_words: int = 10
+) -> str | None:
+    """Generate an AI-powered title for user feedback using Seer, or None if generation fails."""
+    seer_request = GenerateFeedbackTitleRequest(
+        organization_id=organization_id,
+        feedback_message=feedback_message,
+    )
+
+    try:
+        response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
+    except Exception:
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+        )
+        return None
+
+    try:
+        title = response_data["title"]
+    except KeyError:
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "invalid_response"},
+        )
+        return None
+
+    if not title or not isinstance(title, str) or not title.strip():
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "invalid_response"},
+        )
+        return None
+
+    metrics.incr(
+        "feedback.ai_title_generation.success",
+    )
+    return format_feedback_title(title, max_words)
+
+
+def get_feedback_title_from_message(feedback_message: str, max_words: int = 10) -> str:
+    return format_feedback_title(feedback_message, max_words)
+
+
+def get_feedback_title(
+    feedback_message: str, organization_id: int, max_words: int = 10, get_ai_title: bool = False
+) -> str:
+    """
+    Generate a descriptive title for user feedback issues.
+    Tries AI generation first if available and enabled, falls back to simple word-based title.
+    Format: "User Feedback: [first few words of message or AI-generated title]"
+    """
+    title = None
+    if get_ai_title:
+        title = get_feedback_title_from_seer(feedback_message, organization_id, max_words)
+    if title is None:
+        title = get_feedback_title_from_message(feedback_message, max_words)
+    return title
+
+
 def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
+    """Make a request to the Seer service for AI title generation."""
     serialized_request = json.dumps(request)
 
     response = requests.post(
