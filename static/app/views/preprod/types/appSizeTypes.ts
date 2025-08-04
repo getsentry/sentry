@@ -69,22 +69,22 @@ interface BaseInsightResult {
   total_savings: number;
 }
 
-interface FileSavingsResult {
+export interface FileSavingsResult {
   file_path: string;
   total_savings: number;
 }
 
-interface FileSavingsResultGroup {
+export interface FileSavingsResultGroup {
   files: FileSavingsResult[];
   name: string;
   total_savings: number;
 }
 
-interface FilesInsightResult extends BaseInsightResult {
+export interface FilesInsightResult extends BaseInsightResult {
   files: FileSavingsResult[];
 }
 
-interface GroupsInsightResult extends BaseInsightResult {
+export interface GroupsInsightResult extends BaseInsightResult {
   groups: FileSavingsResultGroup[];
 }
 
@@ -110,7 +110,7 @@ interface LooseImagesInsightResult extends GroupsInsightResult {}
 
 interface MainBinaryExportMetadataResult extends FilesInsightResult {}
 
-interface OptimizableImageFile {
+export interface OptimizableImageFile {
   best_optimization_type: 'convert_to_heic' | 'minify' | 'none';
   conversion_savings: number;
   current_size: number;
@@ -125,7 +125,7 @@ interface ImageOptimizationInsightResult extends BaseInsightResult {
   optimizable_files: OptimizableImageFile[];
 }
 
-interface StripBinaryFileInfo {
+export interface StripBinaryFileInfo {
   debug_sections_savings: number;
   file_path: string;
   symbol_table_savings: number;
