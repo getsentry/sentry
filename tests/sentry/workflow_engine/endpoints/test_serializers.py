@@ -232,6 +232,49 @@ class TestDataSourceSerializer(TestCase):
         }
 
 
+class TestDataConditionSerializer(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.condition_group = self.create_data_condition_group(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+
+    def test_serializer_simple(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.GREATER,
+            comparison=100,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        result = serialize(condition)
+
+        assert result == {
+            "id": str(condition.id),
+            "type": "gt",
+            "comparison": 100,
+            "conditionResult": DetectorPriorityLevel.HIGH,
+        }
+
+    def test_complex_comparison(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.GREATER,
+            comparison={"count": 100, "count_time": 60},
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        result = serialize(condition)
+
+        assert result == {
+            "id": str(condition.id),
+            "type": "gt",
+            "comparison": {"count": 100, "countTime": 60},
+            "conditionResult": DetectorPriorityLevel.HIGH,
+        }
+
+
 class TestDataConditionGroupSerializer(TestCase):
     def test_serialize_simple(self) -> None:
         condition_group = self.create_data_condition_group(
