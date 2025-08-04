@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {isSpanFrame} from 'sentry/utils/replays/types';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -180,7 +181,7 @@ export default function Ai() {
     summaryData.data.time_ranges.length <= 1 &&
     replay
       ?.getChapterFrames()
-      ?.every(frame => 'category' in frame && frame.category === 'replay.init')
+      ?.every(frame => isSpanFrame(frame) && frame.category === 'replay.init')
   ) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
