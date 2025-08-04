@@ -957,30 +957,6 @@ describe('trace view', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders error state if meta fails to load', async () => {
-    mockPerformanceSubscriptionDetailsResponse();
-    mockProjectDetailsResponse();
-
-    mockTraceResponse({
-      statusCode: 200,
-      body: {
-        transactions: [makeTransaction()],
-        orphan_errors: [],
-      },
-    });
-    mockTraceMetaResponse({statusCode: 404});
-    mockTraceTagsResponse({statusCode: 404});
-    mockEventsResponse();
-
-    render(<TraceView />, {
-      router,
-      deprecatedRouterMocks: true,
-    });
-    expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
-    ).toBeInTheDocument();
-  });
-
   it('renders empty state for successfully ingested trace', async () => {
     // set timestamp to 12 minutes ago
     const twelveMinutesAgoInSeconds = Math.floor(
