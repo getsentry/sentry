@@ -48,6 +48,15 @@ def should_get_ai_title(organization: Organization) -> bool:
 
 
 def format_feedback_title(title: str, max_words: int = 10) -> str:
+    """
+    Clean and format a title for user feedback issues.
+    Format: "User Feedback: [first few words of title]"
+    Args:
+        title: The title to format
+        max_words: Maximum number of words to include from the title
+    Returns:
+        A formatted title string
+    """
     stripped_message = title.strip()
 
     # Clean and split the message into words
@@ -72,7 +81,16 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
 def get_feedback_title_from_seer(
     feedback_message: str, organization_id: int, max_words: int = 10
 ) -> str | None:
-    """Generate an AI-powered title for user feedback using Seer, or None if generation fails."""
+    """
+    Generate an AI-powered title for user feedback using Seer, or None if generation fails.
+    Format: "User Feedback: [AI-generated title]"
+    Args:
+        feedback_message: The user's feedback message
+        organization_id: The ID of the organization
+        max_words: Maximum number of words to include from the generated title
+    Returns:
+        A formatted title string or None if generation fails
+    """
     seer_request = GenerateFeedbackTitleRequest(
         organization_id=organization_id,
         feedback_message=feedback_message,
@@ -109,6 +127,15 @@ def get_feedback_title_from_seer(
 
 
 def get_feedback_title_from_message(feedback_message: str, max_words: int = 10) -> str:
+    """
+    Generate a descriptive title for user feedback issues.
+    Format: "User Feedback: [first few words of message]"
+    Args:
+        feedback_message: The user's feedback message
+        max_words: Maximum number of words to include from the message
+    Returns:
+        A formatted title string
+    """
     return format_feedback_title(feedback_message, max_words)
 
 
@@ -117,8 +144,15 @@ def get_feedback_title(
 ) -> str:
     """
     Generate a descriptive title for user feedback issues.
-    Tries AI generation first if available and enabled, falls back to simple word-based title.
+    Tries AI generation first if available and enabled; falls back to simple word-based title.
     Format: "User Feedback: [first few words of message or AI-generated title]"
+    Args:
+        feedback_message: The user's feedback message
+        organization_id: The ID of the organization
+        max_words: Maximum number of words to include from the generated title
+        get_ai_title: Whether to use AI-generated title
+    Returns:
+        A formatted title string
     """
     title = None
     if get_ai_title:
