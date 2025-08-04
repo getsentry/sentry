@@ -10,7 +10,7 @@ function createWrapper(initialEntries: string) {
       initialEntries: [initialEntries],
     });
 
-    return <RouterProvider router={memoryRouter} />;
+    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
   };
 }
 
