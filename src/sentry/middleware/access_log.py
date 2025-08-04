@@ -103,6 +103,7 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
+        entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
             method=str(request.method),
@@ -113,6 +114,7 @@ def _create_api_access_log(
             token_type=token_type,
             is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
+            entity_id=str(entity_id),
             path=str(request.path),
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),

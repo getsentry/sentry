@@ -133,7 +133,7 @@ access_log_fields = (
     "is_app",
     "token_type",
     "organization_id",
-    "auth_id",
+    "entity_id",
     "path",
     "caller_ip",
     "user_agent",
