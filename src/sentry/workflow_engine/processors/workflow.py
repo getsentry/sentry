@@ -206,7 +206,7 @@ def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
-) -> set[DataConditionGroup]:
+) -> tuple[set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem]]:
     """
     Evaluate the action filters for the given workflows.
     Returns a set of DataConditionGroups that were evaluated to True.
