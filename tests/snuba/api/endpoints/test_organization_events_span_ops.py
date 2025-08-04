@@ -75,7 +75,7 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
         return self.store_event(data, project_id=self.project.id)
 
     @pytest.mark.skip("setting snuba config is too slow")
-    def test_basic(self):
+    def test_basic(self) -> None:
         self.create_event()
 
         response = self.client.get(

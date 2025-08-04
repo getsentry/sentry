@@ -34,6 +34,8 @@ from sentry.integrations.slack.message_builder.issues import (
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.message_builder.routing import encode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -186,13 +188,21 @@ def build_test_message_blocks(
         "elements": [
             {
                 "type": "button",
-                "action_id": "resolve_dialog",
+                "action_id": encode_action_id(
+                    action=SlackAction.RESOLVE_DIALOG,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
                 "text": {"type": "plain_text", "text": "Resolve"},
                 "value": "resolve_dialog",
             },
             {
                 "type": "button",
-                "action_id": "archive_dialog",
+                "action_id": encode_action_id(
+                    action=SlackAction.ARCHIVE_DIALOG,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
                 "text": {"type": "plain_text", "text": "Archive"},
                 "value": "archive_dialog",
             },
@@ -203,7 +213,11 @@ def build_test_message_blocks(
                     "text": "Select Assignee...",
                     "emoji": True,
                 },
-                "action_id": "assign",
+                "action_id": encode_action_id(
+                    action=SlackAction.ASSIGN,
+                    organization_id=project.organization.id,
+                    project_id=project.id,
+                ),
             },
         ],
     }
@@ -957,16 +971,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         }
 
     @override_options({"alerts.issue_summary_timeout": 5})
-    @with_feature(
-        {"organizations:gen-ai-features", "organizations:trigger-autofix-on-issue-summary"}
-    )
+    @with_feature({"organizations:gen-ai-features"})
     @patch(
         "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
         return_value=True,
     )
-    def test_build_group_block_with_ai_summary_with_feature_flag(
-        self, mock_get_seer_org_acknowledgement
-    ):
+    def test_build_group_block_with_ai_summary(self, mock_get_seer_org_acknowledgement):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -993,6 +1003,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
         self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
 
         mock_summary = {
             "headline": "Custom AI Title",
@@ -1024,52 +1035,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             assert "This is a possible cause" in content_block
 
     @override_options({"alerts.issue_summary_timeout": 5})
-    @patch(
-        "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
-        return_value=True,
-    )
-    def test_build_group_block_with_ai_summary_without_feature_flag(
-        self, mock_get_seer_org_acknowledgement
-    ):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": "Identity not found.",
-                        }
-                    ]
-                },
-                "level": "error",
-            },
-            project_id=self.project.id,
-        )
-        assert event.group
-        group = event.group
-        group.type = ErrorGroupType.type_id
-        group.save()
-        assert group.issue_category == GroupCategory.ERROR
-
-        self.project.flags.has_releases = True
-        self.project.save(update_fields=["flags"])
-        self.project.update_option("sentry:seer_scanner_automation", True)
-
-        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
-
-        with patch(patch_path) as mock_get_summary:
-            mock_get_summary.assert_not_called()
-            blocks = SlackIssuesMessageBuilder(group).build()
-            title_text = blocks["blocks"][0]["elements"][0]["elements"][-1]["text"]
-            assert "IntegrationError" in title_text
-
-    @override_options({"alerts.issue_summary_timeout": 5})
-    @with_feature(
-        {"organizations:gen-ai-features", "organizations:trigger-autofix-on-issue-summary"}
-    )
+    @with_feature({"organizations:gen-ai-features"})
     @patch(
         "sentry.integrations.utils.issue_summary_for_alerts.get_seer_org_acknowledgement",
         return_value=True,
@@ -1103,6 +1069,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group1.save()
 
         self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
 
         # Test case for long exception text (over 50 characters)
         long_text = (
@@ -1219,9 +1186,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary",
         return_value=(None, 403),
     )
-    @with_feature(
-        {"organizations:gen-ai-features", "organizations:trigger-autofix-on-issue-summary"}
-    )
+    @with_feature({"organizations:gen-ai-features"})
     def test_build_group_block_with_ai_summary_without_org_acknowledgement(
         self, mock_get_issue_summary, mock_get_seer_org_acknowledgement
     ):
