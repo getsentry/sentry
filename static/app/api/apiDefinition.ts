@@ -1,6 +1,3 @@
-type KnownApiUrls = ['/projects/$orgSlug/$projectSlug/releases/$releaseVersion/'];
+import type {KnownApiUrls} from './knownUrls';
 
-type ApiMapping = Record<KnownApiUrls[number], never>;
-type ApiPath = keyof ApiMapping;
-// adding a union with string & {} enables auto-completion
-export type MaybeApiPath = ApiPath | (string & {});
+export type ApiPath = KnownApiUrls;

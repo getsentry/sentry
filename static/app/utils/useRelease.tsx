@@ -4,24 +4,24 @@ import {apiOptions} from 'sentry/api/apiOptions';
 import type {Release} from 'sentry/types/release';
 
 export function useRelease({
-  orgSlug,
-  projectSlug,
-  releaseVersion,
+  organizationIdOrSlug,
+  projectIdOrSlug,
+  version,
   enabled,
 }: {
-  orgSlug: string;
-  projectSlug: string;
-  releaseVersion: string;
+  organizationIdOrSlug: string;
+  projectIdOrSlug: string;
+  version: string;
   enabled?: boolean;
 }) {
   return useQuery({
     ...apiOptions.as<Release>()(
-      '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/',
       {
         path: {
-          orgSlug,
-          projectSlug,
-          releaseVersion,
+          organizationIdOrSlug,
+          projectIdOrSlug,
+          version,
         },
         staleTime: Infinity,
       }
