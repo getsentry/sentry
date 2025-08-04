@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import DefaultDict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -652,7 +651,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
     def test_basic__no_filter(self) -> None:
-        triggered_action_filters = evaluate_workflows_action_filters(
+        triggered_action_filters, _ = evaluate_workflows_action_filters(
             {self.workflow}, self.event_data, {}
         )
         assert set(triggered_action_filters) == {self.action_group}
@@ -665,7 +664,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_action_filters = evaluate_workflows_action_filters(
+        triggered_action_filters, _ = evaluate_workflows_action_filters(
             {self.workflow}, self.event_data, {}
         )
         assert set(triggered_action_filters) == {self.action_group}
@@ -678,7 +677,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_action_filters = evaluate_workflows_action_filters(
+        triggered_action_filters, _ = evaluate_workflows_action_filters(
             {self.workflow}, self.event_data, {}
         )
         assert not triggered_action_filters
@@ -700,7 +699,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.action_group.save()
 
-        triggered_action_filters = evaluate_workflows_action_filters(
+        triggered_action_filters, _ = evaluate_workflows_action_filters(
             {self.workflow}, self.event_data, {}
         )
 
@@ -738,15 +737,11 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             group=self.group,
         )
 
-        with patch("sentry.workflow_engine.processors.workflow.enqueue_workflows") as mock_enqueue:
-            with patch("sentry.workflow_engine.processors.workflow.metrics_incr") as mock_incr:
-                # Evaluate the workflow actions with a slow condition
-                evaluate_workflows_action_filters({self.workflow}, self.event_data, {})
+        # Evaluate the workflow actions with a slow condition
+        _, queue_items = evaluate_workflows_action_filters({self.workflow}, self.event_data, {})
 
-                # ensure we do not enqueue slow condition evaluation
-                empty_list = DefaultDict[int, list[DelayedWorkflowItem]](list)
-                mock_enqueue.assert_called_once_with(empty_list)
-                mock_incr.assert_called_once_with("process_workflows.enqueue_workflow.activity")
+        # ensure we do not enqueue slow condition evaluation
+        assert not queue_items
 
     def test_enqueues_when_slow_conditions(self):
         assert isinstance(self.event_data.event, GroupEvent)
@@ -761,10 +756,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             )
         }
 
-        triggered_action_filters = evaluate_workflows_action_filters(
+        triggered_action_filters, queue_items = evaluate_workflows_action_filters(
             set(), self.event_data, queue_items_by_workflow_id
         )
         assert not triggered_action_filters
+
+        enqueue_workflows(queue_items)
 
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()

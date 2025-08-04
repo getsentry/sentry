@@ -32,6 +32,7 @@ logger = log_context.get_logger(__name__)
 
 WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
 DetectorId = int | None
+DataConditionGroupId = int
 
 
 class WorkflowDataConditionGroupType(StrEnum):
@@ -69,9 +70,9 @@ def delete_workflow(workflow: Workflow) -> bool:
 class DelayedWorkflowItem:
     workflow: Workflow
     event: GroupEvent
-    delayed_when_group_id: int | None
-    delayed_if_group_ids: list[int]
-    passing_if_group_ids: list[int]
+    delayed_when_group_id: DataConditionGroupId | None
+    delayed_if_group_ids: list[DataConditionGroupId]
+    passing_if_group_ids: list[DataConditionGroupId]
 
     # Used to pick the end of the time window in snuba querying.
     # Should be close to when fast conditions were evaluated to try to be consistent.
@@ -275,8 +276,6 @@ def evaluate_workflows_action_filters(
                 else:
                     filtered_action_groups.add(action_condition)
 
-    enqueue_workflows(queue_items_by_workflow)
-
     event_id = (
         event_data.event.event_id
         if isinstance(event_data.event, GroupEvent)
@@ -296,7 +295,7 @@ def evaluate_workflows_action_filters(
         },
     )
 
-    return filtered_action_groups
+    return filtered_action_groups, queue_items_by_workflow
 
 
 def get_environment_by_event(event_data: WorkflowEventData) -> Environment | None:
@@ -430,9 +429,10 @@ def process_workflows(
         # if there aren't any triggered workflows, there's no action filters to evaluate
         return set()
 
-    actions_to_trigger = evaluate_workflows_action_filters(
+    actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
         triggered_workflows, event_data, queue_items_by_workflow_id
     )
+    enqueue_workflows(queue_items_by_workflow_id)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
 
     if not actions:
