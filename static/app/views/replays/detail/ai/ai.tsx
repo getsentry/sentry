@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import loadingGif from 'sentry-images/spot/ai-loader.gif';
+import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
+
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,11 +51,10 @@ export default function Ai() {
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="warning">
-            {t('AI features are not available for this organization.')}
-          </Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>{t('AI features are not available for this organization.')}</div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
@@ -63,7 +64,9 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
-          <LoadingIndicator />
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
         </LoadingContainer>
       </Wrapper>
     );
@@ -74,23 +77,26 @@ export default function Ai() {
   if (!setupAcknowledgement.orgHasAcknowledged) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <CallToActionContainer>
-            <div>
-              <strong>{t('AI-Powered Replay Summaries')}</strong>
-            </div>
-            <div>
-              {t(
-                'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
-              )}
-            </div>
-            <div>
-              <LinkButton size="sm" priority="primary" to="/settings/seer/">
-                {t('View Seer Settings')}
-              </LinkButton>
-            </div>
-          </CallToActionContainer>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>
+            <strong>{t('AI-Powered Replay Summaries')}</strong>
+          </div>
+          <div>
+            {t(
+              'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
+            )}
+          </div>
+          <div>
+            <LinkButton
+              size="sm"
+              priority="primary"
+              to={`/settings/${organization.slug}/seer/`}
+            >
+              {t('View Seer Settings')}
+            </LinkButton>
+          </div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
@@ -106,7 +112,10 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
-          <LoadingIndicator />
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
+          <div>{t('This might take a few moments...')}</div>
         </LoadingContainer>
       </Wrapper>
     );
@@ -115,11 +124,10 @@ export default function Ai() {
   if (replayRecord?.project_id && !project) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="error">
-            {t('Project not found. Unable to load replay summary.')}
-          </Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>{t('Project not found. Unable to load replay summary.')}</div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
@@ -127,9 +135,26 @@ export default function Ai() {
   if (isError) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load replay summary.')}</Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('Failed to load replay summary.')}</div>
+          <div>
+            <Button
+              priority="default"
+              type="button"
+              size="xs"
+              onClick={() => {
+                startSummaryRequest();
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
+                  organization,
+                });
+              }}
+              icon={<IconSync size="xs" />}
+            >
+              {t('Retry')}
+            </Button>
+          </div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
@@ -137,36 +162,35 @@ export default function Ai() {
   if (!summaryData?.data) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="info" showIcon={false}>
-            {t('No summary available for this replay.')}
-          </Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('No summary available for this replay.')}</div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
 
-  if (summaryData.data.time_ranges.length <= 1) {
-    if (
-      replay
-        ?.getChapterFrames()
-        ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init')
-        .length === 0
-    ) {
-      return (
-        <Wrapper data-test-id="replay-details-ai-summary-tab">
-          <EmptySummaryContainer>
-            <Alert type="info" showIcon={false}>
-              {
-                NO_REPLAY_SUMMARY_MESSAGES[
-                  Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-                ]
-              }
-            </Alert>
-          </EmptySummaryContainer>
-        </Wrapper>
-      );
-    }
+  if (
+    summaryData.data.time_ranges.length <= 1 &&
+    replay
+      ?.getChapterFrames()
+      ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init').length ===
+      0
+  ) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>
+            {
+              NO_REPLAY_SUMMARY_MESSAGES[
+                Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+              ]
+            }
+          </div>
+        </EndStateContainer>
+      </Wrapper>
+    );
   }
 
   return (
@@ -257,15 +281,13 @@ const Wrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const EmptySummaryContainer = styled('div')`
-  padding: ${space(2)};
-  overflow: auto;
-`;
-
 const LoadingContainer = styled('div')`
   display: flex;
   justify-content: center;
   padding: ${space(4)};
+  overflow: auto;
+  text-align: center;
+  flex-direction: column;
 `;
 
 const Summary = styled('div')`
@@ -328,10 +350,11 @@ const OverflowBody = styled('section')`
   overflow: auto;
 `;
 
-const CallToActionContainer = styled('div')`
+const EndStateContainer = styled('div')`
+  overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(4)};
   padding: ${space(2)};
   align-items: center;
   text-align: center;
