@@ -22,7 +22,7 @@ class RetryException(Exception):
     def __reduce__(self):
         return RetryException, (self.message, self.exception)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return force_bytes(self.message, errors="replace")
 
     def __repr__(self):

@@ -138,7 +138,7 @@ class BitHandler:
             ", ".join(f"{k}={self.get_bit(n).is_set}" for n, k in enumerate(self._keys)),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._value)
 
     def __int__(self):
