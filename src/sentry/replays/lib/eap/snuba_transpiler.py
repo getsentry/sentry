@@ -839,8 +839,8 @@ def translate_response(
 
     # I'm assuming that all the columns return an identical number of results. As far as I know
     # this is a safe assumption.
-    for i, c in enumerate(query_result.column_values):
-        for result in c.results:
+    for c in query_result.column_values:
+        for i, result in enumerate(c.results):
             response["data"][i][c.attribute_name] = get_value(c.attribute_name, result)
 
     return response
