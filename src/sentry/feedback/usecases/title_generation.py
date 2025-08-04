@@ -30,13 +30,6 @@ def should_get_ai_title(organization: Organization) -> bool:
         )
         return False
 
-    if organization.get_option("sentry:hide_ai_features"):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "ai_features_hidden"},
-        )
-        return False
-
     if not features.has("organizations:user-feedback-ai-titles", organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
@@ -130,7 +123,7 @@ def get_feedback_title_from_seer(
     return format_feedback_title(title, max_words)
 
 
-def get_feedback_title_from_message(feedback_message: str, max_words: int = 10) -> str:
+def get_feedback_title(feedback_message: str, max_words: int = 10) -> str:
     """
     Generate a descriptive title for user feedback issues.
     Format: "User Feedback: [first few words of message]"
@@ -143,31 +136,6 @@ def get_feedback_title_from_message(feedback_message: str, max_words: int = 10) 
         A formatted title string
     """
     return format_feedback_title(feedback_message, max_words)
-
-
-def get_feedback_title(
-    feedback_message: str, organization_id: int, max_words: int = 10, get_ai_title: bool = False
-) -> str:
-    """
-    Generate a descriptive title for user feedback issues.
-    Tries AI generation first if available and enabled; falls back to simple word-based title.
-    Format: "User Feedback: [first few words of message or AI-generated title]"
-
-    Args:
-        feedback_message: The user's feedback message
-        organization_id: The ID of the organization
-        max_words: Maximum number of words to include from the generated title
-        get_ai_title: Whether to use AI-generated title
-
-    Returns:
-        A formatted title string
-    """
-    title = None
-    if get_ai_title:
-        title = get_feedback_title_from_seer(feedback_message, organization_id, max_words)
-    if title is None:
-        title = get_feedback_title_from_message(feedback_message, max_words)
-    return title
 
 
 def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:

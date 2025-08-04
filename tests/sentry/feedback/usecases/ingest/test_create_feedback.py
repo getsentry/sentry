@@ -896,6 +896,10 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
     """Test that create_feedback_issue uses the generated title."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
+    # make sure org doesn't have user-feedback-ai-titles feature flag
+    default_project.organization.flags.user_feedback_ai_titles = False
+    default_project.organization.save()
+
     event = mock_feedback_event(default_project.id)
     event["contexts"]["feedback"]["message"] = long_message
 
@@ -1028,3 +1032,59 @@ def test_create_feedback_truncates_ai_labels(
         # Verify that labels beyond MAX_AI_LABELS are not present
         for i in range(MAX_AI_LABELS, MAX_AI_LABELS + 5):
             assert f"{AI_LABEL_TAG_PREFIX}.{i}" not in tags
+
+
+@django_db_all
+def test_create_feedback_issue_title_from_seer(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that create_feedback_issue uses the generated title from Seer."""
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.get_feedback_title_from_seer"
+    ) as mock_get_feedback_title_from_seer:
+        mock_get_feedback_title_from_seer.return_value = "Login Button Issue"
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        assert produced_event["issue_title"] == "User Feedback: Login Button Issue"
+
+
+@django_db_all
+def test_create_feedback_issue_title_from_seer_fallback(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that the title falls back to message-based title if Seer call fails."""
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+
+    # get_feedback_title_from_seer() network error
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.get_feedback_title_from_seer"
+    ) as mock_get_feedback_title_from_seer:
+        mock_get_feedback_title_from_seer.side_effect = Exception("Network Error")
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        assert (
+            produced_event["issue_title"]
+            == "User Feedback: The login button is broken and the UI is slow"
+        )
+
+    # get_feedback_title_from_seer() returns None
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.get_feedback_title_from_seer"
+    ) as mock_get_feedback_title_from_seer:
+        mock_get_feedback_title_from_seer.return_value = None
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        assert (
+            produced_event["issue_title"]
+            == "User Feedback: The login button is broken and the UI is slow"
+        )
