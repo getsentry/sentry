@@ -232,7 +232,7 @@ class EventRedisData:
 
         for key, instance in self.events.items():
             timestamp = instance.timestamp
-            for dcg_id in self.dcg_ids:
+            for dcg_id in key.dcg_ids:
                 existing_timestamp = result[dcg_id]
                 if timestamp is None:
                     continue
