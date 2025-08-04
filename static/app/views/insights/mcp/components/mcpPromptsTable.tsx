@@ -101,7 +101,7 @@ export function McpPromptsTable() {
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error mcp.prompt.name:${dataRow[SpanFields.MCP_PROMPT_NAME]}`,
+                query: `${query} span.status:internal_error ${SpanFields.MCP_PROMPT_NAME}:${dataRow[SpanFields.MCP_PROMPT_NAME]}`,
                 organization,
                 referrer: MCPReferrer.MCP_PROMPT_TABLE,
               })}

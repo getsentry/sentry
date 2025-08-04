@@ -101,7 +101,7 @@ export function McpResourcesTable() {
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error mcp.resource.uri:${dataRow[SpanFields.MCP_RESOURCE_URI]}`,
+                query: `${query} span.status:internal_error ${SpanFields.MCP_RESOURCE_URI}:${dataRow[SpanFields.MCP_RESOURCE_URI]}`,
                 organization,
                 referrer: MCPReferrer.MCP_RESOURCE_TABLE,
               })}

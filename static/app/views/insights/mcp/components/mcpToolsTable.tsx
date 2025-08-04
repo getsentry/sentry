@@ -101,7 +101,7 @@ export function McpToolsTable() {
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
               issuesLink={getExploreUrl({
-                query: `${query} span.status:internal_error mcp.tool.name:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
+                query: `${query} span.status:internal_error ${SpanFields.MCP_TOOL_NAME}:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
                 organization,
                 referrer: MCPReferrer.MCP_TOOL_TABLE,
               })}
