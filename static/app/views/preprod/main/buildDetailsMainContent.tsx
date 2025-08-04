@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Container} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconGrid} from 'sentry/icons';
@@ -33,25 +33,25 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   if (isAppSizePending) {
     return (
-      <MainContentContainer>
+      <Flex direction="column" gap="lg" minHeight="700px">
         <LoadingIndicator />
-      </MainContentContainer>
+      </Flex>
     );
   }
 
   if (isAppSizeError) {
     return (
-      <MainContentContainer>
+      <Flex direction="column" gap="lg" minHeight="700px">
         <Alert type="error">{appSizeError?.message}</Alert>
-      </MainContentContainer>
+      </Flex>
     );
   }
 
   if (!appSizeData) {
     return (
-      <MainContentContainer>
+      <Flex direction="column" gap="lg" minHeight="700px">
         <Alert type="error">No app size data found</Alert>
-      </MainContentContainer>
+      </Flex>
     );
   }
 
@@ -61,10 +61,26 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       ? processInsights(appSizeData.insights, totalSize)
       : [];
 
+  const categoriesEnabled =
+    appSizeData.treemap.category_breakdown &&
+    Object.keys(appSizeData.treemap.category_breakdown).length > 0;
+
+  let visualizationContent: React.ReactNode;
+  if (categoriesEnabled) {
+    visualizationContent =
+      selectedContent === 'treemap' ? (
+        <AppSizeTreemap treemapData={appSizeData.treemap} />
+      ) : (
+        <AppSizeCategories treemapData={appSizeData.treemap} />
+      );
+  } else {
+    visualizationContent = <AppSizeTreemap treemapData={appSizeData.treemap} />;
+  }
+
   return (
-    <MainContentContainer>
-      <TreemapContainer>
-        <MainContentControls>
+    <Flex direction="column" gap="lg" minHeight="700px">
+      <Flex align="center" gap="md">
+        {categoriesEnabled && (
           <SegmentedControl
             value={selectedContent}
             onChange={value => setSelectedContent(value)}
@@ -72,37 +88,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
             <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
           </SegmentedControl>
-        </MainContentControls>
-        {selectedContent === 'treemap' ? (
-          <AppSizeTreemap treemapData={appSizeData.treemap} />
-        ) : (
-          <AppSizeCategories treemapData={appSizeData.treemap} />
         )}
-      </TreemapContainer>
+      </Flex>
+      <ChartContainer>{visualizationContent}</ChartContainer>
       {processedInsights.length > 0 && (
-        <Container style={{marginTop: '20px'}}>
-          <AppSizeInsights processedInsights={processedInsights} />
-        </Container>
+        <AppSizeInsights processedInsights={processedInsights} />
       )}
-    </MainContentContainer>
+    </Flex>
   );
 }
 
-const MainContentContainer = styled('div')`
-  width: 100%;
-  height: 700px;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-`;
-
-const MainContentControls = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-`;
-
-const TreemapContainer = styled('div')`
+const ChartContainer = styled('div')`
   width: 100%;
   height: 508px;
 `;
