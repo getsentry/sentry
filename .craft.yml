@@ -12,4 +12,13 @@ statusProvider:
 artifactProvider:
   name: none
 targets:
+  - id: release
+    name: docker
+    source: ghcr.io/getsentry/sentry
+    target: getsentry/sentry
+  - id: latest
+    name: docker
+    source: ghcr.io/getsentry/sentry
+    target: getsentry/sentry
+    targetFormat: '{{{target}}}:latest'
   - name: github
