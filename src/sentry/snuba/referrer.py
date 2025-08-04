@@ -183,6 +183,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
     API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
+    API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
