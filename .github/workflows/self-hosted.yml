@@ -49,7 +49,10 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
-          install-cmd: uv sync --frozen
+          # sentry.build.main has no external dependencies;
+          # this is only to set up the venv with the correct
+          # python version
+          install-cmd: echo
 
       - name: Step configurations
         id: config
