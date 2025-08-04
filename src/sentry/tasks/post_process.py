@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
@@ -236,6 +237,15 @@ def handle_owner_assignment(job):
         group_id=group.id,
         organization_id=event.project.organization_id,
     ):
+        if random.random() < 0.01:
+            logger.warning(
+                "handle_owner_assignment.ratelimited",
+                extra={
+                    "organization_id": event.project.organization_id,
+                    "project_id": project.id,
+                    "group_id": group.id,
+                },
+            )
         metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
         return
 
