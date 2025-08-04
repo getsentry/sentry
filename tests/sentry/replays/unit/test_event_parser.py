@@ -12,6 +12,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     as_trace_item,
     as_trace_item_context,
     parse_events,
+    set_if,
     which,
 )
 from sentry.utils import json
@@ -960,6 +961,23 @@ def test_as_trace_item_context_navigation_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_navigation_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710793872,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1674298825.0, "type": "default", "category": "navigation"},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "navigation"
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_navigation_event_missing_optional_fields() -> None:
     event = {
         "type": 5,
@@ -1097,6 +1115,28 @@ def test_as_trace_item_context_resource_script_event() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_resource_script_event_missing_data() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710794.0346,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.script",
+                "startTimestamp": 1674298825.0,
+                "endTimestamp": 1674298825.0,
+                "description": "https://sentry.io/",
+            },
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["attributes"]["category"] == "resource.script"
+    assert "duration" in result["attributes"]
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_resource_image_event() -> None:
     event = {
         "type": 5,
@@ -1230,6 +1270,17 @@ def test_as_trace_item_context_hydration_error() -> None:
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
+def test_as_trace_item_context_hydration_error_missing_data_key() -> None:
+    event = {"data": {"payload": {"timestamp": 1674298825.0}}}
+
+    result = as_trace_item_context(EventType.HYDRATION_ERROR, event)
+    assert result is not None
+    assert result["timestamp"] == 1674298825.0
+    assert result["attributes"]["category"] == "replay.hydrate-error"
+    assert result["attributes"]["url"] == ""
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
 def test_as_trace_item_context_mutations() -> None:
     event = {"timestamp": 1674298825000, "data": {"payload": {"data": {"count": 42}}}}
 
@@ -1280,6 +1331,23 @@ def test_as_trace_item_context_options() -> None:
     assert result["attributes"]["networkCaptureBodies"] is False
     assert result["attributes"]["networkRequestHasHeaders"] is True
     assert result["attributes"]["networkResponseHasHeaders"] is False
+    assert "event_hash" in result and len(result["event_hash"]) == 16
+
+
+def test_as_trace_item_context_options_missing_payload() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1753710752516,
+        "data": {
+            "tag": "options",
+            "payload": {},
+        },
+    }
+
+    result = as_trace_item_context(which(event), event)
+    assert result is not None
+    assert result["timestamp"] == 1753710752.516  # timestamp is divided by 1000
+    assert result["attributes"]["category"] == "sdk.options"
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
@@ -1516,3 +1584,12 @@ def test_parse_events_disabled(options_get: mock.MagicMock) -> None:
 
     assert len(trace_items) == 0
     assert len(parsed.click_events) == 1
+
+
+def test_set_if():
+    assert set_if(["a", "b"], {"a": 1}, str) == {"a": "1"}
+    assert set_if(["a", "b"], {"b": 2}, str) == {"b": "2"}
+    assert set_if(["a", "b"], {}, str) == {}
+
+    with pytest.raises(ValueError):
+        assert set_if(["a", "b"], {"b": "hello"}, int)
