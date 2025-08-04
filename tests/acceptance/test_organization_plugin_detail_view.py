@@ -28,7 +28,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_uninstallation(self):
+    def test_uninstallation(self) -> None:
         self.plugin.set_option("api_key", "7c8951d1", self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts", self.project)
 

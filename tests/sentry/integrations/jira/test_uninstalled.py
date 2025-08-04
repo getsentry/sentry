@@ -49,7 +49,9 @@ class JiraUninstalledTest(APITestCase):
 
     @patch("sentry_sdk.set_tag")
     @patch("sentry.integrations.utils.scope.bind_organization_context")
-    def test_with_shared_secret(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
+    def test_with_shared_secret(
+        self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock
+    ) -> None:
         org = self.organization
 
         integration = self.create_provider_integration(
@@ -75,7 +77,7 @@ class JiraUninstalledTest(APITestCase):
     @patch("sentry_sdk.set_tag")
     @patch("sentry.integrations.utils.scope.bind_organization_context")
     @responses.activate
-    def test_with_key_id(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
+    def test_with_key_id(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock) -> None:
         org = self.organization
 
         integration = self.create_provider_integration(

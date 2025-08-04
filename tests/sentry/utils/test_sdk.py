@@ -81,7 +81,7 @@ class SDKUtilsTest(TestCase):
 
 @patch("sentry.utils.sdk.logger.warning")
 class CheckTagForScopeBleedTest(TestCase):
-    def test_no_existing_tag(self, mock_logger_warning: MagicMock):
+    def test_no_existing_tag(self, mock_logger_warning: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers")
@@ -91,7 +91,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_matching_existing_tag_single_org(self, mock_logger_warning: MagicMock):
+    def test_matching_existing_tag_single_org(self, mock_logger_warning: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {"org.slug": "squirrel_chasers"}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers")
@@ -101,7 +101,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_matching_existing_tag_multiple_orgs(self, mock_logger_warning: MagicMock):
+    def test_matching_existing_tag_multiple_orgs(self, mock_logger_warning: MagicMock) -> None:
         # We don't bother to add the underlying slug list here, since right now it's not checked
 
         with patch_isolation_scope() as mock_scope:
@@ -113,7 +113,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_different_existing_tag_single_org(self, mock_logger_warning: MagicMock):
+    def test_different_existing_tag_single_org(self, mock_logger_warning: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {"org.slug": "good_dogs"}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers")
@@ -129,7 +129,9 @@ class CheckTagForScopeBleedTest(TestCase):
             "Tag already set and different (%s).", "org.slug", extra=extra
         )
 
-    def test_different_existing_tag_incoming_is_multiple_orgs(self, mock_logger_warning: MagicMock):
+    def test_different_existing_tag_incoming_is_multiple_orgs(
+        self, mock_logger_warning: MagicMock
+    ) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {"organization.slug": "good_dogs"}
             check_tag_for_scope_bleed("organization.slug", "[multiple orgs]")
@@ -145,7 +147,9 @@ class CheckTagForScopeBleedTest(TestCase):
             "Tag already set and different (%s).", "organization.slug", extra=extra
         )
 
-    def test_getting_more_specific_doesnt_count_as_mismatch(self, mock_logger_warning: MagicMock):
+    def test_getting_more_specific_doesnt_count_as_mismatch(
+        self, mock_logger_warning: MagicMock
+    ) -> None:
         orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
@@ -185,7 +189,7 @@ class CheckTagForScopeBleedTest(TestCase):
             "Tag already set and different (%s).", "organization.slug", extra=extra
         )
 
-    def test_add_to_scope_being_false(self, mock_logger_warning: MagicMock):
+    def test_add_to_scope_being_false(self, mock_logger_warning: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {"org.slug": "good_dogs"}
             check_tag_for_scope_bleed("org.slug", "squirrel_chasers", add_to_scope=False)
@@ -203,7 +207,7 @@ class CheckTagForScopeBleedTest(TestCase):
             "Tag already set and different (%s).", "org.slug", extra=extra
         )
 
-    def test_string_vs_int(self, mock_logger_warning: MagicMock):
+    def test_string_vs_int(self, mock_logger_warning: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {"org.id": "12311121"}
             check_tag_for_scope_bleed("org.id", 12311121)
@@ -213,7 +217,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed" not in mock_scope._contexts
         assert mock_logger_warning.call_count == 0
 
-    def test_int_vs_string(self, mock_logger_warning: MagicMock):
+    def test_int_vs_string(self, mock_logger_warning: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._tags = {"org.id": 12311121}
             check_tag_for_scope_bleed("org.id", "12311121")
@@ -226,7 +230,7 @@ class CheckTagForScopeBleedTest(TestCase):
 
 class CheckScopeTransactionTest(TestCase):
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
-    def test_scope_has_correct_transaction(self, mock_resolve: MagicMock):
+    def test_scope_has_correct_transaction(self, mock_resolve: MagicMock) -> None:
         mock_scope = Scope()
         mock_scope._transaction = "/dogs/{name}/"
 
@@ -235,7 +239,7 @@ class CheckScopeTransactionTest(TestCase):
             assert mismatch is None
 
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
-    def test_scope_has_wrong_transaction(self, mock_resolve: MagicMock):
+    def test_scope_has_wrong_transaction(self, mock_resolve: MagicMock) -> None:
         mock_scope = Scope()
         mock_scope._transaction = "/tricks/{trick_name}/"
 
@@ -247,7 +251,7 @@ class CheckScopeTransactionTest(TestCase):
             }
 
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
-    def test_custom_transaction_name(self, mock_resolve: MagicMock):
+    def test_custom_transaction_name(self, mock_resolve: MagicMock) -> None:
         with patch_isolation_scope() as mock_scope:
             mock_scope._transaction = "/tricks/{trick_name}/"
             mock_scope._transaction_info["source"] = "custom"
@@ -258,7 +262,7 @@ class CheckScopeTransactionTest(TestCase):
 
 @patch("sentry_sdk.capture_exception")
 class CaptureExceptionWithScopeCheckTest(TestCase):
-    def test_passes_along_exception(self, mock_sdk_capture_exception: MagicMock):
+    def test_passes_along_exception(self, mock_sdk_capture_exception: MagicMock) -> None:
         err = Exception()
 
         with patch("sentry.utils.sdk.check_current_scope_transaction", return_value=None):
@@ -276,7 +280,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
         assert mock_check_transaction.call_count == 0
 
-    def test_no_transaction_mismatch(self, mock_sdk_capture_exception: MagicMock):
+    def test_no_transaction_mismatch(self, mock_sdk_capture_exception: MagicMock) -> None:
         with patch("sentry.utils.sdk.check_current_scope_transaction", return_value=None):
             capture_exception_with_scope_check(Exception(), request=Request(HttpRequest()))
 
@@ -286,7 +290,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         assert "scope_bleed.transaction" not in passed_scope._tags
         assert "scope_bleed" not in passed_scope._contexts
 
-    def test_with_transaction_mismatch(self, mock_sdk_capture_exception: MagicMock):
+    def test_with_transaction_mismatch(self, mock_sdk_capture_exception: MagicMock) -> None:
         scope_bleed_data = {
             "scope_transaction": "/tricks/{trick_name}/",
             "request_transaction": "/dogs/{name}/",
@@ -303,7 +307,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         assert passed_scope._tags["scope_bleed.transaction"] is True
         assert passed_scope._contexts["scope_bleed"] == scope_bleed_data
 
-    def test_no_scope_data_passed(self, mock_sdk_capture_exception: MagicMock):
+    def test_no_scope_data_passed(self, mock_sdk_capture_exception: MagicMock) -> None:
         capture_exception_with_scope_check(Exception())
 
         passed_scope = mock_sdk_capture_exception.call_args.kwargs["scope"]
@@ -318,7 +322,9 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
             # No new scope data should be passed
             assert getattr(passed_scope, entry) == getattr(empty_scope, entry)
 
-    def test_passes_along_incoming_scope_object(self, mock_sdk_capture_exception: MagicMock):
+    def test_passes_along_incoming_scope_object(
+        self, mock_sdk_capture_exception: MagicMock
+    ) -> None:
         incoming_scope_arg = Scope()
 
         capture_exception_with_scope_check(Exception(), scope=incoming_scope_arg)
@@ -327,7 +333,9 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
         assert passed_scope == incoming_scope_arg
 
-    def test_merges_incoming_scope_obj_and_args(self, mock_sdk_capture_exception: MagicMock):
+    def test_merges_incoming_scope_obj_and_args(
+        self, mock_sdk_capture_exception: MagicMock
+    ) -> None:
         incoming_scope_arg = Scope()
         incoming_scope_arg.set_level("info")
 
@@ -340,7 +348,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         assert passed_scope._level == "info"
         assert passed_scope._fingerprint == "pawprint"
 
-    def test_passes_along_incoming_scope_args(self, mock_sdk_capture_exception: MagicMock):
+    def test_passes_along_incoming_scope_args(self, mock_sdk_capture_exception: MagicMock) -> None:
         capture_exception_with_scope_check(Exception(), fingerprint="pawprint")
 
         passed_scope = mock_sdk_capture_exception.call_args.kwargs["scope"]

@@ -7,7 +7,8 @@ from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
@@ -150,6 +151,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
+
+            if "agent_monitoring" in referrer:
+                try:
+                    analytics.record(
+                        AgentMonitoringQuery(
+                            organization_id=organization.id,
+                            referrer=referrer,
+                        )
+                    )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(

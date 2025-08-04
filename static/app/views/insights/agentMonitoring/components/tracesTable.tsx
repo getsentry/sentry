@@ -82,10 +82,13 @@ const rightAlignColumns = new Set([
   'timestamp',
 ]);
 
-const GENERATION_COUNTS = AI_GENERATION_OPS.map(op => `count_if(span.op,${op})` as const);
+// FIXME: This is potentially not correct, we need to find a way for it to work with the new filter
+const GENERATION_COUNTS = AI_GENERATION_OPS.map(
+  op => `count_if(span.op,equals,${op})` as const
+);
 
 const AI_AGENT_SUB_OPS = [...AI_GENERATION_OPS, ...AI_TOOL_CALL_OPS].map(
-  op => `count_if(span.op,${op})` as const
+  op => `count_if(span.op,equals,${op})` as const
 );
 
 export function TracesTable() {
@@ -114,7 +117,7 @@ export function TracesTable() {
       fields: [
         'trace',
         ...GENERATION_COUNTS,
-        'count_if(span.op,gen_ai.execute_tool)',
+        'count_if(span.op,equals,gen_ai.execute_tool)',
         AI_TOKEN_USAGE_ATTRIBUTE_SUM,
         AI_COST_ATTRIBUTE_SUM,
       ],
@@ -160,7 +163,7 @@ export function TracesTable() {
             (sum, key) => sum + (span[key] ?? 0),
             0
           ),
-          toolCalls: span['count_if(span.op,gen_ai.execute_tool)'] ?? 0,
+          toolCalls: span['count_if(span.op,equals,gen_ai.execute_tool)'] ?? 0,
           totalTokens: Number(span[AI_TOKEN_USAGE_ATTRIBUTE_SUM] ?? 0),
           totalCost: Number(span[AI_COST_ATTRIBUTE_SUM] ?? 0),
           totalErrors: errors[span.trace] ?? 0,

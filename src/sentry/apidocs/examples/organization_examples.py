@@ -298,6 +298,8 @@ class OrganizationExamples:
                 "aggregatedDataConsent": False,
                 "defaultAutofixAutomationTuning": AutofixAutomationTuningSettings.OFF,
                 "defaultSeerScannerAutomation": True,
+                "enableSeerCoding": True,
+                "enableSeerEnhancedAlerts": True,
                 "enablePrReviewTestGeneration": True,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,

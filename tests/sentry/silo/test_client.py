@@ -368,7 +368,7 @@ class SiloClientTest(TestCase):
             class BailOut(Exception):
                 pass
 
-            def test_validate_region_ip_address(ip):
+            def test_validate_region_ip_address(ip) -> None:
                 assert ip == "172.31.255.255"
                 # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
                 # validate_region_ip_address function is properly called for the proxy request code path.

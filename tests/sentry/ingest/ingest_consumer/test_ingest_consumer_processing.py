@@ -82,7 +82,7 @@ def preprocess_event():
 
 
 @django_db_all
-def test_deduplication_works(default_project, task_runner, preprocess_event):
+def test_deduplication_works(default_project, task_runner, preprocess_event) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     project_id = default_project.id
@@ -163,7 +163,7 @@ def test_transactions_spawn_save_event_transaction(
 
 
 @django_db_all
-def test_accountant_transaction(default_project):
+def test_accountant_transaction(default_project) -> None:
     storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
     broker = LocalBroker(storage)
     topic = Topic("shared-resources-usage")
@@ -266,7 +266,7 @@ def test_feedbacks_spawn_save_event_feedback(
 
 @django_db_all
 @pytest.mark.parametrize("missing_chunks", (True, False))
-def test_with_attachments(default_project, task_runner, missing_chunks, django_cache):
+def test_with_attachments(default_project, task_runner, missing_chunks, django_cache) -> None:
     with patch("sentry.features.has", return_value=True):
         payload = get_normalized_event({"message": "hello world"}, default_project)
         event_id = payload["event_id"]
@@ -334,7 +334,9 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 @django_db_all
 @requires_symbolicator
 @pytest.mark.symbolicator
-def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_option, live_server):
+def test_deobfuscate_view_hierarchy(
+    default_project, task_runner, set_sentry_option, live_server
+) -> None:
     with set_sentry_option("system.url-prefix", live_server.url):
         payload = get_normalized_event(
             {
@@ -496,7 +498,7 @@ def test_individual_attachments(
 
 
 @django_db_all
-def test_userreport(django_cache, default_project):
+def test_userreport(django_cache, default_project) -> None:
     """
     Test that user_report-type kafka messages end up in a user report being
     persisted. We additionally test some logic around upserting data in
@@ -534,7 +536,7 @@ def test_userreport(django_cache, default_project):
 
 
 @django_db_all
-def test_userreport_reverse_order(django_cache, default_project):
+def test_userreport_reverse_order(django_cache, default_project) -> None:
     """
     Test that ingesting a userreport before the event works. This is relevant
     for unreal crashes where the userreport is processed immediately in the
@@ -577,7 +579,7 @@ def test_userreport_reverse_order(django_cache, default_project):
 
 
 @django_db_all
-def test_individual_attachments_missing_chunks(default_project, factories):
+def test_individual_attachments_missing_chunks(default_project, factories) -> None:
     with patch("sentry.features.has", return_value=True):
         event_id = "515539018c9b4260a6f999572f1661ee"
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
@@ -605,7 +607,7 @@ def test_individual_attachments_missing_chunks(default_project, factories):
 
 
 @django_db_all
-def test_collect_span_metrics(default_project):
+def test_collect_span_metrics(default_project) -> None:
     with Feature({"organizations:dynamic-sampling": True, "organization:am3-tier": True}):
         with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
             assert mock_metrics.incr.call_count == 0
