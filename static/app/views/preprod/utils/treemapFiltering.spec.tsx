@@ -21,9 +21,9 @@ describe('treemapFiltering', () => {
       const result = filterTreemapElement(treemapElement, 'main');
       expect(result).toBeTruthy();
       expect(result?.children).toHaveLength(1);
-      expect(result?.children[0].name).toBe('src');
-      expect(result?.children[0].children).toHaveLength(1);
-      expect(result?.children[0].children[0].name).toBe('main.js');
+      expect(result?.children[0]!.name).toBe('src');
+      expect(result?.children[0]!.children).toHaveLength(1);
+      expect(result?.children[0]!.children[0]!.name).toBe('main.js');
     });
 
     it('filters by path', () => {
@@ -31,9 +31,9 @@ describe('treemapFiltering', () => {
       const result = filterTreemapElement(treemapElement, 'utils.js');
       expect(result).toBeTruthy();
       expect(result?.children).toHaveLength(1);
-      expect(result?.children[0].name).toBe('src');
-      expect(result?.children[0].children).toHaveLength(1);
-      expect(result?.children[0].children[0].name).toBe('utils.js');
+      expect(result?.children[0]!.name).toBe('src');
+      expect(result?.children[0]!.children).toHaveLength(1);
+      expect(result?.children[0]!.children[0]!.name).toBe('utils.js');
     });
 
     it('filters case-insensitively', () => {
@@ -41,7 +41,7 @@ describe('treemapFiltering', () => {
       const result = filterTreemapElement(treemapElement, 'MAIN');
       expect(result).toBeTruthy();
       expect(result?.children).toHaveLength(1);
-      expect(result?.children[0].children[0].name).toBe('main.js');
+      expect(result?.children[0]!.children[0]!.name).toBe('main.js');
     });
 
     it('returns null when no matches found', () => {
@@ -55,7 +55,7 @@ describe('treemapFiltering', () => {
       const result = filterTreemapElement(treemapElement, 'main.js');
       expect(result).toBeTruthy();
       expect(result?.name).toBe('root');
-      expect(result?.children[0].name).toBe('src');
+      expect(result?.children[0]!.name).toBe('src');
     });
   });
 });
