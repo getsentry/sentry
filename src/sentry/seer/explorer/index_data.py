@@ -215,24 +215,34 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
 
 
 def _fetch_profile_data(
-    profile_id: str, organization_id: int, project_id: int
+    profile_id: str, organization_id: int, project_id: int, is_continuous: bool = False
 ) -> dict[str, Any] | None:
     """
     Fetch raw profile data from the profiling service.
 
     Args:
-        profile_id: The profile ID to fetch
+        profile_id: The profile ID to fetch (profile_id for transaction profiles, profiler_id for continuous)
         organization_id: Organization ID
         project_id: Project ID
+        is_continuous: Whether this is a continuous profile (uses /chunk endpoint)
 
     Returns:
         Raw profile data or None if not found
     """
-    response = get_from_profiling_service(
-        "GET",
-        f"/organizations/{organization_id}/projects/{project_id}/profiles/{profile_id}",
-        params={"format": "sample"},
-    )
+    if is_continuous:
+        # For continuous profiles (profiler_id), use the chunk endpoint
+        response = get_from_profiling_service(
+            "GET",
+            f"/organizations/{organization_id}/projects/{project_id}/chunks/{profile_id}",
+            params={"format": "sample"},
+        )
+    else:
+        # For transaction profiles (profile_id), use the profile endpoint
+        response = get_from_profiling_service(
+            "GET",
+            f"/organizations/{organization_id}/projects/{project_id}/profiles/{profile_id}",
+            params={"format": "sample"},
+        )
 
     if response.status == 200:
         return orjson.loads(response.data)
@@ -272,13 +282,16 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         auto_fields=True,
     )
 
-    # Step 1: Find spans in the trace that have profile data
+    # Step 1: Find spans in the trace that have profile data - using same constraint as flamegraph
+    profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
     profiles_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"trace:{trace_id} has:profile.id project.id:{project_id}",
+        query_string=f"trace:{trace_id} project.id:{project_id} {profiling_constraint}",
         selected_columns=[
             "span_id",
             "profile.id",
+            "profiler.id",
+            "thread.id",
             "transaction",
             "span.op",
             "is_transaction",
@@ -298,18 +311,28 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
 
     for row in profiles_result.get("data", []):
         span_id = row.get("span_id")
-        profile_id = row.get("profile.id")
+        profile_id = row.get("profile.id")  # Transaction profiles
+        profiler_id = row.get("profiler.id")  # Continuous profiles
         transaction_name = row.get("transaction")
 
-        if not span_id or not profile_id or span_id in seen_spans:
+        if not span_id or span_id in seen_spans:
             continue
+
+        # Use profile.id first (transaction profiles), fallback to profiler.id (continuous profiles)
+        actual_profile_id = profile_id or profiler_id
+        if not actual_profile_id:
+            continue
+
+        # Determine if this is a continuous profile (profiler.id without profile.id)
+        is_continuous = profile_id is None and profiler_id is not None
 
         seen_spans.add(span_id)
         unique_profiles.append(
             {
                 "span_id": span_id,
-                "profile_id": profile_id,
+                "profile_id": actual_profile_id,
                 "transaction_name": transaction_name,
+                "is_continuous": is_continuous,
             }
         )
 
@@ -327,12 +350,14 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         profile_id = profile_info["profile_id"]
         span_id = profile_info["span_id"]
         transaction_name = profile_info["transaction_name"]
+        is_continuous = profile_info["is_continuous"]
 
         # Fetch raw profile data
         raw_profile = _fetch_profile_data(
             profile_id=profile_id,
             organization_id=project.organization_id,
             project_id=project_id,
+            is_continuous=is_continuous,
         )
 
         if not raw_profile:
@@ -358,6 +383,16 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     execution_tree=execution_tree,
                     project_id=project_id,
                 )
+            )
+        else:
+            logger.warning(
+                "Failed to convert profile to execution tree",
+                extra={
+                    "profile_id": profile_id,
+                    "trace_id": trace_id,
+                    "project_id": project_id,
+                    "raw_profile": raw_profile,
+                },
             )
 
     if not processed_profiles:
