@@ -128,11 +128,14 @@ export function PrivateGamingSdkAccessModal({
       closeModal();
     } catch (error) {
       handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
+
       setRequestError(
         // Ideally, we’d get an error code to use with our translation functions for showing the right message, but the API currently only returns a plain string.
-        typeof error === 'string'
-          ? error
-          : t('There was an error submitting your request. Please try again.')
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : t('There was an error submitting your request. Please try again.')
       );
     } finally {
       setIsSubmitting(false);
