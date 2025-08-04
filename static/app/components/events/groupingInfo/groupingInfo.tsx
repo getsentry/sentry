@@ -51,22 +51,30 @@ export default function GroupingInfo({
       })
     : [];
 
+  const feedbackComponent = (
+    <FeatureFeedback
+      featureName="grouping"
+      feedbackTypes={[
+        t('Too eager grouping'),
+        t('Too specific grouping'),
+        t('Other grouping issue'),
+      ]}
+      buttonProps={{size: hasStreamlinedUI ? 'xs' : 'sm'}}
+    />
+  );
+
   return (
     <Fragment>
       <ConfigHeader>
         {hasStreamlinedUI && (
           <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
         )}
-        {hasStreamlinedUI && (
-          <FeatureFeedback
-            featureName="grouping"
-            feedbackTypes={[
-              t('Too eager grouping'),
-              t('Too specific grouping'),
-              t('Other grouping issue'),
-            ]}
-            buttonProps={{size: 'xs'}}
-          />
+        {hasStreamlinedUI ? (
+          feedbackComponent
+        ) : (
+          <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
+            {feedbackComponent}
+          </div>
         )}
       </ConfigHeader>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
