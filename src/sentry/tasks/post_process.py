@@ -974,14 +974,17 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     try:
-        process_workflows_event.delay(
-            project_id=job["event"].project_id,
-            event_id=job["event"].event_id,
-            occurrence_id=job["event"].occurrence_id,
-            group_id=job["event"].group_id,
-            group_state=job["group_state"],
-            has_reappeared=job["has_reappeared"],
-            has_escalated=job["has_escalated"],
+        process_workflows_event.apply_async(
+            kwargs=dict(
+                project_id=job["event"].project_id,
+                event_id=job["event"].event_id,
+                occurrence_id=job["event"].occurrence_id,
+                group_id=job["event"].group_id,
+                group_state=job["group_state"],
+                has_reappeared=job["has_reappeared"],
+                has_escalated=job["has_escalated"],
+            ),
+            headers={"sentry-propagate-traces": False},
         )
     except Exception:
         logger.exception("Could not process workflow task", extra={"job": job})
