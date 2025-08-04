@@ -86,7 +86,11 @@ export default function Ai() {
             )}
           </div>
           <div>
-            <LinkButton size="sm" priority="primary" to="/settings/seer/">
+            <LinkButton
+              size="sm"
+              priority="primary"
+              to={`/settings/${organization.slug}/seer/`}
+            >
               {t('View Seer Settings')}
             </LinkButton>
           </div>
