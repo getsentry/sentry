@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -64,7 +64,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
     @patch("django.utils.timezone.now")
-    def test_basic_update(self, mock_timezone_now):
+    def test_basic_update(self, mock_timezone_now: MagicMock) -> None:
         self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
         self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
         date = datetime(2023, 10, 3, tzinfo=timezone.utc)
@@ -144,7 +144,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.data["raw"] == "# cool stuff comment\n*.js admin@sentry.io\n# good comment"
 
     @patch("sentry.analytics.record")
-    def test_codeowners_max_raw_length(self, mock_record):
+    def test_codeowners_max_raw_length(self, mock_record: MagicMock) -> None:
         with mock.patch(
             "sentry.api.endpoints.codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
         ):

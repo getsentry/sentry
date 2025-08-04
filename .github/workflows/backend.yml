@@ -135,6 +135,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: backend
 
   backend-migration-tests:
     if: needs.files-changed.outputs.backend == 'true'
@@ -171,6 +172,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: backend-migration
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -198,15 +200,6 @@ jobs:
             devservices logs
           fi
 
-      # Upload coverage data even if running the tests step fails since
-      # it reduces large coverage fluctuations
-      - name: Handle artifacts
-        if: ${{ always() }}
-        uses: ./.github/actions/artifacts
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          commit_sha: ${{ github.event.pull_request.head.sha }}
-
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
@@ -227,13 +220,20 @@ jobs:
         with:
           version: '0.8.2'
 
+      - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
+        with:
+          python-version: 3.13.1
+          cache-dependency-path: requirements-dev-frozen.txt
+          install-cmd: uv pip install -q --constraint requirements-dev-frozen.txt pip-tools
+
       - name: check requirements
         run: |
-          uv sync --extra dev
+          make freeze-requirements
           if ! git diff --exit-code; then
-            echo $'\n\nrun `uv sync --extra dev` locally to update requirements'
+            echo $'\n\nrun `make freeze-requirements` locally to update requirements'
             exit 1
           fi
+
       - name: apply any requirements changes
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
@@ -318,6 +318,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+          type: monolith-dbs
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
@@ -338,10 +339,11 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
-          install-cmd: uv sync --extra dev --frozen
+          install-cmd: uv sync --frozen
 
       - name: setup sentry (lite)
         run: |
+          python3 -m tools.fast_editable --path .
           sentry init
 
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy

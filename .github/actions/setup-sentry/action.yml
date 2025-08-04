@@ -41,6 +41,10 @@ runs:
         echo "UV_DEFAULT_INDEX=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
+        # for actions/setup-python which always runs pip install
+        echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
+        echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
+
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
 
@@ -88,7 +92,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/uv.lock
-        install-cmd: cd ${{ inputs.workdir }} && uv sync --extra dev --frozen
+        install-cmd: cd ${{ inputs.workdir }} && uv sync --frozen
 
     - name: Set up outputs
       id: config

@@ -281,6 +281,7 @@ function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
     sdkVersion === 'latest' ||
     sdkVersion === '7.x' ||
     sdkVersion === '8.x' ||
-    sdkVersion === '9.x'
+    sdkVersion === '9.x' ||
+    sdkVersion === '10.x'
   );
 }

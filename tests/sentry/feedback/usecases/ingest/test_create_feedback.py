@@ -213,7 +213,7 @@ def test_corrected_still_works() -> None:
 
 
 @pytest.mark.parametrize("environment", ("missing", None, "", "my-environment"))
-def test_fix_for_issue_platform_environment(environment):
+def test_fix_for_issue_platform_environment(environment) -> None:
     event = mock_feedback_event(1)
     if environment == "missing":
         event.pop("environment", "")
@@ -228,7 +228,7 @@ def test_fix_for_issue_platform_environment(environment):
 
 
 @django_db_all
-def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = {
         "project_id": 1,
         "request": {
@@ -267,7 +267,7 @@ def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence
 
 
 @django_db_all
-def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = {
         "project_id": 1,
         "request": {
@@ -583,7 +583,7 @@ def test_create_feedback_spam_detection_project_option_false(
 
 
 @django_db_all
-def test_create_feedback_spam_detection_set_status_ignored(default_project):
+def test_create_feedback_spam_detection_set_status_ignored(default_project) -> None:
     with Feature(
         {
             "organizations:user-feedback-spam-filter-actions": True,
@@ -732,7 +732,7 @@ def test_create_feedback_filters_invalid_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka) -> None:
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
     event = mock_feedback_event(default_project.id)
     event["user"]["email"] = "josh.ferge@sentry.io"
@@ -781,7 +781,9 @@ def test_create_feedback_tags_no_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_tags_skips_if_empty(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     event = mock_feedback_event(default_project.id)
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
@@ -821,7 +823,9 @@ def test_create_feedback_filters_large_message(
 
 
 @django_db_all
-def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_evidence_has_source(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     """We need this evidence field in post process, to determine if we should send alerts."""
     event = mock_feedback_event(default_project.id)
     source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -833,7 +837,9 @@ def test_create_feedback_evidence_has_source(default_project, mock_produce_occur
 
 
 @django_db_all
-def test_create_feedback_evidence_has_spam(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_evidence_has_spam(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     """We need this evidence field in post process, to determine if we should send alerts."""
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
@@ -851,7 +857,7 @@ def test_create_feedback_evidence_has_spam(default_project, mock_produce_occurre
 
 
 @django_db_all
-def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = mock_feedback_event(default_project.id)
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -862,7 +868,7 @@ def test_create_feedback_release(default_project, mock_produce_occurrence_to_kaf
 
 
 @django_db_all
-def test_create_feedback_issue_updates_project_flag(default_project):
+def test_create_feedback_issue_updates_project_flag(default_project) -> None:
     event = mock_feedback_event(default_project.id, datetime.now(UTC))
 
     with (
@@ -886,7 +892,7 @@ def test_create_feedback_issue_updates_project_flag(default_project):
     assert default_project.flags.has_new_feedbacks
 
 
-def test_get_feedback_title():
+def test_get_feedback_title() -> None:
     """Test the get_feedback_title function with various message types."""
 
     # Test normal short message
@@ -922,7 +928,7 @@ def test_get_feedback_title():
 
 
 @django_db_all
-def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka) -> None:
     """Test that create_feedback_issue uses the generated title."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
@@ -944,7 +950,7 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
 
 
 @django_db_all
-def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
     with Feature(
         {
@@ -1017,7 +1023,9 @@ def test_create_feedback_handles_label_generation_errors(
 
 
 @django_db_all
-def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occurrence_to_kafka):
+def test_create_feedback_truncates_ai_labels(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned."""
     with Feature(
         {

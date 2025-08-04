@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
@@ -176,3 +177,17 @@ JSONField.register_lookup(JSONFieldIExactLookup)
 JSONField.register_lookup(JSONFieldInLookup)
 JSONField.register_lookup(JSONFieldContainsLookup)
 JSONField.register_lookup(JSONFieldIContainsLookup)
+
+
+class LegacyTextJSONField(models.JSONField):
+    """django JSONField but with `text` database backing
+
+    allows migration off of our JSONField without needing a data type
+    change for large tables
+
+    do not use me for new things!
+    """
+
+    def db_type(self, connection: BaseDatabaseWrapper) -> str:
+        # usually `jsonb`
+        return "text"

@@ -42,7 +42,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         self.integration = serialize_integration(integration=integration)
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_simple_assign(self, mock_sync_group_assignee_inbound):
+    def test_simple_assign(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -56,7 +56,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
     @responses.activate
-    def test_assign_use_email_api(self, mock_sync_group_assignee_inbound):
+    def test_assign_use_email_api(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/3/user/email",
@@ -94,7 +94,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             assert "error_message" in response.data
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
+    def test_assign_missing_email(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -105,7 +105,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             assert not mock_sync_group_assignee_inbound.called
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_simple_deassign(self, mock_sync_group_assignee_inbound):
+    def test_simple_deassign(self, mock_sync_group_assignee_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -117,7 +117,9 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             )
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
-    def test_simple_deassign_assignee_missing(self, mock_sync_group_assignee_inbound):
+    def test_simple_deassign_assignee_missing(
+        self, mock_sync_group_assignee_inbound: MagicMock
+    ) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -129,7 +131,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             )
 
     @patch.object(IssueSyncIntegration, "sync_status_inbound")
-    def test_simple_status_sync_inbound(self, mock_sync_status_inbound):
+    def test_simple_status_sync_inbound(self, mock_sync_status_inbound: MagicMock) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -164,7 +166,9 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
     @patch("sentry_sdk.set_tag")
     @patch("sentry.integrations.utils.scope.bind_organization_context")
-    def test_adds_context_data(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
+    def test_adds_context_data(
+        self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock
+    ) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -204,7 +208,7 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
 
 class JiraWebhookBaseTest(TestCase):
     @patch("sentry.utils.sdk.capture_exception")
-    def test_bad_request_errors(self, mock_capture_exception: MagicMock):
+    def test_bad_request_errors(self, mock_capture_exception: MagicMock) -> None:
         for error_type in [AtlassianConnectValidationError, JiraTokenError]:
             mock_endpoint = MockErroringJiraEndpoint.as_view(error=error_type())
 
@@ -237,7 +241,9 @@ class JiraWebhookBaseTest(TestCase):
         assert mock_capture_exception.call_count == 0
 
     @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
-    def test_APIError_host_and_path_added_as_tags(self, mock_super_handle_exception: MagicMock):
+    def test_APIError_host_and_path_added_as_tags(
+        self, mock_super_handle_exception: MagicMock
+    ) -> None:
         handler_error = ApiError("", url="http://maiseycharlie.jira.com/rest/api/3/dogs/tricks")
         mock_endpoint = MockErroringJiraEndpoint.as_view(error=handler_error)
 
@@ -255,7 +261,7 @@ class JiraWebhookBaseTest(TestCase):
         )
 
     @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
-    def test_handles_xml_as_error_message(self, mock_super_handle_exception: MagicMock):
+    def test_handles_xml_as_error_message(self, mock_super_handle_exception: MagicMock) -> None:
         """Moves the XML to `handler_context` and replaces it with a human-friendly message"""
         xml_string = '<?xml version="1.0"?><status><code>500</code><message>PSQLException: too many connections</message></status>'
 
@@ -273,7 +279,7 @@ class JiraWebhookBaseTest(TestCase):
         assert mock_super_handle_exception.call_args.args[2]["xml_response"] == xml_string
 
     @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
-    def test_handles_html_as_error_message(self, mock_super_handle_exception: MagicMock):
+    def test_handles_html_as_error_message(self, mock_super_handle_exception: MagicMock) -> None:
         """Moves the HTML to `handler_context` and replaces it with a human-friendly message"""
         html_strings = [
             # These aren't valid HTML (because they're cut off) but the `ApiError` constructor does
@@ -297,7 +303,7 @@ class JiraWebhookBaseTest(TestCase):
             assert mock_super_handle_exception.call_args.args[2]["html_response"] == html_string
 
     @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
-    def test_replacement_error_messages(self, mock_super_handle_exception: MagicMock):
+    def test_replacement_error_messages(self, mock_super_handle_exception: MagicMock) -> None:
         replacement_messages_by_code = {
             429: "Rate limit hit when requesting /rest/api/3/dogs/tricks",
             401: "Unauthorized request to /rest/api/3/dogs/tricks",

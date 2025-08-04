@@ -224,8 +224,6 @@ Then, use it to run sync this time:
                 (
                     "uv",
                     "sync",
-                    "--extra",
-                    "dev",
                     "--frozen",
                     "--quiet",
                 ),

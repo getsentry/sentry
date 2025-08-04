@@ -49,7 +49,10 @@ jobs:
         with:
           python-version: 3.13.1
           cache-dependency-path: uv.lock
-          install-cmd: uv sync --extra dev --frozen
+          # sentry.build.main has no external dependencies;
+          # this is only to set up the venv with the correct
+          # python version
+          install-cmd: echo
 
       - name: Step configurations
         id: config
@@ -75,6 +78,7 @@ jobs:
         run: pnpm install --frozen-lockfile --production
 
       - run: |
+          python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
       - run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
