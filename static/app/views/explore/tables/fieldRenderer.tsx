@@ -146,7 +146,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    return <Link to={target}>{rendered}</Link>;
+    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
@@ -162,7 +162,7 @@ function BaseExploreFieldRenderer({
       source: TraceViewSources.TRACES,
     });
 
-    return <Link to={target}>{rendered}</Link>;
+    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   if (field === 'profile.id') {
@@ -171,7 +171,7 @@ function BaseExploreFieldRenderer({
       projectSlug: data.project,
       profileId: data['profile.id'],
     });
-    return <Link to={target}>{rendered}</Link>;
+    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   return (

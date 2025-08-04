@@ -13,7 +13,7 @@ attrs==24.2.0
 avalara==20.9.0
 beautifulsoup4==4.7.1
 billiard==4.2.1
-black==24.10.0
+black==25.1.0
 boto3==1.34.128
 botocore==1.34.128
 brotli==1.1.0
@@ -106,7 +106,7 @@ mmh3==4.0.0
 more-itertools==8.13.0
 msgpack==1.1.0
 msgpack-types==0.2.0
-mypy==1.17.0
+mypy==1.17.1
 mypy-extensions==1.0.0
 nodeenv==1.9.1
 oauthlib==3.1.0

@@ -72,9 +72,9 @@ function LogsSectionContent({
       />
       <TableContainer>
         {hasInfiniteFeature ? (
-          <LogsInfiniteTable showHeader={false} scrollContainer={scrollContainer} />
+          <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
         ) : (
-          <LogsTable showHeader={false} />
+          <LogsTable embedded />
         )}
       </TableContainer>
     </Fragment>

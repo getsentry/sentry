@@ -4,7 +4,7 @@ import pickle
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from django.utils import timezone
@@ -56,7 +56,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
-    def test_process_pending_one_batch(self, process_incr):
+    def test_process_pending_one_batch(self, process_incr) -> None:
         self.buf.incr_batch_size = 5
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         client.zadd("b:p", {"foo": 1, "bar": 2})
@@ -70,7 +70,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
-    def test_process_pending_multiple_batches(self, process_incr):
+    def test_process_pending_multiple_batches(self, process_incr) -> None:
         self.buf.incr_batch_size = 2
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
@@ -85,7 +85,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_does_bubble_up_json(self, process):
+    def test_process_does_bubble_up_json(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -110,7 +110,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_does_bubble_up_pickle(self, process):
+    def test_process_does_bubble_up_pickle(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -131,7 +131,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    def test_group_cache_updated(self, default_group, task_runner):
+    def test_group_cache_updated(self, default_group, task_runner) -> None:
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -290,7 +290,7 @@ class TestRedisBuffer:
         assert mock.call_count == 1
 
     @mock.patch("sentry.rules.processing.buffer_processing.metrics.timer")
-    def test_callback(self, mock_metrics_timer):
+    def test_callback(self, mock_metrics_timer: MagicMock) -> None:
         redis_buffer_registry.add_handler(BufferHookEvent.FLUSH, process_buffer)
         self.buf.process_batch()
         assert mock_metrics_timer.call_count == 1
@@ -364,7 +364,7 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_uses_signal_only(self, process):
+    def test_process_uses_signal_only(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
         client.hmset(
@@ -609,7 +609,7 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    def test_incr_uses_signal_only(self, default_group, task_runner):
+    def test_incr_uses_signal_only(self, default_group, task_runner) -> None:
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -635,5 +635,5 @@ class TestRedisBuffer:
         datetime.date.today(),
     ],
 )
-def test_dump_value(value):
+def test_dump_value(value) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

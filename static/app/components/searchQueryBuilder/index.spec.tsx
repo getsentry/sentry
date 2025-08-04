@@ -4397,14 +4397,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
@@ -4429,14 +4422,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'randomValue');
@@ -4461,14 +4447,7 @@ describe('SearchQueryBuilder', function () {
           initialQuery=""
           replaceRawSearchKeys={['span.description']}
         />,
-        {
-          organization: {
-            features: [
-              'search-query-builder-raw-search-replacement',
-              'search-query-builder-wildcard-operators',
-            ],
-          },
-        }
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'random value');
@@ -4483,6 +4462,31 @@ describe('SearchQueryBuilder', function () {
 
       expect(
         screen.getByRole('row', {name: 'span.description:"random value"'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('matchKeySuggestions', () => {
+    it('renders the matched key suggestions when the value matches the pattern', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+        />
+      );
+
+      await userEvent.type(
+        screen.getByRole('textbox'),
+        '12345678901234567890123456789012'
+      );
+
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('trace')).toBeInTheDocument();
+
+      await userEvent.click(within(listbox).getByText('trace'));
+
+      expect(
+        screen.getByRole('row', {name: 'trace:12345678901234567890123456789012'})
       ).toBeInTheDocument();
     });
   });

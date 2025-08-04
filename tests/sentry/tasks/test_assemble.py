@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 
@@ -282,7 +282,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert status is None
 
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
-    def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
+    def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(
+        self, post_assemble: MagicMock
+    ) -> None:
         post_assemble.side_effect = Exception
 
         bundle_file = self.create_artifact_bundle_zip(
@@ -304,7 +306,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(files) == 0
 
     @patch("sentry.tasks.assemble.ArtifactBundleArchive")
-    def test_assembled_bundle_is_deleted_if_archive_is_invalid(self, artifact_bundle_archive):
+    def test_assembled_bundle_is_deleted_if_archive_is_invalid(
+        self, artifact_bundle_archive: MagicMock
+    ) -> None:
         artifact_bundle_archive.side_effect = Exception
 
         bundle_file = self.create_artifact_bundle_zip(
@@ -612,7 +616,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(project_artifact_bundle) == 1
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
-    def test_bundle_indexing_started_when_over_threshold(self, index_artifact_bundles_for_release):
+    def test_bundle_indexing_started_when_over_threshold(
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -778,7 +784,9 @@ class ArtifactBundleIndexingTest(TestCase):
         return rv
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
-    def test_index_if_needed_with_no_bundles(self, index_artifact_bundles_for_release):
+    def test_index_if_needed_with_no_bundles(
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -877,7 +885,9 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
-    def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):
+    def test_index_if_needed_with_bundles_already_indexed(
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 

@@ -51,14 +51,14 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
-  'count_if(span.status,unknown)',
+  'count_if(span.status,equals,unknown)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
@@ -97,7 +97,7 @@ export function ToolsTable() {
         'avg(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
-        'count_if(span.status,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -118,7 +118,7 @@ export function ToolsTable() {
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),
-      errors: Number(span['count_if(span.status,unknown)']),
+      errors: Number(span['count_if(span.status,equals,unknown)']),
     }));
   }, [toolsRequest.data]);
 
@@ -218,7 +218,7 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'count_if(span.status,unknown)':
+    case 'count_if(span.status,equals,unknown)':
       return (
         <ErrorCell
           value={dataRow.errors}

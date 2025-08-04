@@ -193,10 +193,14 @@ class DataSourceSerializer(Serializer):
 @register(DataCondition)
 class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
+        comparison = obj.comparison
+        if isinstance(comparison, dict):
+            comparison = convert_dict_key_case(obj.comparison, snake_to_camel_case)
+
         return {
             "id": str(obj.id),
             "type": obj.type,
-            "comparison": obj.comparison,
+            "comparison": comparison,
             "conditionResult": obj.condition_result,
         }
 
@@ -402,7 +406,9 @@ class WorkflowSerializer(Serializer):
         last_triggered_map: dict[int, datetime] = dict(
             WorkflowFireHistory.objects.filter(
                 workflow__in=item_list,
+                is_single_written=True,
             )
+            .values("workflow_id")
             .annotate(last_triggered=Max("date_added"))
             .values_list("workflow_id", "last_triggered")
         )

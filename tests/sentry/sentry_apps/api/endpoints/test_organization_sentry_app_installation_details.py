@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.urls import reverse
@@ -96,7 +96,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_delete_install(self, record):
+    def test_delete_install(self, record: MagicMock) -> None:
         responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         self.login_as(user=self.user)
         rpc_user = user_service.get_user(user_id=self.user.id)
@@ -142,7 +142,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         ).run()
 
     @patch("sentry.analytics.record")
-    def test_sentry_app_installation_mark_installed(self, record):
+    def test_sentry_app_installation_mark_installed(self, record: MagicMock) -> None:
         self.url = reverse(
             "sentry-api-0-sentry-app-installation-details", args=[self.installation.uuid]
         )

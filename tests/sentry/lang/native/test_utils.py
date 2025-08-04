@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.lang.native.utils import Backoff, get_os_from_event, is_minidump_event
 
@@ -36,7 +36,7 @@ def test_is_minidump() -> None:
 
 
 @patch("time.sleep")
-def test_backoff(mock_sleep):
+def test_backoff(mock_sleep: MagicMock) -> None:
     backoff = Backoff(0.1, 5)
 
     for _ in range(3):
