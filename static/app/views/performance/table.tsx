@@ -259,7 +259,7 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, withStaticFilters} = this.props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;

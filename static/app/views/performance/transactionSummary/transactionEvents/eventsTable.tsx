@@ -201,7 +201,7 @@ function EventsTable({
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
     ): React.ReactNode => {
-      if (!tableData || !tableData.meta) {
+      if (!tableData?.meta) {
         return dataRow[column.key];
       }
       const tableMeta = tableData.meta;
