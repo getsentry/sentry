@@ -2175,7 +2175,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
         occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
         assert occurrence.issue_title == get_feedback_title(
-            mock_event_data["contexts"]["feedback"]["message"],
+            mock_event_data["contexts"]["feedback"]["message"]
         )
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
