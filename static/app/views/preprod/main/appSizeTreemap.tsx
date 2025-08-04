@@ -68,15 +68,15 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   };
 
   function convertToEChartsData(element: TreemapElement): any {
-    const color = element.element_type
-      ? TYPE_COLORS[element.element_type]
+    const color = element.type
+      ? TYPE_COLORS[element.type]
       : TYPE_COLORS[TreemapType.OTHER];
 
     const data: any = {
       name: element.name,
       value: element.size,
       path: element.path,
-      category: element.element_type,
+      category: element.type,
       itemStyle: {
         color: 'transparent',
         borderColor: color,

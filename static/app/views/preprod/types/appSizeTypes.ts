@@ -13,11 +13,10 @@ export interface TreemapResults {
 
 export interface TreemapElement {
   children: TreemapElement[];
-  details: Record<string, unknown>;
-  element_type: TreemapType;
-  is_directory: boolean;
+  is_dir: boolean;
   name: string;
   size: number;
+  type: TreemapType;
   path?: string;
 }
 
