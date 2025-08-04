@@ -1,16 +1,18 @@
-type ExtractPathParams<TApiPath extends string> =
+import type {MaybeApiPath} from './apiDefinition';
+
+export type ExtractPathParams<TApiPath extends string> =
   TApiPath extends `${string}$${infer Param}/${infer Rest}`
     ? Param | ExtractPathParams<`/${Rest}`>
     : TApiPath extends `${string}$${infer Param}`
       ? Param
       : never;
 
-type PathParamOptions<TApiPath extends string> =
+export type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number>};
 
-type OptionalPathParams<TApiPath extends string> =
+export type OptionalPathParams<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? [] // eslint-disable-line @typescript-eslint/no-restricted-types
     : [PathParamOptions<TApiPath>];
@@ -19,7 +21,7 @@ const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
 type ApiUrl = string & {__apiUrl: true};
 
-export function getApiUrl<TApiPath extends string>(
+export function getApiUrl<TApiPath extends MaybeApiPath>(
   path: TApiPath,
   ...[options]: OptionalPathParams<TApiPath>
 ): ApiUrl {
