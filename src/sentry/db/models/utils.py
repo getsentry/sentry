@@ -14,6 +14,21 @@ if TYPE_CHECKING:
     from sentry.db.models.base import Model as SentryModel
 
 
+def is_model_attr_cached(model: Model, attr: str) -> bool:
+    is_prefetched = (
+        hasattr(model, "_prefetched_objects_cache") and attr in model._prefetched_objects_cache
+    )
+    field = getattr(type(model), attr)
+
+    if hasattr(field, "is_cached"):
+        is_selected = field.is_cached(model)
+    else:
+        # For regular fields, check if not deferred
+        is_selected = attr not in model.get_deferred_fields()
+
+    return is_prefetched or is_selected
+
+
 def unique_db_instance(
     inst: SentryModel,
     base_value: str,
