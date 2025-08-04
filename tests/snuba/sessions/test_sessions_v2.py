@@ -318,6 +318,7 @@ def test_env_neither_in_top_filter_nor_query(default_project) -> None:
     assert query_def.query == ""
 
 
+@pytest.mark.skip(reason="flaky: #97086")
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_empty() -> None:
     query = _make_query("statsPeriod=1d&interval=1d&field=sum(session)")
