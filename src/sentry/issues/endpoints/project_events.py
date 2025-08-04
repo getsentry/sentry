@@ -1,13 +1,11 @@
-from datetime import timedelta
 from functools import partial
 
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -84,27 +82,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
 
-        # Add date filtering, potentially combined with date limit feature flag enforcement:
-        if features.has(
-            "organizations:project-event-date-limit", project.organization, actor=request.user
-        ):
-            # Enforce maximum 7-day lookback, regardless of user input:
-            feature_flag_start_limit = timezone.now() - timedelta(days=7)
-            if start and end:
-                # Use user-provided dates but enforce the 7-day limit:
-                clamped_start = max(start, feature_flag_start_limit)
-
-                if clamped_start > end:
-                    # 'get_date_range_from_params' above guarantees that start < end, so if we arrive here
-                    # it means the end date passed by the user is older than 7 days ago:
-                    raise ParseError(detail="End date must be less than 7 days ago")
-
-                event_filter.start = clamped_start
-                event_filter.end = end
-            else:
-                # No user dates provided, use default 7-day limit:
-                event_filter.start = feature_flag_start_limit
-        elif start and end:
+        if start and end:
             event_filter.start = start
             event_filter.end = end
 
