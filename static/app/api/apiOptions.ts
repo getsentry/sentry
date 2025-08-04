@@ -26,7 +26,7 @@ export const selectWithHeaders =
     ) as Record<THeaders[number], string | undefined>,
   });
 
-export function apiOptions<
+function _apiOptions<
   TManualData = never,
   TApiPath extends MaybeApiPath = MaybeApiPath,
   // todo: infer the actual data type from the ApiMapping
@@ -57,10 +57,12 @@ export function apiOptions<
   });
 }
 
-apiOptions.as =
-  <TManualData>() =>
-  <TApiPath extends MaybeApiPath = MaybeApiPath>(
-    path: TApiPath,
-    options: Options & PathParamOptions<TApiPath>
-  ) =>
-    apiOptions<TManualData, TApiPath>(path, options as never);
+export const apiOptions = {
+  as:
+    <TManualData>() =>
+    <TApiPath extends MaybeApiPath = MaybeApiPath>(
+      path: TApiPath,
+      options: Options & PathParamOptions<TApiPath>
+    ) =>
+      _apiOptions<TManualData, TApiPath>(path, options as never),
+};
