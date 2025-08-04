@@ -16,7 +16,6 @@ from sentry.feedback.usecases.ingest.create_feedback import (
 )
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX, MAX_AI_LABELS
 from sentry.models.group import Group, GroupStatus
-from sentry.models.organization import Organization
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -931,8 +930,11 @@ def test_get_feedback_title() -> None:
 
 @django_db_all
 def test_get_feedback_title_with_ai():
-    """Test the get_feedback_title function with AI generation enabled and disabled."""
-    org = Organization.objects.create(name="Test Org", slug="test-org")
+    """Test the get_feedback_title function with various feature flag combinations and Seer call responses."""
+    # Create a mock organization to avoid database setup issues
+    org = Mock()
+    org.id = 123
+    org.get_option.return_value = False
 
     def mock_gen_ai_enabled_only(feature_name, *args, **kwargs):
         return feature_name == "organizations:gen-ai-features"
@@ -941,81 +943,137 @@ def test_get_feedback_title_with_ai():
         return feature_name == "organizations:user-feedback-ai-titles"
 
     # both feature flags enabled, organization has AI features hidden
-    org.update_option("sentry:hide_ai_features", True)
+    org.get_option.return_value = True
     with patch.object(features, "has", return_value=True):
-        title = get_feedback_title("Login button broken", organization=org)
-        assert title == "User Feedback: Login button broken"
+        with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "User Feedback: Login button broken"
+            mock_metrics.incr.assert_called_once_with(
+                "feedback.ai_title_generation.skipped",
+                tags={"reason": "ai_features_hidden", "organization_id": org.id},
+            )
 
-    org.update_option("sentry:hide_ai_features", False)
+    org.get_option.return_value = False
 
     # both feature flags disabled
     with patch.object(features, "has", return_value=False):
-        title = get_feedback_title("Login button broken", organization=org)
-        assert title == "User Feedback: Login button broken"
+        with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "User Feedback: Login button broken"
+            mock_metrics.incr.assert_called_once_with(
+                "feedback.ai_title_generation.skipped",
+                tags={"reason": "gen_ai_disabled", "organization_id": org.id},
+            )
 
     # gen-ai-features enabled
     with patch.object(features, "has", side_effect=mock_gen_ai_enabled_only):
-        title = get_feedback_title("Login button broken", organization=org)
-        assert title == "User Feedback: Login button broken"
+        with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "User Feedback: Login button broken"
+            mock_metrics.incr.assert_called_once_with(
+                "feedback.ai_title_generation.skipped",
+                tags={"reason": "feedback_ai_titles_disabled", "organization_id": org.id},
+            )
 
     # user-feedback-ai-titles enabled
     with patch.object(features, "has", side_effect=mock_feedback_ai_enabled_only):
-        title = get_feedback_title("Login button broken", organization=org)
-        assert title == "User Feedback: Login button broken"
+        with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+            title = get_feedback_title("Login button broken", organization=org)
+            assert title == "User Feedback: Login button broken"
+            mock_metrics.incr.assert_called_once_with(
+                "feedback.ai_title_generation.skipped",
+                tags={"reason": "gen_ai_disabled", "organization_id": org.id},
+            )
 
     # both feature flags enabled, seer call network error
     with patch.object(features, "has", return_value=True):
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.make_seer_request"
         ) as mock_seer:
-            mock_seer.side_effect = Exception("Network error")
-            title = get_feedback_title("Login button broken", organization=org)
-            assert title == "User Feedback: Login button broken"
+            with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+                mock_seer.side_effect = Exception("Network error")
+                title = get_feedback_title("Login button broken", organization=org)
+                assert title == "User Feedback: Login button broken"
+                mock_metrics.incr.assert_called_once_with(
+                    "feedback.ai_title_generation.error",
+                    tags={"organization_id": org.id},
+                )
 
     # both feature flags enabled, seer call successful
     with patch.object(features, "has", return_value=True):
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.make_seer_request"
         ) as mock_seer:
-            mock_seer.return_value = b'{"title": "Login Button Issue"}'
-            title = get_feedback_title("Login button broken", organization=org)
-            assert title == "User Feedback: Login Button Issue"
+            with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+                mock_seer.return_value = b'{"title": "Login Button Issue"}'
+                title = get_feedback_title("Login button broken", organization=org)
+                assert title == "User Feedback: Login Button Issue"
+                mock_metrics.incr.assert_called_once_with(
+                    "feedback.ai_title_generation.success",
+                    tags={"organization_id": org.id},
+                )
 
     # both feature flags enabled, seer call invalid response
     with patch.object(features, "has", return_value=True):
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.make_seer_request"
         ) as mock_seer:
-            mock_seer.return_value = b'{"invalid": "response"}'
-            title = get_feedback_title("Login button broken", organization=org)
-            assert title == "User Feedback: Login button broken"
+            with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+                mock_seer.return_value = b'{"invalid": "response"}'
+                title = get_feedback_title("Login button broken", organization=org)
+                assert title == "User Feedback: Login button broken"
+                mock_metrics.incr.assert_called_once_with(
+                    "feedback.ai_title_generation.error",
+                    tags={"reason": "invalid_response", "organization_id": org.id},
+                )
 
     # both feature flags enabled, seer call HTTP error
     with patch.object(features, "has", return_value=True):
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.make_seer_request"
         ) as mock_seer:
-            mock_seer.side_effect = Exception("HTTP Error")
-            title = get_feedback_title("Login button broken", organization=org)
-            assert title == "User Feedback: Login button broken"
+            with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+                mock_seer.side_effect = Exception("HTTP Error")
+                title = get_feedback_title("Login button broken", organization=org)
+                assert title == "User Feedback: Login button broken"
+                mock_metrics.incr.assert_called_once_with(
+                    "feedback.ai_title_generation.error",
+                    tags={"organization_id": org.id},
+                )
 
     # both feature flags enabled, seer call returns empty string
     with patch.object(features, "has", return_value=True):
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.make_seer_request"
         ) as mock_seer:
-            mock_seer.return_value = b'{"title": ""}'
-            title = get_feedback_title("Login button broken", organization=org)
-            assert title == "User Feedback: Login button broken"
+            with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+                mock_seer.return_value = b'{"title": ""}'
+                title = get_feedback_title("Login button broken", organization=org)
+                assert title == "User Feedback: Login button broken"
+                mock_metrics.incr.assert_called_once_with(
+                    "feedback.ai_title_generation.error",
+                    tags={"reason": "invalid_response", "organization_id": org.id},
+                )
 
     # both feature flags enabled, seer call returns whitespace-only string
     with patch.object(features, "has", return_value=True):
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.make_seer_request"
         ) as mock_seer:
-            mock_seer.return_value = b'{"title": "   "}'
-            title = get_feedback_title("Login button broken", organization=org)
-            assert title == "User Feedback: Login button broken"
+            with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+                mock_seer.return_value = b'{"title": "   "}'
+                title = get_feedback_title("Login button broken", organization=org)
+                assert title == "User Feedback: Login button broken"
+                mock_metrics.incr.assert_called_once_with(
+                    "feedback.ai_title_generation.error",
+                    tags={"reason": "invalid_response", "organization_id": org.id},
+                )
+
+    # should not call any metrics since no organization is provided
+    with patch("sentry.feedback.usecases.ingest.create_feedback.metrics") as mock_metrics:
+        title = get_feedback_title("Test message")
+        assert title == "User Feedback: Test message"
+        mock_metrics.incr.assert_not_called()
 
 
 @django_db_all

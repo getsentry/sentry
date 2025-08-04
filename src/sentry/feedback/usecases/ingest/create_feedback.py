@@ -227,7 +227,7 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
     if not features.has("organizations:gen-ai-features", organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
-            tags={"reason": "feature_flag_disabled", "organization_id": organization.id},
+            tags={"reason": "gen_ai_disabled", "organization_id": organization.id},
         )
         return None
 
@@ -245,7 +245,6 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
         )
         return None
 
-    # Prepare the request to Seer
     seer_request = GenerateFeedbackTitleRequest(
         organization_id=organization.id,
         feedback_message=feedback_message,
@@ -253,12 +252,19 @@ def get_ai_feedback_title(feedback_message: str, organization: Organization) -> 
 
     try:
         response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
-        title = response_data["title"]
     except Exception:
-        logger.exception("Error generating AI feedback title")
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"organization_id": organization.id},
+        )
+        return None
+
+    try:
+        title = response_data["title"]
+    except KeyError:
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "invalid_response", "organization_id": organization.id},
         )
         return None
 
@@ -292,15 +298,11 @@ def get_feedback_title(
     Returns:
         A formatted title string
     """
-    # Try AI generation first if organization is provided
     title = None
     if organization:
         title = get_ai_feedback_title(feedback_message, organization)
-
     if title is None:
-        # Fallback to the original word-based title generation
         title = feedback_message
-
     stripped_message = title.strip()
 
     # Clean and split the message into words
