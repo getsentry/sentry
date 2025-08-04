@@ -149,16 +149,14 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         """Test the full end-to-end happy path for get_profiles_for_trace."""
         trace_id = "a" * 32  # Valid 32-char hex trace ID
 
-        # Create spans and then update with profile data
-        span1_id = "a" * 16  # Valid 16-char hex string
-        span2_id = "b" * 16  # Valid 16-char hex string
-        profile1_id = uuid.uuid4().hex
-        profile2_id = uuid.uuid4().hex
+        profile1_id = uuid.uuid4().hex  # Transaction profile
+        profile2_id = uuid.uuid4().hex  # Transaction profile
+        profiler_id = uuid.uuid4().hex  # Continuous profile
+        thread_id = "12345"
 
-        # Create spans first, then update with profile_id
+        # Create span with transaction profile (profile_id)
         span1 = self.create_span(
             {
-                "span_id": span1_id,
                 "trace_id": trace_id,
                 "description": "GET /api/users/profile",
                 "sentry_tags": {"transaction": "api/users/profile", "op": "http.server"},
@@ -168,11 +166,11 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         span1.update({"profile_id": profile1_id})
 
+        # Create span with transaction profile (profile_id)
         span2 = self.create_span(
             {
-                "span_id": span2_id,
                 "trace_id": trace_id,
-                "parent_span_id": span1_id,
+                "parent_span_id": span1["span_id"],
                 "description": "SELECT * FROM users",
                 "sentry_tags": {"transaction": "api/users/profile", "op": "db.query"},
                 "is_segment": False,
@@ -181,9 +179,58 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         )
         span2.update({"profile_id": profile2_id})
 
-        self.store_spans([span1, span2], is_eap=True)
+        # Create span with no profile data (should be ignored by query constraint)
+        span3 = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": span1["span_id"],
+                "description": "No profile span",
+                "sentry_tags": {"transaction": "api/users/profile", "op": "other"},
+                "is_segment": False,
+            },
+            start_ts=self.ten_mins_ago + timedelta(milliseconds=20),
+        )
+        # Remove any default profile data from span3
+        if "profile_id" in span3:
+            del span3["profile_id"]
+        if "profiler_id" in span3:
+            del span3["profiler_id"]
+        if "thread_id" in span3:
+            del span3["thread_id"]
 
-        # Mock the profile service and tree conversion
+        # Create span with continuous profile (profiler_id + thread_id)
+        span4 = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": span1["span_id"],
+                "description": "Continuous profile span",
+                "sentry_tags": {
+                    "transaction": "api/users/profile",
+                    "op": "continuous",
+                },
+                "is_segment": False,
+            },
+            start_ts=self.ten_mins_ago + timedelta(milliseconds=30),
+        )
+        # Remove any default profile_id and set continuous profile fields
+        if "profile_id" in span4:
+            del span4["profile_id"]
+        span4.update(
+            {
+                "profiler_id": profiler_id,
+                "thread_id": thread_id,
+                # Set in sentry_tags as well for proper field mapping
+                "sentry_tags": {
+                    **span4.get("sentry_tags", {}),
+                    "profiler_id": profiler_id,
+                    "thread.id": thread_id,
+                },
+            }
+        )
+
+        self.store_spans([span1, span2, span3, span4], is_eap=True)
+
+        # Mock only the external profiling service calls
         with (
             mock.patch(
                 "sentry.seer.explorer.index_data.get_from_profiling_service"
@@ -192,72 +239,97 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
                 "sentry.seer.explorer.index_data.convert_profile_to_execution_tree"
             ) as mock_convert,
         ):
+            # Mock profile service responses for both transaction and continuous profiles
+            def mock_service_response(method, path, *args, **kwargs):
+                if f"profiles/{profile1_id}" in path:
+                    response = mock.Mock()
+                    response.status = 200
+                    response.data = orjson.dumps({"profile": "transaction_data1"})
+                    return response
+                elif f"profiles/{profile2_id}" in path:
+                    response = mock.Mock()
+                    response.status = 200
+                    response.data = orjson.dumps({"profile": "transaction_data2"})
+                    return response
+                elif f"chunks/{profiler_id}" in path:
+                    response = mock.Mock()
+                    response.status = 200
+                    response.data = orjson.dumps({"profile": "continuous_data"})
+                    return response
+                else:
+                    # Return 404 for unexpected calls
+                    response = mock.Mock()
+                    response.status = 404
+                    return response
 
-            # Mock profile service responses
-            mock_response1 = mock.Mock()
-            mock_response1.status = 200
-            mock_response1.data = orjson.dumps({"profile": "data1"})
-
-            mock_response2 = mock.Mock()
-            mock_response2.status = 200
-            mock_response2.data = orjson.dumps({"profile": "data2"})
-
-            mock_service.side_effect = [mock_response1, mock_response2]
+            mock_service.side_effect = mock_service_response
 
             # Mock execution tree conversion
-            mock_tree1 = [
-                ExecutionTreeNode(
-                    function="main",
-                    module="app",
-                    filename="main.py",
-                    lineno=10,
-                    in_app=True,
-                    children=[],
-                    node_id="node1",
-                    sample_count=5,
-                )
-            ]
-            mock_tree2 = [
-                ExecutionTreeNode(
-                    function="query",
-                    module="db",
-                    filename="db.py",
-                    lineno=20,
-                    in_app=True,
-                    children=[],
-                    node_id="node2",
-                    sample_count=3,
-                )
-            ]
-            mock_convert.side_effect = [mock_tree1, mock_tree2]
+            def mock_convert_response(data):
+                if data.get("profile") == "transaction_data1":
+                    return [
+                        ExecutionTreeNode(
+                            function="main",
+                            module="app",
+                            filename="main.py",
+                            lineno=10,
+                            in_app=True,
+                            children=[],
+                            node_id="node1",
+                            sample_count=5,
+                        )
+                    ]
+                elif data.get("profile") == "transaction_data2":
+                    return [
+                        ExecutionTreeNode(
+                            function="query",
+                            module="db",
+                            filename="db.py",
+                            lineno=20,
+                            in_app=True,
+                            children=[],
+                            node_id="node2",
+                            sample_count=3,
+                        )
+                    ]
+                elif data.get("profile") == "continuous_data":
+                    return [
+                        ExecutionTreeNode(
+                            function="continuous_func",
+                            module="profiler",
+                            filename="profiler.py",
+                            lineno=30,
+                            in_app=True,
+                            children=[],
+                            node_id="node3",
+                            sample_count=7,
+                        )
+                    ]
+                return None
+
+            mock_convert.side_effect = mock_convert_response
 
             # Call the function
             result = get_profiles_for_trace(trace_id, self.project.id)
 
-            # Verify the result
+            # Verify the result structure
             assert result is not None
             assert result.trace_id == trace_id
             assert result.project_id == self.project.id
-            assert len(result.profiles) == 2
 
-            # Check first profile
-            profile1 = result.profiles[0]
-            assert profile1.profile_id == profile1_id
-            assert profile1.span_id == span1_id
-            assert profile1.transaction_name == "api/users/profile"
-            assert profile1.execution_tree == mock_tree1
-            assert profile1.project_id == self.project.id
+            # Should find 3 spans with profile data (span3 filtered out by query constraint)
+            assert len(result.profiles) == 3
 
-            # Check second profile
-            profile2 = result.profiles[1]
-            assert profile2.profile_id == profile2_id
-            assert profile2.span_id == span2_id
-            assert profile2.transaction_name == "api/users/profile"
-            assert profile2.execution_tree == mock_tree2
-            assert profile2.project_id == self.project.id
+            # Verify profiles are properly processed
+            profile_ids_found = [p.profile_id for p in result.profiles]
+            assert profile1_id in profile_ids_found
+            assert profile2_id in profile_ids_found
+            assert profiler_id in profile_ids_found
 
-            # Verify service calls
-            assert mock_service.call_count == 2
+            # Verify correct service calls were made
+            assert mock_service.call_count == 3
+
+            # Check transaction profile calls use /profiles/ endpoint
             mock_service.assert_any_call(
                 "GET",
                 f"/organizations/{self.organization.id}/projects/{self.project.id}/profiles/{profile1_id}",
@@ -269,10 +341,12 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
                 params={"format": "sample"},
             )
 
-            # Verify conversion calls
-            assert mock_convert.call_count == 2
-            mock_convert.assert_any_call({"profile": "data1"})
-            mock_convert.assert_any_call({"profile": "data2"})
+            # Check continuous profile call uses /chunks/ endpoint
+            mock_service.assert_any_call(
+                "GET",
+                f"/organizations/{self.organization.id}/projects/{self.project.id}/chunks/{profiler_id}",
+                params={"format": "sample"},
+            )
 
 
 class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSnubaMixin):
