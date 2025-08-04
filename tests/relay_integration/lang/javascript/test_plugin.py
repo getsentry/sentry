@@ -1321,10 +1321,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # Previous versions of JS symbolication erroneously returned
         # wrong values here. This needs to be enabled once Symbolicator
         # is updated.
-        # assert frame_list[3].abs_path == "app:///dist.bundle.js"
-        # assert frame_list[3].function == "Object.<anonymous>"
-        # assert frame_list[3].lineno == 18
-        # assert frame_list[3].colno ==  63
+        # assert frame_list[5].abs_path == "app:///dist.bundle.js"
+        # assert frame_list[5].function == "Object.<anonymous>"
+        # assert frame_list[5].lineno == 18
+        # assert frame_list[5].colno ==  63
 
     @responses.activate
     def test_no_fetch_from_http(self) -> None:
