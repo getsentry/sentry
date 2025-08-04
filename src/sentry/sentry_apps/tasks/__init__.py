@@ -4,6 +4,7 @@ from .sentry_apps import (
     create_or_update_service_hooks_for_sentry_app,
     installation_webhook,
     process_resource_change_bound,
+    regenerate_service_hooks_for_installation,
     send_alert_webhook,
     send_alert_webhook_v2,
     send_resource_change_webhook,
@@ -22,5 +23,5 @@ __all__ = (
     "process_service_hook",
     "send_alert_webhook",
     "send_alert_webhook_v2",
-    "create_or_update_service_hooks_for_installation",
+    "regenerate_service_hooks_for_installation",
 )

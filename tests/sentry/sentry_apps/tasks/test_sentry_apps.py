@@ -1737,16 +1737,24 @@ class TestBackfillServiceHooksEvents(TestCase):
             hook.events = ["issue.resolved", "error.created"]
             hook.save()
 
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
-            regenerate_service_hooks_for_installation(installation_id=self.install.id)
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
 
         with assume_test_silo_mode(SiloMode.REGION):
             hook.refresh_from_db()
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
 
     def test_regenerate_service_hook_for_installation_event_not_in_app_events(self):
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
-            regenerate_service_hooks_for_installation(installation_id=self.install.id)
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
 
         with assume_test_silo_mode(SiloMode.REGION):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
@@ -1761,8 +1769,12 @@ class TestBackfillServiceHooksEvents(TestCase):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events != []
 
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
-            regenerate_service_hooks_for_installation(installation_id=self.install.id)
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
 
         with assume_test_silo_mode(SiloMode.REGION):
             hook.refresh_from_db()
