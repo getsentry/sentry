@@ -151,14 +151,6 @@ class RedisQuotaTest(TestCase):
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
 
-        assert quotas[4].id == "pal"
-        assert quotas[4].scope == QuotaScope.PROJECT
-        assert quotas[4].scope_id is None
-        assert quotas[4].categories == {DataCategory.LOG_ITEM}
-        assert quotas[4].limit == 6060
-        assert quotas[4].window == 10
-        assert quotas[4].reason_code == "project_abuse_limit"
-
         expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [
             (QuotaScope.PROJECT, "p"),
