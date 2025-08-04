@@ -5,8 +5,7 @@ from typing import Any
 import orjson
 
 from sentry import search
-from sentry.api.event_search import SearchFilter, parse_search_query
-from sentry.api.issue_search import convert_query_values
+from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.eventstore import backend as eventstore
@@ -433,9 +432,10 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     start_time = end_time - timedelta(hours=24)
 
     # Step 1: Search for issues using transaction filter
-    parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
-    converted_terms = convert_query_values(parsed_terms, [project], None, [])
-    search_filters = [term for term in converted_terms if isinstance(term, SearchFilter)]
+    query = f'is:unresolved transaction:"{transaction_name}"'
+    search_filters = parse_and_convert_issue_search_query(
+        query, project.organization, [project], [], None
+    )
 
     results_cursor = search.backend.query(
         projects=[project],
@@ -444,7 +444,6 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
         search_filters=search_filters,
         sort_by="freq",
         limit=3,
-        environments=[],
         referrer=Referrer.SEER_RPC,
     )
     issues = list(results_cursor)
