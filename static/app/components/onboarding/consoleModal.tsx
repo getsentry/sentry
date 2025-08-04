@@ -7,13 +7,14 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-const consoleConfig = {
-  playstation: (
+export const CONSOLE_PLATFORM_INSTRUCTIONS = {
+  [ConsolePlatform.PLAYSTATION]: (
     <Fragment>
       <p>
         {t(
@@ -33,7 +34,7 @@ const consoleConfig = {
       </p>
     </Fragment>
   ),
-  'nintendo-switch': (
+  [ConsolePlatform.NINTENDO_SWITCH]: (
     <Fragment>
       <p>
         {tct(
@@ -68,7 +69,7 @@ const consoleConfig = {
       <p>{t('Sentry supports both the original Switch and Switch 2.')}</p>
     </Fragment>
   ),
-  xbox: (
+  [ConsolePlatform.XBOX]: (
     <Fragment>
       <p>
         {t('Sentry supports Xbox One and Series X|S, devkits as well as retail devices.')}
@@ -101,7 +102,7 @@ export function ConsoleModal({
   organization,
 }: ConsoleModalProps & ModalRenderProps) {
   const platformKey = selectedPlatform.key;
-  const config = consoleConfig[platformKey as keyof typeof consoleConfig];
+  const config = CONSOLE_PLATFORM_INSTRUCTIONS[platformKey as ConsolePlatform];
 
   useEffect(() => {
     trackAnalytics('gaming.partner_request_access_guidance_modal_opened', {
