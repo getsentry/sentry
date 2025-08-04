@@ -30,6 +30,7 @@ from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, SnubaSe
 from sentry.search.snuba.executors import TrendsSortWeights
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
@@ -88,6 +89,7 @@ class SharedSnubaMixin(SnubaTestCase):
             date_from=date_from,
             date_to=date_to,
             cursor=cursor,
+            referrer=Referrer.TESTING_TEST,
             **kwargs,
         )
 
@@ -687,13 +689,19 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             {"snuba.search.min-pre-snuba-candidates": 500},
         ]:
             with self.options(options_set):
-                results = self.backend.query([self.project], limit=1, sort_by="date")
+                results = self.backend.query(
+                    [self.project], limit=1, sort_by="date", referrer=Referrer.TESTING_TEST
+                )
                 assert set(results) == {self.group1}
                 assert not results.prev.has_results
                 assert results.next.has_results
 
                 results = self.backend.query(
-                    [self.project], cursor=results.next, limit=1, sort_by="date"
+                    [self.project],
+                    cursor=results.next,
+                    limit=1,
+                    sort_by="date",
+                    referrer=Referrer.TESTING_TEST,
                 )
                 assert set(results) == {self.group2}
                 assert results.prev.has_results
@@ -701,7 +709,11 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
                 # note: previous cursor
                 results = self.backend.query(
-                    [self.project], cursor=results.prev, limit=1, sort_by="date"
+                    [self.project],
+                    cursor=results.prev,
+                    limit=1,
+                    sort_by="date",
+                    referrer=Referrer.TESTING_TEST,
                 )
                 assert set(results) == {self.group1}
                 assert results.prev.has_results
@@ -709,28 +721,44 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
                 # note: previous cursor, paging too far into 0 results
                 results = self.backend.query(
-                    [self.project], cursor=results.prev, limit=1, sort_by="date"
+                    [self.project],
+                    cursor=results.prev,
+                    limit=1,
+                    sort_by="date",
+                    referrer=Referrer.TESTING_TEST,
                 )
                 assert set(results) == set()
                 assert not results.prev.has_results
                 assert results.next.has_results
 
                 results = self.backend.query(
-                    [self.project], cursor=results.next, limit=1, sort_by="date"
+                    [self.project],
+                    cursor=results.next,
+                    limit=1,
+                    sort_by="date",
+                    referrer=Referrer.TESTING_TEST,
                 )
                 assert set(results) == {self.group1}
                 assert results.prev.has_results
                 assert results.next.has_results
 
                 results = self.backend.query(
-                    [self.project], cursor=results.next, limit=1, sort_by="date"
+                    [self.project],
+                    cursor=results.next,
+                    limit=1,
+                    sort_by="date",
+                    referrer=Referrer.TESTING_TEST,
                 )
                 assert set(results) == {self.group2}
                 assert results.prev.has_results
                 assert not results.next.has_results
 
                 results = self.backend.query(
-                    [self.project], cursor=results.next, limit=1, sort_by="date"
+                    [self.project],
+                    cursor=results.next,
+                    limit=1,
+                    sort_by="date",
+                    referrer=Referrer.TESTING_TEST,
                 )
                 assert set(results) == set()
                 assert results.prev.has_results
@@ -759,6 +787,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             sort_by="date",
             limit=1,
             count_hits=True,
+            referrer=Referrer.TESTING_TEST,
         )
         assert list(results) == [self.group2]
         assert results.hits == 2
@@ -770,6 +799,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             limit=1,
             cursor=results.next,
             count_hits=True,
+            referrer=Referrer.TESTING_TEST,
         )
         assert list(results) == [self.group1]
         assert results.hits == 2
@@ -781,6 +811,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             limit=1,
             cursor=results.next,
             count_hits=True,
+            referrer=Referrer.TESTING_TEST,
         )
         assert list(results) == []
         assert results.hits == 2
@@ -970,6 +1001,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             [self.project],
             environments=[self.environments["production"]],
             date_from=self.event2.datetime,
+            referrer=Referrer.TESTING_TEST,
         )
         assert set(results) == {self.group1}
 
@@ -977,6 +1009,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             [self.project],
             environments=[self.environments["production"]],
             date_to=self.event1.datetime + timedelta(minutes=1),
+            referrer=Referrer.TESTING_TEST,
         )
         assert set(results) == {self.group1}
 
@@ -985,6 +1018,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             environments=[self.environments["staging"]],
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
+            referrer=Referrer.TESTING_TEST,
         )
         assert set(results) == {self.group2}
 
@@ -2722,6 +2756,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         group1_score_before = results_zero_log_level[0][1]
         group2_score_before = results_zero_log_level[1][1]
@@ -2740,6 +2775,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         group1_score_after = results2[0][1]
         group2_score_after = results2[1][1]
@@ -2806,6 +2842,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         group1_score = results[0][1]
         group2_score = results[1][1]
@@ -2822,6 +2859,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         group1_score = results[0][1]
         group2_score = results[1][1]
@@ -2880,6 +2918,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         group1_score_before = results[0][1]
         group2_score_before = results[1][1]
@@ -2897,6 +2936,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[group1.id, group2.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         group1_score_after = results[0][1]
         group2_score_after = results[1][1]
@@ -2956,6 +2996,7 @@ class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             group_ids=[profile_group_1.id, error_group.id],
             limit=150,
             aggregate_kwargs=agg_kwargs,
+            referrer=Referrer.TESTING_TEST,
         )[0]
         error_group_score = results[0][1]
         profile_group_score = results[1][1]
