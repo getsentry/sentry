@@ -57,8 +57,8 @@ export default function Ai() {
           <img src={replayEmptyState} height={300} alt="" />
           <div>
             {areAiFeaturesAllowed
-              ? t('AI features are not available for this organization.')
-              : t('Replay summaries are not available for this organization.')}
+              ? t('Replay summaries are not available for this organization.')
+              : t('AI features are not available for this organization.')}
           </div>
         </EndStateContainer>
       </Wrapper>
