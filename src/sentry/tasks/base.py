@@ -9,7 +9,7 @@ from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from celery import Task
-from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry
+from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry, SoftTimeLimitExceeded
 from django.conf import settings
 from django.db.models import Model
 
@@ -19,6 +19,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.retry import RetryError, retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
+from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
@@ -232,15 +233,23 @@ def retry(
     exclude: type[Exception] | tuple[type[Exception], ...] = (),
     ignore: type[Exception] | tuple[type[Exception], ...] = (),
     ignore_and_capture: type[Exception] | tuple[type[Exception], ...] = (),
+    timeouts: bool = False,
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
     >>> def my_task():
     >>>     ...
+
+    If timeouts is True, task timeout exceptions will trigger a retry.
+    If it is False, timeout exceptions will behave as specified by the other parameters.
     """
 
     if func:
         return retry()(func)
+
+    timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
+    if not timeouts:
+        timeout_exceptions = ()
 
     def inner(func):
         @functools.wraps(func)
@@ -253,6 +262,12 @@ def retry(
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
+            except timeout_exceptions:
+                if timeouts:
+                    sentry_sdk.capture_exception(level="info")
+                    retry_task()
+                else:
+                    raise
             except ignore_and_capture:
                 sentry_sdk.capture_exception(level="info")
                 return

@@ -65,7 +65,6 @@ from sentry.workflow_engine.processors.workflow import (
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.tasks.utils import retry_timeouts
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -833,8 +832,7 @@ def _summarize_by_first[T1, T2: int | str](
         ),
     ),
 )
-@retry
-@retry_timeouts
+@retry(timeouts=True)
 @log_context.root()
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
