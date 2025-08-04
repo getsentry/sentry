@@ -487,20 +487,16 @@ class SnubaQueryRateLimitTest(TestCase):
             {
                 "error": {
                     "message": "Query on could not be run due to allocation policies, info: ...",
-                    "stats": {
-                        "quota_allowance": {
-                            "details": {
-                                "summary": {
-                                    "rejected_by": {
-                                        "policy": "ConcurrentRateLimitAllocationPolicy",
-                                        "quota_used": 1000,
-                                        "rejection_threshold": 100,
-                                        "quota_unit": "no_units",
-                                        "storage_key": "test_storage_key",
-                                    },
-                                    "throttled_by": {},
-                                }
-                            }
+                    "quota_allowance": {
+                        "summary": {
+                            "rejected_by": {
+                                "policy": "ConcurrentRateLimitAllocationPolicy",
+                                "quota_used": 1000,
+                                "rejection_threshold": 100,
+                                "quota_unit": "no_units",
+                                "storage_key": "test_storage_key",
+                            },
+                            "throttled_by": {},
                         }
                     },
                 }
@@ -559,7 +555,7 @@ class SnubaQueryRateLimitTest(TestCase):
             {
                 "error": {
                     "message": "Query on could not be run due to allocation policies, info: ...",
-                    "stats": {"quota_allowance": {"details": {"summary": {}}}},
+                    "quota_allowance": {"summary": {}},
                 }
             }
         ).encode()

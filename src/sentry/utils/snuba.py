@@ -1258,12 +1258,13 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     if response.status == 429:
                         if options.get("issues.use-snuba-error-data"):
                             try:
-                                if "stats" not in error:
-                                    # Should not hit this - snuba always returns stats when there is an error
+                                if (
+                                    "quota_allowance" not in error
+                                    or "summary" not in error["quota_allowance"]
+                                ):
+                                    # Should not hit this - snuba gives us quota_allowance with a 429
                                     raise RateLimitExceeded(error["message"])
-                                quota_allowance_summary = error["stats"]["quota_allowance"][
-                                    "details"
-                                ]["summary"]
+                                quota_allowance_summary = error["quota_allowance"]["summary"]
                                 rejected_by = quota_allowance_summary["rejected_by"]
                                 throttled_by = quota_allowance_summary["throttled_by"]
 
