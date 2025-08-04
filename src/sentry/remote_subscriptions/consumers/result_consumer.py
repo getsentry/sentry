@@ -264,7 +264,9 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
         return SimpleQueueProcessingStrategy(
             queue_pool=self.queue_pool,
-            decoder=partial(decode_payload, self.topic_for_codec),
+            decoder=partial(
+                decode_payload, self.topic_for_codec, result_processor=self.result_processor
+            ),
             grouping_fn=self.build_payload_grouping_key,
             commit_function=commit_offsets,
             partitions=set(partitions.keys()),
@@ -281,7 +283,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         for item in batch:
             assert isinstance(item, BrokerValue)
 
-            result = decode_payload(self.topic_for_codec, item.payload)
+            result = decode_payload(self.topic_for_codec, item.payload, self.result_processor)
             if result is None:
                 continue
 
@@ -333,7 +335,11 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             self.result_processor(self.identifier, item)
 
 
-def decode_payload(topic_for_codec, payload: KafkaPayload | FilteredPayload) -> T | None:
+def decode_payload(
+    topic_for_codec: Topic,
+    payload: KafkaPayload | FilteredPayload,
+    result_processor: ResultProcessor[T, U] | None = None,
+) -> T | None:
     assert not isinstance(payload, FilteredPayload)
 
     try:
@@ -344,15 +350,15 @@ def decode_payload(topic_for_codec, payload: KafkaPayload | FilteredPayload) -> 
             "Failed to decode message payload",
             extra={"payload": payload.value},
         )
-    return None
+        return None
 
 
 def process_single(
-    result_processor: ResultProcessor,
+    result_processor: ResultProcessor[T, U],
     topic: Topic,
     identifier: str,
     message: Message[KafkaPayload | FilteredPayload],
-):
-    result = decode_payload(topic, message.payload)
+) -> None:
+    result = decode_payload(topic, message.payload, result_processor)
     if result is not None:
         result_processor(identifier, result)
