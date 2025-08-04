@@ -23,15 +23,15 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
-import ExampleReplaysList from 'sentry/views/replays/deadRageClick/exampleReplaysList';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import ExampleReplaysList from 'sentry/views/replays/selectors/exampleReplaysList';
 import {
   ProjectInfo,
   SelectorLink,
   transformSelectorQuery,
-} from 'sentry/views/replays/deadRageClick/selectorTable';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+} from 'sentry/views/replays/selectors/selectorTable';
 
-function DeadRageSelectorCards() {
+export default function DeadRageSelectorCards() {
   return (
     <SplitCardContainer>
       <AccordionWidget
@@ -335,5 +335,3 @@ const EmptyHeader = styled(Flex)`
   gap: ${space(1.5)};
   color: ${p => p.theme.subText};
 `;
-
-export default DeadRageSelectorCards;

@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Grid} from 'sentry/components/core/layout';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
 import ListContent from 'sentry/views/replays/list/listContent';
@@ -19,13 +18,13 @@ const ReplayListPageHeaderHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-function ReplaysListContainer() {
+export default function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
 
   return (
     <AnalyticsArea name="list">
-      <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
+      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
@@ -43,10 +42,10 @@ function ReplaysListContainer() {
         <PageFiltersContainer>
           <Layout.Body>
             <Layout.Main fullWidth>
-              <LayoutGap>
+              <Grid gap="xl">
                 <ReplayListPageHeaderHook />
                 <ListContent />
-              </LayoutGap>
+              </Grid>
             </Layout.Main>
           </Layout.Body>
         </PageFiltersContainer>
@@ -54,10 +53,3 @@ function ReplaysListContainer() {
     </AnalyticsArea>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-`;
-
-export default ReplaysListContainer;

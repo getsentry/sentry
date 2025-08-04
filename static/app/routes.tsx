@@ -1726,9 +1726,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'selectors/',
-      component: make(
-        () => import('sentry/views/replays/deadRageClick/deadRageClickList')
-      ),
+      component: make(() => import('sentry/views/replays/selectors')),
     },
     {
       path: ':replaySlug/',
