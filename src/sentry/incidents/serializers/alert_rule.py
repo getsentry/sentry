@@ -321,7 +321,7 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         if "id" in validated_data:
             validated_data.pop("id")
 
-        # Apply error upsampling conversion if needed (missing from original update method)
+        # Apply error upsampling conversion if needed
         self._apply_error_upsampling_if_needed(validated_data)
 
         with transaction.atomic(router.db_for_write(AlertRule)):

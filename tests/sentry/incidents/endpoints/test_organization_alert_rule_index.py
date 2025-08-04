@@ -232,10 +232,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
     def test_list_shows_count_when_stored_as_upsampled_count(
         self, mock_are_any_projects_error_upsampled
     ) -> None:
-        """Test LIST returns count() to user even when stored as upsampled_count() internally
-
-        This test should FAIL because LIST doesn't convert upsampled_count() back to count() for the user.
-        """
+        """Test LIST returns count() to user even when stored as upsampled_count() internally"""
         mock_are_any_projects_error_upsampled.return_value = True
 
         team = self.create_team(organization=self.organization, members=[self.user])

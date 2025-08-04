@@ -672,10 +672,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_get_shows_count_when_stored_as_upsampled_count(
         self, mock_are_any_projects_error_upsampled
     ) -> None:
-        """Test GET returns count() to user even when stored as upsampled_count() internally
-
-        This test should FAIL because GET doesn't convert upsampled_count() back to count() for the user.
-        """
+        """Test GET returns count() to user even when stored as upsampled_count() internally"""
         mock_are_any_projects_error_upsampled.return_value = True
 
         # Set up user membership FIRST before accessing self.alert_rule
@@ -734,10 +731,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     def test_update_to_count_converts_internally_but_shows_count_on_upsampled_project(
         self, mock_are_any_projects_error_upsampled
     ) -> None:
-        """Test updating to count() converts to upsampled_count() internally but shows count() to user
-
-        This test should FAIL because update() method is missing the upsampling conversion logic.
-        """
+        """Test updating to count() converts to upsampled_count() internally but shows count() to user"""
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
