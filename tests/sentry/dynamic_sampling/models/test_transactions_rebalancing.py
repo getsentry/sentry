@@ -2,15 +2,16 @@ from collections.abc import Mapping
 
 import pytest
 
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import (
+    TransactionsRebalancingInput,
+    TransactionsRebalancingModel,
+)
 
 
 @pytest.fixture
 def transactions_rebalancing_model():
-    return model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    return TransactionsRebalancingModel()
 
 
 def create_transaction_counts(big: int, med: int, small: int):

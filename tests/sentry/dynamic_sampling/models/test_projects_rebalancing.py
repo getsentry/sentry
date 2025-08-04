@@ -2,15 +2,16 @@ from operator import attrgetter
 
 import pytest
 
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.projects_rebalancing import (
+    ProjectsRebalancingInput,
+    ProjectsRebalancingModel,
+)
 
 
 @pytest.fixture
 def projects_rebalancing_model():
-    return model_factory(ModelType.PROJECTS_REBALANCING)
+    return ProjectsRebalancingModel()
 
 
 def test_adjust_sample_rates_org_with_no_projects(projects_rebalancing_model) -> None:
