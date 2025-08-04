@@ -1303,6 +1303,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame_list[2].lineno == 2
 
         # TODO: 1:1014 in the minified source file is _unmapped_.
+        # There are no tokens in the sourcemap for line 1.
         # Previous versions of JS symbolication erroneously returned
         # wrong values here. This needs to be enabled once Symbolicator
         # is updated.
@@ -1316,6 +1317,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame_list[4].lineno == 19
 
         # TODO: 18:63 in the minified source file is _unmapped_.
+        # There are no tokens in the sourcemap for line 18.
         # Previous versions of JS symbolication erroneously returned
         # wrong values here. This needs to be enabled once Symbolicator
         # is updated.
