@@ -19,60 +19,49 @@ from sentry.utils.safe import get_path
 VIEW_HIERARCHY_TYPE_REGEX = re.compile(r"([^<>]+)(?:<([^<>]+)>)?")
 
 
-def is_valid_image(image):
-    return bool(image) and image.get("type") == "dart_symbols" and image.get("uuid") is not None
-
-
-def has_dart_symbols_file(data):
-    """
-    Checks whether an event contains a dart symbols file
-    """
-    images = get_path(data, "debug_meta", "images", filter=True)
-    return get_path(images, 0, "type") == "dart_symbols"
-
-
 def get_dart_symbols_images(event: dict[str, Any]) -> set[str]:
     return {
-        str(image["uuid"]).lower()
-        for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=())
+        str(image["debug_id"]).lower()
+        for image in get_path(event, "debug_meta", "images", default=())
     }
 
 
-def generate_dart_symbols_map(uuid: str, project: Project):
+def generate_dart_symbols_map(debug_id: str, project: Project):
     """
-    NOTE: This function makes assumptions about the structure of the debug file
-    since we are not currently storing the file. This may need to be updated if we
-    decide to do some pre-processing on the debug file before storing it.
+    Fetches and returns the dart symbols mapping for the given debug_id.
 
-    In its current state, the debug file is expected to be a json file with a list
-    of strings. The strings alternate between deobfuscated and obfuscated names.
-
-    If we preprocess it into a map, we can remove this code and just fetch the file.
+    The file is stored as a JSON object mapping obfuscated names to deobfuscated names.
+    For backward compatibility, this function also handles the legacy array format.
     """
-    obfuscated_to_deobfuscated_name_map = {}
-    with sentry_sdk.start_span(op="dart_symbols.generate_dart_symbols_map") as span:
+    with sentry_sdk.start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
         try:
-            dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
-            debug_file_path = dif_paths.get(uuid)
+            dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                project, [debug_id], features=["mapping"]
+            )
+            debug_file_path = dif_paths.get(debug_id)
             if debug_file_path is None:
                 return
 
             dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
-            span.set_tag("dart_symbols_file_size_in_mb", dart_symbols_file_size_in_mb)
+            span.set_tag("dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
 
             with open(debug_file_path, "rb") as f:
-                debug_array = orjson.loads(f.read())
+                data = orjson.loads(f.read())
 
-            if len(debug_array) % 2 != 0:
-                raise Exception("Debug array contains an odd number of elements")
-
-            # Obfuscated names are the odd indices and deobfuscated names are the even indices
-            obfuscated_to_deobfuscated_name_map = dict(zip(debug_array[1::2], debug_array[::2]))
+            if isinstance(data, dict):
+                # Already in map format (preprocessed)
+                return data
+            elif isinstance(data, list):
+                # Legacy array format - transform it
+                if len(data) % 2 != 0:
+                    raise Exception("Debug array contains an odd number of elements")
+                # Obfuscated names are the odd indices and deobfuscated names are the even indices
+                return dict(zip(data[1::2], data[::2]))
+            else:
+                raise Exception(f"Unexpected dartsymbolmap format: {type(data)}")
         except Exception as err:
             sentry_sdk.capture_exception(err)
             return
-
-    return obfuscated_to_deobfuscated_name_map
 
 
 def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, view_hierarchy):
@@ -85,7 +74,7 @@ def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, vi
     if len(dart_symbols_uuids) == 0:
         return
 
-    with sentry_sdk.start_span(op="dart_symbols.deobfuscate_view_hierarchy_data"):
+    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_view_hierarchy_data"):
         for dart_symbols_uuid in dart_symbols_uuids:
             map = generate_dart_symbols_map(dart_symbols_uuid, project)
             if map is None:
@@ -113,5 +102,46 @@ def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, vi
                     windows_to_deobfuscate.extend(children)
 
 
+def deobfuscate_exception_type(data: dict[str, Any]):
+    project = Project.objects.get_from_cache(id=data["project"])
+
+    exception_values = data.get("exception", {}).get("values", [])
+
+    debug_ids = get_dart_symbols_images(data)
+    if len(debug_ids) == 0:
+        return
+
+    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
+        if len(debug_ids) == 0:
+            return
+
+        if not exception_values:
+            return
+
+        # There should only be one mapping file per Flutter build so we can break out of the loop once we find it
+        found_mapping_file = False
+        for dart_symbols_debug_id in debug_ids:
+            if found_mapping_file:
+                break
+
+            map = generate_dart_symbols_map(dart_symbols_debug_id, project)
+            if map is None:
+                return
+
+            found_mapping_file = True
+
+            exception_values = data.get("exception", {}).get("values", [])
+            if not exception_values:
+                return
+
+            for exception_value in exception_values:
+                exception_type = exception_value.get("type")
+                if exception_type is None:
+                    continue
+
+                before_obfuscation = exception_value["type"]
+                exception_value["type"] = map[before_obfuscation]
+
+
 def deobfuscate_view_hierarchy(data):
-    return deobfuscation_template(data, "dart_symbols", _deobfuscate_view_hierarchy)
+    return deobfuscation_template(data, "dartsymbolmap", _deobfuscate_view_hierarchy)

@@ -239,6 +239,19 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 all_features.update(dif.features)
 
 
+def _transform_dartsymbolmap_array_to_map(data: list[str]) -> dict[str, str]:
+    """Transform dart symbol array format to map format.
+
+    Input: ["deobfuscated1", "obfuscated1", "deobfuscated2", "obfuscated2", ...]
+    Output: {"obfuscated1": "deobfuscated1", "obfuscated2": "deobfuscated2", ...}
+    """
+    if len(data) % 2 != 0:
+        raise ValueError("Dart symbol array must have an even number of elements")
+
+    # Obfuscated names are at odd indices, deobfuscated names at even indices
+    return dict(zip(data[1::2], data[::2]))
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -270,7 +283,7 @@ def create_dif_from_id(
         "bcsymbolmap",
         "uuidmap",
         "il2cpp",
-        "dart_symbols",
+        "dartsymbolmap",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -310,7 +323,32 @@ def create_dif_from_id(
             type="project.dif",
             headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
         )
-        file.putfile(fileobj)
+
+        # Preprocess dartsymbolmap files to convert array format to map format
+        if meta.file_format == "dartsymbolmap" and fileobj is not None:
+            import io
+
+            # Read and parse the array format
+            content = fileobj.read()
+            fileobj.seek(0)
+
+            try:
+                data = json.loads(content)
+                if isinstance(data, list):
+                    # Transform array to map format
+                    transformed_data = _transform_dartsymbolmap_array_to_map(data)
+                    # Create new file-like object with transformed content
+                    transformed_content = json.dumps(transformed_data).encode("utf-8")
+                    transformed_fileobj = io.BytesIO(transformed_content)
+                    file.putfile(transformed_fileobj)
+                else:
+                    # Already in map format or unexpected format
+                    file.putfile(fileobj)
+            except Exception:
+                # If transformation fails, store original
+                file.putfile(fileobj)
+        else:
+            file.putfile(fileobj)
     else:
         file.type = "project.dif"
         file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
@@ -557,28 +595,34 @@ def detect_dif_from_path(
             ]
     elif dif_kind == DifKind.DartSymbols:
         if debug_id is None:
-            raise BadDif("Missing debug_id for dart_symbols")
+            raise BadDif("Missing debug_id for dartsymbolmap")
         try:
             with open(path, "rb") as fp:
                 data = json.load(fp)
                 # Validate it's an array with even number of elements
                 if not isinstance(data, list):
-                    raise BadDif("dart_symbols must be a JSON array")
+                    raise BadDif("dartsymbolmap must be a JSON array")
                 if len(data) % 2 != 0:
-                    raise BadDif("dart_symbols array must have an even number of elements")
+                    raise BadDif("dartsymbolmap array must have an even number of elements")
         except json.JSONDecodeError as e:
-            logger.debug("File failed to load as dart_symbols: %s", path)
-            raise BadDif("Invalid dart_symbols: %s" % e)
+            logger.debug("File failed to load as dartsymbolmap: %s", path)
+            raise BadDif("Invalid dartsymbolmap: %s" % e)
         except BadDif:
             raise
         except Exception as e:
-            logger.debug("File failed validation as dart_symbols: %s", path)
-            raise BadDif("Invalid dart_symbols format: %s" % e)
+            logger.debug("File failed validation as dartsymbolmap: %s", path)
+            raise BadDif("Invalid dartsymbolmap format: %s" % e)
         else:
-            logger.debug("File loaded as dart_symbols: %s", path)
+            logger.debug("File loaded as dartsymbolmap: %s", path)
+            data = {"features": ["mapping"]}
             return [
                 DifMeta(
-                    file_format="dart_symbols", arch="any", debug_id=debug_id, name=name, path=path
+                    file_format="dartsymbolmap",
+                    arch="any",
+                    debug_id=debug_id,
+                    name=name,
+                    path=path,
+                    data=data,
                 )
             ]
     else:
