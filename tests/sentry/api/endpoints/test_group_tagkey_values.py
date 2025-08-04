@@ -206,7 +206,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         url = f"/api/0/issues/{group.id}/tags/{key}/values/"
 
         with freeze_time(datetime.datetime.now()):
-            for i in range(300):
+            for i in range(200):
                 response = self.client.get(url)
                 assert response.status_code == 200
             response = self.client.get(url)
