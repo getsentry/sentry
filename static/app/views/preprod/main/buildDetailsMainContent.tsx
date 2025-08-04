@@ -34,7 +34,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const [selectedContent, setSelectedContent] = useState<'treemap' | 'categories'>(
     'treemap'
   );
-  const [searchQuery, setSearchQuery] = useQueryParamState({
+  const [searchQuery, setSearchQuery] = useQueryParamState<string>({
     fieldName: 'search',
   });
 
