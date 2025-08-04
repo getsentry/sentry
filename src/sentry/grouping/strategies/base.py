@@ -256,28 +256,22 @@ class Strategy(Generic[ConcreteInterface]):
         return func
 
     def get_grouping_component(
-        self, event: Event, context: GroupingContext, variant: str | None = None
+        self, event: Event, context: GroupingContext
     ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
-        """Given a specific variant this calculates the grouping component."""
+        """Create a grouping component using this strategy."""
         interface = event.interfaces.get(self.interface_name)
 
         if interface is None:
             return None
 
         with context:
-            # If a variant is passed put it into the context
-            if variant is not None:
-                context["variant"] = variant
-
             return self(interface, event=event, context=context)
 
     def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
-
-        # strategy can decide on its own which variants to produce and which contribute
-        components_by_variant = self.get_grouping_component(event, variant=None, context=context)
+        components_by_variant = self.get_grouping_component(event, context)
         if components_by_variant is None:
             return {}
 
@@ -377,7 +371,7 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration_class(
-    id: str | None,
+    id: str,
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
     changelog: str | None = None,
@@ -502,15 +496,17 @@ def call_with_variants(
     **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
-    if context["variant"] is not None:
+    incoming_variant_name = context["variant"]
+
+    if incoming_variant_name is not None:
         # For the case where the variant is already determined, we act as a
         # delegate strategy.
         #
         # To ensure the function can deal with the particular value we assert
         # the variant name is one of our own though.
         assert (
-            context["variant"] in variants_to_produce
-            or "!" + context["variant"] in variants_to_produce
+            incoming_variant_name in variants_to_produce
+            or "!" + incoming_variant_name in variants_to_produce
         )
         return f(*args, **kwargs)
 
@@ -518,10 +514,13 @@ def call_with_variants(
 
     for variant_name in variants_to_produce:
         with context:
-            context["variant"] = variant_name.lstrip("!")
+            stripped_variant_name = variant_name.lstrip("!")
+            context["variant"] = stripped_variant_name
+
             rv_variants = f(*args, **kwargs)
             assert len(rv_variants) == 1
-            component = rv_variants[variant_name.lstrip("!")]
+
+            component = rv_variants[stripped_variant_name]
 
         rv[variant_name] = component
 

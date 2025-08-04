@@ -1421,6 +1421,7 @@ class TestCallAutofix(TestCase):
             body["options"]["comment_on_pr_with_url"]
             == "https://github.com/getsentry/sentry/pull/123"
         )
+        assert body["options"]["disable_coding_step"] is False
 
         # Verify headers
         headers = mock_post.call_args[1]["headers"]

@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
@@ -39,6 +40,9 @@ from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
+)
+from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
+    DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.models import Workflow
 
@@ -80,8 +84,9 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
@@ -245,11 +250,69 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
+        operation_id="Mutate an Organization's Workflows",
+        description=("Currently supports bulk enabling/disabling workflows."),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        responses={
+            200: RESPONSE_SUCCESS,
+            201: WorkflowSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request, organization):
+        """
+        Mutates workflows for a given org
+        """
+        if not (
+            request.GET.getlist("id")
+            or request.GET.get("query")
+            or request.GET.getlist("project")
+            or request.GET.getlist("projectSlug")
+        ):
+            return Response(
+                {
+                    "detail": "At least one of 'id', 'query', 'project', or 'projectSlug' must be provided."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator.is_valid(raise_exception=True)
+        enabled = validator.validated_data["enabled"]
+
+        queryset = self.filter_workflows(request, organization)
+
+        if not queryset:
+            return Response(
+                {"detail": "No workflows found."},
+                status=status.HTTP_200_OK,
+            )
+
+        with transaction.atomic(router.db_for_write(Workflow)):
+            # We update workflows individually to ensure post_save signals are called
+            for workflow in queryset:
+                workflow.update(enabled=enabled)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="id",
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+        )
+
+    @extend_schema(
         operation_id="Delete an Organization's Workflows",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
+            200: RESPONSE_SUCCESS,
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -276,8 +339,14 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_workflows(request, organization)
 
-        with transaction.atomic(router.db_for_write(Workflow)):
-            for workflow in queryset:
+        if not queryset:
+            return Response(
+                {"detail": "No workflows found."},
+                status=status.HTTP_200_OK,
+            )
+
+        for workflow in queryset:
+            with transaction.atomic(router.db_for_write(Workflow)):
                 RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
@@ -286,6 +355,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("WORKFLOW_REMOVE"),
                     data=workflow.get_audit_log_data(),
                 )
-            queryset.update(status=ObjectStatus.PENDING_DELETION)
+                workflow.update(status=ObjectStatus.PENDING_DELETION)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

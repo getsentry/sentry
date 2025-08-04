@@ -18,6 +18,12 @@ export default function Section({children, title, description}: SectionProps) {
   );
 }
 
+export const SectionSubHeading = styled('h5')`
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin: 0;
+`;
+
 const SectionContainer = styled(Flex)`
   > p {
     margin-bottom: ${p => p.theme.space['0']};
