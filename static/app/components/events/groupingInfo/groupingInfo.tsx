@@ -64,7 +64,7 @@ export default function GroupingInfo({
             t('Too specific grouping'),
             t('Other grouping issue'),
           ]}
-          buttonProps={{size: 'sm'}}
+          buttonProps={{size: 'xs'}}
         />
       </ConfigHeader>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
