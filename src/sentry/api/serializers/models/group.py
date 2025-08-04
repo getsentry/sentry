@@ -1205,12 +1205,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
 class SimpleGroupSerializerResponse(TypedDict):
     id: str
     title: str
-    culprit: str
+    culprit: str | None
     shortId: str | None
     level: str
     status: str
     substatus: str | None
-    platform: str
+    platform: str | None
     project: GroupProjectResponse
     type: str
     issueType: str
@@ -1227,6 +1227,7 @@ class SimpleGroupSerializer(Serializer):
         obj: Group,
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
         return SimpleGroupSerializerResponse(
             id=str(obj.id),
