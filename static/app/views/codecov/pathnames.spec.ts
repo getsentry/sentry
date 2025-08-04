@@ -22,6 +22,16 @@ const testCases: TestCase[] = [
     path: '/test/',
     expected: '/organizations/test-org-slug/codecov/test/',
   },
+  {
+    organization: testOrg,
+    path: '/tokens/',
+    expected: '/organizations/test-org-slug/codecov/tokens/',
+  },
+  {
+    organization: testOrg,
+    path: '/prevent-ai/',
+    expected: '/organizations/test-org-slug/codecov/prevent-ai/',
+  },
 ];
 
 describe('makeCodecovPathname', () => {

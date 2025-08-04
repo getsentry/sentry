@@ -20,7 +20,7 @@ export function SecondaryNavContent({group}: {group: PrimaryNavGroup}): ReactNod
       return <DashboardsSecondaryNav />;
     case PrimaryNavGroup.EXPLORE:
       return <ExploreSecondaryNav />;
-    case PrimaryNavGroup.CODECOV:
+    case PrimaryNavGroup.PREVENT:
       return <CodecovSecondaryNav />;
     case PrimaryNavGroup.SETTINGS:
       return <SettingsSecondaryNav />;

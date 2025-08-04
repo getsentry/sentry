@@ -2482,6 +2482,22 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'prevent-ai/',
+      children: [
+        // Render prevent AI onboarding with layout wrapper
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/preventAI/wrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/preventAI/onboarding')),
+            },
+          ],
+        },
+      ],
+    },
+    {
       path: 'tokens/',
       children: [
         {
