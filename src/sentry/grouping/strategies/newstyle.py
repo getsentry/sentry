@@ -145,7 +145,7 @@ def get_filename_component(
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = FilenameGroupingComponent(values=[filename])
 
-    if has_url_origin(abs_path, allow_file_origin=True):
+    if has_url_origin(abs_path, files_count_as_urls=False):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
     elif filename == "<anonymous>":
         filename_component.update(contributes=False, hint="anonymous filename discarded")
@@ -311,18 +311,15 @@ def frame(
     if module_component.contributes and filename_component.contributes:
         filename_component.update(contributes=False, hint="module takes precedence")
 
-    context_line_component = None
-
-    # If we are allowed to use the contextline we add it now.
-    if platform in context["contextline_platforms"]:
+    if frame.context_line and platform in context["contextline_platforms"]:
         context_line_component = get_contextline_component(
             frame,
             platform,
             function=frame.function,
             context=context,
         )
-
-    context_line_available = bool(context_line_component and context_line_component.contributes)
+    else:
+        context_line_component = None
 
     function_component = get_function_component(
         context=context,
@@ -330,7 +327,7 @@ def frame(
         raw_function=frame.raw_function,
         platform=platform,
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
-        context_line_available=context_line_available,
+        context_line_available=bool(context_line_component and context_line_component.contributes),
     )
 
     values: list[
@@ -384,22 +381,25 @@ def get_contextline_component(
     quality of the sourcecode.  It does however protect against some bad
     JavaScript environments based on origin checks.
     """
-    line = " ".join((frame.context_line or "").expandtabs(2).split())
+    # Normalize all whitespace into single spaces
+    raw_line = frame.context_line or ""
+    line = " ".join(raw_line.split())
+
     if not line:
         return ContextLineGroupingComponent()
 
     context_line_component = ContextLineGroupingComponent(values=[line])
-    if line:
-        if len(frame.context_line) > 120:
-            context_line_component.update(hint="discarded because line too long", contributes=False)
-        elif (
-            get_behavior_family_for_platform(platform) == "javascript"
-            and not function
-            and has_url_origin(frame.abs_path)
-        ):
-            context_line_component.update(
-                hint="discarded because from URL origin and no function", contributes=False
-            )
+
+    if len(frame.context_line) > 120:
+        context_line_component.update(hint="discarded because line too long", contributes=False)
+    elif (
+        get_behavior_family_for_platform(platform) == "javascript"
+        and not function
+        and has_url_origin(frame.abs_path, files_count_as_urls=True)
+    ):
+        context_line_component.update(
+            hint="discarded because from URL origin and no function", contributes=False
+        )
 
     return context_line_component
 
