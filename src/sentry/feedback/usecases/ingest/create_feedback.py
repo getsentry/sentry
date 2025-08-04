@@ -14,6 +14,7 @@ from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, Feedba
 from sentry.feedback.usecases.label_generation import (
     AI_LABEL_TAG_PREFIX,
     MAX_AI_LABELS,
+    MAX_AI_LABELS_JSON_LENGTH,
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
@@ -371,8 +372,14 @@ def create_feedback_issue(
                         "feedback_message": feedback_message[:100],
                     },
                 )
-            # Sort the labels alphabetically after truncating to MAX_AI_LABELS, so we don't bias towards the first labels alphabetically
-            labels = sorted(labels[:MAX_AI_LABELS])
+                labels = labels[:MAX_AI_LABELS]
+
+            # Truncate the labels so the serialized list is within the allowed length
+            while len(json.dumps(labels)) > MAX_AI_LABELS_JSON_LENGTH:
+                labels.pop()
+
+            # First truncate labels then sort, so we don't bias towards the first labels alphabetically
+            labels.sort()
 
             for idx, label in enumerate(labels):
                 event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.label.{idx}"] = label

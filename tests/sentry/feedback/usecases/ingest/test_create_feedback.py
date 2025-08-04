@@ -13,7 +13,11 @@ from sentry.feedback.usecases.ingest.create_feedback import (
     get_feedback_title,
     validate_issue_platform_event_schema,
 )
-from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX, MAX_AI_LABELS
+from sentry.feedback.usecases.label_generation import (
+    AI_LABEL_TAG_PREFIX,
+    MAX_AI_LABELS,
+    MAX_AI_LABELS_JSON_LENGTH,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -1023,8 +1027,10 @@ def test_create_feedback_handles_label_generation_errors(
 
 
 @django_db_all
-def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occurrence_to_kafka):
-    """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned."""
+def test_create_feedback_truncates_ai_labels_max_list_length(
+    default_project, mock_produce_occurrence_to_kafka
+):
+    """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
@@ -1041,7 +1047,67 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
         # Mock generate_labels to return more than MAX_AI_LABELS labels
         # The labels should be sorted alphabetically, so don't store numbers, instead use letters
         def mock_generate_labels(*args, **kwargs):
-            return [f"Label {alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
+            return [f"{alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
+
+        with patch(
+            "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
+            mock_generate_labels,
+        ):
+            create_feedback_issue(
+                event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+
+        # Don't use ai_labels since we don't rely on dict order
+        expected_labels = [f"{alphabet[i]}" for i in range(MAX_AI_LABELS)]
+
+        # Truncate the labels so the serialized list is within the allowed length
+        while len(json.dumps(expected_labels)) > MAX_AI_LABELS_JSON_LENGTH:
+            expected_labels.pop()
+
+        labels_list_length = min(len(expected_labels), MAX_AI_LABELS)
+
+        produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+        tags = produced_event["tags"]
+
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
+        assert (
+            len(ai_labels) == labels_list_length
+        ), "Should be truncated to exactly labels_list_length"
+
+        for i in range(labels_list_length):
+            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
+
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
+
+        # Verify that labels beyond labels_list_length are not present
+        for i in range(labels_list_length, labels_list_length + 5):
+            assert f"{AI_LABEL_TAG_PREFIX}.label.{i}" not in tags
+
+
+@django_db_all
+def test_create_feedback_truncates_ai_labels_max_json_length(
+    default_project, mock_produce_occurrence_to_kafka
+):
+    """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
+    with Feature(
+        {
+            "organizations:user-feedback-ai-categorization": True,
+            "organizations:gen-ai-features": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+
+        event["contexts"]["feedback"][
+            "message"
+        ] = "This is a very complex feedback with many issues"
+
+        # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
+        def mock_generate_labels(*args, **kwargs):
+            return ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)] * 100
 
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
@@ -1059,16 +1125,9 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
         ai_labels = [
             value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
         ]
-        assert len(ai_labels) == MAX_AI_LABELS, "Should be truncated to exactly MAX_AI_LABELS"
 
-        # Don't use ai_labels since we don't rely on dict order
-        expected_labels = [f"Label {alphabet[i]}" for i in range(MAX_AI_LABELS)]
-
-        for i in range(MAX_AI_LABELS):
-            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == expected_labels[i]
-
-        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(expected_labels)
-
-        # Verify that labels beyond MAX_AI_LABELS are not present
-        for i in range(MAX_AI_LABELS, MAX_AI_LABELS + 5):
-            assert f"{AI_LABEL_TAG_PREFIX}.label.{i}" not in tags
+        assert len(ai_labels) == 1
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.label.0"] == "a" * (MAX_AI_LABELS_JSON_LENGTH - 50)
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(
+            ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)]
+        )
