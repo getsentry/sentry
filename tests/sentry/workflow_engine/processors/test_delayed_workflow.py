@@ -806,7 +806,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.dcg_to_slow_conditions,
         )
 
-        # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
+        # NOTE: same result as test_simple but without the deleted DCGs
         assert result == {
             self.group1.id: {self.workflow1_if_dcgs[1]},
         }
