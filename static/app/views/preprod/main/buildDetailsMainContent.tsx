@@ -1,12 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Container} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {AppSizeInsights} from 'sentry/views/preprod/main/appSizeInsights';
 import {AppSizeTreemap} from 'sentry/views/preprod/main/appSizeTreemap';
+import {AppSizeInsights} from 'sentry/views/preprod/main/insights/appSizeInsights';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface BuildDetailsMainContentProps {
   appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError>;
@@ -44,16 +46,21 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
+  const totalSize = appSizeData.treemap.root.size || 0;
+  const processedInsights =
+    appSizeData.insights && totalSize > 0
+      ? processInsights(appSizeData.insights, totalSize)
+      : [];
+
   return (
     <MainContentContainer>
       <TreemapContainer>
         <AppSizeTreemap treemapData={appSizeData.treemap} />
       </TreemapContainer>
-      {appSizeData.insights && (
-        <AppSizeInsights
-          insights={appSizeData.insights}
-          totalSize={appSizeData.treemap.root.size || 0}
-        />
+      {processedInsights.length > 0 && (
+        <Container style={{marginTop: '20px'}}>
+          <AppSizeInsights processedInsights={processedInsights} />
+        </Container>
       )}
     </MainContentContainer>
   );
