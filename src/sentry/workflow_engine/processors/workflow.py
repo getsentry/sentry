@@ -298,6 +298,7 @@ def evaluate_workflows_action_filters(
                 action_condition.id for action_condition in action_conditions_to_workflow.keys()
             ],
             "filtered_action_groups": [action_group.id for action_group in filtered_action_groups],
+            "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),
         },
     )
 
