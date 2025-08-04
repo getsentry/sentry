@@ -48,7 +48,10 @@ function CodecovSecondaryNav() {
           <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
             {t('Tests')}
           </SecondaryNav.Item>
-          <SecondaryNav.Item to={preventAIPathName} activeTo={preventAIPathName}>
+          <SecondaryNav.Item
+            to={`${preventAIPathName}new`}
+            activeTo={`${preventAIPathName}new`}
+          >
             {t('Prevent AI')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
