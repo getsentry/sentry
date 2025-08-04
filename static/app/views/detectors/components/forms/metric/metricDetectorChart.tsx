@@ -160,13 +160,9 @@ export function MetricDetectorChart({
   const additionalSeries = useMemo(() => {
     const baseSeries = [...thresholdAdditionalSeries];
 
-    if (isAnomalyDetection) {
-      // Add the anomaly bubble series if it exists
-      if (anomalyBubbleResult.incidentBubbleSeries) {
-        baseSeries.push(anomalyBubbleResult.incidentBubbleSeries as any);
-      }
-      // Optionally keep the old overlay series for comparison
-      // baseSeries.push(...anomalyDataResult.anomalySeries);
+    if (isAnomalyDetection && anomalyBubbleResult.incidentBubbleSeries) {
+      // Line series not working well with the custom series type
+      baseSeries.push(anomalyBubbleResult.incidentBubbleSeries as any);
     }
 
     return baseSeries;
@@ -176,7 +172,6 @@ export function MetricDetectorChart({
     anomalyBubbleResult.incidentBubbleSeries,
   ]);
 
-  // Prepare Y-axes for anomaly bubbles
   const yAxes = useMemo(() => {
     const mainYAxis = {
       max: maxValue > 0 ? maxValue : undefined,

@@ -99,22 +99,12 @@ function IncidentBubbleSeries({
   incidentPeriods,
   theme,
   yAxisIndex,
-  seriesName = t('Incidents'),
-  seriesId = INCIDENT_BUBBLE_SERIES_ID,
+  seriesName,
+  seriesId,
 }: IncidentBubbleSeriesProps): CustomSeriesOption | null {
   if (!incidentPeriods.length) {
     return null;
   }
-
-  const data = incidentPeriods.map(period => ({
-    value: [period.start, 0, period.end, period.type],
-    start: new Date(period.start).getTime(),
-    end: new Date(period.end).getTime(),
-    type: period.type,
-    name: period.name,
-    color: period.color,
-    hoverColor: period.hoverColor || period.color,
-  }));
 
   /**
    * Renders incident highlight rectangles underneath the main chart
@@ -124,7 +114,7 @@ function IncidentBubbleSeries({
     params: CustomSeriesRenderItemParams,
     api: CustomSeriesRenderItemAPI
   ): CustomSeriesRenderItemReturn => {
-    const dataItem = data[params.dataIndex];
+    const dataItem = incidentPeriods[params.dataIndex];
 
     if (!dataItem) {
       return {type: 'group', children: []};
@@ -206,12 +196,12 @@ function IncidentBubbleSeries({
   );
 
   return {
-    id: seriesId,
+    id: seriesId ?? INCIDENT_BUBBLE_SERIES_ID,
+    name: seriesName ?? t('Incidents'),
     type: 'custom',
     yAxisIndex,
     renderItem: renderIncidentHighlight,
-    name: seriesName,
-    data,
+    data: incidentPeriods,
     color: theme.red300,
     animation: false,
     markLine: MarkLine({
@@ -301,15 +291,15 @@ export function useIncidentBubbles({
   }, [incidentPeriods.length]);
 
   // Grid configuration that pushes the main chart up to make space for incidents
-  const incidentBubbleGrid: GridComponentOption = useMemo(() => {
+  const incidentBubbleGrid = useMemo<GridComponentOption>(() => {
     if (!incidentPeriods.length) {
       return {};
     }
 
     return {
       // Moves bottom of grid "up" to make space for incident bubbles
-      // Match release bubbles: bubbleSize + totalBubblePaddingY + 1
-      bottom: INCIDENT_BUBBLE_HEIGHT + totalBubblePaddingY + 1,
+      // Match release bubbles: bubbleSize + totalBubblePaddingY + 2
+      bottom: INCIDENT_BUBBLE_HEIGHT + totalBubblePaddingY + 2,
     };
   }, [incidentPeriods.length, totalBubblePaddingY]);
 
@@ -371,7 +361,6 @@ export function useIncidentBubbles({
       };
 
       if (echartsInstance) {
-        // Attach mouse event handlers
         echartsInstance.on('mouseover', handleMouseOver);
         echartsInstance.on('mouseout', handleMouseOut);
       }
