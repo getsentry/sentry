@@ -231,17 +231,19 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         return None
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    if isinstance(event["spans"], AnnotatedValue):
-        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
-        # complain. The TypeError should be unreachable.
-        if isinstance(event["spans"].value, Sized):
-            num_of_spans = len(event["spans"].value)
+    num_of_spans = 0
+    if "spans" in event:
+        if isinstance(event["spans"], AnnotatedValue):
+            # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
+            # complain. The TypeError should be unreachable.
+            if isinstance(event["spans"].value, Sized):
+                num_of_spans = len(event["spans"].value)
+            else:
+                raise TypeError("Expected a list of spans.")
         else:
-            raise TypeError("Expected a list of spans.")
-    else:
-        num_of_spans = len(event["spans"])
+            num_of_spans = len(event["spans"])
 
-    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
+    event.setdefault("tags", {})["spans_over_limit"] = str(num_of_spans >= 1000)
 
     # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
     # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
