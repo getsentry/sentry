@@ -294,8 +294,11 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 duration=1000.0,
                 data={
                     "http.request.prefetch": True,
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
                 },
             )
         ]
         event = create_event(spans)
-        assert self.find_problems(event) == []
+        assert len(self.find_problems(event)) == 0
