@@ -101,8 +101,8 @@ jobs:
       - name: Create multiplatform manifests
         run: |
           docker buildx imagetools create \
-            --tag ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }} \
+            --tag ghcr.io/getsentry/sentry:${{ github.sha }} \
             --tag ghcr.io/getsentry/sentry:nightly \
             --tag ghcr.io/getsentry/sentry:latest \
-            ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-amd64 \
-            ghcr.io/getsentry/sentry:${{ github.event.pull_request.head.sha || github.sha }}-arm64
+            ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
+            ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
