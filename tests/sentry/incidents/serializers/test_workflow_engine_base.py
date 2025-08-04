@@ -24,6 +24,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_update_resolve_condition,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -43,6 +44,7 @@ class TestWorkflowEngineSerializer(TestCase):
 
         self.now = timezone.now()
         self.alert_rule = self.create_alert_rule()
+        # threshold is 100
         self.critical_trigger = self.create_alert_rule_trigger(
             alert_rule=self.alert_rule, label="critical"
         )
@@ -79,7 +81,7 @@ class TestWorkflowEngineSerializer(TestCase):
                 "label": "critical",
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
                 "alertThreshold": self.critical_detector_trigger.comparison,
-                "resolveThreshold": self.alert_rule.resolve_threshold,
+                "resolveThreshold": self.critical_detector_trigger.comparison,
                 "dateCreated": self.critical_trigger.date_added,
                 "actions": self.expected_critical_action,
             },
@@ -107,7 +109,7 @@ class TestWorkflowEngineSerializer(TestCase):
 
     def add_warning_trigger(self) -> None:
         self.warning_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="warning"
+            alert_rule=self.alert_rule, label="warning", alert_threshold=50
         )
         self.warning_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.warning_trigger
@@ -134,12 +136,14 @@ class TestWorkflowEngineSerializer(TestCase):
             "alertRuleId": str(self.alert_rule.id),
             "label": "warning",
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
-            "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": self.alert_rule.resolve_threshold,
+            "alertThreshold": self.warning_detector_trigger.comparison,
+            "resolveThreshold": self.warning_detector_trigger.comparison,
             "dateCreated": self.critical_trigger.date_added,
             "actions": self.expected_warning_action,
         }
+        self.expected_triggers[0]["resolveThreshold"] = self.warning_detector_trigger.comparison
         self.expected_triggers.append(self.expected_warning_trigger)
+        dual_update_resolve_condition(self.alert_rule)
 
     def add_incident_data(self) -> None:
         self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)

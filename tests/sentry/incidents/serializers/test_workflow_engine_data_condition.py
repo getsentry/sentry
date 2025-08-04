@@ -126,6 +126,7 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
             comparison_detector_trigger.type,
             comparison_detector_trigger.comparison,
         )
+        expected_trigger["resolveThreshold"] = expected_trigger["alertThreshold"]
         expected_trigger["id"] = str(comparison_delta_trigger.id)
         expected_trigger["alertRuleId"] = str(comparison_delta_rule.id)
         assert serialized_data_condition == expected_trigger
