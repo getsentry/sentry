@@ -43,10 +43,7 @@ def generate_dart_symbols_map(debug_id: str, project: Project):
             with open(debug_file_path, "rb") as f:
                 data = orjson.loads(f.read())
 
-            if isinstance(data, dict):
-                # Map format
-                return data
-            elif isinstance(data, list):
+            if isinstance(data, list):
                 # Array format - transform it to map
                 if len(data) % 2 != 0:
                     raise Exception("Debug array contains an odd number of elements")
@@ -62,19 +59,15 @@ def generate_dart_symbols_map(debug_id: str, project: Project):
 def deobfuscate_exception_type(data: dict[str, Any]):
     project = Project.objects.get_from_cache(id=data["project"])
 
-    exceptions = data.get("exception", {}).get("values", [])
-
     debug_ids = get_dart_symbols_images(data)
     if len(debug_ids) == 0:
         return
 
-    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
-        if len(debug_ids) == 0:
-            return
+    exceptions = data.get("exception", {}).get("values", [])
+    if not exceptions:
+        return
 
-        exceptions = data.get("exception", {}).get("values", [])
-        if not exceptions:
-            return
+    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
 
         # There should only be one mapping file per Flutter build so we can break out of the loop once we find it
         found_mapping_file = False
@@ -94,7 +87,9 @@ def deobfuscate_exception_type(data: dict[str, Any]):
                     continue
 
                 obfuscated_symbol = exception["type"]
-                symbolicated_symbol = map[obfuscated_symbol]
+                symbolicated_symbol = map.get(obfuscated_symbol)
+                if symbolicated_symbol is None:
+                    continue
                 exception["type"] = symbolicated_symbol
 
                 exception_value = exception.get("value")
