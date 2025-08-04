@@ -4,7 +4,7 @@ all: develop
 WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
-	@uv sync --extra getsentry
+	@uv sync
 
 bootstrap:
 	@echo "devenv bootstrap is typically run on new machines."

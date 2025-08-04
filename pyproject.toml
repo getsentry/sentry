@@ -104,16 +104,17 @@ dependencies = [
     "vroomrs==0.1.17",
     "xmlsec==1.3.14",
     "zstandard==0.18.0",
-]
-
-[project.optional-dependencies]
-getsentry = [
+    # [begin] getsentry
+    # there's very few here so just include them here otherwise if they're
+    # in an extra, regular `uv sync` will uninstall them, and people will
+    # be confused
     "avalara==20.9.0",
     "iso3166==2.1.1",
     "pycountry==17.5.14",
     "pyvat==1.3.15",
     "reportlab==4.4.0",
     "stripe==6.7.0",
+    # [end] getsentry
 ]
 
 [tool.uv]
