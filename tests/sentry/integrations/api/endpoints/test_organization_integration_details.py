@@ -139,6 +139,16 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""
 
+        # Mock the legacy projects response
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[
+                {"id": "10000", "key": "PROJ1", "name": "Project 1"},
+                {"id": "10001", "key": "PROJ2", "name": "Project 2"},
+            ],
+        )
+
         # Mock the paginated projects response
         responses.add(
             responses.GET,
