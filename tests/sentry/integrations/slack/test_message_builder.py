@@ -1003,6 +1003,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
         self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
 
         mock_summary = {
             "headline": "Custom AI Title",
@@ -1068,6 +1069,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group1.save()
 
         self.project.update_option("sentry:seer_scanner_automation", True)
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
 
         # Test case for long exception text (over 50 characters)
         long_text = (

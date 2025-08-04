@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Grid} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -11,12 +12,11 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import SelectorTable from 'sentry/views/replays/deadRageClick/selectorTable';
+import SelectorTable from 'sentry/views/replays/selectors/selectorTable';
 import ReplayTabs from 'sentry/views/replays/tabs';
 
 export default function DeadRageClickList() {
@@ -50,18 +50,18 @@ export default function DeadRageClickList() {
               />
             </Layout.Title>
           </Layout.HeaderContent>
-          <div /> {/* wraps the tabs below the page title */}
           <ReplayTabs selected="selectors" />
         </Layout.Header>
         <PageFiltersContainer>
           <Layout.Body>
             <Layout.Main fullWidth>
-              <PageFilterBar condensed>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                <DatePageFilter resetParamsOnChange={['cursor']} />
-              </PageFilterBar>
-              <LayoutGap>
+              <Grid gap="xl">
+                <PageFilterBar condensed>
+                  <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                  <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                  <DatePageFilter resetParamsOnChange={['cursor']} />
+                </PageFilterBar>
+
                 <SelectorTable
                   data={data}
                   isError={isError}
@@ -73,7 +73,7 @@ export default function DeadRageClickList() {
                   ]}
                   clickCountSortable
                 />
-              </LayoutGap>
+              </Grid>
               <PaginationNoMargin
                 pageLinks={pageLinks}
                 onCursor={(cursor, path, searchQuery) => {
@@ -90,10 +90,6 @@ export default function DeadRageClickList() {
     </AnalyticsArea>
   );
 }
-
-const LayoutGap = styled('div')`
-  margin-top: ${space(2)};
-`;
 
 const PaginationNoMargin = styled(Pagination)`
   margin: 0;
