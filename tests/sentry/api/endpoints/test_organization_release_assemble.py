@@ -1,5 +1,5 @@
 from hashlib import sha1
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 from django.urls import reverse
@@ -56,7 +56,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble(self, mock_assemble_artifacts):
+    def test_assemble(self, mock_assemble_artifacts: MagicMock) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
@@ -135,7 +135,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.ERROR
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble_as_artifact_bundle(self, mock_assemble_artifacts):
+    def test_assemble_as_artifact_bundle(self, mock_assemble_artifacts: MagicMock) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )

@@ -77,7 +77,29 @@ function TeamNotificationSettingsPanel({
 
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
-  return externalTeams.map(externalTeam => (
+  const hasValidIntegration = externalTeams.some(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  if (!hasValidIntegration) {
+    return (
+      <EmptyMessage>
+        <div>{t('No teams have been linked yet.')}</div>
+        <NotDisabledSubText>
+          {tct('Head over to Slack and type [code] to get started. [link].', {
+            code: <code>/sentry link team</code>,
+            link: <ExternalLink href={DOCS_LINK}>{t('Learn more')}</ExternalLink>,
+          })}
+        </NotDisabledSubText>
+      </EmptyMessage>
+    );
+  }
+
+  const filteredExternalTeams = externalTeams.filter(
+    externalTeam => integrationsById[externalTeam.integrationId]
+  );
+
+  return filteredExternalTeams.map(externalTeam => (
     <FormFieldWrapper key={externalTeam.id}>
       <StyledFormField
         disabled

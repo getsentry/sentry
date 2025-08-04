@@ -27,7 +27,7 @@ from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks, ingest_errors_tasks
+from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -487,29 +487,6 @@ def should_update_escalating_metrics(event: Event) -> bool:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=ingest_errors_postprocess_tasks,
-        processing_deadline_duration=120,
-    ),
-)
-def post_process_group_shim(*args, **kwargs) -> None:
-    """
-    Deployment shim for post_process_group.
-
-    We need to move this task to a new taskworker namespace, but don't want to change the
-    celery queue, or task name of inflight tasks.
-
-    Once all inflight work is going through this task, we can rename this function and remove
-    the binding to the old namespace.
-    """
-    post_process_group(*args, **kwargs)
-
-
-@instrumented_task(
-    name="sentry.tasks.post_process.post_process_group",
-    time_limit=120,
-    soft_time_limit=110,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_tasks,
         processing_deadline_duration=120,
     ),
 )
@@ -1348,8 +1325,9 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         )
     except PluginError as e:
         logger.info("post_process.process_error_ignored", extra={"exception": e})
+    # Since plugins are deprecated, instead of creating issues, lets just create a warning log
     except Exception as e:
-        logger.exception("post_process.process_error", extra={"exception": e})
+        logger.warning("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(func):
@@ -1615,9 +1593,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ]:
         return
 
-    if not features.has("organizations:gen-ai-features", group.organization) or not features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization
-    ):
+    if not features.has("organizations:gen-ai-features", group.organization):
         return
 
     gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")

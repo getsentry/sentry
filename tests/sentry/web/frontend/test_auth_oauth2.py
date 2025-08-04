@@ -166,7 +166,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         )
 
     @mock.patch("sentry.utils.auth.login")
-    def test_oauth2_flow_incomplete_security_checks(self, mock_login):
+    def test_oauth2_flow_incomplete_security_checks(self, mock_login: mock.MagicMock) -> None:
         mock_login.return_value = False
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
@@ -177,7 +177,9 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.context["user"] != self.user
 
     @mock.patch("sentry.utils.auth.login")
-    def test_oauth2_flow_customer_domain_incomplete_security_checks(self, mock_login):
+    def test_oauth2_flow_customer_domain_incomplete_security_checks(
+        self, mock_login: mock.MagicMock
+    ) -> None:
         HTTP_HOST = "albertos-apples.testserver"
         mock_login.return_value = False
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}

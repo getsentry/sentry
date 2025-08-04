@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
@@ -32,7 +33,7 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
 
   if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
-    return getAISpanAttributes(attributeObject);
+    return getAISpanAttributes(attributeObject, op);
   }
 
   if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
@@ -60,7 +61,10 @@ function ensureAttributeObject(
   return attributes;
 }
 
-function getAISpanAttributes(attributes: Record<string, string | number | boolean>) {
+function getAISpanAttributes(
+  attributes: Record<string, string | number | boolean>,
+  op?: string
+) {
   const highlightedAttributes = [];
 
   const model =
@@ -99,6 +103,26 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
     highlightedAttributes.push({
       name: t('Cost'),
       value: <LLMCosts cost={totalCosts.toString()} />,
+    });
+  }
+
+  // Check for missing cost calculation and emit Sentry error
+  if (model && (!totalCosts || Number(totalCosts) === 0)) {
+    Sentry.captureMessage('Gen AI span missing cost calculation', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'false',
+        span_operation: op || 'unknown',
+        model: model.toString(),
+      },
+      extra: {
+        total_costs: totalCosts,
+        span_operation: op,
+        attributes,
+      },
     });
   }
 

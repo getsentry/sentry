@@ -78,7 +78,7 @@ def test_emit_click_events_environment_handling() -> None:
 
 
 @mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
-def test_emit_trace_items_to_eap(producer):
+def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
     timestamp = Timestamp()
     timestamp.FromMilliseconds(1000)
 

@@ -71,7 +71,6 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
     IntegrationError,
 )
-from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -84,6 +83,7 @@ from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
@@ -404,8 +404,8 @@ def get_metric_issue_aggregates(
         )
 
         try:
-            results = spans_rpc.run_table_query(
-                snuba_params,
+            results = Spans.run_table_query(
+                params=snuba_params,
                 query_string=params.snuba_query.query,
                 selected_columns=[entity_subscription.aggregate],
                 orderby=None,

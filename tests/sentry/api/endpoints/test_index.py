@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
-def test_anonymous(client):
+def test_anonymous(client) -> None:
     response = client.get(reverse("sentry-api-index"))
     assert response.status_code == 200
     assert response.data["version"] == "0"

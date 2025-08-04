@@ -50,7 +50,7 @@ class TestGcpBearerAuthentication:
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     @patch("sentry.lang.native.sources.get_gcp_token")
     @django_db_all
-    def test_sources_gcp_bearer_authentication(self, mock_get_gcp_token, default_project):
+    def test_sources_gcp_bearer_authentication(self, mock_get_gcp_token, default_project) -> None:
         mock_get_gcp_token.return_value = "ya29.TOKEN"
         features = {
             "organizations:symbol-sources": True,
@@ -68,7 +68,7 @@ class TestGcpBearerAuthentication:
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     @patch("sentry.lang.native.sources.get_gcp_token")
     @django_db_all
-    def test_source_alias(self, mock_get_gcp_token, default_project):
+    def test_source_alias(self, mock_get_gcp_token, default_project) -> None:
         mock_get_gcp_token.return_value = "ya29.TOKEN"
         features = {
             "organizations:symbol-sources": True,
@@ -98,7 +98,7 @@ class TestGcpBearerAuthentication:
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     @patch("sentry.lang.native.sources.get_gcp_token")
     @django_db_all
-    def test_source_with_private_key(self, mock_get_gcp_token, default_project):
+    def test_source_with_private_key(self, mock_get_gcp_token, default_project) -> None:
         mock_get_gcp_token.return_value = "ya29.TOKEN"
         features = {
             "organizations:symbol-sources": True,
@@ -115,7 +115,7 @@ class TestGcpBearerAuthentication:
     @override_settings(SENTRY_BUILTIN_SOURCES=SENTRY_BUILTIN_SOURCES_TEST)
     @patch("sentry.lang.native.sources.get_gcp_token")
     @django_db_all
-    def test_mixed_sources(self, mock_get_gcp_token, default_project):
+    def test_mixed_sources(self, mock_get_gcp_token, default_project) -> None:
         """
         Tests the combination of sources where one uses credentials for authentication and the other one
         uses pre-fetched token.
@@ -184,7 +184,7 @@ class TestIgnoredSourcesFiltering:
 
     # Default/unset list of sources
     @django_db_all
-    def test_sources_ignored_unset(self, sources):
+    def test_sources_ignored_unset(self, sources) -> None:
         sources = filter_ignored_sources(sources)
 
         source_ids = list(map(lambda s: s["id"], sources))
@@ -197,7 +197,7 @@ class TestIgnoredSourcesFiltering:
         ]
 
     @django_db_all
-    def test_sources_ignored_empty(self, sources):
+    def test_sources_ignored_empty(self, sources) -> None:
         with override_options({"symbolicator.ignored_sources": []}):
             sources = filter_ignored_sources(sources)
 
@@ -211,7 +211,7 @@ class TestIgnoredSourcesFiltering:
             ]
 
     @django_db_all
-    def test_sources_ignored_builtin(self, sources):
+    def test_sources_ignored_builtin(self, sources) -> None:
         with override_options({"symbolicator.ignored_sources": ["sentry:microsoft"]}):
             sources = filter_ignored_sources(sources)
 
@@ -224,7 +224,7 @@ class TestIgnoredSourcesFiltering:
             ]
 
     @django_db_all
-    def test_sources_ignored_alias(self, sources, reversed_alias_map):
+    def test_sources_ignored_alias(self, sources, reversed_alias_map) -> None:
         with override_options({"symbolicator.ignored_sources": ["sentry:ios"]}):
             sources = filter_ignored_sources(sources, reversed_alias_map)
 
@@ -232,7 +232,7 @@ class TestIgnoredSourcesFiltering:
             assert source_ids == ["sentry:microsoft", "sentry:electron", "custom"]
 
     @django_db_all
-    def test_sources_ignored_bypass_alias(self, sources, reversed_alias_map):
+    def test_sources_ignored_bypass_alias(self, sources, reversed_alias_map) -> None:
         with override_options({"symbolicator.ignored_sources": ["sentry:ios-source"]}):
             sources = filter_ignored_sources(sources, reversed_alias_map)
 
@@ -245,7 +245,7 @@ class TestIgnoredSourcesFiltering:
             ]
 
     @django_db_all
-    def test_sources_ignored_custom(self, sources):
+    def test_sources_ignored_custom(self, sources) -> None:
         with override_options({"symbolicator.ignored_sources": ["custom"]}):
             sources = filter_ignored_sources(sources)
 
@@ -258,7 +258,7 @@ class TestIgnoredSourcesFiltering:
             ]
 
     @django_db_all
-    def test_sources_ignored_unrecognized(self, sources):
+    def test_sources_ignored_unrecognized(self, sources) -> None:
         with override_options({"symbolicator.ignored_sources": ["honk"]}):
             sources = filter_ignored_sources(sources)
 

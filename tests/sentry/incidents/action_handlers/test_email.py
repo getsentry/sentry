@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -89,7 +89,7 @@ class EmailActionHandlerTest(FireTest):
         self.run_fire_test("resolve")
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
         assert_last_analytics_event(
             mock_record,
@@ -488,7 +488,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_dynamic_alert(self, mock_seer_request):
+    def test_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
 
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -673,7 +673,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         side_effect=fetch_metric_alert_events_timeseries,
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_metric_chart(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
+    def test_metric_chart(
+        self, mock_generate_chart: MagicMock, mock_fetch_metric_alert_events_timeseries: MagicMock
+    ) -> None:
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
@@ -710,7 +712,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         side_effect=fetch_metric_alert_events_timeseries,
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
+    def test_metric_chart_mep(
+        self, mock_generate_chart: MagicMock, mock_fetch_metric_alert_events_timeseries: MagicMock
+    ) -> None:
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"
         )

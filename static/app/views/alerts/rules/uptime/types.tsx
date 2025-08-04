@@ -44,6 +44,13 @@ export interface UptimeCheck {
   uptimeCheckId: string;
 }
 
+export interface UptimeSummary {
+  downtimeChecks: number;
+  failedChecks: number;
+  missedWindowChecks: number;
+  totalChecks: number;
+}
+
 export enum CheckStatusReason {
   FAILURE = 'failure',
   TIMEOUT = 'timeout',

@@ -215,11 +215,11 @@ def evaluate_action_filters(
             else None
         )
         workflow_event_data = replace(event_data, workflow_env=env)
-        group_evaluation, remaining_conditions = process_data_condition_group(
+        group_evaluation, slow_conditions = process_data_condition_group(
             action_condition, workflow_event_data
         )
 
-        if remaining_conditions:
+        if slow_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue.
 
@@ -228,7 +228,7 @@ def evaluate_action_filters(
                 queue_items_by_project_id[event_data.event.group.project_id].append(
                     DelayedWorkflowItem(
                         workflow,
-                        remaining_conditions,
+                        slow_conditions,
                         event_data.event,
                         WorkflowDataConditionGroupType.ACTION_FILTER,
                         timestamp=current_time,

@@ -546,28 +546,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
-#
-# NOTE: Any value below 1.0 will break the product. Do not override in production.
-register(
-    "relay.ourlogs-breadcrumb-extraction.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Control number of breadcrumbs converted to OurLogs
-register(
-    "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Ingest only a random fraction of logs sent to relay. Used to roll out ourlogs ingestion.
 #
 # NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
 register(
     "relay.ourlogs-ingestion.sample-rate",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -892,6 +876,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sequential deletion of events from nodestore
+register(
+    "deletions.nodestore.parallelization-task-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "issues.severity.first-event-severity-calculation-projects-allowlist",
@@ -3664,5 +3655,16 @@ register(
     "sentry.hybridcloud.cacheversion.rollout",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable enhancing access logs with snuba responses
+register("issues.use-snuba-error-data", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Use "first-seen" group instead of "most-seen" group when merging
+register(
+    "issues.merging.first-seen",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

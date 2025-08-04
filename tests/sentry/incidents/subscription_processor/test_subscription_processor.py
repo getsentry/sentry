@@ -1764,7 +1764,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         return rule
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_above(self, helper_metrics):
+    def test_comparison_alert_above(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_above
         comparison_delta = timedelta(seconds=rule.comparison_delta)
         trigger = self.trigger
@@ -1859,7 +1859,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_eap(self, helper_metrics):
+    def test_comparison_alert_eap(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_above
         rule.update(detection_type=AlertRuleDetectionType.PERCENT)
         rule.snuba_query.update(
@@ -1970,7 +1970,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_below(self, helper_metrics):
+    def test_comparison_alert_below(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_below
         comparison_delta = timedelta(seconds=rule.comparison_delta)
         trigger = self.trigger
@@ -2066,7 +2066,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_comparison_query(self, helper_metrics):
+    def test_is_unresolved_comparison_query(self, helper_metrics: MagicMock) -> None:
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity
         """
@@ -2179,7 +2179,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateTest):
         )
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_different_aggregate(self, helper_metrics):
+    def test_comparison_alert_different_aggregate(self, helper_metrics: MagicMock) -> None:
         rule = self.comparison_rule_above
         update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
         comparison_delta = timedelta(seconds=rule.comparison_delta)
@@ -2986,7 +2986,7 @@ class ProcessUpdateSlackTest(ProcessUpdateTest):
         self.assert_active_incident(rule)
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_slack_metric_alert_chart(self, mock_generate_chart):
+    def test_slack_metric_alert_chart(self, mock_generate_chart: MagicMock) -> None:
         # Create Slack Integration
         integration, _ = self.create_provider_integration_for(
             self.project.organization,
@@ -3148,7 +3148,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
-    def test_seer_call(self, mock_seer_request: MagicMock):
+    def test_seer_call(self, mock_seer_request: MagicMock) -> None:
         # trigger a warning
         rule = self.dynamic_rule
         trigger = self.trigger
@@ -3311,7 +3311,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:performance-view")
-    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
+    def test_seer_call_performance_rule(self, mock_seer_request: MagicMock) -> None:
         throughput_rule = self.dynamic_rule
         throughput_rule.snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions)
         # trigger critical
@@ -3455,7 +3455,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
+    def test_seer_call_null_aggregation_value(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         seer_return_value: DetectAnomaliesResponse = {
             "success": True,
             "timeseries": [
@@ -3501,7 +3503,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
+    def test_seer_call_timeout_error(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         rule = self.dynamic_rule
         processor = SubscriptionProcessor(self.sub)
         from urllib3.exceptions import TimeoutError
@@ -3536,7 +3540,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
+    def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
@@ -3569,7 +3573,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_enable_dynamic_alert_rule(self, mock_seer_request):
+    def test_enable_dynamic_alert_rule(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
@@ -3603,7 +3607,7 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
+    def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
 
@@ -3654,7 +3658,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
+    def test_seer_call_empty_list(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         processor = SubscriptionProcessor(self.sub)
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -3674,7 +3680,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
+    def test_seer_call_bad_status(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
         aggregation_value = 10
@@ -3706,7 +3714,9 @@ class ProcessUpdateAnomalyDetectionTest(ProcessUpdateTest):
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
-    def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
+    def test_seer_call_failed_parse(
+        self, mock_logger: MagicMock, mock_seer_request: MagicMock
+    ) -> None:
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
         result = get_anomaly_data_from_seer_legacy(
@@ -4219,7 +4229,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_active_incident(rule)
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_crash_rate_alert_for_sessions_with_no_sessions_data(self, helper_metrics):
+    def test_crash_rate_alert_for_sessions_with_no_sessions_data(
+        self, helper_metrics: MagicMock
+    ) -> None:
         """
         Test that ensures we skip the Crash Rate Alert processing if we have no sessions data
         """
@@ -4290,7 +4302,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self, helper_metrics):
+    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(
+        self, helper_metrics: MagicMock
+    ) -> None:
         rule = self.crash_rate_alert_rule
         rule.update(threshold_period=2)
 
@@ -4372,7 +4386,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self, helper_metrics):
+    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(
+        self, helper_metrics: MagicMock
+    ) -> None:
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
         action_critical = self.crash_rate_alert_critical_action

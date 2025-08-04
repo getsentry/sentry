@@ -33,13 +33,13 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
-    spans_rpc,
     transactions,
     uptime_results,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -570,7 +570,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
             def fn(offset, limit):
                 if scoped_dataset in RPC_DATASETS:
-                    if scoped_dataset == spans_rpc:
+                    if scoped_dataset == Spans:
                         config = SearchResolverConfig(
                             auto_fields=True,
                             use_aggregate_conditions=use_aggregate_conditions,
@@ -578,12 +578,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             disable_aggregate_extrapolation="disableAggregateExtrapolation"
                             in request.GET,
                         )
-                    elif scoped_dataset == ourlogs:
+                    elif scoped_dataset == OurLogs:
                         # ourlogs doesn't have use aggregate conditions
                         config = SearchResolverConfig(
                             use_aggregate_conditions=False,
                         )
-                    elif scoped_dataset == uptime_results:
+                    elif scoped_dataset == uptime_results.UptimeResults:
                         config = SearchResolverConfig(
                             use_aggregate_conditions=use_aggregate_conditions, auto_fields=True
                         )
@@ -621,7 +621,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         data_fn = data_fn_factory(dataset)
 
-        max_per_page = 9999 if dataset == ourlogs else None
+        max_per_page = 9999 if dataset == OurLogs else None
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API

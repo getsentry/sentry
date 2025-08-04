@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -44,7 +44,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_success(self, mock_record):
+    def test_get_blame_for_files_success(self, mock_record: MagicMock) -> None:
         """Test successful blame retrieval records correct lifecycle events"""
         self.integration.client.get_blame_for_files.return_value = []
 
@@ -54,7 +54,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_missing_identity(self, mock_record):
+    def test_get_blame_for_files_missing_identity(self, mock_record: MagicMock) -> None:
         """Test missing identity records failure"""
         self.integration.get_client = Mock(side_effect=Identity.DoesNotExist())
 
@@ -66,7 +66,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_failure_metric(mock_record, Identity.DoesNotExist())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_invalid_identity(self, mock_record):
+    def test_get_blame_for_files_invalid_identity(self, mock_record: MagicMock) -> None:
         """Test invalid identity records failure"""
         from sentry.auth.exceptions import IdentityNotValid
 
@@ -79,7 +79,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_failure_metric(mock_record, IdentityNotValid())
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_rate_limited(self, mock_record):
+    def test_get_blame_for_files_rate_limited(self, mock_record: MagicMock) -> None:
         """Test rate limited requests record halt"""
         from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
@@ -94,7 +94,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_halt_metric(mock_record, ApiRateLimitedError(text="Rate limited"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_invalid_request(self, mock_record):
+    def test_get_blame_for_files_invalid_request(self, mock_record: MagicMock) -> None:
         """Test invalid request records failure"""
         from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 
@@ -109,7 +109,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_failure_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_invalid_request_gitlab(self, mock_record):
+    def test_get_blame_for_files_invalid_request_gitlab(self, mock_record: MagicMock) -> None:
         """Test invalid request for GitLab records halt"""
         from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 
@@ -129,7 +129,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_api_host_error_gitlab(self, mock_record):
+    def test_get_blame_for_files_api_host_error_gitlab(self, mock_record: MagicMock) -> None:
         class MockGitlabIntegration(MockCommitContextIntegration):
             integration_name = "gitlab"
 
@@ -146,7 +146,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_halt_metric(mock_record, ApiHostError(text="retried too many times"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_retry_error(self, mock_record):
+    def test_get_blame_for_files_retry_error(self, mock_record: MagicMock) -> None:
         """Test retry error for Gitlab Self-hosted records halt"""
         from sentry.shared_integrations.exceptions import ApiRetryError
 
@@ -172,7 +172,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_halt_metric(mock_record, ApiRetryError(text="Host error"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_retry_error_gitlab(self, mock_record):
+    def test_get_blame_for_files_retry_error_gitlab(self, mock_record: MagicMock) -> None:
         """Test retry error for GitLab saas records failure"""
         from sentry.shared_integrations.exceptions import ApiRetryError
 
@@ -198,7 +198,7 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_failure_metric(mock_record, ApiRetryError(text="Host error"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_commit_context_all_frames(self, mock_record):
+    def test_get_commit_context_all_frames(self, mock_record: MagicMock) -> None:
         """Test get_commit_context_all_frames records correct lifecycle events"""
         self.integration.client.get_blame_for_files.return_value = []
 
