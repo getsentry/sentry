@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {CommitDetailSummary} from 'sentry/views/codecov/coverage/commits/commitDetailSummary';
 
 export default function CommitDetailPage() {
   return (
-    <LayoutGap>
+    <ContentContainer>
       <CommitDetailSummary />
-      <p>Commit Detail Page</p>
-    </LayoutGap>
+      <p>Commit Detail Page hello</p>
+    </ContentContainer>
   );
 }
 
-const LayoutGap = styled('div')`
+const ContentContainer = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 `;
