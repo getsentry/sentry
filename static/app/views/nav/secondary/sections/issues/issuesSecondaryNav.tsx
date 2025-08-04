@@ -28,6 +28,12 @@ export function IssuesSecondaryNav() {
       <SecondaryNav.Body>
         {!hasIssueTaxonomy && (
           <SecondaryNav.Section id="issues-feed">
+            <SecondaryNav.Item
+              to={`${baseUrl}/mission-control/`}
+              analyticsItemName="issues_mission_control"
+            >
+              {t('Mission Control')}
+            </SecondaryNav.Item>
             <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
               {t('Feed')}
             </SecondaryNav.Item>
@@ -42,6 +48,12 @@ export function IssuesSecondaryNav() {
         {hasIssueTaxonomy && (
           <Fragment>
             <SecondaryNav.Section id="issues-feed">
+              <SecondaryNav.Item
+                to={`${baseUrl}/mission-control/`}
+                analyticsItemName="issues_mission_control"
+              >
+                {t('Mission Control')}
+              </SecondaryNav.Item>
               <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
                 {t('Feed')}
               </SecondaryNav.Item>

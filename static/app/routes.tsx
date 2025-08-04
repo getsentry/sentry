@@ -2620,6 +2620,11 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     {
+      path: 'mission-control/',
+      component: make(() => import('sentry/views/issueList/pages/missionControl')),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
