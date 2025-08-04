@@ -52,7 +52,7 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
-          <img src={replayEmptyState} height={300} />
+          <img src={replayEmptyState} height={300} alt="" />
           <div>{t('AI features are not available for this organization.')}</div>
         </EndStateContainer>
       </Wrapper>
@@ -64,7 +64,9 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
-          <img src={loadingGif} height={400} />
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
         </LoadingContainer>
       </Wrapper>
     );
@@ -76,7 +78,7 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
-          <img src={aiBanner} />
+          <img src={aiBanner} alt="" />
           <div>
             <strong>{t('AI-Powered Replay Summaries')}</strong>
           </div>
@@ -110,7 +112,9 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
-          <img src={loadingGif} height={400} />
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
           <div>{t('This might take a few moments...')}</div>
         </LoadingContainer>
       </Wrapper>
@@ -121,7 +125,7 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
-          <img src={replayEmptyState} height={300} />
+          <img src={replayEmptyState} height={300} alt="" />
           <div>{t('Project not found. Unable to load replay summary.')}</div>
         </EndStateContainer>
       </Wrapper>
@@ -132,7 +136,7 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
-          <img src={aiBanner} />
+          <img src={aiBanner} alt="" />
           <div>{t('Failed to load replay summary.')}</div>
           <div>
             <Button
@@ -159,35 +163,34 @@ export default function Ai() {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
-          <img src={aiBanner} />
+          <img src={aiBanner} alt="" />
           <div>{t('No summary available for this replay.')}</div>
         </EndStateContainer>
       </Wrapper>
     );
   }
 
-  if (summaryData.data.time_ranges.length <= 1) {
-    if (
-      replay
-        ?.getChapterFrames()
-        ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init')
-        .length === 0
-    ) {
-      return (
-        <Wrapper data-test-id="replay-details-ai-summary-tab">
-          <EndStateContainer>
-            <img src={aiBanner} />
-            <div>
-              {
-                NO_REPLAY_SUMMARY_MESSAGES[
-                  Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-                ]
-              }
-            </div>
-          </EndStateContainer>
-        </Wrapper>
-      );
-    }
+  if (
+    summaryData.data.time_ranges.length <= 1 &&
+    replay
+      ?.getChapterFrames()
+      ?.filter(frame => isSpanFrame(frame) || frame.category !== 'replay.init').length ===
+      0
+  ) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>
+            {
+              NO_REPLAY_SUMMARY_MESSAGES[
+                Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+              ]
+            }
+          </div>
+        </EndStateContainer>
+      </Wrapper>
+    );
   }
 
   return (
