@@ -414,21 +414,15 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         assert not project_ids
 
-        # event that does not have the tags = no fire
+        # event that does not have the tags = no enqueue
         event_2 = self.create_error_event(fingerprint="asdf")
         self.post_process_error(event_2, is_new=True)
-        assert not mock_trigger.called
-
-        event_3 = self.create_error_event(fingerprint="asdf")
-        self.post_process_error(event_3)
         assert not mock_trigger.called
 
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
-
-        process_delayed_workflows(project_ids[0][0])
-        assert not mock_trigger.called
+        assert not project_ids
 
         # event that fires
         event_4 = self.create_error_event(tags=[["hello", "world"]])
