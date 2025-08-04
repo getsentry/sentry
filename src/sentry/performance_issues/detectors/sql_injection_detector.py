@@ -55,7 +55,12 @@ EXCLUDED_KEYWORDS = [
     "PAGE",
 ]
 
-EXCLUDED_PACKAGES = ["github.com/go-sql-driver/mysql", "sequelize", "gorm.io/gorm"]
+EXCLUDED_PACKAGES = [
+    "github.com/go-sql-driver/mysql",
+    "sequelize",
+    "gorm.io/gorm",
+    "@nestjs/typeorm",
+]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
 
