@@ -26,7 +26,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
@@ -371,10 +371,12 @@ def create_feedback_issue(
                         "feedback_message": feedback_message[:100],
                     },
                 )
-                labels = labels[:MAX_AI_LABELS]
+            # Sort the labels alphabetically after truncating to MAX_AI_LABELS, so we don't bias towards the first labels alphabetically
+            labels = sorted(labels[:MAX_AI_LABELS])
 
             for idx, label in enumerate(labels):
-                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.{idx}"] = label
+                event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.label.{idx}"] = label
+            event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
 

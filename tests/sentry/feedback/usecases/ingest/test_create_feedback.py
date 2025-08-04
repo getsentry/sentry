@@ -19,6 +19,7 @@ from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
+from sentry.utils import json
 from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
 
 
@@ -972,9 +973,12 @@ def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [value for key, value in tags.items() if key.startswith(AI_LABEL_TAG_PREFIX)]
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
         assert len(ai_labels) == 3
-        assert set(ai_labels) == {"User Interface", "Authentication", "Performance"}
+        assert ai_labels == ["Authentication", "Performance", "User Interface"]
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(ai_labels)
 
 
 @django_db_all
@@ -1010,10 +1014,9 @@ def test_create_feedback_handles_label_generation_errors(
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [tag for tag in tags.keys() if tag.startswith(AI_LABEL_TAG_PREFIX)]
-        assert (
-            len(ai_labels) == 0
-        ), "No AI categorization labels should be present when label generation fails"
+        ai_labels = [tag for tag in tags.keys() if tag.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")]
+        assert len(ai_labels) == 0
+        assert f"{AI_LABEL_TAG_PREFIX}.labels" not in tags
 
 
 @django_db_all
@@ -1030,9 +1033,12 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
             "message"
         ] = "This is a very complex feedback with many issues"
 
+        alphabet = "abcdefghijklmnopqrstuvwxyz"
+
         # Mock generate_labels to return more than MAX_AI_LABELS labels
+        # The labels should be sorted alphabetically, so don't store numbers, instead use letters
         def mock_generate_labels(*args, **kwargs):
-            return [f"Label {i}" for i in range(MAX_AI_LABELS + 5)]
+            return [f"Label {alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
 
         with patch(
             "sentry.feedback.usecases.ingest.create_feedback.generate_labels",
@@ -1047,12 +1053,16 @@ def test_create_feedback_truncates_ai_labels(default_project, mock_produce_occur
         produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
         tags = produced_event["tags"]
 
-        ai_labels = [value for key, value in tags.items() if key.startswith(AI_LABEL_TAG_PREFIX)]
+        ai_labels = [
+            value for key, value in tags.items() if key.startswith(f"{AI_LABEL_TAG_PREFIX}.label.")
+        ]
         assert len(ai_labels) == MAX_AI_LABELS, "Should be truncated to exactly MAX_AI_LABELS"
 
         for i in range(MAX_AI_LABELS):
-            assert tags[f"{AI_LABEL_TAG_PREFIX}.{i}"] == f"Label {i}"
+            assert tags[f"{AI_LABEL_TAG_PREFIX}.label.{i}"] == f"Label {alphabet[i]}"
+
+        assert tags[f"{AI_LABEL_TAG_PREFIX}.labels"] == json.dumps(ai_labels)
 
         # Verify that labels beyond MAX_AI_LABELS are not present
         for i in range(MAX_AI_LABELS, MAX_AI_LABELS + 5):
-            assert f"{AI_LABEL_TAG_PREFIX}.{i}" not in tags
+            assert f"{AI_LABEL_TAG_PREFIX}.label.{i}" not in tags
