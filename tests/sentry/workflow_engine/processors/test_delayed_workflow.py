@@ -806,6 +806,51 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.group1.id: set(self.workflow1_if_dcgs),
         }
 
+    def test_ignored_deleted_dcgs(self) -> None:
+        self.workflow1_if_dcgs[0].delete()
+        self.workflow2_if_dcgs[1].delete()
+
+        assert self.workflow1.when_condition_group
+        assert self.workflow2.when_condition_group
+
+        self.data_condition_groups = (
+            [
+                self.workflow1.when_condition_group,
+                self.workflow2.when_condition_group,
+            ]
+            + [self.workflow1_if_dcgs[1]]
+            + [self.workflow2_if_dcgs[0]]
+        )
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        # NOTE: same result as test_simple but without the deleted DCGs
+        assert result == {
+            self.group1.id: {self.workflow1_if_dcgs[1]},
+        }
+
+    def test_ignored_deleted_workflow(self) -> None:
+        self.workflow1.delete()
+
+        self.workflows_to_envs = {self.workflow2.id: None}
+
+        result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            self.event_data,
+            self.condition_group_results,
+            self.dcg_to_slow_conditions,
+        )
+
+        # NOTE: same result as test_simple but without the deleted workflow
+        assert result == {self.group2.id: {self.workflow2_if_dcgs[1]}}
+
 
 class TestFireActionsForGroups(TestDelayedWorkflowBase):
     def setUp(self) -> None:
