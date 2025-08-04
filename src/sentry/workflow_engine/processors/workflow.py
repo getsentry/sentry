@@ -108,7 +108,9 @@ def enqueue_workflows(
         project_id = queue_item.event.project_id
         items_by_project_id[project_id].append(queue_item)
 
+    items = 0
     if not items_by_project_id:
+        sentry_sdk.set_tag("delayed_workflow_items", items)
         return
 
     for project_id, queue_items in items_by_project_id.items():
@@ -117,6 +119,9 @@ def enqueue_workflows(
             filters={"project_id": project_id},
             data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
         )
+        items += len(queue_items)
+
+    sentry_sdk.set_tag("delayed_workflow_items", items)
 
     buffer.backend.push_to_sorted_set(
         key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
@@ -195,6 +200,7 @@ def evaluate_workflow_triggers(
             "event_data": asdict(event_data),
             "event_environment_id": environment.id if environment else None,
             "triggered_workflows": [workflow.id for workflow in triggered_workflows],
+            "queue_workflows": sorted(wf.id for wf in queue_items_by_workflow.keys()),
         },
     )
 
@@ -434,6 +440,7 @@ def process_workflows(
     )
     enqueue_workflows(queue_items_by_workflow_id)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+    sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger
