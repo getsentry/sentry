@@ -1,22 +1,21 @@
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {Heading} from 'sentry/components/core/text';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
-import {
-  type TreemapElement,
-  type TreemapResults,
-  TreemapType,
-} from 'sentry/views/preprod/types/appSizeTypes';
+import {type TreemapElement, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeTreemapProps {
-  treemapData: TreemapResults;
+  root: TreemapElement | null;
+  searchQuery: string;
 }
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {treemapData} = props;
+  const {root} = props;
 
   // TODO: Use theme colors
 
@@ -73,8 +72,29 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     return data;
   }
 
-  const chartData = convertToEChartsData(treemapData.root);
-  const totalSize = treemapData.root.size;
+  // Empty state
+  if (root === null) {
+    return (
+      <EmptyContainer>
+        <Heading as="h4">
+          No files match your search:{'  '}
+          <span
+            style={{
+              fontFamily: 'monospace',
+              backgroundColor: theme.gray100,
+              padding: theme.space.xs,
+              borderRadius: theme.borderRadius,
+            }}
+          >
+            {props.searchQuery}
+          </span>
+        </Heading>
+      </EmptyContainer>
+    );
+  }
+
+  const chartData = convertToEChartsData(root);
+  const totalSize = root.size;
 
   const series: TreemapSeriesOption[] = [
     {
@@ -205,3 +225,10 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     />
   );
 }
+
+const EmptyContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+`;
