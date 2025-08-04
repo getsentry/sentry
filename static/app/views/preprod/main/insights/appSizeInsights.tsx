@@ -52,8 +52,16 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
           {t('View all insights')}
         </Button>
       </Flex>
-      <Flex direction="column" gap="2xs">
-        {topInsights.map((insight, index) => (
+      <Flex
+        direction="column"
+        gap="2xs"
+        css={theme => ({
+          '& > :nth-child(odd)': {
+            backgroundColor: theme.backgroundSecondary,
+          },
+        })}
+      >
+        {topInsights.map(insight => (
           <Flex
             key={insight.name}
             align="center"
@@ -61,7 +69,6 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
             radius="md"
             height="22px"
             padding="xs sm"
-            background={index % 2 === 0 ? 'secondary' : undefined}
           >
             <Text variant="primary" size="sm" bold>
               {insight.name}

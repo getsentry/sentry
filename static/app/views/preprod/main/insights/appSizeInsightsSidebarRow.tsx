@@ -84,36 +84,32 @@ export function AppSizeInsightsSidebarRow({
         </Button>
 
         {isExpanded && (
-          <Flex direction="column">
+          <Container
+            display="flex"
+            css={() => ({
+              flexDirection: 'column',
+              '& > :nth-child(odd)': {
+                backgroundColor: theme.backgroundSecondary,
+              },
+            })}
+          >
             {insight.files.map((file, fileIndex) => (
-              <FileRow
-                key={`${file.path}-${fileIndex}`}
-                file={file}
-                fileIndex={fileIndex}
-              />
+              <FileRow key={`${file.path}-${fileIndex}`} file={file} />
             ))}
-          </Flex>
+          </Container>
         )}
       </Container>
     </Flex>
   );
 }
 
-function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: number}) {
-  const isAlternating = fileIndex % 2 === 0;
-
+function FileRow({file}: {file: ProcessedInsightFile}) {
   if (file.data.fileType === 'optimizable_image') {
-    return (
-      <OptimizableImageFileRow
-        file={file}
-        originalFile={file.data.originalFile}
-        isAlternating={isAlternating}
-      />
-    );
+    return <OptimizableImageFileRow file={file} originalFile={file.data.originalFile} />;
   }
 
   return (
-    <FlexAlternatingRow isAlternating={isAlternating}>
+    <FlexAlternatingRow>
       <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -132,14 +128,12 @@ function FileRow({file, fileIndex}: {file: ProcessedInsightFile; fileIndex: numb
 function OptimizableImageFileRow({
   file,
   originalFile: _originalFile,
-  isAlternating,
 }: {
   file: ProcessedInsightFile;
-  isAlternating: boolean;
   originalFile: OptimizableImageFile;
 }) {
   return (
-    <FlexAlternatingRow isAlternating={isAlternating}>
+    <FlexAlternatingRow>
       <Text variant="accent" size="sm" bold ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
@@ -155,13 +149,12 @@ function OptimizableImageFileRow({
   );
 }
 
-const FlexAlternatingRow = styled(Flex)<{isAlternating: boolean}>`
+const FlexAlternatingRow = styled('div')`
+  display: flex;
   align-items: center;
   justify-content: space-between;
   border-radius: ${({theme}) => theme.borderRadius};
   min-width: 0;
   gap: ${({theme}) => theme.space.lg};
   padding: ${({theme}) => theme.space.xs} ${({theme}) => theme.space.sm};
-  background-color: ${({isAlternating, theme}) =>
-    isAlternating ? theme.surface200 : 'transparent'};
 `;
