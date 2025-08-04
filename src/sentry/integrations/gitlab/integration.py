@@ -55,7 +55,7 @@ from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
-from sentry.utils.patch_set import patch_to_file_modifications
+from sentry.utils.patch_set import PatchParseError, patch_to_file_modifications
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
@@ -334,12 +334,12 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
 
             try:
                 file_modifications = patch_to_file_modifications(diff["diff"])
-            except Exception:
+            except PatchParseError:
                 logger.exception(
                     _open_pr_comment_log(
                         integration_name=self.integration.integration_name,
                         suffix="patch_parsing_error",
-                    ),
+                    )
                 )
                 continue
 
