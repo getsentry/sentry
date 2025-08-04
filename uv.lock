@@ -1929,7 +1929,7 @@ wheels = [
 [[package]]
 name = "sentry"
 version = "25.8.0.dev0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "beautifulsoup4", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "boto3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
