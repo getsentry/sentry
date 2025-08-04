@@ -73,6 +73,7 @@ from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpo
 from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
     RepositoryTokenRegenerateEndpoint,
 )
+from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
 from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
 from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
     TestResultsAggregatesEndpoint,
@@ -1084,6 +1085,11 @@ PREVENT_URLS = [
         r"^owner/(?P<owner>[^/]+)/repositories/$",
         RepositoriesEndpoint.as_view(),
         name="sentry-api-0-repositories",
+    ),
+    re_path(
+        r"^owner/(?P<owner>[^/]+)/repositories/tokens/$",
+        RepositoryTokensEndpoint.as_view(),
+        name="sentry-api-0-repository-tokens",
     ),
     re_path(
         r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/token/regenerate/$",
