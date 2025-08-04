@@ -153,7 +153,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
@@ -177,7 +177,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
             self.call_post_process_group(error_event.group_id)
 
@@ -190,7 +190,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         assert self.group
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
 
@@ -414,21 +414,15 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         assert not project_ids
 
-        # event that does not have the tags = no fire
+        # event that does not have the tags = no enqueue
         event_2 = self.create_error_event(fingerprint="asdf")
         self.post_process_error(event_2, is_new=True)
-        assert not mock_trigger.called
-
-        event_3 = self.create_error_event(fingerprint="asdf")
-        self.post_process_error(event_3)
         assert not mock_trigger.called
 
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
         )
-
-        process_delayed_workflows(project_ids[0][0])
-        assert not mock_trigger.called
+        assert not project_ids
 
         # event that fires
         event_4 = self.create_error_event(tags=[["hello", "world"]])

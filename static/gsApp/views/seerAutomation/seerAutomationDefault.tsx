@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -35,10 +34,30 @@ export function SeerAutomationDefault() {
     visible: ({model}) => model?.getValue('defaultSeerScannerAutomation') === true,
   } satisfies FieldObject;
 
+  const orgEnableSeerEnhancedAlerts: FieldObject = {
+    name: 'enableSeerEnhancedAlerts',
+    type: 'boolean',
+    label: <SeerSelectLabel>{t('Enable Enhanced Alerts')}</SeerSelectLabel>,
+    help: t(
+      'Seer will provide extra context in supported alerts to make them more informative at a glance.'
+    ),
+  };
+
+  const orgEnableSeerCoding: FieldObject = {
+    name: 'enableSeerCoding',
+    type: 'boolean',
+    label: <SeerSelectLabel>{t('Enable Code Generation')}</SeerSelectLabel>,
+    help: t('Allow members to use Seer to write code.'),
+  };
+
   const seerFormGroups: JsonFormObject[] = [
     {
       title: t('Default Automation for New Projects'),
       fields: [orgDefaultScannerAutomation, orgDefaultAutomationTuning],
+    },
+    {
+      title: t('Advanced Settings'),
+      fields: [orgEnableSeerEnhancedAlerts, orgEnableSeerCoding],
     },
   ];
   return (
@@ -51,17 +70,12 @@ export function SeerAutomationDefault() {
         defaultSeerScannerAutomation: organization.defaultSeerScannerAutomation ?? false,
         defaultAutofixAutomationTuning:
           organization.defaultAutofixAutomationTuning ?? 'off',
+        enableSeerEnhancedAlerts: organization.enableSeerEnhancedAlerts ?? true,
+        enableSeerCoding: organization.enableSeerCoding ?? true,
       }}
     >
-      <JsonForm
-        forms={seerFormGroups}
-        disabled={!canWrite}
-        renderHeader={() => (
-          <React.Fragment>
-            {!canWrite && <OrganizationPermissionAlert system />}
-          </React.Fragment>
-        )}
-      />
+      {!canWrite && <OrganizationPermissionAlert />}
+      <JsonForm forms={seerFormGroups} disabled={!canWrite} />
     </Form>
   );
 }
