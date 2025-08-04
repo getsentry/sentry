@@ -294,6 +294,30 @@ class SubscriptionProcessor:
 
         return fired_incident_triggers
 
+    def get_comparison_delta(self, detector: Detector | None) -> int | None:
+        comparison_delta = None
+
+        if detector:
+            comparison_delta = detector.config.get("comparison_delta")
+        else:
+            comparison_delta = self.alert_rule.comparison_delta
+
+        return comparison_delta
+
+    def get_detector(self, has_metric_alert_processing: bool) -> Detector | None:
+        detector = None
+        if has_metric_alert_processing:
+            try:
+                detector = Detector.objects.get(
+                    data_sources__source_id=str(self.subscription.id),
+                    data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                )
+            except Detector.DoesNotExist:
+                logger.exception(
+                    "Detector not found", extra={"subscription_id": self.subscription.id}
+                )
+        return detector
+
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
@@ -369,21 +393,8 @@ class SubscriptionProcessor:
                 tags={"dual_processing": has_metric_alert_processing},
             ),
         ):
-            if has_metric_alert_processing:
-                try:
-                    detector = Detector.objects.get(
-                        data_sources__source_id=str(self.subscription.id),
-                        data_sources__type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-                    )
-                    comparison_delta = detector.config.get("comparison_delta")
-                except Detector.DoesNotExist:
-                    logger.exception(
-                        "Detector not found", extra={"subscription_id": self.subscription.id}
-                    )
-
-            else:
-                comparison_delta = self.alert_rule.comparison_delta
-
+            detector = self.get_detector(has_metric_alert_processing)
+            comparison_delta = self.get_comparison_delta(detector)
             aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
 
             if aggregation_value is not None:
