@@ -20,13 +20,16 @@ RUN : \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/src/sentry
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_PROJECT_ENVIRONMENT=/.venv UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
 
-ENV PATH=/usr/src/sentry/.venv/bin:$PATH UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
-# We want to use the image's python for the venv rather
-# than have uv manage it.
-RUN python3 -m venv .venv
-COPY --from=ghcr.io/astral-sh/uv:0.8.2 /uv /bin/
+ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
+
+RUN python3 -m pip install --index-url 'https://pypi.devinfra.sentry.io/simple' 'uv==0.8.2'
+
+# We don't want uv-managed python, we want to use python from the image.
+# We only want to use uv to manage dependencies.
+RUN python3 -m venv "$UV_PROJECT_ENVIRONMENT"
 
 ENV \
   # Sentry config params
@@ -35,6 +38,8 @@ ENV \
   UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
+
+WORKDIR /usr/src/sentry
 
 # Install dependencies first to leverage Docker layer caching.
 COPY uv.lock pyproject.toml .
