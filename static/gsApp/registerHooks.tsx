@@ -84,6 +84,7 @@ import useButtonTracking from './hooks/useButtonTracking';
 import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
 
+const ReplayListPageHeader = lazy(() => import('getsentry/hooks/replayListPageHeader'));
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
 const DisabledDiscover2Page = lazy(
   () => import('./components/features/disabledDiscover2Page')
@@ -228,6 +229,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:replay-feedback-button': () => ReplayZendeskFeedback,
+  'component:replay-list-page-header': () => (
+    <LazyLoad LazyComponent={ReplayListPageHeader} />
+  ),
   'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
