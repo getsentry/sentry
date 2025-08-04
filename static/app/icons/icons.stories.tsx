@@ -491,6 +491,13 @@ const SECTIONS: TSection[] = [
     label: 'Status',
     icons: [
       {
+        id: 'angry',
+        groups: ['status'],
+        keywords: ['angry', 'rage', 'face'],
+        name: 'Angry',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
