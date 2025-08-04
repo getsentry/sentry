@@ -92,4 +92,28 @@ describe('CodecovSecondaryNav', () => {
     expect(tokensLink).toBeInTheDocument();
     expect(tokensLink).toHaveAttribute('href', '/organizations/org-slug/codecov/tokens/');
   });
+
+  it('renders the correct prevent AI link', () => {
+    render(
+      <NavContextProvider>
+        <Nav />
+        <div id="main" />
+      </NavContextProvider>,
+      {
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/codecov/prevent-ai/new/',
+          },
+        },
+      }
+    );
+
+    const preventAILink = screen.getByRole('link', {name: 'Prevent AI'});
+    expect(preventAILink).toBeInTheDocument();
+    expect(preventAILink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/codecov/prevent-ai/new/'
+    );
+  });
 });
