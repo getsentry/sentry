@@ -1406,16 +1406,26 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
+
         mock_incr.assert_any_call("sentry.task.post_process.handle_owner_assignment.ratelimited")
         mock_incr.reset_mock()
 
         # Raise this organization's ratelimit
         with self.feature("organizations:increased-issue-owners-rate-limit"):
+            # Create a new event to avoid debouncing
+            event2 = self.create_event(
+                data={
+                    "message": "oh no again",
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "src/app2.py"}]},
+                },
+                project_id=self.project.id,
+            )
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                event=event,
+                event=event2,
             )
             with pytest.raises(AssertionError):
                 mock_incr.assert_any_call(
@@ -1430,11 +1440,20 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             ),
         )
         with self.feature("organizations:increased-issue-owners-rate-limit"):
+            # Create a new event to avoid debouncing
+            event3 = self.create_event(
+                data={
+                    "message": "oh no yet again",
+                    "platform": "python",
+                    "stacktrace": {"frames": [{"filename": "src/app3.py"}]},
+                },
+                project_id=self.project.id,
+            )
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                event=event,
+                event=event3,
             )
             mock_incr.assert_any_call(
                 "sentry.task.post_process.handle_owner_assignment.ratelimited"
