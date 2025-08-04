@@ -775,9 +775,9 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
     return {repr(key): value for key, value in d.items()}
 
 
-def _summarize_by_first[
-    T1, T2: int | str
-](it: Iterable[tuple[T1, T2]],) -> dict[T1, list[T2]]:
+def _summarize_by_first[T1, T2: int | str](
+    it: Iterable[tuple[T1, T2]],
+) -> dict[T1, list[T2]]:
     "Logging helper to allow pairs to be summarized as a mapping from first to list of second"
     result = defaultdict(set)
     for key, value in it:
