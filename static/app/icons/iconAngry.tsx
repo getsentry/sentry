@@ -10,12 +10,12 @@ function IconAngry(props: SVGIconProps) {
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
-          <line className="cls-1" x1="9" y1="5.75" x2="12.25" y2="4.25" />
-          <line className="cls-1" x1="7" y1="5.75" x2="3.75" y2="4.25" />
-          <circle className="cls-1" cx="8" cy="8" r="5.75" />
-          <path className="cls-1" d="M10,10.5c-1-1-2.83-1-4,0" />
-          <circle className="cls-1" cx="10" cy="7.5" r=".25" />
-          <circle className="cls-1" cx="6" cy="7.5" r=".25" />
+          <line x1="9" y1="5.75" x2="12.25" y2="4.25" />
+          <line x1="7" y1="5.75" x2="3.75" y2="4.25" />
+          <circle cx="8" cy="8" r="5.75" />
+          <path d="M10,10.5c-1-1-2.83-1-4,0" />
+          <circle cx="10" cy="7.5" r=".25" />
+          <circle cx="6" cy="7.5" r=".25" />
         </Fragment>
       ) : (
         <Fragment>

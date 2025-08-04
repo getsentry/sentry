@@ -10,13 +10,13 @@ function IconDead(props: SVGIconProps) {
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
-          <line className="cls-1" x1="4.75" y1="7.75" x2="6.75" y2="5.75" />
-          <circle className="cls-1" cx="8" cy="8" r="5.75" />
-          <line className="cls-1" x1="4.75" y1="5.75" x2="6.75" y2="7.75" />
-          <line className="cls-1" x1="9.25" y1="7.75" x2="11.25" y2="5.75" />
-          <line className="cls-1" x1="9.25" y1="5.75" x2="11.25" y2="7.75" />
-          <line className="cls-1" x1="5.5" y1="10.25" x2="10.5" y2="10.25" />
-          <path className="cls-1" d="M7.5,10.25v.75s0,.5.5.5.5-.5.5-.5v-.75" />
+          <line x1="4.75" y1="7.75" x2="6.75" y2="5.75" />
+          <circle cx="8" cy="8" r="5.75" />
+          <line x1="4.75" y1="5.75" x2="6.75" y2="7.75" />
+          <line x1="9.25" y1="7.75" x2="11.25" y2="5.75" />
+          <line x1="9.25" y1="5.75" x2="11.25" y2="7.75" />
+          <line x1="5.5" y1="10.25" x2="10.5" y2="10.25" />
+          <path d="M7.5,10.25v.75s0,.5.5.5.5-.5.5-.5v-.75" />
         </Fragment>
       ) : (
         <Fragment>
