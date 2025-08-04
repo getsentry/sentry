@@ -810,7 +810,10 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         self.workflow1_if_dcgs[0].delete()
         self.workflow2_if_dcgs[1].delete()
 
-        self.data_condition_groups: list[DataConditionGroup] = (
+        assert self.workflow1.when_condition_group
+        assert self.workflow2.when_condition_group
+
+        self.data_condition_groups = (
             [
                 self.workflow1.when_condition_group,
                 self.workflow2.when_condition_group,
