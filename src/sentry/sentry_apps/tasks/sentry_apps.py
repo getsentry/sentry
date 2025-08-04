@@ -47,6 +47,7 @@ from sentry.sentry_apps.services.app.service import (
     get_installation,
     get_installations_for_organization,
 )
+from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -829,4 +830,61 @@ def create_or_update_service_hooks_for_sentry_app(
                 installation=installation,
                 events=events,
                 webhook_url=webhook_url,
+            )
+
+
+@instrumented_task(
+    "sentry.sentry_apps.tasks.sentry_apps.regenerate_service_hooks_for_installation",
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_control_tasks, retry=Retry(times=3), processing_deadline_duration=60
+    ),
+    **CONTROL_TASK_OPTIONS,
+)
+def regenerate_service_hooks_for_installation(
+    *,
+    installation_id: int,
+    webhook_url: str | None,
+    events: list[str],
+) -> None:
+    """
+    This function creates or updates service hooks for a given Sentry app installation.
+    It first attempts to update the webhook URL and events for existing service hooks.
+    If no hooks are found and a webhook URL is provided, it creates a new service hook.
+    Should only be called in the control silo
+    """
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.MANAGEMENT,
+        event_type=SentryAppEventType.INSTALLATION_WEBHOOK_UPDATE,
+    ).capture() as lifecycle:
+        try:
+            installation = SentryAppInstallation.objects.get(id=installation_id)
+        except SentryAppInstallation.DoesNotExist:
+            lifecycle.record_failure(
+                SentryAppWebhookFailureReason.MISSING_INSTALLATION,
+                extra={"installation_id": installation_id},
+            )
+            return
+
+        lifecycle.add_extras(
+            {"installation_id": installation.id, "sentry_app": installation.sentry_app.id}
+        )
+        hooks = hook_service.update_webhook_and_events(
+            organization_id=installation.organization_id,
+            application_id=installation.sentry_app.application_id,
+            webhook_url=webhook_url,
+            events=events,
+        )
+        if webhook_url and not hooks:
+            # Note that because the update transaction is disjoint with this transaction, it is still
+            # possible we redundantly create service hooks in the face of two concurrent requests.
+            # If this proves a problem, we would need to add an additional semantic, "only create if does not exist".
+            # But I think, it should be fine.
+            hook_service.create_service_hook(
+                application_id=installation.sentry_app.application_id,
+                actor_id=installation.id,
+                installation_id=installation.id,
+                organization_id=installation.organization_id,
+                project_ids=[],
+                events=events,
+                url=webhook_url,
             )

@@ -135,3 +135,4 @@ class SentryAppEventType(StrEnum):
     REQUESTS = "requests"
     WEBHOOK_UPDATE = "webhook_update"
     INSTALLATION_CREATE = "install_create"
+    INSTALLATION_WEBHOOK_UPDATE = "installation_webhook_update"
