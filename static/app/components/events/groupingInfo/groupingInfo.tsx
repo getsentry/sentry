@@ -57,15 +57,17 @@ export default function GroupingInfo({
         {hasStreamlinedUI && (
           <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
         )}
-        <FeatureFeedback
-          featureName="grouping"
-          feedbackTypes={[
-            t('Too eager grouping'),
-            t('Too specific grouping'),
-            t('Other grouping issue'),
-          ]}
-          buttonProps={{size: 'xs'}}
-        />
+        {hasStreamlinedUI && (
+          <FeatureFeedback
+            featureName="grouping"
+            feedbackTypes={[
+              t('Too eager grouping'),
+              t('Too specific grouping'),
+              t('Other grouping issue'),
+            ]}
+            buttonProps={{size: 'xs'}}
+          />
+        )}
       </ConfigHeader>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
@@ -87,7 +89,6 @@ export default function GroupingInfo({
 
 const ConfigHeader = styled('div')`
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
