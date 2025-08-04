@@ -116,8 +116,8 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         # Check if any spans have filtered URLs
         event_spans = self._event.get("spans", [])
-        span_index = str(event_spans.index(span))
-        meta = self._event.get("_meta", {}).get("spans", [])
+        span_index = str(event_spans.index(span) if span in event_spans else -1)
+        meta = self._event.get("_meta", {}).get("spans", {})
         if span_index in meta:
             has_filtered_url = meta[span_index].get("data", {}).get("url", {})
             if has_filtered_url:
