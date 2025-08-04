@@ -865,7 +865,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
         assert group_to_groupevent == self.group_to_groupevent
 
-    @patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:
         fire_actions_for_groups(
