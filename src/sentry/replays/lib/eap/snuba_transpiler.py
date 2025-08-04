@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from datetime import date, datetime
 from typing import Any
 from typing import Literal as TLiteral
-from typing import NotRequired, TypedDict, cast
+from typing import NotRequired, Required, TypedDict, cast
 
 import urllib3
 from django.conf import settings
@@ -330,7 +330,7 @@ class Settings(TypedDict, total=False):
         ... }
     """
 
-    attribute_types: dict[str, type[bool | float | int | str]]
+    attribute_types: Required[dict[str, type[bool | float | int | str]]]
     default_limit: int
     default_offset: int
     extrapolation_mode: TLiteral["weighted", "none"]  # noqa
@@ -596,7 +596,7 @@ def agg_condition(expr: BooleanCondition | Condition, settings: Settings) -> Agg
                     aggregation=AttributeAggregation(
                         aggregate=FUNCTION_MAP[expr.lhs.function],
                         key=key(expr.lhs.parameters[0], settings),
-                        extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
+                        extrapolation_mode=extrapolation_mode(settings),
                     ),
                 )
             )
@@ -609,7 +609,7 @@ def agg_condition(expr: BooleanCondition | Condition, settings: Settings) -> Agg
                     conditional_aggregation=AttributeConditionalAggregation(
                         aggregate=CONDITIONAL_FUNCTION_MAP[expr.lhs.function],
                         key=key(expr.lhs.parameters[0], settings),
-                        extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
+                        extrapolation_mode=extrapolation_mode(settings),
                         filter=condidtional_aggregation_filter(expr.lhs.parameters[1], settings),
                     ),
                 )
@@ -642,7 +642,7 @@ def agg_function_to_filter(expr: Any, settings: Settings) -> AggregationFilter:
                 aggregation=AttributeAggregation(
                     aggregate=FUNCTION_MAP[nested_fn.function],
                     key=key(nested_fn.parameters[0], settings),
-                    extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
+                    extrapolation_mode=extrapolation_mode(settings),
                 ),
             )
         )
@@ -667,7 +667,7 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
                 aggregation=AttributeAggregation(
                     aggregate=FUNCTION_MAP[expr.function],
                     key=key(expr.parameters[0], settings),
-                    extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
+                    extrapolation_mode=extrapolation_mode(settings),
                     label=label(expr),
                 ),
                 label=label(expr),
@@ -677,7 +677,7 @@ def expression(expr: Column | CurriedFunction | Function, settings: Settings) ->
                 conditional_aggregation=AttributeConditionalAggregation(
                     aggregate=CONDITIONAL_FUNCTION_MAP[expr.function],
                     key=key(expr.parameters[0], settings),
-                    extrapolation_mode=EXTRAPOLATION_MODE_MAP[settings["extrapolation_mode"]],
+                    extrapolation_mode=extrapolation_mode(settings),
                     filter=condidtional_aggregation_filter(expr.parameters[1], settings),
                     label=label(expr),
                 ),
@@ -773,3 +773,7 @@ def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
         return str(expr)
     else:
         return json.dumps(expr)
+
+
+def extrapolation_mode(settings: Settings):
+    return EXTRAPOLATION_MODE_MAP[settings.get("extrapolation_mode", "none")]
