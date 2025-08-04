@@ -2,7 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
@@ -103,7 +103,7 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
       });
-      addSuccessMessage('On it.');
+      addLoadingMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the solution.'));
