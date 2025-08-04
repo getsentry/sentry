@@ -342,6 +342,14 @@ class GitlabOpenPRCommentWorkflow(OpenPRCommentWorkflow):
                     )
                 )
                 continue
+            except Exception:
+                logger.exception(
+                    _open_pr_comment_log(
+                        integration_name=self.integration.integration_name,
+                        suffix="unexpected_error",
+                    )
+                )
+                continue
 
             if not file_modifications.modified:
                 continue
