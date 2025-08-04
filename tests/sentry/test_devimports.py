@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import importlib.metadata
-import re
 import subprocess
 import sys
 
@@ -16,30 +15,20 @@ XFAIL = (
 )
 EXCLUDED = ("sentry.testutils.", "sentry.web.frontend.debug.")
 
-PACKAGE_NAME = re.compile(r"(=|>|<)")
-
 
 def extract_packages(package_specs: list[str]) -> set[str]:
-    return {PACKAGE_NAME.split(spec, maxsplit=1)[0] for spec in package_specs}
+    return {spec.split("==")[0] for spec in package_specs}
 
 
 @functools.lru_cache
 def dev_dependencies() -> tuple[str, ...]:
     with open("pyproject.toml", "rb") as f:
         pyproject = tomllib.load(f)
-        dev_packages = extract_packages(pyproject["project"]["optional-dependencies"]["dev"])
-        prod_packages = extract_packages(
-            pyproject["project"]["dependencies"]
-            + pyproject["project"]["optional-dependencies"]["getsentry"]
-        )
-
-    # We have some packages that are both runtime + dev
-    # but we only care about packages that are exclusively dev deps
-    devonly = dev_packages - prod_packages
+        dev_packages = extract_packages(pyproject["dependency-groups"]["dev"])
 
     module_names = []
     for mod, packages in importlib.metadata.packages_distributions().items():
-        if devonly.intersection(packages):
+        if dev_packages.intersection(packages):
             module_names.append(mod)
     return tuple(sorted(module_names))
 
