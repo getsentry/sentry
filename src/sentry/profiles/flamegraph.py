@@ -713,19 +713,10 @@ class FlamegraphExecutor:
             for candidate in continuous_profile_candidates
         }
 
-        always_use_direct_chunks = features.has(
-            "organizations:profiling-flamegraph-always-use-direct-chunks",
-            self.snuba_params.organization,
-            actor=self.request.user,
-        )
-
         # If we still don't have enough continuous profile candidates + transaction profile candidates,
         # we'll fall back to directly using the continuous profiling data
-        if (
-            len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles
-            and always_use_direct_chunks
-        ):
-            total_duration = continuous_duration if always_use_direct_chunks else 0.0
+        if len(continuous_profile_candidates) + len(transaction_profile_candidates) < max_profiles:
+            total_duration = 0.0
             max_duration = options.get("profiling.continuous-profiling.flamegraph.max-seconds")
 
             conditions = []
