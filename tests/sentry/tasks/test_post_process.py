@@ -640,7 +640,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert mock_processor.call_count == 0
 
         # Call the function inside process_workflow_engine
-        assert mock_process_event.delay.call_count == 1
+        assert mock_process_event.apply_async.call_count == 1
 
     @with_feature("organizations:workflow-engine-single-process-workflows")
     @override_options({"workflow_engine.issue_alert.group.type_id.rollout": [1]})
@@ -669,7 +669,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
         assert mock_processor.call_count == 0
 
         # Don't process workflows for ignored issue
-        assert mock_process_event.delay.call_count == 0
+        assert mock_process_event.apply_async.call_count == 0
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):

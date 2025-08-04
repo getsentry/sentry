@@ -153,7 +153,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
@@ -177,7 +177,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
             self.call_post_process_group(error_event.group_id)
 
@@ -190,7 +190,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         assert self.group
 
         with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.delay"
+            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
 
