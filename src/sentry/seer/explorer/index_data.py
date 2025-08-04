@@ -6,6 +6,7 @@ import orjson
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import search
+from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
@@ -437,12 +438,13 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     search_filters = parse_and_convert_issue_search_query(
         query, project.organization, [project], [], AnonymousUser()
     )
+    search_filters_only = [f for f in search_filters if isinstance(f, SearchFilter)]
 
     results_cursor = search.backend.query(
         projects=[project],
         date_from=start_time,
         date_to=end_time,
-        search_filters=search_filters,
+        search_filters=search_filters_only,
         sort_by="freq",
         limit=3,
         referrer=Referrer.SEER_RPC,
