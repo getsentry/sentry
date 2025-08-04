@@ -715,6 +715,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'scrollHorizontally',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollHorizontally',
+        defaultProps: {},
+      },
+      {
         id: 'sync',
         groups: ['action'],
         keywords: ['swap'],
