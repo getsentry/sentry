@@ -51,7 +51,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import parse_snuba_datetime
-from sentry.workflow_engine.tasks.utils import retry_timeouts
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -71,8 +70,7 @@ logger = logging.getLogger(__name__)
         processing_deadline_duration=timedelta(minutes=15),
     ),
 )
-@retry_timeouts
-@retry
+@retry(timeouts=True)
 def schedule_organizations(
     dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
 ) -> None:
