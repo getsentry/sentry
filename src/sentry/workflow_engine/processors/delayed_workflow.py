@@ -554,10 +554,16 @@ def get_groups_to_fire(
 
     for event_key in event_data.events:
         group_id = event_key.group_id
+        if event_key.workflow_id not in workflows_to_envs:
+            # The workflow is deleted, so we can skip it
+            continue
+
         workflow_env = workflows_to_envs[event_key.workflow_id]
         if when_dcg_id := event_key.when_dcg_id:
-            if not _evaluate_group_result_for_dcg(
-                data_condition_group_mapping[when_dcg_id],
+            if not (
+                dcg := data_condition_group_mapping.get(when_dcg_id)
+            ) or not _evaluate_group_result_for_dcg(
+                dcg,
                 dcg_to_slow_conditions,
                 group_id,
                 workflow_env,
@@ -567,18 +573,20 @@ def get_groups_to_fire(
 
         # the WHEN condition passed / was not evaluated, so we can now check the IF conditions
         for if_dcg_id in event_key.if_dcg_ids:
-            if _evaluate_group_result_for_dcg(
-                data_condition_group_mapping[if_dcg_id],
+            if (
+                dcg := data_condition_group_mapping.get(if_dcg_id)
+            ) and _evaluate_group_result_for_dcg(
+                dcg,
                 dcg_to_slow_conditions,
                 group_id,
                 workflow_env,
                 condition_group_results,
             ):
-                groups_to_fire[group_id].add(data_condition_group_mapping[if_dcg_id])
+                groups_to_fire[group_id].add(dcg)
 
-        groups_to_fire[group_id].update(
-            data_condition_group_mapping[if_dcg_id] for if_dcg_id in event_key.passing_dcg_ids
-        )
+        for if_dcg_id in event_key.passing_dcg_ids:
+            if dcg := data_condition_group_mapping.get(if_dcg_id):
+                groups_to_fire[group_id].add(dcg)
 
     return groups_to_fire
 
