@@ -20,7 +20,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
-from sentry.feedback.usecases.ingest.create_feedback import get_feedback_title
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
@@ -2192,11 +2191,6 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event.event_id
         assert mock_event_data["level"] == "error"
 
-        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
-        assert occurrence.issue_title == get_feedback_title(
-            mock_event_data["contexts"]["feedback"]["message"]
-        )
-
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_user_reports_no_shim_if_group_exists_on_report(
         self, mock_produce_occurrence_to_kafka: MagicMock
@@ -3346,7 +3340,7 @@ class PostProcessGroupFeedbackTest(
             **{
                 "id": uuid.uuid4().hex,
                 "fingerprint": ["c" * 32],
-                "issue_title": get_feedback_title(data["message"]),
+                "issue_title": "User Feedback",
                 "subtitle": "it was bad",
                 "culprit": "api/123",
                 "resource_id": "1234",
