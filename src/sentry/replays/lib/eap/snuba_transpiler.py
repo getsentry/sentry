@@ -282,10 +282,10 @@ class Settings(TypedDict, total=False):
     """
     Query settings which are not representable within a Snuba query.
 
-    This type defines optional configuration parameters that extend beyond what the
-    Snuba SDK can natively express. All fields are optional due to `total=False`,
-    allowing for flexible partial configuration. However, the "attribute_types" is
-    required and if its omitted an error will be raised during query processing.
+    This type defines configuration parameters that extend beyond what the
+    Snuba SDK can natively express. Every field is optional with the exception of the
+    "attribute_types" field which is required and if its omitted an error will be raised during
+    query processing.
 
     Attributes:
         attribute_types: Mapping of attribute names to their type in EAP.
@@ -650,9 +650,13 @@ def agg_function_to_filter(expr: Any, settings: Settings) -> AggregationFilter:
         raise TypeError("Invalid function specified", expr)
 
 
-def expression(expr: Column | CurriedFunction | Function, settings: Settings) -> EAPColumn:
+def expression(
+    expr: AliasedExpression | Column | CurriedFunction | Function, settings: Settings
+) -> EAPColumn:
     if isinstance(expr, Column):
         return EAPColumn(key=key(expr, settings), label=expr.name)
+    elif isinstance(expr, AliasedExpression):
+        return EAPColumn(key=key(expr.exp, settings), label=expr.alias)
     elif isinstance(expr, (CurriedFunction, Function)):
         if expr.function in ARITHMETIC_FUNCTION_MAP:
             return EAPColumn(
@@ -777,3 +781,91 @@ def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
 
 def extrapolation_mode(settings: Settings):
     return EXTRAPOLATION_MODE_MAP[settings.get("extrapolation_mode", "none")]
+
+
+class QueryResultMetaDownsamplingMode(TypedDict):
+    can_go_to_higher_accuracy: bool
+    estimated_rows: int
+
+
+class QueryResultMeta(TypedDict):
+
+    downsampling_mode: QueryResultMetaDownsamplingMode
+    next_offset: int
+    request_id: str
+
+
+class QueryResult(TypedDict):
+
+    data: list[dict[str, bool | float | int | str | None]]
+    meta: QueryResultMeta
+
+
+def translate_response(
+    query: Query, settings: Settings, query_result: TraceItemTableResponse
+) -> QueryResult:
+    # We infer the type of each expression in the select statement. The type information is used
+    # to extract the value from the response object.
+    type_map = {label(expr): type_infer(expr, settings) for expr in query.select}
+
+    def get_value(name: str, result: AttributeValue) -> bool | float | int | str | None:
+        """Return the query result's value using type inference."""
+        if result.is_null:
+            return None
+
+        typ_ = type_map[name]
+        if typ_ == bool:
+            return result.val_bool
+        if typ_ == float:
+            return result.val_float
+        if typ_ == int:
+            return result.val_int
+        if typ_ == str:
+            return result.val_str
+        else:
+            return None
+
+    response: QueryResult = {
+        "data": [{}] * len(query_result.column_values),
+        "meta": {
+            "downsampling_mode": {
+                "can_go_to_higher_accuracy": query_result.meta.downsampled_storage_meta.can_go_to_higher_accuracy_tier,
+                "estimated_rows": query_result.meta.downsampled_storage_meta.estimated_num_rows,
+            },
+            "next_offset": query_result.page_token.offset,
+            "request_id": query_result.meta.request_id,
+        },
+    }
+
+    # I'm assuming that all the columns return an identical number of results. As far as I know
+    # this is a safe assumption.
+    for i, c in enumerate(query_result.column_values):
+        for result in c.results:
+            item = response["data"][i]
+            item[c.attribute_name] = get_value(c.attribute_name, result)
+
+    return response
+
+
+def type_infer(
+    expression: AliasedExpression | Column | CurriedFunction | Function, settings: Settings
+) -> type[bool | float | int | str]:
+    """Infer the type of the expression."""
+    if isinstance(expression, Column):
+        return settings["attribute_types"][expression.name]
+    elif isinstance(expression, AliasedExpression):
+        return settings["attribute_types"][expression.exp.name]
+
+    match expression.function:
+        case "count" | "countIf":
+            return int
+        case "max" | "maxIf":
+            return type_infer(expression.parameters[0], settings)
+        case "min" | "minIf":
+            return type_infer(expression.parameters[0], settings)
+        case "sum" | "sumIf":
+            return type_infer(expression.parameters[0], settings)
+        case "uniq" | "uniqIf":
+            return type_infer(expression.parameters[0], settings)
+        case _:
+            return float
