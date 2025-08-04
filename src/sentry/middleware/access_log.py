@@ -133,7 +133,7 @@ def _create_api_access_log(
 
 
 def access_log_middleware(
-    get_response: Callable[[Request], Response]
+    get_response: Callable[[Request], Response],
 ) -> Callable[[Request], Response]:
     def middleware(request: Request) -> Response:
         # NOTE(Vlad): `request.auth|user` are not a simple member accesses,

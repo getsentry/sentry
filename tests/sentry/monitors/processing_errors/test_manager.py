@@ -234,7 +234,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
 class HandleProcessingErrorsTest(TestCase):
     @mock.patch("sentry.monitors.processing_errors.manager.ANALYTICS_SAMPLING_RATE", 1.0)
     @mock.patch("sentry.analytics.record")
-    def test(self, mock_record):
+    def test(self, mock_record) -> None:
         monitor = self.create_monitor()
         exception = ProcessingErrorsException(
             [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],

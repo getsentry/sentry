@@ -27,7 +27,7 @@ class BaseApiClientTest(TestCase):
 
     @responses.activate
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
-    def test_finalize_request(self, mock_finalize_request):
+    def test_finalize_request(self, mock_finalize_request) -> None:
         # Ensure finalize_request is called before all requests
         get_response = responses.add(responses.GET, "https://example.com/get", json={})
         assert not mock_finalize_request.called
@@ -67,14 +67,14 @@ class BaseApiClientTest(TestCase):
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
     @patch.object(Session, "send", side_effect=RestrictedIPAddress())
     @override_blocklist("172.16.0.0/12")
-    def test_restricted_ip_address(self, mock_finalize_request, mock_session_send):
+    def test_restricted_ip_address(self, mock_finalize_request, mock_session_send) -> None:
         assert not mock_finalize_request.called
         with raises(ApiHostError):
             self.api_client.get("https://172.31.255.255")
         assert mock_finalize_request.called
 
     @patch.object(Session, "send")
-    def test_default_timeout(self, mock_session_send):
+    def test_default_timeout(self, mock_session_send) -> None:
         response = MagicMock()
         response.status_code = 204
         mock_session_send.return_value = response
