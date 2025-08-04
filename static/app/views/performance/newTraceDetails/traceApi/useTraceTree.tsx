@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -17,18 +17,6 @@ type UseTraceTreeParams = {
   traceSlug?: string;
 };
 
-function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
-  if (traceQueryStatus === 'error') {
-    return 'error';
-  }
-
-  if (traceQueryStatus === 'pending') {
-    return 'pending';
-  }
-
-  return 'success';
-}
-
 export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): TraceTree {
   const api = useApi();
   const {projects} = useProjects();
@@ -40,9 +28,7 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
   const traceWaterfallSource = replay ? 'replay_details' : 'trace_view';
 
   useEffect(() => {
-    const status = getTraceViewQueryStatus(trace.status);
-
-    if (status === 'error') {
+    if (trace.status === 'error') {
       setTree(t =>
         t.type === 'error'
           ? t
@@ -61,7 +47,7 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
       return;
     }
 
-    if (status === 'pending') {
+    if (trace.status === 'pending') {
       setTree(t =>
         t.type === 'loading'
           ? t

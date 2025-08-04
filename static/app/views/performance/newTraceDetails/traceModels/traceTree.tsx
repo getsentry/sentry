@@ -447,6 +447,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tree.eap_spans_count++;
       }
 
+      if (isTransactionNode(node)) {
+        node.canFetch = true;
+      }
+
       if (!node.metadata.project_slug && !node.metadata.event_id) {
         const parentNodeMetadata = TraceTree.ParentTransaction(node)?.metadata;
         if (parentNodeMetadata) {
